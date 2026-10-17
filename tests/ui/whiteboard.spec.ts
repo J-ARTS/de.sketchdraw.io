@@ -44,7 +44,7 @@ test('all primitive shapes, freehand, connection, text and image render', async 
   await draw(page, 'Freihand', [640, 400], [760, 460]);
   await draw(page, 'Verbindung', [440, 225], [520, 225]);
   await page.getByRole('button', { name: 'Text', exact: true }).click(); await page.mouse.click(620, 540);
-  await page.getByTestId('canvas-text-editor').fill('Menschen & Agenten'); await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await page.getByTestId('canvas-text-editor').fill('Menschen & Agenten'); await page.getByTestId('canvas-text-editor').press('ControlOrMeta+Enter');
   await expect(page.locator('[data-kind=text]')).toContainText('Menschen & Agenten');
   const chooser = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Bild', exact: true }).click();
   await (await chooser).setFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aS9sAAAAASUVORK5CYII=', 'base64') });

@@ -45,6 +45,10 @@ export const STYLE_BY_KIND: Readonly<Partial<Record<ElementKind, Readonly<Partia
   container: { stroke: '#868e96', strokeDash: 'dashed', strokeWidth: 1 },
   // Text color is style.stroke; 1 instead of 0 because the domain's accepted lower bound for strokeWidth is unverified.
   text: { strokeWidth: 1 },
+  // Labels inside shapes start centered, matching the in-place editor (#41).
+  rectangle: { textAlign: 'center' },
+  ellipse: { textAlign: 'center' },
+  diamond: { textAlign: 'center' },
 };
 
 export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {

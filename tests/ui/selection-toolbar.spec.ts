@@ -115,3 +115,25 @@ test('the shape picker swaps shapes, keeps connections, filters by search and un
   await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(0);
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(2);
 });
+
+test('shape text is edited in place without a box or buttons and commits like the canvas', async ({ page }) => {
+  await drawRectangle(page);
+  await page.keyboard.press('Enter');
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(editor).toHaveCSS('text-align', 'center');
+  await expect(page.getByRole('button', { name: 'Übernehmen', exact: true })).toHaveCount(0);
+  await editor.pressSequentially('Hallo');
+  const shape = (await page.locator('.whiteboard-canvas [data-kind=rectangle]').boundingBox())!;
+  const box = (await editor.boundingBox())!;
+  expect(Math.abs(box.y + box.height / 2 - (shape.y + shape.height / 2))).toBeLessThan(4);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.mouse.click(700, 600); // clicking the canvas commits
+  await expect(editor).toHaveCount(0);
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle] text')).toHaveText('Hallo');
+  await page.mouse.click(450, 360); await page.keyboard.press('Enter');
+  await editor.press('End'); await editor.press('Enter'); await editor.pressSequentially('Welt');
+  await editor.press('ControlOrMeta+Enter');
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle] tspan')).toHaveText(['Hallo', 'Welt']);
+});

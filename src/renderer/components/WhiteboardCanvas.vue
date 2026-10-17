@@ -4,6 +4,7 @@ import { useWhiteboard } from './use-whiteboard';
 import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
 import { docToScreen } from '../lib/viewport';
+import { themeColor } from '../lib/theme';
 import type { PointerInput } from '../state/contract';
 
 const store = useWhiteboard();
@@ -13,11 +14,39 @@ const editor = ref<HTMLTextAreaElement>();
 let observer: ResizeObserver | undefined;
 let activePointer: number | null = null;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
+/** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
 const editStyle = computed(() => {
-  if (!s.textEdit) return {};
-  const { x, y } = docToScreen(s.viewport, s.textEdit.box);
-  return { left: `${x}px`, top: `${y}px`, width: `${Math.max(120, s.textEdit.box.width * s.viewport.zoom)}px`, minHeight: `${Math.max(48, s.textEdit.box.height * s.viewport.zoom)}px`, fontSize: `${s.textEdit.style.fontSize * s.viewport.zoom}px`, transform: `rotate(${s.textEdit.rotation}deg)` };
+  const edit = s.textEdit;
+  if (!edit) return {};
+  const zoom = s.viewport.zoom;
+  const { x, y } = docToScreen(s.viewport, edit.box);
+  const free = edit.kind === 'text';
+  const topInset = edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  return {
+    left: `${x}px`, top: `${y}px`,
+    width: `${Math.max(free ? 120 : 24, edit.box.width * zoom)}px`,
+    ...(free ? { minHeight: `${edit.style.fontSize * 1.25 * zoom}px` } : { height: `${Math.max(24, edit.box.height * zoom)}px` }),
+    alignItems: free || topInset ? 'flex-start' : 'center',
+    padding: free ? '0' : `${topInset * zoom}px ${8 * zoom}px 0`,
+    transform: `rotate(${edit.rotation}deg)`,
+    fontSize: `${edit.style.fontSize * zoom}px`,
+    fontFamily: edit.style.fontFamily === 'mono' ? 'var(--font-mono)' : 'var(--font-sans)',
+    textAlign: edit.style.textAlign,
+    '--edit-color': themeColor(edit.style.stroke, s.theme),
+  };
 });
+function autosize(): void {
+  const el = editor.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+function onEditorKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.isComposing) {
+    event.preventDefault();
+    store.commitTextEdit();
+  }
+}
 function input(event: PointerEvent | MouseEvent): PointerInput {
   const box = canvas.value!.getBoundingClientRect();
   return { x: event.clientX - box.left, y: event.clientY - box.top, button: event.button, pointerType: 'pointerType' in event ? event.pointerType as PointerInput['pointerType'] : 'mouse', shiftKey: event.shiftKey, altKey: event.altKey, metaOrCtrl: event.metaKey || event.ctrlKey, detail: event.detail };
@@ -38,7 +67,8 @@ function wheel(event: WheelEvent) {
   const box = canvas.value!.getBoundingClientRect();
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
 }
-watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); editor.value?.focus(); editor.value?.select(); } else canvas.value?.focus({ preventScroll: true }); });
+watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); autosize(); editor.value?.focus(); editor.value?.select(); } else canvas.value?.focus({ preventScroll: true }); });
+watch(() => [s.textEdit?.draft, s.viewport.zoom], () => { void nextTick(autosize); });
 onMounted(() => {
   observer = new ResizeObserver(([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
   if (canvas.value) { observer.observe(canvas.value); canvas.value.focus(); }
@@ -55,7 +85,7 @@ onBeforeUnmount(() => observer?.disconnect());
         <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id" />
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
-        <rect v-if="s.frame && !s.textEdit" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
+        <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
         <rect v-for="handle in s.handles" :key="handle.id" :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
@@ -63,9 +93,8 @@ onBeforeUnmount(() => observer?.disconnect());
     </svg>
     <QuickConnect />
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
-    <div v-if="s.textEdit" class="text-edit-wrap" :style="editStyle">
-      <textarea ref="editor" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
-      <div class="text-edit-actions"><button class="sd-btn" :disabled="s.transitioning || !s.canWrite || s.textEdit.composing" @click="store.commitTextEdit()">Übernehmen</button><button class="sd-btn" :disabled="s.transitioning || !s.canWrite" @click="store.cancelTextEdit()">Abbrechen</button></div>
+    <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
+      <textarea ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
     </div>
     <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
@@ -75,5 +104,5 @@ onBeforeUnmount(() => observer?.disconnect());
 <style scoped>
 .canvas-wrap,.whiteboard-canvas{position:absolute;inset:0;width:100%;height:100%}.whiteboard-canvas{touch-action:none;outline:none!important}.whiteboard-canvas:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .empty-canvas{position:absolute;top:38%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;color:var(--text-muted);width:min(480px,80vw)}.eyebrow{font-size:10px;letter-spacing:.2em;font-weight:650;color:var(--accent)}h1{font-size:clamp(24px,3vw,36px);letter-spacing:-.04em;font-weight:550;color:var(--text-primary);margin:16px 0}p{font-size:13px;line-height:1.8}.empty-arrow{display:block;transform:rotate(-12deg);font-size:40px;margin-top:30px;color:var(--border-default)}kbd{border:1px solid var(--border-subtle);border-radius:4px;padding:1px 5px;background:var(--surface-panel)}
-.text-edit-wrap{position:absolute;z-index:8;transform-origin:center}.canvas-text-editor{width:100%;min-height:inherit;resize:vertical;background:var(--surface-panel);color:var(--text-primary);border:2px solid var(--accent);font:inherit;line-height:1.25;padding:4px;display:block}.text-edit-actions{display:flex;gap:4px;margin-top:5px;font-size:12px}.draft-conflict{min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);padding:12px;font-size:12px}
+.text-edit-wrap{position:absolute;z-index:8;display:flex;transform-origin:center;pointer-events:none}.canvas-text-editor{display:block;width:100%;max-height:100%;margin:0;padding:0;overflow:hidden;resize:none;background:transparent;border:0;outline:none;color:var(--edit-color);caret-color:var(--edit-color);font:inherit;line-height:1.25;text-align:inherit;pointer-events:auto}.text-edit-wrap.free .canvas-text-editor{max-height:none}.canvas-text-editor::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}.draft-conflict{position:absolute;top:calc(100% + 8px);left:0;min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);border-radius:var(--radius-1);padding:12px;font-size:12px;pointer-events:auto}
 </style>
