@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792272865.9702091,
-    "ast_hash": "80915f608a2f2de9b936e751551a94fd",
+    "mtime": 1792273623.3549926,
+    "ast_hash": "d3c93e58b0de1e4278b8f0fcc6d27460",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "src/domain/types.ts": {
-    "mtime": 1792240910.8249328,
-    "ast_hash": "d20e5f5222b61bdc24e52f08e48242cf",
+    "mtime": 1792273068.0920622,
+    "ast_hash": "9f32cf849939da034cb77732cce6139b",
     "semantic_hash": ""
   },
   "docs/contracts.md": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1792254482.3949304,
-    "ast_hash": "28a8e34d477e9972dc87d34f69bd2f56",
+    "mtime": 1792273217.4938686,
+    "ast_hash": "7fb934c8f17ac92a399f86a777a2a7d2",
     "semantic_hash": ""
   },
   "playwright.config.ts": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "src/domain/validation.ts": {
-    "mtime": 1792242965.516745,
-    "ast_hash": "1406bf192d60c0b485c5dbba3485716e",
+    "mtime": 1792273077.9751227,
+    "ast_hash": "f179bd4098c78b983cabeb9521c180b5",
     "semantic_hash": ""
   },
   "src/platform/browser-bridge.ts": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "src/renderer/lib/constants.ts": {
-    "mtime": 1792265008.1131601,
-    "ast_hash": "77f526e076ee4d98dc2b68adf38dd6ca",
+    "mtime": 1792273242.6651824,
+    "ast_hash": "48c62dd466d3510c126efe1f7bd8776d",
     "semantic_hash": ""
   },
   "src/renderer/lib/describe.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792264697.9664333,
-    "ast_hash": "8a97e88067928d01da75b1c8aac3ef9a",
+    "mtime": 1792273068.0932322,
+    "ast_hash": "b8cb895ace8248bfc2cc421ae920e5b0",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
@@ -770,13 +770,13 @@
     "semantic_hash": ""
   },
   "src/interop/drawio.ts": {
-    "mtime": 1792247692.7336006,
-    "ast_hash": "5bd675b5209394241b7c30e9412f8b0d",
+    "mtime": 1792273077.9780629,
+    "ast_hash": "8bde87607ed09daa5efb7cffb2ee53f5",
     "semantic_hash": ""
   },
   "src/interop/export.ts": {
-    "mtime": 1792248438.7896872,
-    "ast_hash": "d89edfbc0edff2bb0e5bb30707b78bec",
+    "mtime": 1792273077.9764175,
+    "ast_hash": "92fe731f7c5203d66fc85f7de66e2596",
     "semantic_hash": ""
   },
   "src/interop/geometry.ts": {
@@ -790,8 +790,8 @@
     "semantic_hash": ""
   },
   "src/interop/svg.ts": {
-    "mtime": 1792247692.7340493,
-    "ast_hash": "6d77d8186c7c3608fde07a5ace111416",
+    "mtime": 1792273077.9770691,
+    "ast_hash": "e5c0f9c9626c6f0360b51387fcccd410",
     "semantic_hash": ""
   },
   "src/interop/xml.ts": {
@@ -825,8 +825,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/ElementView.vue": {
-    "mtime": 1792245915.8186584,
-    "ast_hash": "4906c465729dd5e90aaf5ce921db66bd",
+    "mtime": 1792273242.666255,
+    "ast_hash": "355fe82afaa399508859dcd80e7bb968",
     "semantic_hash": ""
   },
   "src/renderer/components/InteropPanel.vue": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/WhiteboardCanvas.vue": {
-    "mtime": 1792264984.981546,
-    "ast_hash": "6d189ffbe5427826cb361bfa2a7095cb",
+    "mtime": 1792273242.6655343,
+    "ast_hash": "16a55f70d3f495f9d7cc8c2af590221d",
     "semantic_hash": ""
   },
   "src/renderer/components/WorkspacePanels.vue": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/SelectionToolbar.vue": {
-    "mtime": 1792272233.0098817,
-    "ast_hash": "18f964c9d91cf7bf9d2e5aeef80ae646",
+    "mtime": 1792273242.6737473,
+    "ast_hash": "dbc2267743ae235eb177bb47a3bf2b80",
     "semantic_hash": ""
   },
   "src/renderer/lib/color.ts": {
@@ -1277,6 +1277,16 @@
   "docs/reviews/multi-page-proposal.md": {
     "mtime": 1792271237.764994,
     "ast_hash": "e525200cfd744093e722a74849b80b9d",
+    "semantic_hash": ""
+  },
+  "tests/ui/font-family.spec.ts": {
+    "mtime": 1792273425.7147398,
+    "ast_hash": "134f2cc5f90a5db79be8e0606cd09ac6",
+    "semantic_hash": ""
+  },
+  "tests/unit/interop/font-family.spec.ts": {
+    "mtime": 1792273124.265151,
+    "ast_hash": "1bf6a9331e7adca70ca765074a3de8c9",
     "semantic_hash": ""
   }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T23:34:25+02:00",
+  "updatedAt": "2026-10-17T21:54:53.451817Z",
   "issues": [
     {
       "number": 4,
@@ -602,6 +602,21 @@
       "dependencies": [
         37
       ]
+    },
+    {
+      "number": 43,
+      "title": "Schriftarten: Roboto und Scribbled ergänzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/43",
+      "owner": "Codex",
+      "currentImplementer": "Antigravity with Claude Sonnet 5.5 Medium (contract and UI), Codex (integration/testing)",
+      "phase": "UI and interface",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -2391,6 +2406,133 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39070996817 at b26bfdddc18837d5feabdf20fc034b71cb266d46: Governance/Graphify 117508398838, direct P2P 117508399040, Ubuntu 117508420913, Windows 117508420947 and macOS 117508420951 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds, browser UI tests including the popover regression, Electron integration and non-publishing package-directory verification. Runtime 408 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "antigravity-font-contract-043",
+      "tool": "antigravity",
+      "model": "Claude Sonnet 5.5 Medium",
+      "issues": [
+        43
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/43",
+        "src/domain/types.ts",
+        "src/domain/validation.ts",
+        "src/interop/export.ts",
+        "src/interop/svg.ts",
+        "src/interop/drawio.ts",
+        "tests/unit/interop/font-family.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278"
+      ],
+      "concerns": [
+        "Foreign SVG and draw.io font names continue to map conservatively unless they match an exported bundled stack exactly."
+      ],
+      "authorization": "The project role assigns logic and interfaces to Antigravity; the user explicitly requested Antigravity and authorized use of its Claude quota.",
+      "measurementSource": "Antigravity using Claude Sonnet 5.5 Medium extended the fontFamily contract, validation and interop mappings. Codex verified the result with typecheck, 295/295 unit tests, 35/35 UI tests, 6/6 Electron tests and a renderer production build. GitHub Actions run 39072428278 subsequently passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build/test/package matrix. No measured duration, tokens or cost for the agent work."
+    },
+    {
+      "id": "claude-code-font-ui-attempt-043",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        43
+      ],
+      "status": "no_work_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/43"
+      ],
+      "concerns": [
+        "Claude Code 2.1.185 reported that the local session limit was reached and made no repository changes."
+      ],
+      "authorization": "The project role assigns frontend UI implementation to Claude Code, and the user explicitly asked to use Claude Code.",
+      "measurementSource": "The CLI exited before work began with a session-limit message. No work artifact, measured duration, token count or cost was available."
+    },
+    {
+      "id": "antigravity-claude-font-ui-043",
+      "tool": "antigravity",
+      "model": "Claude Sonnet 5.5 Medium",
+      "issues": [
+        43
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/43",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/constants.ts",
+        "src/renderer/styles/fonts.css",
+        "src/renderer/styles/tokens.css",
+        "tests/ui/font-family.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278"
+      ],
+      "concerns": [
+        "For a mixed selection the toolbar preview shows the first selected element font while no option is marked pressed; the underlying mixed state remains explicit and accessible."
+      ],
+      "authorization": "After Claude Code was quota-limited, the user had explicitly authorized using the Claude quota available in Antigravity and temporary responsibility takeover with the actual tool documented.",
+      "measurementSource": "Antigravity using Claude Sonnet 5.5 Medium added the four-option font UI, bundled Fontsource packages and UI coverage. Codex independently verified local typecheck, 295/295 unit tests, 35/35 UI tests, 6/6 Electron tests and the renderer build. GitHub Actions run 39072428278 subsequently passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build/test/package matrix. No measured duration, tokens or cost for the agent work."
+    },
+    {
+      "id": "codex-font-integration-review-043",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        43
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/43",
+        "tests/unit/interop/font-family.spec.ts",
+        "tests/ui/font-family.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278"
+      ],
+      "concerns": [],
+      "authorization": "Project responsibilities assign architecture review, Scrum coordination and overall testing to Codex.",
+      "measurementSource": "Codex reviewed the domain, renderer and interop changes, verified exact Fontsource 5.3.0 packages and OFL-1.1 metadata, and passed typecheck, 295/295 unit tests, 35/35 UI tests, 6/6 Electron tests and the renderer production build. GitHub Actions run 39072428278 subsequently passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build/test/package matrix. No measured duration, tokens or cost for the agent work."
+    },
+    {
+      "id": "github-actions-font-families-39072428278",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        43
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T21:47:41Z",
+      "endedAt": "2026-10-17T21:54:37Z",
+      "observedSeconds": 416,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub Actions run 39072428278 at 96f75ff1e72ba4869b210dbae969605517a2fd64: Governance/Graphify 117512610965, direct P2P 117512610906, Ubuntu 117512640080, Windows 117512640122 and macOS 117512640124 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds with bundled Roboto/Caveat assets, 35 browser UI tests including the font regression, Electron integration and non-publishing package-directory verification. Runtime 416 seconds; no token or cost metric applies."
     }
   ],
   "evidencePolicy": {
