@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T16:37:51.522400+00:00",
+  "updatedAt": "2026-10-17T19:32:38+02:00",
   "issues": [
     {
       "number": 4,
@@ -473,6 +473,39 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 30,
+      "title": "Agentenzugriff: Freigabe-Tab entfernen und Tools dauerhaft verfügbar machen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/30",
+      "owner": "Claude Code / Antigravity",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Agent access",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        13
+      ]
+    },
+    {
+      "number": 31,
+      "title": "UI-Redesign: Workspace-Chrome nach finalem Design (Palette, Dokumentkarte, Leisten, Minimap)",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/31",
+      "owner": "Claude Code",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        10
+      ]
     }
   ],
   "runs": [
@@ -1809,6 +1842,60 @@
       ],
       "concerns": [],
       "measurementSource": "Automatic post-integration CI on main38f5170. Governance and P2P passed; three-platform product jobs still running at initial observation. Separate from successful tagged release CI39046419226. No unconfirmed success claimed. Final fresh GitHub read confirms overall success and all five jobs completed successfully: Governance117445864526, P2P117445864684, Windows117445892052, macOS117445892132, Linux117445892135. Product/source38f5170 validated after publisher/license integration. Final state-only documentation uses local content, graph and22Python checks."
+    },
+    {
+      "id": "codex-auto-agent-access-030",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        30
+      ],
+      "status": "verified_local_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/30",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5c21fc175aa008ee50b5cbc900c43da31ccd3d37",
+        "electron/agent-access/runtime-access.ts",
+        "src/renderer/App.vue",
+        "src/mcp/server.ts",
+        "docs/reviews/automatic-agent-access.md"
+      ],
+      "concerns": [
+        "automatic-local-write-access",
+        "same-user-runtime-capability",
+        "guest-access-disabled"
+      ],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular UI, interface and IAM ownership remains assigned to Claude Code and Antigravity.",
+      "measurementSource": "Codex implemented and reviewed automatic access for the current local document. Local validation at commit5c21fc1: Vue/TypeScript typecheck passed; Vitest285/285, Node58/58, Playwright UI19/19, Electron6/6 and strict P2P3/3 passed; production build passed with existing bundle-size warnings. No measured agent duration/tokens/cost. Operational traceability only; no official benchmark claim."
+    },
+    {
+      "id": "codex-ui-review-031",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        31
+      ],
+      "status": "verified_local_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/31",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5c21fc175aa008ee50b5cbc900c43da31ccd3d37",
+        "src/renderer/components/MainMenu.vue",
+        "src/renderer/components/Minimap.vue",
+        "tests/ui"
+      ],
+      "concerns": [
+        "workspace-ui-regression"
+      ],
+      "measurementSource": "Codex reviewed, tested and integrated the concurrent workspace UI implementation; this record does not attribute its authorship to Codex. Local validation at commit5c21fc1: typecheck and production build passed; Vitest285/285, Node58/58, Playwright UI19/19, Electron6/6 and strict P2P3/3 passed. No measured agent duration/tokens/cost. Operational traceability only; no official benchmark claim."
     }
   ],
   "evidencePolicy": {

@@ -820,6 +820,70 @@
         "codex-ticket-closure-004"
       ]
     },
+    "30": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-auto-agent-access-030"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
+    "31": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-ui-review-031"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "4": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1124,16 +1188,17 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 10
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 10
       },
-      "runCount": 8,
+      "runCount": 10,
       "runIds": [
+        "codex-auto-agent-access-030",
         "codex-draft-recovery-028",
         "codex-final-release-closure-029",
         "codex-mcp-takeover-001",
@@ -1141,13 +1206,14 @@
         "codex-noncommercial-license-029",
         "codex-orchestration-001",
         "codex-ticket-closure-004",
-        "codex-ticket-closure-015"
+        "codex-ticket-closure-015",
+        "codex-ui-review-031"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 10
       }
     },
     "codex-subagent": {
@@ -1230,15 +1296,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 56
+      "unknownRuns": 58
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 36
+      "unknownRuns": 38
     },
-    "runCount": 56,
+    "runCount": 58,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1260,6 +1326,7 @@
       "claude-architecture-002",
       "claude-whiteboard-001",
       "claude-whiteboard-002",
+      "codex-auto-agent-access-030",
       "codex-ci-signing-env-026",
       "codex-codec-catalog-tests-001",
       "codex-dependency-review-001",
@@ -1292,6 +1359,7 @@
       "codex-setup-integration-001",
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
+      "codex-ui-review-031",
       "codex-whiteboard-takeover-001",
       "github-actions-final-39049794209",
       "github-actions-release-39044870745",
@@ -1301,7 +1369,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 52
+      "unknownRuns": 54
     }
   },
   "officialScoreClaimReady": false,
@@ -1311,9 +1379,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 18
+    "unknownIssues": 20
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T16:37:51.522400+00:00"
+  "updatedAt": "2026-10-17T19:32:38+02:00"
 }
