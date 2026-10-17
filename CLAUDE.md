@@ -35,6 +35,8 @@ Entscheidungen und Implementierungen müssen sich an dieser Vision messen lassen
 - **Claude ist verantwortlich für Frontend-Design und Frontend-Implementierung** (Vue 3, TypeScript, Electron-Renderer): UI/UX-Konzept, Layout, Komponenten, Styling, Interaktionen, Accessibility, Responsiveness sowie die zugehörigen Frontend-Tests.
 - Design-Entscheidungen trifft Claude eigenständig und begründet sie im zugehörigen Ticket (Label `ui`); gestalterisch wird bewusst und konsistent gearbeitet, keine generischen Template-Defaults.
 - Der Frontend-Code folgt einem einheitlichen Design-System (Tokens für Farben, Typografie, Abstände; Light/Dark-Theme).
+- **Größenverhältnisse der Oberfläche bleiben gewahrt:** Alle schwebenden Leisten (Dokumentkarte, Werkzeugleiste, Arbeitsbereich-Leiste, Zoomleiste, Kontextleiste) haben dieselbe Höhe `--chrome-height` (56 px); Buttons und Symbole darin nutzen `--chrome-control` (40 px). Neue oder geänderte Leisten übernehmen diese Tokens statt eigener Höhen oder Innenabstände, damit nebeneinanderliegende Elemente bündig bleiben. Nach UI-Änderungen die Höhen im Browser nachmessen.
+- **Farben folgen dem aktiven Theme:** Menüs, Popover und Leisten sind im hellen Modus hell und weiß (Panel-Tokens) und wechseln erst bei aktiviertem Dark Mode auf dunkle Farben; keine fest dunklen Flächen im hellen Modus.
 - Die gemeinsamen Rollen, Abschlussbedingungen und Statusregeln in `AGENTS.md` gelten auch für Claude Code. Codex koordiniert Architektur, Scrum und Gesamtprüfung; Antigravity verantwortet Logik, Schnittstellen, IAM und DevOps.
 
 ## Kritische Zusammenarbeit und Nachvollziehbarkeit

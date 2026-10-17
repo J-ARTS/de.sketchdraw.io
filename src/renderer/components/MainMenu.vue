@@ -350,16 +350,17 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  height: var(--chrome-height);
   max-width: calc(100vw - 2 * var(--space-3));
-  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2);
+  padding: 0 var(--space-3) 0 var(--space-2);
 }
 
 .doc-icon {
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: var(--chrome-control);
+  height: var(--chrome-control);
   border-radius: 10px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -368,7 +369,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
 .doc-divider {
   align-self: stretch;
   width: 1px;
-  margin: calc(-1 * var(--space-2)) 0;
   background: var(--border-subtle);
 }
 
@@ -478,12 +478,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 6px;
+  height: var(--chrome-height);
+  padding: 0 6px;
 }
 
 .bar-btn {
-  width: 40px;
-  height: 40px;
+  width: var(--chrome-control);
+  height: var(--chrome-control);
   border-radius: 10px;
 }
 

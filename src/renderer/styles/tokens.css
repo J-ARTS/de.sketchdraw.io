@@ -34,6 +34,9 @@
   --menu-selected: var(--accent-soft);
   --menu-selected-text: var(--accent-ink);
 
+  /* Every floating bar (document card, tools, workspace, zoom, selection) shares one height. */
+  --chrome-height: 56px;
+  --chrome-control: 40px;
   --control-size: 36px;
   --control-size-compact: 32px;
   --panel-width: 288px;

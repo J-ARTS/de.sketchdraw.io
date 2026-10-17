@@ -34,8 +34,9 @@ test('the toolbar floats centered above the selection and edits style through po
   await page.getByRole('button', { name: /^Groß/ }).click();
   await expect(bar.getByRole('button', { name: 'Schriftgröße: Groß' })).toBeVisible();
 
-  await bar.getByRole('button', { name: 'Weitere Eigenschaften' }).click();
-  await page.getByRole('button', { name: 'Löschen', exact: true }).click();
+  // Label, description and arrange actions were removed from the toolbar; deleting uses the keyboard.
+  await expect(bar.getByRole('button', { name: 'Komponenteneinstellungen' })).toHaveCount(0);
+  await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('Delete');
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(0);
   await expect(bar).toHaveCount(0);
 });

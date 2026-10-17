@@ -415,7 +415,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 44px;
+  min-height: var(--chrome-control);
   padding: 0 10px 0 8px;
   background: transparent;
   border: 0;

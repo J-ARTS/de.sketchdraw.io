@@ -39,7 +39,7 @@ let observer: ResizeObserver | undefined;
 watch(bar, (element) => {
   observer?.disconnect();
   if (!element) return;
-  observer = new ResizeObserver(([entry]) => { if (entry) barSize.value = { width: entry.contentRect.width + 12, height: entry.contentRect.height + 12 }; });
+  observer = new ResizeObserver(() => { barSize.value = { width: element.offsetWidth, height: element.offsetHeight }; });
   observer.observe(element);
 });
 
@@ -200,10 +200,12 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
         <AppIcon :name="alignIcon" /><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
     </template>
-    <span class="sep" aria-hidden="true" />
-    <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" aria-label="Weitere Eigenschaften" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" title="Weitere Eigenschaften" @click="toggle('more')">
-      <AppIcon name="more" />
-    </button>
+    <template v-if="definition?.widgets?.length">
+      <span class="sep" aria-hidden="true" />
+      <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" aria-label="Komponenteneinstellungen" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" title="Komponenteneinstellungen" @click="toggle('more')">
+        <AppIcon name="more" />
+      </button>
+    </template>
   </div>
 
   <div
@@ -213,7 +215,7 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'geometry' ? 'Position und Größe' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : 'Weitere Eigenschaften'"
+    :aria-label="openSegment === 'geometry' ? 'Position und Größe' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px` }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -267,22 +269,9 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
     </div>
 
     <template v-else-if="openSegment === 'more'">
-      <template v-if="info.count === 1">
-        <label class="field">Bezeichnung<input class="ctx-input wide" aria-label="Bezeichnung" :value="info.values.label ?? ''" @input="store.setPropertyDraft({ label: ($event.target as HTMLInputElement).value })" @change="store.commitPropertyDraft()" /></label>
-        <label class="field">Beschreibung<textarea class="ctx-input wide" aria-label="Beschreibung" rows="2" :value="info.values.description ?? ''" @input="store.setPropertyDraft({ description: ($event.target as HTMLTextAreaElement).value })" @change="store.commitPropertyDraft()" /></label>
-      </template>
       <template v-for="item in definition?.widgets" :key="item.key">
         <label class="field">{{ item.label }}<select v-if="item.kind === 'select'" class="ctx-input wide" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @change="widget(item.key, ($event.target as HTMLSelectElement).value); store.commitPropertyDraft()"><option value="" disabled>Bitte auswählen</option><option v-for="option in item.options" :key="option">{{ option }}</option></select><input v-else class="ctx-input wide" :type="item.kind === 'number' ? 'number' : 'text'" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @input="widget(item.key, ($event.target as HTMLInputElement).value)" @change="store.commitPropertyDraft()" /></label>
       </template>
-      <div class="actions">
-        <button type="button" class="ctx-btn" @click="store.duplicateSelection()">Duplizieren</button>
-        <button type="button" class="ctx-btn" @click="store.reorder('front')">Nach vorne</button>
-        <button type="button" class="ctx-btn" @click="store.reorder('back')">Nach hinten</button>
-        <button v-if="info.canGroup" type="button" class="ctx-btn" @click="store.groupSelection()">Gruppieren</button>
-        <button v-if="info.canUngroup" type="button" class="ctx-btn" @click="store.ungroupSelection()">Gruppe lösen</button>
-        <button v-if="info.canConnect" type="button" class="ctx-btn" @click="store.connectSelection()">Verbinden</button>
-        <button type="button" class="ctx-btn danger" @click="store.deleteSelection()">Löschen</button>
-      </div>
     </template>
   </div>
 </template>
@@ -294,8 +283,9 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   display: flex;
   align-items: center;
   gap: 2px;
+  height: var(--chrome-height);
   max-width: calc(100vw - 24px);
-  padding: 6px;
+  padding: 0 6px;
   overflow-x: auto;
   background: var(--menu-surface);
   border: 1px solid var(--border-subtle);
@@ -312,8 +302,8 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-width: 40px;
-  height: 40px;
+  min-width: var(--chrome-control);
+  height: var(--chrome-control);
   padding: 0 8px;
   background: transparent;
   border: 0;
@@ -444,10 +434,6 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   min-width: 240px;
 }
 
-textarea.ctx-input {
-  resize: vertical;
-}
-
 .ctx-range {
   width: 100%;
   accent-color: var(--menu-focus);
@@ -530,15 +516,6 @@ textarea.ctx-input {
   font-size: 12px;
 }
 
-.actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px solid var(--menu-separator);
-}
-
 .ctx-btn {
   min-height: 32px;
   padding: 0 10px;
@@ -552,10 +529,6 @@ textarea.ctx-input {
 
 .ctx-btn:hover {
   background: var(--menu-hover);
-}
-
-.ctx-btn.danger {
-  color: var(--status-error);
 }
 
 @media (forced-colors: active) {

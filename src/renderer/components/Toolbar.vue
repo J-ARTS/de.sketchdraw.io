@@ -111,7 +111,8 @@ function onKeydown(event: KeyboardEvent): void {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px;
+  height: var(--chrome-height);
+  padding: 0 6px;
   transform: translateX(-50%);
 }
 
@@ -124,8 +125,8 @@ function onKeydown(event: KeyboardEvent): void {
 
 .tool {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: var(--chrome-control);
+  height: var(--chrome-control);
   border-radius: 10px;
   color: var(--text-primary);
 }
