@@ -9,6 +9,11 @@ export const MIN_DIMENSION = 1;
 export const MIN_DRAWN_SIZE = 8;
 export const DRAG_THRESHOLD_PX = 3;
 
+/** Only free-form content keeps the canvas rotate handle; shapes and components resize only (#36). */
+export const ROTATABLE_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['text', 'image', 'path']);
+/** Kinds that offer quick-connect handles to create a connected copy (#36). */
+export const QUICK_CONNECT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['rectangle', 'ellipse', 'diamond', 'component']);
+
 /** Screen-pixel values; callers divide by zoom where document units are needed. */
 export const HIT_TOLERANCE_PX = 8;
 export const HANDLE_VISUAL_PX = 10;

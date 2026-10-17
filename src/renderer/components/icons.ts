@@ -11,7 +11,7 @@ export type ActionIconName =
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
   | 'menu' | 'users' | 'user' | 'code' | 'maximize'
-  | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename';
+  | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow';
 
 export type IconName = ToolIconName | ActionIconName;
 
@@ -86,4 +86,5 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   copy: ['M9 9h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1z', 'M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1'],
   paste: ['M9 4h6v3H9z', 'M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3', 'M9 13h6', 'M9 16h4'],
   rename: ['M4 20h4L19 9l-4-4L4 16z', 'M13 7l4 4'],
+  arrow: ['M5 12h14', 'M13 6l6 6-6 6'],
 };

@@ -117,6 +117,9 @@ export interface CreateStoreOptions {
   initialTheme?: 'light' | 'dark';
 }
 
+/** Side of a selected shape from which a connected copy is created (#36). */
+export type QuickDirection = 'top' | 'right' | 'bottom' | 'left';
+
 /** Renderer view of one document page (docs/reviews/multi-page-proposal.md §4). */
 export interface PageSummary { id: string; name: string; elementCount: number }
 
@@ -235,6 +238,8 @@ export interface WhiteboardStore {
   groupSelection(): void;
   ungroupSelection(): void;
   connectSelection(): void;
+  /** Creates a same-shaped copy next to the single selected shape and an arrow to it (#36). */
+  quickConnect(direction: QuickDirection): void;
   applyPatch(patch: ElementPatch): void;
   setPropertyDraft(patch: ElementPatch): void;
   setInputComposing(value: boolean): void;

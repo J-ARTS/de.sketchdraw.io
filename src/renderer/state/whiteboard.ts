@@ -14,13 +14,14 @@ import type {
   CreateStoreOptions, DialogChoice, FileState, HandleId, Rect,
   SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
 } from './contract';
-import { ACTOR_ID, DEFAULT_STYLE, DEFAULT_SIZES, STYLE_BY_KIND } from '../lib/constants';
+import { ACTOR_ID, DEFAULT_STYLE, DEFAULT_SIZES, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
 import { bounds, center, endpointAt, hitElement, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
 import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '../lib/viewport';
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
 import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
 import { pageClipboardPayload, pageSummaries, SINGLE_PAGE_ID } from './pages';
+import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 
 type Gesture = {
   kind: 'draw' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
@@ -114,7 +115,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const c = { x: frame.cx, y: frame.cy };
       const positions: Array<[HandleId, number, number]> = [['nw', -1, -1], ['ne', 1, -1], ['se', 1, 1], ['sw', -1, 1]];
       const handles = positions.map(([id, x, y]) => ({ id, ...docToScreen(this.viewport, rotatePoint({ x: c.x + x * frame.width / 2, y: c.y + y * frame.height / 2 }, c, frame.rotation)) }));
-      if (selected()[0]?.kind !== 'container') handles.push({ id: 'rotate', ...docToScreen(this.viewport, rotatePoint({ x: c.x, y: c.y - frame.height / 2 - 28 / this.viewport.zoom }, c, frame.rotation)) });
+      if (ROTATABLE_KINDS.has(selected()[0]!.kind)) handles.push({ id: 'rotate', ...docToScreen(this.viewport, rotatePoint({ x: c.x, y: c.y - frame.height / 2 - 28 / this.viewport.zoom }, c, frame.rotation)) });
       return handles;
     },
     get selectionInfo(): SelectionInfo {
@@ -617,6 +618,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const rect = normalizedRect(start, end);
       const e = createElement('connector', { ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: a.id, anchor: { x: 1, y: .5 } }, to: { elementId: b.id, anchor: { x: 0, y: .5 } }, style: { ...DEFAULT_STYLE } });
       void dispatch({ type: 'add', elements: [e] }).then((ok) => { if (ok) setSelection([e.id]); });
+    },
+    quickConnect(direction) {
+      if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;
+      const source = selected()[0];
+      if (!source || !QUICK_CONNECT_KINDS.has(source.kind)) return;
+      const plan = planQuickConnect(source, direction, state.document.elements);
+      try {
+        const shape = createElement(source.kind, { id: uid(source.kind), ...quickConnectCopy(source, plan.shape) });
+        const rect = normalizedRect(plan.start, plan.end);
+        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [plan.start, plan.end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: plan.fromAnchor }, to: { elementId: shape.id, anchor: plan.toAnchor }, style: { ...DEFAULT_STYLE } });
+        void dispatch({ type: 'add', elements: [shape, arrow] }).then((ok) => { if (ok) setSelection([shape.id]); });
+      } catch (error) { fail(error); }
     },
     setInputComposing(value) { inputComposing = value; changedDraft(); },
     setPropertyDraft(value) {

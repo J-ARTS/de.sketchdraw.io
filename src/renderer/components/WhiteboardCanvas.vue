@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
 import ElementView from './ElementView.vue';
+import QuickConnect from './QuickConnect.vue';
 import { docToScreen } from '../lib/viewport';
 import type { PointerInput } from '../state/contract';
 
@@ -60,6 +61,7 @@ onBeforeUnmount(() => observer?.disconnect());
         <rect v-for="handle in s.handles" :key="handle.id" :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
       </g>
     </svg>
+    <QuickConnect />
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :style="editStyle">
       <textarea ref="editor" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
