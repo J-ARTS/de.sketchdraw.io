@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792248911.4517174,
-    "ast_hash": "0f0719c513711b8799def66a29f50c0a",
+    "mtime": 1792250012.1791635,
+    "ast_hash": "c9efcd057fcfa39c4dc5935ff47faf87",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792241955.237613,
-    "ast_hash": "3172615b408e423bc538235e109c7e20",
+    "mtime": 1792249782.5311403,
+    "ast_hash": "f9b667655d377c459f65d1e53d5b6d82",
     "semantic_hash": ""
   },
   "docs/architecture.md": {
@@ -35,8 +35,8 @@
     "semantic_hash": ""
   },
   "docs/concerns.md": {
-    "mtime": 1792248529.3389401,
-    "ast_hash": "d7d0e6b3ae9f689a78b9a05289f228e1",
+    "mtime": 1792249782.531685,
+    "ast_hash": "15085c089a31d953644276c227df571d",
     "semantic_hash": ""
   },
   "docs/sprints.md": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1792248881.5516143,
-    "ast_hash": "fd25de20ff3118ae08a03eb59993ec06",
+    "mtime": 1792249234.35389,
+    "ast_hash": "df4527acac660d545a38663d3e733ad1",
     "semantic_hash": ""
   },
   "docs/decisions/0001-shared-document-contract.md": {
@@ -445,8 +445,8 @@
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
-    "mtime": 1792248491.8549507,
-    "ast_hash": "2e7b2f30fec4c272450d91ca4e37c4bf",
+    "mtime": 1792249613.4059162,
+    "ast_hash": "c01e883292fbb019f77891affffb746a",
     "semantic_hash": ""
   },
   "tests/unit/build-downloader.test.mjs": {
@@ -600,8 +600,8 @@
     "semantic_hash": ""
   },
   "tests/electron/backend-shell.spec.ts": {
-    "mtime": 1792248661.575264,
-    "ast_hash": "f4673727083efed1d1124d7a367b77a8",
+    "mtime": 1792249595.8232558,
+    "ast_hash": "748faac72f7cad2a0a22f0bcce510639",
     "semantic_hash": ""
   },
   "tests/unit/catalog/catalog.test.ts": {
@@ -630,8 +630,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/release.yml": {
-    "mtime": 1792248881.5518177,
-    "ast_hash": "9b5f47aed555c59e273ee2786c33d766",
+    "mtime": 1792249234.3544173,
+    "ast_hash": "9726bf6f7d1d395cba2c05a18b21c240",
     "semantic_hash": ""
   },
   "docs/contracts-p2p.md": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "docs/release.md": {
-    "mtime": 1792248881.5523891,
-    "ast_hash": "f3648d60c99f2c3e1a7b807c264f3294",
+    "mtime": 1792248958.3616285,
+    "ast_hash": "72681084262ad932d85f958a9a4fec33",
     "semantic_hash": ""
   },
   "docs/reviews/antigravity-desktop-fixes.md": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "scripts/release-installer-smoke.mjs": {
-    "mtime": 1792248844.684355,
-    "ast_hash": "185f67a7c879da5866170e3266d0497e",
+    "mtime": 1792249942.1028168,
+    "ast_hash": "fb73045e27361ced9fa5dd6a7f29161e",
     "semantic_hash": ""
   },
   "src/agent-access/fingerprint.ts": {
@@ -815,8 +815,8 @@
     "semantic_hash": ""
   },
   "src/renderer/App.vue": {
-    "mtime": 1792247969.674325,
-    "ast_hash": "b3755b23045bd2cb252e5ca79e8c6723",
+    "mtime": 1792249564.4086864,
+    "ast_hash": "a9e06bf9e04fb57e5d433eff5903200c",
     "semantic_hash": ""
   },
   "src/renderer/components/AgentAccessPanel.vue": {
@@ -875,8 +875,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792248452.6223774,
-    "ast_hash": "f122c43c9ef7ba3e52e4a54ab22e06b2",
+    "mtime": 1792249924.1155732,
+    "ast_hash": "2675c53723e0aac52788f3fcec682289",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -905,13 +905,13 @@
     "semantic_hash": ""
   },
   "tests/electron/agent-product.spec.ts": {
-    "mtime": 1792247209.8708293,
-    "ast_hash": "d2493d0f28d7f8e2bb9400be8866f4bd",
+    "mtime": 1792249613.4052644,
+    "ast_hash": "4576d66481455caf5b165644717c5894",
     "semantic_hash": ""
   },
   "tests/p2p/native.spec.ts": {
-    "mtime": 1792248732.3968718,
-    "ast_hash": "5b64ed38170b1bb49274957a344095d7",
+    "mtime": 1792249529.4322705,
+    "ast_hash": "233d2c81f9b24634803bed531d80f376",
     "semantic_hash": ""
   },
   "tests/p2p/playwright.config.ts": {
@@ -980,8 +980,8 @@
     "semantic_hash": ""
   },
   "tests/unit/release-smoke.test.mjs": {
-    "mtime": 1792245754.7930167,
-    "ast_hash": "d7586f67bfa08dcdad8c5cdf320da034",
+    "mtime": 1792249942.120791,
+    "ast_hash": "f8ecf62d32e045b2b99ca99c1d685cc1",
     "semantic_hash": ""
   },
   "tests/unit/renderer/guest-store.spec.ts": {
@@ -990,8 +990,8 @@
     "semantic_hash": ""
   },
   "tests/unit/renderer/whiteboard.spec.ts": {
-    "mtime": 1792247884.5364707,
-    "ast_hash": "25ecd424c13f9989bdeb45c72eace3b0",
+    "mtime": 1792249924.1160958,
+    "ast_hash": "fd4941246491ce5dfc984e8ececc4cef",
     "semantic_hash": ""
   },
   "tests/unit/session/authority.spec.ts": {
@@ -1065,8 +1065,8 @@
     "semantic_hash": ""
   },
   "scripts/linux-sandbox.mjs": {
-    "mtime": 1792248844.6407113,
-    "ast_hash": "9c128cec7d2c6569edf2aefd9945b91c",
+    "mtime": 1792248958.3612685,
+    "ast_hash": "d48a01a207647247ecd13e4047cbfc21",
     "semantic_hash": ""
   },
   "tests/fixtures/interop/external/sketchdraw-export.drawio.diagnostics.json": {
@@ -1120,8 +1120,8 @@
     "semantic_hash": ""
   },
   "docs/reviews/codex-p2p.md": {
-    "mtime": 1792248792.3849568,
-    "ast_hash": "6081a8c9f6d1b588bbf65f1493f38dd0",
+    "mtime": 1792249688.5025356,
+    "ast_hash": "a4a3ce4a491a217e735bc11b9b93b8b6",
     "semantic_hash": ""
   },
   "tests/fixtures/interop/external/README.md": {
@@ -1152,6 +1152,41 @@
   "tests/fixtures/interop/external/sketchdraw-export.svg": {
     "mtime": 1792248438.8903384,
     "ast_hash": "bc54f88f19550d6fd1c5969548554330",
+    "semantic_hash": ""
+  },
+  "scripts/stop-electron.mjs": {
+    "mtime": 1792249691.101109,
+    "ast_hash": "9e8029227f12c5dff5881d20b60cda94",
+    "semantic_hash": ""
+  },
+  "tests/electron/helpers/stop-electron.ts": {
+    "mtime": 1792249691.0711005,
+    "ast_hash": "f2fb7b903b8e7d1f7d2ca4509528196a",
+    "semantic_hash": ""
+  },
+  "tests/ui/feedback.spec.ts": {
+    "mtime": 1792249924.1166017,
+    "ast_hash": "346bf5fd808507bb913b0cc5aaf907e7",
+    "semantic_hash": ""
+  },
+  "tests/unit/collaboration/store.spec.ts": {
+    "mtime": 1792249281.7826731,
+    "ast_hash": "1f6eba20dea62b3566fa3bfaa3e536a0",
+    "semantic_hash": ""
+  },
+  "tests/unit/stop-electron.test.mjs": {
+    "mtime": 1792249806.801257,
+    "ast_hash": "4452dd7e21292de0dc9cff5265a980b2",
+    "semantic_hash": ""
+  },
+  "docs/reviews/codex-p2p-feedback.md": {
+    "mtime": 1792249642.2073858,
+    "ast_hash": "b8d58e0486e49f2cce001696204f2f39",
+    "semantic_hash": ""
+  },
+  "docs/reviews/codex-windows-cleanup.md": {
+    "mtime": 1792249904.6361172,
+    "ast_hash": "4564e34d9f91320a4ff8878b4b5687cd",
     "semantic_hash": ""
   }
 }

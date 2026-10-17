@@ -5,41 +5,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test';
 
+import { stopElectron } from './helpers/stop-electron';
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function cleanElectronEnv(): Record<string, string> {
   return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] =>
     typeof entry[1] === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(entry[0]),
   ));
 }
-async function bounded<T>(promise: Promise<T>, milliseconds = 2_000): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([promise, new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Owned Electron test operation timed out.')), milliseconds);
-    })]);
-  } finally { clearTimeout(timer); }
-}
-async function dispose(app: ElectronApplication): Promise<void> {
-  const child = app.process();
-  const exited = () => child.exitCode !== null || child.signalCode !== null;
-  await bounded(app.evaluate(({ app }) => app.exit(0))).catch(() => {});
-  await bounded(app.close()).catch(() => {});
-  for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
-    if (exited()) return;
-    let onExit!: () => void;
-    const exit = new Promise<void>(resolve => { onExit = resolve; child.once('exit', onExit); });
-    child.kill(signal);
-    try { await bounded(exit); } catch { /* Escalate only this owned child. */ }
-    finally { child.removeListener('exit', onExit); }
-  }
-  if (!exited()) throw new Error(`Owned Electron process ${child.pid} did not exit.`);
-}
-
 test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () => {
   test('native save cancellation and the real dirty dialog preserve the canvas; forged close is rejected', async ({}, testInfo) => {
     test.setTimeout(45_000);
     const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-desktop-product-')));
     let app: ElectronApplication | undefined;
+    let failure: unknown;
     try {
       // Relocate exact built product files because Main resolves assets relative to __dirname.
       // The launcher only isolates app data; no renderer fixture or product logic is substituted.
@@ -68,8 +47,9 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
 
         // Unlike page.evaluate, executeJavaScript(..., false) does not manufacture user activation.
         // Assert the precondition before any user interaction and never intentionally open an external URL.
-        await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript('navigator.userActivation.isActive', false)), { timeout: 10_000 }).toBe(false);
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(`(async()=>{
+          const until=performance.now()+10000;
+          while(navigator.userActivation.isActive && performance.now()<until) await new Promise(resolve=>setTimeout(resolve,100));
           if(navigator.userActivation.isActive) return {inactive:false};
           const rejected=[];
           for(const url of ['javascript:alert(1)','https://example.invalid/']) {
@@ -141,9 +121,20 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
       expect(errors).toEqual([]);
       const hashes = Object.fromEntries(await Promise.all(['dist-electron/main.cjs', 'dist-electron/preload.cjs', 'dist/index.html'].map(async file => [file, createHash('sha256').update(await readFile(path.join(root, file))).digest('hex')])));
       await testInfo.attach('desktop-product-evidence', { body: JSON.stringify({ scope: 'Actual unmodified built product with OS Save dialog cancellation stub only; unpackaged, current platform.', platform: process.platform, hashes, actualDirtyCanvas: true, nativeSaveCancelled: true, dirtyCloseCancelledViaUI: true, forgedAndStaleCloseRejected: true, discardClosedWindow: true }, null, 2), contentType: 'application/json' });
+    } catch (error) {
+      failure = error;
+      throw error;
     } finally {
-      try { if (app) await dispose(app); }
-      finally { await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 }); }
+      try {
+        if (app) {
+          const result = await stopElectron(app);
+          await testInfo.attach('owned-process-cleanup', { body: JSON.stringify(result), contentType: 'application/json' });
+        }
+        await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+      } catch (cleanupError) {
+        if (!failure) throw cleanupError;
+        console.warn('Owned test cleanup also failed; preserving the original test error.');
+      }
     }
   });
 });

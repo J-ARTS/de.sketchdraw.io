@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { cleanSmokeEnvironment, extractInstaller, withDeadline } from '../../scripts/release-installer-smoke.mjs';
+import { Client } from '@modelcontextprotocol/client';
+import { cleanSmokeEnvironment, EXPECTED_MCP_TOOLS, extractInstaller, runInstallerSmoke, smokeMcpCli, withDeadline } from '../../scripts/release-installer-smoke.mjs';
 
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), 'release smoke unit '));
@@ -23,6 +24,54 @@ test('DMG detach occurs even when copying the actual mounted app fails', t => {
       return '';
     } }), /Copy failed/);
   assert.deepEqual(calls.at(-1), ['hdiutil', 'detach', join(directory, 'mounted')]);
+});
+
+test('DMG copy failure survives a second detach failure, while detach alone fails the smoke', t => {
+  const primary = new Error('Copy failed');
+  const secondary = new Error('Detach failed');
+  const warning = t.mock.method(console, 'warn', () => {});
+  for (const copyFails of [true, false]) {
+    const directory = fixture(t);
+    const calls = [];
+    assert.throws(() => extractInstaller({ platformKey: 'mac', installerPath: '/fixture.dmg', directory,
+      run(command, args) {
+        calls.push([command, ...args]);
+        if (command === 'hdiutil' && args[0] === 'attach') mkdirSync(join(directory, 'mounted/Sketchdraw.app'));
+        if (command === 'ditto' && copyFails) throw primary;
+        if (command === 'hdiutil' && args[0] === 'detach') throw secondary;
+        return '';
+      } }), error => error === (copyFails ? primary : secondary));
+    assert.deepEqual(calls.at(-1), ['hdiutil', 'detach', join(directory, 'mounted')]);
+  }
+  assert.equal(warning.mock.callCount(), 1);
+});
+
+test('MCP initialize failure survives close failure; close failure alone still rejects', async t => {
+  const primary = new Error('Initialize failed');
+  const secondary = new Error('Close failed');
+  const warning = t.mock.method(console, 'warn', () => {});
+  // These test-owned prototype replacements are restored by node:test. No transport starts.
+  const connect = t.mock.method(Client.prototype, 'connect', async () => { throw primary; });
+  const close = t.mock.method(Client.prototype, 'close', async () => { throw secondary; });
+  t.mock.method(Client.prototype, 'listTools', async () => ({ tools: EXPECTED_MCP_TOOLS.map(name => ({ name })) }));
+  t.mock.method(Client.prototype, 'callTool', async () => ({ isError: true, structuredContent: { error: { code: 'ACCESS_DENIED' } } }));
+  const options = { executablePath: 'unused-test-command', adapterPath: '/unused-adapter', cwd: process.cwd() };
+  await assert.rejects(smokeMcpCli(options), error => error === primary);
+  connect.mock.mockImplementation(async () => {});
+  await assert.rejects(smokeMcpCli(options), error => error === secondary);
+  assert.equal(close.mock.callCount(), 2);
+  assert.equal(warning.mock.callCount(), 1);
+});
+
+test('installer extraction failure survives an unwritable report destination', async t => {
+  const directory = fixture(t);
+  const installerPath = join(directory, 'unused-installer'); write(installerPath);
+  const primary = new Error('Extraction failed');
+  const warning = t.mock.method(console, 'warn', () => {});
+  const platformKey = { darwin: 'mac', win32: 'win', linux: 'linux' }[process.platform];
+  await assert.rejects(runInstallerSmoke({ platformKey, installerPath, version: '0.1.0', commitSha: 'test',
+    outputPath: join(directory, 'missing-parent', 'report.json'), run() { throw primary; } }), error => error === primary);
+  assert.equal(warning.mock.callCount(), 1);
 });
 
 test('NSIS extraction only selects the actual nested x64 payload and preserves paths with spaces', t => {

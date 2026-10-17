@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,6 +12,7 @@ import {
   type Page,
 } from '@playwright/test';
 import type { DesktopBridge, SaveDocumentRequest } from '../../src/domain/types';
+import { stopElectron } from './helpers/stop-electron';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const entryUrl = 'app://sketchdraw/index.html';
@@ -74,30 +76,11 @@ async function bounded<T>(promise: Promise<T>, milliseconds: number): Promise<T>
   }
 }
 
-async function disposeApp(app: ElectronApplication): Promise<void> {
-  const child = app.process();
-  const exited = () => child.exitCode !== null || child.signalCode !== null;
-  // Destroy only this test application's windows, bypassing its intentionally unanswered close listener.
-  await bounded(
-    app.evaluate(({ BrowserWindow }) => {
-      for (const win of BrowserWindow.getAllWindows()) win.destroy();
-    }),
-    2_000,
-  ).catch(() => {});
-  await bounded(app.close(), 2_000).catch(() => {});
-  for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
-    if (exited()) return;
-    const exit = new Promise<void>((resolve) => child.once('exit', () => resolve()));
-    child.kill(signal);
-    await bounded(exit, 2_000).catch(() => {});
-  }
-  if (!exited()) throw new Error(`Owned Electron fixture process ${child.pid} did not exit.`);
-}
-
 const test = base.extend<{ backend: BackendShell }>({
-  backend: async ({}, use, testInfo) => {
+  backend: [async ({}, use, testInfo) => {
     const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-backend-shell-')));
     let app: ElectronApplication | undefined;
+    let primaryFailure = false;
     try {
       await Promise.all(
         ['dist', 'dist-electron', 'user-data', 'session-data'].map((dir) =>
@@ -152,14 +135,83 @@ document.documentElement.dataset.fixtureReady = 'true';
         contentType: 'application/json',
       });
       await use({ app, page, root, preloadPath: path.join(root, 'dist-electron', 'preload.cjs') });
+    } catch (error) {
+      primaryFailure = true;
+      throw error;
     } finally {
       try {
-        if (app) await disposeApp(app);
-      } finally {
-        await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+        if (app) {
+          const stopped = await stopElectron(app);
+          await testInfo.attach('backend-shell-cleanup', {
+            body: JSON.stringify(stopped, null, 2), contentType: 'application/json',
+          });
+        }
+        // A failed stop retains the directory as evidence; never race a live
+        // Chromium process for its profile or replace its error with EBUSY.
+        await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      } catch (cleanupError) {
+        await testInfo.attach('backend-shell-cleanup-failure', {
+          body: `${String(cleanupError)}\nRetained fixture: ${root}`, contentType: 'text/plain',
+        });
+        if (!primaryFailure && testInfo.status === 'passed') throw cleanupError;
+        console.warn(`Backend cleanup also failed; preserving the original test error. See backend-shell-cleanup-failure.`);
       }
     }
-  },
+  }, { timeout: 20_000 }],
+});
+
+base('cleanup stops a stuck owned process before closing automation', async ({}, testInfo) => {
+  // A real owned process exercises the signal fallback. On Windows its real
+  // descendant also proves /T behavior, without involving another user's app.
+  const child = spawn(process.execPath, ['-e', `
+    const { spawn } = require('node:child_process');
+    process.on('SIGTERM', () => {});
+    const descendant = process.platform === 'win32'
+      ? spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' })
+      : undefined;
+    process.send({ descendantPid: descendant?.pid });
+    setInterval(() => {}, 1000);
+  `], { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+  let contextClosed = false;
+  const driver = {
+    process: () => child,
+    evaluate: async () => { throw new Error('Deliberately unavailable test automation.'); },
+    close: async () => {
+      expect(child.exitCode !== null || child.signalCode !== null, 'close waits for OS exit').toBe(true);
+      contextClosed = true;
+    },
+  } as unknown as ElectronApplication;
+  try {
+    const ready = await bounded(new Promise<{ descendantPid?: number }>((resolve, reject) => {
+      child.once('message', (value) => resolve(value as { descendantPid?: number }));
+      child.once('error', reject);
+    }), 5_000);
+    const stopped = await stopElectron(driver);
+    expect(contextClosed).toBe(true);
+    expect(stopped.pid).toBe(child.pid);
+    expect(stopped.exitCode !== null || stopped.signalCode !== null).toBe(true);
+    if (process.platform === 'win32') {
+      expect(stopped.steps).toEqual(['taskkill-owned-tree', 'automation-closed']);
+      expect(ready.descendantPid).toBeGreaterThan(1);
+      await expect.poll(() => {
+        try { process.kill(ready.descendantPid!, 0); return false; }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ESRCH') return true;
+          throw error;
+        }
+      }, { timeout: 3_000 }).toBe(true);
+    } else {
+      expect(stopped.steps).toEqual(['app-exit-request', 'SIGTERM', 'SIGKILL', 'automation-closed']);
+    }
+    // Repeated cleanup must not signal an exited/reused PID.
+    expect((await stopElectron(driver)).steps).toEqual(['already-exited', 'automation-closed']);
+    await testInfo.attach('owned-process-cleanup', {
+      body: JSON.stringify({ ...stopped, descendantPid: ready.descendantPid }, null, 2),
+      contentType: 'application/json',
+    });
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) await stopElectron(driver);
+  }
 });
 
 test.describe('Built Electron backend with a minimal renderer fixture', () => {
@@ -190,26 +242,34 @@ test.describe('Built Electron backend with a minimal renderer fixture', () => {
     if (process.platform === 'darwin' || process.platform === 'win32') {
       expect(metadata.rendererSandboxed).toBe(true);
     }
-    // Playwright page.evaluate grants Chromium user activation. Run this negative
-    // case via Electron without a gesture and let any launch/automation activation expire.
+    // Schedule this once: only renderer timers observe activation until it expires.
+    // Re-entering through automation on every poll can renew the state we test.
     // A failed precondition never calls the external opener.
-    await expect.poll(() => app.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(
-        'navigator.userActivation.isActive', false,
-      ),
-    ), { timeout: 10_000, intervals: [100, 250, 500] }).toBe(false);
     const externalChecks = await app.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(`(async () => {
-        if (navigator.userActivation.isActive) return { inactive: false };
-        const rejected = [];
-        for (const url of ['javascript:alert(1)', 'https://example.invalid/']) {
-          try { await window.sketchdraw.openExternal(url); rejected.push(false); }
-          catch { rejected.push(true); }
+        const deadline = performance.now() + 10000;
+        while (navigator.userActivation.isActive && performance.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-        return { inactive: true, rejected };
+        const activeBeforeCalls = [];
+        const errors = [];
+        for (const url of ['javascript:alert(1)', 'https://example.invalid/']) {
+          activeBeforeCalls.push(navigator.userActivation.isActive);
+          if (navigator.userActivation.isActive) return { inactive: false, activeBeforeCalls, errors };
+          try { await window.sketchdraw.openExternal(url); errors.push(null); }
+          catch (error) { errors.push(String(error)); }
+        }
+        return { inactive: true, activeBeforeCalls, errors };
       })()`, false),
     );
-    expect(externalChecks).toEqual({ inactive: true, rejected: [true, true] });
+    expect(externalChecks).toEqual({
+      inactive: true,
+      activeBeforeCalls: [false, false],
+      errors: [
+        expect.stringContaining('Unsupported external URL protocol'),
+        expect.stringContaining('External links can only be opened directly from a human UI interaction.'),
+      ],
+    });
     await page.evaluate(() => {
       (window as unknown as FixtureWindow).backendMainWorldMarker = 'main-world-only';
     });

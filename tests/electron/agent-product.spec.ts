@@ -6,6 +6,7 @@ import { _electron as electron, expect, test } from '@playwright/test';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { createElement } from '../../src/domain';
+import { stopElectron } from './helpers/stop-electron';
 
 // This test explicitly reveals a temporary capability to its own SDK client.
 // Never put that capability into a screenshot, trace, attachment, or assertion output.
@@ -17,6 +18,7 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
   const env = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => typeof value === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(key))) as Record<string, string>;
   let app: Awaited<ReturnType<typeof electron.launch>> | undefined;
   const clients: Client[] = [];
+  let failure: unknown; let stage = 'launch';
   try {
     for (const dir of ['dist', 'dist-electron', 'dist-mcp']) await cp(path.join(project, dir), path.join(root, dir), { recursive: true });
     await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'sketchdraw-product-test', version: '0.1.0', main: 'entry.cjs' }));
@@ -25,6 +27,7 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
     const page = await app.firstWindow();
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
     await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+    stage = 'grant UI';
     await page.getByRole('button', { name: 'Agenten', exact: true }).click();
     const create = page.getByRole('button', { name: 'Freigabe erstellen', exact: true });
     await expect(create).toBeEnabled();
@@ -37,8 +40,10 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
     const documentId = configuration.env.SKETCHDRAW_MCP_DOCUMENT_ID!;
     await page.getByRole('button', { name: 'Konfiguration verbergen', exact: true }).click();
     const client = new Client({ name: 'product-acceptance', version: '1.0.0' }); clients.push(client);
+    stage = 'SDK connection';
     await client.connect(new StdioClientTransport({ ...configuration, cwd: root, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 }));
     expect((await client.listTools()).tools.map(tool => tool.name)).toContain('sketchdraw_apply_commands');
+    stage = 'SDK read/write';
     const read = await client.callTool({ name: 'sketchdraw_read_document', arguments: { documentId } });
     expect((read.structuredContent as Record<string, unknown> | undefined)?.revision).toBe(0);
     const created = await client.callTool({ name: 'sketchdraw_apply_commands', arguments: { documentId, expectedRevision: 0, commandId: 'product-add', command: { type: 'add', elements: [createElement('rectangle', { id: 'shape:sdk', x: 300, y: 240, width: 200, height: 100, label: 'Agent-created box' })] } } });
@@ -58,6 +63,7 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
     await page.getByRole('button', { name: 'Agenten', exact: true }).click();
     await page.getByRole('button', { name: 'Widerrufen', exact: true }).click();
     await expect(page.getByText('Freigabe widerrufen.', { exact: false })).toBeVisible();
+    stage = 'revoke/read-only';
     const denied = await client.callTool({ name: 'sketchdraw_read_document', arguments: { documentId } });
     expect(denied.isError).toBe(true);
     await page.getByRole('radio', { name: 'Nur lesen', exact: false }).check(); await create.click();
@@ -69,6 +75,7 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
     const forbidden = await reader.callTool({ name: 'sketchdraw_apply_commands', arguments: { documentId, expectedRevision: 3, commandId: 'product-forbidden', command: { type: 'rename', title: 'Forbidden' } } });
     expect(forbidden.isError).toBe(true);
     expect(((forbidden.structuredContent as Record<string, unknown> | undefined)?.error as { code: string })?.code).toBe('ACCESS_DENIED');
+    stage = 'document switch';
     await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-new').click();
     await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
     await expect(page.locator('[data-element-id]')).toHaveCount(0);
@@ -77,10 +84,26 @@ test('actual desktop grants connect the real SDK to the editable product canvas'
     expect((await reader.callTool({ name: 'sketchdraw_read_document', arguments: { documentId } })).isError).toBe(true);
     expect(errors).toEqual([]);
     await testInfo.attach('product-agent-evidence', { body: JSON.stringify({ realProductRenderer: true, realSdk: true, visibleAgentMutation: true, subsequentHumanMutation: true, invalidDraftPreserved: true, readOnlyEnforced: true, revoked: true, documentSwitchInvalidatesGrants: true, platform: process.platform }), contentType: 'application/json' });
+  } catch (error) {
+    failure = error;
+    await testInfo.attach('failed-stage', { body: stage, contentType: 'text/plain' }).catch(() => {});
+    throw error;
   } finally {
-    const bounded = (promise: Promise<unknown>) => Promise.race([promise.catch(() => {}), new Promise(resolve => setTimeout(resolve, 2000))]);
-    for (const client of clients) await bounded(client.close());
-    if (app) { const child = app.process(); await bounded(app.evaluate(({ app }) => app.exit(0))); await bounded(app.close()); if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL'); }
-    await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+    try {
+      const bounded = async (promise: Promise<unknown>) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try { await Promise.race([promise, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Owned SDK client close timed out.')), 3000);
+        })]); } finally { clearTimeout(timer); }
+      };
+      let clientCloseFailed = false;
+      for (const client of clients) await bounded(client.close()).catch(() => { clientCloseFailed = true; });
+      if (app) {
+        const result = await stopElectron(app);
+        await testInfo.attach('owned-process-cleanup', { body: JSON.stringify(result), contentType: 'application/json' });
+      }
+      await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+      if (clientCloseFailed) throw new Error('Owned SDK client did not close cleanly.');
+    } catch (cleanupError) { if (!failure) throw cleanupError; console.warn('Owned test cleanup also failed; preserving the original test error.'); }
   }
 });

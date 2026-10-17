@@ -119,9 +119,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get selectionInfo(): SelectionInfo {
       const elements = selected();
       const first = elements[0];
-      const values: SelectionInfo['values'] = first ? { ...first.style, x: first.x, y: first.y, width: first.width, height: first.height, rotation: first.rotation, label: first.label, description: first.description, text: first.text, connectorFrom: first.from?.elementId, connectorTo: first.to?.elementId } : { ...DEFAULT_STYLE };
-      if (this.propertyDraft && same(this.propertyDraft.ids, this.selection)) Object.assign(values, this.propertyDraft.patch, this.propertyDraft.patch.style);
-      const mixed = first ? Object.keys(values).filter((key) => elements.some((e) => !same((key in e.style ? e.style as unknown as Record<string, unknown> : e as unknown as Record<string, unknown>)[key], values[key as keyof typeof values]))) : [];
+      const draft = this.propertyDraft && same(this.propertyDraft.ids, this.selection) ? this.propertyDraft.patch : null;
+      // Compare the displayed values of every selected element. A shared draft
+      // overrides the same fields for all of them without changing the document.
+      const displayed = elements.map((element): SelectionInfo['values'] => {
+        const e = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
+        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId };
+      });
+      const values = displayed[0] ?? { ...DEFAULT_STYLE };
+      const others = displayed.slice(1);
+      const mixed = (Object.keys(values) as Array<keyof typeof values>).filter(key => others.some(value => !same(value[key], values[key])));
       return { count: elements.length, kinds: [...new Set(elements.map((e) => e.kind))], singleId: elements.length === 1 ? first!.id : null, values, mixed,
         canGroup: elements.length > 0, canUngroup: elements.some((e) => e.kind === 'container'), canConnect: elements.length === 2,
         canEditText: elements.length === 1, hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image'].includes(e.kind)), hasText: true };

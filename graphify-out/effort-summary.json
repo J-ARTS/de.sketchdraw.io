@@ -185,6 +185,7 @@
         "codex-native-integration-002",
         "codex-p2p-contract-001",
         "codex-p2p-contract-review-001",
+        "codex-p2p-feedback-003",
         "codex-session-001",
         "codex-whiteboard-takeover-001"
       ]
@@ -226,6 +227,8 @@
         "codex-mcp-independent-review-001",
         "codex-native-integration-002",
         "codex-orchestration-001",
+        "codex-owned-process-cleanup-003",
+        "codex-p2p-feedback-003",
         "codex-setup-integration-001"
       ]
     },
@@ -524,8 +527,41 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-native-integration-002"
+        "codex-native-integration-002",
+        "codex-owned-process-cleanup-003"
       ]
+    },
+    "25": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-property-draft-025"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
     },
     "4": {
       "exclusiveRuns": {
@@ -847,15 +883,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 21
+        "unknownRuns": 24
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 21
+        "unknownRuns": 24
       },
-      "runCount": 21,
+      "runCount": 24,
       "runIds": [
         "codex-codec-catalog-tests-001",
         "codex-dependency-review-001",
@@ -868,9 +904,12 @@
         "codex-interop-contract-001",
         "codex-mcp-contract-review-001",
         "codex-mcp-independent-review-001",
+        "codex-owned-process-cleanup-003",
         "codex-p2p-001",
         "codex-p2p-contract-001",
         "codex-p2p-contract-review-001",
+        "codex-p2p-feedback-003",
+        "codex-property-draft-025",
         "codex-release-fixes-001",
         "codex-release-review-001",
         "codex-research-001",
@@ -883,7 +922,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 21
+        "unknownRuns": 24
       }
     }
   },
@@ -892,15 +931,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 44
+      "unknownRuns": 47
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 24
+      "unknownRuns": 27
     },
-    "runCount": 44,
+    "runCount": 47,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -936,9 +975,12 @@
       "codex-mcp-takeover-001",
       "codex-native-integration-002",
       "codex-orchestration-001",
+      "codex-owned-process-cleanup-003",
       "codex-p2p-001",
       "codex-p2p-contract-001",
       "codex-p2p-contract-review-001",
+      "codex-p2p-feedback-003",
+      "codex-property-draft-025",
       "codex-release-fixes-001",
       "codex-release-review-001",
       "codex-research-001",
@@ -951,7 +993,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 40
+      "unknownRuns": 43
     }
   },
   "officialScoreClaimReady": false,
@@ -961,9 +1003,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 10
+    "unknownIssues": 11
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T14:55:11.450865+00:00"
+  "updatedAt": "2026-10-17T15:13:32.178244+00:00"
 }

@@ -147,6 +147,48 @@ test('unblurred property draft is saved on close under the final barrier', async
   expect(document.elements[0]!.label).toBe('Noch fokussiert'); expect(document.elements[0]!.width).toBe(180);
 });
 
+test('a single rejected property draft shows its values without inventing mixed selection', async () => {
+  const { store } = setup(); await draw(store);
+  store.applyPatch({ label: 'Original' }); await store.whenIdle();
+  const before = store.state.document;
+  store.setPropertyDraft({ width: -1, label: 'Mein Entwurf', style: { strokeWidth: -2 } });
+  expect(store.state.selectionInfo.values).toMatchObject({ width: -1, label: 'Mein Entwurf', strokeWidth: -2 });
+  expect(store.state.selectionInfo.mixed).toEqual([]);
+  expect(await store.commitPropertyDraft()).toBe(false);
+  expect(store.state.document).toEqual(before);
+  expect(store.state.selectionInfo.values.width).toBe(-1);
+  expect(store.state.selectionInfo.mixed).toEqual([]);
+  store.discardPropertyDraft();
+  expect(store.state.selectionInfo.values.width).toBe(100);
+  expect(store.state.selectionInfo.values.label).toBe('Original');
+  store.setPropertyDraft({ label: null });
+  expect(store.state.selectionInfo.values.label).toBeUndefined();
+  expect(store.state.selectionInfo.mixed).toEqual([]);
+  expect(store.state.document.elements[0]!.label).toBe('Original');
+});
+
+test('shared property drafts unify only edited fields and preserve real multiselection differences', async () => {
+  const { store } = setup(); await draw(store); await draw(store, 'rectangle', 600);
+  store.applyPatch({ width: 160, height: 90, style: { stroke: '#ef4444', strokeWidth: 3 } }); await store.whenIdle();
+  store.selectAll();
+  expect(store.state.selectionInfo.mixed).toEqual(expect.arrayContaining(['x', 'width', 'height', 'stroke', 'strokeWidth']));
+  store.setPropertyDraft({ width: 0, style: { stroke: '#15803d' } });
+  expect(store.state.selectionInfo.values).toMatchObject({ width: 0, stroke: '#15803d' });
+  expect(store.state.selectionInfo.mixed).not.toContain('width');
+  expect(store.state.selectionInfo.mixed).not.toContain('stroke');
+  expect(store.state.selectionInfo.mixed).toEqual(expect.arrayContaining(['x', 'height', 'strokeWidth']));
+  expect(await store.commitPropertyDraft()).toBe(false);
+  store.discardPropertyDraft();
+  expect(store.state.selectionInfo.mixed).toEqual(expect.arrayContaining(['width', 'stroke']));
+  store.setPropertyDraft({ width: 200, style: { stroke: '#15803d' } });
+  expect(await store.commitPropertyDraft()).toBe(true);
+  expect(store.state.document.elements.map(element => element.width)).toEqual([200, 200]);
+  expect(store.state.document.elements.map(element => element.style.stroke)).toEqual(['#15803d', '#15803d']);
+  expect(store.state.selectionInfo.mixed).toEqual(expect.arrayContaining(['x', 'height', 'strokeWidth']));
+  expect(store.state.selectionInfo.mixed).not.toContain('width');
+  expect(store.state.selectionInfo.mixed).not.toContain('stroke');
+});
+
 test('close takes over an existing unsaved new-dialog and responds to the native request', async () => {
   const { store, bridge, close } = setup(); await draw(store); await store.newDocument();
   close('close-2'); await tick(); await store.resolveDialog('cancel');

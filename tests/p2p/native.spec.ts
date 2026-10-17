@@ -103,6 +103,7 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     await page!.mouse.move(380, y); await page!.mouse.down();
     await page!.mouse.move(540, y + 100, { steps: 8 }); await page!.mouse.up();
   };
+  let failed = false;
   try {
     for (const page of [owner!, guest!]) { await page.goto('/'); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible(); }
     await draw(owner, 'Rechteck', 220);
@@ -157,10 +158,37 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     await expect(guest!.locator('[data-kind=rectangle]')).toHaveCount(2);
     await expect(owner!.locator('[data-kind=rectangle]')).toHaveCount(1);
     expect(errors).toEqual([]); expect(externalRequests).toEqual([]);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    const path = testInfo.outputPath('product-ui-observations.json');
-    await writeFile(path, JSON.stringify({ errors, externalRequests }, null, 2));
-    await testInfo.attach('product-ui-observations', { path, contentType: 'application/json' });
+    if (failed) {
+      const path = testInfo.outputPath('product-ui-observations.json');
+      const ui = await Promise.all([owner!, guest!].map(async page => ({
+        elements: await page.locator('[data-render-state]').evaluateAll(elements => elements.map(element => ({
+          state: element.getAttribute('data-render-state'), kind: element.getAttribute('data-kind'), id: element.getAttribute('data-element-id'),
+        }))),
+        outcomeCheckVisible: await page.getByRole('button', { name: 'Ausgang prüfen', exact: true }).isVisible(),
+        outcomeCheckHitTarget: await page.getByRole('button', { name: 'Ausgang prüfen', exact: true }).evaluateAll(buttons => buttons.map(button => {
+          const rect = button.getBoundingClientRect();
+          const target = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+          const notice = target?.closest('.notices');
+          return {
+            buttonRect: rect.toJSON(),
+            targetTag: target?.tagName ?? null,
+            targetClass: target?.getAttribute('class') ?? null,
+            hitsButton: target === button || (target !== null && button.contains(target)),
+            coveringNoticeRect: notice?.getBoundingClientRect().toJSON() ?? null,
+          };
+        })),
+        pendingNotice: await page.locator('.property-draft').allTextContents(),
+        gestureConflict: await page.locator('.gesture-conflict').allTextContents(),
+        notices: await page.locator('.notices').allTextContents(),
+        connection: await page.locator('.connection-state').allTextContents(),
+      })));
+      await writeFile(path, JSON.stringify({ errors, externalRequests, ui }, null, 2));
+      await testInfo.attach('product-ui-observations', { path, contentType: 'application/json' });
+    }
     for (const context of contexts) await context.close();
   }
 });

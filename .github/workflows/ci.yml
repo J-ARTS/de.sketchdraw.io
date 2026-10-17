@@ -106,6 +106,8 @@ jobs:
 
       - name: Run Playwright Electron integration tests (macOS / Windows)
         if: runner.os != 'Linux'
+        env:
+          DEBUG: pw:browser
         run: npm run test:electron
 
       - name: Verify non-publishing desktop package dir target

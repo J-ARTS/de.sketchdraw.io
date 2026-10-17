@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { installCiSandboxProfile } from './linux-sandbox.mjs';
+import { stopElectron } from './stop-electron.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -48,14 +49,22 @@ export function extractInstaller({ platformKey, installerPath, directory, run = 
     mkdirSync(mount);
     run('hdiutil', ['verify', installerPath]);
     let mounted = false;
+    let failed = false;
     try {
       run('hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, installerPath]);
       mounted = true;
       const apps = readdirSync(mount, { withFileTypes: true }).filter(e => e.isDirectory() && e.name.endsWith('.app'));
       assert.equal(apps.length, 1, 'DMG must contain exactly one application bundle');
       run('ditto', [join(mount, apps[0].name), join(destination, 'Sketchdraw.app')]);
+    } catch (error) {
+      failed = true;
+      throw error;
     } finally {
-      if (mounted) run('hdiutil', ['detach', mount]);
+      try { if (mounted) run('hdiutil', ['detach', mount]); }
+      catch (cleanupError) {
+        if (!failed) throw cleanupError;
+        console.warn('Owned DMG detach also failed; preserving the original extraction error.');
+      }
     }
     return { executablePath: contained(directory, join(destination, 'Sketchdraw.app/Contents/MacOS/Sketchdraw')),
       resourcesPath: contained(directory, join(destination, 'Sketchdraw.app/Contents/Resources')) };
@@ -101,6 +110,7 @@ export async function smokeMcpCli({ executablePath, adapterPath, cwd }) {
   const transport = new StdioClientTransport({ command: executablePath, args: [adapterPath], cwd,
     env: { ...cleanSmokeEnvironment(), ELECTRON_RUN_AS_NODE: '1' }, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 });
   let stderrBytes = 0;
+  let failed = false;
   transport.stderr?.on('data', chunk => { stderrBytes += chunk.length; }); // Never report capabilities or documents.
   try {
     await withDeadline(client.connect(transport), 20_000, 'Packaged MCP initialize');
@@ -112,24 +122,16 @@ export async function smokeMcpCli({ executablePath, adapterPath, cwd }) {
     assert.deepEqual(Object.keys(denied.structuredContent ?? {}), ['error']);
     assert.equal(denied.structuredContent.error.code, 'ACCESS_DENIED');
     return { initialized: true, deniedWithoutGrant: true, tools: result.tools.map(tool => tool.name).sort(), stderrBytes };
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    await withDeadline(client.close(), 5_000, 'Packaged MCP close');
+    try { await withDeadline(client.close(), 5_000, 'Packaged MCP close'); }
+    catch (cleanupError) {
+      if (!failed) throw cleanupError;
+      console.warn('Packaged MCP close also failed; preserving the original adapter check error.');
+    }
   }
-}
-
-async function stopElectron(app) {
-  const child = app.process();
-  const exited = () => child.exitCode !== null || child.signalCode !== null;
-  // Test-driver shutdown of its own app only; no product close/save behavior is replaced during checks.
-  await withDeadline(app.evaluate(({ app }) => app.exit(0)), 2_000, 'Smoke app exit').catch(() => {});
-  await withDeadline(app.close(), 2_000, 'Smoke driver close').catch(() => {});
-  for (const signal of ['SIGTERM', 'SIGKILL']) {
-    if (exited()) return;
-    const stopped = new Promise(resolve => child.once('exit', resolve));
-    child.kill(signal);
-    await withDeadline(stopped, 2_000, 'Smoke child shutdown').catch(() => {});
-  }
-  if (!exited()) throw new Error('Packaged smoke process did not exit.');
 }
 
 export async function smokeInstalledApp({ executablePath, resourcesPath, directory, version, arch, env,
@@ -149,6 +151,7 @@ process.stdout.write(JSON.stringify(result));`;
   const { _electron: electron } = await import('@playwright/test');
   let app;
   let gui;
+  let failure;
   const cleanupSandboxProfile = installCiSandboxProfile(executablePath);
   try {
     app = await electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`],
@@ -179,7 +182,16 @@ process.stdout.write(JSON.stringify(result));`;
     assert.equal(gui.disabledSandbox, false);
     assert.equal(await page.evaluate(() => window.sketchdraw?.platform), 'electron');
     assert.deepEqual(errors, []);
-  } finally { try { if (app) await stopElectron(app); } finally { cleanupSandboxProfile(); } }
+  } catch (error) {
+    failure = error;
+    throw error;
+  } finally {
+    try { try { if (app) await stopElectron(app); } finally { cleanupSandboxProfile(); } }
+    catch (cleanupError) {
+      if (!failure) throw cleanupError;
+      console.warn('Owned installer smoke cleanup also failed; preserving the original check error.');
+    }
+  }
   const mcp = await smokeMcpCli({ executablePath, adapterPath, cwd: directory });
   return { source: 'packaged-app', appIsPackaged: true, appVersion: version, appArch: arch,
     sandbox: true, bundleHashes: contents.files, mcp };
@@ -194,6 +206,7 @@ export async function runInstallerSmoke({ platformKey, installerPath, version, c
   const directory = mkdtempSync(join(tmpdir(), 'Sketchdraw Installer Smoke '));
   const installerSha256 = computeSha256(installerPath);
   const report = { schemaVersion: 1, platformKey, version, commitSha, installerSha256, passed: false };
+  let failure;
   try {
     const installed = extractInstaller({ platformKey, installerPath, directory, run });
     assert.equal(inspectBinaryFile(installed.executablePath).arch, target.arch);
@@ -203,16 +216,26 @@ export async function runInstallerSmoke({ platformKey, installerPath, version, c
     Object.assign(report, smoke, { source: 'installer-extracted', passed: true });
     return report;
   } catch (error) {
+    failure = error;
     report.error = `${error.name}: Installer extraction/start/adapter check failed`;
     throw error;
   } finally {
+    let cleanupFailed = false;
     try { rmSync(directory, { recursive: true, force: true, maxRetries: 3 }); }
     catch (error) {
+      cleanupFailed = true;
       report.passed = false;
-      report.error = `${error.name}: Installer smoke cleanup failed`;
-      throw error;
+      report.cleanupError = `${error.name}: Installer smoke cleanup failed`;
+      if (!failure) throw error;
+      console.warn('Owned installer directory cleanup also failed; preserving the original check error.');
     }
-    finally { if (outputPath) writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`); }
+    finally {
+      try { if (outputPath) writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`); }
+      catch (reportError) {
+        if (!failure && !cleanupFailed) throw reportError;
+        console.warn('Installer smoke report writing also failed; preserving the original error.');
+      }
+    }
   }
 }
 
