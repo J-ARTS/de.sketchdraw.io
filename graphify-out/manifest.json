@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792270460.7317078,
-    "ast_hash": "a35a1266dfc32688be927cecd5ed7319",
+    "mtime": 1792271505.5576377,
+    "ast_hash": "d97b093d1b179f6f8f92d85bb9e5f9bf",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792270284.3738053,
-    "ast_hash": "98abe81ba4698f3dcdd5b03424bb3e31",
+    "mtime": 1792271237.7639062,
+    "ast_hash": "9662c15ae39540e466142f9c170a067b",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "tests/unit/renderer/guest-store.spec.ts": {
-    "mtime": 1792248060.591229,
-    "ast_hash": "899661a656e329e615051ba89d54c53b",
+    "mtime": 1792271460.4162135,
+    "ast_hash": "da326c0157ef358946b40fc9ff0f3494",
     "semantic_hash": ""
   },
   "tests/unit/renderer/whiteboard.spec.ts": {
-    "mtime": 1792249924.1160958,
-    "ast_hash": "fd4941246491ce5dfc984e8ececc4cef",
+    "mtime": 1792271460.4158838,
+    "ast_hash": "63e7eee80cfb7bd7ee269ca1e5e738f6",
     "semantic_hash": ""
   },
   "tests/unit/session/authority.spec.ts": {
@@ -1225,8 +1225,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/PageSwitcher.vue": {
-    "mtime": 1792270302.4010522,
-    "ast_hash": "89b904d2a261c5c9d7c845c3843351f0",
+    "mtime": 1792271284.3083954,
+    "ast_hash": "1cb0752f57ec392409f9a721334ed20c",
     "semantic_hash": ""
   },
   "src/renderer/components/QuickConnect.vue": {
@@ -1255,13 +1255,13 @@
     "semantic_hash": ""
   },
   "src/renderer/state/pages.ts": {
-    "mtime": 1792263967.70091,
-    "ast_hash": "6424c3f85b32bbe3ffd36b3d401b4f8c",
+    "mtime": 1792271237.7625422,
+    "ast_hash": "e8f8043100b99590f8a8f904f622bd72",
     "semantic_hash": ""
   },
   "tests/ui/pages.spec.ts": {
-    "mtime": 1792270357.7705736,
-    "ast_hash": "eed834f7e66bbb81296ab5e2d6c417df",
+    "mtime": 1792271460.4154978,
+    "ast_hash": "2253c5b0ac18850c47326ac20bc3a322",
     "semantic_hash": ""
   },
   "tests/ui/quick-connect.spec.ts": {
@@ -1275,8 +1275,8 @@
     "semantic_hash": ""
   },
   "docs/reviews/multi-page-proposal.md": {
-    "mtime": 1792263967.6992424,
-    "ast_hash": "40c8a5ca2246a31c518be7cacde41a22",
+    "mtime": 1792271237.764994,
+    "ast_hash": "e525200cfd744093e722a74849b80b9d",
     "semantic_hash": ""
   }
 }
