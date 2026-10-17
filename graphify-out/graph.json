@@ -1,5 +1,5 @@
 {
-  "built_at_commit": "f3fd762a25961e40da0808a4b85ef378455209ba",
+  "built_at_commit": "0e2ca9a7e3487a451000328c76f3c0d0f2dcd481",
   "directed": false,
   "graph": {},
   "hyperedges": [],
@@ -90639,7 +90639,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types",
       "label": "types.ts",
@@ -90649,7 +90649,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_peerrole",
       "label": "PeerRole",
@@ -90669,7 +90669,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_pairingtext",
       "label": "PairingText",
@@ -90679,7 +90679,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_pairingreview",
       "label": "PairingReview",
@@ -90689,7 +90689,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_collaborationstatus",
       "label": "CollaborationStatus",
@@ -90699,7 +90699,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_ownersession",
       "label": "OwnerSession",
@@ -90709,7 +90709,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_guestpairing",
       "label": "GuestPairing",
@@ -90719,7 +90719,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_guestsession",
       "label": "GuestSession",
@@ -90739,7 +90739,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "collaboration_types_ownersessionoptions",
       "label": "OwnerSessionOptions",
@@ -91789,7 +91789,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "domain_types_commandcontext",
       "label": "CommandContext",
@@ -91809,7 +91809,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "domain_types_historyavailability",
       "label": "HistoryAvailability",
@@ -96899,7 +96899,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_contract_pagesummary",
       "label": "PageSummary",
@@ -97049,7 +97049,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_pages",
       "label": "pages.ts",
@@ -97059,7 +97059,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_pages_singlepagename",
       "label": "singlePageName()",
@@ -97069,7 +97069,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_pages_pagesummaries",
       "label": "pageSummaries()",
@@ -97079,7 +97079,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_pages_pageclipboardpayload",
       "label": "pageClipboardPayload",
@@ -97089,7 +97089,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_whiteboard",
       "label": "whiteboard.ts",
@@ -97099,7 +97099,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_whiteboard_gesture",
       "label": "Gesture",
@@ -97109,7 +97109,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_whiteboard_clone",
       "label": "clone()",
@@ -97129,7 +97129,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_whiteboard_same",
       "label": "same()",
@@ -97139,7 +97139,7 @@
     },
     {
       "_origin": "ast",
-      "community": 37,
+      "community": 179,
       "file_type": "code",
       "id": "state_whiteboard_uid",
       "label": "uid()",
@@ -97169,7 +97169,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_authority_bindingstate",
       "label": "BindingState",
@@ -97319,7 +97319,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types",
       "label": "types.ts",
@@ -97329,7 +97329,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentsessionkey",
       "label": "DocumentSessionKey",
@@ -97339,7 +97339,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_peersessionkey",
       "label": "PeerSessionKey",
@@ -97369,7 +97369,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 88,
       "file_type": "code",
       "id": "session_types_writeoutcome",
       "label": "WriteOutcome",
@@ -97379,7 +97379,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentsnapshotsource",
       "label": "DocumentSnapshotSource",
@@ -97389,7 +97389,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_readonlydocumentsource",
       "label": "ReadonlyDocumentSource",
@@ -97399,7 +97399,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_boundwritegateway",
       "label": "BoundWriteGateway",
@@ -97419,7 +97419,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentlifecyclegate",
       "label": "DocumentLifecycleGate",
@@ -97429,7 +97429,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_grantcheck",
       "label": "GrantCheck",
@@ -97439,7 +97439,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_grantdecision",
       "label": "GrantDecision",
@@ -97449,7 +97449,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_grantguard",
       "label": "GrantGuard",
@@ -97459,7 +97459,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_actorbindingoptions",
       "label": "ActorBindingOptions",
@@ -97479,7 +97479,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentcommit",
       "label": "DocumentCommit",
@@ -97489,7 +97489,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentauthority",
       "label": "DocumentAuthority",
@@ -97499,7 +97499,7 @@
     },
     {
       "_origin": "ast",
-      "community": 92,
+      "community": 47,
       "file_type": "code",
       "id": "session_types_documentauthorityoptions",
       "label": "DocumentAuthorityOptions",
@@ -97789,7 +97789,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "p2p_native_spec",
       "label": "native.spec.ts",
@@ -97799,7 +97799,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "p2p_native_spec_harness",
       "label": "Harness",
@@ -97809,7 +97809,7 @@
     },
     {
       "_origin": "ast",
-      "community": 112,
+      "community": 47,
       "file_type": "code",
       "id": "p2p_native_spec_window",
       "label": "Window",
@@ -99709,7 +99709,7 @@
     },
     {
       "_origin": "ast",
-      "community": 30,
+      "community": 190,
       "file_type": "code",
       "id": "renderer_viewport_spec",
       "label": "viewport.spec.ts",
@@ -99719,7 +99719,7 @@
     },
     {
       "_origin": "ast",
-      "community": 30,
+      "community": 190,
       "file_type": "code",
       "id": "renderer_viewport_spec_size",
       "label": "SIZE",
@@ -99729,7 +99729,7 @@
     },
     {
       "_origin": "ast",
-      "community": 30,
+      "community": 190,
       "file_type": "code",
       "id": "renderer_viewport_spec_wheel",
       "label": "wheel()",
@@ -99739,7 +99739,7 @@
     },
     {
       "_origin": "ast",
-      "community": 30,
+      "community": 190,
       "file_type": "code",
       "id": "renderer_viewport_spec_zoomfactor",
       "label": "zoomFactor()",

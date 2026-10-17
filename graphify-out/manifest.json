@@ -440,8 +440,8 @@
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
-    "mtime": 1792279298.0990515,
-    "ast_hash": "84065fa654df4760165425d2a6e7728d",
+    "mtime": 1792279860.267221,
+    "ast_hash": "82c723fb6e2277faa3dbb4b019679d61",
     "semantic_hash": ""
   },
   "tests/unit/build-downloader.test.mjs": {

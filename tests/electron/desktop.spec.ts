@@ -102,12 +102,25 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         const canvas = page.getByTestId('whiteboard-canvas');
         await canvas.focus();
         await page.keyboard.press(`${modifier}+C`);
-        await page.mouse.move(780, 520);
+        const pastePoint = await canvas.evaluate(element => {
+          const bounds = element.getBoundingClientRect();
+          const candidates = [
+            { x: bounds.left + bounds.width * .65, y: bounds.top + bounds.height * .45 },
+            { x: bounds.left + bounds.width * .72, y: bounds.top + bounds.height * .35 },
+          ];
+          const point = candidates.find(candidate => {
+            const hit = document.elementFromPoint(candidate.x, candidate.y);
+            return hit !== null && element.contains(hit);
+          });
+          if (!point) throw new Error('No unobscured canvas point was available for the clipboard test.');
+          return point;
+        });
+        await page.mouse.move(pastePoint.x, pastePoint.y);
         await page.keyboard.press(`${modifier}+V`);
         await expect(canvas.locator('[data-kind=rectangle]')).toHaveCount(2);
         const pasted = (await canvas.locator('[data-kind=rectangle]').nth(1).boundingBox())!;
-        expect(pasted.x + pasted.width / 2).toBeCloseTo(780, -1);
-        expect(pasted.y + pasted.height / 2).toBeCloseTo(520, -1);
+        expect(pasted.x + pasted.width / 2).toBeCloseTo(pastePoint.x, -1);
+        expect(pasted.y + pasted.height / 2).toBeCloseTo(pastePoint.y, -1);
         await page.keyboard.press(`${modifier}+Z`);
         await expect(canvas.locator('[data-kind=rectangle]')).toHaveCount(1);
       });
