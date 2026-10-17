@@ -852,7 +852,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "github-actions-agent-access-39054281662"
+        "github-actions-agent-access-39054281662",
+        "github-actions-agent-access-39054540682"
       ]
     },
     "31": {
@@ -886,7 +887,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "github-actions-agent-access-39054281662"
+        "github-actions-agent-access-39054281662",
+        "github-actions-agent-access-39054540682"
       ]
     },
     "4": {
@@ -1275,17 +1277,18 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       },
-      "runCount": 4,
+      "runCount": 5,
       "runIds": [
         "github-actions-agent-access-39054281662",
+        "github-actions-agent-access-39054540682",
         "github-actions-final-39049794209",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226"
@@ -1294,7 +1297,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       }
     }
   },
@@ -1303,15 +1306,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 60
+      "unknownRuns": 61
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 40
+      "unknownRuns": 41
     },
-    "runCount": 60,
+    "runCount": 61,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1370,6 +1373,7 @@
       "codex-ui-review-031",
       "codex-whiteboard-takeover-001",
       "github-actions-agent-access-39054281662",
+      "github-actions-agent-access-39054540682",
       "github-actions-final-39049794209",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226"
@@ -1378,7 +1382,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 56
+      "unknownRuns": 57
     }
   },
   "officialScoreClaimReady": false,
@@ -1392,5 +1396,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:36:33+02:00"
+  "updatedAt": "2026-10-17T19:43:50+02:00"
 }

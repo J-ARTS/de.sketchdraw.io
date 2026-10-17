@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:36:33+02:00",
+  "updatedAt": "2026-10-17T19:43:50+02:00",
   "issues": [
     {
       "number": 4,
@@ -1927,7 +1927,7 @@
       "issues": [
         30
       ],
-      "status": "verified_local_regression",
+      "status": "verified_cross_platform",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1936,13 +1936,36 @@
       "artifacts": [
         "electron/agent-access/runtime-access.ts",
         "tests/unit/mcp/runtime-access.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662"
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/596517eda486d31fee8224288606679e70e12a2b",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054540682"
       ],
       "concerns": [
         "cross-platform-runtime-path-semantics"
       ],
       "authorization": "Correction remains within the user-authorized temporary Codex implementation takeover for issue30.",
-      "measurementSource": "Path selection now uses win32 or POSIX semantics from the explicit target platform instead of the executing host. Local targeted regression3/3, complete Vitest285/285 and typecheck passed. Replacement CI pending; no cross-platform success claimed yet. No measured agent duration/tokens/cost."
+      "measurementSource": "Path selection now uses win32 or POSIX semantics from the explicit target platform instead of the executing host. Local targeted regression3/3, complete Vitest285/285 and typecheck passed. Replacement CI39054540682 passed on Linux, macOS and Windows; separate GitHub Actions run record carries the job evidence. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "github-actions-agent-access-39054540682",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        30,
+        31
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054540682",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/596517eda486d31fee8224288606679e70e12a2b"
+      ],
+      "concerns": [],
+      "measurementSource": "Fresh GitHub Actions result at596517e: Governance/Graphify117459715963, direct P2P117459715827, Linux117459751336, macOS117459751468 and Windows117459751349 all completed successfully. Each platform job passed config/application typechecks, Node and Vitest unit suites, production build, browser UI tests, platform Electron tests and non-publishing package-directory smoke. No measured agent duration/tokens/cost."
     }
   ],
   "evidencePolicy": {
