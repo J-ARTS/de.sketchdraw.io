@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792258369.225335,
-    "ast_hash": "53a1937935b17bd5a77f24e43d2c6b0e",
+    "mtime": 1792258600.6828556,
+    "ast_hash": "d34b84d6531ec09385a1194b4c733e9f",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -1195,8 +1195,8 @@
     "semantic_hash": ""
   },
   "electron/agent-access/runtime-access.ts": {
-    "mtime": 1792257654.3315039,
-    "ast_hash": "87533ed4a1e3bc3821ed79440fc10065",
+    "mtime": 1792258575.3924258,
+    "ast_hash": "a2d0fcade8a123c5c8d13a02fb6ff86f",
     "semantic_hash": ""
   },
   "src/renderer/components/MainMenu.vue": {
@@ -1210,8 +1210,8 @@
     "semantic_hash": ""
   },
   "tests/unit/mcp/runtime-access.spec.ts": {
-    "mtime": 1792257554.3352783,
-    "ast_hash": "1bf8b2f5c46ae8e33bf5a87bb406a656",
+    "mtime": 1792258575.393175,
+    "ast_hash": "07886b9a7c50fd99390d9c0d8f1c49c0",
     "semantic_hash": ""
   },
   "docs/reviews/automatic-agent-access.md": {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:32:38+02:00",
+  "updatedAt": "2026-10-17T19:36:33+02:00",
   "issues": [
     {
       "number": 4,
@@ -1896,6 +1896,53 @@
         "workspace-ui-regression"
       ],
       "measurementSource": "Codex reviewed, tested and integrated the concurrent workspace UI implementation; this record does not attribute its authorship to Codex. Local validation at commit5c21fc1: typecheck and production build passed; Vitest285/285, Node58/58, Playwright UI19/19, Electron6/6 and strict P2P3/3 passed. No measured agent duration/tokens/cost. Operational traceability only; no official benchmark claim."
+    },
+    {
+      "id": "github-actions-agent-access-39054281662",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        30,
+        31
+      ],
+      "status": "failed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662",
+        "tests/unit/mcp/runtime-access.spec.ts"
+      ],
+      "concerns": [
+        "cross-platform-runtime-path-semantics"
+      ],
+      "measurementSource": "Governance/Graphify and strict P2P passed. Windows Vitest failed because a simulated macOS target used the Windows host path implementation: expected POSIX separators and received Windows separators. This is recorded as a failed run; no later success is inferred. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "codex-runtime-path-fix-030",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        30
+      ],
+      "status": "verified_local_regression",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "electron/agent-access/runtime-access.ts",
+        "tests/unit/mcp/runtime-access.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662"
+      ],
+      "concerns": [
+        "cross-platform-runtime-path-semantics"
+      ],
+      "authorization": "Correction remains within the user-authorized temporary Codex implementation takeover for issue30.",
+      "measurementSource": "Path selection now uses win32 or POSIX semantics from the explicit target platform instead of the executing host. Local targeted regression3/3, complete Vitest285/285 and typecheck passed. Replacement CI pending; no cross-platform success claimed yet. No measured agent duration/tokens/cost."
     }
   ],
   "evidencePolicy": {

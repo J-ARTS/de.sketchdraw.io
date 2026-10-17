@@ -19,9 +19,10 @@ const grant = {
 describe('automatic agent runtime access', () => {
   it('uses stable per-user paths on every target platform', () => {
     expect(agentRuntimeFilePath({}, 'darwin', '/home/test')).toBe('/home/test/Library/Application Support/io.sketchdraw.de/agent-runtime/active-v1.json');
-    expect(agentRuntimeFilePath({ APPDATA: 'C:\\Users\\test\\AppData\\Roaming' }, 'win32', 'C:\\Users\\test')).toContain(path.join('io.sketchdraw.de', 'agent-runtime', 'active-v1.json'));
+    expect(agentRuntimeFilePath({ APPDATA: 'C:\\Users\\test\\AppData\\Roaming' }, 'win32', 'C:\\Users\\test')).toBe('C:\\Users\\test\\AppData\\Roaming\\io.sketchdraw.de\\agent-runtime\\active-v1.json');
     expect(agentRuntimeFilePath({ XDG_CONFIG_HOME: '/config' }, 'linux', '/home/test')).toBe('/config/io.sketchdraw.de/agent-runtime/active-v1.json');
-    expect(() => agentRuntimeFilePath({ SKETCHDRAW_MCP_RUNTIME_FILE: 'relative.json' })).toThrow(/absolute/);
+    expect(agentRuntimeFilePath({ SKETCHDRAW_MCP_RUNTIME_FILE: 'C:\\runtime\\active.json' }, 'win32')).toBe('C:\\runtime\\active.json');
+    expect(() => agentRuntimeFilePath({ SKETCHDRAW_MCP_RUNTIME_FILE: 'relative.json' }, 'linux')).toThrow(/absolute/);
   });
 
   it('publishes, loads and conditionally removes the private current grant', async () => {

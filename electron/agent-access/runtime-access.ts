@@ -39,14 +39,15 @@ export function agentRuntimeFilePath(
   platform: NodeJS.Platform = process.platform,
   home = os.homedir(),
 ): string {
+  const platformPath = platform === 'win32' ? path.win32 : path.posix;
   const override = env.SKETCHDRAW_MCP_RUNTIME_FILE;
   if (override) {
-    if (!path.isAbsolute(override)) throw new AgentAccessError('ACCESS_DENIED', 'The automatic agent runtime path must be absolute.');
-    return path.normalize(override);
+    if (!platformPath.isAbsolute(override)) throw new AgentAccessError('ACCESS_DENIED', 'The automatic agent runtime path must be absolute.');
+    return platformPath.normalize(override);
   }
-  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', RUNTIME_DIRECTORY, RUNTIME_FILE);
-  if (platform === 'win32') return path.join(env.APPDATA || path.join(home, 'AppData', 'Roaming'), RUNTIME_DIRECTORY, RUNTIME_FILE);
-  return path.join(env.XDG_CONFIG_HOME || path.join(home, '.config'), RUNTIME_DIRECTORY, RUNTIME_FILE);
+  if (platform === 'darwin') return platformPath.join(home, 'Library', 'Application Support', RUNTIME_DIRECTORY, RUNTIME_FILE);
+  if (platform === 'win32') return platformPath.join(env.APPDATA || platformPath.join(home, 'AppData', 'Roaming'), RUNTIME_DIRECTORY, RUNTIME_FILE);
+  return platformPath.join(env.XDG_CONFIG_HOME || platformPath.join(home, '.config'), RUNTIME_DIRECTORY, RUNTIME_FILE);
 }
 
 function assertPrivateRuntimeFile(file: string, stats: Awaited<ReturnType<typeof lstat>>): void {
