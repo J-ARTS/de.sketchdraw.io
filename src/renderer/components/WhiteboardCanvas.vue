@@ -5,6 +5,7 @@ import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
 import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
+import { fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
 
 const store = useWhiteboard();
@@ -30,7 +31,7 @@ const editStyle = computed(() => {
     padding: free ? '0' : `${topInset * zoom}px ${8 * zoom}px 0`,
     transform: `rotate(${edit.rotation}deg)`,
     fontSize: `${edit.style.fontSize * zoom}px`,
-    fontFamily: edit.style.fontFamily === 'mono' ? 'var(--font-mono)' : 'var(--font-sans)',
+    fontFamily: fontFamilyCss(edit.style.fontFamily),
     textAlign: edit.style.textAlign,
     '--edit-color': themeColor(edit.style.stroke, s.theme),
   };

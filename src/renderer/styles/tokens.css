@@ -55,6 +55,8 @@
 
   --font-sans: 'Inter Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-roboto: 'Roboto Variable', Roboto, system-ui, sans-serif;
+  --font-scribbled: 'Caveat Variable', Caveat, cursive;
   --font-size-s: 12px;
   --font-size-m: 13px;
   --font-size-l: 15px;

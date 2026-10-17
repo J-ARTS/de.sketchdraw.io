@@ -136,7 +136,7 @@ export interface SelectionInfo {
     x?: number; y?: number; width?: number; height?: number; rotation?: number;
     stroke?: string; fill?: string; strokeWidth?: number; opacity?: number; fontSize?: number;
     textAlign?: ElementStyle['textAlign']; strokeDash?: ElementStyle['strokeDash'];
-    fontFamily?: 'sans' | 'mono'; label?: string; description?: string; text?: string;
+    fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled'; label?: string; description?: string; text?: string;
     connectorFrom?: string; connectorTo?: string; parentName?: string;
   };
   mixed: string[];

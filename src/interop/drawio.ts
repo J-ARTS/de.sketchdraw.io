@@ -87,8 +87,9 @@ function styleOf(cell: Cell, ctx: ImportContext) {
   if (['left', 'center', 'right'].includes(v['align'] ?? ''))
     s.textAlign = v['align'] as typeof s.textAlign;
   if (v['fontFamily']) {
-    s.fontFamily = /mono/i.test(v['fontFamily']) ? 'mono' : 'sans';
-    if (!/^(?:sans-serif|monospace|Inter|JetBrains Mono)$/.test(v['fontFamily']))
+    const family = v['fontFamily'].trim();
+    s.fontFamily = /^Roboto, sans-serif$/i.test(family) ? 'roboto' : /^Caveat, cursive$/i.test(family) ? 'scribbled' : /mono/i.test(family) ? 'mono' : 'sans';
+    if (!/^(?:sans-serif|monospace|Inter|JetBrains Mono|Roboto, sans-serif|Caveat, cursive)$/i.test(family))
       warn(ctx, node, 'FONT_RENDERING_DEPENDENT', 'fontFamily', 'Foreign font mapped to bundled sans/mono family.');
   }
   s.strokeDash = v['dashed'] === '1' ? (v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';

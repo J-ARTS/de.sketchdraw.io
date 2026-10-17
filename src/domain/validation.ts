@@ -54,6 +54,8 @@ const STROKE_DASHES: ReadonlySet<ElementStyle['strokeDash']> = new Set([
 const FONT_FAMILIES: ReadonlySet<NonNullable<ElementStyle['fontFamily']>> = new Set([
   'sans',
   'mono',
+  'roboto',
+  'scribbled',
 ]);
 const ASSET_MIME_TYPES: ReadonlySet<SketchAsset['mimeType']> = new Set([
   'image/png',
@@ -541,7 +543,7 @@ export function validateStyle(
       issues.push({
         path: joinPath(path, 'fontFamily'),
         code: 'INVALID_STYLE_FIELD',
-        message: 'Style fontFamily must be "sans" or "mono".',
+        message: 'Style fontFamily must be "sans", "mono", "roboto" or "scribbled".',
       });
     }
   }

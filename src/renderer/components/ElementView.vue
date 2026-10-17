@@ -2,6 +2,7 @@
 import { computed, useId } from 'vue';
 import type { SketchDocument, SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
+import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 
@@ -42,7 +43,7 @@ const textY = computed(() => e.value.kind === 'container' ? 8 : e.value.kind ===
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
     <svg v-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
-    <text v-if="text && !editing" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :font-size="fontSize" :font-family="e.style.fontFamily === 'mono' ? 'var(--font-mono)' : 'var(--font-sans)'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-if="text && !editing" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
   </g>

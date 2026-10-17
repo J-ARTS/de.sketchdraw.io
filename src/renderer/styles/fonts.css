@@ -1,3 +1,5 @@
-/* Inter und JetBrains Mono: SIL Open Font License 1.1 (Lizenztexte der Pakete nach npm install prüfen). */
+/* Inter, JetBrains Mono, Roboto und Caveat: SIL Open Font License 1.1 (Lizenztexte der Pakete nach npm install prüfen). */
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/roboto';
+@import '@fontsource-variable/caveat';

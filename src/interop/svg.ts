@@ -86,8 +86,9 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
     result.fontSize = length(values['font-size'], 16);
     result.textAlign = values['text-anchor'] === 'middle' ? 'center' : values['text-anchor'] === 'end' ? 'right' : 'left';
     if (values['font-family']) {
-      result.fontFamily = /mono|JetBrains/i.test(values['font-family']) ? 'mono' : 'sans';
-      if (!/^(?:Inter, sans-serif|JetBrains Mono, monospace|sans-serif|monospace)$/.test(values['font-family']))
+      const family = values['font-family'].trim();
+      result.fontFamily = /^Roboto, sans-serif$/i.test(family) ? 'roboto' : /^Caveat, cursive$/i.test(family) ? 'scribbled' : /mono|JetBrains/i.test(family) ? 'mono' : 'sans';
+      if (!/^(?:Inter, sans-serif|JetBrains Mono, monospace|sans-serif|monospace|Roboto, sans-serif|Caveat, cursive)$/i.test(family))
         warn(ctx, node, 'FONT_RENDERING_DEPENDENT', 'font-family', 'Foreign font mapped to bundled sans/mono.');
     }
     const dash = values['stroke-dasharray'];

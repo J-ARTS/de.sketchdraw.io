@@ -27,6 +27,8 @@ function svgPaint(el: SketchElement, d: DiagnosticCollector): string {
   return attrs({ stroke: safeColor(el.style.stroke, d, el), fill: safeColor(el.style.fill, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity,
     ...(el.style.strokeDash === 'solid' ? {} : { 'stroke-dasharray': el.style.strokeDash === 'dashed' ? '8 6' : '2 4' }) });
 }
+const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
+const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 function nativeText(el: SketchElement, d: DiagnosticCollector): string {
   const visibleText = el.text || el.label || '';
   if (visibleText === '')
@@ -35,7 +37,7 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
   const font = el.style.fontSize, align = el.style.textAlign;
   const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width : 0;
   const text = xmlText(visibleText, d, el);
-  return `<text${attrs({ x, y: font, 'font-size': font, 'font-family': el.style.fontFamily === 'mono' ? 'JetBrains Mono, monospace' : 'Inter, sans-serif', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, stroke: 'none', 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: font + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+  return `<text${attrs({ x, y: font, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, stroke: 'none', 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: font + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
 }
 function safeIcon(node: SafeSvgElementNode): string {
   return `<${node.tag}${attrs(node.attributes)}>${node.children.map(safeIcon).join('')}</${node.tag}>`;
@@ -101,7 +103,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
     const text = xmlText(el.text || el.label || '', d, el);
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${el.style.fontFamily === 'mono' ? 'monospace' : 'sans-serif'}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=none`, `endArrow=none`];
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=none`, `endArrow=none`];
     if (el.kind === 'ellipse')
       style.push('ellipse');
     else if (el.kind === 'diamond')

@@ -27,8 +27,10 @@
     "mcp": "node dist-mcp/server.cjs"
   },
   "dependencies": {
+    "@fontsource-variable/caveat": "5.3.0",
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/roboto": "5.3.0",
     "@modelcontextprotocol/server": "2.3.1",
     "fflate": "0.8.3",
     "htmlparser2": "12.0.0",

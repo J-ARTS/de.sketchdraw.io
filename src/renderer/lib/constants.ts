@@ -86,7 +86,14 @@ export const PALETTE: readonly NamedColor[] = [
   { name: 'Hellpink', value: '#f6cde8' },
 ];
 
-export const FONT_FAMILY_CSS: Readonly<Record<'sans' | 'mono', string>> = {
+/** Single source of truth for rendering an element's fontFamily (canvas text and inline editor). */
+export function fontFamilyCss(family: ElementStyle['fontFamily']): string {
+  return FONT_FAMILY_CSS[family ?? 'sans'];
+}
+
+export const FONT_FAMILY_CSS: Readonly<Record<NonNullable<ElementStyle['fontFamily']>, string>> = {
   sans: "'Inter Variable', system-ui, sans-serif",
   mono: "'JetBrains Mono Variable', ui-monospace, monospace",
+  roboto: "'Roboto Variable', Roboto, system-ui, sans-serif",
+  scribbled: "'Caveat Variable', Caveat, cursive",
 };

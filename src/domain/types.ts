@@ -13,7 +13,7 @@ export interface ElementStyle {
   fontSize: number;
   textAlign: 'left' | 'center' | 'right';
   strokeDash: 'solid' | 'dashed' | 'dotted';
-  fontFamily?: 'sans' | 'mono';
+  fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled';
 }
 
 export interface Endpoint {

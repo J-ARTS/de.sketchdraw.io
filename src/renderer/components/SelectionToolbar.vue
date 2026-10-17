@@ -7,6 +7,7 @@ import type { ElementStyle } from '@/domain';
 import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
+import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 
 type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more';
@@ -198,7 +199,16 @@ const sizeLabel = computed(() => {
   return SIZE_PRESETS.find((preset) => preset.value === size)?.label ?? `${size} px`;
 });
 const alignIcon = computed<IconName>(() => ALIGNMENTS.find((a) => a.value === info.value.values.textAlign)?.icon ?? 'align-left');
-const isMono = computed(() => info.value.values.fontFamily === 'mono');
+type FontFamilyValue = 'sans' | 'roboto' | 'scribbled' | 'mono';
+const FONT_OPTIONS: readonly { value: FontFamilyValue; label: string }[] = [
+  { value: 'sans', label: 'Inter (Serifenlos)' },
+  { value: 'roboto', label: 'Roboto (Sans Serif)' },
+  { value: 'scribbled', label: 'Scribbled' },
+  { value: 'mono', label: 'JetBrains Mono (Monospace)' },
+];
+const fontMixed = computed(() => info.value.mixed.includes('fontFamily'));
+const currentFont = computed<FontFamilyValue>(() => (info.value.values.fontFamily as FontFamilyValue | undefined) ?? 'sans');
+const fontGlyphStyle = computed(() => ({ fontFamily: FONT_FAMILY_CSS[currentFont.value], fontStyle: 'normal' }));
 const linkDraft = ref('');
 watch(() => single.value?.documentationUrl, (url) => { linkDraft.value = url ?? ''; }, { immediate: true });
 function saveLink(): void {
@@ -275,7 +285,7 @@ function relayout(): void { void nextTick(placePopover); }
     <template v-if="textCapable">
       <span class="sep" aria-hidden="true" />
       <button :ref="(el) => setTrigger('font', el)" type="button" class="segment" aria-label="Schriftart" :aria-expanded="openSegment === 'font'" :aria-controls="panelId('font')" title="Schriftart" @click="toggle('font')">
-        <span class="font-glyph" :class="{ mono: isMono }" aria-hidden="true">Aa</span><AppIcon class="chev" name="chevron-down" :size="14" />
+        <span class="font-glyph" :style="fontGlyphStyle" data-testid="font-glyph" aria-hidden="true">Aa</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
       <button :ref="(el) => setTrigger('size', el)" type="button" class="segment size-segment" :aria-label="`Schriftgröße: ${sizeLabel}`" :aria-expanded="openSegment === 'size'" :aria-controls="panelId('size')" @click="toggle('size')">
@@ -365,8 +375,7 @@ function relayout(): void { void nextTick(placePopover); }
     </template>
 
     <div v-else-if="openSegment === 'font'" class="choices column" role="group" aria-label="Schriftart">
-      <button type="button" class="choice" :aria-pressed="!isMono && !info.mixed.includes('fontFamily')" @click="style({ fontFamily: 'sans' })"><span class="font-sample">Aa</span> Serifenlos</button>
-      <button type="button" class="choice" :aria-pressed="isMono && !info.mixed.includes('fontFamily')" @click="style({ fontFamily: 'mono' })"><span class="font-sample mono">Aa</span> Monospace</button>
+      <button v-for="font in FONT_OPTIONS" :key="font.value" type="button" class="choice" :aria-pressed="!fontMixed && currentFont === font.value" :data-font="font.value" @click="style({ fontFamily: font.value })"><span class="font-sample" :style="{ fontFamily: FONT_FAMILY_CSS[font.value] }" aria-hidden="true">Aa</span> {{ font.label }}</button>
     </div>
 
     <template v-else-if="openSegment === 'size'">
@@ -478,12 +487,6 @@ function relayout(): void { void nextTick(placePopover); }
   font-size: 17px;
   font-style: italic;
   font-weight: 600;
-}
-
-.font-glyph.mono,
-.font-sample.mono {
-  font-family: var(--font-mono);
-  font-style: normal;
 }
 
 .size-segment {
@@ -744,10 +747,9 @@ function relayout(): void { void nextTick(placePopover); }
 }
 
 .font-sample {
-  width: 24px;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  font-style: italic;
+  width: 28px;
+  font-size: 18px;
+  font-style: normal;
 }
 
 .muted {
