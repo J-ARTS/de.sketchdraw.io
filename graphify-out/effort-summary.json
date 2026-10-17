@@ -927,6 +927,99 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "33": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
+    "34": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
+    "35": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        },
+        "runCount": 2,
+        "runIds": [
+          "claude-page-ui-cleanup-035",
+          "codex-page-ui-cleanup-review-035"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "4": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1204,18 +1297,19 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
-        "total": 2680.3404180409852,
-        "unknownRuns": 0
+        "total": null,
+        "unknownRuns": 1
       },
-      "runCount": 4,
+      "runCount": 5,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
+        "claude-page-ui-cleanup-035",
         "claude-whiteboard-001",
         "claude-whiteboard-002"
       ],
@@ -1223,7 +1317,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       }
     },
     "codex": {
@@ -1231,15 +1325,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 13
+        "unknownRuns": 14
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 13
+        "unknownRuns": 14
       },
-      "runCount": 13,
+      "runCount": 14,
       "runIds": [
         "codex-auto-agent-access-030",
         "codex-default-keychain-profile-027",
@@ -1249,6 +1343,7 @@
         "codex-native-integration-002",
         "codex-noncommercial-license-029",
         "codex-orchestration-001",
+        "codex-page-ui-cleanup-review-035",
         "codex-runtime-path-fix-030",
         "codex-shutdown-cleanup-032",
         "codex-ticket-closure-004",
@@ -1259,7 +1354,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 13
+        "unknownRuns": 14
       }
     },
     "codex-subagent": {
@@ -1346,15 +1441,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 65
+      "unknownRuns": 67
     },
     "observedSeconds": {
       "knownRuns": 22,
       "knownSubtotal": 13280.322263248963,
       "total": null,
-      "unknownRuns": 43
+      "unknownRuns": 45
     },
-    "runCount": 65,
+    "runCount": 67,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1374,6 +1469,7 @@
       "antigravity-setup-002",
       "claude-architecture-001",
       "claude-architecture-002",
+      "claude-page-ui-cleanup-035",
       "claude-whiteboard-001",
       "claude-whiteboard-002",
       "codex-auto-agent-access-030",
@@ -1401,6 +1497,7 @@
       "codex-p2p-contract-001",
       "codex-p2p-contract-review-001",
       "codex-p2p-feedback-003",
+      "codex-page-ui-cleanup-review-035",
       "codex-property-draft-025",
       "codex-release-fixes-001",
       "codex-release-review-001",
@@ -1426,7 +1523,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 61
+      "unknownRuns": 63
     }
   },
   "officialScoreClaimReady": false,
@@ -1436,9 +1533,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 21
+    "unknownIssues": 24
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T20:04:11+02:00"
+  "updatedAt": "2026-10-17T22:54:20+02:00"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T20:04:11+02:00",
+  "updatedAt": "2026-10-17T22:54:20+02:00",
   "issues": [
     {
       "number": 4,
@@ -523,6 +523,53 @@
       },
       "dependencies": [
         30
+      ]
+    },
+    {
+      "number": 35,
+      "title": "Mehrere Seiten: Seiten-UI in der Dokumentkarte",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
+      "owner": "Claude Code",
+      "currentImplementer": "Claude Code",
+      "phase": "UI",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        34
+      ]
+    },
+    {
+      "number": 33,
+      "title": "Mehrere Seiten: Architektur und Dokumentschema v2",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/33",
+      "owner": "Codex",
+      "phase": "Architecture",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 34,
+      "title": "Mehrere Seiten: Domäne, Commands, Codec, Interop und MCP (Schema v2)",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/34",
+      "owner": "Antigravity",
+      "phase": "Domain and interfaces",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        33
       ]
     }
   ],
@@ -2079,6 +2126,53 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39056131370 at b030ddc620f02a75921f875b6b333ed6c8204fd1: Governance/Graphify 117464361295, direct P2P 117464361078, Linux 117464382950, macOS 117464382914 and Windows 117464382971 all completed successfully. Each platform job passed configuration/application typechecks, Node release tests, Vitest, production build, browser UI, platform Electron and non-publishing package-directory verification. Runtime 265 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "claude-page-ui-cleanup-035",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        35
+      ],
+      "status": "validated_by_codex",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/cd15ab2da7cb76fba789218035bda516ef09f613",
+        "src/renderer/components/PageSwitcher.vue",
+        "src/renderer/i18n/de.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/pages.spec.ts"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly requested removal of the schema-v2 notice and visible element count, and previously assigned UI implementation to Claude Code.",
+      "measurementSource": "Claude Code implemented the bounded single-page fallback cleanup without touching .claude, committing, pushing or mutating GitHub. It removed visible schema-v2 hints and element counts while preserving copy-page and accessibility behavior. Claude's own test commands were blocked by its local permission prompt; Codex then reviewed the diff and executed the required validation. No measured duration/tokens/cost."
+    },
+    {
+      "id": "codex-page-ui-cleanup-review-035",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        35
+      ],
+      "status": "verified_local_ui",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/cd15ab2da7cb76fba789218035bda516ef09f613",
+        "tests/ui/pages.spec.ts"
+      ],
+      "concerns": [],
+      "authorization": "Codex performs the project-required testing and integration review for Claude Code UI work.",
+      "measurementSource": "Codex verified that no schema-v2 notice or element-count presentation remains in the renderer, reviewed all blocked interaction paths, ran npm run typecheck successfully and ran the targeted Playwright pages UI suite 4/4 successfully. Clipboard copy behavior and Axe coverage remain in the passing suite. Cross-platform CI pending. No measured duration/tokens/cost."
     }
   ],
   "evidencePolicy": {
