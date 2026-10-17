@@ -693,21 +693,23 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 0
+          "unknownRuns": 1
         },
         "observedSeconds": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 0
+          "unknownRuns": 1
         },
-        "runCount": 0,
-        "runIds": [],
+        "runCount": 1,
+        "runIds": [
+          "codex-default-keychain-profile-027"
+        ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 0
+          "unknownRuns": 1
         }
       },
       "planning": {
@@ -1228,17 +1230,18 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
-      "runCount": 12,
+      "runCount": 13,
       "runIds": [
         "codex-auto-agent-access-030",
+        "codex-default-keychain-profile-027",
         "codex-draft-recovery-028",
         "codex-final-release-closure-029",
         "codex-mcp-takeover-001",
@@ -1255,7 +1258,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       }
     },
     "codex-subagent": {
@@ -1341,15 +1344,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 63
+      "unknownRuns": 64
     },
     "observedSeconds": {
       "knownRuns": 21,
       "knownSubtotal": 13015.322263248963,
       "total": null,
-      "unknownRuns": 42
+      "unknownRuns": 43
     },
-    "runCount": 63,
+    "runCount": 64,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1374,6 +1377,7 @@
       "codex-auto-agent-access-030",
       "codex-ci-signing-env-026",
       "codex-codec-catalog-tests-001",
+      "codex-default-keychain-profile-027",
       "codex-dependency-review-001",
       "codex-desktop-review-001",
       "codex-domain-review-001",
@@ -1419,7 +1423,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 59
+      "unknownRuns": 60
     }
   },
   "officialScoreClaimReady": false,
@@ -1433,5 +1437,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:56:21+02:00"
+  "updatedAt": "2026-10-17T19:59:07+02:00"
 }

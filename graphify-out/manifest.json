@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792259338.0832171,
-    "ast_hash": "1eca1b178201c72157062f6c6fafa121",
+    "mtime": 1792259947.6939576,
+    "ast_hash": "dbd5ef918a194ceb0e12a79725c02cac",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -550,8 +550,8 @@
     "semantic_hash": ""
   },
   "scripts/release.mjs": {
-    "mtime": 1792253665.5320818,
-    "ast_hash": "2d8c1bbb6dad6ceb170aa277dc8757f3",
+    "mtime": 1792259909.203302,
+    "ast_hash": "0ee37030bde9e0d4bab731a7e1f6ff92",
     "semantic_hash": ""
   },
   "src/agent-access/errors.ts": {
@@ -615,8 +615,8 @@
     "semantic_hash": ""
   },
   "tests/unit/release.test.mjs": {
-    "mtime": 1792253665.3697088,
-    "ast_hash": "054964e1e7fc3b3c77d8385e57b4e54f",
+    "mtime": 1792259904.9840546,
+    "ast_hash": "2f53dd8592bdbdfad7ad437479900e48",
     "semantic_hash": ""
   },
   "tsconfig.mcp.json": {

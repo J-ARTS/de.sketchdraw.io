@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:56:21+02:00",
+  "updatedAt": "2026-10-17T19:59:07+02:00",
   "issues": [
     {
       "number": 4,
@@ -435,13 +435,14 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/27",
       "owner": "Antigravity",
       "phase": "Follow-up",
-      "status": "planned",
+      "status": "review",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
         "kind": "planning_estimate"
       },
-      "dependencies": []
+      "dependencies": [],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
     },
     {
       "number": 28,
@@ -2031,6 +2032,31 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39055418909 at 76eba54266c4fec9ecae3ab02ee5fa510fd8c5ab: Governance/Graphify 117462284103, direct P2P 117462283912, Linux 117462313800, macOS 117462313771 and Windows 117462313854 all completed successfully. Each platform job passed configuration/application typechecks, Node and Vitest unit suites, production build, browser UI tests, its platform Electron suite and non-publishing package-directory verification. Runtime 393 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "codex-default-keychain-profile-027",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        27
+      ],
+      "status": "verified_local_unit",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/27",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/213932c",
+        "scripts/release.mjs",
+        "tests/unit/release.test.mjs"
+      ],
+      "concerns": [
+        "default-keychain-notarization-profile"
+      ],
+      "authorization": "User requested another ticket review and a local update; Codex performs the previously authorized temporary implementation takeover while Antigravity remains the regular DevOps owner.",
+      "measurementSource": "GitHub-to-ledger audit confirmed issue 27 as the only open ticket. The focused regression failed before correction because a profile without APPLE_KEYCHAIN resolved to developer-id-signed, then passed after matching electron-builder 26.15.3 semantics. Synthetic coverage confirms profile-only, profile-plus-path and path-without-profile behavior. Release tests 30/30 and all Node tests 59/59 passed. No real certificate, credential, notarization request or native notarization success claim was used. Cross-platform CI pending; no measured agent duration/tokens/cost."
     }
   ],
   "evidencePolicy": {
