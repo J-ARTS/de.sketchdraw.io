@@ -1,6 +1,6 @@
 # de.sketchdraw.io
 
-Projekt für sketchdraw.io (deutsche Version). Architektur, gemeinsame Verträge, Graphify sowie Build-/Testkonfiguration sind vorhanden. Die sechs Produktbereiche sind implementiert und werden gemeinsam auf den Zielplattformen geprüft; die finale Installerabnahme ist noch offen. Aktuelle Nachweise und offene Integrationsschritte stehen in GitHub und im Work-Ledger.
+Projekt für sketchdraw.io (deutsche Version). Architektur, gemeinsame Verträge, Graphify sowie Build-/Testkonfiguration sind vorhanden. Die sechs Produktbereiche sowie die drei nativen Installer sind implementiert und auf den Zielplattformen geprüft. Release v0.1.1 ist mit drei geprüften Installern veröffentlicht; konkrete Nachweise und der Aufgabenstatus werden in GitHub gepflegt. Aktuelle Nachweise und offene Integrationsschritte stehen in GitHub und im Work-Ledger.
 
 ## Vision und Projektziel
 

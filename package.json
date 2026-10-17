@@ -3,6 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "description": "Open, cross-platform visual workspace for architecture diagrams, whiteboard sketching, Diagram-as-Code, MCP agents, and strict P2P collaboration.",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "engines": {

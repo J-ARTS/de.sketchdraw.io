@@ -4,6 +4,16 @@ Ein lokaler Visual Workspace für Windows, macOS und Linux. Menschen und Agenten
 
 > Everything you can draw, an agent can understand. Everything an agent can create, a human can edit.
 
+## Download
+
+[Release v0.1.1](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1) enthält drei nativ geprüfte Installer:
+
+- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-linux-x64.deb)
+
+Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert. Hinweise zum ersten Start stehen in den Release-Notes, die konkreten Prüfungen im [Release-Nachweis](docs/reviews/release-validation.md).
+
 ## Funktionen
 
 - Whiteboard mit Formen, Freihandzeichnungen, Text, Bildern, Verbindungen und Containern.
@@ -14,6 +24,12 @@ Ein lokaler Visual Workspace für Windows, macOS und Linux. Menschen und Agenten
 - Verschlüsselte direkte Zusammenarbeit mit manuellem Einladungsaustausch und Rollen.
 
 Dokumente werden lokal gespeichert. Die Zusammenarbeit verwendet keine zentralen Dokument-, Signaling-, STUN-, TURN- oder Relay-Dienste. Direkte Erreichbarkeit ist deshalb nicht in jedem Netzwerk gegeben. Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.
+
+## Lizenz
+
+Sketchdraw steht unter der **PolyForm Noncommercial License 1.0.0**, soweit einzelne Bestandteile nicht anders gekennzeichnet sind. Nutzung, Änderungen und Weitergabe sind für die im [Lizenztext](LICENSE) erlaubten Zwecke möglich. Für darüber hinausgehende kommerzielle Nutzung ist eine gesonderte Erlaubnis der Rechteinhaber erforderlich.
+
+Die [Lizenz-README](docs/licensing/README.md) erklärt die Bedingungen, Drittanbieter-Lizenzen und den Auslieferungsstand. Die Lizenzen der verwendeten Bibliotheken und Schriften bleiben erhalten.
 
 ## Entwicklung
 

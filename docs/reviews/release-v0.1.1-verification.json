@@ -1,0 +1,43 @@
+{
+  "tag": "v0.1.1",
+  "commit": "c4bdfd6e38ac4f6db470ff7f8bf3f3788e78e1ee",
+  "run": "39046419226",
+  "releaseUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1",
+  "releaseId": 415905405,
+  "assets": [
+    {
+      "name": "Sketchdraw-0.1.1-windows-x64.exe",
+      "platform": "win",
+      "sizeBytes": 105331517,
+      "sha256": "256b58d85698a00b38d018dacd3cf7d3d0653295326fd1688b55b538a6ed6924",
+      "downloadUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-windows-x64.exe",
+      "downloadVerified": true,
+      "ciInstallerSmokeVerified": true
+    },
+    {
+      "name": "Sketchdraw-0.1.1-macos-arm64.dmg",
+      "platform": "mac",
+      "sizeBytes": 139207381,
+      "sha256": "06bf868385df3f2cbcc63bc7759459f70835c0c43e78ec987f581d005cfc2c78",
+      "downloadUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-macos-arm64.dmg",
+      "downloadVerified": true,
+      "ciInstallerSmokeVerified": true
+    },
+    {
+      "name": "Sketchdraw-0.1.1-linux-x64.deb",
+      "platform": "linux",
+      "sizeBytes": 105879856,
+      "sha256": "90ed7d5730d660842f4f1f078c52bfc40b6411b348c179141d88854d6ac0fc93",
+      "downloadUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.1/Sketchdraw-0.1.1-linux-x64.deb",
+      "downloadVerified": true,
+      "ciInstallerSmokeVerified": true
+    }
+  ],
+  "verifiedAt": "2026-10-17T16:29:11.295731+00:00",
+  "verifiedBy": "OpenAI Codex, downloaded public release assets and independently compared them with native CI smoke reports",
+  "signing": {
+    "win": "unsigned",
+    "mac": "ad-hoc, not notarized",
+    "linux": "unsigned"
+  }
+}

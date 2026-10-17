@@ -17,6 +17,7 @@ import {
   PROJECT_ROOT,
   RELEASE_TARGETS,
   computeSha256,
+  fetchReleaseByTag,
   generateReleaseNotes,
   inspectBinaryFile,
   isForbiddenReleaseAsset,
@@ -589,13 +590,77 @@ test('validateCollectedReleaseArtifacts accepts valid 3-platform bundle and reje
   }
 });
 
+test('release lookup finds the exact draft on later paginated pages and preserves REST metadata', () => {
+  const draft = { id: 42, tag_name: 'v0.1.0', draft: true,
+    author: { login: 'github-actions[bot]', type: 'Bot' }, body: 'ownership marker',
+    assets: [{ id: 7, name: 'installer.exe', digest: 'sha256:example' }], published_at: null };
+  const calls = [];
+  const env = { GITHUB_TOKEN: 'synthetic-test-token' };
+  const result = fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0', env,
+    runGh(args, options) {
+      calls.push(args);
+      assert.equal(options.env, env);
+      if (calls.length === 1) throw Object.assign(new Error('API request failed'), { stderr: 'gh: Not Found (HTTP 404)' });
+      return JSON.stringify([[{ ...draft, id: 41, tag_name: 'v0.1.01' }], [draft]]);
+    } });
+  assert.deepEqual(result, draft);
+  assert.deepEqual(calls, [
+    ['api', `repos/${DEFAULT_REPOSITORY}/releases/tags/v0.1.0`],
+    ['api', `repos/${DEFAULT_REPOSITORY}/releases?per_page=100`, '--paginate', '--slurp'],
+  ]);
+});
+
+test('release lookup returns absence only after a successful exact-tag search', () => {
+  const queries = [];
+  assert.equal(fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0',
+    runGh(args) {
+      queries.push(args);
+      if (queries.length === 1) throw new Error('HTTP 404: Not Found');
+      return JSON.stringify([[{ id: 1, tag_name: 'v0.1.01' }], [{ id: 2, tag_name: 'V0.1.0' }]]);
+    } }), null);
+  assert.equal(queries.length, 2);
+});
+
+test('release lookup never treats authentication, CLI or successful-response JSON errors as absence', () => {
+  for (const failure of ['HTTP 401: Bad credentials', 'HTTP 403: Resource 404 denied', 'Not Found', 'Connection failed']) {
+    let queries = 0;
+    assert.throws(() => fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0',
+      runGh() { queries++; throw new Error(failure); } }));
+    assert.equal(queries, 1, failure);
+  }
+  for (const response of ['Invalid JSON mentioning HTTP 404', 'null', '[]', '{}']) {
+    let queries = 0;
+    assert.throws(() => fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0',
+      runGh() { queries++; return response; } }));
+    assert.equal(queries, 1);
+  }
+});
+
+test('release lookup rejects failed or malformed release lists and ambiguous tag matches', () => {
+  const responses = [null, {}, [], [{}], [[null]], [[{ id: 1 }]],
+    [[{ id: 1, tag_name: 'v0.1.0' }], [{ id: 2, tag_name: 'v0.1.0' }]]];
+  for (const response of responses) {
+    let queries = 0;
+    assert.throws(() => fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0',
+      runGh() { if (++queries === 1) throw new Error('HTTP 404: Not Found'); return JSON.stringify(response); } }));
+    assert.equal(queries, 2);
+  }
+  for (const failure of ['HTTP 401: Bad credentials', 'HTTP 403: Forbidden', 'HTTP 404: Not Found', 'Page 2 unavailable']) {
+    let queries = 0;
+    assert.throws(() => fetchReleaseByTag({ repository: DEFAULT_REPOSITORY, tag: 'v0.1.0',
+      runGh() { if (++queries === 1) throw new Error('HTTP 404: Not Found'); throw new Error(failure); } }));
+    assert.equal(queries, 2);
+  }
+});
+
 function publishFixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'sketchdraw-release-retry-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const artifactsDir = stageAllThreePlatforms(root);
   const artifacts = validateCollectedReleaseArtifacts({ artifactsDir, version: '0.1.0', tag: 'v0.1.0', commitSha: SAMPLE_COMMIT, minSizeBytes: 1024 });
   const ownership = { repository: DEFAULT_REPOSITORY, tag: 'v0.1.0', commitSha: SAMPLE_COMMIT, artifacts };
-  const state = { release: null, mutations: [], uploads: [], failAfterFirstUpload: false, remoteCommit: SAMPLE_COMMIT };
+  const state = { release: null, mutations: [], uploads: [], failAfterFirstUpload: false, remoteCommit: SAMPLE_COMMIT,
+    draftListReads: 0, publishedTagReads: 0 };
   const remoteAsset = artifact => ({ id: artifacts.indexOf(artifact) + 1, name: artifact.fileName,
     size: artifact.sizeBytes, state: 'uploaded', digest: `sha256:${artifact.sha256}` });
   const makeRelease = (draft = true, assets = []) => ({ id: 42, tag_name: 'v0.1.0', draft,
@@ -603,8 +668,15 @@ function publishFixture(t) {
   const runGh = args => {
     if (args[0] === 'api' && args[1].includes('/git/ref/')) return JSON.stringify({ object: { type: 'commit', sha: state.remoteCommit } });
     if (args[0] === 'api' && args[1].includes('/releases/tags/')) {
-      if (!state.release) throw new Error('HTTP 404: Not Found');
+      // GitHub's single-tag endpoint does not expose the draft created by Actions.
+      if (!state.release || state.release.draft) throw new Error('HTTP 404: Not Found');
+      state.publishedTagReads++;
       return JSON.stringify(state.release);
+    }
+    if (args[0] === 'api' && args[1] === `repos/${DEFAULT_REPOSITORY}/releases?per_page=100`) {
+      assert.deepEqual(args.slice(2), ['--paginate', '--slurp']);
+      state.draftListReads++;
+      return JSON.stringify([state.release ? [state.release] : []]);
     }
     state.mutations.push(args);
     assert.ok(!args.includes('--clobber'));
@@ -633,7 +705,7 @@ function publishFixture(t) {
   };
   const publish = (overrides = {}) => publishGitHubRelease({ artifactsDir, rawTag: 'v0.1.0', expectedCommitSha: SAMPLE_COMMIT,
     rootDir: root, minSizeBytes: 1024, env: {}, runGit: () => SAMPLE_COMMIT, runGh, ...overrides });
-  return { root, artifactsDir, artifacts, ownership, state, makeRelease, remoteAsset, publish };
+  return { root, artifactsDir, artifacts, ownership, state, makeRelease, remoteAsset, publish, runGh };
 }
 
 test('publishes a verified draft once; repeat is read-only and partial upload retry preserves existing bytes', t => {
@@ -647,6 +719,60 @@ test('publishes a verified draft once; repeat is read-only and partial upload re
   const writes = f.state.mutations.length;
   assert.equal(f.publish().status, 'already-published-idempotent');
   assert.equal(f.state.mutations.length, writes);
+  assert.equal(f.state.mutations.filter(args => args[0] === 'release' && args[1] === 'create').length, 1);
+  assert.ok(f.state.draftListReads > 1, 'Created and resumed drafts are retrieved through the list endpoint');
+  assert.equal(f.state.publishedTagReads, 2, 'Publication verification and repeat use the direct tag endpoint');
+});
+
+test('publisher grants ten minutes only to installer uploads and leaves metadata timeouts at the default', t => {
+  const f = publishFixture(t);
+  const requests = [];
+  assert.equal(f.publish({ runGh(args, options) {
+    requests.push({ args, timeoutMs: options.timeoutMs });
+    return f.runGh(args, options);
+  } }).status, 'published');
+  const uploads = requests.filter(({ args }) => args[0] === 'api' && args[2] === 'POST');
+  assert.equal(uploads.length, 3);
+  for (const { args, timeoutMs } of uploads) {
+    assert.ok(args[3].startsWith(`https://uploads.github.com/repos/${DEFAULT_REPOSITORY}/releases/42/assets?name=`));
+    assert.equal(timeoutMs, 600_000);
+  }
+  for (const request of requests.filter(request => !uploads.includes(request))) {
+    assert.equal(request.timeoutMs, undefined, `Metadata must use the default timeout: ${request.args[0]}`);
+  }
+});
+
+test('an installer upload timeout remains fatal without an automatic retry or publication', t => {
+  const f = publishFixture(t);
+  let uploadAttempts = 0;
+  const timeout = Object.assign(new Error('Installer upload timed out'), { code: 'ETIMEDOUT' });
+  assert.throws(() => f.publish({ runGh(args, options) {
+    if (args[0] === 'api' && args[2] === 'POST') {
+      uploadAttempts++;
+      assert.equal(options.timeoutMs, 600_000);
+      throw timeout;
+    }
+    return f.runGh(args, options);
+  } }), error => error === timeout);
+  assert.equal(uploadAttempts, 1);
+  assert.equal(f.state.release.draft, true);
+  assert.equal(f.state.release.assets.length, 0);
+  assert.equal(f.state.mutations.length, 1, 'Only initial draft creation preceded the failed upload');
+});
+
+test('ambiguous or inaccessible draft lists stop publication before any mutation', t => {
+  const f = publishFixture(t);
+  f.state.release = f.makeRelease();
+  for (const response of [
+    () => JSON.stringify([[f.state.release], [{ ...f.state.release, id: 99 }]]),
+    () => { throw new Error('HTTP 403: Resource not accessible by integration'); },
+  ]) {
+    assert.throws(() => f.publish({ runGh(args, options) {
+      if (args[1] === `repos/${DEFAULT_REPOSITORY}/releases?per_page=100`) return response();
+      return f.runGh(args, options);
+    } }));
+    assert.equal(f.state.mutations.length, 0);
+  }
 });
 
 test('foreign draft, wrong revision, same-name different bytes and moved tag abort before any mutation', t => {

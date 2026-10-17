@@ -11,7 +11,8 @@
     "dist/**/*",
     "dist-electron/**/*",
     "dist-mcp/**/*",
-    "package.json"
+    "package.json",
+    "LICENSE"
   ],
   "extraMetadata": {
     "main": "dist-electron/main.cjs",

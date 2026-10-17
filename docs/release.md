@@ -1,6 +1,12 @@
 # Release-Pipeline und Desktop-Packaging (Issue #24)
 
-Die Pipeline baut Windows-, macOS- und Linux-Installer aus derselben bestätigten Git-Revision. Veröffentlichung setzt erfolgreiche Produkt-, Installer- und MCP-Prüfungen voraus. Die Konfiguration und ihre Unit-Tests sind vorhanden; ein erfolgreicher nativer Drei-Plattform-Lauf ist noch nicht nachgewiesen. Verbleibende Prüfungen stehen am Dokumentende und im [Codex-Korrekturbericht](reviews/codex-release-fixes.md).
+Die Pipeline baut Windows-, macOS- und Linux-Installer aus derselben bestätigten Git-Revision. Veröffentlichung setzt erfolgreiche Produkt-, Installer- und MCP-Prüfungen voraus. Für v0.1.1 an `c4bdfd6` sind die gesamte Produkt-CI und alle drei nativen Installerprüfungen einschließlich tatsächlichem GUI-/MCP-Start bestanden. Veröffentlichungsstand, konkrete Artefakte und historische Korrekturen stehen im [konsolidierten Nachweis](reviews/release-validation.md).
+
+## Veröffentlichtes Release
+
+[Version 0.1.1](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1) wurde am 17. Oktober 2026 um 16:27:58 UTC aus den unveränderten CI-Artefakten von `c4bdfd6` veröffentlicht. Genau drei öffentliche Downloads wurden erneut heruntergeladen und gegen die nativen Smoke-Berichte, Größen und GitHub-Digests geprüft: [maschinenlesbarer Nachweis](reviews/release-v0.1.1-verification.json).
+
+Der erste Publish-Versuch in GitHub Actions scheiterte an der Draft-Suche (#28). Codex nahm das vorhandene Bot-Draft mit dem korrigierten Publisher lokal wieder auf. Anschließend bestand derselbe Actions-Lauf mit `already-published-idempotent`; dies bestätigt das vorhandene Release, ohne es erneut zu verändern. Der ursprüngliche Fehlschlag bleibt im Verlauf erhalten. Produktrevision und Tags wurden für diese Recovery nicht verschoben.
 
 ## Zielartefakte
 
@@ -47,6 +53,8 @@ Nur ein vollständig bestandener Smoke erzeugt freigabefähige Evidenz. Der Beri
 
 Nur der Publish-Job erhält `contents: write`. Vor jeder Mutation wird das entfernte Git-Tag bis zum Commit aufgelöst und mit der bestätigten Revision verglichen. Bereits vorhandene Releases benötigen eine positive Release-ID, das exakte Tag, den unveränderlichen Autor `github-actions[bot]` vom Typ `Bot` und genau einen passenden `sketchdraw-release-v1`-Marker. Dieser bindet Repository, Tag, Commit und die drei Dateinamen, Größen und SHA-256-Werte.
 
+Der Tag-Endpunkt kann für ein vorhandenes Draft mit HTTP 404 antworten. Nur dann durchsucht der Publisher die vollständige paginierte Releases-Liste nach dem exakten Tag. Mehrdeutige Treffer, fehlerhafte Antworten und API-Fehler brechen ab. Die anschließend ausgeführten Identitäts- und Inhaltsprüfungen gelten unverändert. Große Installer-Uploads dürfen bis zu zehn Minuten dauern; Metadatenabfragen behalten das Zeitlimit von zwei Minuten. Ein Timeout löst keine automatische Wiederholung aus.
+
 Jedes bereits vorhandene Asset muss einen erwarteten, eindeutigen Namen, die exakte Größe, Zustand `uploaded` und die richtigen Bytes haben. Falls GitHub einen gültigen SHA-256-Digest liefert, wird er verglichen. Andernfalls wird das echte Asset über seine ID in eine eigene temporäre Datei heruntergeladen und gehasht. Release-Notes oder Dateigröße ersetzen diesen Inhaltsnachweis nicht.
 
 - Kein Release: neues Draft mit Marker am verifizierten vorhandenen Tag anlegen und zurücklesen.
@@ -66,7 +74,7 @@ GitHub Actions liefert fehlende Secrets als leere Strings. Vor Electron Builder 
 
 Native Starttests bestätigen keine Gatekeeper-/SmartScreen-Freigabe oder erfolgreichen interaktiven Installationsdialog. Linux muss die Sandbox auf dem vorgesehenen Runner tatsächlich unterstützen; ein Fehlschlag darf nicht durch Abschalten der Sandbox verborgen werden.
 
-## Lokale Prüfungen und verbleibende Abnahme
+## Lokale Prüfungen und native Abnahme
 
 ```bash
 node --test tests/unit/release*.test.mjs
@@ -76,9 +84,9 @@ node --check scripts/release-installer-smoke.mjs
 
 Die Node-Tests prüfen Staging, Revisionen, fremde Drafts, konkurrierende Release-Ersetzung, verlorene Upload-Antworten, Wiederaufnahme, Download-Hash-Prüfung und Fehlerpfade. Synthetische Fixture-Berichte dienen nur diesen Unit-Tests. Ein nativer Negativtest führt den echten Extraktor gegen einen unbrauchbaren Installer mit zuvor akzeptiertem Header aus. Diese Prüfungen ersetzen keinen positiven Start der Produktinstaller auf allen drei Betriebssystemen.
 
-Die CLI unterstützt `preflight`, `verify-env`, `package`, `validate-artifacts` und `publish`; Parameter können explizit (`--tag`, `--commit`, `--platform`) oder über `RELEASE_TAG`, `RELEASE_COMMIT`, `TARGET_PLATFORM` übergeben werden. `--artifacts-dir` wählt das gesammelte Bundle. `publish` führt echte externe Schreibzugriffe aus und wurde für die Korrektur nicht ausgeführt.
+Die CLI unterstützt `preflight`, `verify-env`, `package`, `validate-artifacts` und `publish`; Parameter können explizit (`--tag`, `--commit`, `--platform`) oder über `RELEASE_TAG`, `RELEASE_COMMIT`, `TARGET_PLATFORM` übergeben werden. `--artifacts-dir` wählt das gesammelte Bundle. `publish` führt echte externe Schreibzugriffe aus; ein gestarteter Lauf zählt erst nach Rückprüfung des öffentlichen Releases als erfolgreich.
 
-**Verbleibende Abnahme:** `runInstallerSmoke({ platformKey, installerPath, version, commitSha, outputPath })` führt den vollständigen beschriebenen Test aus. Der Installer-MCP-Smoke prüft Startfähigkeit, Protokolloberfläche und die verweigerte unberechtigte Anfrage. Er belegt keine autorisierten Dokumentänderungen; dafür sind getrennte Integrationstests mit dem wirklichen Host und Domain-Handlern erforderlich. Die vollständige Anwendung und alle drei nativen Installer einschließlich MCP müssen nach Abschluss der Produktintegration tatsächlich durchlaufen. Bis zu diesen Nachweisen ist R04 aus dem Review implementiert, aber noch nicht auf drei Plattformen abgenommen; es wurde kein Release freigegeben.
+**Native Abnahme:** `runInstallerSmoke({ platformKey, installerPath, version, commitSha, outputPath })` führt den vollständigen beschriebenen Test aus. Der Installer-MCP-Smoke prüft Startfähigkeit, Protokolloberfläche und die verweigerte unberechtigte Anfrage. Er belegt keine autorisierten Dokumentänderungen; dafür sind getrennte Integrationstests mit dem wirklichen Host und Domain-Handlern erforderlich. Die vollständige Anwendung und alle drei nativen Installer einschließlich MCP sind für `c4bdfd6` im [Release-Lauf39046419226](https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39046419226) geprüft. R04 ist damit auf drei Plattformen abgenommen. Eine erfolgreiche Veröffentlichung und der Download-Abgleich werden separat nachgewiesen.
 
 ## Gezielte Linux-Sandbox-Voraussetzung in CI
 

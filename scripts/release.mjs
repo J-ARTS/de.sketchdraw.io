@@ -1297,29 +1297,50 @@ export function defaultRunGh(args, options = {}) {
       GH_TOKEN: token
     },
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'], timeout: 120_000, maxBuffer: 4 * 1024 * 1024
+    stdio: ['ignore', 'pipe', 'pipe'], timeout: options.timeoutMs ?? 120_000, maxBuffer: 4 * 1024 * 1024
   }).trim();
 }
 
 /**
  * Fetches release metadata for a tag via the GitHub REST API (`gh api`).
- * Returns null if no release exists yet for the tag (HTTP 404).
+ * The tag endpoint can return 404 for drafts, so search all release pages before
+ * returning null. Preserve REST metadata for the publisher's ownership guards.
  */
 export function fetchReleaseByTag({ repository, tag, runGh = defaultRunGh, env = process.env }) {
   const encodedTag = encodeURIComponent(tag);
+  let rawJson;
   try {
-    const rawJson = runGh(
+    rawJson = runGh(
       ['api', `repos/${repository}/releases/tags/${encodedTag}`],
       { env }
     );
-    return JSON.parse(rawJson);
   } catch (error) {
     const message = String(error.stderr ?? error.message ?? '');
-    if (message.includes('404') || message.includes('Not Found')) {
-      return null;
+    if (!/\bHTTP 404\b/.test(message)) {
+      throw new Error(`Failed to query GitHub release for tag "${tag}": ${message}`);
     }
-    throw new Error(`Failed to query GitHub release for tag "${tag}": ${message}`);
+    let pages;
+    try {
+      pages = JSON.parse(runGh(
+        ['api', `repos/${repository}/releases?per_page=100`, '--paginate', '--slurp'],
+        { env }
+      ));
+    } catch (listError) {
+      throw new Error(`Failed to list GitHub releases for tag "${tag}": ${String(listError.stderr ?? listError.message ?? '')}`);
+    }
+    if (!Array.isArray(pages) || pages.length === 0 || pages.some(page => !Array.isArray(page) || page.some(
+      release => !release || typeof release !== 'object' || Array.isArray(release) || typeof release.tag_name !== 'string'
+    ))) throw new Error('Malformed paginated GitHub releases response; refusing to assume release absence.');
+    const matches = pages.flat().filter(release => release.tag_name === tag);
+    if (matches.length > 1) throw new Error(`Multiple GitHub releases match tag "${tag}"; refusing ambiguous release identity.`);
+    return matches[0] ?? null;
   }
+  // Parsing is outside the request catch: bad JSON is never an HTTP 404.
+  const release = JSON.parse(rawJson);
+  if (!release || typeof release !== 'object' || Array.isArray(release) || typeof release.tag_name !== 'string') {
+    throw new Error('Malformed GitHub release response; refusing to assume release absence.');
+  }
+  return release;
 }
 
 export function releaseOwnershipMarker({ repository, tag, commitSha, artifacts }) {
@@ -1466,7 +1487,7 @@ export function publishGitHubRelease({
     // The ID-scoped API fails on a concurrent name collision. Never delete or clobber any asset.
     runGh(['api', '--method', 'POST',
       `https://uploads.github.com/repos/${repository}/releases/${releaseId}/assets?name=${encodeURIComponent(artifact.fileName)}`,
-      '--header', 'Content-Type: application/octet-stream', '--input', artifact.filePath], { cwd: rootDir, env });
+      '--header', 'Content-Type: application/octet-stream', '--input', artifact.filePath], { cwd: rootDir, env, timeoutMs: 600_000 });
   }
   verifyTag();
   release = read();
