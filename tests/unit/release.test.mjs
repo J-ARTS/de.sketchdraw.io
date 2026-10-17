@@ -355,6 +355,38 @@ test('resolveSigningConfiguration uses honest ad-hoc/unsigned defaults and enabl
   assert.equal(winSigned.signed, true);
 });
 
+test('resolveSigningConfiguration accepts a notarization profile from the default macOS keychain', () => {
+  const signingIdentity = {
+    CSC_NAME: 'Developer ID Application: Test (TEAM)'
+  };
+
+  const defaultKeychainProfile = resolveSigningConfiguration('mac', {
+    ...signingIdentity,
+    APPLE_KEYCHAIN_PROFILE: 'test-profile'
+  });
+  assert.equal(defaultKeychainProfile.mode, 'developer-id-notarized');
+  assert.equal(defaultKeychainProfile.signed, true);
+  assert.equal(defaultKeychainProfile.notarized, true);
+  assert.ok(defaultKeychainProfile.extraCliArgs.includes('-c.mac.notarize=true'));
+
+  const explicitKeychainProfile = resolveSigningConfiguration('mac', {
+    ...signingIdentity,
+    APPLE_KEYCHAIN_PROFILE: 'test-profile',
+    APPLE_KEYCHAIN: '/synthetic/test.keychain-db'
+  });
+  assert.equal(explicitKeychainProfile.mode, 'developer-id-notarized');
+  assert.equal(explicitKeychainProfile.notarized, true);
+
+  const keychainWithoutProfile = resolveSigningConfiguration('mac', {
+    ...signingIdentity,
+    APPLE_KEYCHAIN: '/synthetic/test.keychain-db'
+  });
+  assert.equal(keychainWithoutProfile.mode, 'developer-id-signed');
+  assert.equal(keychainWithoutProfile.signed, true);
+  assert.equal(keychainWithoutProfile.notarized, false);
+  assert.ok(keychainWithoutProfile.extraCliArgs.includes('-c.mac.notarize=false'));
+});
+
 function captureBuilderSettings(t, platformKey, env) {
   const root = mkdtempSync(join(tmpdir(), 'release-signing-env-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));

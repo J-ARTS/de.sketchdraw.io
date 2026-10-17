@@ -403,8 +403,9 @@ export function resolveSigningConfiguration(platformKey, env = process.env) {
       hasNonEmptyEnv(env, 'APPLE_ID') &&
       hasNonEmptyEnv(env, 'APPLE_APP_SPECIFIC_PASSWORD') &&
       hasNonEmptyEnv(env, 'APPLE_TEAM_ID');
-    const hasKeychainNotarization =
-      hasNonEmptyEnv(env, 'APPLE_KEYCHAIN') && hasNonEmptyEnv(env, 'APPLE_KEYCHAIN_PROFILE');
+    // electron-builder resolves named profiles from the default macOS keychain when no
+    // explicit keychain path is provided. APPLE_KEYCHAIN only overrides that location.
+    const hasKeychainNotarization = hasNonEmptyEnv(env, 'APPLE_KEYCHAIN_PROFILE');
 
     const hasNotarizationCredentials =
       hasApiKeyNotarization || hasAppleIdNotarization || hasKeychainNotarization;
