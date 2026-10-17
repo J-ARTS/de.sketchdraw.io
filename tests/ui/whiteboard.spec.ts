@@ -8,6 +8,10 @@ async function draw(page: Page, tool: string, from = [350, 220], to = [550, 360]
   await page.mouse.move(to[0]!, to[1]!, { steps: 8 }); await page.mouse.up();
   await expect(page.locator('[data-element-id]').last()).toBeAttached();
 }
+/** Geometry fields live in the "Position und Größe" popover of the selection toolbar (#37). */
+async function geometry(page: Page) {
+  if (!await page.getByRole('group', { name: 'Position und Größe' }).isVisible()) await page.getByRole('button', { name: 'Position und Größe' }).click();
+}
 async function menu(page: Page, item: string) {
   await page.getByTestId('file-menu-button').click(); await page.getByTestId(`file-menu-${item}`).click();
 }
@@ -22,10 +26,10 @@ test.beforeEach(async ({ page }) => {
 test('draw, resize, rotate, undo/redo and zoom with the real domain', async ({ page }) => {
   await draw(page, 'Rechteck');
   await expect(page.locator('[data-kind="rectangle"]')).toHaveCount(1);
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
+  await geometry(page); await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
   const se = await page.locator('[data-handle=se]').boundingBox();
   await page.mouse.move(se!.x + 5, se!.y + 5); await page.mouse.down(); await page.mouse.move(610, 400); await page.mouse.up();
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('260');
+  await geometry(page); await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('260');
   await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
   await page.getByRole('button', { name: 'Wiederholen', exact: true }).click();

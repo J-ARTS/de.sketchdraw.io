@@ -28,6 +28,8 @@
   --menu-muted: #a29fb8;
   --menu-hover: #312e42;
   --menu-separator: #3a3750;
+  --menu-field: #2c2a3c;
+  --menu-focus: #b3a1ff;
 
   --control-size: 36px;
   --control-size-compact: 32px;
@@ -81,6 +83,7 @@
   --menu-surface: #2a2738;
   --menu-hover: #3a3650;
   --menu-separator: #45415c;
+  --menu-field: #36324a;
 
   color-scheme: dark;
 }

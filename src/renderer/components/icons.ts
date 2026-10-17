@@ -11,7 +11,8 @@ export type ActionIconName =
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
   | 'menu' | 'users' | 'user' | 'code' | 'maximize'
-  | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow';
+  | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow'
+  | 'shapes' | 'stroke' | 'link';
 
 export type IconName = ToolIconName | ActionIconName;
 
@@ -87,4 +88,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   paste: ['M9 4h6v3H9z', 'M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3', 'M9 13h6', 'M9 16h4'],
   rename: ['M4 20h4L19 9l-4-4L4 16z', 'M13 7l4 4'],
   arrow: ['M5 12h14', 'M13 6l6 6-6 6'],
+  shapes: ['M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z', 'M11 11h9v9h-9z'],
+  stroke: ['M4 5.5h16', 'M4 10h16v2.5H4z', 'M4 16h16v3.5H4z'],
+  link: ['M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1', 'M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1'],
 };

@@ -1,4 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+/** Geometry fields live in the "Position und Größe" popover of the selection toolbar (#37). */
+async function geometry(page: Page) {
+  if (!await page.getByRole('group', { name: 'Position und Größe' }).isVisible()) await page.getByRole('button', { name: 'Position und Größe' }).click();
+}
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 480, height: 720 }]) {
   test(`feedback keeps draft recovery and dismiss controls reachable at ${viewport.width}px`, async ({ page }, testInfo) => {
@@ -7,6 +12,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 480, height: 720 
     await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
     await page.mouse.move(300, 260); await page.mouse.down();
     await page.mouse.move(420, 350); await page.mouse.up();
+    await geometry(page);
     const width = page.getByRole('spinbutton', { name: 'Breite', exact: true });
     await expect(width).toHaveValue('120');
 
@@ -43,6 +49,7 @@ test('a shared geometry draft replaces only its mixed field and commits to both 
   }
   await expect(page.locator('[data-render-state=document][data-kind=rectangle]')).toHaveCount(2);
   await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('ControlOrMeta+a');
+  await geometry(page);
   const width = page.getByRole('spinbutton', { name: 'Breite', exact: true });
   const x = page.getByRole('spinbutton', { name: 'X', exact: true });
   await expect(width).toHaveAttribute('placeholder', 'Verschieden');
