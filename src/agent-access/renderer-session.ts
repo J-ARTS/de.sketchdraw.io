@@ -1,14 +1,11 @@
 import type { DocumentAuthority } from '../session';
 import { AgentAccessError } from './errors';
 import { createRendererAgentHandler, type RendererAgentHandler } from './renderer-handler';
-import type { AgentControlAck, AgentGrantSummary, AgentIssuedGrant, AgentPermission, SketchdrawAgentAccessBridge } from './types';
+import type { AgentControlAck, SketchdrawAgentAccessBridge } from './types';
 
 let nextSessionEpoch = 0;
 export interface RendererAgentSession {
   readonly ready: Promise<void>;
-  listGrants(): Promise<AgentGrantSummary[]>;
-  createGrant(permission: AgentPermission, label?: string): Promise<AgentIssuedGrant>;
-  revokeGrant(grantId: string): Promise<void>;
   dispose(): void;
 }
 
@@ -18,7 +15,6 @@ export function attachRendererAgentSession(authority: DocumentAuthority, bridge:
   const sessionEpoch = ++nextSessionEpoch;
   const documentId = authority.session.documentId;
   let disposed = false, handler: RendererAgentHandler | undefined, generation: number | undefined;
-  const issuedIds = new Set<string>();
   const check = () => { if (disposed || !handler) throw new AgentAccessError('SESSION_CHANGED', 'Document session changed.'); };
   // Main supplies its webContents generation in the first authenticated control.
   // Install listeners before registration so the synchronization acknowledgment can flow.
@@ -45,31 +41,12 @@ export function attachRendererAgentSession(authority: DocumentAuthority, bridge:
     disposed = true;
     try { handler?.dispose(); }
     finally {
+      void bridge.unregisterSession({ documentId, sessionEpoch }).catch(() => {});
       offRequest(); offControl();
-      for (const id of issuedIds) void bridge.revokeGrant(id).catch(() => {});
-      issuedIds.clear();
     }
   }
   return {
     ready,
-    async listGrants() { await ready; check(); const grants = await bridge.listGrants(); check(); return grants.filter(grant => grant.documentId === documentId && grant.sessionEpoch === sessionEpoch); },
-    async createGrant(permission, label) {
-      await ready; check();
-      const issued = await bridge.createGrant(permission, label);
-      if (disposed || issued.grant.documentId !== documentId || issued.grant.sessionEpoch !== sessionEpoch) {
-        handler?.revokeLocal(issued.grant.grantId);
-        await bridge.revokeGrant(issued.grant.grantId).catch(() => {});
-        throw new AgentAccessError('SESSION_CHANGED', 'Document changed while creating the grant.');
-      }
-      issuedIds.add(issued.grant.grantId);
-      return issued;
-    },
-    async revokeGrant(id) {
-      // Revoke synchronously before any IPC wait; queued authority writes lose access.
-      handler?.revokeLocal(id);
-      await bridge.revokeGrant(id);
-      issuedIds.delete(id);
-    },
     dispose,
   };
 }

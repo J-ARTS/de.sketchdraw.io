@@ -3,6 +3,7 @@ import { createConnection } from 'node:net';
 import { AGENT_AUTH_LABELS, AGENT_ACCESS_LIMITS as L, AGENT_WRITE_OPERATIONS, type AgentOperationName, type AgentOperationInput, type AgentOperationOutput, type AgentIssuedGrant } from '../agent-access/types';
 import { AgentAccessError, isAgentAccessErrorPayload } from '../agent-access/errors';
 import { authOkSchema, challengeSchema, hex16, hex32, idSchema, parseOperationInput } from '../agent-access/schema';
+import { agentRuntimeFilePath, readAgentRuntimeAccess } from '../../electron/agent-access/runtime-access';
 import { authMac, endpointOptions, sameMac } from '../../electron/agent-access/auth';
 import { JsonFrames } from '../../electron/agent-access/frames';
 
@@ -16,6 +17,17 @@ export function clientConfigFromEnv(env: NodeJS.ProcessEnv): AgentClientConfig {
   const documentId = idSchema.safeParse(env.SKETCHDRAW_MCP_DOCUMENT_ID);
   if (!capability.success || !grantId.success || !appEpoch.success || !documentId.success) throw new AgentAccessError('ACCESS_DENIED', 'Agent access configuration is incomplete.');
   return { SKETCHDRAW_MCP_ENDPOINT: endpoint, SKETCHDRAW_MCP_CAPABILITY: capability.data, SKETCHDRAW_MCP_GRANT_ID: grantId.data, SKETCHDRAW_MCP_APP_EPOCH: appEpoch.data, SKETCHDRAW_MCP_DOCUMENT_ID: documentId.data };
+}
+
+export async function loadAgentClientConfig(
+  env: NodeJS.ProcessEnv,
+  preferRuntime = false,
+): Promise<AgentClientConfig> {
+  if (!preferRuntime && env.SKETCHDRAW_MCP_ENDPOINT) return clientConfigFromEnv(env);
+  const runtime = await readAgentRuntimeAccess(agentRuntimeFilePath(env));
+  if (runtime) return clientConfigFromEnv(runtime.grant);
+  if (env.SKETCHDRAW_MCP_ENDPOINT) return clientConfigFromEnv(env);
+  throw new AgentAccessError('ACCESS_DENIED', 'Sketchdraw Desktop has no open local document.');
 }
 type Pending = { resolve(value: AgentOperationOutput): void; reject(error: unknown): void; timer: NodeJS.Timeout; write: boolean; operation: AgentOperationName };
 export class AgentClient {

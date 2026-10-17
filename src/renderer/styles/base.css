@@ -76,6 +76,7 @@ ol {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-2);
   box-shadow: var(--shadow-panel);
+  background-clip: padding-box;
 }
 
 .sd-btn,
@@ -113,8 +114,14 @@ ol {
 .sd-icon-btn[aria-pressed='true'],
 .sd-btn[aria-expanded='true'] {
   background: var(--accent-soft);
-  border-color: var(--accent);
-  box-shadow: inset 0 -3px 0 var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.sd-btn[aria-pressed='true']:hover:not(:disabled),
+.sd-icon-btn[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--accent-soft);
 }
 
 .sd-btn--primary {

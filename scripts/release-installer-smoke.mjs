@@ -108,7 +108,7 @@ export async function smokeMcpCli({ executablePath, adapterPath, cwd }) {
   const { StdioClientTransport } = await import('@modelcontextprotocol/client/stdio');
   const client = new Client({ name: 'sketchdraw-installer-smoke', version: '1.0.0' });
   const transport = new StdioClientTransport({ command: executablePath, args: [adapterPath], cwd,
-    env: { ...cleanSmokeEnvironment(), ELECTRON_RUN_AS_NODE: '1' }, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 });
+    env: { ...cleanSmokeEnvironment(), ELECTRON_RUN_AS_NODE: '1', SKETCHDRAW_MCP_RUNTIME_FILE: join(cwd, 'no-open-desktop', 'active-v1.json') }, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 });
   let stderrBytes = 0;
   let failed = false;
   transport.stderr?.on('data', chunk => { stderrBytes += chunk.length; }); // Never report capabilities or documents.
@@ -117,7 +117,7 @@ export async function smokeMcpCli({ executablePath, adapterPath, cwd }) {
     const result = await withDeadline(client.listTools(), 10_000, 'Packaged MCP tools/list');
     assert.deepEqual(result.tools.map(tool => tool.name).sort(), [...EXPECTED_MCP_TOOLS].sort());
     const denied = await withDeadline(client.callTool({ name: 'sketchdraw_read_document',
-      arguments: { documentId: 'smoke' } }), 10_000, 'Packaged MCP access without grant');
+      arguments: {} }), 10_000, 'Packaged MCP access without an open desktop document');
     assert.equal(denied.isError, true);
     assert.deepEqual(Object.keys(denied.structuredContent ?? {}), ['error']);
     assert.equal(denied.structuredContent.error.code, 'ACCESS_DENIED');

@@ -1,18 +1,13 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { AgentControlMessage, AgentRendererRequest, SketchdrawAgentAccessBridge } from '../../src/agent-access/types';
 import { AGENT_IPC } from './ipc';
-export function createAgentAccessPreload(hasUserGesture: () => boolean): SketchdrawAgentAccessBridge {
+export function createAgentAccessPreload(): SketchdrawAgentAccessBridge {
   let requestListener: ((_event: IpcRendererEvent, request: AgentRendererRequest) => void) | undefined;
   let controlListener: ((_event: IpcRendererEvent, message: AgentControlMessage) => void) | undefined;
   return Object.freeze({
     isAvailable: true,
     registerSession: (value: { documentId: string; sessionEpoch: number }) => ipcRenderer.invoke(AGENT_IPC.REGISTER, value),
-    listGrants: () => ipcRenderer.invoke(AGENT_IPC.LIST),
-    createGrant: (permission: 'read' | 'write', label?: string) => {
-      if (!hasUserGesture()) return Promise.reject(new Error('Agent access requires a human interaction.'));
-      return ipcRenderer.invoke(AGENT_IPC.CREATE, { permission, label, userInitiated: true });
-    },
-    revokeGrant: (grantId: string) => ipcRenderer.invoke(AGENT_IPC.REVOKE, { grantId }),
+    unregisterSession: (value: { documentId: string; sessionEpoch: number }) => ipcRenderer.invoke(AGENT_IPC.UNREGISTER, value),
     onRequest(handler: (request: AgentRendererRequest) => Promise<import('../../src/agent-access/types').AgentRendererResponse>) {
       if (typeof handler !== 'function') throw new Error('Agent handler must be a function.');
       if (requestListener) ipcRenderer.removeListener(AGENT_IPC.REQUEST, requestListener);

@@ -20,7 +20,7 @@ Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert.
 - Erweiterbare Komponentenbibliothek für AWS, Azure, GCP und allgemeine Architekturen.
 - Synchronisierter Diagrammtext mit Validierung, Konfliktprüfung und erhaltenen Entwürfen.
 - SVG- und draw.io-Austausch mit einer Vorschau möglicher Konvertierungsverluste.
-- MCP-Zugriff nach ausdrücklicher lokaler Freigabe, getrennt nach Lesen und Schreiben.
+- Automatischer lokaler MCP-Zugriff auf das aktuell geöffnete Desktop-Dokument, ohne Freigabe-Tab.
 - Verschlüsselte direkte Zusammenarbeit mit manuellem Einladungsaustausch und Rollen.
 
 Dokumente werden lokal gespeichert. Die Zusammenarbeit verwendet keine zentralen Dokument-, Signaling-, STUN-, TURN- oder Relay-Dienste. Direkte Erreichbarkeit ist deshalb nicht in jedem Netzwerk gegeben. Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.

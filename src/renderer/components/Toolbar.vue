@@ -24,7 +24,7 @@ const items = computed(() =>
       tip: t('tip.withHint', { label: def.label, hint }),
       pressed: def.tool === store.state.tool,
       isImage: def.tool === 'image',
-      separator: def.tool === 'rectangle' || def.tool === 'text',
+      separator: def.tool === 'text',
     };
   }),
 );
@@ -95,7 +95,6 @@ function onKeydown(event: KeyboardEvent): void {
         @click="activate(item.tool)"
       >
         <AppIcon :name="item.tool" />
-        <span class="key" aria-hidden="true">{{ item.hint }}</span>
         <span class="tip" aria-hidden="true">{{ item.tip }}</span>
       </button>
     </template>
@@ -111,31 +110,38 @@ function onKeydown(event: KeyboardEvent): void {
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: var(--space-1);
+  gap: 4px;
+  padding: 6px;
   transform: translateX(-50%);
 }
 
 .sep {
-  align-self: stretch;
   width: 1px;
-  margin: var(--space-1) var(--space-1);
+  height: 24px;
+  margin: 0 6px;
   background: var(--border-subtle);
 }
 
 .tool {
   position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--text-primary);
 }
 
-.key {
-  position: absolute;
-  right: 3px;
-  bottom: 1px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1;
-  pointer-events: none;
+.tool[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* Active pointer and shape tools read as solid glyphs, like in the reference design. */
+.tool[aria-pressed='true'][data-tool='select'] :deep(path) {
+  fill: currentColor;
+}
+
+.tool[aria-pressed='true']:is([data-tool='rectangle'], [data-tool='ellipse'], [data-tool='diamond']) :deep(path) {
+  fill: currentColor;
+  fill-opacity: 0.18;
 }
 
 .tip {
@@ -169,5 +175,6 @@ function onKeydown(event: KeyboardEvent): void {
     border: 1px solid CanvasText;
   }
 }
-@media (max-width:860px){.toolbar{top:88px;max-width:calc(100vw - 24px);overflow-x:auto;overflow-y:hidden}.tool{flex-shrink:0}.tip{display:none}}
+@media (max-width:1040px){.toolbar{top:84px}}
+@media (max-width:860px){.toolbar{max-width:calc(100vw - 24px);overflow-x:auto;overflow-y:hidden}.tool{flex-shrink:0}.tip{display:none}}
 </style>

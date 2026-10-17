@@ -21,6 +21,8 @@ Eine Desktop-Anwendung für Windows, Linux und macOS auf Basis von **Electron, V
 5. **Strict P2P Collaboration** – Gemeinsame Echtzeitbearbeitung über verschlüsselte Peer-to-Peer-Verbindungen, ohne zentrale Dokumentenspeicherung, Signaling- oder Relay-Server. Direkte Internetverbindungen sind unter diesen Bedingungen nicht in allen Netzwerken garantiert.
 6. **Open Interoperability** – Import und Export von draw.io-Diagrammen, SVG und weiteren offenen Formaten, mit möglichst verlustarmer Konvertierung.
 
+Für lokale Desktop-Dokumente ist der Agentenzugriff eine automatisch verwaltete Produktfähigkeit: Es gibt keinen Freigabe-Tab. Ein einmalig eingerichteter lokaler MCP-Client erhält Lese- und Schreibzugriff auf das aktuell geöffnete lokale Dokument; Dokumentwechsel und Neustart rotieren die private Verbindung automatisch. Browser- und P2P-Gastdokumente erhalten ohne eigene Dokumentautorität keinen lokalen MCP-Zugriff.
+
 Entscheidungen und Implementierungen müssen sich an dieser Vision messen lassen (z. B. keine zentralen Server für Dokumente oder Signaling; Diagramme immer auch als Text lesbar und editierbar).
 
 ## Projektstand

@@ -108,7 +108,7 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     for (const page of [owner!, guest!]) { await page.goto('/'); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible(); }
     await draw(owner, 'Rechteck', 220);
     await expect(owner!.locator('[data-kind=rectangle]')).toHaveCount(1);
-    for (const page of [owner!, guest!]) await page.getByRole('button', { name: 'Zusammenarbeiten', exact: true }).click();
+    for (const page of [owner!, guest!]) { await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click(); }
     const ownerPanel = owner!.getByTestId('collaboration-panel'); const guestPanel = guest!.getByTestId('collaboration-panel');
     await ownerPanel.getByRole('combobox', { name: 'Zugriff' }).selectOption('editor');
     await ownerPanel.getByRole('button', { name: 'Einladung erstellen', exact: true }).click();
@@ -146,7 +146,7 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     }).toBe(true);
     expect(await guest!.locator(confirmedEllipse).getAttribute('data-element-id'))
       .toBe(await owner!.locator(confirmedEllipse).getAttribute('data-element-id'));
-    await guest!.getByRole('button', { name: 'Zusammenarbeiten', exact: true }).click();
+    await guest!.getByTestId('workspace-menu-button').click(); await guest!.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
     await guestPanel.getByRole('button', { name: 'Sitzung verlassen und Kopie behalten' }).click();
     await expect(guest!.getByRole('dialog')).toBeVisible();
     await guest!.getByRole('dialog').getByRole('button', { name: 'Verwerfen', exact: true }).click();

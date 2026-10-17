@@ -1,10 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function openCollaboration(page: Page) {
+  await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
+}
 
 test('manual pairing presents matching identities and requires explicit confirmation', async ({ page, context }) => {
   const guest = await context.newPage();
   for (const target of [page, guest]) {
     await target.goto('/');
-    await target.getByRole('button', { name: 'Zusammenarbeiten', exact: true }).click();
+    await openCollaboration(target);
   }
   const ownerPanel = page.getByTestId('collaboration-panel');
   const guestPanel = guest.getByTestId('collaboration-panel');
@@ -34,7 +38,7 @@ test('manual pairing presents matching identities and requires explicit confirma
 
 test('invalid invitation is rejected with a recoverable explanation', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Zusammenarbeiten', exact: true }).click();
+  await openCollaboration(page);
   const panel = page.getByTestId('collaboration-panel');
   await panel.getByRole('button', { name: 'Beitreten', exact: true }).click();
   await panel.getByRole('textbox', { name: 'Einladung einfügen' }).fill('not a signed invitation');

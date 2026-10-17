@@ -48,7 +48,7 @@ Entwicklung verwendet ausschließlich den validierten lokalen Ursprung `http://1
 
 [dev-electron.mjs](../scripts/dev-electron.mjs) prüft die Einstiege, baut Main/Preload, startet Vite über dessen API im eigenen Prozess und startet anschließend die installierte native Electron-Datei direkt. Ein belegter Port führt zum Fehler; der Launcher übernimmt keinen unbekannten vorhandenen Server. Startup- und Shutdown-Fehler werden weitergereicht. Der Launcher baut den MCP-Adapter nicht selbst; für Agentenzugriff aus einem frischen Checkout vorher `npm run build:mcp` ausführen.
 
-Der MCP-Adapter bearbeitet nur ausdrücklich freigegebene Dokumente. Start und öffentliche Tool-Metadaten benötigen noch keine Dokumentfreigabe; tatsächliche Toolaufrufe bleiben ohne passende Konfiguration gesperrt. Die laufende Desktop-App liefert die dokumentgebundene Konfiguration über ihre Agentenoberfläche. Details: [Agentenintegration](agent-integration.md) und [MCP-Vertrag](contracts-mcp.md).
+Der MCP-Adapter bearbeitet automatisch das aktuelle lokale Desktop-Dokument. Start und öffentliche Tool-Metadaten benötigen keine laufende Desktop-App; tatsächliche Dokumentaufrufe bleiben ohne eine aktive lokale Dokumentautorität gesperrt. Die App veröffentlicht die aktuelle Verbindung in einer privaten Laufzeitdatei und rotiert sie bei Dokumentwechsel oder Neustart. Es gibt keine Agenten-Freigabeoberfläche. Details: [Agentenintegration](agent-integration.md) und [MCP-Vertrag](contracts-mcp.md).
 
 ## 3. Installation und Befehle
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { AgentAccessError } from '../../src/agent-access/errors';
 import { idSchema } from '../../src/agent-access/schema';
+import { agentRuntimeFilePath, clearAgentRuntimeAccess, writeAgentRuntimeAccess } from './runtime-access';
 import { AGENT_ACCESS_LIMITS as L, type AgentControlAck, type AgentControlMessage, type AgentRendererRequest, type AgentRendererResponse } from '../../src/agent-access/types';
 import { validateIpcSender, type IpcSecurityContext, type IpcSenderEventLike } from '../security';
 import { createAgentHost, type AgentHost } from './host';
@@ -13,6 +14,9 @@ interface Pending { kind: 'control' | 'request'; generation: number; resolve(val
 export function installElectronAgentBridge(window: BrowserWindow, context: () => IpcSecurityContext): () => void {
   let generation = 0, disposed = false;
   let hostPromise: Promise<AgentHost> | undefined;
+  let lifecycle: Promise<void> = Promise.resolve();
+  let active: { documentId: string; sessionEpoch: number; grantId: string; appEpoch: string } | undefined;
+  const runtimeFile = agentRuntimeFilePath();
   const pending = new Map<string, Pending>();
   const authorized = (event: IpcMainInvokeEvent) => {
     if (disposed || !validateIpcSender(event as unknown as IpcSenderEventLike, context()).ok) throw new Error('Unauthorized agent IPC sender.');
@@ -21,8 +25,15 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
     generation++;
     for (const entry of pending.values()) { clearTimeout(entry.timer); entry.cleanup(); entry.reject(new AgentAccessError('SESSION_CHANGED', 'Application session changed.')); }
     pending.clear();
+    const previous = active; active = undefined;
+    if (previous) void clearAgentRuntimeAccess(runtimeFile, previous).catch(() => {});
     const old = hostPromise; hostPromise = undefined;
     void old?.then(host => host.close()).catch(() => {});
+  }
+  function serialize<T>(task: () => Promise<T>): Promise<T> {
+    const run = lifecycle.then(task, task);
+    lifecycle = run.then(() => {}, () => {});
+    return run;
   }
   function send(kind: 'control' | 'request', value: AgentControlMessage | AgentRendererRequest, epoch: number, signal?: AbortSignal): Promise<Reply> {
     if (epoch !== generation || disposed || window.isDestroyed() || signal?.aborted) return Promise.reject(new AgentAccessError('SESSION_CHANGED', 'Application session changed.'));
@@ -53,16 +64,39 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
   const registerSchema = z.strictObject({ documentId: idSchema, sessionEpoch: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER) });
   ipcMain.handle(AGENT_IPC.REGISTER, async (event, raw: unknown) => {
     authorized(event); const value = registerSchema.parse(raw);
-    return (await getHost()).registerSession({ ...value, webContentsGeneration: generation });
+    return serialize(async () => {
+      const epoch = generation;
+      const previous = active; active = undefined;
+      if (previous) await clearAgentRuntimeAccess(runtimeFile, previous);
+      const host = await getHost();
+      const descriptor = await host.registerSession({ ...value, webContentsGeneration: epoch });
+      const issued = await host.issueGrant('write', 'Automatic local agent access');
+      try {
+        await writeAgentRuntimeAccess(runtimeFile, issued.env, {
+          command: process.execPath,
+          args: [path.join(app.getAppPath(), 'dist-mcp/server.cjs')],
+          env: { ELECTRON_RUN_AS_NODE: '1', SKETCHDRAW_MCP_RUNTIME_FILE: runtimeFile },
+        });
+        if (disposed || epoch !== generation) throw new AgentAccessError('SESSION_CHANGED', 'Application session changed.');
+        active = { documentId: descriptor.documentId, sessionEpoch: descriptor.sessionEpoch, grantId: issued.grant.grantId, appEpoch: issued.appEpoch };
+        return descriptor;
+      } catch (error) {
+        await clearAgentRuntimeAccess(runtimeFile, { grantId: issued.grant.grantId, appEpoch: issued.appEpoch }).catch(() => {});
+        await host.revokeGrant(issued.grant.grantId).catch(() => {});
+        throw error;
+      }
+    });
   });
-  ipcMain.handle(AGENT_IPC.LIST, async event => { authorized(event); return hostPromise ? (await hostPromise).listGrants() : []; });
-  ipcMain.handle(AGENT_IPC.CREATE, async (event, raw: unknown) => {
-    authorized(event);
-    const value = z.strictObject({ permission: z.enum(['read', 'write']), label: z.string().max(120).optional(), userInitiated: z.literal(true) }).parse(raw);
-    const issued = await (await getHost()).issueGrant(value.permission, value.label);
-    return { ...issued, clientConfiguration: { command: process.execPath, args: [path.join(app.getAppPath(), 'dist-mcp/server.cjs')], env: { ...issued.env, ELECTRON_RUN_AS_NODE: '1' } } };
+  ipcMain.handle(AGENT_IPC.UNREGISTER, async (event, raw: unknown) => {
+    authorized(event); const value = registerSchema.parse(raw);
+    await serialize(async () => {
+      const current = active;
+      if (!current || current.documentId !== value.documentId || current.sessionEpoch !== value.sessionEpoch) return;
+      active = undefined;
+      await clearAgentRuntimeAccess(runtimeFile, current);
+      invalidate();
+    });
   });
-  ipcMain.handle(AGENT_IPC.REVOKE, async (event, raw: unknown) => { authorized(event); const value = z.strictObject({ grantId: idSchema }).parse(raw); if (hostPromise) await (await hostPromise).revokeGrant(value.grantId); });
   ipcMain.handle(AGENT_IPC.REPLY, (event, raw: unknown) => {
     authorized(event);
     if (!raw || typeof raw !== 'object') throw new Error('Invalid agent response.');
@@ -80,7 +114,7 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
   window.webContents.on('render-process-gone', invalidate);
   const dispose = () => {
     if (disposed) return; disposed = true; invalidate();
-    for (const channel of [AGENT_IPC.REGISTER, AGENT_IPC.LIST, AGENT_IPC.CREATE, AGENT_IPC.REVOKE, AGENT_IPC.REPLY]) ipcMain.removeHandler(channel);
+    for (const channel of [AGENT_IPC.REGISTER, AGENT_IPC.UNREGISTER, AGENT_IPC.REPLY]) ipcMain.removeHandler(channel);
     if (!window.webContents.isDestroyed()) { window.webContents.off('did-start-navigation', navigate); window.webContents.off('render-process-gone', invalidate); }
   };
   window.once('closed', dispose);

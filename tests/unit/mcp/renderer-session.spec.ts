@@ -3,33 +3,46 @@ import { createController, createDocument } from '../../../src/domain';
 import { createDocumentAuthority } from '../../../src/session';
 import { attachRendererAgentSession } from '../../../src/agent-access/renderer-session';
 import { createRendererAgentHandler } from '../../../src/agent-access/renderer-handler';
-import { createAgentHost } from '../../../electron/agent-access/host';
+import { createAgentHost, type AgentHost } from '../../../electron/agent-access/host';
 import { connectAgent } from '../../../src/mcp/client';
-import type { AgentControlMessage, AgentRendererRequest, SketchdrawAgentAccessBridge } from '../../../src/agent-access/types';
+import type { AgentControlMessage, AgentIssuedGrant, AgentRendererRequest, SketchdrawAgentAccessBridge } from '../../../src/agent-access/types';
 
 const cleanup: (() => unknown | Promise<unknown>)[] = [];
 afterEach(async () => { for (const action of cleanup.splice(0).reverse()) await action(); });
 async function fixture() {
   let onControl: Parameters<SketchdrawAgentAccessBridge['onControl']>[0] | undefined;
   let onRequest: Parameters<SketchdrawAgentAccessBridge['onRequest']>[0] | undefined;
-  const host = await createAgentHost({ onControl: async value => { if (!onControl) throw new Error('No renderer'); return onControl(value); }, onRequest: value => { if (!onRequest) throw new Error('No renderer'); return onRequest(value); } });
-  cleanup.push(() => host.close());
+  let host: AgentHost | undefined;
+  let issued: AgentIssuedGrant | undefined;
+  let lifecycle: Promise<void> = Promise.resolve();
+  const serialize = <T>(task: () => Promise<T>) => {
+    const run = lifecycle.then(task, task); lifecycle = run.then(() => {}, () => {}); return run;
+  };
+  const getHost = async () => host ??= await createAgentHost({ onControl: async value => { if (!onControl) throw new Error('No renderer'); return onControl(value); }, onRequest: value => { if (!onRequest) throw new Error('No renderer'); return onRequest(value); } });
+  cleanup.push(async () => { await lifecycle; await host?.close(); });
   const bridge: SketchdrawAgentAccessBridge = {
     isAvailable: true,
-    registerSession: session => host.registerSession({ ...session, webContentsGeneration: 7 }),
-    createGrant: (permission, label) => host.issueGrant(permission, label),
-    revokeGrant: id => host.revokeGrant(id), listGrants: async () => host.listGrants(),
+    registerSession: session => serialize(async () => {
+      const current = await getHost();
+      const descriptor = await current.registerSession({ ...session, webContentsGeneration: 7 });
+      issued = await current.issueGrant('write', 'Automatic local agent access');
+      return descriptor;
+    }),
+    unregisterSession: session => serialize(async () => {
+      if (!issued || issued.grant.documentId !== session.documentId || issued.grant.sessionEpoch !== session.sessionEpoch) return;
+      issued = undefined; const current = host; host = undefined; await current?.close();
+    }),
     onControl(fn) { onControl = fn; return () => { if (onControl === fn) onControl = undefined; }; },
     onRequest(fn) { onRequest = fn; return () => { if (onRequest === fn) onRequest = undefined; }; },
   };
-  return { host, bridge, hasListeners: () => Boolean(onControl || onRequest) };
+  return { bridge, getGrant: () => issued, hasListeners: () => Boolean(onControl || onRequest) };
 }
 it('bootstraps the Main generation and invalidates a reopened document with the same ID', async () => {
   const f = await fixture();
   const document = createDocument('First');
   const first = createDocumentAuthority({ controller: createController(document) });
   const session = attachRendererAgentSession(first, f.bridge); cleanup.push(() => session.dispose()); await session.ready;
-  const grant = await session.createGrant('write');
+  const grant = f.getGrant(); if (!grant) throw new Error('Missing automatic grant.');
   const client = await connectAgent(grant.env); cleanup.push(() => client.close());
   expect(await client.request('sketchdraw_read_document', { documentId: document.id })).toMatchObject({ document: { title: 'First' } });
   const barrier = await first.lifecycleGate.beginTransition('replace', 0);
@@ -38,9 +51,9 @@ it('bootstraps the Main generation and invalidates a reopened document with the 
   expect(f.hasListeners()).toBe(false);
   const next = attachRendererAgentSession(createDocumentAuthority({ controller: createController({ ...document, title: 'Reopened' }) }), f.bridge);
   cleanup.push(() => next.dispose()); await next.ready;
-  expect(await next.listGrants()).toEqual([]);
   await expect(connectAgent(grant.env)).rejects.toMatchObject({ code: 'ACCESS_DENIED' });
-  const replacement = await next.createGrant('read');
+  const replacement = f.getGrant(); if (!replacement) throw new Error('Missing replacement grant.');
+  expect(replacement.grant.permission).toBe('write');
   const reader = await connectAgent(replacement.env); cleanup.push(() => reader.close());
   expect(await reader.request('sketchdraw_read_document', { documentId: document.id })).toMatchObject({ document: { title: 'Reopened' } });
 });

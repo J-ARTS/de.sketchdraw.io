@@ -11,6 +11,9 @@ async function draw(page: Page, tool: string, from = [350, 220], to = [550, 360]
 async function menu(page: Page, item: string) {
   await page.getByTestId('file-menu-button').click(); await page.getByTestId(`file-menu-${item}`).click();
 }
+async function workspaceView(page: Page, name: string) {
+  await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name, exact: true }).click();
+}
 test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { throw error; });
   await page.goto('/'); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
@@ -64,16 +67,16 @@ test('real download roundtrip and dirty document cancellation retain the drawing
 });
 
 test('catalog inserts a real component and code updates preserve invalid drafts', async ({ page }) => {
-  await page.getByRole('button', { name: 'Bibliothek', exact: true }).click();
+  await workspaceView(page, 'Bibliothek');
   await page.getByLabel('Komponenten suchen').fill('server');
   await page.locator('.catalog-item').first().click(); await expect(page.locator('[data-kind=component]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Code', exact: true }).click();
+  await workspaceView(page, 'Code');
   const code = page.getByTestId('diagram-code'); const original = await code.inputValue(); expect(original).toContain('sketchdraw 1');
   await code.fill(original.replace('Unbenannt', 'Cloud Workspace'));
   await page.getByRole('button', { name: 'Übernehmen', exact: true }).click(); await expect(page.getByTestId('document-title')).toHaveValue('Cloud Workspace');
   await code.fill('sketchdraw broken'); await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
   await expect(page.getByRole('list', { name: 'Codefehler' })).toBeVisible(); await expect(code).toHaveValue('sketchdraw broken');
-  await page.getByRole('button', { name: 'Codeansicht schließen' }).click(); await page.getByRole('button', { name: 'Code', exact: true }).click(); await expect(code).toHaveValue('sketchdraw broken');
+  await page.getByRole('button', { name: 'Codeansicht schließen' }).click(); await workspaceView(page, 'Code'); await expect(code).toHaveValue('sketchdraw broken');
   await page.screenshot({ path: 'test-results/whiteboard-code.png' });
 });
 
@@ -102,6 +105,28 @@ test('compact browser layout retains reachable file, tools and code controls', a
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
   await page.mouse.move(280, 240); await page.mouse.down(); await page.mouse.move(420, 330); await page.mouse.up();
   await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Code', exact: true }).click(); await expect(page.getByTestId('diagram-code')).toBeVisible();
+  await workspaceView(page, 'Code'); await expect(page.getByTestId('diagram-code')).toBeVisible();
   await page.screenshot({ path: 'test-results/whiteboard-compact.png' });
+});
+
+test('document card, workspace menu and minimap follow the workspace chrome design', async ({ page }) => {
+  await expect(page.getByTestId('save-status')).toBeVisible();
+  const trigger = page.getByTestId('workspace-menu-button');
+  await trigger.click(); await expect(page.getByRole('menu', { name: 'Arbeitsbereich' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape'); await expect(page.getByRole('menu', { name: 'Arbeitsbereich' })).toHaveCount(0); await expect(trigger).toBeFocused();
+  await workspaceView(page, 'Bibliothek'); await trigger.click();
+  await expect(page.getByRole('menuitemcheckbox', { name: 'Bibliothek', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('minimap')).toHaveCount(0);
+  await page.getByRole('menuitemcheckbox', { name: 'Bibliothek', exact: true }).click();
+  await page.getByTestId('file-menu-button').click(); await expect(page.getByTestId('file-menu-new')).toBeFocused();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape'); await expect(page.getByTestId('file-menu-button')).toBeFocused();
+  await expect(page.getByText('Dein Dokument bleibt bei dir')).toHaveCount(0);
+  await draw(page, 'Rechteck');
+  const minimap = page.getByTestId('minimap'); await expect(minimap.locator('rect.shape')).toHaveCount(1);
+  const before = await page.locator('[data-kind=rectangle]').boundingBox();
+  const map = await minimap.locator('svg.map').boundingBox(); await page.mouse.click(map!.x + 12, map!.y + 12);
+  const after = await page.locator('[data-kind=rectangle]').boundingBox();
+  expect(Math.abs(after!.x - before!.x) + Math.abs(after!.y - before!.y)).toBeGreaterThan(20);
 });

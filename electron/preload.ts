@@ -203,5 +203,5 @@ if (
   Boolean(process.versions?.electron)
 ) {
   contextBridge.exposeInMainWorld('sketchdraw', createPreloadDesktopBridge());
-  contextBridge.exposeInMainWorld('sketchdrawAgentAccess', createAgentAccessPreload(hasRecentTrustedUserGesture));
+  contextBridge.exposeInMainWorld('sketchdrawAgentAccess', createAgentAccessPreload());
 }

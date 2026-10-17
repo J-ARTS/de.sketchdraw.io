@@ -433,9 +433,7 @@ export type AgentWireServerFrame =
 export interface SketchdrawAgentAccessBridge {
   readonly isAvailable: boolean;
   registerSession(session: { documentId: string; sessionEpoch: number }): Promise<AgentSessionDescriptor>;
-  listGrants(): Promise<AgentGrantSummary[]>;
-  createGrant(permission: AgentPermission, label?: string): Promise<AgentIssuedGrant>;
-  revokeGrant(grantId: string): Promise<void>;
+  unregisterSession(session: { documentId: string; sessionEpoch: number }): Promise<void>;
   onRequest(handler: (request: AgentRendererRequest) => Promise<AgentRendererResponse>): () => void;
   onControl(handler: (message: AgentControlMessage) => Promise<AgentControlAck> | AgentControlAck): () => void;
 }

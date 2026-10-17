@@ -9,7 +9,8 @@ export type ActionIconName =
   | 'warning' | 'info' | 'dot' | 'saving' | 'download'
   | 'group' | 'ungroup' | 'connect' | 'duplicate' | 'trash'
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
-  | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye';
+  | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
+  | 'menu' | 'users' | 'user' | 'code' | 'maximize';
 
 export type IconName = ToolIconName | ActionIconName;
 
@@ -73,4 +74,9 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   'align-center': ['M4 6h16', 'M7 12h10', 'M5.5 18h13'],
   'align-right': ['M4 6h16', 'M10 12h10', 'M7 18h13'],
   eye: ['M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z', 'M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z'],
+  menu: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
+  users: ['M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', 'M2.5 20a6.5 6.5 0 0 1 13 0', 'M16 4.3a3.5 3.5 0 0 1 0 6.4', 'M18 14.2a6.5 6.5 0 0 1 3.5 5.8'],
+  code: ['M8 7l-5 5 5 5', 'M16 7l5 5-5 5', 'M13.5 4.5l-3 15'],
+  user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4.5 20.5a7.5 7.5 0 0 1 15 0'],
+  maximize: ['M4 9V4h5', 'M15 4h5v5', 'M20 15v5h-5', 'M9 20H4v-5'],
 };

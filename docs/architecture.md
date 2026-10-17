@@ -71,7 +71,7 @@ Nach Antigravity-Review AG-04 wird ein validiertes Command-Protokoll mit explizi
 
 ## MCP und lokale Sicherheit
 
-Ein stdio-MCP-Adapter exponiert Lesen, Suche/Analyse und begrenzte Diagramm-Commands. Der konkrete Vertragsentwurf steht in `docs/contracts-mcp.md` und wird vor S3 mit den Implementierenden abgeglichen. Er verbindet sich mit einer ausschließlich lokalen Desktop-Brücke. Verbindungen brauchen eine lokale Capability, erlaubte Dokumente und `read`/`write`-Rechte. Kein offen erreichbarer HTTP-Dienst, keine beliebigen Shell-/Dateipfad-Tools. Stale Revisionsnummern führen zu einem strukturierten Konflikt, nicht zum Überschreiben.
+Ein stdio-MCP-Adapter exponiert Lesen, Suche/Analyse und begrenzte Diagramm-Commands. Der konkrete Vertrag steht in `docs/contracts-mcp.md`. Er verbindet sich mit einer ausschließlich lokalen Desktop-Brücke. Für die aktuelle lokale Dokumentautorität veröffentlicht Main automatisch eine private, kurzlebige Schreib-Capability für Programme desselben Betriebssystemkontos; ein sichtbarer Freigabe-Tab ist nicht erforderlich. Dokumentwechsel, Gastmodus und Neustart rotieren oder entfernen diesen Zugriff. Es gibt keinen offen erreichbaren HTTP-Dienst und keine beliebigen Shell-/Dateipfad-Tools. Stale Revisionsnummern führen zu einem strukturierten Konflikt, nicht zum Überschreiben.
 
 Diagrammtexte, Imports und Toolresultate sind Daten, keine Agentenanweisungen. Nutzbare Skills beschreiben Ressourcen, Toolverträge, Beispiele und menschlich überprüfbare Änderungsvorschläge. Abnahmetest: ein echter MCP-Client erstellt und verändert ein Diagramm, die UI zeigt dasselbe Dokument und ein Mensch kann das Ergebnis weiterbearbeiten.
 
