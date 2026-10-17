@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:36:46Z",
+  "updatedAt": "2026-10-17T22:46:13Z",
   "issues": [
     {
       "number": 4,
@@ -643,7 +643,7 @@
       "owner": "OpenAI Codex",
       "currentImplementer": "Codex (architecture, temporary logic/UI implementation and testing), Claude Code (UI research/review); Antigravity unavailable due quota",
       "phase": "Architecture, UI, logic, interface and testing",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -661,7 +661,7 @@
       "owner": "Google Antigravity",
       "currentImplementer": "Codex temporary takeover because Antigravity quota was unavailable",
       "phase": "Logic and interface",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -676,7 +676,7 @@
       "owner": "Claude Code",
       "currentImplementer": "Codex temporary implementation; Claude Code UI research and final review",
       "phase": "UI",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2802,7 +2802,7 @@
         46,
         47
       ],
-      "status": "locally_verified",
+      "status": "verified_cross_platform",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -2820,14 +2820,48 @@
         "src/interop/drawio.ts",
         "tests/unit/domain/connectors.spec.ts",
         "tests/unit/interop/connectors.spec.ts",
-        "tests/ui/connectors.spec.ts"
+        "tests/ui/connectors.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/4fd511edccff6ace19e9fdd27032e615ef3cf7de",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814096",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814246",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838260",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838305",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838311"
       ],
       "concerns": [
-        "Legacy and imported free connectors remain representable for interoperability; the interactive connector tool alone enforces two distinct bound elements.",
-        "Cross-platform GitHub Actions evidence is pending until the integrated commit is pushed."
+        "Legacy and imported free connectors remain representable for interoperability; the interactive connector tool alone enforces two distinct bound elements."
       ],
       "authorization": "The user explicitly authorized Codex to take over unavailable agent implementation while documenting assigned and actual tools; Codex owns architecture and testing.",
-      "measurementSource": "Codex implemented the connector contract, strict creation gesture, renderer, toolbar, SVG/draw.io mapping and regression tests. Local evidence: typecheck passed, 308 unit tests passed, 37 browser UI tests passed, 6 Electron tests passed, 3 native P2P tests passed and the renderer production build passed. No duration, token or cost metric was captured."
+      "measurementSource": "Codex implemented the connector contract, strict creation gesture, renderer, toolbar, SVG/draw.io mapping and regression tests. Local evidence: typecheck passed, 308 unit tests passed, 37 browser UI tests passed, 6 Electron tests passed, 3 native P2P tests passed and the renderer production build passed. GitHub Actions run 39075881787 then verified commit 4fd511edccff6ace19e9fdd27032e615ef3cf7de on Windows 2025, Ubuntu 24.04 and macOS 15, plus governance/Graphify and direct P2P jobs; all five jobs passed."
+    },
+    {
+      "id": "github-actions-connectors-39075881787",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        45,
+        46,
+        47
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T22:38:17Z",
+      "endedAt": "2026-10-17T22:45:26Z",
+      "observedSeconds": 429,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/4fd511edccff6ace19e9fdd27032e615ef3cf7de",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814096",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814246",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838260",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838305",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838311"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions run metadata for commit 4fd511edccff6ace19e9fdd27032e615ef3cf7de. Governance & Graphify Tests, Direct P2P, Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Observed duration is the difference between the recorded run start and completion timestamps."
     }
   ],
   "evidencePolicy": {

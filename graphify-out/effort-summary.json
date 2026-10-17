@@ -1232,7 +1232,8 @@
       },
       "sharedUnallocatedRunIds": [
         "chrome-figjam-connector-research-045",
-        "codex-connector-implementation-045"
+        "codex-connector-implementation-045",
+        "github-actions-connectors-39075881787"
       ]
     },
     "46": {
@@ -1266,7 +1267,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-connector-implementation-045"
+        "codex-connector-implementation-045",
+        "github-actions-connectors-39075881787"
       ]
     },
     "47": {
@@ -1301,7 +1303,8 @@
       },
       "sharedUnallocatedRunIds": [
         "chrome-figjam-connector-research-045",
-        "codex-connector-implementation-045"
+        "codex-connector-implementation-045",
+        "github-actions-connectors-39075881787"
       ]
     },
     "5": {
@@ -1693,18 +1696,19 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
       "observedSeconds": {
-        "knownRuns": 7,
-        "knownSubtotal": 2660,
+        "knownRuns": 8,
+        "knownSubtotal": 3089,
         "total": null,
         "unknownRuns": 5
       },
-      "runCount": 12,
+      "runCount": 13,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
+        "github-actions-connectors-39075881787",
         "github-actions-final-39049794209",
         "github-actions-font-families-39072428278",
         "github-actions-keychain-profile-39056131370",
@@ -1720,7 +1724,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       }
     }
   },
@@ -1729,15 +1733,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 89
+      "unknownRuns": 90
     },
     "observedSeconds": {
-      "knownRuns": 27,
-      "knownSubtotal": 15282.322263248963,
+      "knownRuns": 28,
+      "knownSubtotal": 15711.322263248963,
       "total": null,
       "unknownRuns": 62
     },
-    "runCount": 89,
+    "runCount": 90,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1818,6 +1822,7 @@
       "codex-whiteboard-takeover-001",
       "github-actions-agent-access-39054281662",
       "github-actions-agent-access-39054540682",
+      "github-actions-connectors-39075881787",
       "github-actions-final-39049794209",
       "github-actions-font-families-39072428278",
       "github-actions-keychain-profile-39056131370",
@@ -1833,7 +1838,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 85
+      "unknownRuns": 86
     }
   },
   "officialScoreClaimReady": false,
@@ -1847,5 +1852,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:36:46Z"
+  "updatedAt": "2026-10-17T22:46:13Z"
 }
