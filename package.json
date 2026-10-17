@@ -16,7 +16,7 @@
     "typecheck": "node scripts/verify-entrypoints.mjs --mode=typecheck && vue-tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.mcp.json --noEmit",
     "test:unit": "node scripts/verify-entrypoints.mjs --mode=tests-unit && node scripts/build-mcp.mjs && vitest run --config vitest.config.ts",
     "test:ui": "node scripts/verify-entrypoints.mjs --mode=tests-ui && playwright test --config playwright.config.ts --project=ui",
-    "test:electron": "node scripts/verify-entrypoints.mjs --mode=tests-electron && node scripts/build-electron.mjs && vite build && playwright test --config playwright.config.ts --project=electron",
+    "test:electron": "node scripts/verify-entrypoints.mjs --mode=tests-electron && node scripts/build-electron.mjs && node scripts/build-mcp.mjs && vite build && playwright test --config playwright.config.ts --project=electron",
     "build:renderer": "node scripts/verify-entrypoints.mjs --mode=renderer && vite build",
     "build:electron": "node scripts/build-electron.mjs",
     "build": "npm run build:renderer && npm run build:electron && npm run build:mcp",

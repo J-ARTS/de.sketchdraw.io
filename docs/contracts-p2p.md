@@ -395,8 +395,8 @@ Reconnect innerhalb derselben lebenden Session verlangt neue PeerConnection, neu
 | --- | --- |
 | ICE Gathering 20 s | kein vollständiges Paket: abbrechen, neue Einladung |
 | Pairing 5 min | einmalige Einladung verfallen; lokal beim Owner gemessen |
-| Transportaufbau 30 s nach Remote Description | sichtbarer Verbindungsfehler; keine ICE-Dienstergänzung |
-| Fingerprintbestätigung 2 min | ohne Bestätigung Verbindung schließen, kein Dokument freigeben |
+| Transportaufbau 30 s | Owner: ab importiertem Answer. Gast: ab eigener expliziter Codebestätigung, falls der Transport noch fehlt. Vorher höchstens 5 min manuelle Antwortübermittlung ab Offerimport; die originale 5-min-Ownerfrist bleibt unverändert maßgeblich. Wiederholte Bestätigung startet keine Frist neu. Sichtbarer Verbindungsfehler, keine ICE-Dienstergänzung. |
+| Fingerprintbestätigung 2 min ab verifiziertem DTLS-Aufbau | ohne beidseitige Bestätigung Verbindung schließen, kein Dokument freigeben; nicht bereits beim lokalen Answerexport starten |
 | Inaktiver Transfer 15 s / Gesamtdauer 120 s | abbrechen, Reservierung freigeben; alter Mirror bleibt |
 | Outcome-Wartezeit 15 s nach übermitteltem Vorschlag | ggf. `outcome-unknown`; kein automatischer zweiter Commit |
 | Heartbeat 5 s / keine Antwort 15 s | `disconnected`, keine neuen gemeinsamen Writes; Timer-Suspend kann Fehlalarm erzeugen, deshalb kein Eigentümerwechsel |

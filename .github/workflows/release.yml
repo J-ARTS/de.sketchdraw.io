@@ -133,7 +133,9 @@ jobs:
 
       - name: Run Playwright Electron integration tests (Linux with Xvfb)
         if: runner.os == 'Linux'
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:electron
+        env:
+          DEBUG: pw:browser
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" node scripts/linux-sandbox.mjs -- npm run test:electron
 
       - name: Run Playwright Electron integration tests (macOS / Windows)
         if: runner.os != 'Linux'

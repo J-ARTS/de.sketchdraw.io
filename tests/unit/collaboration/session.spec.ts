@@ -3,13 +3,14 @@ import { createController, createDocument, createElement, serializeDocument } fr
 import { createDocumentAuthority } from '../../../src/session';
 import { acceptInvitation, createOwnerSession, createSessionIdentity } from '../../../src/collaboration';
 import type { GuestSession, OwnerSession, SessionIdentity } from '../../../src/collaboration';
+import { intentDigest } from '../../../src/collaboration/owner';
 import { sign } from '../../../src/collaboration/crypto';
 import { utf8 } from '../../../src/collaboration/primitives';
 import { RtcDouble } from './rtc-double';
 
 const closes: Array<() => Promise<void>> = [];
 beforeEach(() => { RtcDouble.reset(); vi.stubGlobal('RTCPeerConnection', RtcDouble); });
-afterEach(async () => { for (const close of closes.splice(0)) await close().catch(() => undefined); RtcDouble.reset(); vi.unstubAllGlobals(); });
+afterEach(async () => { for (const close of closes.splice(0)) await close().catch(() => undefined); RtcDouble.reset(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 async function until(check: () => boolean) { await vi.waitFor(() => expect(check()).toBe(true), { timeout: 3000, interval: 5 }); }
 async function setup(role: 'editor' | 'viewer' = 'editor', document = createDocument('Original')) {
   const controller = createController(document, 7);
@@ -62,6 +63,53 @@ describe('P2P production protocol with paired unit-test RTC transport', () => {
     expect(RtcDouble.sent.every(frame => typeof frame.data === 'string')).toBe(true);
     await owner.confirmPeer(offer.invitationId, review.comparisonCode); const guest = await first; closes.push(() => guest.leave());
     await until(() => guest.getStatus().state === 'ready'); expect(guest.source.getSnapshot().document.title).toBe('Private title');
+  });
+
+  it('allows manual answer exchange beyond 30 seconds and gives a full confirmation interval after transport', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
+    const authority = createDocumentAuthority({ controller: createController(createDocument()) });
+    const owner = await createOwnerSession({ authority, identity: await createSessionIdentity() }); closes.push(() => owner.close());
+    const offer = await owner.createInvitation('editor');
+    const pairing = await acceptInvitation(offer.text, { identity: await createSessionIdentity() });
+    await vi.advanceTimersByTimeAsync(150000); // Human returns the answer after 2.5 min.
+    expect(RtcDouble.all.every(pc => pc.connectionState !== 'closed')).toBe(true);
+    const review = await owner.acceptAnswer(pairing.answer.text);
+    const ownerConfirmation = owner.confirmPeer(offer.invitationId, review.comparisonCode);
+    // A signed confirmation is emitted only after the asynchronous certificate check.
+    await until(() => RtcDouble.sent.some(f => f.pc === 1 && typeof f.data === 'string' && JSON.parse(JSON.parse(f.data).payload).type === 'pair-confirm'));
+    await vi.advanceTimersByTimeAsync(119000);
+    expect(RtcDouble.all.every(pc => pc.connectionState !== 'closed')).toBe(true);
+    const [guest] = await Promise.all([pairing.confirmOwner(review.comparisonCode), ownerConfirmation]);
+    closes.push(() => guest.leave());
+    await until(() => guest.getStatus().state === 'ready');
+  });
+
+  it('bounds an unreturned answer and never extends the original owner invitation expiry', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
+    const authority = createDocumentAuthority({ controller: createController(createDocument()) });
+    const owner = await createOwnerSession({ authority, identity: await createSessionIdentity() }); closes.push(() => owner.close());
+    const offer = await owner.createInvitation('editor');
+    await vi.advanceTimersByTimeAsync(290000);
+    const pairing = await acceptInvitation(offer.text, { identity: await createSessionIdentity() });
+    await vi.advanceTimersByTimeAsync(10000);
+    await expect(owner.acceptAnswer(pairing.answer.text)).rejects.toMatchObject({ code: 'ACCESS_DENIED' });
+    await vi.advanceTimersByTimeAsync(290000);
+    expect(RtcDouble.all.every(pc => pc.connectionState === 'closed')).toBe(true);
+  });
+
+  it('still enforces the 30-second network deadline after explicit guest confirmation', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
+    const authority = createDocumentAuthority({ controller: createController(createDocument()) });
+    const owner = await createOwnerSession({ authority, identity: await createSessionIdentity() }); closes.push(() => owner.close());
+    const offer = await owner.createInvitation('editor');
+    const pairing = await acceptInvitation(offer.text, { identity: await createSessionIdentity() });
+    const waiting = expect(pairing.confirmOwner(pairing.review.comparisonCode)).rejects.toThrow('DIRECT_CONNECTION_TIMEOUT');
+    await vi.advanceTimersByTimeAsync(15000);
+    const repeated = expect(pairing.confirmOwner(pairing.review.comparisonCode)).rejects.toThrow('DIRECT_CONNECTION_TIMEOUT');
+    await vi.advanceTimersByTimeAsync(14999);
+    expect(RtcDouble.all[1]!.connectionState).not.toBe('closed');
+    await vi.advanceTimersByTimeAsync(1); await waiting; await repeated;
+    expect(RtcDouble.all[1]!.connectionState).toBe('closed');
   });
 
   it('replicates guest and owner writes, deduplicates, and performs owner-side actor undo/redo', async () => {
@@ -224,6 +272,22 @@ describe('P2P production protocol with paired unit-test RTC transport', () => {
     expect(result.outcome).toMatchObject({ code: 'ACCESS_DENIED', accepted: false });
     expect(authority.source.getSnapshot().revision).toBe(7);
     expect(guest.source.getSnapshot().revision).toBe(7);
+  });
+
+  it('closes a peer repeatedly reusing an accepted request ID with a different signed intent', async () => {
+    const { guest, guestIdentity, authority } = await setup();
+    const requestId = guest.gateway.nextRequestId()!;
+    await guest.gateway.submit({ requestId, expectedRevision: 7, action: { kind: 'undo' } });
+    const grant = RtcDouble.sent.filter(f => typeof f.data === 'string').map(f => JSON.parse(JSON.parse(f.data as string).payload)).find(m => m.type === 'grant');
+    const control = RtcDouble.all[1]!.channels.find(c => c.label === 'sketchdraw-control-v1')!;
+    const scopeId = grant.scopes[0].scopeId;
+    const digest = await intentDigest(grant.session, scopeId, requestId, 6, 'undo', null);
+    RtcDouble.drop = (_channel, data) => typeof data === 'string' && JSON.parse(JSON.parse(data).payload).type === 'result';
+    for (let i = 0; i < 3; i += 1) control.send(JSON.stringify(await sign(guestIdentity,
+      { version: 1, type: 'proposal', session: grant.session, connectionId: grant.connectionId, scopeId,
+        clientSequence: 1, requestId, expectedRevision: 6, kind: 'undo', commandTransferId: null, commandHash: null, digest })));
+    await until(() => guest.getStatus().state === 'disconnected');
+    expect(authority.source.getSnapshot().revision).toBe(7);
   });
 
   it('rejects a mismatching actual DTLS certificate before any document transfer', async () => {

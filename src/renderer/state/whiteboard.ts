@@ -91,6 +91,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       catch { return this.document.elements; }
     },
     get draftElement() { return this.drawing; },
+    get hasElementPreview() { return Boolean(this.previewCommand); },
     get title() { return this.document.title; },
     get empty() { return this.document.elements.length === 0; },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },

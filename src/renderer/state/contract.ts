@@ -143,6 +143,7 @@ export interface WhiteboardState {
   revision: number;
   /** Document elements in z-order with live gesture previews applied (connectors included). */
   displayElements: readonly SketchElement[];
+  readonly hasElementPreview: boolean;
   /** In-progress element of a drawing gesture; not part of the document. */
   draftElement: SketchElement | null;
   selection: readonly string[];

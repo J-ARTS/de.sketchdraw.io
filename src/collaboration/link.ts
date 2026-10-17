@@ -32,6 +32,7 @@ export class PeerLink {
   private inbound?: Incoming; private manifestPending = false; private applicationJobs = 0;
   private outbound?: { id: string; ready: ReturnType<typeof deferred<void>> };
   private connectTimer?: ReturnType<typeof setTimeout>; private confirmTimer?: ReturnType<typeof setTimeout>;
+  private pairingTimer?: ReturnType<typeof setTimeout>;
   private heartbeat?: ReturnType<typeof setInterval>; private ping?: { nonce: string; at: number };
   private aborters = new Set<(error: Error) => void>();
 
@@ -85,20 +86,29 @@ export class PeerLink {
   async setRemote(pair: ParsedPair): Promise<void> {
     if (this.closed || this.remote) fail('SESSION_CHANGED');
     this.remote = pair;
-    this.connectTimer = setTimeout(() => this.close('DIRECT_CONNECTION_TIMEOUT'), LIMIT.connectMs);
+    if (this.options.owner) this.startConnectDeadline();
+    else this.pairingTimer = setTimeout(() => this.close('INVITATION_EXPIRED'), LIMIT.invitationMs);
     try { await this.pc.setRemoteDescription({ type: pair.payload.type, sdp: pair.payload.sdp }); }
     catch { this.close('SDP_REJECTED'); fail('PROTOCOL_ERROR'); }
     void this.transportReady();
   }
+  private startConnectDeadline(): void {
+    if (this.connectTimer || this.certVerified || this.closed) return;
+    this.connectTimer = setTimeout(() => this.close('DIRECT_CONNECTION_TIMEOUT'), LIMIT.connectMs);
+  }
   setTranscript(hash: string, code: string): void {
+    if (this.transcript || this.closed) fail('SESSION_CHANGED');
     this.transcript = hash; this.code = code;
-    this.confirmTimer = setTimeout(() => this.close('CONFIRMATION_TIMEOUT'), LIMIT.confirmMs);
     void this.transportReady();
   }
   async confirm(code: string): Promise<void> {
     if (code !== this.code || !this.code) fail('ACCESS_DENIED', 'COMPARISON_CODE_MISMATCH');
     if (this.closed) fail('NOT_CONNECTED');
-    this.confirmed = true; await this.transportReady();
+    this.confirmed = true;
+    // The guest must be allowed to return the answer manually before a short
+    // network deadline starts. Human code confirmation says that exchange is done.
+    clearTimeout(this.pairingTimer); this.startConnectDeadline();
+    await this.transportReady();
     return this.authenticated.promise;
   }
   private async transportReady(): Promise<void> {
@@ -116,7 +126,8 @@ export class PeerLink {
         const size = sctp.maxMessageSize;
         if (!(size >= 4096)) fail('NOT_CONNECTED', 'TRANSPORT_LIMIT_UNSUPPORTED');
         this.maxMessage = Math.min(LIMIT.frame, size); this.certVerified = true;
-        clearTimeout(this.connectTimer);
+        clearTimeout(this.connectTimer); clearTimeout(this.pairingTimer);
+        this.confirmTimer = setTimeout(() => this.close('CONFIRMATION_TIMEOUT'), LIMIT.confirmMs);
       }
       if (this.confirmed && !this.sentConfirmation) {
         this.sentConfirmation = true;
@@ -290,7 +301,7 @@ export class PeerLink {
   close(reason = 'CLOSED'): void {
     if (this.closed) return;
     this.closed = true; this.authorized = false;
-    clearTimeout(this.connectTimer); clearTimeout(this.confirmTimer); clearInterval(this.heartbeat);
+    clearTimeout(this.connectTimer); clearTimeout(this.confirmTimer); clearTimeout(this.pairingTimer); clearInterval(this.heartbeat);
     const error = new SessionAccessError('NOT_CONNECTED'); error.message = reason;
     this.authenticated.reject(error); this.releaseInbound(error);
     for (const abort of this.aborters) abort(error); this.aborters.clear();

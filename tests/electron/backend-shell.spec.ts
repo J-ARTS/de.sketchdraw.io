@@ -139,7 +139,7 @@ window.sketchdraw.onCloseRequested(id => window.backendFixture.closeRequests.pus
 window.sketchdraw.onMenuCommand(command => window.backendFixture.menuCommands.push(command));
 document.documentElement.dataset.fixtureReady = 'true';
 `);
-      app = await electron.launch({ args: [root], env: cleanElectronEnv(), timeout: 15_000 });
+      app = await electron.launch({ args: [root], env: cleanElectronEnv(), chromiumSandbox: true, timeout: 15_000 });
       const page = await app.firstWindow();
       await expect(page.locator('html')).toHaveAttribute('data-fixture-ready', 'true');
       await testInfo.attach('backend-shell-artifacts', {
@@ -174,6 +174,8 @@ test.describe('Built Electron backend with a minimal renderer fixture', () => {
         appPath: app.getAppPath(),
         userData: app.getPath('userData'),
         isPackaged: app.isPackaged,
+        sandboxDisabled: app.commandLine.hasSwitch('no-sandbox'),
+        setuidSandboxDisabled: app.commandLine.hasSwitch('disable-setuid-sandbox'),
         rendererSandboxed: metric?.sandboxed,
       };
     });
@@ -181,6 +183,8 @@ test.describe('Built Electron backend with a minimal renderer fixture', () => {
       appPath: root,
       userData: path.join(root, 'user-data'),
       isPackaged: false,
+      sandboxDisabled: false,
+      setuidSandboxDisabled: false,
     });
     // Electron exposes this OS sandbox metric on macOS/Windows, not Linux.
     if (process.platform === 'darwin' || process.platform === 'win32') {

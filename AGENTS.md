@@ -25,7 +25,7 @@ Entscheidungen und Implementierungen müssen sich an dieser Vision messen lassen
 
 ## Projektstand
 
-- Architektur, Sprints, gemeinsame Verträge, Build-/Testkonfiguration und installierbare Abhängigkeiten sind vorhanden. Die S1-Anwendung wird implementiert; ausführbare Gesamtabnahme und spätere Produktfähigkeiten sind noch offen. Der aktuelle bestätigte Stand steht in GitHub und `agent-state/work-ledger.json`.
+- Architektur, Sprints, gemeinsame Verträge, Build-/Testkonfiguration und installierbare Abhängigkeiten sind vorhanden. Die sechs Produktbereiche sind implementiert und werden gemeinsam auf den Zielplattformen geprüft; die finale Installerabnahme ist noch offen. Der aktuelle bestätigte Stand steht in GitHub und `agent-state/work-ledger.json`.
 - Stack: Electron, Vue 3, TypeScript. Bestehende Skripte: `npm run dev:browser`, `npm run dev:electron`, `npm run typecheck`, `npm run test:unit`, `npm run test:ui`, `npm run test:electron`, `npm run build`, `npm run package`. Vor Ausführung Voraussetzungen/Dateieinstiege prüfen; fehlende Implementierung bleibt eine benannte Integrationslücke.
 - Build-Lifecycle-Prüfungen laufen separat über `node --test tests/unit/*.test.mjs`; Python-Graphify-Prüfungen über `python3 -m unittest discover -s tools/tests -v`. Ein existierender Testbefehl ist kein bestandener Test.
 

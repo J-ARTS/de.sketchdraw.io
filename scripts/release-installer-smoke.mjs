@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { installCiSandboxProfile } from './linux-sandbox.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -148,6 +149,7 @@ process.stdout.write(JSON.stringify(result));`;
   const { _electron: electron } = await import('@playwright/test');
   let app;
   let gui;
+  const cleanupSandboxProfile = installCiSandboxProfile(executablePath);
   try {
     app = await electron.launch({ executablePath, args: [`--user-data-dir=${join(directory, 'profile')}`],
       cwd: directory, env, chromiumSandbox: true, timeout: 30_000 });
@@ -177,7 +179,7 @@ process.stdout.write(JSON.stringify(result));`;
     assert.equal(gui.disabledSandbox, false);
     assert.equal(await page.evaluate(() => window.sketchdraw?.platform), 'electron');
     assert.deepEqual(errors, []);
-  } finally { if (app) await stopElectron(app); }
+  } finally { try { if (app) await stopElectron(app); } finally { cleanupSandboxProfile(); } }
   const mcp = await smokeMcpCli({ executablePath, adapterPath, cwd: directory });
   return { source: 'packaged-app', appIsPackaged: true, appVersion: version, appArch: arch,
     sandbox: true, bundleHashes: contents.files, mcp };

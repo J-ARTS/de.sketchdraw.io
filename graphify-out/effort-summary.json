@@ -106,6 +106,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-interop-contract-001",
+        "codex-native-integration-002",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -144,6 +145,7 @@
       "sharedUnallocatedRunIds": [
         "codex-mcp-contract-review-001",
         "codex-mcp-independent-review-001",
+        "codex-native-integration-002",
         "codex-session-001",
         "codex-whiteboard-takeover-001"
       ]
@@ -180,6 +182,7 @@
         "value": 13
       },
       "sharedUnallocatedRunIds": [
+        "codex-native-integration-002",
         "codex-p2p-contract-001",
         "codex-p2p-contract-review-001",
         "codex-session-001",
@@ -221,6 +224,7 @@
         "codex-domain-tests-001",
         "codex-electron-backend-tests-001",
         "codex-mcp-independent-review-001",
+        "codex-native-integration-002",
         "codex-orchestration-001",
         "codex-setup-integration-001"
       ]
@@ -519,7 +523,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-native-integration-002"
+      ]
     },
     "4": {
       "exclusiveRuns": {
@@ -554,6 +560,7 @@
         "antigravity-architecture-002",
         "claude-architecture-001",
         "claude-architecture-002",
+        "codex-native-integration-002",
         "codex-orchestration-001"
       ]
     },
@@ -814,24 +821,25 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       },
-      "runCount": 2,
+      "runCount": 3,
       "runIds": [
         "codex-mcp-takeover-001",
+        "codex-native-integration-002",
         "codex-orchestration-001"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       }
     },
     "codex-subagent": {
@@ -884,15 +892,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 43
+      "unknownRuns": 44
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 23
+      "unknownRuns": 24
     },
-    "runCount": 43,
+    "runCount": 44,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -926,6 +934,7 @@
       "codex-mcp-contract-review-001",
       "codex-mcp-independent-review-001",
       "codex-mcp-takeover-001",
+      "codex-native-integration-002",
       "codex-orchestration-001",
       "codex-p2p-001",
       "codex-p2p-contract-001",
@@ -942,7 +951,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 39
+      "unknownRuns": 40
     }
   },
   "officialScoreClaimReady": false,
@@ -956,5 +965,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T14:41:37.062167+00:00"
+  "updatedAt": "2026-10-17T14:55:11.450865+00:00"
 }

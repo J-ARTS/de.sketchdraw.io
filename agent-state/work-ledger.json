@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T14:41:37.062167+00:00",
+  "updatedAt": "2026-10-17T14:55:11.450865+00:00",
   "issues": [
     {
       "number": 4,
@@ -1169,7 +1169,7 @@
         13,
         14
       ],
-      "status": "integrating",
+      "status": "verified_renderer_integration",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1212,7 +1212,7 @@
       "issues": [
         12
       ],
-      "status": "verified_backend",
+      "status": "verified_external_program",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1221,7 +1221,9 @@
       "artifacts": [
         "src/interop",
         "docs/reviews/codex-interop.md",
-        "tests/unit/interop-review.spec.ts"
+        "tests/unit/interop-review.spec.ts",
+        "docs/reviews/codex-interop-external-acceptance.md",
+        "tests/unit/interop/external.spec.ts"
       ],
       "concerns": [],
       "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
@@ -1234,7 +1236,7 @@
       "issues": [
         14
       ],
-      "status": "protocol_verified_native_pending",
+      "status": "native_transport_verified_sandbox_rerun_pending",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1243,7 +1245,8 @@
       "artifacts": [
         "src/collaboration",
         "tests/p2p/native.spec.ts",
-        "src/renderer/components/CollaborationPanel.vue"
+        "src/renderer/components/CollaborationPanel.vue",
+        "docs/reviews/codex-p2p.md"
       ],
       "concerns": [],
       "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
@@ -1315,6 +1318,39 @@
       ],
       "concerns": [],
       "measurementSource": "Four independent boundary tests, 18 MCP tests total passed. No reliable runtime/token/cost measurement; metrics stay null."
+    },
+    {
+      "id": "codex-native-integration-002",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        4,
+        12,
+        13,
+        14,
+        15,
+        24
+      ],
+      "status": "ci_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "scripts/linux-sandbox.mjs",
+        "tests/unit/linux-sandbox.test.mjs",
+        "tests/electron/desktop.spec.ts",
+        "tests/ui/collaboration.spec.ts",
+        "README.md"
+      ],
+      "concerns": [
+        "linux-playwright-default-disables-sandbox",
+        "manual-pairing-deadline",
+        "guest-ack-before-mirror",
+        "native-drawio-container-border"
+      ],
+      "measurementSource": "Local Vitest278 and browserUI16 passed; first CI f8c55fb native transport passes, shell tests and Linux true-sandbox launch failed. No reliable per-agent duration/token/cost measurement. All follow-up fixes require new CI."
     }
   ],
   "evidencePolicy": {

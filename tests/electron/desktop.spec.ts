@@ -1,209 +1,149 @@
-import { _electron as electron, expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { cp, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test';
 
-function buildCleanElectronEnv(): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (
-      typeof value === 'string' &&
-      key !== 'ELECTRON_RUN_AS_NODE' &&
-      key !== 'SKETCHDRAW_DEV_SERVER_URL'
-    ) {
-      env[key] = value;
-    }
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+function cleanElectronEnv(): Record<string, string> {
+  return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] =>
+    typeof entry[1] === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(entry[0]),
+  ));
+}
+async function bounded<T>(promise: Promise<T>, milliseconds = 2_000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([promise, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Owned Electron test operation timed out.')), milliseconds);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+async function dispose(app: ElectronApplication): Promise<void> {
+  const child = app.process();
+  const exited = () => child.exitCode !== null || child.signalCode !== null;
+  await bounded(app.evaluate(({ app }) => app.exit(0))).catch(() => {});
+  await bounded(app.close()).catch(() => {});
+  for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
+    if (exited()) return;
+    let onExit!: () => void;
+    const exit = new Promise<void>(resolve => { onExit = resolve; child.once('exit', onExit); });
+    child.kill(signal);
+    try { await bounded(exit); } catch { /* Escalate only this owned child. */ }
+    finally { child.removeListener('exit', onExit); }
   }
-  return env;
+  if (!exited()) throw new Error(`Owned Electron process ${child.pid} did not exit.`);
 }
 
-test.describe('Electron Desktop Shell, Sandbox, Bridge, Menu & Close Handshake', () => {
-  test('starts bundled app via app:// scheme, enforces sandbox/contextIsolation, validates IPC, and executes close handshake', async () => {
-    const electronApp = await electron.launch({
-      args: ['.'],
-      env: buildCleanElectronEnv(),
-    });
-
+test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () => {
+  test('native save cancellation and the real dirty dialog preserve the canvas; forged close is rejected', async ({}, testInfo) => {
+    test.setTimeout(45_000);
+    const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-desktop-product-')));
+    let app: ElectronApplication | undefined;
     try {
+      // Relocate exact built product files because Main resolves assets relative to __dirname.
+      // The launcher only isolates app data; no renderer fixture or product logic is substituted.
+      for (const dir of ['dist', 'dist-electron', 'dist-mcp']) await cp(path.join(projectRoot, dir), path.join(root, dir), { recursive: true });
+      await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'sketchdraw-desktop-product-test', version: '0.0.0', main: 'entry.cjs' }));
+      await writeFile(path.join(root, 'entry.cjs'), "const {app}=require('electron');const path=require('node:path');app.setPath('userData',path.join(__dirname,'profile'));app.setPath('sessionData',path.join(__dirname,'session'));require('./dist-electron/main.cjs');");
+      app = await electron.launch({ args: [root], env: cleanElectronEnv(), chromiumSandbox: true, timeout: 15_000 });
+      const electronApp = app;
       const page = await electronApp.firstWindow();
-      await page.waitForLoadState('domcontentloaded');
-
+      const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+      await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
       expect(page.url()).toBe('app://sketchdraw/index.html');
 
-      const windowMeta = await electronApp.evaluate(({ BrowserWindow }) => {
-        const win = BrowserWindow.getAllWindows()[0];
-        if (!win) {
-          throw new Error('No BrowserWindow instance found.');
-        }
-        const [minWidth, minHeight] = win.getMinimumSize();
-        const bounds = win.getBounds();
-        return {
-          minWidth,
-          minHeight,
-          width: bounds.width,
-          height: bounds.height,
-          isDestroyed: win.isDestroyed(),
-        };
-      });
-
-      expect(windowMeta.isDestroyed).toBe(false);
-      expect(windowMeta.minWidth).toBe(960);
-      expect(windowMeta.minHeight).toBe(640);
-      expect(windowMeta.width).toBeGreaterThanOrEqual(960);
-      expect(windowMeta.height).toBeGreaterThanOrEqual(640);
-
-      const bridgeInspection = await page.evaluate(() => {
-        const globalObj = window as unknown as Record<string, unknown>;
-        const bridge = window.sketchdraw;
-        return {
-          hasRequire: typeof globalObj['require'] !== 'undefined',
-          hasProcess: typeof globalObj['process'] !== 'undefined',
-          hasBuffer: typeof globalObj['Buffer'] !== 'undefined',
-          hasIpcRenderer: typeof globalObj['ipcRenderer'] !== 'undefined',
-          bridgeKeys: bridge ? Object.keys(bridge).sort() : [],
-          platform: bridge?.platform,
-          popupResult: window.open('https://example.com', '_blank'),
-        };
-      });
-
-      expect(bridgeInspection.hasRequire).toBe(false);
-      expect(bridgeInspection.hasProcess).toBe(false);
-      expect(bridgeInspection.hasBuffer).toBe(false);
-      expect(bridgeInspection.hasIpcRenderer).toBe(false);
-      expect(bridgeInspection.platform).toBe('electron');
-      expect(bridgeInspection.popupResult).toBeNull();
-      expect(bridgeInspection.bridgeKeys).toEqual([
-        'exportFile',
-        'onCloseRequested',
-        'onMenuCommand',
-        'openDocument',
-        'openExternal',
-        'platform',
-        'respondToClose',
-        'saveDocument',
-      ]);
-
-      // Verify IPC validation rejects raw paths and uninitiated external links
-      const securityChecks = await page.evaluate(async () => {
-        const bridge = window.sketchdraw!;
-        const invalidHandleSave = await bridge.saveDocument({
-          mode: 'save',
-          handleId: '/etc/passwd',
-          expectedVersionToken:
-            'sha256:0000000000000000000000000000000000000000000000000000000000000000',
-          text: '{}',
-          suggestedName: 'test.sketchdraw',
+      await test.step('real product sandbox, isolation and bridge input validation', async () => {
+        const metadata = await electronApp.evaluate(({ app, BrowserWindow }) => {
+          const win = BrowserWindow.getAllWindows()[0]!;
+          return {
+            appPath: app.getAppPath(), userData: app.getPath('userData'), sessionData: app.getPath('sessionData'),
+            minimum: win.getMinimumSize(), bounds: win.getBounds(),
+            sandboxed: app.getAppMetrics().find(metric => metric.pid === win.webContents.getOSProcessId())?.sandboxed,
+          };
         });
+        expect(metadata).toMatchObject({ appPath: root, userData: path.join(root, 'profile'), sessionData: path.join(root, 'session'), minimum: [960, 640] });
+        expect(metadata.bounds.width).toBeGreaterThanOrEqual(960); expect(metadata.bounds.height).toBeGreaterThanOrEqual(640);
+        if (process.platform === 'darwin' || process.platform === 'win32') expect(metadata.sandboxed).toBe(true);
 
-        let jsSchemeRejected = false;
-        try {
-          await bridge.openExternal('javascript:alert(1)');
-        } catch {
-          jsSchemeRejected = true;
-        }
-
-        let withoutGestureRejected = false;
-        try {
-          await bridge.openExternal('https://example.com');
-        } catch {
-          withoutGestureRejected = true;
-        }
-
-        return {
-          invalidHandleSave,
-          jsSchemeRejected,
-          withoutGestureRejected,
-        };
-      });
-
-      expect(securityChecks.invalidHandleSave.status).toBe('error');
-      if (securityChecks.invalidHandleSave.status === 'error') {
-        expect(securityChecks.invalidHandleSave.code).toBe('INVALID_HANDLE');
-      }
-      expect(securityChecks.jsSchemeRejected).toBe(true);
-      expect(securityChecks.withoutGestureRejected).toBe(true);
-
-      // Verify Menu command routing through the single onMenuCommand channel
-      await page.evaluate(() => {
-        const w = window as unknown as { __menuCommands?: string[] };
-        w.__menuCommands = [];
-        window.sketchdraw!.onMenuCommand((cmd) => {
-          w.__menuCommands!.push(cmd);
+        // Unlike page.evaluate, executeJavaScript(..., false) does not manufacture user activation.
+        // Assert the precondition before any user interaction and never intentionally open an external URL.
+        await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript('navigator.userActivation.isActive', false)), { timeout: 10_000 }).toBe(false);
+        expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(`(async()=>{
+          if(navigator.userActivation.isActive) return {inactive:false};
+          const rejected=[];
+          for(const url of ['javascript:alert(1)','https://example.invalid/']) {
+            try { await window.sketchdraw.openExternal(url); rejected.push(false); } catch { rejected.push(true); }
+          }
+          return {inactive:true,rejected};
+        })()`, false))).toEqual({ inactive: true, rejected: [true, true] });
+        const surface = await page.evaluate(async () => {
+          const globals = window as unknown as Record<string, unknown>;
+          globals.desktopMainWorldMarker = true;
+          return { globals: ['require', 'process', 'Buffer', 'ipcRenderer'].filter(key => typeof globals[key] !== 'undefined'), platform: window.sketchdraw?.platform, frozen: Object.isFrozen(window.sketchdraw), keys: Object.keys(window.sketchdraw!).sort(), popupBlocked: window.open('https://example.invalid/', '_blank') === null,
+            invalidHandle: await window.sketchdraw!.saveDocument({ mode: 'save', handleId: '/etc/passwd', expectedVersionToken: `sha256:${'0'.repeat(64)}`, text: '{}', suggestedName: 'test.sketchdraw.json' }) };
         });
+        expect(surface.globals).toEqual([]); expect(surface.platform).toBe('electron'); expect(surface.frozen).toBe(true); expect(surface.popupBlocked).toBe(true);
+        expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'respondToClose', 'saveDocument']);
+        expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
+        expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
       });
 
-      await electronApp.evaluate(({ Menu }) => {
-        const appMenu = Menu.getApplicationMenu();
-        const saveItem = appMenu?.getMenuItemById('file-save');
-        saveItem?.click();
-      });
+      await test.step('real Save menu reaches persistence and controlled native Cancel keeps a dirty drawing', async () => {
+        await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+        await page.mouse.move(340, 240); await page.mouse.down(); await page.mouse.move(540, 360); await page.mouse.up();
+        await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
+        await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'unsaved-new');
 
-      await expect
-        .poll(async () =>
-          page.evaluate(
-            () => (window as unknown as { __menuCommands?: string[] }).__menuCommands ?? [],
-          ),
-        )
-        .toContain('save');
-
-      // Verify Close Handshake protects unsaved state and rejects forged requestIds
-      await page.evaluate(() => {
-        const w = window as unknown as { __closeRequestIds?: string[] };
-        w.__closeRequestIds = [];
-        window.sketchdraw!.onCloseRequested((requestId) => {
-          w.__closeRequestIds!.push(requestId);
+        // Shell-era regression: Save now has a real renderer consumer. Stub only the OS dialog result,
+        // retaining actual Menu -> preload -> renderer -> IPC -> persistence -> cancellation behavior.
+        await electronApp.evaluate(({ dialog }) => {
+          const state = globalThis as unknown as { desktopSaveDialogCalls: number };
+          state.desktopSaveDialogCalls = 0;
+          dialog.showSaveDialog = async () => { state.desktopSaveDialogCalls++; return { canceled: true, filePath: '' }; };
         });
+        await electronApp.evaluate(({ Menu }) => {
+          const item = Menu.getApplicationMenu()?.getMenuItemById('file-save');
+          if (!item) throw new Error('Product Save menu item is missing.'); item.click();
+        });
+        await expect.poll(() => electronApp.evaluate(() => (globalThis as unknown as { desktopSaveDialogCalls: number }).desktopSaveDialogCalls)).toBe(1);
+        await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'unsaved-new');
+        await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
       });
 
-      await electronApp.evaluate(({ BrowserWindow }) => {
-        BrowserWindow.getAllWindows()[0]?.close();
+      await test.step('real UI cancels dirty close, forged ID cannot bypass it, confirmed discard closes', async () => {
+        // Observe request IDs without replacing or answering the product's own listener.
+        await page.evaluate(() => {
+          const state = window as unknown as { desktopCloseIds: string[] }; state.desktopCloseIds = [];
+          window.sketchdraw!.onCloseRequested(id => state.desktopCloseIds.push(id));
+        });
+        await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible(); await expect(dialog).toContainText('Änderungen behalten?');
+        const firstId = await page.evaluate(() => (window as unknown as { desktopCloseIds: string[] }).desktopCloseIds[0]!);
+        expect(firstId).toMatch(/^close_[0-9a-f]{32}$/);
+        expect(await page.evaluate(async () => { try { await window.sketchdraw!.respondToClose(`close_${'0'.repeat(32)}`, 'close'); return false; } catch { return true; } })).toBe(true);
+        expect(page.isClosed()).toBe(false); await expect(dialog).toBeVisible();
+        await dialog.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+        await expect(dialog).not.toBeVisible(); expect(page.isClosed()).toBe(false);
+        await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
+        // A real UI write after cancellation verifies that the lifecycle barrier was released.
+        await page.getByTestId('document-title').fill('Nach Abbruch weiterbearbeitet'); await page.getByTestId('document-title').press('Tab');
+        await expect(page.getByTestId('save-status')).toHaveText('Nicht gespeichert');
+        expect(await page.evaluate(async id => { try { await window.sketchdraw!.respondToClose(id, 'close'); return false; } catch { return true; } }, firstId)).toBe(true);
+        await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+        await expect(dialog).toBeVisible();
+        const secondId = await page.evaluate(() => (window as unknown as { desktopCloseIds: string[] }).desktopCloseIds.at(-1)!); expect(secondId).not.toBe(firstId);
+        const closed = page.waitForEvent('close');
+        await dialog.getByRole('button', { name: 'Verwerfen', exact: true }).click({ noWaitAfter: true }).catch(error => { if (!page.isClosed()) throw error; });
+        await closed; expect(page.isClosed()).toBe(true);
       });
-
-      await expect
-        .poll(async () =>
-          page.evaluate(
-            () =>
-              (window as unknown as { __closeRequestIds?: string[] })
-                .__closeRequestIds?.length ?? 0,
-          ),
-        )
-        .toBeGreaterThanOrEqual(1);
-
-      const firstCloseRequestId = await page.evaluate(
-        () =>
-          (window as unknown as { __closeRequestIds: string[] })
-            .__closeRequestIds[0]!,
-      );
-      expect(firstCloseRequestId).toMatch(/^close_[0-9a-f]{32}$/);
-
-      // Window must still be open when renderer has not responded yet
-      const stillOpenBeforeResponse = await electronApp.evaluate(
-        ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
-      );
-      expect(stillOpenBeforeResponse).toBe(1);
-
-      // Forged requestId must be rejected
-      const forgedRejected = await page.evaluate(async () => {
-        try {
-          await window.sketchdraw!.respondToClose(
-            'close_00000000000000000000000000000000',
-            'close',
-          );
-          return false;
-        } catch {
-          return true;
-        }
-      });
-      expect(forgedRejected).toBe(true);
-
-      // Cancelling the close request keeps the window open
-      await page.evaluate(async (reqId) => {
-        await window.sketchdraw!.respondToClose(reqId, 'cancel');
-      }, firstCloseRequestId);
-
-      const stillOpenAfterCancel = await electronApp.evaluate(
-        ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
-      );
-      expect(stillOpenAfterCancel).toBe(1);
+      expect(errors).toEqual([]);
+      const hashes = Object.fromEntries(await Promise.all(['dist-electron/main.cjs', 'dist-electron/preload.cjs', 'dist/index.html'].map(async file => [file, createHash('sha256').update(await readFile(path.join(root, file))).digest('hex')])));
+      await testInfo.attach('desktop-product-evidence', { body: JSON.stringify({ scope: 'Actual unmodified built product with OS Save dialog cancellation stub only; unpackaged, current platform.', platform: process.platform, hashes, actualDirtyCanvas: true, nativeSaveCancelled: true, dirtyCloseCancelledViaUI: true, forgedAndStaleCloseRejected: true, discardClosedWindow: true }, null, 2), contentType: 'application/json' });
     } finally {
-      await electronApp.close().catch(() => {});
+      try { if (app) await dispose(app); }
+      finally { await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 }); }
     }
   });
 });

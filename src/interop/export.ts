@@ -109,7 +109,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     else if (el.kind === 'text')
       style.push('text', 'strokeColor=none', 'fillColor=none');
     else if (el.kind === 'container')
-      style.push('group');
+      style.push('container=1', 'verticalAlign=top');
     else if (el.kind === 'image')
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
     const edge = el.kind === 'connector' || el.kind === 'path';

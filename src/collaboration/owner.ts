@@ -11,7 +11,7 @@ import { LIMIT, utf8, decode, sha, fail, randomHex, notify, sameSession, bounded
 interface OutcomeEntry { digest: string; promise: Promise<WriteOutcome>; outcome?: WriteOutcome }
 interface Peer {
   id: string; role: 'editor' | 'viewer'; state: PeerState; link?: PeerLink; binding?: ActorBinding;
-  pendingConnection?: string; outcomes: Map<string, OutcomeEntry>;
+  pendingConnection?: string; reuseViolations: number; outcomes: Map<string, OutcomeEntry>;
   confirmed: number; sent: number; sentHashes: Map<number, string>; syncStarted: boolean;
   sending: Promise<void>; bufferedBytes: number; bufferedCount: number; pending: number;
 }
@@ -134,8 +134,11 @@ export async function createOwnerSession(options: OwnerSessionOptions): Promise<
   async function proposal(peer: Peer, link: PeerLink, message: Wire): Promise<void> {
     if (!current(peer, link) || !peer.binding) return;
     const requestId = message.requestId as string; const fingerprint = message.digest as string;
-    const reject = (code: 'ACCESS_DENIED' | 'PEER_NOT_READY' | 'REQUEST_ID_REUSED' | 'BUSY') => result(link, requestId, fingerprint,
-      { status: 'rejected', requestId, code, accepted: false });
+    const reject = async (code: 'ACCESS_DENIED' | 'PEER_NOT_READY' | 'REQUEST_ID_REUSED' | 'BUSY') => {
+      const violations = code === 'REQUEST_ID_REUSED' ? ++peer.reuseViolations : 0;
+      await result(link, requestId, fingerprint, { status: 'rejected', requestId, code, accepted: code === 'REQUEST_ID_REUSED' });
+      if (violations >= 3) link.close('REQUEST_ID_REUSED');
+    };
     if (peer.role !== 'editor' || message.scopeId !== peer.binding.scopeId) { await reject('ACCESS_DENIED'); return; }
     if (peer.state !== 'ready') { await reject('PEER_NOT_READY'); return; }
     let action: WriteAction; let release = (): void => {};
@@ -221,7 +224,9 @@ export async function createOwnerSession(options: OwnerSessionOptions): Promise<
         if (!peer.binding || value.scopeId !== peer.binding.scopeId) fail('ACCESS_DENIED');
         const requestId = value.requestId as string; const entry = peer.outcomes.get(requestId);
         if (entry && entry.digest !== value.digest) {
-          await link.send('outcome', { requestId, digest: value.digest, outcome: { status: 'rejected', requestId, code: 'REQUEST_ID_REUSED', accepted: true } }); return;
+          const violations = ++peer.reuseViolations;
+          await link.send('outcome', { requestId, digest: value.digest, outcome: { status: 'rejected', requestId, code: 'REQUEST_ID_REUSED', accepted: true } });
+          if (violations >= 3) link.close('REQUEST_ID_REUSED'); return;
         }
         const outcome = entry?.outcome ?? await peer.binding.gateway.queryOutcome(requestId);
         if (current(peer, link)) await link.send('outcome', { requestId, digest: value.digest, outcome });
@@ -351,7 +356,7 @@ export async function createOwnerSession(options: OwnerSessionOptions): Promise<
       let peer = invitation.resume;
       if (!peer) {
         peer = { id: answer.keyHash, role: invitation.role, state: 'awaiting-confirmation', link: invitation.link,
-          outcomes: new Map(), confirmed: base.revision, sent: base.revision, sentHashes: new Map(), syncStarted: false,
+          outcomes: new Map(), reuseViolations: 0, confirmed: base.revision, sent: base.revision, sentHashes: new Map(), syncStarted: false,
           sending: Promise.resolve(), bufferedBytes: 0, bufferedCount: 0, pending: 0 };
         peers.set(peer.id, peer);
       }

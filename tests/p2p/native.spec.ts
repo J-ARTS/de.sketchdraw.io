@@ -47,9 +47,24 @@ test('two native Chromium contexts exchange confirmed edits with no configured I
 
 
 test('two sandboxed Electron windows retain permission denials and exercise native WebRTC', async ({}, testInfo) => {
-  const app = await _electron.launch({ args: [fileURLToPath(new URL('./electron-main.cjs', import.meta.url))] });
+  const app = await _electron.launch({ chromiumSandbox: true, args: [fileURLToPath(new URL('./electron-main.cjs', import.meta.url))] });
   try {
     await expect.poll(() => app.windows().length).toBe(2);
+    const isolation = await app.evaluate(({ app, BrowserWindow }) => ({
+      noSandbox: app.commandLine.hasSwitch('no-sandbox'),
+      windows: BrowserWindow.getAllWindows().map(window => {
+        // Electron exposes this runtime inspection method but omits it from its public typings.
+        const contents = window.webContents as unknown as {
+          getLastWebPreferences(): { sandbox?: boolean; contextIsolation?: boolean; nodeIntegration?: boolean };
+        };
+        const preferences = contents.getLastWebPreferences();
+        return { sandbox: preferences.sandbox, contextIsolation: preferences.contextIsolation, nodeIntegration: preferences.nodeIntegration };
+      }),
+    }));
+    expect(isolation).toEqual({ noSandbox: false, windows: [
+      { sandbox: true, contextIsolation: true, nodeIntegration: false },
+      { sandbox: true, contextIsolation: true, nodeIntegration: false },
+    ] });
     const [owner, guest] = app.windows();
     for (const page of [owner!, guest!]) await page.waitForFunction(() => !!window.p2p);
     await owner!.evaluate(() => window.p2p.init()); const invitation = await owner!.evaluate(() => window.p2p.offer());
@@ -118,12 +133,18 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     await expect(guest!.locator('[data-kind=rectangle]')).toHaveCount(1);
     await guestPanel.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
     await draw(guest, 'Ellipse', 450);
-    await expect(guest!.locator('[data-kind=ellipse]')).toHaveCount(1);
-    await expect(owner!.locator('[data-kind=ellipse]')).toHaveCount(1);
-    expect(await guest!.locator('[data-kind=ellipse]').getAttribute('data-element-id'))
-      .toBe(await owner!.locator('[data-kind=ellipse]').getAttribute('data-element-id'));
-    const outcomeCheck = guest!.getByRole('button', { name: 'Ausgang prüfen', exact: true });
-    if (await outcomeCheck.isVisible()) await outcomeCheck.click();
+    const confirmedEllipse = '[data-render-state=document][data-kind=ellipse]';
+    await expect(owner!.locator(confirmedEllipse)).toHaveCount(1);
+    await expect(guest!.locator(confirmedEllipse)).toHaveCount(1);
+    // A reply can precede mirror installation. Clear that exact retained draft
+    // only through the product's outcome query after the confirmed mirror exists.
+    await expect.poll(async () => {
+      const query = guest!.getByRole('button', { name: 'Ausgang prüfen', exact: true });
+      if (await query.isVisible()) await query.click();
+      return await guest!.locator('[data-render-state=draft]').count() === 0 && !await query.isVisible();
+    }).toBe(true);
+    expect(await guest!.locator(confirmedEllipse).getAttribute('data-element-id'))
+      .toBe(await owner!.locator(confirmedEllipse).getAttribute('data-element-id'));
     await guest!.getByRole('button', { name: 'Zusammenarbeiten', exact: true }).click();
     await guestPanel.getByRole('button', { name: 'Sitzung verlassen und Kopie behalten' }).click();
     await expect(guest!.getByRole('dialog')).toBeVisible();

@@ -1,13 +1,18 @@
 # Graph Report - de.sketchdraw.io  (2026-10-17)
 
 ## Corpus Check
-- 193 files · ~233,983 words
+- 206 files · ~255,430 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2103 nodes · 4479 edges · 143 communities (125 shown, 18 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 20 edges (avg confidence: 0.8)
+- 2152 nodes · 4556 edges · 154 communities (132 shown, 22 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 21 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `f8c55fb2`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 0|Community 0]]
@@ -64,6 +69,7 @@
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
 - [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
@@ -80,6 +86,7 @@
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 76|Community 76]]
 - [[_COMMUNITY_Community 77|Community 77]]
@@ -135,17 +142,27 @@
 - [[_COMMUNITY_Community 131|Community 131]]
 - [[_COMMUNITY_Community 137|Community 137]]
 - [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `fail()` - 45 edges
+1. `fail()` - 46 edges
 2. `Tool codex-subagent` - 40 edges
 3. `validateDocument()` - 35 edges
 4. `Tool antigravity` - 32 edges
 5. `createDocument()` - 31 edges
 6. `createElement()` - 31 edges
 7. `serializeDocument()` - 31 edges
-8. `Guest` - 28 edges
-9. `PeerLink` - 28 edges
+8. `PeerLink` - 29 edges
+9. `Guest` - 28 edges
 10. `convertSvg()` - 28 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -155,15 +172,15 @@
   scripts/release.mjs → tests/unit/release.test.mjs
 - `publishGitHubRelease()` --calls--> `verify()`  [INFERRED]
   scripts/release.mjs → src/collaboration/crypto.ts
+- `all()` --calls--> `getElementChildren()`  [EXTRACTED]
+  tests/unit/interop-review.spec.ts → src/interop/xml.ts
 - `setup()` --calls--> `createWhiteboardStore()`  [INFERRED]
   tests/unit/renderer/guest-store.spec.ts → src/renderer/state/whiteboard.ts
-- `setup()` --calls--> `createWhiteboardStore()`  [INFERRED]
-  tests/unit/renderer/whiteboard.spec.ts → src/renderer/state/whiteboard.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (143 total, 18 thin omitted)
+## Communities (154 total, 22 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.26
@@ -186,8 +203,8 @@ Cohesion: 0.11
 Nodes (30): installElectronAgentBridge(), OpenDocumentResult, IPC_CHANNELS, configureDefaultSessionSecurity(), createMainWindow(), getCurrentSecurityContext(), getPreloadScriptPath(), registerIpcHandlers() (+22 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.08
-Nodes (32): ConversionWarning, ImportResult, isValidId(), checkText(), finish(), ImportContext, NAMED_COLORS, computeImportFidelity() (+24 more)
+Cohesion: 0.10
+Nodes (25): ConversionWarning, ImportResult, isValidId(), ImportContext, DeterministicIdMapper, DiagnosticCollector, DiagnosticInput, IndexedDiagnostic (+17 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.22
@@ -202,8 +219,8 @@ Cohesion: 0.15
 Nodes (13): Architektur-Bedenken für das zentrale Register, Azure Diagrams: konkrete Beobachtungen, Design Directions, diagrams.net: konkrete Beobachtungen und Dokumentationsgrenze, Excalidraw: konkrete Beobachtungen, Human Preference Check, Recommendation und konkrete Komponentenanforderungen, Referenzen und Evidenz (+5 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.07
-Nodes (59): computeSha256(), defaultRunGit(), __dirname, fetchReleaseByTag(), __filename, FORBIDDEN_RELEASE_ASSET_PATTERNS, formatByteSize(), generateReleaseNotes() (+51 more)
+Cohesion: 0.06
+Nodes (61): installCiSandboxProfile(), sandboxProfile(), computeSha256(), defaultRunGit(), __dirname, fetchReleaseByTag(), __filename, FORBIDDEN_RELEASE_ASSET_PATTERNS (+53 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.20
@@ -214,8 +231,8 @@ Cohesion: 0.13
 Nodes (15): scripts, build, build:electron, build:mcp, build:renderer, dev:browser, dev:electron, mcp (+7 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.08
-Nodes (32): DesktopBridge, PersistenceFsAdapter, ALLOWED_EXPORT_FORMATS, BrowserAnchorLike, BrowserCloseDecision, BrowserDesktopBridgeOptions, BrowserDomAdapter, BrowserExportFormat (+24 more)
+Cohesion: 0.09
+Nodes (30): DesktopBridge, PersistenceFsAdapter, ALLOWED_EXPORT_FORMATS, BrowserAnchorLike, BrowserCloseDecision, BrowserDesktopBridgeOptions, BrowserDomAdapter, BrowserExportFormat (+22 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
@@ -250,8 +267,8 @@ Cohesion: 0.29
 Nodes (4): ENTRYPOINTS, errors, modeArg, rootDir
 
 ### Community 21 - "Community 21"
-Cohesion: 0.14
-Nodes (10): ADR 0002 — Direkte Peer-Sessions mit validierter Reihenfolge, Entscheidung, Erforderliche Nachweise, Konsequenzen und Grenzen, Kontext, Lokale Agenten mit Sketchdraw verbinden, Technische Grenze, Werkzeuge (+2 more)
+Cohesion: 0.16
+Nodes (10): ADR 0002 — Direkte Peer-Sessions mit validierter Reihenfolge, Entscheidung, Erforderliche Nachweise, Konsequenzen und Grenzen, Kontext, Bestätigte Konsistenzpunkte, Kleinste vorgeschlagene Ergänzung, PP-01 — P2: Peer-Journale lassen sich nach Sessionende über die öffentliche Authority-API nicht freigeben (+2 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.33
@@ -266,24 +283,24 @@ Cohesion: 0.15
 Nodes (13): centerOnPoint(), clampZoom(), docToScreen(), fitRect(), normalizeZero(), screenToDoc(), WheelAction, wheelDeltaToPixels() (+5 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.10
-Nodes (45): applyCommandInternal(), validateMetadataPatchRecord(), validateActorId(), validateCommandContext(), createDefaultStyle(), Endpoint, ASSET_KEYS, ASSET_MIME_TYPES (+37 more)
+Cohesion: 0.08
+Nodes (30): DomainValidationError, generateUniqueId(), Endpoint, ValidationIssue, ASSET_KEYS, ASSET_MIME_TYPES, base64CharValue(), canonicalizeValue() (+22 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.09
-Nodes (19): ApplyCommandsInput, ComponentInstantiation, HistoryEntry, ALL_KINDS, DOMAIN_LIMITS, DomainLimits, deserializeDocument(), serializeDocument() (+11 more)
+Nodes (21): ComponentInstantiation, HistoryEntry, DomainConflictError, CodeDraft, DocumentCommand, DocumentController, ElementKind, ElementPatch (+13 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.12
-Nodes (30): applyDiagnosticCap(), applyElementScriptDefaults(), CODEC_LIMITS, DOCUMENT_DECL_ALLOWED_KEYS, formatAssetTail(), formatElementTail(), formatSetTail(), isHorizontalWs() (+22 more)
+Cohesion: 0.11
+Nodes (33): applyDiagnosticCap(), applyElementScriptDefaults(), CODEC_LIMITS, DOCUMENT_DECL_ALLOWED_KEYS, formatAssetTail(), formatDiagram(), formatElementTail(), formatSetTail() (+25 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
 Nodes (22): ALT, Alternative, ARROW_KEYS, Binding, BINDINGS, KeyTest, MAC_KEY_NAMES, MAC_MODIFIERS (+14 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.08
-Nodes (25): ALLOWED_PATH_COMMANDS, ALLOWED_TAGS, CONTAINER_ICON_TAGS, deepFreezeIconTree(), FILL_RULES, GEOMETRY_ATTRIBUTES_BY_TAG, MutableIconNode, parsedFallback (+17 more)
+Cohesion: 0.09
+Nodes (22): ALLOWED_PATH_COMMANDS, ALLOWED_TAGS, CONTAINER_ICON_TAGS, deepFreezeIconTree(), FILL_RULES, GEOMETRY_ATTRIBUTES_BY_TAG, MutableIconNode, parsedFallback (+14 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.16
@@ -306,36 +323,36 @@ Cohesion: 0.14
 Nodes (13): ADD_COMMAND_KEYS, BATCH_COMMAND_KEYS, BatchExecutionState, CHANGE_ENTRY_KEYS, DELETE_COMMAND_KEYS, PATCH_KEYS, RENAME_COMMAND_KEYS, REORDER_COMMAND_KEYS (+5 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.07
-Nodes (47): Verantwortung: Antigravity, Verantwortung: Antigravity + Claude Code, Verantwortung: Claude Code, Artifact: docs/reviews/codec-catalog-validation.md, Artifact: tests/unit/domain.spec.ts, Artifact: src/interop, Artifact: docs/contracts-interop.md, Artifact: src/collaboration (+39 more)
+Cohesion: 0.06
+Nodes (42): Verantwortung: Antigravity / Codex Testing, Artifact: src/domain/controller.ts, Artifact: src/domain/index.ts, Artifact: src/domain/commands.ts, Artifact: src/domain/validation.ts, Artifact: docs/reviews/antigravity-domain.md, Artifact: docs/reviews/antigravity-domain-fixes.md, Artifact: src/domain/geometry.ts (+34 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.12
-Nodes (33): AWS_COMPONENTS, AZURE_COMPONENTS, builtInComponentSets, deepFreezeComponentSet(), deepFreezeComponentSets(), GCP_COMPONENTS, GENERIC_COMPONENTS, ICON_LIMITS (+25 more)
+Cohesion: 0.11
+Nodes (27): AWS_COMPONENTS, AZURE_COMPONENTS, builtInComponentSets, deepFreezeComponentSet(), deepFreezeComponentSets(), GCP_COMPONENTS, GENERIC_COMPONENTS, ICON_LIMITS (+19 more)
 
 ### Community 43 - "Community 43"
 Cohesion: 0.08
 Nodes (23): AGENT_READ_OPERATIONS, AgentOperationPayloadMap, AgentWireAuthChallenge, AgentWireAuthError, AgentWireAuthHello, AgentWireAuthOk, AgentWireAuthVerify, AgentWireClientFrame (+15 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.10
-Nodes (28): MutationFingerprintInput, Entry, authOkSchema, base, challengeSchema, helloSchema, hex16, hex32 (+20 more)
+Cohesion: 0.11
+Nodes (30): authMac(), endpointOptions(), sameMac(), Connection, Grant, JournalEntry, authOkSchema, base (+22 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.09
-Nodes (31): createAgentAccessPreload(), SaveDocumentResult, CLOSE_DECISIONS, EXPORT_ALLOWED_KEYS, EXPORT_FORMATS, ExportFileIpcPayload, ExportFormat, FORBIDDEN_KEYS (+23 more)
+Nodes (31): createAgentAccessPreload(), ExportFileResult, CLOSE_DECISIONS, EXPORT_ALLOWED_KEYS, EXPORT_FORMATS, ExportFileIpcPayload, ExportFormat, FORBIDDEN_KEYS (+23 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.07
-Nodes (34): Verantwortung: Codex / Antigravity, Artifact: electron/security.ts, Artifact: electron/persistence.ts, Artifact: docs/reviews/antigravity-desktop.md, Artifact: src/platform/index.ts, Artifact: electron/main.ts, Artifact: docs/reviews/antigravity-desktop-fixes.md, Artifact: docs/reviews/desktop-validation.md (+26 more)
+Nodes (36): Verantwortung: Codex / Antigravity, Artifact: docs/reviews/antigravity-desktop.md, Artifact: src/platform/index.ts, Artifact: electron/main.ts, Artifact: electron/security.ts, Artifact: docs/reviews/antigravity-desktop-fixes.md, Artifact: electron/persistence.ts, Artifact: docs/reviews/desktop-validation.md (+28 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.13
 Nodes (15): 1. Adapter-API und Ergebnissemantik, 2. Ressourcen- und Sicherheitsgrenzen, 3. draw.io: Container, Seiten und Einlesen, 4. SVG: sichere editierbare Projektion, 5. Herkunft, IDs und Verlustbericht, 6. Eigene Zusatzmetadaten und echte Roundtrips, 7. Anwendung, Renderer und Autorisierung, 8. Abnahmefälle (+7 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.07
-Nodes (44): CollaborationStatus, GuestSession, OwnerSession, OwnerSessionOptions, PairingReview, PairingText, PeerRole, CommandContext (+36 more)
+Cohesion: 0.14
+Nodes (22): createDocumentAuthority(), Entry, errorCode(), initialSnapshot(), ownedControllers, SOURCES, Transition, SessionAccessError (+14 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.20
@@ -347,11 +364,11 @@ Nodes (16): 10. Konkrete Renderer-Anbindung, 11. Abnahmematrix, 12. Offene Entsc
 
 ### Community 51 - "Community 51"
 Cohesion: 0.14
-Nodes (18): ExportFileResult, FileError, FileReference, computeVersionToken(), defaultFsAdapter, DocumentPersistenceService, ExpectedTargetState, FileHandleLike (+10 more)
+Nodes (18): FileError, FileReference, SaveDocumentResult, computeVersionToken(), defaultFsAdapter, DocumentPersistenceService, ExpectedTargetState, FileHandleLike (+10 more)
 
 ### Community 52 - "Community 52"
-Cohesion: 0.13
-Nodes (21): AgentAccessError, AgentAccessErrorOptions, createErrorPayload(), isAgentAccessErrorCode(), isAgentAccessErrorPayload(), mapDomainErrorToPayload(), VALID_ERROR_CODES, canonicalizeJsonValue() (+13 more)
+Cohesion: 0.25
+Nodes (11): AgentAccessError, AgentAccessErrorOptions, createErrorPayload(), isAgentAccessErrorCode(), isAgentAccessErrorPayload(), mapDomainErrorToPayload(), VALID_ERROR_CODES, AgentAccessErrorCode (+3 more)
 
 ### Community 53 - "Community 53"
 Cohesion: 0.15
@@ -364,6 +381,10 @@ Nodes (11): Befunde vor Freigabe zur Implementierung, Bestätigte Grundlagen und
 ### Community 55 - "Community 55"
 Cohesion: 0.20
 Nodes (9): #18 — Inverse Rotation für gebundene Endpunkte rotierter Connectoren, #19 — Wiederherstellung von `ElementKind` nach `replace` im Per-Actor Undo/Redo, 1. Behobene Befunde und geprüfte Folgepfade, #20 — Kanonisches JSON-Bytebudget (`MAX_DOCUMENT_JSON_BYTES`) an allen Validierungs- und Commit-Grenzen, #21 — Sichere Ganzzahl-Revisionen (`Number.isSafeInteger`) und Überlaufschutz für `dispatch`, `undo`, `redo`, 2. Geänderte Dateien, 3. Prüfungen, Antigravity Domain-Reparaturbericht — Issues #18, #19, #20, #21 (+1 more)
+
+### Community 56 - "Community 56"
+Cohesion: 0.23
+Nodes (4): Dokumentation, Entwicklung, Funktionen, Sketchdraw
 
 ### Community 57 - "Community 57"
 Cohesion: 0.25
@@ -386,8 +407,8 @@ Cohesion: 0.43
 Nodes (4): commitTitle(), onTitleBlur(), onTitleKeydown(), syncTitleDraft()
 
 ### Community 62 - "Community 62"
-Cohesion: 0.29
-Nodes (7): Antigravity-Review und Entscheidungen, Architektur-Bedenkenregister, Desktop-Implementierungsreview, Entscheidungen zum Claude-Code-Review, Externe Beiträge, Integrationsentscheidungen vom 17.10.2026, MCP-Vertragsreview und Übernahme
+Cohesion: 0.25
+Nodes (8): Antigravity-Review und Entscheidungen, Architektur-Bedenkenregister, Desktop-Implementierungsreview, Entscheidungen zum Claude-Code-Review, Externe Beiträge, Integrationsentscheidungen vom 17.10.2026, MCP-Vertragsreview und Übernahme, Native Integration und Fremdprogramm-Abnahme
 
 ### Community 63 - "Community 63"
 Cohesion: 0.29
@@ -410,44 +431,48 @@ Cohesion: 0.40
 Nodes (4): Ausgeführt, Domain-Abnahme nach Reparatur, Geprüfte Dateien (SHA-256), Grenzen
 
 ### Community 69 - "Community 69"
-Cohesion: 0.18
-Nodes (24): comparison(), createSessionIdentity(), identities, identityKeys(), importKey(), PairPayload, pairText(), parsePair() (+16 more)
+Cohesion: 0.14
+Nodes (35): assertIdentity(), comparison(), createSessionIdentity(), identities, identityKeys(), importKey(), PairPayload, pairText() (+27 more)
 
 ### Community 70 - "Community 70"
 Cohesion: 0.50
 Nodes (4): Abnahmematrix, Agentenkoordination, Definition of Done, Sprintplan und Abnahme
 
 ### Community 71 - "Community 71"
-Cohesion: 0.22
-Nodes (8): formatDiagram(), ParseResult, asset(), componentSet(), document(), fullDocument(), referenceScript(), shape()
+Cohesion: 0.09
+Nodes (34): Verantwortung: Antigravity, Verantwortung: Antigravity + Claude Code, Verantwortung: Claude Code, Artifact: docs/reviews/codec-catalog-validation.md, Artifact: tests/unit/domain.spec.ts, Artifact: tests/unit/mcp-review-boundaries.spec.ts, Artifact: docs/reviews/codex-session.md, Artifact: src/session (+26 more)
 
 ### Community 72 - "Community 72"
-Cohesion: 0.06
-Nodes (32): Lokale Prüfungen und verbleibende Abnahme, Prüfungen vor der Veröffentlichung, Release-Pipeline und Desktop-Packaging (Issue #24), Signing, Tatsächlicher Installer- und Starttest, Wiederaufnahme und Schutz vorhandener Releases, Zielartefakte, 1. Zusammenfassung der Implementierung (+24 more)
+Cohesion: 0.05
+Nodes (33): Gezielte Linux-Sandbox-Voraussetzung in CI, Lokale Prüfungen und verbleibende Abnahme, Prüfungen vor der Veröffentlichung, Release-Pipeline und Desktop-Packaging (Issue #24), Signing, Tatsächlicher Installer- und Starttest, Wiederaufnahme und Schutz vorhandener Releases, Zielartefakte (+25 more)
+
+### Community 74 - "Community 74"
+Cohesion: 0.50
+Nodes (3): bounded(), dispose(), projectRoot
 
 ### Community 75 - "Community 75"
 Cohesion: 0.18
 Nodes (9): 1. Behobene Befunde, 2. Dokumentierte Betriebssystem-Restgrenze und Integrationsnachweise, 3. Geänderte Dateien, 4. Prüfungen (durch Codex in der Shell auszuführen), Bug #17 — Vertrauenswürdige `app://sketchdraw`-Seite trotz WHATWG `origin === 'null'` sicher erkennen ([electron/security.ts](../../electron/security.ts)), Bug #22 — Zielzustand-Guard für `save-as` und `exportFile` nach Dialogbestätigung und vor `rename` ([electron/persistence.ts](../../electron/persistence.ts)), Bug #23 — Kanonische Dateiidentität (`realpath`), gemeinsame Sperre über Verzeichnis-Symlinks und Erhalt von Datei-Symlinks ([electron/persistence.ts](../../electron/persistence.ts)), Reparaturbericht (Antigravity) zu den Desktop-Befunden #17, #22 und #23 (Issues #8 / #15) (+1 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.08
-Nodes (31): Verantwortung: Antigravity / Codex Testing, Artifact: src/domain/controller.ts, Artifact: src/domain/index.ts, Artifact: src/domain/commands.ts, Artifact: docs/reviews/antigravity-domain.md, Artifact: docs/reviews/antigravity-domain-fixes.md, Artifact: src/domain/validation.ts, Artifact: src/domain/geometry.ts (+23 more)
+Cohesion: 0.16
+Nodes (16): createEmptyDocument(), applyCommand(), createController(), ALL_KINDS, createDocument(), DOMAIN_LIMITS, DomainLimits, deserializeDocument() (+8 more)
 
 ### Community 84 - "Community 84"
-Cohesion: 0.09
-Nodes (30): Verantwortung: Claude Code / Codex-Recherche, Verantwortung: Codex, Artifact: docs/sprints.md, Artifact: CLAUDE.md, Artifact: docs/decisions/0002-direct-peer-session-order.md, Artifact: docs/contracts.md, Artifact: src/domain/types.ts, Artifact: docs/decisions/0001-shared-document-contract.md (+22 more)
+Cohesion: 0.10
+Nodes (28): Verantwortung: Claude Code / Codex-Recherche, Verantwortung: Codex, Artifact: docs/contracts-interop.md, Artifact: docs/sprints.md, Artifact: CLAUDE.md, Artifact: docs/decisions/0002-direct-peer-session-order.md, Artifact: docs/contracts.md, Artifact: src/domain/types.ts (+20 more)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.15
-Nodes (18): createAgentHost(), createRendererAgentHandler(), attachRendererAgentSession(), createEmptyDocument(), createController(), createDocument(), generateUniqueId(), cleanup (+10 more)
+Nodes (15): AgentHostOptions, createAgentHost(), createRendererAgentHandler(), RendererAgentHandler, attachRendererAgentSession(), RendererAgentSession, AgentIssuedGrant, AgentPermission (+7 more)
 
 ### Community 86 - "Community 86"
-Cohesion: 0.20
-Nodes (23): createElement(), add(), baseStyle(), color(), placeholder(), plainHtml(), pointsElement(), warn() (+15 more)
+Cohesion: 0.17
+Nodes (27): add(), baseStyle(), checkText(), context(), findOwnSvgEnvelope(), finish(), imageAsset(), NAMED_COLORS (+19 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.22
-Nodes (21): Point, context(), decodeEnvelope(), fail(), findOwnSvgEnvelope(), imageAsset(), length(), number() (+13 more)
+Cohesion: 0.24
+Nodes (18): Point, decodeEnvelope(), fail(), length(), number(), FlattenedPath, flattenPath(), IDENTITY (+10 more)
 
 ### Community 88 - "Community 88"
 Cohesion: 0.20
@@ -458,84 +483,84 @@ Cohesion: 0.29
 Nodes (6): Aufbau des Nachweises, Die drei bestandenen Fälle, Electron-Backend: bestätigter Laufzeitnachweis, Ergebnis und geprüfter Stand, Grenzen und Fortsetzung, Testharness-Korrekturen und weitere Prüfungen
 
 ### Community 90 - "Community 90"
-Cohesion: 0.15
-Nodes (11): validateExpectedRevision(), AgentHost, randomId(), LocalGrant, RendererAgentHandler, RendererAgentSession, AgentControlAck, AgentGrantSummary (+3 more)
+Cohesion: 0.18
+Nodes (9): canonicalizeJsonValue(), canonicalizeMutationRequest(), computeMutationFingerprint(), MutationFingerprintInput, validateAgentId(), validateExpectedRevision(), AgentHost, randomId() (+1 more)
 
 ### Community 91 - "Community 91"
 Cohesion: 0.50
 Nodes (4): @electron/get@3.1.0, global-agent, overrides, app-builder-lib@26.15.3
 
 ### Community 92 - "Community 92"
-Cohesion: 0.09
-Nodes (23): Artifact: src/codec/index.ts, Artifact: src/catalog/index.ts, Artifact: docs/reviews/codex-codec-catalog-findings.md, Artifact: src/agent-access/types.ts, Artifact: src/agent-access/fingerprint.ts, Artifact: src/agent-access/errors.ts, Ist-Aufwand antigravity-codec-catalog-001: observedSeconds=1803.031742333027, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand antigravity-codec-fixes-001: observedSeconds=699.4673817080329, tokens=unbekannt, costUsd=unbekannt (+15 more)
+Cohesion: 0.08
+Nodes (27): Verantwortung: Antigravity / Codex, Artifact: tests/unit/interop-review.spec.ts, Artifact: src/interop, Artifact: docs/reviews/codex-interop.md, Artifact: docs/contracts-p2p.md, Artifact: docs/reviews/codex-release-fixes.md, Artifact: scripts/release-installer-smoke.mjs, Artifact: docs/reviews/codex-release-review.md (+19 more)
 
 ### Community 95 - "Community 95"
-Cohesion: 0.17
-Nodes (18): assertIdentity(), LocalIntent, QueryOutcome, activeOwners, CommitRecord, createOwnerSession(), intentDigest(), OutcomeEntry (+10 more)
+Cohesion: 0.08
+Nodes (31): LocalIntent, CommitRecord, CollaborationStatus, GuestPairing, GuestSession, OwnerSession, OwnerSessionOptions, PairingReview (+23 more)
 
 ### Community 97 - "Community 97"
-Cohesion: 0.19
-Nodes (7): ParsedPair, Incoming, PeerLink, Invitation, deferred(), fromHex(), timeout()
+Cohesion: 0.20
+Nodes (9): ParsedPair, PeerLink, Invitation, deferred(), fail(), fromHex(), randomHex(), timeout() (+1 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.28
-Nodes (18): LinkOptions, hex(), id(), integer(), LIMIT, record(), sameSession(), sessionKey() (+10 more)
+Cohesion: 0.27
+Nodes (16): Incoming, LinkOptions, hex(), id(), integer(), record(), sameSession(), sessionKey() (+8 more)
 
 ### Community 100 - "Community 100"
-Cohesion: 0.14
-Nodes (10): authMac(), endpointOptions(), sameMac(), ByteBudget, JsonFrames, AgentHostOptions, Connection, Grant (+2 more)
+Cohesion: 0.18
+Nodes (3): ByteBudget, JsonFrames, AgentClient
 
 ### Community 101 - "Community 101"
 Cohesion: 0.20
 Nodes (14): collapse(), componentName(), describeElement(), describeSelection(), elementCountLabel(), endpointName(), findElement(), indexCache (+6 more)
 
 ### Community 102 - "Community 102"
-Cohesion: 0.11
-Nodes (18): Artifact: package.json, Artifact: scripts/build-electron.mjs, Artifact: .github/workflows/ci.yml, Artifact: docs/setup.md, Artifact: scripts/dev-electron.mjs, Artifact: docs/reviews/setup-validation.md, Artifact: tests/unit/dev-electron.test.mjs, Concern: SB-01 (+10 more)
+Cohesion: 0.36
+Nodes (21): checkSetImportCompatibility(), instantiateComponent(), parseWidgetMetadataKey(), validateComponentSet(), validateWidgetValue(), applyCommandInternal(), validateMetadataPatchRecord(), validateCommandContext() (+13 more)
 
 ### Community 103 - "Community 103"
-Cohesion: 0.33
-Nodes (16): resolveAnchorWorldPoint(), encodeEnvelope(), escapeXmlAttr(), escapeXmlText(), attrs(), diagnostic(), n(), nativeDrawio() (+8 more)
+Cohesion: 0.28
+Nodes (19): resolveCatalogIcon(), resolveAnchorWorldPoint(), syncConnectorEndpoints(), color(), encodeEnvelope(), escapeXmlAttr(), escapeXmlText(), attrs() (+11 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.16
-Nodes (13): areXmlTreesEquivalent(), getExpandedAttrKey(), isXmlnsAttribute(), normalizeChildrenForComparison(), parseXmlDocument(), ParseXmlOptions, precheckForbiddenXmlConstructs(), TEXT_PRESERVING_LOCAL_NAMES (+5 more)
+Cohesion: 0.15
+Nodes (14): areXmlTreesEquivalent(), getExpandedAttrKey(), isXmlnsAttribute(), normalizeChildrenForComparison(), parseXmlDocument(), ParseXmlOptions, precheckForbiddenXmlConstructs(), stripSvgEnvelopeFromXmlRoot() (+6 more)
 
 ### Community 105 - "Community 105"
-Cohesion: 0.12
-Nodes (17): Artifact: docs/reviews/claude-architecture.md, Concern: CL-13, Concern: CL-08, Concern: CL-14, Concern: CL-06, Concern: CL-09, Concern: CL-03, Concern: CL-02 (+9 more)
+Cohesion: 0.11
+Nodes (18): Artifact: scripts/dev-electron.mjs, Artifact: package.json, Artifact: scripts/build-electron.mjs, Artifact: .github/workflows/ci.yml, Artifact: docs/setup.md, Artifact: docs/reviews/setup-validation.md, Artifact: tests/unit/dev-electron.test.mjs, Concern: SB-01 (+10 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.20
-Nodes (14): base64CharToVal(), decodeBase64Bounded(), decodeBase64ToUtf8String(), decodeUriPageBounded(), decompressDrawioPageXml(), encodeBytesToBase64(), encodeUtf8JsonToBase64(), ensureAsciiEscapedLoneSurrogatesInJson() (+6 more)
+Cohesion: 0.26
+Nodes (12): base64CharToVal(), decodeBase64Bounded(), decodeBase64ToUtf8String(), decodeUriPageBounded(), decompressDrawioPageXml(), encodeBytesToBase64(), encodeUtf8JsonToBase64(), ensureAsciiEscapedLoneSurrogatesInJson() (+4 more)
 
 ### Community 107 - "Community 107"
-Cohesion: 0.23
-Nodes (10): importBoundary(), importDrawio(), exportDrawio(), exportSvg(), prepareDrawioExport(), prepareSvgExport(), stringExport(), allKinds() (+2 more)
+Cohesion: 0.16
+Nodes (16): createDefaultStyle(), createElement(), importBoundary(), Cell, importDrawio(), inspectDrawio(), exportDrawio(), exportSvg() (+8 more)
 
 ### Community 109 - "Community 109"
 Cohesion: 0.15
 Nodes (9): bind(), setup(), stores, draw(), point(), setup(), stores, createWhiteboardStore() (+1 more)
 
 ### Community 110 - "Community 110"
-Cohesion: 0.24
-Nodes (8): Pending, Reply, AGENT_IPC, AgentControlMessage, AgentRendererRequest, AgentRendererResponse, SketchdrawAgentAccessBridge, FixtureState
+Cohesion: 0.22
+Nodes (8): Pending, Reply, AGENT_IPC, AgentControlAck, AgentControlMessage, AgentRendererResponse, SketchdrawAgentAccessBridge, FixtureState
 
 ### Community 111 - "Community 111"
+Cohesion: 0.12
+Nodes (17): Artifact: docs/reviews/claude-architecture.md, Concern: CL-13, Concern: CL-08, Concern: CL-14, Concern: CL-06, Concern: CL-09, Concern: CL-03, Concern: CL-02 (+9 more)
+
+### Community 112 - "Community 112"
 Cohesion: 0.15
 Nodes (13): Artifact: docs/reviews/antigravity-architecture.md, Concern: AG-03, Concern: AG-06, Concern: AG-09, Concern: AG-01, Concern: AG-02, Concern: AG-08, Concern: AG-04 (+5 more)
 
-### Community 112 - "Community 112"
-Cohesion: 0.17
-Nodes (12): Verantwortung: Antigravity / Codex, Artifact: docs/reviews/codex-release-fixes.md, Artifact: scripts/release-installer-smoke.mjs, Artifact: docs/reviews/codex-release-review.md, Ist-Aufwand antigravity-release-pipeline-001: observedSeconds=1051.6159233329818, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand codex-release-fixes-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand codex-release-review-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ticket #24: Release: GitHub Actions mit Windows-, macOS-M1- und Linux-Installern (+4 more)
-
 ### Community 113 - "Community 113"
-Cohesion: 0.17
-Nodes (12): Artifact: docs/research/2026-10-17/README.md, Artifact: docs/design-research.md, Artifact: docs/research/2026-10-17/validation.txt, Concern: DR-C02, Concern: DR-C07, Concern: C-008, Concern: C-009, Concern: DR-C01 (+4 more)
+Cohesion: 0.15
+Nodes (13): Artifact: docs/reviews/graphify-validation.md, Artifact: tools/tests/test_graphify_links.py, Artifact: tools/graphify-links.py, Artifact: docs/graphify-traceability.md, Concern: issue-7:path-collision, Concern: issue-7:parallel-edge, Concern: issue-7:hyperedge-reference, Concern: C-005 (+5 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.18
-Nodes (11): Artifact: docs/reviews/graphify-validation.md, Artifact: tools/tests/test_graphify_links.py, Artifact: tools/graphify-links.py, Artifact: docs/graphify-traceability.md, Concern: issue-7:path-collision, Concern: issue-7:parallel-edge, Concern: issue-7:hyperedge-reference, Concern: C-005 (+3 more)
+Cohesion: 0.17
+Nodes (12): Artifact: docs/research/2026-10-17/README.md, Artifact: docs/design-research.md, Artifact: docs/research/2026-10-17/validation.txt, Concern: DR-C02, Concern: DR-C07, Concern: C-008, Concern: C-009, Concern: DR-C01 (+4 more)
 
 ### Community 115 - "Community 115"
 Cohesion: 0.22
@@ -550,8 +575,8 @@ Cohesion: 0.31
 Nodes (8): bounds(), center(), corners(), endpointAt(), hitElement(), normalizedRect(), rotatePoint(), topSelected()
 
 ### Community 118 - "Community 118"
-Cohesion: 0.20
-Nodes (10): Artifact: docs/contracts-mcp.md, Artifact: docs/reviews/codex-mcp-contract-review.md, Concern: MC-01, Concern: MC-03, Concern: MC-06, Concern: MC-05, Concern: MC-04, Concern: MC-02 (+2 more)
+Cohesion: 0.24
+Nodes (7): Entry, LocalGrant, AGENT_WRITE_OPERATIONS, AgentGrantSummary, AgentOperationOutput, AnalyzeDocumentOutput, ReadDocumentOutput
 
 ### Community 119 - "Community 119"
 Cohesion: 0.33
@@ -562,12 +587,12 @@ Cohesion: 0.25
 Nodes (7): DEFAULT_SIZES, DEFAULT_STYLE, FILL_COLORS, FONT_FAMILY_CSS, NamedColor, STROKE_COLORS, STYLE_BY_KIND
 
 ### Community 121 - "Community 121"
-Cohesion: 0.25
-Nodes (7): Auftrag und tatsächliches Werkzeug, Codex: benutzbarer S1/S2-Whiteboard-Stand, Gemeinsame Schreib- und Lifecyclegrenze, Geprüfter Dateistand, Implementiert, Nachweise, Offene Integration und Aussagegrenzen
+Cohesion: 0.22
+Nodes (8): Auftrag und tatsächliches Werkzeug, Codex: Whiteboard, Agentenzugriff, Formataustausch und Guest-Store, Gemeinsame Schreib- und Lifecyclegrenze, Geprüfter Dateistand, Implementiert, Lifecycle-Selbstprüfung und behandelte Befunde, Nachweise, Offene Integration und Aussagegrenzen
 
 ### Community 122 - "Community 122"
-Cohesion: 0.25
-Nodes (8): Artifact: src/renderer/state/contract.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/lib/viewport.ts, Concern: claude-session-limit-2026-10-17, Ist-Aufwand claude-whiteboard-001: observedSeconds=1258.9505213749944, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand claude-whiteboard-002: observedSeconds=332.47125441697426, tokens=unbekannt, costUsd=unbekannt, Run claude-whiteboard-001, Run claude-whiteboard-002
+Cohesion: 0.20
+Nodes (10): Artifact: docs/contracts-mcp.md, Artifact: docs/reviews/codex-mcp-contract-review.md, Concern: MC-01, Concern: MC-03, Concern: MC-06, Concern: MC-05, Concern: MC-04, Concern: MC-02 (+2 more)
 
 ### Community 123 - "Community 123"
 Cohesion: 0.29
@@ -582,35 +607,59 @@ Cohesion: 0.33
 Nodes (5): Ergebnis und öffentliche API, Gemeinsame DocumentAuthority — Implementierung und Prüfnachweis, Geprüfte Dateistände, Prüfungen, Übergabe
 
 ### Community 126 - "Community 126"
-Cohesion: 0.33
-Nodes (6): Artifact: src/agent-access, Artifact: src/mcp, Artifact: tests/unit/mcp/backend.spec.ts, Artifact: electron/agent-access, Ist-Aufwand codex-mcp-takeover-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-mcp-takeover-001
+Cohesion: 0.22
+Nodes (8): Codex-Implementierung und Eigenprüfung: Strict P2P v1, Ergebnis und Grenze der Aussage, Geprüfte Arbeitsdateien (SHA-256), Implementierte Verträge, Native Diagnose und nächster Nachweis, Prüfungen, Quellen der technischen Prüfung, Read-only UI-Review an Root
 
 ### Community 127 - "Community 127"
 Cohesion: 0.40
 Nodes (4): Bestätigte Prüfungen, Codex MCP-Integration: geprüfter Teilstand, Dateifingerprints dieses Übergabestands, Noch offen
 
 ### Community 128 - "Community 128"
+Cohesion: 0.22
+Nodes (9): Artifact: tests/electron/agent-product.spec.ts, Artifact: src/agent-access, Artifact: src/mcp, Artifact: docs/reviews/codex-mcp-integration.md, Artifact: skills/sketchdraw-desktop/SKILL.md, Artifact: tests/unit/mcp/backend.spec.ts, Artifact: electron/agent-access, Ist-Aufwand codex-mcp-takeover-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+1 more)
+
+### Community 143 - "Community 143"
+Cohesion: 0.25
+Nodes (8): Artifact: src/renderer/state/contract.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/lib/viewport.ts, Concern: claude-session-limit-2026-10-17, Ist-Aufwand claude-whiteboard-001: observedSeconds=1258.9505213749944, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand claude-whiteboard-002: observedSeconds=332.47125441697426, tokens=unbekannt, costUsd=unbekannt, Run claude-whiteboard-001, Run claude-whiteboard-002
+
+### Community 144 - "Community 144"
+Cohesion: 0.29
+Nodes (5): Lokale Agenten mit Sketchdraw verbinden, Technische Grenze, Werkzeuge, Änderungen und Wiederholungen, Sketchdraw desktop
+
+### Community 145 - "Community 145"
+Cohesion: 0.33
+Nodes (5): Echte Interop-Fremdprogrammprüfung — #12/#15, Gefundener und korrigierter Darstellungsfehler, Genaue Grenzen, Prüfungen und Belege, Vorgehen und bestätigte Ergebnisse
+
+### Community 147 - "Community 147"
 Cohesion: 0.40
-Nodes (5): Bestätigte Konsistenzpunkte, Kleinste vorgeschlagene Ergänzung, PP-01 — P2: Peer-Journale lassen sich nach Sessionende über die öffentliche Authority-API nicht freigeben, Prüfumfang und Übergabe, Unabhängige Prüfung der P2P- und Sessionverträge
+Nodes (5): Artifact: src/codec/index.ts, Artifact: src/catalog/index.ts, Artifact: docs/reviews/codex-codec-catalog-findings.md, Ist-Aufwand antigravity-codec-catalog-001: observedSeconds=1803.031742333027, tokens=unbekannt, costUsd=unbekannt, Run antigravity-codec-catalog-001
+
+### Community 148 - "Community 148"
+Cohesion: 0.40
+Nodes (5): Artifact: src/agent-access/types.ts, Artifact: src/agent-access/fingerprint.ts, Artifact: src/agent-access/errors.ts, Ist-Aufwand antigravity-mcp-claude-001: observedSeconds=318.88495754200267, tokens=unbekannt, costUsd=unbekannt, Run antigravity-mcp-claude-001
+
+### Community 149 - "Community 149"
+Cohesion: 0.40
+Nodes (5): Artifact: src/renderer/components/CollaborationPanel.vue, Artifact: tests/p2p/native.spec.ts, Artifact: src/collaboration, Ist-Aufwand codex-p2p-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-p2p-001
 
 ## Knowledge Gaps
-- **833 isolated node(s):** `Reply`, `Pending`, `JournalEntry`, `Grant`, `Connection` (+828 more)
+- **863 isolated node(s):** `Reply`, `Pending`, `JournalEntry`, `Grant`, `Connection` (+858 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **18 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createWhiteboardStore()` connect `Community 109` to `Community 12`, `Community 85`, `Community 37`, `Community 71`?**
-  _High betweenness centrality (0.075) - this node is a cross-community bridge._
-- **Why does `verify()` connect `Community 69` to `Community 9`, `Community 99`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **Why does `createWhiteboardStore()` connect `Community 109` to `Community 33`, `Community 83`, `Community 12`, `Community 37`?**
+  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+- **Why does `verify()` connect `Community 69` to `Community 97`, `Community 99`, `Community 9`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `publishGitHubRelease()` connect `Community 9` to `Community 69`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `createDocument()` (e.g. with `guestFixture()` and `createWhiteboardStore()`) actually correct?**
   _`createDocument()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Reply`, `Pending`, `JournalEntry` to the rest of the system?**
-  _837 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _867 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.125 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
