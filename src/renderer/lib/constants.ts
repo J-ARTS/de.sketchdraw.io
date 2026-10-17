@@ -57,26 +57,29 @@ export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
 
 export interface NamedColor { name: string; value: string }
 
-export const STROKE_COLORS: readonly NamedColor[] = [
+/** Shared stroke and fill palette (#38): strong colors, then their light tints. */
+export const PALETTE: readonly NamedColor[] = [
   { name: 'Schwarz', value: '#1e1e1e' },
-  { name: 'Grau', value: '#868e96' },
-  { name: 'Rot', value: '#e03131' },
-  { name: 'Orange', value: '#e8590c' },
-  { name: 'Grün', value: '#2f9e44' },
-  { name: 'Türkis', value: '#0c8599' },
-  { name: 'Blau', value: '#1971c2' },
-  { name: 'Violett', value: '#6741d9' },
-];
-
-export const FILL_COLORS: readonly NamedColor[] = [
-  { name: 'Keine Füllung', value: NO_FILL },
-  { name: 'Hellgrau', value: '#e9ecef' },
-  { name: 'Hellrot', value: '#ffc9c9' },
-  { name: 'Hellorange', value: '#ffd8a8' },
-  { name: 'Hellgelb', value: '#ffec99' },
-  { name: 'Hellgrün', value: '#b2f2bb' },
-  { name: 'Hellblau', value: '#a5d8ff' },
-  { name: 'Hellviolett', value: '#d0bfff' },
+  { name: 'Grau', value: '#757575' },
+  { name: 'Rot', value: '#e5533a' },
+  { name: 'Orange', value: '#f2a65a' },
+  { name: 'Gelb', value: '#f9cc5f' },
+  { name: 'Grün', value: '#82d283' },
+  { name: 'Türkis', value: '#7fd8cc' },
+  { name: 'Blau', value: '#5aabf7' },
+  { name: 'Violett', value: '#8558f0' },
+  { name: 'Pink', value: '#e05cbf' },
+  { name: 'Weiß', value: '#ffffff' },
+  { name: 'Hellgrau', value: '#b4b4b4' },
+  { name: 'Silber', value: '#dcdcdc' },
+  { name: 'Hellrot', value: '#f6c9c4' },
+  { name: 'Pfirsich', value: '#fcdfc3' },
+  { name: 'Hellgelb', value: '#fdefc6' },
+  { name: 'Hellgrün', value: '#d6f2d6' },
+  { name: 'Helltürkis', value: '#d2f5f2' },
+  { name: 'Hellblau', value: '#cfe3fb' },
+  { name: 'Hellviolett', value: '#ddd3fa' },
+  { name: 'Hellpink', value: '#f6cde8' },
 ];
 
 export const FONT_FAMILY_CSS: Readonly<Record<'sans' | 'mono', string>> = {

@@ -4,7 +4,8 @@ import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
 import type { ElementStyle } from '@/domain';
-import { FILL_COLORS, STROKE_COLORS } from '@/renderer/lib/constants';
+import ColorPalette from './ColorPalette.vue';
+import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
 
 type Segment = 'geometry' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more';
@@ -23,11 +24,18 @@ const ALIGNMENTS: ReadonlyArray<{ value: ElementStyle['textAlign']; label: strin
   { value: 'center', label: 'Mitte', icon: 'align-center' },
   { value: 'right', label: 'Rechts', icon: 'align-right' },
 ];
-const DASHES: ReadonlyArray<{ value: ElementStyle['strokeDash']; label: string }> = [
-  { value: 'solid', label: 'Durchgehend' },
-  { value: 'dashed', label: 'Gestrichelt' },
-  { value: 'dotted', label: 'Gepunktet' },
+const FILL_MODES: ReadonlyArray<{ value: FillMode; label: string }> = [
+  { value: 'fill', label: 'Füllung' },
+  { value: 'semi', label: 'Transparent' },
+  { value: 'none', label: 'Keine Füllung' },
 ];
+type LineMode = 'solid' | 'dashed' | 'none';
+const LINE_MODES: ReadonlyArray<{ value: LineMode; label: string; icon: IconName }> = [
+  { value: 'solid', label: 'Durchgezogen', icon: 'line-solid' },
+  { value: 'dashed', label: 'Gestrichelt', icon: 'line-dashed' },
+  { value: 'none', label: 'Keine', icon: 'none' },
+];
+const WIDTHS = [{ value: 1, label: 'Dünn' }, { value: 2, label: 'Mittel' }, { value: 4, label: 'Dick' }] as const;
 
 // --- Visibility and placement ----------------------------------------------------
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && !s.textEdit && !s.hasElementPreview && !s.draftElement && !s.marquee));
@@ -152,6 +160,32 @@ function saveLink(): void {
   store.applyPatch({ documentationUrl: url || null });
 }
 const panelId = (segment: Segment) => `${uid}-${segment}`;
+
+// --- Fill and line modes (#38) ------------------------------------------------------
+const lastFill = ref('#f6c9c4');
+const lastStroke = ref('#1e1e1e');
+const currentFillMode = computed(() => fillMode(info.value.values.fill));
+const fillBase = computed(() => (currentFillMode.value === 'none' ? null : normalizeHex(info.value.values.fill ?? '')));
+const lineMode = computed<LineMode | null>(() => {
+  if (info.value.mixed.includes('stroke') || info.value.mixed.includes('strokeDash')) return null;
+  if (info.value.values.stroke === NO_COLOR) return 'none';
+  return info.value.values.strokeDash === 'solid' || info.value.values.strokeDash === 'dashed' ? info.value.values.strokeDash : null;
+});
+const strokeBase = computed(() => (lineMode.value === 'none' ? null : normalizeHex(info.value.values.stroke ?? '')));
+watch(fillBase, (value) => { if (value) lastFill.value = value; }, { immediate: true });
+watch(strokeBase, (value) => { if (value) lastStroke.value = value; }, { immediate: true });
+
+function setFillMode(mode: FillMode): void { style({ fill: withFillMode(fillBase.value ?? lastFill.value, mode) }); }
+function pickFill(hex: string): void {
+  lastFill.value = hex;
+  style({ fill: withFillMode(hex, currentFillMode.value === 'none' ? 'fill' : currentFillMode.value) });
+}
+function setLineMode(mode: LineMode): void {
+  if (mode === 'none') style({ stroke: NO_COLOR });
+  else style({ strokeDash: mode, ...(info.value.values.stroke === NO_COLOR ? { stroke: lastStroke.value } : {}) });
+}
+function pickStroke(hex: string): void { lastStroke.value = hex; style({ stroke: hex }); }
+function relayout(): void { void nextTick(placePopover); }
 </script>
 
 <template>
@@ -171,7 +205,7 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
       <AppIcon name="shapes" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
     <span class="sep" aria-hidden="true" />
-    <button :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
+    <button v-if="info.hasFill" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
       <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
     <button :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
@@ -226,25 +260,27 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
     </div>
 
     <template v-else-if="openSegment === 'color'">
-      <p class="group-label">Kontur</p>
-      <div class="swatches" role="group" aria-label="Konturfarbe">
-        <button v-for="color in STROKE_COLORS" :key="color.value" type="button" class="swatch" :style="{ '--swatch': color.value }" :aria-label="`Kontur ${color.name}`" :aria-pressed="info.values.stroke === color.value && !info.mixed.includes('stroke')" @click="style({ stroke: color.value })" />
+      <div class="modes" role="group" aria-label="Füllart">
+        <button v-for="mode in FILL_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="currentFillMode === mode.value && !info.mixed.includes('fill')" @click="setFillMode(mode.value)">
+          <svg class="mode-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" /><rect v-if="mode.value !== 'none'" x="6" y="6" width="8" height="8" rx="1.5" fill="currentColor" :fill-opacity="mode.value === 'semi' ? 0.35 : 1" /><rect v-else x="6" y="6" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
+          {{ mode.label }}
+        </button>
       </div>
-      <template v-if="info.hasFill">
-        <p class="group-label">Füllung</p>
-        <div class="swatches" role="group" aria-label="Füllfarbe">
-          <button v-for="color in FILL_COLORS" :key="color.value" type="button" class="swatch" :class="{ transparent: color.value === 'transparent' }" :style="{ '--swatch': color.value }" :aria-label="`Füllung ${color.name}`" :aria-pressed="info.values.fill === color.value && !info.mixed.includes('fill')" @click="style({ fill: color.value })" />
-        </div>
-      </template>
+      <ColorPalette :value="fillBase" prefix="Füllung" group-label="Füllfarbe" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
     </template>
 
     <template v-else-if="openSegment === 'line'">
-      <label class="field">Linienstärke<input class="ctx-input" type="number" aria-label="Linienstärke" min="0" max="100" :value="info.values.strokeWidth" @input="store.setPropertyDraft({ style: { strokeWidth: ($event.target as HTMLInputElement).valueAsNumber } })" @change="store.commitPropertyDraft()" /></label>
-      <p class="group-label">Linie</p>
-      <div class="choices" role="group" aria-label="Linienstil">
-        <button v-for="dash in DASHES" :key="dash.value" type="button" class="choice" :aria-pressed="info.values.strokeDash === dash.value && !info.mixed.includes('strokeDash')" @click="style({ strokeDash: dash.value })">{{ dash.label }}</button>
+      <div class="modes" role="group" aria-label="Linienstil">
+        <button v-for="mode in LINE_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="lineMode === mode.value" @click="setLineMode(mode.value)">
+          <AppIcon :name="mode.icon" :size="18" />{{ mode.label }}
+        </button>
       </div>
-      <label class="field">Deckkraft<input class="ctx-range" aria-label="Deckkraft" type="range" min="0" max="1" step=".05" :value="info.values.opacity" @change="style({ opacity: ($event.target as HTMLInputElement).valueAsNumber })" /></label>
+      <ColorPalette :value="strokeBase" prefix="Kontur" group-label="Konturfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
+      <div class="widths" role="group" aria-label="Linienstärke">
+        <button v-for="width in WIDTHS" :key="width.value" type="button" class="mode width" :aria-label="`Linienstärke ${width.label}`" :title="width.label" :aria-pressed="info.values.strokeWidth === width.value && !info.mixed.includes('strokeWidth')" @click="style({ strokeWidth: width.value })">
+          <svg viewBox="0 0 28 12" aria-hidden="true"><line x1="3" y1="6" x2="25" y2="6" stroke="currentColor" :stroke-width="width.value" stroke-linecap="round" /></svg>
+        </button>
+      </div>
     </template>
 
     <div v-else-if="openSegment === 'font'" class="choices column" role="group" aria-label="Schriftart">
@@ -326,7 +362,7 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 .segment:focus-visible,
 .tool-btn:focus-visible,
 .choice:focus-visible,
-.swatch:focus-visible,
+.mode:focus-visible,
 .ctx-btn:focus-visible,
 .ctx-input:focus-visible {
   outline: 2px solid var(--menu-focus);
@@ -380,13 +416,67 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 }
 
 /* --- Popover --- */
+.modes,
+.widths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modes {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--menu-separator);
+}
+
+.mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--menu-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mode:hover {
+  background: var(--menu-hover);
+}
+
+.mode[aria-pressed='true'] {
+  background: var(--menu-selected);
+  box-shadow: inset 0 0 0 1.5px var(--menu-focus);
+  color: var(--menu-selected-text);
+}
+
+.mode-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.width {
+  width: 56px;
+  justify-content: center;
+  padding: 0;
+}
+
+.width svg {
+  width: 28px;
+  height: 12px;
+}
+
 .context-popover {
   position: fixed;
-  z-index: 35;
+  z-index: 45;
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   display: grid;
   gap: 8px;
   min-width: 220px;
-  max-width: min(320px, calc(100vw - 16px));
+  max-width: min(460px, calc(100vw - 16px));
   padding: 12px;
   background: var(--menu-surface);
   border: 1px solid var(--border-subtle);
@@ -432,35 +522,6 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 
 .ctx-input.wide {
   min-width: 240px;
-}
-
-.ctx-range {
-  width: 100%;
-  accent-color: var(--menu-focus);
-}
-
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.swatch {
-  position: relative;
-  width: 26px;
-  height: 26px;
-  background: var(--swatch);
-  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.swatch[aria-pressed='true'] {
-  box-shadow: 0 0 0 2px var(--menu-surface), 0 0 0 4px var(--menu-focus);
-}
-
-.swatch.transparent {
-  background: linear-gradient(135deg, transparent 46%, var(--status-error) 47%, var(--status-error) 53%, transparent 54%), var(--menu-field);
 }
 
 .choices {

@@ -12,7 +12,8 @@ export type ActionIconName =
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
   | 'menu' | 'users' | 'user' | 'code' | 'maximize'
   | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow'
-  | 'shapes' | 'stroke' | 'link';
+  | 'shapes' | 'stroke' | 'link'
+  | 'eyedropper' | 'line-solid' | 'line-dashed' | 'none';
 
 export type IconName = ToolIconName | ActionIconName;
 
@@ -90,5 +91,9 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   arrow: ['M5 12h14', 'M13 6l6 6-6 6'],
   shapes: ['M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z', 'M11 11h9v9h-9z'],
   stroke: ['M4 5.5h16', 'M4 10h16v2.5H4z', 'M4 16h16v3.5H4z'],
+  eyedropper: ['M13 7l4 4', 'M15.5 4.5a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L17 11l-4-4z', 'M14 8l-8.5 8.5V19h2.5L16.5 10.5'],
+  'line-solid': ['M5 19L19 5'],
+  'line-dashed': ['M5 19l2.5-2.5', 'M10.75 13.25l2.5-2.5', 'M16.5 7.5L19 5'],
+  none: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M5.6 18.4L18.4 5.6'],
   link: ['M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1', 'M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1'],
 };

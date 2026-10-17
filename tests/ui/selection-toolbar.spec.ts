@@ -51,3 +51,38 @@ test('the toolbar hides while editing text and stays inside a compact viewport',
   await expect(page.getByTestId('canvas-text-editor')).toBeVisible();
   await expect(bar).toHaveCount(0);
 });
+
+test('line and color popovers set fill mode, stroke style, width and custom colors', async ({ page }) => {
+  await drawRectangle(page);
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  const shape = page.locator('.whiteboard-canvas [data-kind=rectangle] > g');
+
+  await bar.getByRole('button', { name: 'Farbe' }).click();
+  const color = page.getByRole('group', { name: 'Farbe', exact: true });
+  await expect(color.getByRole('button', { name: 'Keine Füllung' })).toHaveAttribute('aria-pressed', 'true');
+  await color.getByRole('button', { name: 'Füllung Rot' }).click();
+  await expect(shape).toHaveAttribute('fill', '#e5533a');
+  await expect(color.getByRole('button', { name: 'Füllung', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await color.getByRole('button', { name: 'Transparent' }).click();
+  await expect(shape).toHaveAttribute('fill', '#e5533a4d');
+  await color.getByRole('button', { name: 'Füllung: eigene Farbe' }).click();
+  await expect(page.getByRole('slider', { name: 'Sättigung und Helligkeit' })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.getByRole('textbox', { name: 'Hex-Farbwert' }).fill('#123456'); await page.keyboard.press('Enter');
+  await expect(shape).toHaveAttribute('fill', '#1234564d');
+  await page.keyboard.press('Escape');
+
+  await bar.getByRole('button', { name: 'Linie' }).click();
+  const line = page.getByRole('group', { name: 'Linie', exact: true });
+  await expect(line.getByRole('button', { name: 'Durchgezogen' })).toHaveAttribute('aria-pressed', 'true');
+  await line.getByRole('button', { name: 'Gestrichelt' }).click();
+  await expect(shape).toHaveAttribute('stroke-dasharray', '8 6');
+  await line.getByRole('button', { name: 'Linienstärke Dick' }).click();
+  await expect(shape).toHaveAttribute('stroke-width', '4');
+  await line.getByRole('button', { name: 'Kontur Blau' }).click();
+  await expect(shape).toHaveAttribute('stroke', '#5aabf7');
+  await line.getByRole('button', { name: 'Keine', exact: true }).click();
+  await expect(shape).toHaveAttribute('stroke', 'transparent');
+  await line.getByRole('button', { name: 'Durchgezogen' }).click();
+  await expect(shape).toHaveAttribute('stroke', '#5aabf7');
+});
