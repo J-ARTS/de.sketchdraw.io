@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-electron/
+dist-mcp/
+release/
+
+# Test and coverage artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Python / Graphify caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment and local OS files
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+# Rebuildable local Graphify parser cache
+graphify-out/cache/

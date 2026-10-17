@@ -1,0 +1,60 @@
+{
+  "name": "de.sketchdraw.io",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open, cross-platform visual workspace for architecture diagrams, whiteboard sketching, Diagram-as-Code, MCP agents, and strict P2P collaboration.",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev:browser": "node scripts/verify-entrypoints.mjs --mode=renderer && vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:electron": "node scripts/dev-electron.mjs",
+    "typecheck:config": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.app.json --noEmit",
+    "typecheck": "node scripts/verify-entrypoints.mjs --mode=typecheck && vue-tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.mcp.json --noEmit",
+    "test:unit": "node scripts/verify-entrypoints.mjs --mode=tests-unit && node scripts/build-mcp.mjs && vitest run --config vitest.config.ts",
+    "test:ui": "node scripts/verify-entrypoints.mjs --mode=tests-ui && playwright test --config playwright.config.ts --project=ui",
+    "test:electron": "node scripts/verify-entrypoints.mjs --mode=tests-electron && node scripts/build-electron.mjs && vite build && playwright test --config playwright.config.ts --project=electron",
+    "build:renderer": "node scripts/verify-entrypoints.mjs --mode=renderer && vite build",
+    "build:electron": "node scripts/build-electron.mjs",
+    "build": "npm run build:renderer && npm run build:electron && npm run build:mcp",
+    "package": "npm run build && electron-builder --config electron-builder.json --dir",
+    "package:dist": "npm run build && electron-builder --config electron-builder.json",
+    "build:mcp": "node scripts/build-mcp.mjs",
+    "mcp": "node dist-mcp/server.cjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@modelcontextprotocol/server": "2.3.1",
+    "fflate": "0.8.3",
+    "htmlparser2": "12.0.0",
+    "jsonc-parser": "3.3.1",
+    "saxes": "6.0.0",
+    "vue": "3.5.44",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@modelcontextprotocol/client": "2.3.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
+    "@vitejs/plugin-vue": "6.0.10",
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5",
+    "vue-tsc": "3.3.13"
+  },
+  "overrides": {
+    "app-builder-lib@26.15.3": {
+      "@electron/get@3.1.0": {
+        "global-agent": "4.1.3"
+      }
+    }
+  }
+}

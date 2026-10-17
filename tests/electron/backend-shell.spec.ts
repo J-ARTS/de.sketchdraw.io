@@ -1,0 +1,335 @@
+import { createHash } from 'node:crypto';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  _electron as electron,
+  expect,
+  test as base,
+  type ElectronApplication,
+  type Page,
+} from '@playwright/test';
+import type { DesktopBridge, SaveDocumentRequest } from '../../src/domain/types';
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const entryUrl = 'app://sketchdraw/index.html';
+
+type FixtureWindow = Window & {
+  sketchdraw: DesktopBridge;
+  backendFixture: { closeRequests: string[]; menuCommands: string[] };
+  backendMainWorldMarker?: string;
+};
+
+interface BackendShell {
+  app: ElectronApplication;
+  page: Page;
+  root: string;
+  preloadPath: string;
+}
+
+const saveRequest: SaveDocumentRequest = {
+  mode: 'save',
+  handleId: `hdl_${'0'.repeat(32)}`,
+  expectedVersionToken: `sha256:${'0'.repeat(64)}`,
+  suggestedName: 'backend-fixture.sketchdraw',
+  text: JSON.stringify({
+    schemaVersion: 1,
+    id: 'document:backend-fixture',
+    title: 'Backend fixture',
+    elements: [],
+    assets: {},
+    componentSets: [],
+    metadata: {},
+  }),
+};
+
+function cleanElectronEnv(): Record<string, string> {
+  const excluded = new Set([
+    'ELECTRON_RUN_AS_NODE',
+    'ELECTRON_DISABLE_SANDBOX',
+    'SKETCHDRAW_DEV_SERVER_URL',
+    'NODE_OPTIONS',
+    'NODE_PATH',
+  ]);
+  return Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] =>
+        typeof entry[1] === 'string' && !excluded.has(entry[0].toUpperCase()),
+    ),
+  );
+}
+
+async function bounded<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Electron backend fixture operation timed out.')), milliseconds);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function disposeApp(app: ElectronApplication): Promise<void> {
+  const child = app.process();
+  const exited = () => child.exitCode !== null || child.signalCode !== null;
+  // Destroy only this test application's windows, bypassing its intentionally unanswered close listener.
+  await bounded(
+    app.evaluate(({ BrowserWindow }) => {
+      for (const win of BrowserWindow.getAllWindows()) win.destroy();
+    }),
+    2_000,
+  ).catch(() => {});
+  await bounded(app.close(), 2_000).catch(() => {});
+  for (const signal of ['SIGTERM', 'SIGKILL'] as const) {
+    if (exited()) return;
+    const exit = new Promise<void>((resolve) => child.once('exit', () => resolve()));
+    child.kill(signal);
+    await bounded(exit, 2_000).catch(() => {});
+  }
+  if (!exited()) throw new Error(`Owned Electron fixture process ${child.pid} did not exit.`);
+}
+
+const test = base.extend<{ backend: BackendShell }>({
+  backend: async ({}, use, testInfo) => {
+    const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-backend-shell-')));
+    let app: ElectronApplication | undefined;
+    try {
+      await Promise.all(
+        ['dist', 'dist-electron', 'user-data', 'session-data'].map((dir) =>
+          mkdir(path.join(root, dir), { mode: 0o700 }),
+        ),
+      );
+      const hashes: Record<string, string> = {};
+      // Main resolves dist relative to __dirname. Relocate the exact build artifacts;
+      // do not replace protocol, IPC, preload, security, or close-handshake implementation.
+      for (const filename of ['main.cjs', 'preload.cjs']) {
+        const source = path.join(projectRoot, 'dist-electron', filename);
+        const destination = path.join(root, 'dist-electron', filename);
+        const original = await readFile(source);
+        await copyFile(source, destination);
+        expect(await readFile(destination), `${filename} must be the unmodified build`).toEqual(original);
+        hashes[filename] = createHash('sha256').update(original).digest('hex');
+      }
+      await writeFile(path.join(root, 'package.json'), JSON.stringify({
+        name: 'sketchdraw-backend-shell-fixture',
+        version: '0.0.0',
+        main: 'fixture-main.cjs',
+      }));
+      await writeFile(path.join(root, 'fixture-main.cjs'), `
+const { app } = require('electron');
+const path = require('node:path');
+app.setPath('userData', path.join(__dirname, 'user-data'));
+app.setPath('sessionData', path.join(__dirname, 'session-data'));
+require('./dist-electron/main.cjs');
+`);
+      await writeFile(path.join(root, 'dist', 'index.html'), `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Backend shell fixture</title>
+<script src="/fixture.js" defer></script></head><body>
+<h1>Backend shell test fixture — not the product UI</h1>
+<a id="leave-app" href="https://example.invalid/">Attempt external navigation</a>
+</body></html>`);
+      await writeFile(path.join(root, 'dist', 'fixture.js'), `
+window.backendFixture = { closeRequests: [], menuCommands: [] };
+window.sketchdraw.onCloseRequested(id => window.backendFixture.closeRequests.push(id));
+window.sketchdraw.onMenuCommand(command => window.backendFixture.menuCommands.push(command));
+document.documentElement.dataset.fixtureReady = 'true';
+`);
+      app = await electron.launch({ args: [root], env: cleanElectronEnv(), timeout: 15_000 });
+      const page = await app.firstWindow();
+      await expect(page.locator('html')).toHaveAttribute('data-fixture-ready', 'true');
+      await testInfo.attach('backend-shell-artifacts', {
+        body: JSON.stringify({
+          scope: 'Unmodified Electron backend build with a minimal fixture, not the product renderer or packaged app.',
+          hashes,
+          platform: process.platform,
+          versions: await app.evaluate(() => process.versions),
+        }, null, 2),
+        contentType: 'application/json',
+      });
+      await use({ app, page, root, preloadPath: path.join(root, 'dist-electron', 'preload.cjs') });
+    } finally {
+      try {
+        if (app) await disposeApp(app);
+      } finally {
+        await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+      }
+    }
+  },
+});
+
+test.describe('Built Electron backend with a minimal renderer fixture', () => {
+  test('loads app:// with the real sandboxed preload and rejects unsafe bridge inputs', async ({ backend }) => {
+    const { app, page, root } = backend;
+    expect(page.url()).toBe(entryUrl);
+    await expect(page.getByRole('heading')).toHaveText('Backend shell test fixture — not the product UI');
+    const metadata = await app.evaluate(({ app, BrowserWindow }) => {
+      const win = BrowserWindow.getAllWindows()[0]!;
+      const metric = app.getAppMetrics().find((item) => item.pid === win.webContents.getOSProcessId());
+      return {
+        appPath: app.getAppPath(),
+        userData: app.getPath('userData'),
+        isPackaged: app.isPackaged,
+        rendererSandboxed: metric?.sandboxed,
+      };
+    });
+    expect(metadata).toMatchObject({
+      appPath: root,
+      userData: path.join(root, 'user-data'),
+      isPackaged: false,
+    });
+    // Electron exposes this OS sandbox metric on macOS/Windows, not Linux.
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      expect(metadata.rendererSandboxed).toBe(true);
+    }
+    // Playwright page.evaluate grants Chromium user activation. Run this negative
+    // case via Electron without a gesture and let any launch/automation activation expire.
+    // A failed precondition never calls the external opener.
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(
+        'navigator.userActivation.isActive', false,
+      ),
+    ), { timeout: 10_000, intervals: [100, 250, 500] }).toBe(false);
+    const externalChecks = await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScript(`(async () => {
+        if (navigator.userActivation.isActive) return { inactive: false };
+        const rejected = [];
+        for (const url of ['javascript:alert(1)', 'https://example.invalid/']) {
+          try { await window.sketchdraw.openExternal(url); rejected.push(false); }
+          catch { rejected.push(true); }
+        }
+        return { inactive: true, rejected };
+      })()`, false),
+    );
+    expect(externalChecks).toEqual({ inactive: true, rejected: [true, true] });
+    await page.evaluate(() => {
+      (window as unknown as FixtureWindow).backendMainWorldMarker = 'main-world-only';
+    });
+    // World 999 is Electron's preload context. Main-world data must remain isolated.
+    expect(await app.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{
+        code: 'typeof window.backendMainWorldMarker',
+      }]),
+    )).toBe('undefined');
+    const surface = await page.evaluate(async () => {
+      const w = window as unknown as FixtureWindow;
+      const globals = window as unknown as Record<string, unknown>;
+      const response = await fetch('/index.html');
+      return {
+        platform: w.sketchdraw.platform,
+        frozen: Object.isFrozen(w.sketchdraw),
+        exposedNodeGlobals: ['require', 'process', 'Buffer', 'ipcRenderer']
+          .filter((key) => typeof globals[key] !== 'undefined'),
+        keys: Object.keys(w.sketchdraw).sort(),
+        status: response.status,
+        csp: response.headers.get('content-security-policy'),
+      };
+    });
+    expect(surface.platform).toBe('electron');
+    expect(surface.frozen).toBe(true);
+    expect(surface.exposedNodeGlobals).toEqual([]);
+    expect(surface.keys).toEqual([
+      'exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument',
+      'openExternal', 'platform', 'respondToClose', 'saveDocument',
+    ]);
+    expect(surface.status).toBe(200);
+    expect(surface.csp).toContain("script-src 'self'");
+    expect(surface.csp).toContain("object-src 'none'");
+
+    // A syntactically valid unknown handle reaches the real Main persistence handler without a dialog/write.
+    expect(await page.evaluate((request) =>
+      (window as unknown as FixtureWindow).sketchdraw.saveDocument(request), saveRequest,
+    )).toMatchObject({ status: 'error', code: 'UNKNOWN_HANDLE' });
+    expect(await page.evaluate((request) =>
+      (window as unknown as FixtureWindow).sketchdraw.saveDocument({ ...request, handleId: '/etc/passwd' }), saveRequest,
+    )).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
+  });
+
+  test('blocks popups/navigation and rejects another real WebContents even at the same app origin', async ({ backend }) => {
+    const { app, page, preloadPath } = backend;
+    expect(await page.evaluate(() => window.open('https://example.invalid/', '_blank'))).toBeNull();
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+
+    const navigation = app.evaluate(({ BrowserWindow }) => new Promise<{ url: string; prevented: boolean }>((resolve) => {
+      BrowserWindow.getAllWindows()[0]!.webContents.once('will-navigate', (event, url) => {
+        resolve({ url, prevented: event.defaultPrevented });
+      });
+    }));
+    await page.locator('#leave-app').click({ noWaitAfter: true });
+    expect(await bounded(navigation, 3_000)).toEqual({
+      url: 'https://example.invalid/', prevented: true,
+    });
+    expect(page.url()).toBe(entryUrl);
+
+    const otherPagePromise = app.waitForEvent('window');
+    const otherWindowId = await app.evaluate(async ({ BrowserWindow }, preload) => {
+      const win = new BrowserWindow({
+        show: false,
+        webPreferences: { preload, sandbox: true, contextIsolation: true, nodeIntegration: false },
+      });
+      await win.loadURL('app://sketchdraw/index.html');
+      return win.id;
+    }, preloadPath);
+    const otherPage = await otherPagePromise;
+    try {
+      await expect(otherPage.locator('html')).toHaveAttribute('data-fixture-ready', 'true');
+      expect(await otherPage.evaluate((request) =>
+        (window as unknown as FixtureWindow).sketchdraw.saveDocument(request), saveRequest,
+      )).toMatchObject({ status: 'error', code: 'UNAUTHORIZED_SENDER' });
+    } finally {
+      await app.evaluate(({ BrowserWindow }, id) => BrowserWindow.fromId(id)?.destroy(), otherWindowId);
+    }
+  });
+
+  test('routes menu commands and requires the current close request before actually closing', async ({ backend }) => {
+    const { app, page } = backend;
+    await app.evaluate(({ Menu }) => {
+      const item = Menu.getApplicationMenu()?.getMenuItemById('file-save');
+      if (!item) throw new Error('Product save menu item is missing.');
+      item.click();
+    });
+    await expect.poll(() => page.evaluate(() =>
+      (window as unknown as FixtureWindow).backendFixture.menuCommands,
+    )).toEqual(['save']);
+
+    const requestClose = async (count: number): Promise<string> => {
+      await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close());
+      await expect.poll(() => page.evaluate(() =>
+        (window as unknown as FixtureWindow).backendFixture.closeRequests.length,
+      )).toBe(count);
+      return page.evaluate(() => (window as unknown as FixtureWindow).backendFixture.closeRequests.at(-1)!);
+    };
+    const first = await requestClose(1);
+    expect(first).toMatch(/^close_[0-9a-f]{32}$/);
+    expect(page.isClosed()).toBe(false);
+    const second = await requestClose(2);
+    expect(second).not.toBe(first);
+    expect(await page.evaluate(async (staleId) => {
+      try {
+        await (window as unknown as FixtureWindow).sketchdraw.respondToClose(staleId, 'close');
+        return false;
+      } catch {
+        return true;
+      }
+    }, first)).toBe(true);
+    expect(page.isClosed()).toBe(false);
+
+    await page.evaluate((id) => (window as unknown as FixtureWindow).sketchdraw.respondToClose(id, 'cancel'), second);
+    expect(page.isClosed()).toBe(false);
+    const third = await requestClose(3);
+    expect(third).not.toBe(second);
+    const closed = page.waitForEvent('close');
+    await page.evaluate((id) => {
+      // The Main handler closes the renderer before its invoke reply can necessarily arrive.
+      void (window as unknown as FixtureWindow).sketchdraw.respondToClose(id, 'close').catch(() => {});
+    }, third).catch((error: unknown) => {
+      if (!page.isClosed()) throw error;
+    });
+    await closed;
+    expect(page.isClosed()).toBe(true);
+  });
+});

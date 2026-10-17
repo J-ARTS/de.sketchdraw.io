@@ -1,0 +1,57 @@
+[
+  {
+    "code": "SEMANTICS_IN_METADATA",
+    "severity": "info",
+    "effect": "preserved-as-data",
+    "message": "Additional document semantics and resources are embedded as data, including information not visible on the canvas.",
+    "property": "projection"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "container"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "input"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "output"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "connection"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "choice"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Text rendering depends on receiver fonts and text layout.",
+    "property": "projection",
+    "elementId": "caption"
+  }
+]

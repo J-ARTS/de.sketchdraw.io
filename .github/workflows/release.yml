@@ -1,0 +1,225 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing Git tag (v<package.version>) to verify, package, and publish'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22.16.0'
+
+jobs:
+  preflight:
+    name: Verify Tag, Version & Commit Revision
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.verify.outputs.tag }}
+      version: ${{ steps.verify.outputs.version }}
+      commit_sha: ${{ steps.verify.outputs.commit_sha }}
+      is_prerelease: ${{ steps.verify.outputs.is_prerelease }}
+    steps:
+      - name: Checkout tagged revision with full tag history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run release preflight verification
+        id: verify
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node scripts/release.mjs preflight
+
+  ci-verification:
+    name: Full CI Verification Suite
+    needs: preflight
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    with:
+      commit_sha: ${{ needs.preflight.outputs.commit_sha }}
+
+  package-installers:
+    name: Package Installer (${{ matrix.platform }} / ${{ matrix.arch }} / ${{ matrix.target }})
+    needs:
+      - preflight
+      - ci-verification
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: win
+            os: windows-2025
+            target: nsis
+            arch: x64
+            artifact_name: installer-win-x64
+          - platform: mac
+            os: macos-15
+            target: dmg
+            arch: arm64
+            artifact_name: installer-mac-arm64
+          - platform: linux
+            os: ubuntu-24.04
+            target: deb
+            arch: x64
+            artifact_name: installer-linux-x64
+
+    steps:
+      - name: Checkout verified commit revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.preflight.outputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Verify runner OS, CPU architecture (process.arch), and commit revision
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit_sha }}
+        run: node scripts/release.mjs verify-env
+
+      - name: Install pinned dependencies
+        run: npm ci
+
+      - name: Typecheck build and tool configurations
+        run: npm run typecheck:config
+
+      - name: Typecheck application and contracts
+        run: npm run typecheck
+
+      - name: Run Node build-lifecycle and release unit tests
+        run: node --test tests/unit/*.test.mjs
+
+      - name: Run Vitest unit tests
+        run: npm run test:unit
+
+      - name: Build renderer, Electron main/preload, and MCP adapter bundles
+        run: npm run build
+
+      - name: Install Playwright Chromium browser for UI tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright browser UI tests
+        run: npm run test:ui
+
+      - name: Run Playwright Electron integration tests (Linux with Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:electron
+
+      - name: Run Playwright Electron integration tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npm run test:electron
+
+      - name: Package platform installer (--publish never) and stage verified bundle
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit_sha }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ secrets.CSC_NAME }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" node scripts/release.mjs package
+          else
+            node scripts/release.mjs package
+          fi
+
+      - name: Upload installer smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release/smoke-${{ matrix.platform }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload staged installer and manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/staged/${{ matrix.platform }}/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-release:
+    name: Validate All 3 Installers & Publish GitHub Release
+    needs:
+      - preflight
+      - ci-verification
+      - package-installers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout verified commit revision with full tag history
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.preflight.outputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download staged platform installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          path: release/collected
+
+      - name: Validate complete 3-platform installer bundle and manifests
+        env:
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit_sha }}
+        run: node scripts/release.mjs validate-artifacts --artifacts-dir release/collected
+
+      - name: Resume owned Draft Release, verify uploaded bytes, and publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_COMMIT: ${{ needs.preflight.outputs.commit_sha }}
+        run: node scripts/release.mjs publish --artifacts-dir release/collected

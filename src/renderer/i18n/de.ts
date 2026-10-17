@@ -1,0 +1,159 @@
+export const MESSAGES = {
+  'common.close': 'Schließen',
+  'common.cancel': 'Abbrechen',
+  'common.mixed': 'gemischt',
+  'tip.withHint': '{label} ({hint})',
+
+  'toolbar.label': 'Werkzeuge',
+  'image.input': 'Bilddatei auswählen',
+
+  'title.label': 'Dokumenttitel',
+  'file.menu': 'Datei',
+  'file.menuLabel': 'Dateimenü',
+  'file.new': 'Neu',
+  'file.open': 'Öffnen …',
+  'file.save': 'Speichern',
+  'file.saveAs': 'Speichern unter …',
+  'status.label': 'Speicherstatus',
+  'chrome.objects': 'Objekte',
+  'chrome.help': 'Tastaturhilfe',
+  'chrome.theme': 'Dunkles Design',
+  'chrome.actions': 'Ansicht und Hilfe',
+
+  'zoom.group': 'Verlauf und Ansicht',
+  'zoom.undo': 'Rückgängig',
+  'zoom.redo': 'Wiederherstellen',
+  'zoom.out': 'Verkleinern',
+  'zoom.in': 'Vergrößern',
+  'zoom.reset': 'Zoom auf 100 % setzen (aktuell {zoom})',
+  'zoom.fitAll': 'Alles anzeigen',
+  'zoom.fitSelection': 'Zur Auswahl',
+
+  'props.title': 'Eigenschaften',
+  'props.newElements': 'Einstellungen für neue Elemente',
+  'props.selection.one': '{count} Element ausgewählt',
+  'props.selection.other': '{count} Elemente ausgewählt',
+  'props.stroke': 'Kontur',
+  'props.fill': 'Füllung',
+  'props.strokeWidth': 'Strichstärke',
+  'props.strokeDash': 'Strichart',
+  'props.opacity': 'Deckkraft',
+  'props.font': 'Schrift',
+  'props.fontFamily': 'Schriftart',
+  'props.fontSize': 'Schriftgröße',
+  'props.textAlign': 'Ausrichtung',
+  'props.fontSans': 'Sans',
+  'props.fontMono': 'Mono',
+  'props.alignLeft': 'Linksbündig',
+  'props.alignCenter': 'Zentriert',
+  'props.alignRight': 'Rechtsbündig',
+  'props.dashSolid': 'Durchgezogen',
+  'props.dashDashed': 'Gestrichelt',
+  'props.dashDotted': 'Gepunktet',
+  'props.widthThin': 'Dünn ({value} px)',
+  'props.widthMedium': 'Mittel ({value} px)',
+  'props.widthThick': 'Dick ({value} px)',
+  'props.widthXThick': 'Sehr dick ({value} px)',
+  'props.customColor': 'Eigene Farbe: {value}',
+  'props.customValue': 'Eigener Wert: {value}',
+  'props.text': 'Text',
+  'props.label': 'Beschriftung',
+  'props.labelImage': 'Beschriftung (für Bilder erforderlich)',
+  'props.labelHintImage': 'Bilder brauchen einen Alternativtext. Beschreibe den Inhalt kurz in der Beschriftung.',
+  'props.description': 'Beschreibung',
+  'props.geometry': 'Position und Größe',
+  'props.x': 'X',
+  'props.y': 'Y',
+  'props.width': 'Breite',
+  'props.height': 'Höhe',
+  'props.rotation': 'Rotation (°)',
+  'props.actions': 'Aktionen',
+  'props.order': 'Reihenfolge',
+  'action.group': 'Gruppieren',
+  'action.ungroup': 'Gruppe lösen',
+  'action.connect': 'Verbinden',
+  'action.duplicate': 'Duplizieren',
+  'action.delete': 'Löschen',
+  'action.front': 'Ganz nach vorn',
+  'action.forward': 'Eine Ebene vor',
+  'action.backward': 'Eine Ebene zurück',
+  'action.back': 'Ganz nach hinten',
+
+  'objects.title': 'Objekte',
+  'objects.tree': 'Objekte im Dokument',
+  'objects.empty': 'Noch keine Objekte vorhanden.',
+  'objects.close': 'Objekte schließen',
+  'objects.count.one': '{count} Objekt',
+  'objects.count.other': '{count} Objekte',
+
+  'dialog.unsaved.title': 'Ungespeicherte Änderungen',
+  'dialog.unsaved.new': 'Das Dokument hat ungespeicherte Änderungen. Soll es gespeichert werden, bevor ein neues Dokument beginnt?',
+  'dialog.unsaved.open': 'Das Dokument hat ungespeicherte Änderungen. Soll es gespeichert werden, bevor ein anderes Dokument geöffnet wird?',
+  'dialog.unsaved.close': 'Das Dokument hat ungespeicherte Änderungen. Soll es gespeichert werden, bevor das Fenster geschlossen wird?',
+  'dialog.save': 'Speichern',
+  'dialog.discard': 'Verwerfen',
+  'dialog.busy': 'Wird gespeichert …',
+  'dialog.error': 'Fehler',
+  'dialog.conflict.title': 'Datei wurde extern geändert',
+  'dialog.conflict.body': 'Die Datei auf dem Datenträger hat sich seit dem Öffnen geändert. Dein Dokument bleibt unverändert erhalten, es wurde nichts überschrieben.',
+  'dialog.conflict.saveCopy': 'Als Kopie speichern',
+  'dialog.help.title': 'Tastaturhilfe',
+  'dialog.help.intro': 'Einzeltasten-Kürzel gelten nur bei Fokus auf der Zeichenfläche. In Eingabefeldern bleibt die normale Texteingabe erhalten.',
+  'dialog.help.scopeCanvas': 'nur Zeichenfläche',
+  'dialog.help.fonts': 'Schriften: Inter und JetBrains Mono, lizenziert unter der SIL Open Font License 1.1.',
+
+  'conflict.gesture': 'Änderung nicht übernommen',
+  'conflict.retry': 'Wiederholen',
+  'conflict.discard': 'Verwerfen',
+  'conflict.cannotRetry': 'Wiederholen nicht möglich: Die betroffenen Werte wurden zwischenzeitlich geändert.',
+  'conflict.offscreen.one': '{count} Änderung außerhalb des sichtbaren Bereichs',
+  'conflict.offscreen.other': '{count} Änderungen außerhalb des sichtbaren Bereichs',
+  'conflict.reveal': 'Anzeigen',
+
+  'notice.dismiss': 'Hinweis schließen',
+  'notice.error': 'Fehler:',
+  'notice.info': 'Hinweis:',
+
+  'empty.title': 'Leere Zeichenfläche',
+  'empty.start': 'Wähle oben ein Werkzeug und ziehe auf der Fläche, um zu zeichnen.',
+  'empty.keyboard': 'Alle Funktionen sind auch per Tastatur erreichbar.',
+  'empty.open': 'Datei öffnen',
+  'empty.help': 'Tastaturhilfe',
+} as const;
+
+export type MessageKey = keyof typeof MESSAGES;
+export type MessageParams = Readonly<Record<string, string | number>>;
+type PluralBase = MessageKey extends infer K ? (K extends `${infer B}.one` ? B : never) : never;
+
+export function t(key: MessageKey, params?: MessageParams): string {
+  const template: string = MESSAGES[key];
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (match: string, name: string) => {
+    const value = params[name];
+    return value === undefined ? match : String(value);
+  });
+}
+
+export function tCount(base: PluralBase, count: number): string {
+  const key = `${base}.${count === 1 ? 'one' : 'other'}` as MessageKey;
+  return t(key, { count });
+}
+
+const SHORTCUT_GROUP_TITLES: Readonly<Record<string, string>> = {
+  tools: 'Werkzeuge',
+  edit: 'Bearbeiten',
+  file: 'Datei',
+  view: 'Ansicht',
+  navigation: 'Navigation',
+  selection: 'Auswahl',
+  arrange: 'Anordnen',
+  history: 'Verlauf',
+  panels: 'Bereiche',
+  global: 'Allgemein',
+  help: 'Hilfe',
+};
+
+/** Shortcut groups may arrive as ids or already as display titles. */
+export function shortcutGroupTitle(group: string): string {
+  return SHORTCUT_GROUP_TITLES[group] ?? group;
+}

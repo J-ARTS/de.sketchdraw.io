@@ -1,0 +1,71 @@
+/* Kontraste (WCAG, berechnet): Light Text/Panel 17,2, Muted/Raised 6,3, Rand/Raised 3,85, Akzent/Panel 7,0; Dark Text/Panel 13,9, Muted/Raised 6,1, Rand/Raised 4,0, Akzent/Panel 6,8. */
+:root {
+  --surface-canvas: #faf8f4;
+  --surface-panel: #ffffff;
+  --surface-raised: #f1eee8;
+  --text-primary: #1c1b18;
+  --text-muted: #5a564d;
+  --border-default: #7c776b;
+  --border-subtle: #dcd7cc;
+  --focus-ring: #2748d6;
+  --selection: #2748d6;
+  --accent: #2748d6;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e3e8fb;
+  --status-error: #b3261e;
+  --status-error-soft: #fbe9e7;
+  --status-ok: #1b6b3a;
+  --inverse-surface: #2a2822;
+  --inverse-text: #f6f4ef;
+  --shadow-panel: 0 1px 2px rgb(28 27 24 / 12%), 0 6px 20px rgb(28 27 24 / 12%);
+  --scrim: rgb(28 27 24 / 45%);
+
+  --control-size: 36px;
+  --control-size-compact: 32px;
+  --panel-width: 288px;
+  --drawer-width: 320px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-1: 6px;
+  --radius-2: 10px;
+  --radius-3: 16px;
+
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-size-s: 12px;
+  --font-size-m: 13px;
+  --font-size-l: 15px;
+  --duration-short: 120ms;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --surface-canvas: #151618;
+  --surface-panel: #1e2024;
+  --surface-raised: #2a2d33;
+  --text-primary: #ececf0;
+  --text-muted: #a9acb5;
+  --border-default: #868a95;
+  --border-subtle: #3a3d45;
+  --focus-ring: #8da2ff;
+  --selection: #8da2ff;
+  --accent: #8da2ff;
+  --accent-contrast: #0d1330;
+  --accent-soft: #2c3560;
+  --status-error: #ff8a80;
+  --status-error-soft: #3d2224;
+  --status-ok: #7fd69a;
+  --inverse-surface: #e6e7ee;
+  --inverse-text: #16171a;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 40%);
+  --scrim: rgb(0 0 0 / 60%);
+
+  color-scheme: dark;
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400"><title>Independent SVG</title>
+ <defs><rect id="symbol" x="0" y="0" width="20" height="10" fill="blue"/></defs>
+ <g id="layer" transform="translate(10 20) scale(2)">
+  <rect id="rectangle" x="5" y="10" width="40" height="20" fill="#abcdef"/>
+  <ellipse id="ellipse" cx="100" cy="50" rx="20" ry="10" fill="red"/>
+  <polyline id="line" points="0,0 20,30 50,40" fill="none" stroke="black"/>
+  <text id="caption" x="10" y="100" font-size="12">Hello &amp; Ω</text>
+ </g>
+ <use href="#symbol" x="200" y="250"/><use href="#symbol" x="250" y="250"/>
+ <path id="curves" d="M 10 200 c 10 -80 60 -80 80 0 s 40 80 60 0 q 20 -40 40 0 t 40 0 a 20 10 30 0 1 30 20 Z" fill="none" stroke="green"/>
+</svg>

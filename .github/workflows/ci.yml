@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+    inputs:
+      commit_sha:
+        description: 'Optional exact Git commit SHA to verify across all CI jobs'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.inputs.commit_sha || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22.16.0'
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  governance-and-graphify:
+    name: Governance & Graphify Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Verify Graphify traceability links
+        run: python3 tools/graphify-links.py --check
+
+      - name: Run Python Graphify unit tests
+        run: python3 -m unittest discover -s tools/tests -v
+
+  build-and-test:
+    name: Build & Verify (${{ matrix.os }})
+    needs: governance-and-graphify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15
+          - windows-2025
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pinned dependencies
+        run: npm ci
+
+      - name: Typecheck build and tool configurations
+        run: npm run typecheck:config
+
+      - name: Typecheck application and contracts
+        run: npm run typecheck
+
+      - name: Run Node build-lifecycle and release unit tests
+        run: node --test tests/unit/*.test.mjs
+
+      - name: Run Vitest unit tests
+        run: npm run test:unit
+
+      - name: Build renderer, Electron main/preload, and MCP adapter bundles
+        run: npm run build
+
+      - name: Install Playwright Chromium browser for UI tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright browser UI tests
+        run: npm run test:ui
+
+      - name: Run Playwright Electron integration tests (Linux with Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm run test:electron
+
+      - name: Run Playwright Electron integration tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npm run test:electron
+
+      - name: Verify non-publishing desktop package dir target
+        run: npm run package
+
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics-${{ matrix.os }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
+  direct-peer-integration:
+    name: Direct P2P (Chromium + sandboxed Electron)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Install browser and native runtime prerequisites
+        run: npx playwright install --with-deps chromium
+      - name: Verify real direct connections and confirmed remote mutations
+        run: xvfb-run --auto-servernum npx playwright test --config tests/p2p/playwright.config.ts
+      - name: Preserve P2P diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: direct-peer-diagnostics
+          path: test-results/p2p/
+          if-no-files-found: ignore

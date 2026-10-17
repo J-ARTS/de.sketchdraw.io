@@ -1,0 +1,57 @@
+[
+  {
+    "code": "SEMANTICS_IN_METADATA",
+    "severity": "info",
+    "effect": "preserved-as-data",
+    "message": "Additional document semantics and resources are embedded as data, including information not visible on the canvas.",
+    "property": "projection"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "container"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "input"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "output"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "connection"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "choice"
+  },
+  {
+    "code": "FONT_RENDERING_DEPENDENT",
+    "severity": "warning",
+    "effect": "approximated",
+    "message": "Editable text depends on fonts available in the receiving application.",
+    "property": "projection",
+    "elementId": "caption"
+  }
+]

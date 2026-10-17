@@ -1,0 +1,104 @@
+{
+  "validatedAt": "2026-10-17T12:15:02.027958+00:00",
+  "environment": {
+    "python": "3.14.7",
+    "platform": "macOS-14.6.1-arm64-arm-64bit-Mach-O",
+    "graphifyy": "0.8.44"
+  },
+  "revision": "local uncommitted working tree; hashes identify inspected files",
+  "sourceHashes": {
+    "tools/graphify-links.py": "e498d30f1d3dc4dff9d458c5d2ff5b77a5746e469710a33a06e7169cefb5d18e",
+    "tools/tests/test_graphify_links.py": "0c2f285ca442a6fbe5f8b065238c9b4e2411b674a31cdfc3c3274c629c4e8df9",
+    "docs/graphify-traceability.md": "71f8691eeccf3effa76772e8908f0e4b65f8772630a8d70cbe1d1cec3c22e2d6",
+    "agent-state/work-ledger.json": "afa8e4a0a59fefbd8ad176f15c2803afedaba07d2304951096ff08c7052d7ca5"
+  },
+  "unitTests": {
+    "command": "python3 -m unittest discover -s tools/tests -v",
+    "testsRun": 13,
+    "result": "passed",
+    "evidence": "Executed in this agent session; result Ran 13 tests, OK; source hashes above."
+  },
+  "graphifyUpdate": {
+    "command": "graphify update .",
+    "exitCode": 0,
+    "result": "Rebuilt: 123 nodes, 177 edges, 11 communities"
+  },
+  "foreignRecordsPreserved": true,
+  "traceabilityNodeCount": 40,
+  "traceabilityLinkCount": 63,
+  "commands": [
+    {
+      "command": [
+        "python3",
+        "tools/graphify-links.py"
+      ],
+      "exitCode": 0,
+      "stdout": "Merged 40 traceability nodes and 63 links; unknown metrics remain null.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "tools/graphify-links.py",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "Ledger references, metrics and generated Graphify projection are valid and current.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "graphify",
+        "query",
+        "Run codex-graph-001",
+        "--context",
+        "traceability",
+        "--budget",
+        "4000"
+      ],
+      "exitCode": 0,
+      "stdout": "Traversal: BFS depth=2 | Start: ['Run codex-graph-001'] | Context: traceability (explicit) | 8 nodes found\n\nNODE Ticket #5: S0: UI/UX-Recherche und kritische Designempfehlungen [src=agent-state/work-ledger.json loc=/issues/1 community=]\nNODE Tool codex-subagent [src=agent-state/work-ledger.json loc=/runs/1/tool community=]\nNODE Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand [src=agent-state/work-ledger.json loc=/issues/3 community=]\nNODE Verantwortung: Codex [src=agent-state/work-ledger.json loc=/issues/0/owner community=]\nNODE Run codex-research-001 [src=agent-state/work-ledger.json loc=/runs/2 community=]\nNODE Run codex-graph-001 [src=agent-state/work-ledger.json loc=/runs/1 community=]\nNODE Planaufwand #7: 3 Story Points [src=agent-state/work-ledger.json loc=/issues/3/estimatedEffort community=]\nNODE Ist-Aufwand codex-graph-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt [src=agent-state/work-ledger.json loc=/runs/1 community=]\nEDGE Run codex-graph-001 --reports_observed_effort [EXTRACTED context=traceability]--> Ist-Aufwand codex-graph-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt\nEDGE Run codex-graph-001 --has_run [EXTRACTED context=traceability]--> Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand\nEDGE Run codex-graph-001 --executed_run [EXTRACTED context=traceability]--> Tool codex-subagent\nEDGE Tool codex-subagent --uses_tool [EXTRACTED context=traceability]--> Ticket #5: S0: UI/UX-Recherche und kritische Designempfehlungen\nEDGE Tool codex-subagent --executed_run [EXTRACTED context=traceability]--> Run codex-research-001\nEDGE Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand --assigned_to [EXTRACTED context=traceability]--> Verantwortung: Codex\nEDGE Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand --has_planning_estimate [EXTRACTED context=traceability]--> Planaufwand #7: 3 Story Points\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "graphify",
+        "path",
+        "Ticket #7:",
+        "Tool codex-subagent"
+      ],
+      "exitCode": 0,
+      "stdout": "Shortest path (1 hops):\n  Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand --uses_tool [EXTRACTED]--> Tool codex-subagent\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "graphify",
+        "path",
+        "Tool codex-subagent",
+        "Run codex-graph-001"
+      ],
+      "exitCode": 0,
+      "stdout": "Shortest path (1 hops):\n  Tool codex-subagent --executed_run [EXTRACTED]--> Run codex-graph-001\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "graphify",
+        "path",
+        "Ticket #7:",
+        "Ist-Aufwand codex-graph-001:"
+      ],
+      "exitCode": 0,
+      "stdout": "Shortest path (2 hops):\n  Ticket #7: S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand --has_run [EXTRACTED]--> Run codex-graph-001 --reports_observed_effort [EXTRACTED]--> Ist-Aufwand codex-graph-001: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt\n",
+      "stderr": ""
+    }
+  ],
+  "limitations": [
+    "No official benchmark harness exists in this repository.",
+    "Ledger is a manually maintained local snapshot; no GitHub or billing synchronization.",
+    "Artifact references and concern content are recorded, not independently verified.",
+    "Serialize graph writers; optimistic change detection is not a cross-process lock.",
+    "Graphify path matching requires labels, not technical ids, in this installed version."
+  ]
+}

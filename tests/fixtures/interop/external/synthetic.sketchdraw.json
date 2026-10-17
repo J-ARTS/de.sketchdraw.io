@@ -1,0 +1,159 @@
+{
+  "assets": {},
+  "componentSets": [],
+  "elements": [
+    {
+      "height": 320,
+      "id": "container",
+      "kind": "container",
+      "label": "Synthetic workspace",
+      "rotation": 0,
+      "style": {
+        "fill": "#f7f9fc",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "width": 680,
+      "x": 40,
+      "y": 40
+    },
+    {
+      "height": 90,
+      "id": "input",
+      "kind": "rectangle",
+      "label": "Input label only",
+      "parentId": "container",
+      "rotation": 0,
+      "style": {
+        "fill": "#e3edf8",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "width": 170,
+      "x": 80,
+      "y": 115
+    },
+    {
+      "height": 90,
+      "id": "output",
+      "kind": "ellipse",
+      "label": "Output fallback",
+      "parentId": "container",
+      "rotation": 0,
+      "style": {
+        "fill": "#e6f4e8",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "text": "",
+      "width": 190,
+      "x": 460,
+      "y": 115
+    },
+    {
+      "from": {
+        "anchor": {
+          "x": 1,
+          "y": 0.5
+        },
+        "elementId": "input"
+      },
+      "height": 0,
+      "id": "connection",
+      "kind": "connector",
+      "label": "Flow",
+      "parentId": "container",
+      "points": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 210,
+          "y": 0
+        }
+      ],
+      "rotation": 0,
+      "style": {
+        "fill": "transparent",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "to": {
+        "anchor": {
+          "x": 0,
+          "y": 0.5
+        },
+        "elementId": "output"
+      },
+      "width": 210,
+      "x": 250,
+      "y": 160
+    },
+    {
+      "height": 90,
+      "id": "choice",
+      "kind": "diamond",
+      "parentId": "container",
+      "rotation": 0,
+      "style": {
+        "fill": "#fff1cc",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "text": "Choice",
+      "width": 150,
+      "x": 300,
+      "y": 230
+    },
+    {
+      "height": 50,
+      "id": "caption",
+      "kind": "text",
+      "rotation": 0,
+      "style": {
+        "fill": "transparent",
+        "fontFamily": "sans",
+        "fontSize": 18,
+        "opacity": 1,
+        "stroke": "#16243a",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "left"
+      },
+      "text": "Independent Chromium + diagrams.net check",
+      "width": 650,
+      "x": 60,
+      "y": 390
+    }
+  ],
+  "id": "interop-external",
+  "metadata": {},
+  "schemaVersion": 1,
+  "title": "Interop acceptance — synthetic"
+}

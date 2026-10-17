@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sketchdraw native P2P acceptance</title></head><body><p>Native transport acceptance fixture</p><script type="module">
+import { createDocument, createController } from '/src/domain/index.ts';
+import { createDocumentAuthority } from '/src/session/index.ts';
+import { createSessionIdentity, createOwnerSession, acceptInvitation } from '/src/collaboration/index.ts';
+const connections = []; const observations = new WeakMap(); const NativeRTC = globalThis.RTCPeerConnection;
+globalThis.RTCPeerConnection = class extends NativeRTC { constructor(config) { super(config); connections.push(this); observations.set(this, []); const timer=setInterval(async()=>{ const pairs=[]; (await this.getStats()).forEach(s=>{if(s.type==='candidate-pair')pairs.push({state:s.state,nominated:s.nominated});}); observations.get(this).push({connectionState:this.connectionState,iceConnectionState:this.iceConnectionState,pairs}); if(this.connectionState==='closed')clearInterval(timer); },5000); } };
+let owner, guest, pairing, authority, human;
+window.p2p = {
+ async init() { authority=createDocumentAuthority({controller:createController(createDocument('Native owner'))}); human=authority.bindActor({actorId:'owner',source:'human',grantId:'ui',grantGeneration:0,guard:()=>({allowed:true})}); owner=await createOwnerSession({authority,identity:await createSessionIdentity()}); },
+ async offer() { return owner.createInvitation('editor'); },
+ async accept(text) { pairing=await acceptInvitation(text,{identity:await createSessionIdentity()}); return {answer:pairing.answer,review:pairing.review}; },
+ async answer(text) { return owner.acceptAnswer(text); },
+ async confirmOwner(code) { guest=await pairing.confirmOwner(code); },
+ async confirmGuest(id,code) { await owner.confirmPeer(id,code); },
+ status() { return guest?.getStatus() ?? owner?.getStatus(); },
+ snapshot() { return guest?.source.getSnapshot() ?? authority?.source.getSnapshot(); },
+ async rename(title) { const gateway=guest?.gateway ?? human.gateway; return gateway.submit({requestId:gateway.nextRequestId(),expectedRevision:this.snapshot().revision,action:{kind:'dispatch',command:{type:'rename',title}}}); },
+ async close() { await guest?.leave(); await owner?.close(); },
+ async diagnostics() { return Promise.all(connections.map(async pc=>{ const pairs=[]; const stats=await pc.getStats(); stats.forEach(s=>{if(s.type==='candidate-pair')pairs.push({state:s.state,nominated:s.nominated,requestsSent:s.requestsSent,responsesReceived:s.responsesReceived});}); return {observations:observations.get(pc),iceServers:pc.getConfiguration().iceServers,iceGatheringState:pc.iceGatheringState,connectionState:pc.connectionState,iceConnectionState:pc.iceConnectionState,localCandidateCount:pc.localDescription?.sdp.split('a=candidate:').length-1,remoteCandidateCount:pc.remoteDescription?.sdp.split('a=candidate:').length-1,remoteCertificates:pc.sctp?.transport.getRemoteCertificates().length,maxMessageSize:pc.sctp?.maxMessageSize,pairs};})); }
+};
+</script></body></html>

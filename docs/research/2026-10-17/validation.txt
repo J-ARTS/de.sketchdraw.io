@@ -1,0 +1,9 @@
+Research artifact validation
+Date: 2026-10-17T14:23:03.102200+02:00
+Environment: macOS; Python 3 standard library; local working files, uncommitted
+Scope: documentation and screenshot integrity only; no Sketchdraw product tests executed.
+Checks: local Markdown targets; trailing whitespace; JPEG SOF dimensions; SHA-256 manifest.
+Previous sequential check: 13 JPEGs, each 1280x720; all existing Markdown targets resolve; no trailing whitespace.
+docs/design-research.md SHA256 d28da2a613fbf4fe559fa66d343141d37b6d034e06b3f6f3fa00191170d1bdac
+docs/research/2026-10-17/README.md SHA256 d2a1b29d44c644cf6fe8aa45736808d8e7d3052aceccf9bfb2d94ae75795b62a
+PASS: final Markdown check; 20 local links resolve; screenshot hashes verified.

@@ -1,0 +1,1341 @@
+{
+  "schemaVersion": 1,
+  "repository": "J-ARTS/de.sketchdraw.io",
+  "updatedAt": "2026-10-17T14:41:37.062167+00:00",
+  "issues": [
+    {
+      "number": 4,
+      "title": "Sketchdraw umsetzen: Architektur, Sprints und koordinierte Agentenarbeit",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/4",
+      "owner": "Codex",
+      "phase": "Epic",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 5,
+      "title": "S0: UI/UX-Recherche und kritische Designempfehlungen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/5",
+      "owner": "Claude Code / Codex-Recherche",
+      "phase": "S0",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 3,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 6,
+      "title": "S0: Architektur, Verträge und Sprintplan",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/6",
+      "owner": "Codex",
+      "phase": "S0",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        5
+      ]
+    },
+    {
+      "number": 7,
+      "title": "S0: Graphify-Verknüpfung von Tickets, Tools und Arbeitsaufwand",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/7",
+      "owner": "Codex",
+      "phase": "S0",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 3,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 8,
+      "title": "S1: Electron/Vue/TypeScript-Grundgerüst und lokale Persistenz",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/8",
+      "owner": "Antigravity",
+      "phase": "S1",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        6
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 9,
+      "title": "S1: Dokumentmodell, Commands und Undo/Redo",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/9",
+      "owner": "Antigravity",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        6
+      ]
+    },
+    {
+      "number": 10,
+      "title": "S1: Minimalistisches Infinite Whiteboard",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/10",
+      "owner": "Claude Code",
+      "phase": "S1",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 8,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        5,
+        8,
+        9
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 11,
+      "title": "S2: Diagram as Code und Cloud-Komponenten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/11",
+      "owner": "Antigravity + Claude Code",
+      "phase": "S2",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 8,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9,
+        10
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 12,
+      "title": "S3: draw.io, SVG und offene Import-/Exportformate",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/12",
+      "owner": "Antigravity + Claude Code",
+      "phase": "S3",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9,
+        10
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 13,
+      "title": "S3: Agent-Native MCP und Skills",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/13",
+      "owner": "Antigravity",
+      "phase": "S3",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 14,
+      "title": "S4: Strict-P2P-Zusammenarbeit und lokale Identitäten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/14",
+      "owner": "Antigravity + Claude Code",
+      "phase": "S4",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 13,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9,
+        10
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 15,
+      "title": "S5: Unit-/UI-Tests, Integration und Plattformprüfung",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/15",
+      "owner": "Codex",
+      "phase": "S5",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 8,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "number": 16,
+      "title": "Build-Abhängigkeiten: sprintf-js-Auditbefund ohne riskanten Downgrade beheben",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/16",
+      "owner": "Codex / Antigravity",
+      "phase": "S1",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "number": 17,
+      "title": "Desktop: eigene app-Seite wird von IPC abgewiesen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/17",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "number": 18,
+      "title": "Rotierte Connectoren verlieren die Zielbindung",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/18",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9
+      ]
+    },
+    {
+      "number": 19,
+      "title": "Undo nach Replace verliert Elementtyp",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/19",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9
+      ]
+    },
+    {
+      "number": 20,
+      "title": "Commands überschreiten Speicherlimit",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/20",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9
+      ]
+    },
+    {
+      "number": 21,
+      "title": "Unsichere Revisionen brechen CAS",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/21",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        9
+      ]
+    },
+    {
+      "number": 22,
+      "title": "Save-as und Export überschreiben externe Änderungen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/22",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "number": 23,
+      "title": "Symlink-Pfade umgehen Dateisperren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/23",
+      "owner": "Antigravity / Codex Testing",
+      "phase": "S1",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "number": 24,
+      "title": "Release: GitHub Actions mit Windows-, macOS-M1- und Linux-Installern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/24",
+      "owner": "Antigravity / Codex",
+      "phase": "S5",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        4,
+        15
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    }
+  ],
+  "runs": [
+    {
+      "id": "codex-orchestration-001",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        4,
+        6,
+        15
+      ],
+      "status": "running",
+      "startedAt": "2026-10-17T12:07:31Z",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/architecture.md",
+        "docs/sprints.md",
+        "docs/concerns.md",
+        "docs/contracts.md",
+        "src/domain/types.ts",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "docs/decisions/0001-shared-document-contract.md",
+        "docs/decisions/0002-direct-peer-session-order.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "codex-graph-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        7
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T12:07:31Z",
+      "endedAt": "2026-10-17T12:28:47.105539+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tools/graphify-links.py",
+        "tools/tests/test_graphify_links.py",
+        "docs/graphify-traceability.md",
+        "docs/reviews/graphify-validation.md"
+      ],
+      "concerns": [
+        "C-005",
+        "C-006",
+        "issue-7:path-collision",
+        "issue-7:parallel-edge",
+        "issue-7:hyperedge-reference"
+      ]
+    },
+    {
+      "id": "codex-research-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        5
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T12:14:41.159252+00:00",
+      "endedAt": "2026-10-17T12:26:59.618603+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/design-research.md",
+        "docs/research/2026-10-17/README.md",
+        "docs/research/2026-10-17/validation.txt"
+      ],
+      "concerns": [
+        "DR-C01",
+        "DR-C02",
+        "DR-C03",
+        "C-008",
+        "C-009",
+        "C-010",
+        "DR-C07"
+      ]
+    },
+    {
+      "id": "antigravity-architecture-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        4,
+        6
+      ],
+      "status": "blocked",
+      "startedAt": "2026-10-17T12:22:08.787580+00:00",
+      "endedAt": "2026-10-17T12:23:34.187885+00:00",
+      "observedSeconds": 27.16780320799444,
+      "tokens": 34056,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Antigravity JSON total_tokens; elapsedSeconds measured with monotonic clock around CLI process. No report returned; command permission denied."
+    },
+    {
+      "id": "antigravity-architecture-002",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        4,
+        6
+      ],
+      "status": "partial_report_received",
+      "startedAt": "2026-10-17T12:23:34.187885+00:00",
+      "endedAt": "2026-10-17T12:30:03.163132+00:00",
+      "observedSeconds": 304.4758637920022,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/antigravity-architecture.md"
+      ],
+      "concerns": [
+        "AG-01",
+        "AG-02",
+        "AG-03",
+        "AG-04",
+        "AG-05",
+        "AG-06",
+        "AG-07",
+        "AG-08",
+        "AG-09",
+        "AG-10"
+      ],
+      "measurementSource": "Monotonic elapsed CLI process duration. Nonempty response truncated at 5-minute timeout; returned 0 token/duration counters are unavailable, not zero usage."
+    },
+    {
+      "id": "claude-architecture-001",
+      "tool": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "mode": "ultracode",
+      "issues": [
+        4,
+        5,
+        6
+      ],
+      "status": "interrupted",
+      "startedAt": "2026-10-17T12:24:23.066330+00:00",
+      "endedAt": "2026-10-17T12:26:59.618603+00:00",
+      "observedSeconds": 31.366549791011494,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Measured CLI process lifetime. Effort flag ignored by CLI 2.1.185. Sonnet 5.5 workflow started then stopped; partial usage not treated as final total."
+    },
+    {
+      "id": "claude-architecture-002",
+      "tool": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "mode": "ultracode=true; effort=xhigh",
+      "issues": [
+        4,
+        5,
+        6
+      ],
+      "status": "report_received",
+      "startedAt": "2026-10-17T12:26:59.618603+00:00",
+      "endedAt": "2026-10-17T12:49:19.033615+00:00",
+      "observedSeconds": 1057.552092458005,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/claude-architecture.md"
+      ],
+      "concerns": [
+        "CL-01",
+        "CL-02",
+        "CL-03",
+        "CL-04",
+        "CL-05",
+        "CL-06",
+        "CL-07",
+        "CL-08",
+        "CL-09",
+        "CL-10",
+        "CL-11",
+        "CL-12",
+        "CL-13",
+        "CL-14"
+      ],
+      "measurementSource": "Monotonic process lifetime. Two result events include resumed-session/workflow counters with different aggregation scopes; tokens and actual billed cost left unknown to avoid double counting. Explicit Sonnet 5.5 Workflow observed."
+    },
+    {
+      "id": "antigravity-setup-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        8
+      ],
+      "status": "blocked",
+      "startedAt": "2026-10-17T12:31:18.956824+00:00",
+      "endedAt": "2026-10-17T12:35:12.390085+00:00",
+      "observedSeconds": 25.4481884589768,
+      "tokens": 18927,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "CLI model usage and measured process duration. Auto mode unavailable; shell command denied; no implementation returned."
+    },
+    {
+      "id": "antigravity-setup-002",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        8
+      ],
+      "status": "integration_review",
+      "startedAt": "2026-10-17T12:35:12.390085+00:00",
+      "endedAt": "2026-10-17T12:49:19.033615+00:00",
+      "observedSeconds": 362.08180845802417,
+      "tokens": 104590,
+      "costUsd": null,
+      "artifacts": [
+        "package.json",
+        "scripts/build-electron.mjs",
+        "scripts/dev-electron.mjs",
+        ".github/workflows/ci.yml",
+        "docs/setup.md"
+      ],
+      "concerns": [
+        "SB-01",
+        "SB-02",
+        "SB-03",
+        "SB-04"
+      ],
+      "measurementSource": "Final CLI usage.total_tokens=104590 (input+output; cache separately reported), monotonic process duration. Files delivered; no product tests by implementer; cost unknown."
+    },
+    {
+      "id": "antigravity-domain-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        9
+      ],
+      "status": "review_findings",
+      "startedAt": "2026-10-17T12:49:19.033615+00:00",
+      "endedAt": "2026-10-17T13:08:47.065042+00:00",
+      "observedSeconds": 1032.2078060409985,
+      "tokens": 233769,
+      "costUsd": null,
+      "artifacts": [
+        "src/domain/index.ts",
+        "src/domain/commands.ts",
+        "src/domain/controller.ts",
+        "src/domain/validation.ts",
+        "docs/reviews/antigravity-domain.md"
+      ],
+      "concerns": [
+        "issue-18",
+        "issue-19",
+        "issue-20",
+        "issue-21"
+      ],
+      "measurementSource": "Monotonic CLI elapsed duration; final usage.total_tokens when supplied. Report received, independent tests expose four repair issues; no billed cost available."
+    },
+    {
+      "id": "claude-whiteboard-001",
+      "tool": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "issues": [
+        10
+      ],
+      "status": "partial_continued",
+      "startedAt": "2026-10-17T12:49:19.033615+00:00",
+      "endedAt": "2026-10-17T13:15:36.688676+00:00",
+      "observedSeconds": 1258.9505213749944,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/state/contract.ts",
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/lib/viewport.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "Monotonic CLI duration; CLI ended with Phase 1 pending, not task completion. Resumed session and workflow usage scopes overlap, so tokens/cost remain unknown. Continued in claude-whiteboard-002."
+    },
+    {
+      "id": "codex-domain-tests-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        15,
+        9
+      ],
+      "status": "verified",
+      "startedAt": "2026-10-17T12:49:19.033615+00:00",
+      "endedAt": "2026-10-17T13:15:36.688676+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/unit/domain.spec.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "18/18 independent acceptance tests executed by root against initial implementation; later regression tests separately exposed four bugs. No per-subagent token/time accounting available."
+    },
+    {
+      "id": "codex-setup-integration-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        8,
+        15
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T12:49:19.033615+00:00",
+      "endedAt": "2026-10-17T12:54:06.889689+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "scripts/dev-electron.mjs",
+        "tests/unit/dev-electron.test.mjs",
+        "docs/reviews/setup-validation.md"
+      ],
+      "concerns": [
+        "setup:port-ownership",
+        "setup:process-cleanup",
+        "setup:windows-command-shim"
+      ]
+    },
+    {
+      "id": "antigravity-desktop-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        8
+      ],
+      "status": "review_findings",
+      "startedAt": "2026-10-17T12:52:05.997950+00:00",
+      "endedAt": "2026-10-17T13:15:36.688676+00:00",
+      "observedSeconds": 1101.2148292919737,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "electron/main.ts",
+        "electron/persistence.ts",
+        "electron/security.ts",
+        "src/platform/index.ts",
+        "docs/reviews/antigravity-desktop.md"
+      ],
+      "concerns": [
+        "issue-17",
+        "issue-22",
+        "issue-23"
+      ],
+      "measurementSource": "Monotonic CLI duration. endedAt is coordinator receipt checkpoint, not a measured finish timestamp. No billed cost available. Independent review has three repair issues."
+    },
+    {
+      "id": "codex-s2-contract-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        6,
+        11
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T12:52:05.997950+00:00",
+      "endedAt": "2026-10-17T13:08:47.065042+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/contracts-s2.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "codex-dependency-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        8,
+        16
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T12:54:06.889689+00:00",
+      "endedAt": "2026-10-17T13:08:47.065042+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/unit/build-downloader.test.mjs"
+      ],
+      "concerns": [
+        "GHSA-hp3w-g68c-fv3c"
+      ]
+    },
+    {
+      "id": "antigravity-domain-fixes-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        9,
+        18,
+        19,
+        20,
+        21
+      ],
+      "status": "verified",
+      "startedAt": "2026-10-17T13:08:47.065042+00:00",
+      "endedAt": "2026-10-17T13:22:28.064048+00:00",
+      "observedSeconds": 761.4262347500189,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/antigravity-domain-fixes.md",
+        "docs/reviews/domain-validation.md",
+        "src/domain/controller.ts",
+        "src/domain/geometry.ts",
+        "src/domain/validation.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "Monotonic CLI elapsed time. Root executed 32 domain tests and Electron Typecheck successfully at recorded file hashes. endedAt is receipt/validation checkpoint; tokens/cost not inferred."
+    },
+    {
+      "id": "antigravity-codec-catalog-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        11
+      ],
+      "status": "partial_needs_fixes",
+      "startedAt": "2026-10-17T13:08:47.065042+00:00",
+      "endedAt": "2026-10-17T13:45:49.170119+00:00",
+      "observedSeconds": 1803.031742333027,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/codec/index.ts",
+        "src/catalog/index.ts",
+        "docs/reviews/codex-codec-catalog-findings.md"
+      ],
+      "concerns": [],
+      "measurementSource": "Monotonic CLI duration; empty final response after 30-minute run. Actual code delivered, but 13 own tests failed and 9 TypeScript errors found. No completion claim. Token totals omitted pending run-scope audit."
+    },
+    {
+      "id": "codex-domain-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        9,
+        15,
+        18,
+        19,
+        20,
+        21
+      ],
+      "status": "review_findings",
+      "startedAt": "2026-10-17T13:08:47.065042+00:00",
+      "endedAt": "2026-10-17T13:08:47.065042+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/unit/domain-review.spec.ts",
+        "docs/reviews/codex-domain-findings.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "codex-desktop-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        8,
+        15,
+        22,
+        23
+      ],
+      "status": "review_findings",
+      "startedAt": "2026-10-17T13:08:47.065042+00:00",
+      "endedAt": "2026-10-17T13:08:47.065042+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/unit/desktop-review.spec.ts"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "antigravity-desktop-fixes-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        8,
+        17,
+        22,
+        23
+      ],
+      "status": "verified_backend",
+      "startedAt": "2026-10-17T13:15:36.688676+00:00",
+      "endedAt": "2026-10-17T13:33:32.744243+00:00",
+      "observedSeconds": 821.7009251249838,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/antigravity-desktop-fixes.md",
+        "docs/reviews/desktop-validation.md",
+        "electron/security.ts",
+        "electron/persistence.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "Monotonic CLI process duration; endedAt is coordinator validation checkpoint. Root verified32 backendtests, Electron typecheck and bundle. Native UI integration remains untested."
+    },
+    {
+      "id": "claude-whiteboard-002",
+      "tool": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "issues": [
+        10
+      ],
+      "status": "blocked",
+      "startedAt": "2026-10-17T13:15:36.688676+00:00",
+      "endedAt": "2026-10-17T13:21:18.071088+00:00",
+      "observedSeconds": 332.47125441697426,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/state/contract.ts"
+      ],
+      "concerns": [
+        "claude-session-limit-2026-10-17"
+      ],
+      "measurementSource": "CLI HTTP429 session limit, reported reset 18:00 Europe/Berlin. Monotonic process duration. Incomplete UI. Resumed-session usage scope unclear: tokens/cost not inferred."
+    },
+    {
+      "id": "codex-mcp-contract-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        6,
+        13
+      ],
+      "status": "findings_adopted",
+      "startedAt": "2026-10-17T13:15:36.688676+00:00",
+      "endedAt": "2026-10-17T13:29:45.558443+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/codex-mcp-contract-review.md",
+        "docs/contracts-mcp.md"
+      ],
+      "concerns": [
+        "MC-01",
+        "MC-02",
+        "MC-03",
+        "MC-04",
+        "MC-05",
+        "MC-06"
+      ]
+    },
+    {
+      "id": "codex-interop-contract-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        6,
+        12
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T13:15:36.688676+00:00",
+      "endedAt": "2026-10-17T13:29:45.558443+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/contracts-interop.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "codex-p2p-contract-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        6,
+        14
+      ],
+      "status": "reviewed",
+      "startedAt": "2026-10-17T13:21:18.071088+00:00",
+      "endedAt": "2026-10-17T13:45:49.170119+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/contracts-p2p.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "antigravity-interop-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        12
+      ],
+      "status": "quota_partial",
+      "startedAt": "2026-10-17T13:29:45.558443+00:00",
+      "endedAt": "2026-10-17T14:19:31.576770+00:00",
+      "observedSeconds": 1105.4238145420095,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Measured monotonic CLI lifetime; end recorded at reconciliation, not process exit. Resume usage counters are cumulative and not attributed again."
+    },
+    {
+      "id": "antigravity-release-pipeline-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        24
+      ],
+      "status": "review_findings",
+      "startedAt": "2026-10-17T13:29:45.558443+00:00",
+      "endedAt": "2026-10-17T14:19:31.576770+00:00",
+      "observedSeconds": 1051.6159233329818,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Measured monotonic CLI lifetime; end recorded at reconciliation, not process exit. Resume usage counters are cumulative and not attributed again."
+    },
+    {
+      "id": "codex-codec-catalog-tests-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        11,
+        15
+      ],
+      "status": "verified_backend",
+      "startedAt": "2026-10-17T13:29:45.558443+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/codec-catalog-validation.md"
+      ],
+      "concerns": []
+    },
+    {
+      "id": "antigravity-codec-fixes-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        11
+      ],
+      "status": "partial_verified_backend",
+      "startedAt": "2026-10-17T13:45:49.170119+00:00",
+      "endedAt": "2026-10-17T14:19:31.576770+00:00",
+      "observedSeconds": 699.4673817080329,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Measured monotonic CLI lifetime; end recorded at reconciliation, not process exit. Resume usage counters are cumulative and not attributed again."
+    },
+    {
+      "id": "antigravity-mcp-backend-001",
+      "tool": "antigravity",
+      "model": "gemini-4-argon-high",
+      "issues": [
+        13
+      ],
+      "status": "quota_partial",
+      "startedAt": "2026-10-17T13:45:49.170119+00:00",
+      "endedAt": "2026-10-17T14:19:31.576770+00:00",
+      "observedSeconds": 430.2737105409615,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Measured monotonic CLI lifetime; end recorded at reconciliation, not process exit. Resume usage counters are cumulative and not attributed again."
+    },
+    {
+      "id": "codex-electron-backend-tests-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        8,
+        15
+      ],
+      "status": "verified_backend",
+      "startedAt": "2026-10-17T13:45:49.170119+00:00",
+      "endedAt": "2026-10-17T13:45:49.170119+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/electron/backend-shell.spec.ts",
+        "docs/reviews/electron-backend-validation.md"
+      ],
+      "concerns": [],
+      "measurementSource": "Timestamp is coordinator recording checkpoint, not measured process start. Unknown effort metrics remain null."
+    },
+    {
+      "id": "codex-p2p-contract-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        6,
+        14
+      ],
+      "status": "findings_adopted",
+      "startedAt": "2026-10-17T13:45:49.170119+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [
+        "PP-01"
+      ],
+      "measurementSource": "Timestamp is coordinator recording checkpoint, not measured process start. Unknown effort metrics remain null."
+    },
+    {
+      "id": "codex-release-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        24
+      ],
+      "status": "findings_adopted",
+      "startedAt": "2026-10-17T13:45:49.170119+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/codex-release-review.md"
+      ],
+      "concerns": [],
+      "measurementSource": "Timestamp is coordinator recording checkpoint, not measured process start. Unknown effort metrics remain null."
+    },
+    {
+      "id": "antigravity-mcp-claude-001",
+      "tool": "antigravity",
+      "model": "claude-opus-5-5-high",
+      "issues": [
+        13
+      ],
+      "status": "quota_partial",
+      "startedAt": null,
+      "observedSeconds": 318.88495754200267,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/agent-access/types.ts",
+        "src/agent-access/errors.ts",
+        "src/agent-access/fingerprint.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "Actual Antigravity Claude route requested by user. CLI monotonic elapsed; unknown per-run tokens/cost kept null. Reconciliation timestamp is not exit timestamp.",
+      "reconciledAt": "2026-10-17T14:19:31.576770+00:00",
+      "endedAt": null
+    },
+    {
+      "id": "antigravity-interop-claude-001",
+      "tool": "antigravity",
+      "model": "claude-sonnet-5-5-high",
+      "issues": [
+        12
+      ],
+      "status": "quota_partial",
+      "startedAt": null,
+      "observedSeconds": 93.86574745899998,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Actual Antigravity Claude route requested by user. CLI monotonic elapsed; unknown per-run tokens/cost kept null. Reconciliation timestamp is not exit timestamp.",
+      "reconciledAt": "2026-10-17T14:19:31.576770+00:00",
+      "endedAt": null
+    },
+    {
+      "id": "antigravity-p2p-claude-001",
+      "tool": "antigravity",
+      "model": "claude-opus-5-5-high",
+      "issues": [
+        14
+      ],
+      "status": "quota_no_implementation",
+      "startedAt": null,
+      "observedSeconds": 3.695108624990098,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [],
+      "concerns": [],
+      "measurementSource": "Actual Antigravity Claude route requested by user. CLI monotonic elapsed; unknown per-run tokens/cost kept null. Reconciliation timestamp is not exit timestamp.",
+      "reconciledAt": "2026-10-17T14:19:31.576770+00:00",
+      "endedAt": null
+    },
+    {
+      "id": "codex-whiteboard-takeover-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "status": "integrating",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer",
+        "docs/reviews/codex-whiteboard.md"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-session-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        13,
+        14
+      ],
+      "status": "verified_backend",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/session",
+        "docs/reviews/codex-session.md"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-interop-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        12
+      ],
+      "status": "verified_backend",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/interop",
+        "docs/reviews/codex-interop.md",
+        "tests/unit/interop-review.spec.ts"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-p2p-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        14
+      ],
+      "status": "protocol_verified_native_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/collaboration",
+        "tests/p2p/native.spec.ts",
+        "src/renderer/components/CollaborationPanel.vue"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-mcp-takeover-001",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        13
+      ],
+      "status": "verified_local_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/mcp",
+        "src/agent-access",
+        "electron/agent-access",
+        "tests/unit/mcp/backend.spec.ts",
+        "tests/electron/agent-product.spec.ts",
+        "docs/reviews/codex-mcp-integration.md",
+        "skills/sketchdraw-desktop/SKILL.md"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-release-fixes-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        24
+      ],
+      "status": "verified_local",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/codex-release-fixes.md",
+        "scripts/release-installer-smoke.mjs"
+      ],
+      "concerns": [],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
+      "measurementSource": "No reliable start-to-end timer/token/cost observed; null metrics, no estimated actuals."
+    },
+    {
+      "id": "codex-mcp-independent-review-001",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        13,
+        15
+      ],
+      "status": "verified_boundaries",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tests/unit/mcp-review-boundaries.spec.ts"
+      ],
+      "concerns": [],
+      "measurementSource": "Four independent boundary tests, 18 MCP tests total passed. No reliable runtime/token/cost measurement; metrics stay null."
+    }
+  ],
+  "evidencePolicy": {
+    "unknownMetrics": null,
+    "effortIs": "Separate planned story points from observed elapsed wall time. Never infer tokens or cost.",
+    "operationalOnly": true
+  },
+  "externalAgents": [
+    {
+      "tool": "claude-code",
+      "requestedModel": "Sonnet 5.5 or Opus 5.5",
+      "requestedMode": "ultracode",
+      "status": "quota_limited",
+      "evidence": "Real Claude Code Sonnet5.5 ultracode/xhigh runs delivered review and partial frontend; last response HTTP429 reset18:00Europe/Berlin17Oct2026. No resumed availability claimed."
+    },
+    {
+      "tool": "antigravity",
+      "requestedModel": "Gemini 4 Argon",
+      "observedModel": "gemini-4-argon-high available via agy models",
+      "status": "quota_limited",
+      "evidence": "Real Gemini4ArgonHigh runs delivered architecture/domain/desktop/codec/release contributions. Gemini quota exhausted. Additional user-requested ClaudeOpus5.5High and Sonnet5.5High through Antigravity ran, then also quota limited (~5h). No active external run."
+    }
+  ]
+}

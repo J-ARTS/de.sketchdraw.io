@@ -1,0 +1,46 @@
+export interface InteropLimits {
+  readonly MAX_INPUT_BYTES: number;
+  readonly MAX_EXPORT_BYTES: number;
+  readonly MAX_XML_NODES: number;
+  readonly MAX_XML_DEPTH: number;
+  readonly MAX_ATTRIBUTES_PER_NODE: number;
+  readonly MAX_PAGES: number;
+  readonly MAX_COMPRESSED_PAGE_BYTES: number;
+  readonly MAX_INFLATED_URI_BYTES: number;
+  readonly MAX_DECODED_PAGE_BYTES: number;
+  readonly MAX_EMBEDDED_DOCUMENT_BYTES: number;
+  readonly MAX_PATH_COMMANDS: number;
+  readonly MAX_GENERATED_POINTS: number;
+  readonly MAX_TOTAL_GENERATED_POINTS: number;
+  readonly MAX_DIAGNOSTICS: number;
+  readonly MAX_PRESERVED_SOURCE_BYTES: number;
+  readonly MAX_TOTAL_PRESERVED_SOURCE_BYTES: number;
+  readonly MAX_METADATA_VALUE_CHARS: number;
+  readonly MAX_INFLATE_INPUT_CHUNK_BYTES: number;
+  readonly MAX_USE_DEPTH: number;
+  readonly MAX_CURVE_SUBDIVISION_DEPTH: number;
+  readonly [key: string]: number;
+}
+
+export const INTEROP_LIMITS: Readonly<Record<string, number>> & InteropLimits = Object.freeze({
+  MAX_INPUT_BYTES: 96 * 1024 * 1024,
+  MAX_EXPORT_BYTES: 96 * 1024 * 1024,
+  MAX_XML_NODES: 200_000,
+  MAX_XML_DEPTH: 64,
+  MAX_ATTRIBUTES_PER_NODE: 128,
+  MAX_PAGES: 100,
+  MAX_COMPRESSED_PAGE_BYTES: 32 * 1024 * 1024,
+  MAX_INFLATED_URI_BYTES: 96 * 1024 * 1024,
+  MAX_DECODED_PAGE_BYTES: 32 * 1024 * 1024,
+  MAX_EMBEDDED_DOCUMENT_BYTES: 32 * 1024 * 1024,
+  MAX_PATH_COMMANDS: 10_000,
+  MAX_GENERATED_POINTS: 10_000,
+  MAX_TOTAL_GENERATED_POINTS: 100_000,
+  MAX_DIAGNOSTICS: 200,
+  MAX_PRESERVED_SOURCE_BYTES: 32 * 1024,
+  MAX_TOTAL_PRESERVED_SOURCE_BYTES: 1024 * 1024,
+  MAX_METADATA_VALUE_CHARS: 50_000,
+  MAX_INFLATE_INPUT_CHUNK_BYTES: 1_024,
+  MAX_USE_DEPTH: 16,
+  MAX_CURVE_SUBDIVISION_DEPTH: 16,
+});
