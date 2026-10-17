@@ -56,6 +56,15 @@ watch(bar, (element) => {
   observer.observe(element);
 });
 
+/** Top edge of the rotated selection frame in canvas-local coordinates (same space as `position`). */
+function selectionTopLocal(): number | null {
+  const frame = s.frame;
+  if (!frame) return null;
+  const angle = (frame.rotation * Math.PI) / 180;
+  const extentY = Math.abs((frame.width / 2) * Math.sin(angle)) + Math.abs((frame.height / 2) * Math.cos(angle));
+  return docToScreen(s.viewport, { x: frame.cx, y: frame.cy - extentY }).y;
+}
+
 /** Centered over the selection, below it when the top chrome leaves no room, always inside the canvas. */
 const position = computed(() => {
   const frame = s.frame;
@@ -92,6 +101,14 @@ async function toggle(segment: Segment): Promise<void> {
   popover.value?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
 }
 
+/**
+ * Always anchored 8 px above the selection, so the popover never covers the selected shape.
+ * The anchor is the higher (smaller y) of the context bar's top and the rotated selection frame's
+ * top edge: when the bar sits above the selection the bar is the higher edge; when the bar is pushed
+ * below the selection for lack of room, the shape's top edge governs instead. Clamped to the viewport;
+ * when the space above is tight it scrolls internally. Reads live rects, so every recompute reflects
+ * the current viewport (zoom/pan/scroll).
+ */
 function placePopover(): void {
   const trigger = openSegment.value ? triggers.value[openSegment.value] : null;
   const box = popover.value?.getBoundingClientRect();
@@ -99,14 +116,16 @@ function placePopover(): void {
   if (!trigger || !box || !barBox) return;
   const rect = trigger.getBoundingClientRect();
   const left = Math.max(8, Math.min(rect.left, window.innerWidth - box.width - 8));
-  const spaceBelow = window.innerHeight - barBox.bottom - 16;
-  const spaceAbove = barBox.top - 16;
-  // Prefer below, then above; if neither fits, use the roomier side and scroll inside, never covering the bar.
+  // Convert the selection's top edge from canvas-local to window coordinates via the bar's own offset.
+  const selTopLocal = selectionTopLocal();
+  const windowOffset = barBox.top - position.value.top;
+  const selectionTop = selTopLocal === null ? barBox.top : selTopLocal + windowOffset;
+  const anchorTop = Math.min(barBox.top, selectionTop); // the higher of bar and selection governs
+  const spaceAbove = Math.max(0, anchorTop - 16); // room above the anchor (8 px gap + 8 px top margin)
   const natural = (popover.value?.scrollHeight ?? box.height) + 2; // unclamped height, even after an earlier max-height
-  const below = natural <= spaceBelow || (natural > spaceAbove && spaceBelow >= spaceAbove);
-  const maxHeight = below ? spaceBelow : spaceAbove;
+  const maxHeight = spaceAbove;
   const height = Math.min(natural, maxHeight);
-  popoverAt.value = { left, top: below ? barBox.bottom + 8 : barBox.top - 8 - height, maxHeight };
+  popoverAt.value = { left, top: anchorTop - 8 - height, maxHeight };
 }
 
 function close(returnFocus: boolean): void {
@@ -117,6 +136,21 @@ function close(returnFocus: boolean): void {
 
 watch(() => s.selection.join('|'), () => close(false));
 watch(visible, (value) => { if (!value) close(false); });
+
+/** Keep an open popover anchored when the selection frame, viewport (zoom/pan) or bar size changes. */
+watch([position, barSize], () => { if (openSegment.value) void nextTick(placePopover); }, { deep: true });
+
+/** Document scroll and window resize can move the bar on screen without touching the viewport state. */
+function onViewportShift(): void { if (openSegment.value) placePopover(); }
+watch(openSegment, (segment) => {
+  if (segment) {
+    window.addEventListener('scroll', onViewportShift, true);
+    window.addEventListener('resize', onViewportShift);
+  } else {
+    window.removeEventListener('scroll', onViewportShift, true);
+    window.removeEventListener('resize', onViewportShift);
+  }
+});
 
 /** Only the canvas dismisses a popover; notices and draft recovery stay usable next to it. */
 function onDocumentPointerDown(event: PointerEvent): void {
@@ -141,7 +175,12 @@ function onBarKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown, true));
-onBeforeUnmount(() => { document.removeEventListener('pointerdown', onDocumentPointerDown, true); observer?.disconnect(); });
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+  window.removeEventListener('scroll', onViewportShift, true);
+  window.removeEventListener('resize', onViewportShift);
+  observer?.disconnect();
+});
 
 // --- Values --------------------------------------------------------------------------
 function style(patch: Partial<ElementStyle>): void { store.applyPatch({ style: patch }); }

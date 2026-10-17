@@ -116,6 +116,51 @@ test('the shape picker swaps shapes, keeps connections, filters by search and un
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(2);
 });
 
+test('an open popover stays above the shape even when the bar is pushed below the selection', async ({ page }) => {
+  // A selection near the top edge leaves no room above, so the bar flips below the shape (#38).
+  await drawRectangle(page, [350, 110], [550, 210]);
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  const shape = page.locator('.whiteboard-canvas [data-kind=rectangle]');
+  await bar.getByRole('button', { name: 'Farbe' }).click();
+  const color = page.getByRole('group', { name: 'Farbe', exact: true });
+  await expect(color).toBeVisible();
+
+  // The popover's bottom edge sits 8 px above the higher of the bar and the shape's top edge, so it
+  // can never overlap the selected rectangle — regardless of whether the bar is above or below it.
+  const anchored = async (expectBarBelow: boolean) => {
+    const barBox = (await bar.boundingBox())!;
+    const shapeBox = (await shape.boundingBox())!;
+    const popoverBox = (await color.boundingBox())!;
+    if (expectBarBelow) expect(barBox.y).toBeGreaterThan(shapeBox.y + shapeBox.height);
+    const anchorTop = Math.min(barBox.y, shapeBox.y); // the upper of the two anchors governs
+    const popoverBottom = popoverBox.y + popoverBox.height;
+    expect(popoverBottom).toBeLessThanOrEqual(shapeBox.y + 1); // never covers the shape
+    expect(Math.abs(popoverBottom - (anchorTop - 8))).toBeLessThan(3);
+    return barBox.y;
+  };
+  const initialBarY = await anchored(true);
+
+  // Zoom out over the canvas: the selection shrinks and the bar may jump back above the shape.
+  await page.mouse.move(450, 160);
+  await page.keyboard.down('Control');
+  for (let i = 0; i < 6; i += 1) await page.mouse.wheel(0, 120);
+  await page.keyboard.up('Control');
+  await expect.poll(async () => (await bar.boundingBox())!.y).not.toBe(initialBarY);
+  await expect(color).toBeVisible();
+  const zoomedBarY = await anchored(false);
+
+  // Pan the viewport: the popover re-computes and stays above whichever anchor is now higher.
+  await page.mouse.wheel(0, -80);
+  await expect.poll(async () => (await bar.boundingBox())!.y).not.toBe(zoomedBarY);
+  await expect(color).toBeVisible();
+  await anchored(false);
+
+  // Focus and keyboard dismissal remain intact after the viewport changes.
+  await page.keyboard.press('Escape');
+  await expect(color).toHaveCount(0);
+  await expect(bar.getByRole('button', { name: 'Farbe' })).toBeFocused();
+});
+
 test('shape text is edited in place without a box or buttons and commits like the canvas', async ({ page }) => {
   await drawRectangle(page);
   await page.keyboard.press('Enter');
