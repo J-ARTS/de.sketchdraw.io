@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:48:49+02:00",
+  "updatedAt": "2026-10-17T19:56:21+02:00",
   "issues": [
     {
       "number": 4,
@@ -514,7 +514,7 @@
       "owner": "Antigravity / Codex Testing",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Desktop lifecycle",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1991,7 +1991,7 @@
       "issues": [
         32
       ],
-      "status": "verified_local_integration",
+      "status": "verified_cross_platform",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -2002,13 +2002,35 @@
         "https://github.com/J-ARTS/de.sketchdraw.io/commit/787914a8400ecc0f462ea996ba3072b9d743f9a3",
         "electron/agent-access/electron-bridge.ts",
         "tests/electron/agent-product.spec.ts",
-        "tests/electron/desktop.spec.ts"
+        "tests/electron/desktop.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39055418909"
       ],
       "concerns": [
         "destroyed-browser-window-lifecycle"
       ],
       "authorization": "User explicitly requested the shutdown bug fix; Codex performs the temporary implementation takeover while Antigravity remains the regular logic owner.",
-      "measurementSource": "Actual built Electron product reproduced the defect before correction: uncaughtExceptionMonitor wrote the fixed destroyed-object marker during app exit. After capturing WebContents before BrowserWindow destruction, the same test passed. Final local validation: targeted red/green product test1/1, typecheck, Vitest285/285, Node58/58 and complete Electron6/6 passed; production build passed with only the existing bundle-size warning. Cross-platform CI pending. No measured agent duration/tokens/cost."
+      "measurementSource": "Actual built Electron product reproduced the defect before correction: uncaughtExceptionMonitor wrote the fixed destroyed-object marker during app exit. After capturing WebContents before BrowserWindow destruction, the same test passed. Final local validation: targeted red/green product test 1/1, typecheck, Vitest 285/285, Node 58/58 and complete Electron 6/6 passed; production build passed with only the existing bundle-size warning. GitHub Actions run 39055418909 then passed Governance/Graphify, direct P2P and the full Linux, macOS and Windows build, UI, platform Electron and package-directory verification. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "github-actions-shutdown-cleanup-39055418909",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        32
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T17:49:21Z",
+      "endedAt": "2026-10-17T17:55:54Z",
+      "observedSeconds": 393,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39055418909",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/76eba54266c4fec9ecae3ab02ee5fa510fd8c5ab",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/787914a8400ecc0f462ea996ba3072b9d743f9a3"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub Actions run 39055418909 at 76eba54266c4fec9ecae3ab02ee5fa510fd8c5ab: Governance/Graphify 117462284103, direct P2P 117462283912, Linux 117462313800, macOS 117462313771 and Windows 117462313854 all completed successfully. Each platform job passed configuration/application typechecks, Node and Vitest unit suites, production build, browser UI tests, its platform Electron suite and non-publishing package-directory verification. Runtime 393 seconds; no token or cost metric applies."
     }
   ],
   "evidencePolicy": {
