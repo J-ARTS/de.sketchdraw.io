@@ -1,5 +1,5 @@
-import { serializeDocument, validateDocument } from '../domain';
-import type { Point, SketchDocument, SketchElement } from '../domain';
+import { connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, serializeDocument, validateDocument } from '../domain';
+import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
 import { builtInComponentSets } from '../catalog';
@@ -34,10 +34,22 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
   if (visibleText === '')
     return '';
   diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Editable text depends on fonts available in the receiving application.');
-  const font = el.style.fontSize, align = el.style.textAlign;
+  const font = el.style.fontSize, align = el.kind === 'connector' ? 'center' : el.style.textAlign;
   const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width : 0;
+  const y = el.kind === 'connector' ? el.height / 2 : font;
   const text = xmlText(visibleText, d, el);
-  return `<text${attrs({ x, y: font, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, stroke: 'none', 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: font + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+  return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+}
+const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = { none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block', circle: 'oval', diamond: 'diamond' };
+function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
+  if (marker === 'none') return '';
+  const common = `id="${id}" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"`;
+  const paint = `stroke="${escapeXmlAttr(stroke)}" stroke-width="${n(Math.max(1, width))}" stroke-linejoin="round"`;
+  if (marker === 'line-arrow') return `<marker ${common}><path d="M2 2L11 7L2 12" fill="none" ${paint}/></marker>`;
+  if (marker === 'solid-arrow') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="${escapeXmlAttr(stroke)}" ${paint}/></marker>`;
+  if (marker === 'triangle') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="white" ${paint}/></marker>`;
+  if (marker === 'circle') return `<marker ${common}><circle cx="7" cy="7" r="5" fill="white" ${paint}/></marker>`;
+  return `<marker ${common}><path d="M1 7L7 1L13 7L7 13Z" fill="white" ${paint}/></marker>`;
 }
 function safeIcon(node: SafeSvgElementNode): string {
   return `<${node.tag}${attrs(node.attributes)}>${node.children.map(safeIcon).join('')}</${node.tag}>`;
@@ -70,13 +82,21 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     if (el.description !== undefined)
       out.append(`<desc>${escapeXmlText(xmlText(el.description, d, el))}</desc>`);
     const paint = svgPaint(el, d);
+    const markerStart = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
+    const markerEnd = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
+    if (el.kind === 'connector' && (markerStart !== 'none' || markerEnd !== 'none')) {
+      const markerColor = safeColor(el.style.stroke, d, el);
+      out.append(`<defs>${svgMarker(`sd-${index}-start`, markerStart, markerColor, el.style.strokeWidth)}${svgMarker(`sd-${index}-end`, markerEnd, markerColor, el.style.strokeWidth)}</defs>`);
+    }
     if (['rectangle', 'container', 'component'].includes(el.kind))
       out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}"${paint}/>`);
     else if (el.kind === 'ellipse')
       out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}"${paint}/>`);
     else if (el.kind === 'diamond')
       out.append(`<polygon points="${n(el.width / 2)},0 ${n(el.width)},${n(el.height / 2)} ${n(el.width / 2)},${n(el.height)} 0,${n(el.height / 2)}"${paint}/>`);
-    else if (el.kind === 'path' || el.kind === 'connector')
+    else if (el.kind === 'connector')
+      out.append(`<path d="${escapeXmlAttr(connectorPathData(el))}"${paint}${attrs({ 'marker-start': markerStart === 'none' ? undefined : `url(#sd-${index}-start)`, 'marker-end': markerEnd === 'none' ? undefined : `url(#sd-${index}-end)` })}/>`);
+    else if (el.kind === 'path')
       out.append(`<polyline points="${el.points!.map(p => `${n(p.x)},${n(p.y)}`).join(' ')}"${paint}/>`);
     else if (el.kind === 'image')
       out.append(`<image${attrs({ x: 0, y: 0, width: el.width, height: el.height, href: document.assets[el.assetId!]!.dataUrl, opacity: el.style.opacity, preserveAspectRatio: 'none' })}/>`);
@@ -103,7 +123,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
     const text = xmlText(el.text || el.label || '', d, el);
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=none`, `endArrow=none`];
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorStartMarker(el)] : 'none'}`, `endArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorEndMarker(el)] : 'none'}`];
     if (el.kind === 'ellipse')
       style.push('ellipse');
     else if (el.kind === 'diamond')
@@ -116,7 +136,9 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
     const edge = el.kind === 'connector' || el.kind === 'path';
     if (edge) {
-      style.push('edgeStyle=none', 'noEdgeStyle=1');
+      if (el.kind === 'connector' && connectorRouting(el) === 'elbowed') style.push('edgeStyle=orthogonalEdgeStyle', 'rounded=1', 'noEdgeStyle=0');
+      else if (el.kind === 'connector' && connectorRouting(el) === 'curved') style.push('edgeStyle=none', 'curved=1', 'noEdgeStyle=1');
+      else style.push('edgeStyle=none', 'noEdgeStyle=1');
       if (el.rotation !== 0)
         style.push('rotation=0');
       for (const [side, endpoint] of [['exit', el.from], ['entry', el.to]] as const)

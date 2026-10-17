@@ -1,5 +1,5 @@
 import { createElement } from '../domain';
-import type { Endpoint, Point, SketchElement } from '../domain';
+import type { ConnectorMarker, Endpoint, Point, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
@@ -71,7 +71,8 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'labelBackgroundColor', 'container', 'rounded', 'shadow', 'swimlane']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'labelBackgroundColor', 'container', 'rounded', 'shadow', 'swimlane']);
+const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = { none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow', block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond' };
 function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
   s.fill = color(v['fillColor'], cell.edge ? 'transparent' : '#ffffff', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'fillColor', 'Unsupported fill replaced.'));
@@ -94,7 +95,7 @@ function styleOf(cell: Cell, ctx: ImportContext) {
   }
   s.strokeDash = v['dashed'] === '1' ? (v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
   for (const [key, value] of Object.entries(v))
-    if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0') || (['startArrow', 'endArrow'].includes(key) && value !== 'none'))
+    if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1')) || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
       warn(ctx, node, 'STYLE_APPROXIMATED', key, `Style ${key} is not represented exactly.`);
   if (cell.hidden) {
     s.opacity = 0;
@@ -270,9 +271,12 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
     }
     const waypointArray = cell.geometry && children(cell.geometry).find(n => named(n, 'Array') && n.attributes['as'] === 'points');
     const waypoints = waypointArray ? children(waypointArray).filter(n => named(n, 'mxPoint')).map(n => ({ x: number(n.attributes['x']) + origin.x, y: number(n.attributes['y']) + origin.y })) : [];
-    if (cell.style['edgeStyle'] && cell.style['edgeStyle'] !== 'none')
+    if (cell.style['edgeStyle'] && !['none', 'orthogonalEdgeStyle'].includes(cell.style['edgeStyle']))
       warn(ctx, cell.node, 'ROUTING_APPROXIMATED', 'edgeStyle', 'Stored waypoints are retained without executing a foreign router.');
     const element = pointsElement(ctx, [endpoints[0]!.point!, ...waypoints, endpoints[1]!.point!], cell.node, edgeStyle, 'connector', ctx.ids.resolveId(cell.id, 'edge', ctx.diagnostics));
+    element.connectorRouting = cell.style['curved'] === '1' ? 'curved' : cell.style['edgeStyle'] === 'orthogonalEdgeStyle' ? 'elbowed' : 'straight';
+    element.startMarker = DRAWIO_MARKERS[cell.style['startArrow'] ?? 'none'] ?? 'none';
+    element.endMarker = DRAWIO_MARKERS[cell.style['endArrow'] ?? 'none'] ?? 'none';
     if (endpoints[0]!.binding)
       element.from = endpoints[0]!.binding;
     if (endpoints[1]!.binding)

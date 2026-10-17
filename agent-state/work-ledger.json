@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:13:47.785144Z",
+  "updatedAt": "2026-10-17T22:36:46Z",
   "issues": [
     {
       "number": 4,
@@ -634,6 +634,56 @@
       "dependencies": [
         37,
         43
+      ]
+    },
+    {
+      "number": 45,
+      "title": "Pfeile wie in FigJam gestalten und immer zwei Elemente verbinden",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/45",
+      "owner": "OpenAI Codex",
+      "currentImplementer": "Codex (architecture, temporary logic/UI implementation and testing), Claude Code (UI research/review); Antigravity unavailable due quota",
+      "phase": "Architecture, UI, logic, interface and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        46,
+        47
+      ]
+    },
+    {
+      "number": 46,
+      "title": "Verbindungsmodell, Routing und Interoperabilität erweitern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/46",
+      "owner": "Google Antigravity",
+      "currentImplementer": "Codex temporary takeover because Antigravity quota was unavailable",
+      "phase": "Logic and interface",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 47,
+      "title": "FigJam-inspirierte Pfeilleiste und Verbindungsinteraktion umsetzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/47",
+      "owner": "Claude Code",
+      "currentImplementer": "Codex temporary implementation; Claude Code UI research and final review",
+      "phase": "UI",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        46
       ]
     }
   ],
@@ -2670,6 +2720,114 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39073704784 at 5841866c527514501edddb87ad50edc9e17445dd: Governance/Graphify 117516395475, direct P2P 117516395309, Ubuntu 117516433020, macOS 117516433070 and Windows 117516433085 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds, 35 browser UI tests including the text-edit toolbar regression, Electron integration and non-publishing package-directory verification. Runtime 418 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "chrome-figjam-connector-research-045",
+      "tool": "chrome",
+      "model": null,
+      "issues": [
+        45,
+        47
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/45",
+        "https://www.figma.com/board/s2F3iDDeVgyjrie7NgxmsG/Untitled?node-id=6-280"
+      ],
+      "concerns": [],
+      "authorization": "The user explicitly requested inspecting the supplied FigJam board in Chrome.",
+      "measurementSource": "Codex inspected the live FigJam selection toolbar and recorded color, line weight/style, text, routing and endpoint marker controls. No duration, token or cost metric was captured."
+    },
+    {
+      "id": "antigravity-connector-attempt-046",
+      "tool": "antigravity",
+      "model": "Claude Sonnet 5.5",
+      "issues": [
+        46
+      ],
+      "status": "no_work_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/46"
+      ],
+      "concerns": [
+        "Antigravity displayed exhausted baseline and individual Claude quotas, so it produced no repository work for this ticket."
+      ],
+      "authorization": "The project role assigns logic and interface work to Antigravity; the user had authorized Codex to take over temporarily when unavailable with actual-tool attribution.",
+      "measurementSource": "The local Antigravity UI showed quota exhaustion. No measured duration, token count or cost was available."
+    },
+    {
+      "id": "claude-code-connector-ui-review-047",
+      "tool": "claude-code",
+      "model": "Claude Sonnet",
+      "issues": [
+        47
+      ],
+      "status": "review_completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/47",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "tests/ui/connectors.spec.ts"
+      ],
+      "concerns": [
+        "Claude recommended avoiding an incomplete ARIA radio pattern; Codex changed the connector choices to ordinary pressed-button groups.",
+        "Claude requested explicit color coverage; Codex added a browser assertion for connector stroke color.",
+        "Other reported points concerned existing text/shape behavior or were disproved by the global keyboard handler and existing viewport tests."
+      ],
+      "authorization": "The project role assigns UI review to Claude Code and the user explicitly asked to use Claude Code.",
+      "measurementSource": "Claude Code reviewed the bounded UI diff without editing files. No duration, token or cost metric was available."
+    },
+    {
+      "id": "codex-connector-implementation-045",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        45,
+        46,
+        47
+      ],
+      "status": "locally_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/45",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/46",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/47",
+        "src/domain/connectors.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/interop/export.ts",
+        "src/interop/drawio.ts",
+        "tests/unit/domain/connectors.spec.ts",
+        "tests/unit/interop/connectors.spec.ts",
+        "tests/ui/connectors.spec.ts"
+      ],
+      "concerns": [
+        "Legacy and imported free connectors remain representable for interoperability; the interactive connector tool alone enforces two distinct bound elements.",
+        "Cross-platform GitHub Actions evidence is pending until the integrated commit is pushed."
+      ],
+      "authorization": "The user explicitly authorized Codex to take over unavailable agent implementation while documenting assigned and actual tools; Codex owns architecture and testing.",
+      "measurementSource": "Codex implemented the connector contract, strict creation gesture, renderer, toolbar, SVG/draw.io mapping and regression tests. Local evidence: typecheck passed, 308 unit tests passed, 37 browser UI tests passed, 6 Electron tests passed, 3 native P2P tests passed and the renderer production build passed. No duration, token or cost metric was captured."
     }
   ],
   "evidencePolicy": {
@@ -2682,15 +2840,15 @@
       "tool": "claude-code",
       "requestedModel": "Sonnet 5.5 or Opus 5.5",
       "requestedMode": "ultracode",
-      "status": "quota_limited",
-      "evidence": "Real Claude Code Sonnet5.5 ultracode/xhigh runs delivered review and partial frontend; last response HTTP429 reset18:00Europe/Berlin17Oct2026. No resumed availability claimed."
+      "status": "review_completed",
+      "evidence": "Claude Code Sonnet completed a bounded final UI review for issue #47 after an earlier long-running attempt was interrupted. It made no file edits; adopted concerns are recorded in run claude-code-connector-ui-review-047."
     },
     {
       "tool": "antigravity",
       "requestedModel": "Gemini 4 Argon",
       "observedModel": "gemini-4-argon-high available via agy models",
       "status": "quota_limited",
-      "evidence": "Real Gemini4ArgonHigh runs delivered architecture/domain/desktop/codec/release contributions. Gemini quota exhausted. Additional user-requested ClaudeOpus5.5High and Sonnet5.5High through Antigravity ran, then also quota limited (~5h). No active external run."
+      "evidence": "The local Antigravity UI showed exhausted baseline quota and an unavailable Claude Sonnet individual quota for issue #46. It produced no work product; Codex used the user-authorized temporary takeover."
     }
   ]
 }

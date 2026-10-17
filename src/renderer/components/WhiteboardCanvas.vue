@@ -15,6 +15,8 @@ const editor = ref<HTMLTextAreaElement>();
 let observer: ResizeObserver | undefined;
 let activePointer: number | null = null;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
+const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
+const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
 const editStyle = computed(() => {
   const edit = s.textEdit;
@@ -85,6 +87,8 @@ onBeforeUnmount(() => observer?.disconnect());
       <g :transform="transform" pointer-events="none">
         <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id" />
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />
+        <rect v-if="connectorFrom" data-testid="connector-source-highlight" :x="connectorFrom.x - 5 / s.viewport.zoom" :y="connectorFrom.y - 5 / s.viewport.zoom" :width="connectorFrom.width + 10 / s.viewport.zoom" :height="connectorFrom.height + 10 / s.viewport.zoom" :transform="`rotate(${connectorFrom.rotation} ${connectorFrom.x + connectorFrom.width / 2} ${connectorFrom.y + connectorFrom.height / 2})`" fill="none" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" stroke-dasharray="5 4" />
+        <rect v-if="connectorTo" data-testid="connector-target-highlight" :x="connectorTo.x - 6 / s.viewport.zoom" :y="connectorTo.y - 6 / s.viewport.zoom" :width="connectorTo.width + 12 / s.viewport.zoom" :height="connectorTo.height + 12 / s.viewport.zoom" :transform="`rotate(${connectorTo.rotation} ${connectorTo.x + connectorTo.width / 2} ${connectorTo.y + connectorTo.height / 2})`" fill="none" stroke="var(--status-ok)" :stroke-width="3 / s.viewport.zoom" />
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
         <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>

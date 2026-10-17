@@ -1,5 +1,6 @@
 import { DomainValidationError } from './errors';
 import { cloneElement, normalizeZero } from './geometry';
+import { DEFAULT_CONNECTOR_ROUTING, DEFAULT_END_MARKER, DEFAULT_START_MARKER } from './connectors';
 import type { ElementKind, ElementStyle, SketchDocument, SketchElement, ValidationIssue } from './types';
 import {
   ELEMENT_KEYS,
@@ -189,6 +190,11 @@ export function createElement(
       { x: endX === 0 && endY === 0 ? 40 : endX, y: endY },
     ];
   }
+  if (kind === 'connector') {
+    candidate.connectorRouting = overrides?.connectorRouting ?? DEFAULT_CONNECTOR_ROUTING;
+    candidate.startMarker = overrides?.startMarker ?? DEFAULT_START_MARKER;
+    candidate.endMarker = overrides?.endMarker ?? DEFAULT_END_MARKER;
+  }
   if (kind === 'image' && overrides?.assetId === undefined) {
     candidate.assetId = 'asset:default';
   }
@@ -202,6 +208,9 @@ export function createElement(
       'description',
       'text',
       'points',
+      'connectorRouting',
+      'startMarker',
+      'endMarker',
       'assetId',
       'from',
       'to',

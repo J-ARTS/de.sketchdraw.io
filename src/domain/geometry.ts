@@ -252,6 +252,9 @@ export function cloneElement(element: SketchElement): SketchElement {
   if (element.description !== undefined) cloned.description = element.description;
   if (element.text !== undefined) cloned.text = element.text;
   if (element.points !== undefined) cloned.points = element.points.map(clonePoint);
+  if (element.connectorRouting !== undefined) cloned.connectorRouting = element.connectorRouting;
+  if (element.startMarker !== undefined) cloned.startMarker = element.startMarker;
+  if (element.endMarker !== undefined) cloned.endMarker = element.endMarker;
   if (element.assetId !== undefined) cloned.assetId = element.assetId;
   if (element.from !== undefined) cloned.from = cloneEndpoint(element.from);
   if (element.to !== undefined) cloned.to = cloneEndpoint(element.to);
@@ -400,6 +403,9 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
     a.description === b.description &&
     a.text === b.text &&
     arePointsEqual(a.points, b.points) &&
+    a.connectorRouting === b.connectorRouting &&
+    a.startMarker === b.startMarker &&
+    a.endMarker === b.endMarker &&
     a.assetId === b.assetId &&
     areEndpointsEqual(a.from, b.from) &&
     areEndpointsEqual(a.to, b.to) &&

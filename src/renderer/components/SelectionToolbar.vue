@@ -3,14 +3,14 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } fro
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
-import type { ElementStyle } from '@/domain';
+import type { ConnectorMarker, ConnectorRouting, ElementPatch, ElementStyle } from '@/domain';
 import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
 import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 
-type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more';
+type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -37,12 +37,22 @@ const LINE_MODES: ReadonlyArray<{ value: LineMode; label: string; icon: IconName
   { value: 'none', label: 'Keine', icon: 'none' },
 ];
 const WIDTHS = [{ value: 1, label: 'Dünn' }, { value: 2, label: 'Mittel' }, { value: 4, label: 'Dick' }] as const;
+const CONNECTOR_WIDTHS = [{ value: 2, label: 'Dünn' }, { value: 4, label: 'Dick' }] as const;
+const ROUTES: ReadonlyArray<{ value: ConnectorRouting; label: string }> = [
+  { value: 'elbowed', label: 'Rechtwinklig' }, { value: 'curved', label: 'Gebogen' }, { value: 'straight', label: 'Gerade' },
+];
+const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
+  { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
+  { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
+  { value: 'circle', label: 'Kreis' }, { value: 'diamond', label: 'Raute' },
+];
 
 // --- Visibility and placement ----------------------------------------------------
 /** #44: the bar stays usable while the selected element's text is edited; style changes go to the text draft. */
 const editing = computed(() => Boolean(s.textEdit));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
+const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
 const textCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
@@ -192,6 +202,7 @@ function style(patch: Partial<ElementStyle>): void {
   if (s.textEdit) store.setPropertyDraft({ style: patch });
   else store.applyPatch({ style: patch });
 }
+function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
 watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'more'].includes(openSegment.value)) close(false); });
@@ -203,6 +214,8 @@ const swatchColor = computed(() => {
   const fill = info.value.values.fill;
   return info.value.hasFill && fill && fill !== 'transparent' ? fill : info.value.values.stroke ?? '#1e1e1e';
 });
+const markerLabel = (value: ConnectorMarker | undefined) => MARKERS.find((entry) => entry.value === value)?.label ?? 'Keine';
+const routeLabel = computed(() => ROUTES.find((entry) => entry.value === info.value.values.connectorRouting)?.label ?? 'Gerade');
 const sizeLabel = computed(() => {
   if (info.value.mixed.includes('fontSize')) return 'Gemischt';
   const size = info.value.values.fontSize ?? 20;
@@ -286,12 +299,27 @@ function relayout(): void { void nextTick(placePopover); }
       </button>
       <span class="sep" aria-hidden="true" />
     </template>
-    <button v-if="info.hasFill" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
+    <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
       <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
     <button :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
       <AppIcon name="stroke" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
+    <template v-if="connectorOnly">
+      <span class="sep" aria-hidden="true" />
+      <button type="button" class="tool-btn" aria-label="Text hinzufügen oder bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text hinzufügen oder bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
+      <span class="sep" aria-hidden="true" />
+      <button :ref="(el) => setTrigger('route', el)" type="button" class="segment" :aria-label="`Linienform: ${routeLabel}`" :disabled="editing" :aria-expanded="openSegment === 'route'" :aria-controls="panelId('route')" :title="unavailable('Linienform')" @click="toggle('route')">
+        <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V10c0-3 2-5 5-5h9" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+      </button>
+      <span class="sep" aria-hidden="true" />
+      <button :ref="(el) => setTrigger('start', el)" type="button" class="segment" :aria-label="`Startpunkt: ${markerLabel(info.values.startMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'start'" :aria-controls="panelId('start')" :title="unavailable('Startpunkt')" @click="toggle('start')">
+        <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M10 7l-5 5 5 5" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+      </button>
+      <button :ref="(el) => setTrigger('end', el)" type="button" class="segment" :aria-label="`Endpunkt: ${markerLabel(info.values.endMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'end'" :aria-controls="panelId('end')" :title="unavailable('Endpunkt')" @click="toggle('end')">
+        <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+      </button>
+    </template>
     <template v-if="textCapable">
       <span class="sep" aria-hidden="true" />
       <button :ref="(el) => setTrigger('font', el)" type="button" class="segment" aria-label="Schriftart" :aria-expanded="openSegment === 'font'" :aria-controls="panelId('font')" title="Schriftart" @click="toggle('font')">
@@ -306,7 +334,7 @@ function relayout(): void { void nextTick(placePopover); }
         <AppIcon name="text" />
       </button>
     </template>
-    <button v-if="info.count === 1" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
+    <button v-if="info.count === 1 && !connectorOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
       <AppIcon name="link" />
     </button>
     <template v-if="textCapable">
@@ -330,7 +358,7 @@ function relayout(): void { void nextTick(placePopover); }
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -361,28 +389,41 @@ function relayout(): void { void nextTick(placePopover); }
     </template>
 
     <template v-else-if="openSegment === 'color'">
-      <div class="modes" role="group" aria-label="Füllart">
+      <div v-if="!connectorOnly" class="modes" role="group" aria-label="Füllart">
         <button v-for="mode in FILL_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="currentFillMode === mode.value && !info.mixed.includes('fill')" @click="setFillMode(mode.value)">
           <svg class="mode-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" /><rect v-if="mode.value !== 'none'" x="6" y="6" width="8" height="8" rx="1.5" fill="currentColor" :fill-opacity="mode.value === 'semi' ? 0.35 : 1" /><rect v-else x="6" y="6" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
           {{ mode.label }}
         </button>
       </div>
-      <ColorPalette :value="fillBase" prefix="Füllung" group-label="Füllfarbe" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
+      <ColorPalette v-if="connectorOnly" :value="strokeBase" prefix="Linie" group-label="Linienfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
+      <ColorPalette v-else :value="fillBase" prefix="Füllung" group-label="Füllfarbe" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
     </template>
 
     <template v-else-if="openSegment === 'line'">
       <div class="modes" role="group" aria-label="Linienstil">
-        <button v-for="mode in LINE_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="lineMode === mode.value" @click="setLineMode(mode.value)">
+        <button v-for="mode in (connectorOnly ? LINE_MODES.filter((entry) => entry.value !== 'none') : LINE_MODES)" :key="mode.value" type="button" class="mode" :aria-pressed="lineMode === mode.value" @click="setLineMode(mode.value)">
           <AppIcon :name="mode.icon" :size="18" />{{ mode.label }}
         </button>
       </div>
-      <ColorPalette :value="strokeBase" prefix="Kontur" group-label="Konturfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
+      <ColorPalette v-if="!connectorOnly" :value="strokeBase" prefix="Kontur" group-label="Konturfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
       <div class="widths" role="group" aria-label="Linienstärke">
-        <button v-for="width in WIDTHS" :key="width.value" type="button" class="mode width" :aria-label="`Linienstärke ${width.label}`" :title="width.label" :aria-pressed="info.values.strokeWidth === width.value && !info.mixed.includes('strokeWidth')" @click="style({ strokeWidth: width.value })">
+        <button v-for="width in (connectorOnly ? CONNECTOR_WIDTHS : WIDTHS)" :key="width.value" type="button" class="mode width" :aria-label="`Linienstärke ${width.label}`" :title="width.label" :aria-pressed="info.values.strokeWidth === width.value && !info.mixed.includes('strokeWidth')" @click="style({ strokeWidth: width.value })">
           <svg viewBox="0 0 28 12" aria-hidden="true"><line x1="3" y1="6" x2="25" y2="6" stroke="currentColor" :stroke-width="width.value" stroke-linecap="round" /></svg>
         </button>
       </div>
     </template>
+
+    <div v-else-if="openSegment === 'route'" class="choices column" role="group" aria-label="Linienform">
+      <button v-for="route in ROUTES" :key="route.value" type="button" class="choice connector-choice" :aria-pressed="info.values.connectorRouting === route.value" @click="connectorPatch({ connectorRouting: route.value }); close(true)">
+        <svg class="connector-choice-icon" viewBox="0 0 48 24" aria-hidden="true"><path v-if="route.value === 'straight'" d="M5 19L43 5" /><path v-else-if="route.value === 'curved'" d="M5 19C20 19 28 5 43 5" /><path v-else d="M5 19H24V5H43" /></svg>{{ route.label }}
+      </button>
+    </div>
+
+    <div v-else-if="openSegment === 'start' || openSegment === 'end'" class="choices column" role="group" :aria-label="openSegment === 'start' ? 'Startpunkt' : 'Endpunkt'">
+      <button v-for="marker in MARKERS" :key="marker.value" type="button" class="choice connector-choice" :aria-pressed="(openSegment === 'start' ? info.values.startMarker : info.values.endMarker) === marker.value" @click="connectorPatch(openSegment === 'start' ? { startMarker: marker.value } : { endMarker: marker.value }); close(true)">
+        <svg class="connector-choice-icon" viewBox="0 0 48 24" aria-hidden="true"><line x1="5" y1="12" x2="40" y2="12" /><path v-if="marker.value === 'line-arrow'" d="M32 5l8 7-8 7" /><path v-else-if="marker.value === 'solid-arrow'" d="M30 4l11 8-11 8z" class="filled" /><path v-else-if="marker.value === 'triangle'" d="M29 4l12 8-12 8z" /><circle v-else-if="marker.value === 'circle'" cx="37" cy="12" r="6" /><path v-else-if="marker.value === 'diamond'" d="M29 12l6-7 7 7-7 7z" /></svg>{{ marker.label }}
+      </button>
+    </div>
 
     <div v-else-if="openSegment === 'font'" class="choices column" role="group" aria-label="Schriftart">
       <button v-for="font in FONT_OPTIONS" :key="font.value" type="button" class="choice" :aria-pressed="!fontMixed && currentFont === font.value" :data-font="font.value" @click="style({ fontFamily: font.value })"><span class="font-sample" :style="{ fontFamily: FONT_FAMILY_CSS[font.value] }" aria-hidden="true">Aa</span> {{ font.label }}</button>
@@ -525,7 +566,8 @@ function relayout(): void { void nextTick(placePopover); }
 
 /* --- Popover --- */
 .shape-icon,
-.shape-btn svg {
+.shape-btn svg,
+.connector-icon {
   width: 22px;
   height: 22px;
   fill: none;
@@ -534,6 +576,19 @@ function relayout(): void { void nextTick(placePopover); }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+.connector-choice-icon {
+  width: 48px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.connector-choice-icon .filled { fill: currentColor; }
+.connector-choice { min-width: 190px; }
 
 .shape-search {
   display: flex;

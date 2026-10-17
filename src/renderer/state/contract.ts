@@ -16,6 +16,8 @@ import type {
   SketchElement,
   CodeDraft,
   ComponentSet,
+  ConnectorMarker,
+  ConnectorRouting,
 } from '@/domain/types';
 
 export type Tool =
@@ -143,7 +145,8 @@ export interface SelectionInfo {
     stroke?: string; fill?: string; strokeWidth?: number; opacity?: number; fontSize?: number;
     textAlign?: ElementStyle['textAlign']; strokeDash?: ElementStyle['strokeDash'];
     fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled'; label?: string; description?: string; text?: string;
-    connectorFrom?: string; connectorTo?: string; parentName?: string;
+    connectorFrom?: string; connectorTo?: string; connectorRouting?: ConnectorRouting;
+    startMarker?: ConnectorMarker; endMarker?: ConnectorMarker; parentName?: string;
   };
   mixed: string[];
   canGroup: boolean; canUngroup: boolean; canConnect: boolean;
@@ -168,6 +171,8 @@ export interface WhiteboardState {
   frame: SelectionFrame | null;
   handles: readonly HandleView[];
   snapTarget: SnapTarget | null;
+  /** Bound source and current valid target while a connector is being drawn. */
+  connectorTargets: { fromId: string; toId: string | null } | null;
   cursor: string;
   textEdit: TextEditSession | null;
   gestureConflict: GestureConflict | null;

@@ -7,3 +7,4 @@ export { validateDocument } from './validation';
 export { applyCommand } from './commands';
 export { deserializeDocument, serializeDocument } from './serialization';
 export { createController } from './controller';
+export * from './connectors';

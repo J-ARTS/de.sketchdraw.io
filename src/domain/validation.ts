@@ -4,6 +4,8 @@ import { DOMAIN_LIMITS } from './limits';
 import type {
   ComponentDefinition,
   ComponentSet,
+  ConnectorMarker,
+  ConnectorRouting,
   ElementKind,
   ElementStyle,
   Endpoint,
@@ -57,6 +59,10 @@ const FONT_FAMILIES: ReadonlySet<NonNullable<ElementStyle['fontFamily']>> = new 
   'roboto',
   'scribbled',
 ]);
+const CONNECTOR_ROUTINGS: ReadonlySet<ConnectorRouting> = new Set(['straight', 'elbowed', 'curved']);
+const CONNECTOR_MARKERS: ReadonlySet<ConnectorMarker> = new Set([
+  'none', 'line-arrow', 'solid-arrow', 'triangle', 'circle', 'diamond',
+]);
 const ASSET_MIME_TYPES: ReadonlySet<SketchAsset['mimeType']> = new Set([
   'image/png',
   'image/jpeg',
@@ -98,6 +104,9 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'description',
   'text',
   'points',
+  'connectorRouting',
+  'startMarker',
+  'endMarker',
   'assetId',
   'from',
   'to',
@@ -1000,6 +1009,23 @@ export function validateElementIntrinsic(
       } else {
         validateEndpoint(value[endKey], joinPath(path, endKey), ancestors, issues);
       }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'connectorRouting') && value.connectorRouting !== undefined) {
+    if (typedKind !== null && typedKind !== 'connector') {
+      issues.push({ path: joinPath(path, 'connectorRouting'), code: 'FORBIDDEN_ELEMENT_FIELD', message: 'Property "connectorRouting" is only allowed on connector elements.' });
+    } else if (typeof value.connectorRouting !== 'string' || !CONNECTOR_ROUTINGS.has(value.connectorRouting as ConnectorRouting)) {
+      issues.push({ path: joinPath(path, 'connectorRouting'), code: 'INVALID_CONNECTOR_ROUTING', message: 'Connector routing must be "straight", "elbowed", or "curved".' });
+    }
+  }
+
+  for (const markerKey of ['startMarker', 'endMarker'] as const) {
+    if (!Object.prototype.hasOwnProperty.call(value, markerKey) || value[markerKey] === undefined) continue;
+    if (typedKind !== null && typedKind !== 'connector') {
+      issues.push({ path: joinPath(path, markerKey), code: 'FORBIDDEN_ELEMENT_FIELD', message: `Property "${markerKey}" is only allowed on connector elements.` });
+    } else if (typeof value[markerKey] !== 'string' || !CONNECTOR_MARKERS.has(value[markerKey] as ConnectorMarker)) {
+      issues.push({ path: joinPath(path, markerKey), code: 'INVALID_CONNECTOR_MARKER', message: `Connector ${markerKey} has an unsupported marker.` });
     }
   }
 

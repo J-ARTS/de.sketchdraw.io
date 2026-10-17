@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 import {
   applyCommand, createController, createDocument, createElement, deserializeDocument,
-  DOMAIN_LIMITS, serializeDocument,
+  connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle,
 } from '@/domain';
@@ -32,6 +32,7 @@ type Gesture = {
   start: Point; last: Point; screenStart: Point; base: DocumentSession;
   targets: SketchElement[]; handle?: HandleId; tool: Tool; points: Point[];
   preview: DocumentCommand | null; element: SketchElement | null;
+  connectorFromId?: string;
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
@@ -83,6 +84,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
+    connectorTargets: null as WhiteboardState['connectorTargets'],
     textEdit: null as WhiteboardState['textEdit'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
@@ -133,7 +135,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const displayed = elements.map((element): SelectionInfo['values'] => {
         const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
         const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
-        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId };
+        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
+          connectorRouting: e.kind === 'connector' ? connectorRouting({ connectorRouting: e.connectorRouting ?? undefined }) : undefined,
+          startMarker: e.kind === 'connector' ? connectorStartMarker({ startMarker: e.startMarker ?? undefined }) : undefined,
+          endMarker: e.kind === 'connector' ? connectorEndMarker({ endMarker: e.endMarker ?? undefined }) : undefined };
       });
       const values = displayed[0] ?? { ...DEFAULT_STYLE, ...(edit && !edit.elementId ? edit.style : {}) };
       const others = displayed.slice(1);
@@ -229,7 +234,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.focusedId = state.selection.at(-1) ?? null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
-  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; changedDraft(); }
+  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; changedDraft(); }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(base.document.elements, ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
   }
@@ -265,9 +270,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool) };
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
-      const from = hit(g.start); const to = hit(end);
-      if (from && from.kind !== 'connector') value.from = { elementId: from.id, anchor: endpointAt(from, g.start) };
-      if (to && to.kind !== 'connector' && to.id !== from?.id) value.to = { elementId: to.id, anchor: endpointAt(to, end) };
+      const from = state.document.elements.find((element) => element.id === g.connectorFromId);
+      const to = hit(end);
+      const validTo = to && to.kind !== 'connector' && to.id !== from?.id ? to : null;
+      state.connectorTargets = from ? { fromId: from.id, toId: validTo?.id ?? null } : null;
+      if (from) value.from = { elementId: from.id, anchor: endpointAt(from, g.start) };
+      if (validTo) value.to = { elementId: validTo.id, anchor: endpointAt(validTo, end) };
+      if (from && validTo) {
+        const ids = new Set([from.id, validTo.id]);
+        g.targets = g.base.document.elements.filter((element) => ids.has(element.id)).map(clone);
+      }
     }
     try { return createElement(g.tool, value); } catch { return null; }
   }
@@ -472,12 +484,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (input.button !== 0 && input.button !== 1) return;
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
       if (state.tool === 'image') return;
+      if (state.tool === 'connector' && kind === 'draw' && (!target || target.kind === 'connector')) {
+        notice('Beginne den Pfeil auf einem Element. Pfeile verbinden immer zwei Elemente.', 'error');
+        return;
+      }
       if (kind === 'move' && target) {
         if (input.shiftKey && state.selection.includes(target.id)) { setSelection(state.selection.filter((id) => id !== target.id)); return; }
         if (!state.selection.includes(target.id)) setSelection([target.id], input.shiftKey);
       }
       if (kind === 'marquee' && !input.shiftKey) setSelection([]);
-      gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets: selected().map(clone), handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null };
+      gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets: state.tool === 'connector' && target ? [clone(target)] : selected().map(clone), handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
+        ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
+      if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };
       changedDraft();
     },
     pointerMove(input) {
@@ -525,6 +543,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (g.kind === 'draw' && !g.element && !['path', 'connector'].includes(g.tool)) {
         const size = DEFAULT_SIZES[g.tool];
         if (size) { g.element = createDraw(g, { x: g.start.x + size.width, y: g.start.y + size.height }, false); state.drawing = g.element; }
+      }
+      if (g.kind === 'draw' && g.tool === 'connector' && (!g.element?.from || !g.element.to)) {
+        notice('Ziehe den Pfeil auf ein anderes Element, um die Verbindung abzuschließen.', 'error');
+        resetGesture();
+        return;
       }
       if (g.kind === 'pan' || g.kind === 'marquee' || (!g.preview && !g.element)) { resetGesture(); return; }
       if (g.kind === 'draw' && g.element && g.element.width + g.element.height < 4) { resetGesture(); return; }

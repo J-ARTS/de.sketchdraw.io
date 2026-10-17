@@ -5,6 +5,15 @@ export type ElementKind =
 
 export interface Point { x: number; y: number }
 
+export type ConnectorRouting = 'straight' | 'elbowed' | 'curved';
+export type ConnectorMarker =
+  | 'none'
+  | 'line-arrow'
+  | 'solid-arrow'
+  | 'triangle'
+  | 'circle'
+  | 'diamond';
+
 export interface ElementStyle {
   stroke: string;
   fill: string;
@@ -39,6 +48,10 @@ export interface SketchElement {
   text?: string;
   /** Element-local points. Connectors always retain at least two points. */
   points?: Point[];
+  /** Connector-only route and endpoint decoration. Missing values use the v1-compatible defaults. */
+  connectorRouting?: ConnectorRouting;
+  startMarker?: ConnectorMarker;
+  endMarker?: ConnectorMarker;
   assetId?: string;
   from?: Endpoint;
   to?: Endpoint;
@@ -102,6 +115,9 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   description?: string | null;
   text?: string | null;
   points?: Point[] | null;
+  connectorRouting?: ConnectorRouting | null;
+  startMarker?: ConnectorMarker | null;
+  endMarker?: ConnectorMarker | null;
   assetId?: string | null;
   from?: Endpoint | null;
   to?: Endpoint | null;
