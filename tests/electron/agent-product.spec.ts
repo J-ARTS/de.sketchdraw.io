@@ -15,6 +15,7 @@ test('desktop exposes all MCP tools automatically across document switches and r
   const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw automatic agent ')));
   const runtimeFile = path.join(root, 'agent-runtime', 'active-v1.json');
+  const uncaughtMarker = path.join(root, 'uncaught-object-destroyed.txt');
   const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key, value]) => typeof value === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(key))) as Record<string, string>;
   const appEnv = { ...cleanEnv, SKETCHDRAW_MCP_RUNTIME_FILE: runtimeFile };
   let app: Awaited<ReturnType<typeof electron.launch>> | undefined;
@@ -27,7 +28,7 @@ test('desktop exposes all MCP tools automatically across document switches and r
   try {
     for (const dir of ['dist', 'dist-electron', 'dist-mcp']) await cp(path.join(project, dir), path.join(root, dir), { recursive: true });
     await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'sketchdraw-product-test', version: '0.1.0', main: 'entry.cjs' }));
-    await writeFile(path.join(root, 'entry.cjs'), "const {app}=require('electron');const path=require('node:path');app.setPath('userData',path.join(__dirname,'profile'));require('./dist-electron/main.cjs');");
+    await writeFile(path.join(root, 'entry.cjs'), `const {app}=require('electron');const fs=require('node:fs');const path=require('node:path');process.on('uncaughtExceptionMonitor',error=>{if(String(error?.message)==='Object has been destroyed')fs.writeFileSync(${JSON.stringify(uncaughtMarker)},'detected');});app.setPath('userData',path.join(__dirname,'profile'));require('./dist-electron/main.cjs');`);
     app = await electron.launch({ args: [root], env: appEnv, chromiumSandbox: true, timeout: 20_000 });
     let page = await app.firstWindow();
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -80,6 +81,7 @@ test('desktop exposes all MCP tools automatically across document switches and r
     await client.close();
     const oldEpoch = (await readRuntime()).grant.SKETCHDRAW_MCP_APP_EPOCH;
     await stopElectron(app); app = undefined;
+    expect(await readFile(uncaughtMarker, 'utf8').catch(error => (error as NodeJS.ErrnoException).code === 'ENOENT' ? '' : Promise.reject(error)), 'stopping an active automatic agent session must not touch a destroyed BrowserWindow').toBe('');
     app = await electron.launch({ args: [root], env: appEnv, chromiumSandbox: true, timeout: 20_000 });
     page = await app.firstWindow(); page.on('pageerror', error => errors.push(error.message));
     await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();

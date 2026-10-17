@@ -27,6 +27,12 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
       await writeFile(path.join(root, 'entry.cjs'), "const {app}=require('electron');const path=require('node:path');app.setPath('userData',path.join(__dirname,'profile'));app.setPath('sessionData',path.join(__dirname,'session'));require('./dist-electron/main.cjs');");
       app = await electron.launch({ args: [root], env: cleanElectronEnv(), chromiumSandbox: true, timeout: 15_000 });
       const electronApp = app;
+      let stderrTail = '';
+      let destroyedObjectError = false;
+      electronApp.process().stderr?.on('data', (chunk: Buffer) => {
+        stderrTail = `${stderrTail}${chunk.toString('utf8')}`.slice(-2_048);
+        destroyedObjectError ||= /Uncaught Exception:[\s\S]*TypeError: Object has been destroyed/.test(stderrTail);
+      });
       const page = await electronApp.firstWindow();
       const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
       await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
@@ -117,6 +123,8 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         const closed = page.waitForEvent('close');
         await dialog.getByRole('button', { name: 'Verwerfen', exact: true }).click({ noWaitAfter: true }).catch(error => { if (!page.isClosed()) throw error; });
         await closed; expect(page.isClosed()).toBe(true);
+        await new Promise<void>(resolve => setImmediate(resolve));
+        expect(destroyedObjectError, 'closing an active automatic agent session must not touch a destroyed BrowserWindow').toBe(false);
       });
       expect(errors).toEqual([]);
       const hashes = Object.fromEntries(await Promise.all(['dist-electron/main.cjs', 'dist-electron/preload.cjs', 'dist/index.html'].map(async file => [file, createHash('sha256').update(await readFile(path.join(root, file))).digest('hex')])));

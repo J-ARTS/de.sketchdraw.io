@@ -12,6 +12,10 @@ import { AGENT_IPC } from './ipc';
 type Reply = AgentControlAck | AgentRendererResponse;
 interface Pending { kind: 'control' | 'request'; generation: number; resolve(value: Reply): void; reject(error: unknown): void; timer: NodeJS.Timeout; cleanup(): void }
 export function installElectronAgentBridge(window: BrowserWindow, context: () => IpcSecurityContext): () => void {
+  // BrowserWindow.webContents throws after the native window has been destroyed.
+  // Keep the WebContents wrapper captured while both objects are still alive so the
+  // closed-event cleanup can inspect its lifecycle without dereferencing BrowserWindow.
+  const contents = window.webContents;
   let generation = 0, disposed = false;
   let hostPromise: Promise<AgentHost> | undefined;
   let lifecycle: Promise<void> = Promise.resolve();
@@ -36,7 +40,7 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
     return run;
   }
   function send(kind: 'control' | 'request', value: AgentControlMessage | AgentRendererRequest, epoch: number, signal?: AbortSignal): Promise<Reply> {
-    if (epoch !== generation || disposed || window.isDestroyed() || signal?.aborted) return Promise.reject(new AgentAccessError('SESSION_CHANGED', 'Application session changed.'));
+    if (epoch !== generation || disposed || contents.isDestroyed() || signal?.aborted) return Promise.reject(new AgentAccessError('SESSION_CHANGED', 'Application session changed.'));
     if (pending.size >= 24) return Promise.reject(new AgentAccessError('BUSY', 'Application request limit reached.'));
     const id = 'controlId' in value ? value.controlId : value.requestId;
     return new Promise((resolve, reject) => {
@@ -46,7 +50,7 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
       const cleanup = () => signal?.removeEventListener('abort', abort);
       pending.set(id, { kind, generation: epoch, resolve, reject, timer, cleanup });
       signal?.addEventListener('abort', abort, { once: true });
-      try { window.webContents.send(kind === 'control' ? AGENT_IPC.CONTROL : AGENT_IPC.REQUEST, value); }
+      try { contents.send(kind === 'control' ? AGENT_IPC.CONTROL : AGENT_IPC.REQUEST, value); }
       catch { finish(new AgentAccessError('SESSION_CHANGED', 'Application is unavailable.')); }
     });
   }
@@ -110,12 +114,12 @@ export function installElectronAgentBridge(window: BrowserWindow, context: () =>
     pending.delete(id); clearTimeout(entry.timer); entry.cleanup(); entry.resolve(response as unknown as Reply);
   });
   const navigate = (_event: unknown, _url: string, sameDocument: boolean, mainFrame: boolean) => { if (mainFrame && !sameDocument) invalidate(); };
-  window.webContents.on('did-start-navigation', navigate);
-  window.webContents.on('render-process-gone', invalidate);
+  contents.on('did-start-navigation', navigate);
+  contents.on('render-process-gone', invalidate);
   const dispose = () => {
     if (disposed) return; disposed = true; invalidate();
     for (const channel of [AGENT_IPC.REGISTER, AGENT_IPC.UNREGISTER, AGENT_IPC.REPLY]) ipcMain.removeHandler(channel);
-    if (!window.webContents.isDestroyed()) { window.webContents.off('did-start-navigation', navigate); window.webContents.off('render-process-gone', invalidate); }
+    if (!contents.isDestroyed()) { contents.off('did-start-navigation', navigate); contents.off('render-process-gone', invalidate); }
   };
   window.once('closed', dispose);
   return dispose;
