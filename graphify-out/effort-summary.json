@@ -263,12 +263,14 @@
         "codex-domain-review-001",
         "codex-domain-tests-001",
         "codex-electron-backend-tests-001",
+        "codex-final-release-closure-029",
         "codex-mcp-independent-review-001",
         "codex-native-integration-002",
         "codex-orchestration-001",
         "codex-owned-process-cleanup-003",
         "codex-p2p-feedback-003",
         "codex-setup-integration-001",
+        "github-actions-final-39049794209",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226"
       ]
@@ -610,8 +612,10 @@
       "sharedUnallocatedRunIds": [
         "codex-ci-signing-env-026",
         "codex-draft-recovery-028",
+        "codex-final-release-closure-029",
         "codex-native-integration-002",
         "codex-owned-process-cleanup-003",
+        "github-actions-final-39049794209",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226"
       ]
@@ -744,7 +748,9 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-draft-recovery-028"
+        "codex-draft-recovery-028",
+        "codex-final-release-closure-029",
+        "github-actions-final-39049794209"
       ]
     },
     "29": {
@@ -777,7 +783,10 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-final-release-closure-029",
+        "github-actions-final-39049794209"
+      ]
     },
     "3": {
       "exclusiveRuns": {
@@ -844,8 +853,10 @@
         "antigravity-architecture-002",
         "claude-architecture-001",
         "claude-architecture-002",
+        "codex-final-release-closure-029",
         "codex-native-integration-002",
         "codex-orchestration-001",
+        "github-actions-final-39049794209",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226"
       ]
@@ -1113,17 +1124,18 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 7
+        "unknownRuns": 8
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 7
+        "unknownRuns": 8
       },
-      "runCount": 7,
+      "runCount": 8,
       "runIds": [
         "codex-draft-recovery-028",
+        "codex-final-release-closure-029",
         "codex-mcp-takeover-001",
         "codex-native-integration-002",
         "codex-noncommercial-license-029",
@@ -1135,7 +1147,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 7
+        "unknownRuns": 8
       }
     },
     "codex-subagent": {
@@ -1191,16 +1203,17 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       },
-      "runCount": 2,
+      "runCount": 3,
       "runIds": [
+        "github-actions-final-39049794209",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226"
       ],
@@ -1208,7 +1221,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 2
+        "unknownRuns": 3
       }
     }
   },
@@ -1217,15 +1230,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 54
+      "unknownRuns": 56
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 34
+      "unknownRuns": 36
     },
-    "runCount": 54,
+    "runCount": 56,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1255,6 +1268,7 @@
       "codex-domain-tests-001",
       "codex-draft-recovery-028",
       "codex-electron-backend-tests-001",
+      "codex-final-release-closure-029",
       "codex-graph-001",
       "codex-interop-001",
       "codex-interop-contract-001",
@@ -1279,6 +1293,7 @@
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
       "codex-whiteboard-takeover-001",
+      "github-actions-final-39049794209",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226"
     ],
@@ -1286,7 +1301,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 50
+      "unknownRuns": 52
     }
   },
   "officialScoreClaimReady": false,
@@ -1300,5 +1315,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T16:31:08.920269+00:00"
+  "updatedAt": "2026-10-17T16:37:51.522400+00:00"
 }

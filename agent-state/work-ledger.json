@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T16:31:08.920269+00:00",
+  "updatedAt": "2026-10-17T16:37:51.522400+00:00",
   "issues": [
     {
       "number": 4,
@@ -9,7 +9,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/4",
       "owner": "Codex",
       "phase": "Epic",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -340,7 +340,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/24",
       "owner": "Antigravity / Codex",
       "phase": "S5",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -450,7 +450,7 @@
       "owner": "Antigravity",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "S5",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -466,7 +466,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/29",
       "owner": "Codex",
       "phase": "Documentation",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1691,7 +1691,7 @@
         24,
         28
       ],
-      "status": "published_verified",
+      "status": "completed",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1702,13 +1702,14 @@
         "tests/unit/release.test.mjs",
         "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39046419226/job/117438655094",
         "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1",
-        "docs/reviews/release-v0.1.1-verification.json"
+        "docs/reviews/release-v0.1.1-verification.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6"
       ],
       "concerns": [
         "draft-404-release-lookup"
       ],
       "authorization": "User-authorized release and temporary Codex DevOps takeover. Existing owned bot draft and unchanged CI artifacts reused; no foreign release adoption or tag movement.",
-      "measurementSource": "Real tag endpoint404, release list shows draft415905405 with valid bot author and marker. Independent implementation/review delegated. No measured agent duration/tokens/cost. Independent release27/27, complete release36/36, overallNode56/56 passed. Real read-only draft/marker/tag/artifact verification passed. Actual local publish recovery first asset exceeded120s; fresh read confirms draft with zero assets, no successful upload/publication claimed. Upload transport diagnosis pending. Content-Length validated independently against gh2.83.2 source and105MiB loopback. Only asset POST timeout increased to600s; metadata120s and no automatic retries unchanged. Two new regression tests failed before correction and now pass; allNode58/58 passed on final local code, release38/38. Actual publication remains pending. Independent reviewer29/29release.test passed; fresh Draft415905405 haszeroassets. Actual recovery002 started with600s asset timeout; no publication claim yet. Independent read-only network observation measured 3,880,448 outgoing bytes in 6 seconds (~0.65MB/s) on active established gh connection; 120s was insufficient at this observed rate. No successful upload inferred from transfer progress. Recovery002 succeeded: existing release415905405 published at2026-10-17T16:27:58Z with exactlythree unchanged nativeCIinstallers; all GitHubdigests match. Actual publication tool Codex local gh. Public file downloads and idempotent Actions re-run pending. Public download verification passed for all three exact native CI installers. GitHub release415905405 publicly confirmed and unchanged tagc4bdfd6. Final Actions publish retry117445126820 returned already-published-idempotent; complete run39046419226 now success. Source fix integration pending."
+      "measurementSource": "Real tag endpoint404, release list shows draft415905405 with valid bot author and marker. Independent implementation/review delegated. No measured agent duration/tokens/cost. Independent release27/27, complete release36/36, overallNode56/56 passed. Real read-only draft/marker/tag/artifact verification passed. Actual local publish recovery first asset exceeded120s; fresh read confirms draft with zero assets, no successful upload/publication claimed. Upload transport diagnosis pending. Content-Length validated independently against gh2.83.2 source and105MiB loopback. Only asset POST timeout increased to600s; metadata120s and no automatic retries unchanged. Two new regression tests failed before correction and now pass; allNode58/58 passed on final local code, release38/38. Actual publication remains pending. Independent reviewer29/29release.test passed; fresh Draft415905405 haszeroassets. Actual recovery002 started with600s asset timeout; no publication claim yet. Independent read-only network observation measured 3,880,448 outgoing bytes in 6 seconds (~0.65MB/s) on active established gh connection; 120s was insufficient at this observed rate. No successful upload inferred from transfer progress. Recovery002 succeeded: existing release415905405 published at2026-10-17T16:27:58Z with exactlythree unchanged nativeCIinstallers; all GitHubdigests match. Actual publication tool Codex local gh. Public file downloads and idempotent Actions re-run pending. Public download verification passed for all three exact native CI installers. GitHub release415905405 publicly confirmed and unchanged tagc4bdfd6. Final Actions publish retry117445126820 returned already-published-idempotent; complete run39046419226 now success. Source fix integration pending. Integrated and pushed to main38f5170. Relevant issue confirmed closed/completed after final evidence audit. License note appended to existing public release with immutable LICENSE link; fresh read confirmed ownership marker, release identity, author and all assets unchanged."
     },
     {
       "id": "codex-ticket-closure-015",
@@ -1738,7 +1739,7 @@
       "issues": [
         29
       ],
-      "status": "verified",
+      "status": "completed",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1752,12 +1753,62 @@
         "docs/licensing/README.md",
         "package.json",
         "package-lock.json",
-        "electron-builder.json"
+        "electron-builder.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6"
       ],
       "concerns": [
         "noncommercial-license-scope"
       ],
-      "measurementSource": "User requested README for noncommercial license. No project license or package license metadata existed. Official PolyForm text researched; user preference and independent review pending. No measured duration/tokens/cost. Communicated default assumption PolyForm Noncommercial1.0.0 under explicit user request after optional preference question remained unanswered; not represented as confirmed user answer. Official4563-byte text sha256ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8; implementation and independent review underway. Existing c4installer bytes unchanged, license note supplied separately. Implementation completed: official LICENSE, German licensingREADME, root SPDXmetadata, future builderLICENSE selection. Actual installed builder matcher includes LICENSE on all three platforms. Independent review pending; existingc4installer bytes unaffected. Independent review passed: official text re-downloaded and byte-identical, JSON differences limited to SPDXmetadata and LICENSE inclusion, locallinks and both full OFLtexts valid. Final complete Node suite58/58 passed; no product rebuild claimed. MainREADME reviewed by root against the official scope."
+      "measurementSource": "User requested README for noncommercial license. No project license or package license metadata existed. Official PolyForm text researched; user preference and independent review pending. No measured duration/tokens/cost. Communicated default assumption PolyForm Noncommercial1.0.0 under explicit user request after optional preference question remained unanswered; not represented as confirmed user answer. Official4563-byte text sha256ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8; implementation and independent review underway. Existing c4installer bytes unchanged, license note supplied separately. Implementation completed: official LICENSE, German licensingREADME, root SPDXmetadata, future builderLICENSE selection. Actual installed builder matcher includes LICENSE on all three platforms. Independent review pending; existingc4installer bytes unaffected. Independent review passed: official text re-downloaded and byte-identical, JSON differences limited to SPDXmetadata and LICENSE inclusion, locallinks and both full OFLtexts valid. Final complete Node suite58/58 passed; no product rebuild claimed. MainREADME reviewed by root against the official scope. Integrated and pushed to main38f5170. Relevant issue confirmed closed/completed after final evidence audit. License note appended to existing public release with immutable LICENSE link; fresh read confirmed ownership marker, release identity, author and all assets unchanged."
+    },
+    {
+      "id": "codex-final-release-closure-029",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        4,
+        15,
+        24,
+        28,
+        29
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6",
+        "docs/reviews/release-v0.1.1-verification.json",
+        "docs/licensing/README.md"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub fresh final read:29issues total,28closed/completed, only optional27planned/open. Explicit closure rule identical in AGENTS.md and CLAUDE.md. Source/publication/license evidence integrated and release notes preserve original three assets. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "github-actions-final-39049794209",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        4,
+        15,
+        24,
+        28,
+        29
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39049794209"
+      ],
+      "concerns": [],
+      "measurementSource": "Automatic post-integration CI on main38f5170. Governance and P2P passed; three-platform product jobs still running at initial observation. Separate from successful tagged release CI39046419226. No unconfirmed success claimed. Final fresh GitHub read confirms overall success and all five jobs completed successfully: Governance117445864526, P2P117445864684, Windows117445892052, macOS117445892132, Linux117445892135. Product/source38f5170 validated after publisher/license integration. Final state-only documentation uses local content, graph and22Python checks."
     }
   ],
   "evidencePolicy": {

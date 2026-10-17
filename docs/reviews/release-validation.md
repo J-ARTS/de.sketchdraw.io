@@ -70,4 +70,11 @@ Transportdiagnose: Die getrennte lokale 105-MiB-Probe bestätigt korrekte `Conte
 
 Die Veröffentlichung, der idempotente Actions-Nachlauf und die drei echten öffentlichen Downloads sind damit bestätigt. Der dauerhafte [JSON-Datensatz](release-v0.1.1-verification.json) verknüpft Tag, Commit, Run, Release-ID, Downloadlinks, Größen, Hashes und Signinggrenzen. Der temporäre Downloadbericht `/tmp/sketchdraw-public-release-verification-001.json` ist kein erforderlicher dauerhafter Verweis.
 
-Ticketabschluss von #24/#28 und Integration der nachgelagerten Publisherkorrekturen koordiniert Root separat; dieser Bericht behauptet dafür keinen bereits erfolgten Statuswechsel. Nachgelagerte README-/Lizenzarbeit unter #29 gehört nicht zur geprüften Artefaktrevision und ändert die hier bestätigten Installerbytes nicht.
+Nachtrag des koordinierenden Codex: Publisherkorrekturen und Lizenzdokumentation sind in `38f5170a89880ba989b4d24cec247f147e5b0ea6` in main integriert. #4, #15, #24, #28 und #29 wurden nach dem jeweiligen Akzeptanzabgleich tatsächlich als completed geschlossen. Der abschließende GitHub-Abgleich bestätigt 28 geschlossene von 29 Tickets; allein die optionale Folgeaufgabe #27 bleibt geplant. Die README-/Lizenzarbeit unter #29 gehört nicht zur geprüften Artefaktrevision. Der gesonderte Lizenzhinweis in den Release-Notes wurde rückgelesen: Release-ID, Autor, Ownership-Marker und alle drei Assets blieben unverändert.
+
+
+## Abschließende Prüfung des integrierten main-Stands
+
+Der zusätzliche [CI-Lauf39049794209](https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39049794209) an `38f5170a89880ba989b4d24cec247f147e5b0ea6` ist vollständig erfolgreich: Governance/Graphify, direkte P2P-Prüfung und sämtliche Build-/Testjobs auf Windows 2025, macOS 15 und Ubuntu 24.04. Damit sind auch die nachgelagerten Publisher- und Lizenzänderungen im integrierten Quellstand bestätigt. Diese Prüfung erzeugte keine neuen Release-Installer; die veröffentlichten Dateien bleiben bei der zuvor geprüften Revision `c4bdfd6`.
+
+Der abschließende reine Statusabgleich wurde mit identischen Abschlussregeln in AGENTS.md/CLAUDE.md, aktuellen GitHub-Zuständen, Graphify-Referenzprüfung, 22 Pythonprüfungen und Formatprüfung validiert.

@@ -39,5 +39,12 @@
     "win": "unsigned",
     "mac": "ad-hoc, not notarized",
     "linux": "unsigned"
+  },
+  "licenseNotice": {
+    "spdx": "PolyForm-Noncommercial-1.0.0",
+    "sourceCommit": "38f5170a89880ba989b4d24cec247f147e5b0ea6",
+    "url": "https://github.com/J-ARTS/de.sketchdraw.io/blob/38f5170a89880ba989b4d24cec247f147e5b0ea6/LICENSE",
+    "deliveredVia": "Release notes; not embedded in unchanged c4bdfd6 installers",
+    "releaseIdentityAndAssetsPreserved": true
   }
 }
