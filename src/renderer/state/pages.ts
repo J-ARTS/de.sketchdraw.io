@@ -7,9 +7,17 @@ import type { PageSummary } from './contract';
  */
 export const SINGLE_PAGE_ID = 'page:1';
 export const SINGLE_PAGE_NAME = 'Seite 1';
+/** Compatibility key removed by the schema-v2 migration after it becomes the first page's name. */
+export const SINGLE_PAGE_NAME_METADATA_KEY = 'sketchdraw.page.v1.name';
+export const MAX_PAGE_NAME_LENGTH = 120;
+
+export function singlePageName(document: SketchDocument): string {
+  const persisted = document.metadata[SINGLE_PAGE_NAME_METADATA_KEY]?.trim();
+  return persisted && persisted.length <= MAX_PAGE_NAME_LENGTH ? persisted : SINGLE_PAGE_NAME;
+}
 
 export function pageSummaries(document: SketchDocument): PageSummary[] {
-  return [{ id: SINGLE_PAGE_ID, name: SINGLE_PAGE_NAME, elementCount: document.elements.length }];
+  return [{ id: SINGLE_PAGE_ID, name: singlePageName(document), elementCount: document.elements.length }];
 }
 
 /** Clipboard envelope for "Inhalt kopieren" (proposal §3.8). Pasting treats it as untrusted input. */

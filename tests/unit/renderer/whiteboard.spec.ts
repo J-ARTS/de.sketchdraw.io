@@ -24,6 +24,37 @@ async function draw(store: WhiteboardStore, kind = 'rectangle' as 'rectangle' | 
 async function tick() { await new Promise(resolve => setTimeout(resolve, 0)); }
 
 describe('Whiteboard uses the real session gateway', () => {
+  test('single-page rename persists independently and participates in undo', async () => {
+    const { store, bridge } = setup();
+    store.renamePage('page:1', '  Übersicht  '); await store.whenIdle();
+    expect(store.state.pages).toEqual([{ id: 'page:1', name: 'Übersicht', elementCount: 0 }]);
+    expect(store.state.title).toBe('Unbenannt');
+    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBe('Übersicht');
+    await store.save();
+    const saved = deserializeDocument(vi.mocked(bridge.saveDocument).mock.calls[0]![0].text);
+    expect(saved.metadata['sketchdraw.page.v1.name']).toBe('Übersicht');
+    const reopened = createWhiteboardStore({ bridge, controller: createController(saved) }); stores.push(reopened);
+    expect(reopened.state.pages[0]?.name).toBe('Übersicht');
+    expect(reopened.state.title).toBe('Unbenannt');
+    store.undo(); await store.whenIdle();
+    expect(store.state.pages[0]?.name).toBe('Seite 1');
+    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBeUndefined();
+  });
+
+  test('single-page rename rejects empty, overlong and foreign-page names and removes the default override', async () => {
+    const { store } = setup();
+    store.renamePage('page:other', 'Falsch');
+    store.renamePage('page:1', '   ');
+    store.renamePage('page:1', 'x'.repeat(121));
+    await store.whenIdle();
+    expect(store.state.revision).toBe(0);
+    expect(store.state.pages[0]?.name).toBe('Seite 1');
+    store.renamePage('page:1', 'Details'); await store.whenIdle();
+    store.renamePage('page:1', ' Seite 1 '); await store.whenIdle();
+    expect(store.state.pages[0]?.name).toBe('Seite 1');
+    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBeUndefined();
+  });
+
   test('draw, resize and actor undo/redo form one history entry per gesture', async () => {
     const { store } = setup(); await draw(store);
     expect(store.state.document.elements).toHaveLength(1);

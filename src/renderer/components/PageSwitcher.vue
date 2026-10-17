@@ -19,6 +19,8 @@ const MENU_WIDTH = 224;
 const pages = computed(() => s.pages);
 const activePage = computed(() => pages.value.find((page) => page.id === s.activePageId) ?? pages.value[0]);
 const editable = computed(() => s.pagesEditable && s.canWrite);
+/** Renaming the current page works independently of the schema-v2 structural actions. */
+const canRename = computed(() => s.canWrite && !s.transitioning);
 
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
@@ -59,10 +61,7 @@ const nameDraft = ref('');
 const renameInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null);
 
 async function startRename(page: PageSummary): Promise<void> {
-  if (!editable.value) {
-    store.renamePage(page.id, page.name);
-    return;
-  }
+  if (!canRename.value) return;
   editingId.value = page.id;
   nameDraft.value = page.name;
   await nextTick();
@@ -97,7 +96,7 @@ const menuEntries = computed<MenuEntry[]>(() => {
   const pending = editable.value ? null : 'pending';
   return [
     { id: 'copy', label: t('pages.copy'), blocked: null },
-    { id: 'rename', label: t('pages.rename'), blocked: pending, separatorBefore: true },
+    { id: 'rename', label: t('pages.rename'), blocked: canRename.value ? null : 'rule', separatorBefore: true },
     { id: 'duplicate', label: t('pages.duplicate'), blocked: pending },
     { id: 'moveUp', label: t('pages.moveUp'), blocked: pending ?? (index <= 0 ? 'rule' : null), separatorBefore: true },
     { id: 'moveDown', label: t('pages.moveDown'), blocked: pending ?? (index >= pages.value.length - 1 ? 'rule' : null) },

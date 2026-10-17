@@ -20,7 +20,10 @@ import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '..
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
 import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
-import { pageClipboardPayload, pageSummaries, SINGLE_PAGE_ID } from './pages';
+import {
+  MAX_PAGE_NAME_LENGTH, pageClipboardPayload, pageSummaries,
+  SINGLE_PAGE_ID, SINGLE_PAGE_NAME, SINGLE_PAGE_NAME_METADATA_KEY,
+} from './pages';
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 
@@ -766,9 +769,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
     toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; },
     selectPage(id) { if (state.pages.some((page) => page.id === id)) state.activePageId = id; },
-    // Page mutations stay silently unavailable until the multi-page schema (#34) lands.
+    // Structural page mutations stay unavailable until the multi-page schema (#34) lands.
     addPage() {},
-    renamePage() {},
+    renamePage(id, name) {
+      const next = name.trim();
+      if (!state.canWrite || state.transitioning || id !== SINGLE_PAGE_ID || !next || next.length > MAX_PAGE_NAME_LENGTH) return;
+      const current = state.pages[0]?.name;
+      if (next === current) return;
+      void dispatch({
+        type: 'set-metadata',
+        patch: { [SINGLE_PAGE_NAME_METADATA_KEY]: next === SINGLE_PAGE_NAME ? null : next },
+      });
+    },
     duplicatePage() {},
     deletePage() {},
     movePage() {},

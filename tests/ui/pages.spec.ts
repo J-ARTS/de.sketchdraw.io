@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 // Page UI (#35) against the single-page fallback; multi-page flows follow once #34 lands.
-// While pagesEditable is false, mutations stay silently unavailable: no toast, no schema hint.
+// While pagesEditable is false, structural mutations stay silently unavailable: no toast, no schema hint.
 async function expectNoNotice(page: Page) {
   await expect(page.getByRole('button', { name: 'Meldung schließen' })).toHaveCount(0);
 }
@@ -35,6 +35,8 @@ test('context menu opens from the more button, right click and keyboard with blo
   await expect(menu.getByRole('menuitem')).toHaveText(['Inhalt kopieren', 'Umbenennen', 'Duplizieren', 'Nach oben', 'Nach unten', 'Seite löschen']);
   await expect(menu.getByRole('menuitem', { name: 'Inhalt kopieren' })).toBeFocused();
   await expect(menu.getByRole('menuitem', { name: 'Seite löschen' })).toHaveAttribute('aria-disabled', 'true');
+  // Renaming stays available even while structural actions wait for the schema-v2 migration.
+  await expect(menu.getByRole('menuitem', { name: 'Umbenennen' })).not.toHaveAttribute('aria-disabled', 'true');
   // Blocked entries carry no technical schema-v2 hint via title.
   await expect(menu.getByRole('menuitem', { name: 'Duplizieren' })).not.toHaveAttribute('title');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
@@ -53,13 +55,41 @@ test('context menu opens from the more button, right click and keyboard with blo
   await expect(page.getByRole('list', { name: 'Seitenliste' }).getByRole('listitem')).toHaveCount(1);
 });
 
-test('double click, F2 and page creation stay silently unavailable without a schema hint', async ({ page }) => {
+test('double click and Enter rename the page in place without a technical hint', async ({ page }) => {
   await openPages(page);
   await page.getByRole('button', { name: /^Seite 1/ }).dblclick();
+  const field = page.getByRole('textbox', { name: 'Seitenname' });
+  await expect(field).toBeVisible();
+  await expect(field).toHaveValue('Seite 1');
+  await field.fill('Architektur');
+  await field.press('Enter');
   await expect(page.getByRole('textbox', { name: 'Seitenname' })).toHaveCount(0);
-  await page.getByRole('button', { name: /^Seite 1/ }).press('F2');
-  await expect(page.getByRole('textbox', { name: 'Seitenname' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Architektur/ })).toBeVisible();
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName('Seiten (1), aktuelle Seite: Architektur');
+  // Renaming is a content edit, not a structural one: still a single page, no technical toast.
+  await expect(page.getByRole('list', { name: 'Seitenliste' }).getByRole('listitem')).toHaveCount(1);
   await expectNoNotice(page);
+});
+
+test('F2 opens the rename field and Escape discards the draft', async ({ page }) => {
+  await openPages(page);
+  await page.getByRole('button', { name: /^Seite 1/ }).press('F2');
+  const field = page.getByRole('textbox', { name: 'Seitenname' });
+  await expect(field).toBeVisible();
+  await field.fill('Verworfen');
+  await field.press('Escape');
+  await expect(page.getByRole('textbox', { name: 'Seitenname' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Seite 1/ })).toBeFocused();
+  // An empty name is rejected too, leaving the original intact.
+  await page.getByRole('button', { name: /^Seite 1/ }).press('F2');
+  await page.getByRole('textbox', { name: 'Seitenname' }).fill('   ');
+  await page.getByRole('textbox', { name: 'Seitenname' }).press('Enter');
+  await expect(page.getByRole('button', { name: /^Seite 1/ })).toBeVisible();
+  await expectNoNotice(page);
+});
+
+test('page creation stays silently unavailable without a schema hint', async ({ page }) => {
+  await openPages(page);
   const add = page.getByTestId('page-add');
   await expect(add).toHaveAttribute('aria-disabled', 'true');
   await expect(add).toHaveAttribute('title', 'Neue Seite');

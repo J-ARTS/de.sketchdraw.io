@@ -53,7 +53,7 @@ export interface SketchDocument {
 
 ### 3.2 Migration und Kompatibilität
 
-- Laden von v1: `pages = [{ id: 'page:1', name: 'Seite 1', elements }]`. Die ID ist deterministisch, damit P2P-Peers und Wiederholungen dieselbe Migration erhalten.
+- Laden von v1: `pages = [{ id: 'page:1', name: metadata['sketchdraw.page.v1.name'] ?? 'Seite 1', elements }]`. Der optionale Kompatibilitätsschlüssel wird nach Trim nur bei 1–120 Zeichen übernommen und bei der v2-Migration entfernt. Die ID ist deterministisch, damit P2P-Peers und Wiederholungen dieselbe Migration erhalten.
 - Gespeichert wird immer v2.
 - **Bedenken:** Ältere App-Versionen (v0.1.x) lehnen v2 mit `UNSUPPORTED_SCHEMA_VERSION` ab. Vorschlag: im Release-Hinweis nennen. Für einseitige Dokumente zusätzlich prüfen, ob „Kopie exportieren“ optional v1 schreiben soll.
 
@@ -140,7 +140,7 @@ pastePage(): Promise<void>;             // liest und validiert das Format aus 3.
 
 - Die aktive Seite und der Viewport pro Seite sind Renderer-Zustand.
 - `displayElements`, Auswahl und Objektliste beziehen sich auf die aktive Seite. Beim Seitenwechsel wird die Auswahl geleert.
-- Bis #34 umgesetzt ist, liefert der Store ein einseitiges Abbild des v1-Dokuments (`pages` mit genau einer Seite „Seite 1“, `pagesEditable: false`). `copyPage` funktioniert bereits, weil es das Dokument nicht verändert.
+- Bis #34 umgesetzt ist, liefert der Store ein einseitiges Abbild des v1-Dokuments (`pagesEditable: false`). Der Name dieser Seite kann bereits geändert werden und wird unabhängig vom Dokumenttitel unter `metadata['sketchdraw.page.v1.name']` gespeichert; alle strukturellen Seitenaktionen bleiben gesperrt. `copyPage` funktioniert bereits, weil es das Dokument nicht verändert.
 
 ## 5. UI-Entscheidungen (Claude Code, #35)
 

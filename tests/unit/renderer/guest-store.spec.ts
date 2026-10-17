@@ -49,10 +49,20 @@ test('join cancellation keeps local drafts; accepted guest writes, code and undo
 
 test('viewer and disconnected sessions suppress writes while retaining draft and allowing a confirmed local copy', async () => {
   const { store, factory } = setup(); const peer = guestFixture('viewer'); await store.joinGuestSession(peer.guest);
-  expect(store.state.canWrite).toBe(false); await draw(store); store.setTitle('Denied'); store.deleteSelection(); await store.whenIdle(); expect(peer.submit).not.toHaveBeenCalled();
+  expect(store.state.canWrite).toBe(false); await draw(store); store.setTitle('Denied'); store.renamePage('page:1', 'Denied page'); store.deleteSelection(); await store.whenIdle(); expect(peer.submit).not.toHaveBeenCalled();
   peer.update({ role: 'editor', state: 'disconnected' }); expect(store.state.canWrite).toBe(false); store.setCodeDraft('blocked'); expect(store.state.code.dirty).toBe(false);
   const leave = store.leaveGuestSession(); await tick(); await store.resolveDialog('discard'); expect(await leave).toBe(true);
   expect(peer.leave).toHaveBeenCalledTimes(1); expect(store.getAuthority()).not.toBeNull(); expect(factory).toHaveBeenCalledTimes(2); expect(store.state.title).toBe('Peer-Dokument'); expect(store.needsCloseWarning()).toBe(true);
+});
+
+test('an editor page rename uses the shared authority and updates every snapshot view', async () => {
+  const { store } = setup(); const peer = guestFixture(); await store.joinGuestSession(peer.guest);
+  store.renamePage('page:1', 'Gemeinsame Übersicht'); await store.whenIdle();
+  expect(peer.submit).toHaveBeenCalledWith(expect.objectContaining({
+    action: { kind: 'dispatch', command: { type: 'set-metadata', patch: { 'sketchdraw.page.v1.name': 'Gemeinsame Übersicht' } } },
+  }));
+  expect(peer.authority.source.getSnapshot().document.metadata['sketchdraw.page.v1.name']).toBe('Gemeinsame Übersicht');
+  expect(store.state.pages[0]?.name).toBe('Gemeinsame Übersicht');
 });
 
 test('unknown result keeps gesture, blocks save/retry, and queries the same request before clearing confirmed draft', async () => {
