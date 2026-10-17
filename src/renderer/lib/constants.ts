@@ -10,9 +10,9 @@ export const MIN_DRAWN_SIZE = 8;
 export const DRAG_THRESHOLD_PX = 3;
 
 /** Only free-form content keeps the canvas rotate handle; shapes and components resize only (#36). */
-export const ROTATABLE_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['text', 'image', 'path']);
+export const ROTATABLE_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['text', 'sticky-note', 'image', 'path']);
 /** Kinds that offer quick-connect handles to create a connected copy (#36). */
-export const QUICK_CONNECT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['rectangle', 'ellipse', 'diamond', 'component']);
+export const QUICK_CONNECT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>(['rectangle', 'ellipse', 'diamond', 'component', 'sticky-note']);
 
 /** Screen-pixel values; callers divide by zoom where document units are needed. */
 export const HIT_TOLERANCE_PX = 8;
@@ -49,6 +49,10 @@ export const STYLE_BY_KIND: Readonly<Partial<Record<ElementKind, Readonly<Partia
   rectangle: { textAlign: 'center' },
   ellipse: { textAlign: 'center' },
   diamond: { textAlign: 'center' },
+  'sticky-note': {
+    fill: '#aeeebd', stroke: '#53675a', strokeWidth: 0, fontSize: 20,
+    textAlign: 'left', fontFamily: 'sans', fontWeight: 'normal', textDecoration: 'none', listStyle: 'none',
+  },
 };
 
 export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
@@ -57,6 +61,7 @@ export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
   diamond: { width: 160, height: 120 },
   container: { width: 360, height: 240 },
   text: { width: 240, height: 36 },
+  'sticky-note': { width: 240, height: 240 },
 };
 
 export interface NamedColor { name: string; value: string }

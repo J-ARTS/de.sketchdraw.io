@@ -53,6 +53,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   const actorId = options.actorId ?? ACTOR_ID;
+  const authorName = options.authorName?.trim() || 'Lokaler Benutzer';
   let bindings: Record<'human' | 'code' | 'import', ActorBinding>;
   let unsubscribe = () => {};
   let disposed = false;
@@ -135,7 +136,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const displayed = elements.map((element): SelectionInfo['values'] => {
         const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
         const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
-        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
+        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, author: e.author ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
           connectorRouting: e.kind === 'connector' ? connectorRouting({ connectorRouting: e.connectorRouting ?? undefined }) : undefined,
           startMarker: e.kind === 'connector' ? connectorStartMarker({ startMarker: e.startMarker ?? undefined }) : undefined,
           endMarker: e.kind === 'connector' ? connectorEndMarker({ endMarker: e.endMarker ?? undefined }) : undefined };
@@ -253,7 +254,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (owner !== activeSession()) return false;
     if (ok) {
       if (g.element) { setSelection([g.element.id]); state.tool = 'select'; }
+      const editStickyId = g.element?.kind === 'sticky-note' ? g.element.id : null;
       resetGesture(); failedGesture = null; state.gestureConflict = null;
+      if (editStickyId) store.startTextEdit(editStickyId);
     } else { failedGesture = g; state.gestureConflict = { message: 'Die Geste wurde nicht übernommen. Deine Vorschau bleibt erhalten.', canRetry: unchanged }; }
     return ok;
   }
@@ -268,6 +271,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const rect = g.tool === 'path' ? normalizedRect({ x: Math.min(...points.map((p) => p.x)), y: Math.min(...points.map((p) => p.y)) }, { x: Math.max(...points.map((p) => p.x)), y: Math.max(...points.map((p) => p.y)) }) : normalizedRect(g.start, end);
     const style = { ...DEFAULT_STYLE, ...STYLE_BY_KIND[g.tool] };
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool) };
+    if (g.tool === 'sticky-note') value.author = authorName;
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
       const from = state.document.elements.find((element) => element.id === g.connectorFromId);

@@ -92,7 +92,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
     if (request.operation === 'sketchdraw_find_elements' && 'query' in input) {
       const query = input.query.toLocaleLowerCase();
       const matches = document.elements.flatMap(element => {
-        const fields: Record<string, string> = { id: element.id, kind: element.kind, label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', componentType: element.componentType ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
+        const fields: Record<string, string> = { id: element.id, kind: element.kind, label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', author: element.author ?? '', componentType: element.componentType ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
         const matchedFields = Object.keys(fields).filter(key => fields[key]!.toLocaleLowerCase().includes(query));
         return matchedFields.length ? [{ id: element.id, kind: element.kind, x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
       });
@@ -100,7 +100,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       return { ...base, query: input.query, totalMatches: matches.length, truncated: matches.length > limit, matches: matches.slice(0, limit) };
     }
     if (request.operation === 'sketchdraw_analyze_document') {
-      const counts = Object.fromEntries(['rectangle', 'ellipse', 'diamond', 'text', 'path', 'image', 'connector', 'container', 'component'].map(kind => [kind, 0])) as Record<ElementKind, number>;
+      const counts = Object.fromEntries(['rectangle', 'ellipse', 'diamond', 'text', 'path', 'image', 'connector', 'container', 'component', 'sticky-note'].map(kind => [kind, 0])) as Record<ElementKind, number>;
       const findings: AnalyzeDocumentOutput['findings'] = [];
       const byId = new Map(document.elements.map(element => [element.id, element]));
       const parents = new Set(document.elements.flatMap(element => element.parentId ? [element.parentId] : []));

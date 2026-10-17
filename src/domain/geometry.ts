@@ -210,6 +210,9 @@ export function cloneStyle(style: ElementStyle): ElementStyle {
   if (style.fontFamily !== undefined) {
     cloned.fontFamily = style.fontFamily;
   }
+  if (style.fontWeight !== undefined) cloned.fontWeight = style.fontWeight;
+  if (style.textDecoration !== undefined) cloned.textDecoration = style.textDecoration;
+  if (style.listStyle !== undefined) cloned.listStyle = style.listStyle;
   return cloned;
 }
 
@@ -223,6 +226,9 @@ export function clonePartialStyle(style: Partial<ElementStyle>): Partial<Element
   if (style.textAlign !== undefined) cloned.textAlign = style.textAlign;
   if (style.strokeDash !== undefined) cloned.strokeDash = style.strokeDash;
   if (style.fontFamily !== undefined) cloned.fontFamily = style.fontFamily;
+  if (style.fontWeight !== undefined) cloned.fontWeight = style.fontWeight;
+  if (style.textDecoration !== undefined) cloned.textDecoration = style.textDecoration;
+  if (style.listStyle !== undefined) cloned.listStyle = style.listStyle;
   return cloned;
 }
 
@@ -251,6 +257,7 @@ export function cloneElement(element: SketchElement): SketchElement {
   if (element.label !== undefined) cloned.label = element.label;
   if (element.description !== undefined) cloned.description = element.description;
   if (element.text !== undefined) cloned.text = element.text;
+  if (element.author !== undefined) cloned.author = element.author;
   if (element.points !== undefined) cloned.points = element.points.map(clonePoint);
   if (element.connectorRouting !== undefined) cloned.connectorRouting = element.connectorRouting;
   if (element.startMarker !== undefined) cloned.startMarker = element.startMarker;
@@ -367,7 +374,10 @@ export function areStylesEqual(a: Partial<ElementStyle>, b: Partial<ElementStyle
     a.fontSize === b.fontSize &&
     a.textAlign === b.textAlign &&
     a.strokeDash === b.strokeDash &&
-    a.fontFamily === b.fontFamily
+    a.fontFamily === b.fontFamily &&
+    a.fontWeight === b.fontWeight &&
+    a.textDecoration === b.textDecoration &&
+    a.listStyle === b.listStyle
   );
 }
 
@@ -402,6 +412,7 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
     a.label === b.label &&
     a.description === b.description &&
     a.text === b.text &&
+    a.author === b.author &&
     arePointsEqual(a.points, b.points) &&
     a.connectorRouting === b.connectorRouting &&
     a.startMarker === b.startMarker &&

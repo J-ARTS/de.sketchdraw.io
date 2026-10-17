@@ -50,6 +50,7 @@ const SCALAR_ELEMENT_FIELDS = [
   'label',
   'description',
   'text',
+  'author',
   'assetId',
   'parentId',
   'componentType',
@@ -65,6 +66,9 @@ const STYLE_FIELD_LIST: ReadonlyArray<keyof ElementStyle> = [
   'textAlign',
   'strokeDash',
   'fontFamily',
+  'fontWeight',
+  'textDecoration',
+  'listStyle',
 ];
 
 interface HistoryEntry {

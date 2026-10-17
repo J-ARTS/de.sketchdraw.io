@@ -24,16 +24,21 @@ const editStyle = computed(() => {
   const zoom = s.viewport.zoom;
   const { x, y } = docToScreen(s.viewport, edit.box);
   const free = edit.kind === 'text';
-  const topInset = edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  const sticky = edit.kind === 'sticky-note';
+  const topInset = sticky ? 20 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  const sideInset = sticky ? 20 : free ? 0 : 8;
   return {
     left: `${x}px`, top: `${y}px`,
     width: `${Math.max(free ? 120 : 24, edit.box.width * zoom)}px`,
     ...(free ? { minHeight: `${edit.style.fontSize * 1.25 * zoom}px` } : { height: `${Math.max(24, edit.box.height * zoom)}px` }),
     alignItems: free || topInset ? 'flex-start' : 'center',
-    padding: free ? '0' : `${topInset * zoom}px ${8 * zoom}px 0`,
+    padding: free ? '0' : `${topInset * zoom}px ${sideInset * zoom}px ${sticky ? 56 * zoom : 0}px`,
+    boxSizing: 'border-box' as const,
     transform: `rotate(${edit.rotation}deg)`,
     fontSize: `${edit.style.fontSize * zoom}px`,
     fontFamily: fontFamilyCss(edit.style.fontFamily),
+    fontWeight: edit.style.fontWeight ?? 'normal',
+    textDecoration: edit.style.textDecoration ?? 'none',
     textAlign: edit.style.textAlign,
     '--edit-color': themeColor(edit.style.stroke, s.theme),
   };
@@ -99,7 +104,7 @@ onBeforeUnmount(() => observer?.disconnect());
     <QuickConnect />
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
-      <textarea ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
+      <textarea ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
     </div>
     <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
@@ -109,5 +114,5 @@ onBeforeUnmount(() => observer?.disconnect());
 <style scoped>
 .canvas-wrap,.whiteboard-canvas{position:absolute;inset:0;width:100%;height:100%}.whiteboard-canvas{touch-action:none;outline:none!important}.whiteboard-canvas:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .empty-canvas{position:absolute;top:38%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;color:var(--text-muted);width:min(480px,80vw)}.eyebrow{font-size:10px;letter-spacing:.2em;font-weight:650;color:var(--accent)}h1{font-size:clamp(24px,3vw,36px);letter-spacing:-.04em;font-weight:550;color:var(--text-primary);margin:16px 0}p{font-size:13px;line-height:1.8}.empty-arrow{display:block;transform:rotate(-12deg);font-size:40px;margin-top:30px;color:var(--border-default)}kbd{border:1px solid var(--border-subtle);border-radius:4px;padding:1px 5px;background:var(--surface-panel)}
-.text-edit-wrap{position:absolute;z-index:8;display:flex;transform-origin:center;pointer-events:none}.canvas-text-editor{display:block;width:100%;max-height:100%;margin:0;padding:0;overflow:hidden;resize:none;background:transparent;border:0;outline:none;color:var(--edit-color);caret-color:var(--edit-color);font:inherit;line-height:1.25;text-align:inherit;pointer-events:auto}.text-edit-wrap.free .canvas-text-editor{max-height:none}.canvas-text-editor::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}.draft-conflict{position:absolute;top:calc(100% + 8px);left:0;min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);border-radius:var(--radius-1);padding:12px;font-size:12px;pointer-events:auto}
+.text-edit-wrap{position:absolute;z-index:8;display:flex;transform-origin:center;pointer-events:none}.canvas-text-editor{display:block;width:100%;max-height:100%;margin:0;padding:0;overflow:hidden;resize:none;background:transparent;border:0;outline:none;color:var(--edit-color);caret-color:var(--edit-color);font:inherit;line-height:1.25;text-align:inherit;pointer-events:auto}.text-edit-wrap.free .canvas-text-editor{max-height:none}.canvas-text-editor::placeholder{color:color-mix(in srgb,var(--edit-color) 55%,transparent);opacity:1}.canvas-text-editor::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}.draft-conflict{position:absolute;top:calc(100% + 8px);left:0;min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);border-radius:var(--radius-1);padding:12px;font-size:12px;pointer-events:auto}
 </style>

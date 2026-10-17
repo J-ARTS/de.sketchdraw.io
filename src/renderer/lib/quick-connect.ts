@@ -64,5 +64,10 @@ export function quickConnectCopy(source: SketchElement, shape: Rect): Partial<Sk
     if (source.metadata) copy.metadata = { ...source.metadata };
     if (source.documentationUrl) copy.documentationUrl = source.documentationUrl;
   }
+  if (source.kind === 'sticky-note') {
+    copy.text = '';
+    copy.author = source.author;
+    if (source.documentationUrl) copy.documentationUrl = source.documentationUrl;
+  }
   return copy;
 }

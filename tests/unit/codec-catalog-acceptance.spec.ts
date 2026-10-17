@@ -87,6 +87,11 @@ function fullDocument(): SketchDocument {
       metadata: { 'widget:custom.acme.queue:capacity': '100', arbitrary: '🧭' },
       documentationUrl: 'https://example.com/component',
     }),
+    shape('sticky-note', 'sticky-note', {
+      x: 430, y: 200, width: 240, height: 240, text: 'Plan\nReview', author: 'Jeremy Teichmann',
+      style: { ...shape('base').style, fill: '#aeeebd', fontWeight: 'bold', textDecoration: 'line-through', listStyle: 'bullet' },
+      documentationUrl: 'https://example.com/note',
+    }),
   ]);
   doc.assets = { 'asset:unused': asset('asset:unused'), 'asset:used': asset() };
   doc.componentSets = [componentSet(), { id: 'empty.set', name: 'Unused', version: 'old', components: [] }];
@@ -149,13 +154,13 @@ function referenceScript(context: SketchDocument): string {
 }
 
 describe('Sketchdraw Script acceptance', () => {
-  it('round-trips all nine kinds and full persistent resources without normalizing away valid data', () => {
+  it('round-trips all ten kinds and full persistent resources without normalizing away valid data', () => {
     const original = freezeDeep(fullDocument());
     const expected = serializeDocument(original);
     const source = formatDiagram(original);
     const decoded = parsedDocument(parseDiagram(source));
 
-    expect(new Set(decoded.elements.map((element) => element.kind)).size).toBe(9);
+    expect(new Set(decoded.elements.map((element) => element.kind)).size).toBe(10);
     expect(serializeDocument(decoded)).toBe(expected);
     expect(formatDiagram(decoded)).toBe(source);
     expect(source.startsWith('sketchdraw 1\ndocument ')).toBe(true);

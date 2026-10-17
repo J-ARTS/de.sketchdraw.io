@@ -35,6 +35,7 @@ export const ELEMENT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'connector',
   'container',
   'component',
+  'sticky-note',
 ]);
 
 const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
@@ -45,6 +46,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'image',
   'container',
   'component',
+  'sticky-note',
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);
@@ -59,6 +61,9 @@ const FONT_FAMILIES: ReadonlySet<NonNullable<ElementStyle['fontFamily']>> = new 
   'roboto',
   'scribbled',
 ]);
+const FONT_WEIGHTS: ReadonlySet<NonNullable<ElementStyle['fontWeight']>> = new Set(['normal', 'bold']);
+const TEXT_DECORATIONS: ReadonlySet<NonNullable<ElementStyle['textDecoration']>> = new Set(['none', 'line-through']);
+const LIST_STYLES: ReadonlySet<NonNullable<ElementStyle['listStyle']>> = new Set(['none', 'bullet']);
 const CONNECTOR_ROUTINGS: ReadonlySet<ConnectorRouting> = new Set(['straight', 'elbowed', 'curved']);
 const CONNECTOR_MARKERS: ReadonlySet<ConnectorMarker> = new Set([
   'none', 'line-arrow', 'solid-arrow', 'triangle', 'circle', 'diamond',
@@ -103,6 +108,7 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'label',
   'description',
   'text',
+  'author',
   'points',
   'connectorRouting',
   'startMarker',
@@ -125,6 +131,9 @@ export const STYLE_KEYS: ReadonlySet<string> = new Set([
   'textAlign',
   'strokeDash',
   'fontFamily',
+  'fontWeight',
+  'textDecoration',
+  'listStyle',
 ]);
 
 const POINT_KEYS: ReadonlySet<string> = new Set(['x', 'y']);
@@ -557,6 +566,24 @@ export function validateStyle(
     }
   }
 
+  if (Object.prototype.hasOwnProperty.call(value, 'fontWeight') && value.fontWeight !== undefined) {
+    if (typeof value.fontWeight !== 'string' || !FONT_WEIGHTS.has(value.fontWeight as NonNullable<ElementStyle['fontWeight']>)) {
+      issues.push({ path: joinPath(path, 'fontWeight'), code: 'INVALID_STYLE_FIELD', message: 'Style fontWeight must be "normal" or "bold".' });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'textDecoration') && value.textDecoration !== undefined) {
+    if (typeof value.textDecoration !== 'string' || !TEXT_DECORATIONS.has(value.textDecoration as NonNullable<ElementStyle['textDecoration']>)) {
+      issues.push({ path: joinPath(path, 'textDecoration'), code: 'INVALID_STYLE_FIELD', message: 'Style textDecoration must be "none" or "line-through".' });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'listStyle') && value.listStyle !== undefined) {
+    if (typeof value.listStyle !== 'string' || !LIST_STYLES.has(value.listStyle as NonNullable<ElementStyle['listStyle']>)) {
+      issues.push({ path: joinPath(path, 'listStyle'), code: 'INVALID_STYLE_FIELD', message: 'Style listStyle must be "none" or "bullet".' });
+    }
+  }
+
   ancestors.delete(value);
   return true;
 }
@@ -784,7 +811,7 @@ export function validateElementIntrinsic(
     issues.push({
       path: joinPath(path, 'kind'),
       code: 'INVALID_ELEMENT_KIND',
-      message: 'Element kind must be one of the nine supported ElementKind values.',
+      message: 'Element kind must be one of the ten supported ElementKind values.',
     });
   }
   const typedKind = kindValid ? (kind as ElementKind) : null;
@@ -875,7 +902,7 @@ export function validateElementIntrinsic(
 
   validateStyle(value.style, joinPath(path, 'style'), ancestors, issues, false);
 
-  for (const textKey of ['label', 'description', 'text'] as const) {
+  for (const textKey of ['label', 'description', 'text', 'author'] as const) {
     if (Object.prototype.hasOwnProperty.call(value, textKey) && value[textKey] !== undefined) {
       const strVal = value[textKey];
       if (typeof strVal !== 'string') {
@@ -892,6 +919,10 @@ export function validateElementIntrinsic(
         });
       }
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'author') && value.author !== undefined && typedKind !== null && typedKind !== 'sticky-note') {
+    issues.push({ path: joinPath(path, 'author'), code: 'FORBIDDEN_ELEMENT_FIELD', message: 'Property "author" is only allowed on sticky-note elements.' });
   }
 
   // Kind-specific field rules:

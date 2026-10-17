@@ -25,20 +25,24 @@ function generateUniqueId(prefix: string): string {
 }
 
 function createDefaultStyle(kind: ElementKind): ElementStyle {
+  const sticky = kind === 'sticky-note';
   return {
-    stroke: '#1e293b',
+    stroke: sticky ? '#53675a' : '#1e293b',
     fill:
       kind === 'container'
         ? '#f8fafc'
+        : sticky
+          ? '#aeeebd'
         : kind === 'text' || kind === 'path' || kind === 'connector'
           ? 'transparent'
           : '#ffffff',
-    strokeWidth: 2,
+    strokeWidth: sticky ? 0 : 2,
     opacity: 1,
-    fontSize: 16,
+    fontSize: sticky ? 20 : 16,
     textAlign: 'left',
     strokeDash: 'solid',
     fontFamily: 'sans',
+    ...(sticky ? { fontWeight: 'normal' as const, textDecoration: 'none' as const, listStyle: 'none' as const } : {}),
   };
 }
 
@@ -132,8 +136,8 @@ export function createElement(
     }
   }
 
-  const defaultWidth = kind === 'container' ? 320 : kind === 'text' ? 160 : 120;
-  const defaultHeight = kind === 'container' ? 200 : kind === 'text' ? 32 : 80;
+  const defaultWidth = kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
+  const defaultHeight = kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
 
   const width = overrides?.width !== undefined ? overrides.width : defaultWidth;
   const height = overrides?.height !== undefined ? overrides.height : defaultHeight;
@@ -165,6 +169,15 @@ export function createElement(
           : baseStyle.fontFamily !== undefined
             ? { fontFamily: baseStyle.fontFamily }
             : {}),
+        ...(overrides.style.fontWeight !== undefined
+          ? { fontWeight: overrides.style.fontWeight }
+          : baseStyle.fontWeight !== undefined ? { fontWeight: baseStyle.fontWeight } : {}),
+        ...(overrides.style.textDecoration !== undefined
+          ? { textDecoration: overrides.style.textDecoration }
+          : baseStyle.textDecoration !== undefined ? { textDecoration: baseStyle.textDecoration } : {}),
+        ...(overrides.style.listStyle !== undefined
+          ? { listStyle: overrides.style.listStyle }
+          : baseStyle.listStyle !== undefined ? { listStyle: baseStyle.listStyle } : {}),
       }
     : baseStyle;
 
@@ -181,6 +194,10 @@ export function createElement(
 
   if (kind === 'text' && overrides?.text === undefined) {
     candidate.text = 'Text';
+  }
+  if (kind === 'sticky-note') {
+    if (overrides?.text === undefined) candidate.text = '';
+    if (overrides?.author === undefined) candidate.author = 'Lokaler Benutzer';
   }
   if ((kind === 'connector' || kind === 'path') && overrides?.points === undefined) {
     const endX = typeof width === 'number' && Number.isFinite(width) ? normalizeZero(width) : 120;
@@ -207,6 +224,7 @@ export function createElement(
       'label',
       'description',
       'text',
+      'author',
       'points',
       'connectorRouting',
       'startMarker',

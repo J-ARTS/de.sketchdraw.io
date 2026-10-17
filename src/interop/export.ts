@@ -30,15 +30,23 @@ function svgPaint(el: SketchElement, d: DiagnosticCollector): string {
 const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 function nativeText(el: SketchElement, d: DiagnosticCollector): string {
-  const visibleText = el.text || el.label || '';
+  const plainText = el.text || el.label || '';
+  const visibleText = el.style.listStyle === 'bullet'
+    ? plainText.split('\n').map(line => line ? `• ${line}` : line).join('\n')
+    : plainText;
   if (visibleText === '')
     return '';
   diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Editable text depends on fonts available in the receiving application.');
   const font = el.style.fontSize, align = el.kind === 'connector' ? 'center' : el.style.textAlign;
-  const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width : 0;
-  const y = el.kind === 'connector' ? el.height / 2 : font;
+  const inset = el.kind === 'sticky-note' ? 20 : 0;
+  const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
+  const y = el.kind === 'connector' ? el.height / 2 : font + inset;
   const text = xmlText(visibleText, d, el);
-  return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+  return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+}
+function stickyAuthor(el: SketchElement, d: DiagnosticCollector): string {
+  if (el.kind !== 'sticky-note' || !el.author) return '';
+  return `<text${attrs({ x: 20, y: el.height - 20, 'font-size': Math.max(12, el.style.fontSize * .72), 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity * .82 })}>${escapeXmlText(xmlText(el.author, d, el))}</text>`;
 }
 const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = { none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block', circle: 'oval', diamond: 'diamond' };
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
@@ -88,7 +96,11 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const markerColor = safeColor(el.style.stroke, d, el);
       out.append(`<defs>${svgMarker(`sd-${index}-start`, markerStart, markerColor, el.style.strokeWidth)}${svgMarker(`sd-${index}-end`, markerEnd, markerColor, el.style.strokeWidth)}</defs>`);
     }
-    if (['rectangle', 'container', 'component'].includes(el.kind))
+    if (el.kind === 'sticky-note') {
+      out.append(`<defs><filter id="sd-${index}-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#18251d" flood-opacity=".18"/></filter></defs>`);
+      out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, fill: safeColor(el.style.fill, d, el), opacity: el.style.opacity, stroke: 'none', filter: `url(#sd-${index}-shadow)` })}/>`);
+    }
+    else if (['rectangle', 'container', 'component'].includes(el.kind))
       out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}"${paint}/>`);
     else if (el.kind === 'ellipse')
       out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}"${paint}/>`);
@@ -108,7 +120,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const tree = icon.tree;
       out.append(`<svg${attrs({ ...tree.attributes, x: 4, y: 4, width: Math.min(32, el.width), height: Math.min(32, el.height), viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    out.append(nativeText(el, d));
+    const visibleText = `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    out.append(el.kind === 'sticky-note' && el.documentationUrl
+      ? `<a href="${escapeXmlAttr(el.documentationUrl)}">${visibleText}</a>`
+      : visibleText);
     out.append('</g>');
   }
   out.append('</svg>');
@@ -122,8 +137,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   for (const raw of document.elements) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
-    const text = xmlText(el.text || el.label || '', d, el);
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorStartMarker(el)] : 'none'}`, `endArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorEndMarker(el)] : 'none'}`];
+    const sourceText = el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
+    const text = xmlText(sourceText, d, el);
+    const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorStartMarker(el)] : 'none'}`, `endArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorEndMarker(el)] : 'none'}`];
     if (el.kind === 'ellipse')
       style.push('ellipse');
     else if (el.kind === 'diamond')
@@ -134,6 +151,8 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('container=1', 'verticalAlign=top');
     else if (el.kind === 'image')
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
+    else if (el.kind === 'sticky-note')
+      style.push('shape=note', 'shadow=1', 'verticalAlign=top', 'spacing=20', `sketchdrawAuthor=${encodeURIComponent(el.author ?? '')}`, `sketchdrawListStyle=${el.style.listStyle ?? 'none'}`);
     const edge = el.kind === 'connector' || el.kind === 'path';
     if (edge) {
       if (el.kind === 'connector' && connectorRouting(el) === 'elbowed') style.push('edgeStyle=orthogonalEdgeStyle', 'rounded=1', 'noEdgeStyle=0');
@@ -184,7 +203,7 @@ export function prepareExport(document: SketchDocument, format: InteropFormat, o
   const doc = validateDocument(document);
   serializeDocument(doc);
   const d = new DiagnosticCollector(), embed = options.embedDocument !== false;
-  if (doc.componentSets.length || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType))
+  if (doc.componentSets.length || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author))
     diagnostic(d, undefined, embed ? 'SEMANTICS_IN_METADATA' : 'SEMANTICS_OMITTED', embed ? 'Additional document semantics and resources are embedded as data, including information not visible on the canvas.' : 'Portable projection omits native document identity, catalog, binding and metadata semantics.', !embed);
   const contents = format === 'svg' ? nativeSvg(doc, d, embed) : nativeDrawio(doc, d, embed);
   // Do not produce an output whose native projection exceeds our import limits.

@@ -10,6 +10,7 @@ export const KIND_LABELS: Record<ElementKind, string> = {
   connector: 'Verbindung',
   container: 'Container',
   component: 'Komponente',
+  'sticky-note': 'Notiz',
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;

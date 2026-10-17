@@ -1,7 +1,7 @@
 /** Shared architecture contract. Runtime validation is required at every input boundary. */
 export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
-  | 'image' | 'connector' | 'container' | 'component';
+  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note';
 
 export interface Point { x: number; y: number }
 
@@ -23,6 +23,9 @@ export interface ElementStyle {
   textAlign: 'left' | 'center' | 'right';
   strokeDash: 'solid' | 'dashed' | 'dotted';
   fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled';
+  fontWeight?: 'normal' | 'bold';
+  textDecoration?: 'none' | 'line-through';
+  listStyle?: 'none' | 'bullet';
 }
 
 export interface Endpoint {
@@ -46,6 +49,8 @@ export interface SketchElement {
   label?: string;
   description?: string;
   text?: string;
+  /** Display name shown in the footer of sticky notes. */
+  author?: string;
   /** Element-local points. Connectors always retain at least two points. */
   points?: Point[];
   /** Connector-only route and endpoint decoration. Missing values use the v1-compatible defaults. */
@@ -114,6 +119,7 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   label?: string | null;
   description?: string | null;
   text?: string | null;
+  author?: string | null;
   points?: Point[] | null;
   connectorRouting?: ConnectorRouting | null;
   startMarker?: ConnectorMarker | null;

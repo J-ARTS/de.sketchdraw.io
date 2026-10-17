@@ -22,7 +22,7 @@ import type {
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'image' | 'container';
+  | 'connector' | 'path' | 'text' | 'sticky-note' | 'image' | 'container';
 
 /** screen = doc * zoom + pan. Zoom is clamped to 0.1..4. Pan is in CSS pixels of the canvas element. */
 export interface Viewport { panX: number; panY: number; zoom: number }
@@ -121,6 +121,8 @@ export interface CreateStoreOptions {
   authority?: DocumentAuthority;
   authorityFactory?: (controller: DocumentController) => DocumentAuthority;
   actorId?: string;
+  /** Display name placed in newly created sticky-note footers. */
+  authorName?: string;
   isMac?: boolean;
   initialTheme?: 'light' | 'dark';
 }
@@ -145,6 +147,7 @@ export interface SelectionInfo {
     stroke?: string; fill?: string; strokeWidth?: number; opacity?: number; fontSize?: number;
     textAlign?: ElementStyle['textAlign']; strokeDash?: ElementStyle['strokeDash'];
     fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled'; label?: string; description?: string; text?: string;
+    fontWeight?: ElementStyle['fontWeight']; textDecoration?: ElementStyle['textDecoration']; listStyle?: ElementStyle['listStyle']; author?: string;
     connectorFrom?: string; connectorTo?: string; connectorRouting?: ConnectorRouting;
     startMarker?: ConnectorMarker; endMarker?: ConnectorMarker; parentName?: string;
   };

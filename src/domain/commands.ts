@@ -358,6 +358,7 @@ function applyCommandInternal(
           'label',
           'description',
           'text',
+          'author',
           'points',
           'connectorRouting',
           'startMarker',

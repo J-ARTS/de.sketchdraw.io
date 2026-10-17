@@ -1307,6 +1307,72 @@
         "github-actions-connectors-39075881787"
       ]
     },
+    "48": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-sticky-implementation-048"
+      ]
+    },
+    "49": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "antigravity-sticky-domain-attempt-049"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-sticky-implementation-048"
+      ]
+    },
     "5": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1341,6 +1407,40 @@
         "claude-architecture-001",
         "claude-architecture-002",
         "codex-ticket-closure-004"
+      ]
+    },
+    "50": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "claude-code-sticky-ui-review-050"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-sticky-implementation-048"
       ]
     },
     "6": {
@@ -1504,15 +1604,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 22
+        "unknownRuns": 23
       },
       "observedSeconds": {
         "knownRuns": 16,
         "knownSubtotal": 9941.981845207978,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       },
-      "runCount": 22,
+      "runCount": 23,
       "runIds": [
         "antigravity-architecture-001",
         "antigravity-architecture-002",
@@ -1535,13 +1635,14 @@
         "antigravity-release-pipeline-001",
         "antigravity-setup-001",
         "antigravity-setup-002",
+        "antigravity-sticky-domain-attempt-049",
         "antigravity-text-edit-style-contract-044"
       ],
       "tokens": {
         "knownRuns": 4,
         "knownSubtotal": 391342,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       }
     },
     "chrome": {
@@ -1573,20 +1674,21 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       },
-      "runCount": 10,
+      "runCount": 11,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
         "claude-code-connector-ui-review-047",
         "claude-code-font-ui-attempt-043",
+        "claude-code-sticky-ui-review-050",
         "claude-code-text-edit-toolbar-attempt-044",
         "claude-page-rename-ui-035",
         "claude-page-ui-cleanup-035",
@@ -1598,7 +1700,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       }
     },
     "codex": {
@@ -1606,15 +1708,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 19
+        "unknownRuns": 20
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 19
+        "unknownRuns": 20
       },
-      "runCount": 19,
+      "runCount": 20,
       "runIds": [
         "codex-auto-agent-access-030",
         "codex-connector-implementation-045",
@@ -1631,6 +1733,7 @@
         "codex-runtime-path-fix-030",
         "codex-selection-popover-review-038",
         "codex-shutdown-cleanup-032",
+        "codex-sticky-implementation-048",
         "codex-text-edit-toolbar-review-044",
         "codex-ticket-closure-004",
         "codex-ticket-closure-015",
@@ -1640,7 +1743,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 19
+        "unknownRuns": 20
       }
     },
     "codex-subagent": {
@@ -1733,15 +1836,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 90
+      "unknownRuns": 93
     },
     "observedSeconds": {
       "knownRuns": 28,
       "knownSubtotal": 15711.322263248963,
       "total": null,
-      "unknownRuns": 62
+      "unknownRuns": 65
     },
-    "runCount": 90,
+    "runCount": 93,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1764,12 +1867,14 @@
       "antigravity-release-pipeline-001",
       "antigravity-setup-001",
       "antigravity-setup-002",
+      "antigravity-sticky-domain-attempt-049",
       "antigravity-text-edit-style-contract-044",
       "chrome-figjam-connector-research-045",
       "claude-architecture-001",
       "claude-architecture-002",
       "claude-code-connector-ui-review-047",
       "claude-code-font-ui-attempt-043",
+      "claude-code-sticky-ui-review-050",
       "claude-code-text-edit-toolbar-attempt-044",
       "claude-page-rename-ui-035",
       "claude-page-ui-cleanup-035",
@@ -1815,6 +1920,7 @@
       "codex-session-001",
       "codex-setup-integration-001",
       "codex-shutdown-cleanup-032",
+      "codex-sticky-implementation-048",
       "codex-text-edit-toolbar-review-044",
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
@@ -1838,7 +1944,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 86
+      "unknownRuns": 89
     }
   },
   "officialScoreClaimReady": false,
@@ -1848,9 +1954,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 31
+    "unknownIssues": 34
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:46:13Z"
+  "updatedAt": "2026-10-17T23:04:43.000Z"
 }

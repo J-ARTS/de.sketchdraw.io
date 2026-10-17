@@ -71,7 +71,7 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'labelBackgroundColor', 'container', 'rounded', 'shadow', 'swimlane']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'shadow', 'swimlane', 'sketchdrawAuthor', 'sketchdrawListStyle']);
 const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = { none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow', block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond' };
 function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
@@ -93,6 +93,13 @@ function styleOf(cell: Cell, ctx: ImportContext) {
     if (!/^(?:sans-serif|monospace|Inter|JetBrains Mono|Roboto, sans-serif|Caveat, cursive)$/i.test(family))
       warn(ctx, node, 'FONT_RENDERING_DEPENDENT', 'fontFamily', 'Foreign font mapped to bundled sans/mono family.');
   }
+  if (v['fontStyle'] !== undefined) {
+    const fontStyle = Math.max(0, Math.trunc(number(v['fontStyle'], 0)));
+    s.fontWeight = (fontStyle & 1) === 1 ? 'bold' : 'normal';
+    s.textDecoration = (fontStyle & 8) === 8 ? 'line-through' : 'none';
+  }
+  if (v['sketchdrawListStyle'] !== undefined)
+    s.listStyle = v['sketchdrawListStyle'] === 'bullet' ? 'bullet' : 'none';
   s.strokeDash = v['dashed'] === '1' ? (v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
   for (const [key, value] of Object.entries(v))
     if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1')) || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
@@ -220,8 +227,8 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
       childCounts.set(c.parent, (childCounts.get(c.parent) ?? 0) + 1);
   for (const cell of cells.filter(c => c.vertex && !byId.get(c.parent ?? '')?.edge)) {
     const s = cell.style, hasChildren = (childCounts.get(cell.id) ?? 0) > 0;
-    let kind: SketchElement['kind'] = s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
-    if (s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image'].includes(s['shape']))
+    let kind: SketchElement['kind'] = s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    if (s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
     if (kind === 'container' && (rotation !== 0 || cell.node.attributes['collapsed'] === '1'))
@@ -232,7 +239,16 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
     const assetId = kind === 'image' ? imageAsset(ctx, s['image']?.replace(/^data:(image\/(?:png|jpeg|webp)),/, 'data:$1;base64,'), cell.node) : undefined;
     if (kind === 'image' && !assetId)
       kind = 'rectangle';
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: styleOf(cell, ctx), text: label(cell, ctx) || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(assetId ? { assetId } : {}) });
+    let author: string | undefined;
+    if (kind === 'sticky-note') {
+      try { author = decodeURIComponent(s['sketchdrawAuthor'] ?? '') || 'Importiert'; }
+      catch { author = 'Importiert'; warn(ctx, cell.node, 'STYLE_APPROXIMATED', 'sketchdrawAuthor', 'Invalid sticky-note author encoding was replaced.'); }
+    }
+    const importedLabel = label(cell, ctx);
+    const importedText = kind === 'sticky-note' && s['sketchdrawListStyle'] === 'bullet'
+      ? importedLabel.split('\n').map(line => line.replace(/^•\s?/, '')).join('\n')
+      : importedLabel;
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: styleOf(cell, ctx), text: importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }

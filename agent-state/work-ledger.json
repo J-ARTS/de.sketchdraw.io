@@ -1,8 +1,50 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:46:13Z",
+  "updatedAt": "2026-10-17T23:04:43.000Z",
   "issues": [
+    {
+      "number": 1,
+      "title": "GitHub-Issue-Workflow und Zustandspflege in AGENTS.md verankern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/1",
+      "owner": "Codex",
+      "phase": "Governance",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 2,
+      "title": "Produktvision als Projektziel in AGENTS.md und CLAUDE.md verankern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/2",
+      "owner": "Codex",
+      "phase": "Governance",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 3,
+      "title": "Agentenrollen und Scrum-Zusammenarbeit in AGENTS.md festlegen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/3",
+      "owner": "Codex",
+      "phase": "Governance",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
     {
       "number": 4,
       "title": "Sketchdraw umsetzen: Architektur, Sprints und koordinierte Agentenarbeit",
@@ -371,48 +413,6 @@
       ]
     },
     {
-      "number": 3,
-      "title": "Agentenrollen und Scrum-Zusammenarbeit in AGENTS.md festlegen",
-      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/3",
-      "owner": "Codex",
-      "phase": "Governance",
-      "status": "completed",
-      "estimatedEffort": {
-        "unit": "story_points",
-        "value": null,
-        "kind": "planning_estimate"
-      },
-      "dependencies": []
-    },
-    {
-      "number": 2,
-      "title": "Produktvision als Projektziel in AGENTS.md und CLAUDE.md verankern",
-      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/2",
-      "owner": "Codex",
-      "phase": "Governance",
-      "status": "completed",
-      "estimatedEffort": {
-        "unit": "story_points",
-        "value": null,
-        "kind": "planning_estimate"
-      },
-      "dependencies": []
-    },
-    {
-      "number": 1,
-      "title": "GitHub-Issue-Workflow und Zustandspflege in AGENTS.md verankern",
-      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/1",
-      "owner": "Codex",
-      "phase": "Governance",
-      "status": "completed",
-      "estimatedEffort": {
-        "unit": "story_points",
-        "value": null,
-        "kind": "planning_estimate"
-      },
-      "dependencies": []
-    },
-    {
       "number": 26,
       "title": "Release: Leere CI-Signingvariablen brechen den macOS-Installerbau ab",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/26",
@@ -526,23 +526,6 @@
       ]
     },
     {
-      "number": 35,
-      "title": "Mehrere Seiten: Seiten-UI in der Dokumentkarte",
-      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
-      "owner": "Claude Code",
-      "currentImplementer": "Claude Code (UI) and Codex (temporary logic)",
-      "phase": "UI",
-      "status": "in_progress",
-      "estimatedEffort": {
-        "unit": "story_points",
-        "value": null,
-        "kind": "planning_estimate"
-      },
-      "dependencies": [
-        34
-      ]
-    },
-    {
       "number": 33,
       "title": "Mehrere Seiten: Architektur und Dokumentschema v2",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/33",
@@ -570,6 +553,23 @@
       },
       "dependencies": [
         33
+      ]
+    },
+    {
+      "number": 35,
+      "title": "Mehrere Seiten: Seiten-UI in der Dokumentkarte",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
+      "owner": "Claude Code",
+      "currentImplementer": "Claude Code (UI) and Codex (temporary logic)",
+      "phase": "UI",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        34
       ]
     },
     {
@@ -684,6 +684,56 @@
       },
       "dependencies": [
         46
+      ]
+    },
+    {
+      "number": 48,
+      "title": "Sticky Notes mit FigJam-inspirierter Eigenschaftenleiste hinzufügen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/48",
+      "owner": "OpenAI Codex",
+      "currentImplementer": "Codex temporary implementation/testing; Claude Code and Antigravity attempts produced no work product",
+      "phase": "Architecture, UI, logic, interface and testing",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        49,
+        50
+      ]
+    },
+    {
+      "number": 49,
+      "title": "Sticky-Note-Datenmodell und Interoperabilität ergänzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/49",
+      "owner": "Google Antigravity",
+      "currentImplementer": "Codex temporary takeover because Antigravity quota was unavailable",
+      "phase": "Logic and interface",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 50,
+      "title": "Sticky-Note-Werkzeug und Eigenschaftenleiste umsetzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/50",
+      "owner": "Claude Code",
+      "currentImplementer": "Codex temporary takeover; Claude Code plan attempt produced no work product",
+      "phase": "UI",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        49
       ]
     }
   ],
@@ -2862,6 +2912,84 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for commit 4fd511edccff6ace19e9fdd27032e615ef3cf7de. Governance & Graphify Tests, Direct P2P, Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Observed duration is the difference between the recorded run start and completion timestamps."
+    },
+    {
+      "id": "antigravity-sticky-domain-attempt-049",
+      "tool": "antigravity",
+      "model": "Claude Sonnet",
+      "issues": [
+        49
+      ],
+      "status": "no_work_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/49"
+      ],
+      "concerns": [
+        "Antigravity displayed exhausted baseline and individual Claude quotas, so it produced no repository work for this ticket."
+      ],
+      "authorization": "The project role assigns logic and interface work to Antigravity; the user authorized Codex to take over temporarily with actual-tool attribution.",
+      "measurementSource": "The local Antigravity UI showed quota exhaustion. No measured duration, token count or cost was available."
+    },
+    {
+      "id": "claude-code-sticky-ui-review-050",
+      "tool": "claude-code",
+      "model": "Claude Sonnet",
+      "issues": [
+        50
+      ],
+      "status": "no_work_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/50"
+      ],
+      "concerns": [
+        "The Claude Code plan invocation returned no output and ended with an execution error; it made no repository changes."
+      ],
+      "authorization": "The project role assigns UI work to Claude Code and the user explicitly asked to use Claude Code.",
+      "measurementSource": "The local CLI attempt produced no usable output or work artifact. No measured token or cost metric was available."
+    },
+    {
+      "id": "codex-sticky-implementation-048",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        48,
+        49,
+        50
+      ],
+      "status": "locally_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/48",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/49",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/50",
+        "src/domain/types.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/interop/export.ts",
+        "src/interop/drawio.ts",
+        "tests/unit/sticky-note.spec.ts",
+        "tests/ui/sticky-note.spec.ts"
+      ],
+      "concerns": [
+        "Cross-platform GitHub Actions evidence is pending until the integrated commit is pushed."
+      ],
+      "authorization": "The user explicitly authorized Codex to take over unavailable agent implementation while documenting assigned and actual tools; Codex owns architecture and testing.",
+    "measurementSource": "Codex implemented the sticky-note contract, UI, native projections and regression tests. Local evidence includes passing typecheck, 311 unit tests, 38 browser UI tests, 6 Electron tests, 3 direct P2P tests, the production build and 22 Graphify traceability tests. Cross-platform GitHub Actions evidence is pending."
     }
   ],
   "evidencePolicy": {

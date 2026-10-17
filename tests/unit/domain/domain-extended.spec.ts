@@ -34,6 +34,7 @@ const ALL_KINDS: readonly ElementKind[] = [
   'connector',
   'container',
   'component',
+  'sticky-note',
 ];
 
 function createJpegAsset(id = 'asset:jpeg'): SketchAsset {
@@ -62,7 +63,7 @@ function createWebpAsset(id = 'asset:webp'): SketchAsset {
 }
 
 describe('S1 domain extended contract verification', () => {
-  it('creates valid documents and elements for all nine ElementKind variants', () => {
+  it('creates valid documents and elements for all ten ElementKind variants', () => {
     const doc = createDocument('Architecture Canvas');
     expect(doc.schemaVersion).toBe(1);
     expect(doc.title).toBe('Architecture Canvas');
@@ -83,6 +84,10 @@ describe('S1 domain extended contract verification', () => {
       }
       if (kind === 'text') {
         expect(el.text?.length).toBeGreaterThan(0);
+      }
+      if (kind === 'sticky-note') {
+        expect(el.author).toBe('Lokaler Benutzer');
+        expect(el.text).toBe('');
       }
     }
 
