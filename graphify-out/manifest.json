@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792258600.6828556,
-    "ast_hash": "d34b84d6531ec09385a1194b4c733e9f",
+    "mtime": 1792259338.0832171,
+    "ast_hash": "1eca1b178201c72157062f6c6fafa121",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -440,8 +440,8 @@
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
-    "mtime": 1792249613.4059162,
-    "ast_hash": "c01e883292fbb019f77891affffb746a",
+    "mtime": 1792259186.1367443,
+    "ast_hash": "68061bcae6437b8b2d7ddac559fd4b34",
     "semantic_hash": ""
   },
   "tests/unit/build-downloader.test.mjs": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "electron/agent-access/electron-bridge.ts": {
-    "mtime": 1792257444.9962313,
-    "ast_hash": "cc3a4e755fa7fcc8cdaf17f6f5132cb5",
+    "mtime": 1792259255.5785809,
+    "ast_hash": "3e030a3f0470c5d4cd42b5e6b0c88092",
     "semantic_hash": ""
   },
   "electron/agent-access/frames.ts": {
@@ -895,8 +895,8 @@
     "semantic_hash": ""
   },
   "tests/electron/agent-product.spec.ts": {
-    "mtime": 1792257977.0292351,
-    "ast_hash": "db1de7b481f9847c9058d461721443da",
+    "mtime": 1792259236.1636984,
+    "ast_hash": "4ddb964e6fee49b0242c80c8c13ad970",
     "semantic_hash": ""
   },
   "tests/p2p/native.spec.ts": {

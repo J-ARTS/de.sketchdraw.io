@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:43:50+02:00",
+  "updatedAt": "2026-10-17T19:48:49+02:00",
   "issues": [
     {
       "number": 4,
@@ -505,6 +505,23 @@
       },
       "dependencies": [
         10
+      ]
+    },
+    {
+      "number": 32,
+      "title": "Desktop: Agent-Cleanup greift beim Beenden auf zerstörtes BrowserWindow zu",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/32",
+      "owner": "Antigravity / Codex Testing",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Desktop lifecycle",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        30
       ]
     }
   ],
@@ -1966,6 +1983,32 @@
       ],
       "concerns": [],
       "measurementSource": "Fresh GitHub Actions result at596517e: Governance/Graphify117459715963, direct P2P117459715827, Linux117459751336, macOS117459751468 and Windows117459751349 all completed successfully. Each platform job passed config/application typechecks, Node and Vitest unit suites, production build, browser UI tests, platform Electron tests and non-publishing package-directory smoke. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "codex-shutdown-cleanup-032",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        32
+      ],
+      "status": "verified_local_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/32",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/787914a8400ecc0f462ea996ba3072b9d743f9a3",
+        "electron/agent-access/electron-bridge.ts",
+        "tests/electron/agent-product.spec.ts",
+        "tests/electron/desktop.spec.ts"
+      ],
+      "concerns": [
+        "destroyed-browser-window-lifecycle"
+      ],
+      "authorization": "User explicitly requested the shutdown bug fix; Codex performs the temporary implementation takeover while Antigravity remains the regular logic owner.",
+      "measurementSource": "Actual built Electron product reproduced the defect before correction: uncaughtExceptionMonitor wrote the fixed destroyed-object marker during app exit. After capturing WebContents before BrowserWindow destruction, the same test passed. Final local validation: targeted red/green product test1/1, typecheck, Vitest285/285, Node58/58 and complete Electron6/6 passed; production build passed with only the existing bundle-size warning. Cross-platform CI pending. No measured agent duration/tokens/cost."
     }
   ],
   "evidencePolicy": {

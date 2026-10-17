@@ -891,6 +891,38 @@
         "github-actions-agent-access-39054540682"
       ]
     },
+    "32": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-shutdown-cleanup-032"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "4": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1195,15 +1227,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       },
-      "runCount": 11,
+      "runCount": 12,
       "runIds": [
         "codex-auto-agent-access-030",
         "codex-draft-recovery-028",
@@ -1213,6 +1245,7 @@
         "codex-noncommercial-license-029",
         "codex-orchestration-001",
         "codex-runtime-path-fix-030",
+        "codex-shutdown-cleanup-032",
         "codex-ticket-closure-004",
         "codex-ticket-closure-015",
         "codex-ui-review-031"
@@ -1221,7 +1254,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       }
     },
     "codex-subagent": {
@@ -1306,15 +1339,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 61
+      "unknownRuns": 62
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 41
+      "unknownRuns": 42
     },
-    "runCount": 61,
+    "runCount": 62,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1368,6 +1401,7 @@
       "codex-s2-contract-001",
       "codex-session-001",
       "codex-setup-integration-001",
+      "codex-shutdown-cleanup-032",
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
       "codex-ui-review-031",
@@ -1382,7 +1416,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 57
+      "unknownRuns": 58
     }
   },
   "officialScoreClaimReady": false,
@@ -1392,9 +1426,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 20
+    "unknownIssues": 21
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:43:50+02:00"
+  "updatedAt": "2026-10-17T19:48:49+02:00"
 }
