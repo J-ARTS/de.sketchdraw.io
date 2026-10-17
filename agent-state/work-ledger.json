@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T22:54:20+02:00",
+  "updatedAt": "2026-10-17T23:34:25+02:00",
   "issues": [
     {
       "number": 4,
@@ -570,6 +570,37 @@
       },
       "dependencies": [
         33
+      ]
+    },
+    {
+      "number": 37,
+      "title": "Eigenschaften als schwebende Kontextleiste über der Auswahl",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/37",
+      "owner": "Claude Code",
+      "phase": "UI",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 38,
+      "title": "Kontextleiste: Linien- und Farb-Popover mit Palette und Farbwähler",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/38",
+      "owner": "Claude Code",
+      "currentImplementer": "Claude Code (UI) and Codex (review/testing)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        37
       ]
     }
   ],
@@ -2291,6 +2322,75 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39069887042 at 21bef10bcade864d18c0841b9e8fdec18e257d9b: direct P2P 117505120452, Governance/Graphify 117505120719, macOS 117505147141, Windows 117505147196 and Ubuntu 117505147211 all completed successfully. Each platform job passed configuration/application typechecks, Node release tests, Vitest, production build, browser UI, platform Electron and non-publishing package-directory verification. Runtime 344 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "claude-selection-popover-anchor-038",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        38
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/38",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46",
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817"
+      ],
+      "concerns": [
+        "Near the top chrome, the available space above the selection can be smaller than a popover natural height; the popover remains above the element and scrolls internally."
+      ],
+      "authorization": "The user requested the UI correction and the project role assigns frontend design and implementation to Claude Code.",
+      "measurementSource": "Claude Code 2.1.185 implemented the bounded Vue and Playwright changes. After Codex visual review found the toolbar-below-selection edge case, Claude Code revised the anchor to use the higher edge of selection and toolbar. Codex then verified typecheck, 34/34 UI tests, 288/288 unit tests, renderer build, visual geometry and GitHub Actions run 39070996817 across Windows, Ubuntu and macOS. No measured duration, token or cost metric."
+    },
+    {
+      "id": "codex-selection-popover-review-038",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        38
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/38",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817"
+      ],
+      "concerns": [],
+      "authorization": "Project responsibilities assign architecture review, Scrum coordination and overall testing to Codex.",
+      "measurementSource": "Codex reviewed the first implementation in the live Electron UI, identified and returned the toolbar-below-selection overlap, adjusted the visible-pan test step, ran typecheck, targeted Playwright, 34/34 UI tests, 288/288 unit tests and renderer build, and confirmed the final cross-platform CI run. No measured duration, token or cost metric."
+    },
+    {
+      "id": "github-actions-popover-anchor-39070996817",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        38
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T21:27:10Z",
+      "endedAt": "2026-10-17T21:33:58Z",
+      "observedSeconds": 408,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub Actions run 39070996817 at b26bfdddc18837d5feabdf20fc034b71cb266d46: Governance/Graphify 117508398838, direct P2P 117508399040, Ubuntu 117508420913, Windows 117508420947 and macOS 117508420951 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds, browser UI tests including the popover regression, Electron integration and non-publishing package-directory verification. Runtime 408 seconds; no token or cost metric applies."
     }
   ],
   "evidencePolicy": {
