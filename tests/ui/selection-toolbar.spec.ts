@@ -41,15 +41,61 @@ test('the toolbar floats centered above the selection and edits style through po
   await expect(bar).toHaveCount(0);
 });
 
-test('the toolbar hides while editing text and stays inside a compact viewport', async ({ page }) => {
+test('the toolbar stays usable while editing text, keeps the draft and commits text plus style once', async ({ page }) => {
   await page.setViewportSize({ width: 480, height: 720 });
   await drawRectangle(page, [180, 330], [300, 420]);
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
   const box = (await bar.boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(480);
+  const buttonCount = await bar.getByRole('button').count();
   await bar.getByRole('button', { name: 'Text bearbeiten' }).click();
-  await expect(page.getByTestId('canvas-text-editor')).toBeVisible();
-  await expect(bar).toHaveCount(0);
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toBeVisible();
+  await editor.fill('Entwurf');
+
+  // The bar stays visible and anchored above the selected shape; document-level actions remain visible but disabled.
+  await expect(bar).toBeVisible();
+  const editBox = (await bar.boundingBox())!;
+  expect(editBox.x).toBeGreaterThanOrEqual(0); expect(editBox.x + editBox.width).toBeLessThanOrEqual(480);
+  expect(editBox.y + editBox.height).toBeLessThanOrEqual(330);
+  await expect(bar.getByRole('button')).toHaveCount(buttonCount);
+  for (const name of ['Form ändern', 'Text bearbeiten', 'Dokumentationslink']) {
+    const action = bar.getByRole('button', { name });
+    await expect(action).toBeVisible(); await expect(action).toBeDisabled();
+  }
+  await expect(bar.getByRole('button', { name: 'Text bearbeiten' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(bar.getByRole('button', { name: 'Form ändern' })).toHaveAttribute('title', /nicht verfügbar/);
+  for (const name of ['Farbe', 'Linie', 'Schriftart', 'Textausrichtung']) await expect(bar.getByRole('button', { name })).toBeEnabled();
+
+  // Font family updates the inline editor immediately without ending the draft.
+  await bar.getByRole('button', { name: 'Schriftart' }).click();
+  await page.getByRole('button', { name: 'Scribbled', exact: true }).click();
+  await expect(editor).toHaveCSS('font-family', /Caveat Variable/);
+  await expect(editor).toHaveValue('Entwurf');
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle] text')).toHaveCount(0);
+
+  // Alignment too.
+  await bar.getByRole('button', { name: 'Textausrichtung' }).click();
+  await page.getByRole('button', { name: 'Rechts', exact: true }).click();
+  await expect(editor.locator('xpath=ancestor::div[contains(@class,"text-edit-wrap")]')).toHaveCSS('text-align', 'right');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // The editor can be focused again to keep typing, then text and style commit together.
+  await editor.click(); await page.keyboard.press('End'); await page.keyboard.type(' mehr');
+  await expect(editor).toHaveValue('Entwurf mehr');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(editor).toHaveCount(0);
+  const text = page.locator('.whiteboard-canvas [data-kind=rectangle] text');
+  await expect(text).toContainText('Entwurf mehr');
+  await expect(text).toHaveCSS('font-family', /Caveat Variable/);
+  await expect(text).toHaveAttribute('text-anchor', 'end');
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole('button', { name: 'Text bearbeiten' })).toBeEnabled();
+  await expect(bar.getByRole('button')).toHaveCount(buttonCount);
+
+  // One undo reverts text and style together.
+  await page.getByRole('button', { name: 'Rückgängig' }).click();
+  await expect(text).toHaveCount(0);
 });
 
 test('line and color popovers set fill mode, stroke style, width and custom colors', async ({ page }) => {

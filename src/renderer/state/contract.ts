@@ -66,7 +66,13 @@ export interface TextEditSession {
   kind: ElementKind;
   box: Rect;
   rotation: number;
+  /**
+   * Draft style (#44). ElementStyle changes made while editing land here only; the document is untouched until
+   * the text edit commits, where text and style changes are written in one update command.
+   */
   style: ElementStyle;
+  /** Style the session started with. Only keys differing from it are written on commit. */
+  initialStyle: ElementStyle;
   initialText: string;
   draft: string;
   composing: boolean;

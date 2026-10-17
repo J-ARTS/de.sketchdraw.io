@@ -39,7 +39,10 @@ const LINE_MODES: ReadonlyArray<{ value: LineMode; label: string; icon: IconName
 const WIDTHS = [{ value: 1, label: 'Dünn' }, { value: 2, label: 'Mittel' }, { value: 4, label: 'Dick' }] as const;
 
 // --- Visibility and placement ----------------------------------------------------
-const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && !s.textEdit && !s.hasElementPreview && !s.draftElement && !s.marquee));
+/** #44: the bar stays usable while the selected element's text is edited; style changes go to the text draft. */
+const editing = computed(() => Boolean(s.textEdit));
+const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
+const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const textCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
@@ -168,7 +171,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 function onBarKeydown(event: KeyboardEvent): void {
   if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-  const buttons = Array.from(bar.value?.querySelectorAll<HTMLButtonElement>(':scope > .segment, :scope > .tool-btn') ?? []);
+  const buttons = Array.from(bar.value?.querySelectorAll<HTMLButtonElement>(':scope > .segment:not(:disabled), :scope > .tool-btn:not(:disabled)') ?? []);
   const index = buttons.findIndex((button) => button === document.activeElement);
   if (index < 0) return;
   event.preventDefault();
@@ -184,7 +187,14 @@ onBeforeUnmount(() => {
 });
 
 // --- Values --------------------------------------------------------------------------
-function style(patch: Partial<ElementStyle>): void { store.applyPatch({ style: patch }); }
+function style(patch: Partial<ElementStyle>): void {
+  // While the text is edited, style changes live in the text draft and are committed together with the text.
+  if (s.textEdit) store.setPropertyDraft({ style: patch });
+  else store.applyPatch({ style: patch });
+}
+function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
+// Document-level actions are unavailable during text editing; close their popovers.
+watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'more'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -271,7 +281,7 @@ function relayout(): void { void nextTick(placePopover); }
     @compositionend="store.setInputComposing(false)"
   >
     <template v-if="swappable">
-      <button :ref="(el) => setTrigger('shape', el)" type="button" class="segment" aria-label="Form ändern" :aria-expanded="openSegment === 'shape'" :aria-controls="panelId('shape')" title="Form ändern" @click="toggle('shape')">
+      <button :ref="(el) => setTrigger('shape', el)" type="button" class="segment" aria-label="Form ändern" :disabled="editing" :aria-expanded="openSegment === 'shape'" :aria-controls="panelId('shape')" :title="unavailable('Form ändern')" @click="toggle('shape')">
         <svg class="shape-icon" viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in currentShape?.icon ?? []" :key="d" :d="d" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
@@ -292,11 +302,11 @@ function relayout(): void { void nextTick(placePopover); }
         <span class="size-label">{{ sizeLabel }}</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
-      <button v-if="info.canEditText" type="button" class="tool-btn" aria-label="Text bearbeiten" title="Text bearbeiten" @click="store.startTextEdit(info.singleId ?? undefined)">
+      <button v-if="info.canEditText" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
         <AppIcon name="text" />
       </button>
     </template>
-    <button v-if="info.count === 1" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" title="Dokumentationslink" @click="toggle('link')">
+    <button v-if="info.count === 1" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
       <AppIcon name="link" />
     </button>
     <template v-if="textCapable">
@@ -307,7 +317,7 @@ function relayout(): void { void nextTick(placePopover); }
     </template>
     <template v-if="definition?.widgets?.length">
       <span class="sep" aria-hidden="true" />
-      <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" aria-label="Komponenteneinstellungen" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" title="Komponenteneinstellungen" @click="toggle('more')">
+      <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" aria-label="Komponenteneinstellungen" :disabled="editing" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" :title="unavailable('Komponenteneinstellungen')" @click="toggle('more')">
         <AppIcon name="more" />
       </button>
     </template>
@@ -438,9 +448,23 @@ function relayout(): void { void nextTick(placePopover); }
   cursor: pointer;
 }
 
-.segment:hover,
-.tool-btn:hover {
+.segment:hover:not(:disabled),
+.tool-btn:hover:not(:disabled) {
   background: var(--menu-hover);
+}
+
+/* #44: actions unavailable during text editing stay visible so the bar keeps its structure. */
+.segment:disabled,
+.tool-btn:disabled {
+  color: var(--menu-muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tool-btn[aria-pressed='true']:disabled {
+  background: var(--menu-selected);
+  color: var(--menu-selected-text);
+  opacity: 0.8;
 }
 
 .segment[aria-expanded='true'],

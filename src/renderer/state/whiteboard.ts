@@ -3,7 +3,7 @@ import {
   applyCommand, createController, createDocument, createElement, deserializeDocument,
   DOMAIN_LIMITS, serializeDocument,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
-  type Point, type SketchDocument, type SketchElement,
+  type Point, type SketchDocument, type SketchElement, type ElementStyle,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
@@ -102,7 +102,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get empty() { return this.document.elements.length === 0; },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
-    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && this.textEdit.draft !== this.textEdit.initialText) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
+    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
     get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : 'crosshair'; },
     get frame(): WhiteboardState['frame'] {
@@ -128,11 +128,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const draft = this.propertyDraft && same(this.propertyDraft.ids, this.selection) ? this.propertyDraft.patch : null;
       // Compare the displayed values of every selected element. A shared draft
       // overrides the same fields for all of them without changing the document.
+      const edit = this.textEdit;
+      const editStyle = edit ? textStyleChanges(edit) : null;
       const displayed = elements.map((element): SelectionInfo['values'] => {
-        const e = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
+        const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
+        const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
         return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId };
       });
-      const values = displayed[0] ?? { ...DEFAULT_STYLE };
+      const values = displayed[0] ?? { ...DEFAULT_STYLE, ...(edit && !edit.elementId ? edit.style : {}) };
       const others = displayed.slice(1);
       const mixed = (Object.keys(values) as Array<keyof typeof values>).filter(key => others.some(value => !same(value[key], values[key])));
       return { count: elements.length, kinds: [...new Set(elements.map((e) => e.kind))], singleId: elements.length === 1 ? first!.id : null, values, mixed,
@@ -152,6 +155,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
   }) as WhiteboardState & { draftVersion: number; previewCommand: DocumentCommand | null; drawing: SketchElement | null };
 
+  /** Style keys the user changed during a text edit, relative to the style the session started with. */
+  function textStyleChanges(edit: NonNullable<WhiteboardState['textEdit']>): Partial<ElementStyle> {
+    const changes: Record<string, unknown> = {};
+    for (const key of Object.keys(edit.style) as Array<keyof ElementStyle>) if (!same(edit.style[key], edit.initialStyle[key])) changes[key] = edit.style[key];
+    return changes as Partial<ElementStyle>;
+  }
   function notice(text: string, kind: 'info' | 'error' = 'info') {
     state.liveMessage = text;
     state.notices = [...state.notices.slice(-3), { id: ++noticeId, kind, text }];
@@ -268,10 +277,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!edit) return true;
     if (edit.composing) { notice('Bitte die laufende Texteingabe zuerst abschließen.', 'error'); return false; }
     if (edit.conflict) { notice(edit.conflict, 'error'); return false; }
-    if (edit.draft === edit.initialText || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    const styleChanges = textStyleChanges(edit);
+    const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
+    if ((!textChanged && !styleChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     const id = edit.elementId ?? uid('text');
     const command: DocumentCommand = edit.elementId
-      ? { type: 'update', changes: [{ id, patch: { text: edit.draft } }] }
+      ? { type: 'update', changes: [{ id, patch: { ...(textChanged ? { text: edit.draft } : {}), ...(styleChanged ? { style: styleChanges } : {}) } }] }
       : { type: 'add', elements: [createElement('text', { id, ...edit.box, text: edit.draft, style: { ...edit.style } })] };
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = 'Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'; return false; }
@@ -659,6 +670,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setInputComposing(value) { inputComposing = value; changedDraft(); },
     setPropertyDraft(value) {
+      if (state.textEdit) {
+        // #44: while editing, style changes live only in the text draft and are committed together with the text.
+        if (!state.canWrite || state.transitioning || !value.style) return;
+        state.textEdit.style = { ...state.textEdit.style, ...value.style };
+        changedDraft();
+        return;
+      }
       if (!state.canWrite || state.transitioning || !state.selection.length) return;
       const previous = state.propertyDraft;
       if (previous && !same(previous.ids, state.selection)) { notice('Bitte den offenen Eigenschaftenentwurf zuerst übernehmen oder verwerfen.', 'error'); return; }
@@ -684,7 +702,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const e = elementId ? state.document.elements.find((e) => e.id === elementId) : undefined;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', composing: false, conflict: null }; changedDraft();
     },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.draft = text; changedDraft(); } },
     setComposing(composing) { if (state.textEdit) { state.textEdit.composing = composing; changedDraft(); } },
