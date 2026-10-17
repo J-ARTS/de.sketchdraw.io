@@ -677,14 +677,15 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   font-size: 11px;
 }
 
-/* --- Context menu (dark in both themes) --- */
+/* --- Context menu (light panel style, follows the theme) --- */
 .page-menu {
   position: fixed;
   z-index: 100;
   padding: 8px;
   background: var(--menu-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 28%), 0 2px 6px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-panel);
   color: var(--menu-text);
 }
 

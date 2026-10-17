@@ -298,8 +298,9 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   padding: 6px;
   overflow-x: auto;
   background: var(--menu-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  box-shadow: 0 10px 28px rgb(0 0 0 / 24%), 0 2px 6px rgb(0 0 0 / 16%);
+  box-shadow: var(--shadow-panel);
   color: var(--menu-text);
   scrollbar-width: none;
 }
@@ -322,10 +323,14 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 }
 
 .segment:hover,
-.tool-btn:hover,
+.tool-btn:hover {
+  background: var(--menu-hover);
+}
+
 .segment[aria-expanded='true'],
 .tool-btn[aria-expanded='true'] {
-  background: var(--menu-hover);
+  background: var(--menu-selected);
+  color: var(--menu-selected-text);
 }
 
 .segment:focus-visible,
@@ -358,7 +363,7 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1.5px rgb(255 255 255 / 55%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text-primary) 30%, transparent);
 }
 
 .font-glyph {
@@ -394,8 +399,9 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   max-width: min(320px, calc(100vw - 16px));
   padding: 12px;
   background: var(--menu-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 28%), 0 2px 6px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-panel);
   color: var(--menu-text);
 }
 
@@ -419,7 +425,7 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
   min-height: 32px;
   padding: 4px 8px;
   background: var(--menu-field);
-  border: 1px solid var(--menu-separator);
+  border: 1px solid var(--menu-field-border);
   border-radius: 8px;
   color: var(--menu-text);
   font-size: 13px;
@@ -458,17 +464,17 @@ textarea.ctx-input {
   width: 26px;
   height: 26px;
   background: var(--swatch);
-  border: 1px solid rgb(255 255 255 / 20%);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
   border-radius: 50%;
   cursor: pointer;
 }
 
 .swatch[aria-pressed='true'] {
-  box-shadow: 0 0 0 2px var(--menu-surface), 0 0 0 4px var(--menu-text);
+  box-shadow: 0 0 0 2px var(--menu-surface), 0 0 0 4px var(--menu-focus);
 }
 
 .swatch.transparent {
-  background: linear-gradient(135deg, transparent 46%, #ff8a80 47%, #ff8a80 53%, transparent 54%), var(--menu-field);
+  background: linear-gradient(135deg, transparent 46%, var(--status-error) 47%, var(--status-error) 53%, transparent 54%), var(--menu-field);
 }
 
 .choices {
@@ -500,8 +506,9 @@ textarea.ctx-input {
 }
 
 .choice[aria-pressed='true'] {
-  background: var(--menu-hover);
+  background: var(--menu-selected);
   box-shadow: inset 0 0 0 1px var(--menu-focus);
+  color: var(--menu-selected-text);
 }
 
 .icon-choice {
@@ -536,7 +543,7 @@ textarea.ctx-input {
   min-height: 32px;
   padding: 0 10px;
   background: var(--menu-field);
-  border: 1px solid var(--menu-separator);
+  border: 1px solid var(--menu-field-border);
   border-radius: 8px;
   color: var(--menu-text);
   font-size: 12px;
@@ -548,7 +555,7 @@ textarea.ctx-input {
 }
 
 .ctx-btn.danger {
-  color: #ff8a80;
+  color: var(--status-error);
 }
 
 @media (forced-colors: active) {

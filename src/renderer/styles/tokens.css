@@ -22,14 +22,17 @@
   --inverse-text: #f4f4f8;
   --shadow-panel: 0 1px 2px rgb(45 35 90 / 5%), 0 8px 24px rgb(45 35 90 / 8%);
   --scrim: rgb(27 26 46 / 45%);
-  /* Context menus stay dark in both themes, like the reference design. */
-  --menu-surface: #1f1d2b;
-  --menu-text: #f4f3f9;
-  --menu-muted: #a29fb8;
-  --menu-hover: #312e42;
-  --menu-separator: #3a3750;
-  --menu-field: #2c2a3c;
-  --menu-focus: #b3a1ff;
+  /* Context menus and the selection toolbar follow the light panels of the active theme. */
+  --menu-surface: var(--surface-panel);
+  --menu-text: var(--text-primary);
+  --menu-muted: var(--text-muted);
+  --menu-hover: var(--surface-raised);
+  --menu-separator: var(--border-subtle);
+  --menu-field: var(--surface-panel);
+  --menu-field-border: var(--border-default);
+  --menu-focus: var(--accent);
+  --menu-selected: var(--accent-soft);
+  --menu-selected-text: var(--accent-ink);
 
   --control-size: 36px;
   --control-size-compact: 32px;
@@ -80,10 +83,6 @@
   --inverse-text: #16151f;
   --shadow-panel: 0 0 0 1px rgb(0 0 0 / 30%), 0 1px 2px rgb(0 0 0 / 35%), 0 8px 24px rgb(0 0 0 / 35%);
   --scrim: rgb(0 0 0 / 60%);
-  --menu-surface: #2a2738;
-  --menu-hover: #3a3650;
-  --menu-separator: #45415c;
-  --menu-field: #36324a;
 
   color-scheme: dark;
 }
