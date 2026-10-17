@@ -42,8 +42,6 @@ export const MESSAGES = {
   'pages.moveUp': 'Nach oben',
   'pages.moveDown': 'Nach unten',
   'pages.delete': 'Seite löschen',
-  'pages.elements': '{count} Elemente',
-  'pages.pending': 'Mehrere Seiten folgen mit Dokumentformat v2',
   'pages.hint': 'Doppelklick benennt um, Ziehen sortiert.',
   'minimap.label': 'Übersichtskarte',
   'minimap.fullscreen': 'Vollbild',

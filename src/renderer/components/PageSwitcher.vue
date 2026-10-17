@@ -292,7 +292,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
           data-testid="page-add"
           :aria-disabled="!editable || undefined"
           :aria-label="t('pages.add')"
-          :title="editable ? t('pages.add') : t('pages.pending')"
+          :title="t('pages.add')"
           @click="store.addPage()"
         >
           <AppIcon name="plus" :size="18" />
@@ -344,7 +344,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
             @keydown="onRowKeydown(page, index, $event)"
           >
             <span class="page-name">{{ page.name }}</span>
-            <span class="page-count">{{ t('pages.elements', { count: page.elementCount }) }}</span>
           </button>
           <button
             type="button"
@@ -371,7 +370,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
           <AppIcon name="paste" :size="18" />
           <span>{{ t('pages.paste') }}</span>
         </button>
-        <p class="foot-note">{{ editable ? t('pages.hint') : t('pages.pending') }}</p>
+        <p v-if="editable" class="foot-note">{{ t('pages.hint') }}</p>
       </div>
 
       <div
@@ -393,7 +392,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
             class="page-menu-item"
             :data-testid="`page-menu-${entry.id}`"
             :aria-disabled="entry.blocked ? true : undefined"
-            :title="entry.blocked === 'pending' ? t('pages.pending') : undefined"
             @click="runMenu(entry)"
           >
             {{ entry.label }}
@@ -595,12 +593,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
 .page-row.active .page-name {
   color: var(--accent-ink);
   font-weight: 600;
-}
-
-.page-count {
-  flex: none;
-  color: var(--text-muted);
-  font-size: 11px;
 }
 
 .rename-input {

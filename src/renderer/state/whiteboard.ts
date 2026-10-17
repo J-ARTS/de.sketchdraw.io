@@ -153,7 +153,6 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.liveMessage = text;
     state.notices = [...state.notices.slice(-3), { id: ++noticeId, kind, text }];
   }
-  function pagesUnavailable() { notice('Mehrere Seiten sind verfügbar, sobald das Dokumentformat v2 umgesetzt ist.'); }
   function fail(error: unknown) { notice(error instanceof Error ? error.message : 'Die Aktion konnte nicht ausgeführt werden.', 'error'); }
   function sync(snapshot: DocumentSession) {
     const before = state.document;
@@ -767,11 +766,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
     toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; },
     selectPage(id) { if (state.pages.some((page) => page.id === id)) state.activePageId = id; },
-    addPage() { pagesUnavailable(); },
-    renamePage() { pagesUnavailable(); },
-    duplicatePage() { pagesUnavailable(); },
-    deletePage() { pagesUnavailable(); },
-    movePage() { pagesUnavailable(); },
+    // Page mutations stay silently unavailable until the multi-page schema (#34) lands.
+    addPage() {},
+    renamePage() {},
+    duplicatePage() {},
+    deletePage() {},
+    movePage() {},
     async copyPage(id) {
       const page = state.pages.find((entry) => entry.id === id);
       if (!page) return;
@@ -780,7 +780,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         notice(`Inhalt von „${page.name}“ kopiert.`);
       } catch { notice('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.', 'error'); }
     },
-    async pastePage() { pagesUnavailable(); },
+    async pastePage() {},
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
     setTheme(theme) { state.theme = theme; },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
