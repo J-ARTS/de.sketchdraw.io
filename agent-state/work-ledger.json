@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:59:07+02:00",
+  "updatedAt": "2026-10-17T20:04:11+02:00",
   "issues": [
     {
       "number": 4,
@@ -435,7 +435,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/27",
       "owner": "Antigravity",
       "phase": "Follow-up",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2040,7 +2040,7 @@
       "issues": [
         27
       ],
-      "status": "verified_local_unit",
+      "status": "verified_cross_platform",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -2050,13 +2050,35 @@
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/27",
         "https://github.com/J-ARTS/de.sketchdraw.io/commit/213932c",
         "scripts/release.mjs",
-        "tests/unit/release.test.mjs"
+        "tests/unit/release.test.mjs",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39056131370"
       ],
       "concerns": [
         "default-keychain-notarization-profile"
       ],
       "authorization": "User requested another ticket review and a local update; Codex performs the previously authorized temporary implementation takeover while Antigravity remains the regular DevOps owner.",
-      "measurementSource": "GitHub-to-ledger audit confirmed issue 27 as the only open ticket. The focused regression failed before correction because a profile without APPLE_KEYCHAIN resolved to developer-id-signed, then passed after matching electron-builder 26.15.3 semantics. Synthetic coverage confirms profile-only, profile-plus-path and path-without-profile behavior. Release tests 30/30 and all Node tests 59/59 passed. No real certificate, credential, notarization request or native notarization success claim was used. Cross-platform CI pending; no measured agent duration/tokens/cost."
+      "measurementSource": "GitHub-to-ledger audit confirmed issue 27 as the only open ticket. The focused regression failed before correction because a profile without APPLE_KEYCHAIN resolved to developer-id-signed, then passed after matching electron-builder 26.15.3 semantics. Synthetic coverage confirms profile-only, profile-plus-path and path-without-profile behavior. Local release tests 30/30, all Node tests 59/59 and Graphify tests 22/22 passed. GitHub Actions run 39056131370 then passed Governance/Graphify, direct P2P and the full Linux, macOS and Windows build, unit, UI, Electron and package-directory checks. No real certificate, credential, notarization request or native notarization success claim was used. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "github-actions-keychain-profile-39056131370",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        27
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T17:59:28Z",
+      "endedAt": "2026-10-17T18:03:53Z",
+      "observedSeconds": 265,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39056131370",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b030ddc620f02a75921f875b6b333ed6c8204fd1",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/213932c"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub Actions run 39056131370 at b030ddc620f02a75921f875b6b333ed6c8204fd1: Governance/Graphify 117464361295, direct P2P 117464361078, Linux 117464382950, macOS 117464382914 and Windows 117464382971 all completed successfully. Each platform job passed configuration/application typechecks, Node release tests, Vitest, production build, browser UI, platform Electron and non-publishing package-directory verification. Runtime 265 seconds; no token or cost metric applies."
     }
   ],
   "evidencePolicy": {

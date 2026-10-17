@@ -693,23 +693,24 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
         "observedSeconds": {
-          "knownRuns": 0,
-          "knownSubtotal": 0,
+          "knownRuns": 1,
+          "knownSubtotal": 265,
           "total": null,
           "unknownRuns": 1
         },
-        "runCount": 1,
+        "runCount": 2,
         "runIds": [
-          "codex-default-keychain-profile-027"
+          "codex-default-keychain-profile-027",
+          "github-actions-keychain-profile-39056131370"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         }
       },
       "planning": {
@@ -1314,19 +1315,20 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       },
       "observedSeconds": {
-        "knownRuns": 1,
-        "knownSubtotal": 393,
+        "knownRuns": 2,
+        "knownSubtotal": 658,
         "total": null,
         "unknownRuns": 5
       },
-      "runCount": 6,
+      "runCount": 7,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
         "github-actions-final-39049794209",
+        "github-actions-keychain-profile-39056131370",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226",
         "github-actions-shutdown-cleanup-39055418909"
@@ -1335,7 +1337,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       }
     }
   },
@@ -1344,15 +1346,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 64
+      "unknownRuns": 65
     },
     "observedSeconds": {
-      "knownRuns": 21,
-      "knownSubtotal": 13015.322263248963,
+      "knownRuns": 22,
+      "knownSubtotal": 13280.322263248963,
       "total": null,
       "unknownRuns": 43
     },
-    "runCount": 64,
+    "runCount": 65,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -1415,6 +1417,7 @@
       "github-actions-agent-access-39054281662",
       "github-actions-agent-access-39054540682",
       "github-actions-final-39049794209",
+      "github-actions-keychain-profile-39056131370",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226",
       "github-actions-shutdown-cleanup-39055418909"
@@ -1423,7 +1426,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 60
+      "unknownRuns": 61
     }
   },
   "officialScoreClaimReady": false,
@@ -1437,5 +1440,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T19:59:07+02:00"
+  "updatedAt": "2026-10-17T20:04:11+02:00"
 }
