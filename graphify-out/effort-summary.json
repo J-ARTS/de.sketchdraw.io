@@ -1166,6 +1166,42 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "44": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 5
+        },
+        "observedSeconds": {
+          "knownRuns": 1,
+          "knownSubtotal": 418,
+          "total": null,
+          "unknownRuns": 4
+        },
+        "runCount": 5,
+        "runIds": [
+          "antigravity-claude-text-edit-toolbar-044",
+          "antigravity-text-edit-style-contract-044",
+          "claude-code-text-edit-toolbar-attempt-044",
+          "codex-text-edit-toolbar-review-044",
+          "github-actions-text-edit-toolbar-39073704784"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 5
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "5": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1363,19 +1399,20 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 19
+        "unknownRuns": 21
       },
       "observedSeconds": {
         "knownRuns": 16,
         "knownSubtotal": 9941.981845207978,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 5
       },
-      "runCount": 19,
+      "runCount": 21,
       "runIds": [
         "antigravity-architecture-001",
         "antigravity-architecture-002",
         "antigravity-claude-font-ui-043",
+        "antigravity-claude-text-edit-toolbar-044",
         "antigravity-codec-catalog-001",
         "antigravity-codec-fixes-001",
         "antigravity-desktop-001",
@@ -1391,13 +1428,14 @@
         "antigravity-page-rename-attempt-035",
         "antigravity-release-pipeline-001",
         "antigravity-setup-001",
-        "antigravity-setup-002"
+        "antigravity-setup-002",
+        "antigravity-text-edit-style-contract-044"
       ],
       "tokens": {
         "knownRuns": 4,
         "knownSubtotal": 391342,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 17
       }
     },
     "claude-code": {
@@ -1405,19 +1443,20 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
         "total": null,
-        "unknownRuns": 4
+        "unknownRuns": 5
       },
-      "runCount": 8,
+      "runCount": 9,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
         "claude-code-font-ui-attempt-043",
+        "claude-code-text-edit-toolbar-attempt-044",
         "claude-page-rename-ui-035",
         "claude-page-ui-cleanup-035",
         "claude-selection-popover-anchor-038",
@@ -1428,7 +1467,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       }
     },
     "codex": {
@@ -1436,15 +1475,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 17
+        "unknownRuns": 18
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 17
+        "unknownRuns": 18
       },
-      "runCount": 17,
+      "runCount": 18,
       "runIds": [
         "codex-auto-agent-access-030",
         "codex-default-keychain-profile-027",
@@ -1460,6 +1499,7 @@
         "codex-runtime-path-fix-030",
         "codex-selection-popover-review-038",
         "codex-shutdown-cleanup-032",
+        "codex-text-edit-toolbar-review-044",
         "codex-ticket-closure-004",
         "codex-ticket-closure-015",
         "codex-ui-review-031"
@@ -1468,7 +1508,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 17
+        "unknownRuns": 18
       }
     },
     "codex-subagent": {
@@ -1524,15 +1564,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       },
       "observedSeconds": {
-        "knownRuns": 6,
-        "knownSubtotal": 2242,
+        "knownRuns": 7,
+        "knownSubtotal": 2660,
         "total": null,
         "unknownRuns": 5
       },
-      "runCount": 11,
+      "runCount": 12,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -1544,13 +1584,14 @@
         "github-actions-popover-anchor-39070996817",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226",
-        "github-actions-shutdown-cleanup-39055418909"
+        "github-actions-shutdown-cleanup-39055418909",
+        "github-actions-text-edit-toolbar-39073704784"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       }
     }
   },
@@ -1559,19 +1600,20 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 80
+      "unknownRuns": 85
     },
     "observedSeconds": {
-      "knownRuns": 26,
-      "knownSubtotal": 14864.322263248963,
+      "knownRuns": 27,
+      "knownSubtotal": 15282.322263248963,
       "total": null,
-      "unknownRuns": 54
+      "unknownRuns": 58
     },
-    "runCount": 80,
+    "runCount": 85,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
       "antigravity-claude-font-ui-043",
+      "antigravity-claude-text-edit-toolbar-044",
       "antigravity-codec-catalog-001",
       "antigravity-codec-fixes-001",
       "antigravity-desktop-001",
@@ -1588,9 +1630,11 @@
       "antigravity-release-pipeline-001",
       "antigravity-setup-001",
       "antigravity-setup-002",
+      "antigravity-text-edit-style-contract-044",
       "claude-architecture-001",
       "claude-architecture-002",
       "claude-code-font-ui-attempt-043",
+      "claude-code-text-edit-toolbar-attempt-044",
       "claude-page-rename-ui-035",
       "claude-page-ui-cleanup-035",
       "claude-selection-popover-anchor-038",
@@ -1634,6 +1678,7 @@
       "codex-session-001",
       "codex-setup-integration-001",
       "codex-shutdown-cleanup-032",
+      "codex-text-edit-toolbar-review-044",
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
       "codex-ui-review-031",
@@ -1648,13 +1693,14 @@
       "github-actions-popover-anchor-39070996817",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226",
-      "github-actions-shutdown-cleanup-39055418909"
+      "github-actions-shutdown-cleanup-39055418909",
+      "github-actions-text-edit-toolbar-39073704784"
     ],
     "tokens": {
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 76
+      "unknownRuns": 81
     }
   },
   "officialScoreClaimReady": false,
@@ -1664,9 +1710,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 27
+    "unknownIssues": 28
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T21:54:53.451817Z"
+  "updatedAt": "2026-10-17T22:13:47.785144Z"
 }

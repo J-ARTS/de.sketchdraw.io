@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792273623.3549926,
-    "ast_hash": "d3c93e58b0de1e4278b8f0fcc6d27460",
+    "mtime": 1792274779.7293863,
+    "ast_hash": "e5e4f7b10b6e304c135d67020fc7a159",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792273068.0932322,
-    "ast_hash": "b8cb895ace8248bfc2cc421ae920e5b0",
+    "mtime": 1792274228.1539748,
+    "ast_hash": "0a16f1f83fc2dac510e3335d719ba6a6",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792271237.7639062,
-    "ast_hash": "9662c15ae39540e466142f9c170a067b",
+    "mtime": 1792274239.9461944,
+    "ast_hash": "afdeb3d0168f7aea467289d45b3e206c",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/SelectionToolbar.vue": {
-    "mtime": 1792273242.6737473,
-    "ast_hash": "dbc2267743ae235eb177bb47a3bf2b80",
+    "mtime": 1792274570.485054,
+    "ast_hash": "febb42379e275cb1de52a5aeff30c8df",
     "semantic_hash": ""
   },
   "src/renderer/lib/color.ts": {
@@ -1270,8 +1270,8 @@
     "semantic_hash": ""
   },
   "tests/ui/selection-toolbar.spec.ts": {
-    "mtime": 1792272315.4811683,
-    "ast_hash": "f7878745e54089c534722f551530a493",
+    "mtime": 1792274645.967719,
+    "ast_hash": "d81a00e365d0494c7c2747b208791482",
     "semantic_hash": ""
   },
   "docs/reviews/multi-page-proposal.md": {
@@ -1287,6 +1287,11 @@
   "tests/unit/interop/font-family.spec.ts": {
     "mtime": 1792273124.265151,
     "ast_hash": "1bf6a9331e7adca70ca765074a3de8c9",
+    "semantic_hash": ""
+  },
+  "tests/unit/renderer/text-edit-style.spec.ts": {
+    "mtime": 1792274273.7192955,
+    "ast_hash": "0211fd5e75c110ca0914ae2210567c62",
     "semantic_hash": ""
   }
 }

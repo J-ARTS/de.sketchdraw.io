@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T21:54:53.451817Z",
+  "updatedAt": "2026-10-17T22:13:47.785144Z",
   "issues": [
     {
       "number": 4,
@@ -617,6 +617,24 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 44,
+      "title": "Eigenschaftenleiste während der Textbearbeitung anzeigen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/44",
+      "owner": "Codex",
+      "currentImplementer": "Antigravity with Claude Sonnet 5.5 Medium (logic and UI), Codex (integration/testing); Claude Code attempt produced no work product",
+      "phase": "UI and logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        37,
+        43
+      ]
     }
   ],
   "runs": [
@@ -2533,6 +2551,125 @@
       ],
       "concerns": [],
       "measurementSource": "GitHub Actions run 39072428278 at 96f75ff1e72ba4869b210dbae969605517a2fd64: Governance/Graphify 117512610965, direct P2P 117512610906, Ubuntu 117512640080, Windows 117512640122 and macOS 117512640124 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds with bundled Roboto/Caveat assets, 35 browser UI tests including the font regression, Electron integration and non-publishing package-directory verification. Runtime 416 seconds; no token or cost metric applies."
+    },
+    {
+      "id": "antigravity-text-edit-style-contract-044",
+      "tool": "antigravity",
+      "model": "Claude Sonnet 5.5 Medium",
+      "issues": [
+        44
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/44",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/renderer/text-edit-style.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784"
+      ],
+      "concerns": [],
+      "authorization": "The project role assigns application logic to Antigravity; the user explicitly authorized using Claude quota in Antigravity and temporary responsibility takeover with actual tool attribution.",
+      "measurementSource": "Antigravity using Claude Sonnet 5.5 Medium implemented text-edit style draft isolation, one-command commit semantics, conflict handling and seven focused unit tests. Codex independently verified typecheck and 302/302 unit tests. No measured duration, token or cost metric. GitHub Actions run 39073704784 then passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build, test and package-directory matrix."
+    },
+    {
+      "id": "claude-code-text-edit-toolbar-attempt-044",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        44
+      ],
+      "status": "no_work_product",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/44"
+      ],
+      "concerns": [
+        "Claude Code 2.1.185 reported that the local session limit was reached and exited before making repository changes."
+      ],
+      "authorization": "The project role assigns frontend UI implementation to Claude Code, and the user explicitly asked to use Claude Code.",
+      "measurementSource": "The CLI exited before work began with a session-limit message. No work artifact, measured duration, token count or cost was available."
+    },
+    {
+      "id": "antigravity-claude-text-edit-toolbar-044",
+      "tool": "antigravity",
+      "model": "Claude Sonnet 5.5 Medium",
+      "issues": [
+        44
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/44",
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784"
+      ],
+      "concerns": [
+        "Antigravity reached its individual quota after the final layout-preserving refinement and did not return a final prose report; the repository changes and background task result were present and independently validated by Codex."
+      ],
+      "authorization": "After Claude Code was quota-limited, the user explicitly authorized using the Claude quota available in Antigravity and temporary responsibility takeover with the actual tool documented.",
+      "measurementSource": "Antigravity using Claude Sonnet 5.5 Medium kept the complete toolbar visible during text editing, routed live style actions to the text draft, disabled unavailable document actions and extended Playwright coverage. Codex independently verified targeted 6/6 toolbar tests, full 35/35 UI tests including Axe, and 6/6 Electron tests. No measured duration, token or cost metric. GitHub Actions run 39073704784 then passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build, test and package-directory matrix."
+    },
+    {
+      "id": "codex-text-edit-toolbar-review-044",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        44
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/44",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/renderer/text-edit-style.spec.ts",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784"
+      ],
+      "concerns": [],
+      "authorization": "Project responsibilities assign architecture review, Scrum coordination and overall testing to Codex.",
+      "measurementSource": "Codex reviewed the draft/commit architecture, required the full toolbar structure to remain visible, corrected stale test wording, and passed typecheck, 302/302 unit tests, targeted 6/6 toolbar tests, 35/35 UI tests with Axe, 6/6 Electron tests, production build and diff checks. No measured duration, token or cost metric. GitHub Actions run 39073704784 then passed Governance/Graphify, direct P2P and the complete Windows, Ubuntu and macOS build, test and package-directory matrix."
+    },
+    {
+      "id": "github-actions-text-edit-toolbar-39073704784",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        44
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-17T22:06:34Z",
+      "endedAt": "2026-10-17T22:13:32Z",
+      "observedSeconds": 418,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd"
+      ],
+      "concerns": [],
+      "measurementSource": "GitHub Actions run 39073704784 at 5841866c527514501edddb87ad50edc9e17445dd: Governance/Graphify 117516395475, direct P2P 117516395309, Ubuntu 117516433020, macOS 117516433070 and Windows 117516433085 all completed successfully. Each platform passed configuration/application typechecks, release and Vitest suites, production builds, 35 browser UI tests including the text-edit toolbar regression, Electron integration and non-publishing package-directory verification. Runtime 418 seconds; no token or cost metric applies."
     }
   ],
   "evidencePolicy": {
