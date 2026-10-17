@@ -97,6 +97,8 @@ const BINDINGS: readonly Binding[] = [
     [PRIMARY, letterIs('y')],
   ),
   bind({ id: 'edit.select-all', label: 'Alles auswählen', combo: 'Strg+A', scope: 'global', group: EDIT }, [PRIMARY, letterIs('a')]),
+  bind({ id: 'edit.copy', label: 'Auswahl kopieren', combo: 'Strg+C', scope: 'global', group: EDIT }, [PRIMARY, letterIs('c')]),
+  bind({ id: 'edit.paste', label: 'An Mausposition einfügen', combo: 'Strg+V', scope: 'global', group: EDIT }, [PRIMARY, letterIs('v')]),
   bind({ id: 'edit.duplicate', label: 'Duplizieren', combo: 'Strg+D', scope: 'global', group: EDIT }, [PRIMARY, letterIs('d')]),
   bind({ id: 'edit.group', label: 'In Container gruppieren', combo: 'Strg+G', scope: 'global', group: EDIT }, [PRIMARY, letterIs('g')]),
   bind({ id: 'edit.ungroup', label: 'Gruppierung lösen', combo: 'Strg+Umschalt+G', scope: 'global', group: EDIT }, [PRIMARY_SHIFT, letterIs('g')]),

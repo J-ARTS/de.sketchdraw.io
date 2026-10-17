@@ -26,6 +26,7 @@ import {
 } from './pages';
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
+import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 
 type Gesture = {
   kind: 'draw' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
@@ -74,7 +75,21 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let nudge: { base: DocumentSession; ids: string[]; dx: number; dy: number } | null = null;
   let noticeId = 0;
   let localCommit = false;
+  let lastPointerScreen: Point | null = null;
+  let internalElementClipboard: string | null = null;
+  let clipboardWrite: Promise<boolean> | null = null;
+  let internalClipboardFallbackPending = false;
   const initial = snapshotSource().getSnapshot();
+  const clipboard = options.clipboard ?? {
+    writeText(value: string) {
+      if (typeof navigator === 'undefined' || !navigator.clipboard) return Promise.reject(new Error('Clipboard unavailable.'));
+      return navigator.clipboard.writeText(value);
+    },
+    readText() {
+      if (typeof navigator === 'undefined' || !navigator.clipboard) return Promise.reject(new Error('Clipboard unavailable.'));
+      return navigator.clipboard.readText();
+    },
+  };
 
   const selected = () => state.document.elements.filter((e) => state.selection.includes(e.id));
   const changedDraft = () => { draftGeneration += 1; state.draftVersion = draftGeneration; };
@@ -478,6 +493,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     setTool(tool) { if ((!state.canWrite && !['select', 'hand'].includes(tool)) || state.transitioning) return; if (state.textEdit) void applyText(); state.tool = tool; state.liveMessage = `Werkzeug: ${tool}`; },
     setViewportSize(width, height) { state.viewportSize = { width, height }; },
     pointerDown(input) {
+      lastPointerScreen = { x: input.x, y: input.y };
       if (state.transitioning || state.dialog || state.gestureConflict || pendingWrites > 0) return;
       if (state.textEdit) { void applyText(); return; }
       const point = screenToDoc(state.viewport, input);
@@ -503,6 +519,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       changedDraft();
     },
     pointerMove(input) {
+      lastPointerScreen = { x: input.x, y: input.y };
       const g = gesture;
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
       const point = screenToDoc(state.viewport, input);
@@ -568,7 +585,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (action.startsWith('tool.')) { store.setTool(action.slice(5) as Tool); return true; }
       const actions: Record<string, () => void> = {
         'file.open': () => { void store.openDocument(); }, 'file.save': () => { void store.save(); }, 'file.save-as': () => { void store.saveAs(); },
-        'edit.undo': store.undo, 'edit.redo': store.redo, 'edit.select-all': store.selectAll, 'edit.duplicate': store.duplicateSelection,
+        'edit.undo': store.undo, 'edit.redo': store.redo, 'edit.select-all': store.selectAll,
+        'edit.copy': () => { void store.copySelection(); }, 'edit.paste': () => { void store.pasteSelection(); }, 'edit.duplicate': store.duplicateSelection,
         'edit.group': store.groupSelection, 'edit.ungroup': store.ungroupSelection, 'edit.delete': store.deleteSelection, 'edit.text': () => store.startTextEdit(state.selection[0]),
         'view.zoom-in': () => store.zoomBy(1.2), 'view.zoom-out': () => store.zoomBy(1 / 1.2), 'view.zoom-reset': () => store.zoomTo(1),
         'view.fit-all': store.fitAll, 'view.fit-selection': store.fitSelection, 'view.help': store.openHelp, 'view.objects': store.toggleObjects,
@@ -601,6 +619,45 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     select: setSelection, selectAll() { setSelection(state.document.elements.map((e) => e.id)); }, clearSelection() { setSelection([]); },
     focusElement(id) { setSelection([id]); store.fitSelection(); },
     deleteSelection() { if (!state.transitioning && state.selection.length) void dispatch({ type: 'delete', ids: [...state.selection] }); },
+    async copySelection() {
+      if (state.transitioning) return;
+      const payload = elementClipboardPayload(state.document, state.selection);
+      if (!payload) return;
+      const text = JSON.stringify(payload);
+      internalElementClipboard = text;
+      internalClipboardFallbackPending = true;
+      clipboardWrite = clipboard.writeText(text).then(() => true, () => false);
+      const written = await clipboardWrite;
+      if (written) internalClipboardFallbackPending = false;
+      notice(written ? `${payload.elements.length} Element${payload.elements.length === 1 ? '' : 'e'} kopiert.` : `${payload.elements.length} Element${payload.elements.length === 1 ? '' : 'e'} intern kopiert.`);
+    },
+    async pasteSelection() {
+      if (!state.canWrite || state.transitioning) return;
+      const owner = activeSession();
+      const revision = state.revision;
+      const lastWriteSucceeded = clipboardWrite ? await clipboardWrite : null;
+      let text: string | null = null;
+      if (lastWriteSucceeded === false && internalClipboardFallbackPending) {
+        text = internalElementClipboard;
+        internalClipboardFallbackPending = false;
+      }
+      else {
+        try { text = await clipboard.readText(); }
+        catch { text = internalElementClipboard; }
+      }
+      if (owner !== activeSession() || state.transitioning || !state.canWrite) return;
+      const payload = text ? parseElementClipboard(text) : null;
+      if (!payload) { notice('Die Zwischenablage enthält keine Sketchdraw-Elemente.', 'error'); return; }
+      try {
+        const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
+        const plan = planElementPaste(payload, state.document, at, uid);
+        if (await dispatch(plan.command, revision)) {
+          setSelection(plan.selection);
+          state.tool = 'select';
+          state.liveMessage = `${plan.selection.length} Element${plan.selection.length === 1 ? '' : 'e'} eingefügt.`;
+        }
+      } catch (error) { fail(error); }
+    },
     duplicateSelection() {
       if (!state.canWrite || state.transitioning || !state.selection.length) return;
       const all = state.document.elements; const ids = new Set(state.selection);

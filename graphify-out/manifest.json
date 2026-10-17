@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792278285.0620854,
-    "ast_hash": "82d269395f2264ead0bcf2ea4e28606f",
+    "mtime": 1792279284.3590074,
+    "ast_hash": "ef027f4494e13ff58db66efe3b147dd4",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "src/renderer/lib/shortcuts.ts": {
-    "mtime": 1792277773.6265314,
-    "ast_hash": "2acf6fe922d4246e3cf22892cde11f2d",
+    "mtime": 1792279083.6911974,
+    "ast_hash": "c7718f7888ec8ed1c17259f3711469f4",
     "semantic_hash": ""
   },
   "src/renderer/lib/theme.ts": {
@@ -435,13 +435,13 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792277773.625057,
-    "ast_hash": "189dbc8a91d026b5d3fbd54bba682cbc",
+    "mtime": 1792279083.6908467,
+    "ast_hash": "ae7154d4f53f50a1e46d8f9aebdce988",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
-    "mtime": 1792259186.1367443,
-    "ast_hash": "68061bcae6437b8b2d7ddac559fd4b34",
+    "mtime": 1792279298.0990515,
+    "ast_hash": "84065fa654df4760165425d2a6e7728d",
     "semantic_hash": ""
   },
   "tests/unit/build-downloader.test.mjs": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/WhiteboardCanvas.vue": {
-    "mtime": 1792277971.7641912,
-    "ast_hash": "878d8b06111bf43a7f4ebb15d03206b3",
+    "mtime": 1792279083.691648,
+    "ast_hash": "05f2db0750c5c286b0b38f77cb87b2e3",
     "semantic_hash": ""
   },
   "src/renderer/components/WorkspacePanels.vue": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792277773.6287432,
-    "ast_hash": "aa4e2a1e8fab1349497648628a798563",
+    "mtime": 1792279368.1090052,
+    "ast_hash": "b2b20daf2e9d595bc6f9dece94def303",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -1322,6 +1322,21 @@
   "tests/unit/sticky-note.spec.ts": {
     "mtime": 1792278213.9321468,
     "ast_hash": "7bca35e4a691104987e77ab29b0fbf17",
+    "semantic_hash": ""
+  },
+  "src/renderer/state/element-clipboard.ts": {
+    "mtime": 1792279083.6897423,
+    "ast_hash": "ee9a939cdc9fa48f69741e2e66848c0f",
+    "semantic_hash": ""
+  },
+  "tests/ui/element-clipboard.spec.ts": {
+    "mtime": 1792279144.948097,
+    "ast_hash": "50607cd5813eaba9a510c8e294f4ad56",
+    "semantic_hash": ""
+  },
+  "tests/unit/renderer/element-clipboard.spec.ts": {
+    "mtime": 1792279179.7694502,
+    "ast_hash": "c923f51f5107eaeb15c7b0c4ea8be32d",
     "semantic_hash": ""
   }
 }

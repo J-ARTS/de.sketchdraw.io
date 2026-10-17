@@ -41,6 +41,11 @@ export interface WheelInput {
   x: number; y: number; deltaX: number; deltaY: number;
   deltaMode: number; ctrlKey: boolean; shiftKey: boolean;
 }
+
+export interface TextClipboard {
+  writeText(value: string): Promise<void>;
+  readText(): Promise<string>;
+}
 export interface KeyInput {
   key: string; code: string;
   shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean;
@@ -123,6 +128,8 @@ export interface CreateStoreOptions {
   actorId?: string;
   /** Display name placed in newly created sticky-note footers. */
   authorName?: string;
+  /** Defaults to the browser/Electron system clipboard. Tests may inject a deterministic adapter. */
+  clipboard?: TextClipboard;
   isMac?: boolean;
   initialTheme?: 'light' | 'dark';
 }
@@ -245,6 +252,8 @@ export interface WhiteboardStore {
   focusElement(id: string): void;
 
   deleteSelection(): void;
+  copySelection(): Promise<void>;
+  pasteSelection(): Promise<void>;
   duplicateSelection(): void;
   nudge(dx: number, dy: number): void;
   endNudge(): void;

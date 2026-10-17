@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T23:13:41.000Z",
+  "updatedAt": "2026-10-17T23:21:24.000Z",
   "issues": [
     {
       "number": 1,
@@ -735,6 +735,21 @@
       "dependencies": [
         49
       ]
+    },
+    {
+      "number": 51,
+      "title": "Elemente per Strg/Cmd+C und Strg/Cmd+V an Mausposition kopieren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/51",
+      "owner": "OpenAI Codex",
+      "currentImplementer": "Codex temporary takeover for logic/interface/UI implementation and testing",
+      "phase": "Architecture, logic, interface, UI and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -3023,6 +3038,33 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for commit bd12e4a16ffd389c177febe5149b0e2668031bd3. Governance & Graphify Tests, Direct P2P, Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Observed duration is the difference between the recorded run start and completion timestamps."
+    },
+    {
+      "id": "codex-element-clipboard-051",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        51
+      ],
+      "status": "locally_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/51",
+        "src/renderer/state/element-clipboard.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/renderer/lib/shortcuts.ts",
+        "tests/unit/renderer/element-clipboard.spec.ts",
+        "tests/ui/element-clipboard.spec.ts"
+      ],
+      "concerns": [
+        "Cross-platform GitHub Actions evidence is pending until the integrated commit is pushed."
+      ],
+      "authorization": "The user requested element copy/paste at the mouse position and previously authorized Codex to take over unavailable agent implementation with actual-tool attribution.",
+      "measurementSource": "Codex implemented a validated element clipboard, mouse-position anchoring, reference remapping, system-clipboard fallback and shortcut integration. Local evidence includes passing typecheck, 314 unit tests, 39 browser UI tests, 6 Electron tests, 3 direct P2P tests, the production build and 22 Graphify traceability tests. Cross-platform GitHub Actions evidence is pending."
     }
   ],
   "evidencePolicy": {

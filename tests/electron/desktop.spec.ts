@@ -97,6 +97,21 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
       });
 
+      await test.step('native element clipboard pastes at the mouse and remains one undo step', async () => {
+        const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+        const canvas = page.getByTestId('whiteboard-canvas');
+        await canvas.focus();
+        await page.keyboard.press(`${modifier}+C`);
+        await page.mouse.move(780, 520);
+        await page.keyboard.press(`${modifier}+V`);
+        await expect(canvas.locator('[data-kind=rectangle]')).toHaveCount(2);
+        const pasted = (await canvas.locator('[data-kind=rectangle]').nth(1).boundingBox())!;
+        expect(pasted.x + pasted.width / 2).toBeCloseTo(780, -1);
+        expect(pasted.y + pasted.height / 2).toBeCloseTo(520, -1);
+        await page.keyboard.press(`${modifier}+Z`);
+        await expect(canvas.locator('[data-kind=rectangle]')).toHaveCount(1);
+      });
+
       await test.step('real UI cancels dirty close, forged ID cannot bypass it, confirmed discard closes', async () => {
         // Observe request IDs without replacing or answering the product's own listener.
         await page.evaluate(() => {
