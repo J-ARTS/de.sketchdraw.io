@@ -1,6 +1,8 @@
 # Sprintplan und Abnahme
 
-Gesamtziel: [#4](https://github.com/J-ARTS/de.sketchdraw.io/issues/4). Status: S0-Reviews geliefert; Domain-/Desktop-Backend, Code/Katalog und Whiteboard-Teilabnahmen dokumentiert. Der Nutzer hat die vorübergehende Implementierungsübernahme durch Codex freigegeben. Echte Claude-Code-, Antigravity-Gemini- und zusätzlich angeforderte Antigravity-Claude-Läufe erreichten ihre Kontingente; gelieferte Beiträge bleiben ihnen zugeordnet. Codex integriert aktuell Agentenzugriff, offene Formate und P2P. Vollständige App- und Plattformabnahme ausstehend. Reihenfolge und Schätzungen werden anhand tatsächlicher Ergebnisse angepasst; kein Terminversprechen.
+Gesamtziel: [#4](https://github.com/J-ARTS/de.sketchdraw.io/issues/4). S0–S4 sind implementiert, unabhängig abgenommen und in `main` integriert; die zugehörigen Tickets sind in GitHub geschlossen. S5 hat die vollständige [native CI auf Windows, Linux und macOS einschließlich P2P](https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39044253516) bestanden. Die drei endgültigen Installer und das tatsächliche Release werden noch in [#24](https://github.com/J-ARTS/de.sketchdraw.io/issues/24) geprüft.
+
+Der Nutzer hat die vorübergehende Implementierungsübernahme durch Codex freigegeben. Echte Claude-Code-, Antigravity-Gemini- und zusätzlich angeforderte Antigravity-Claude-Läufe erreichten ihre Kontingente; gelieferte Beiträge bleiben ihnen zugeordnet. Die regulären Verantwortlichkeiten bleiben bestehen; tatsächliche Ausführung und unbekannte Aufwandswerte sind getrennt im Arbeitsledger erfasst.
 
 | Sprint | Ergebnis | Tickets | Federführung | Abhängigkeit |
 | --- | --- | --- | --- | --- |

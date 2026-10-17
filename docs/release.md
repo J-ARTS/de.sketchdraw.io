@@ -62,6 +62,8 @@ Nach drei bestätigten Assets wird genau dieses Draft veröffentlicht und erneut
 
 Ohne Signing-Secrets erstellt macOS eine Ad-hoc-signierte, nicht notarisierte App; Windows ist unsigniert. Release-Notes weisen den Modus aus. Echte optionale `CSC_*`, `WIN_CSC_*` und `APPLE_*`-Secrets steuern Signing/Notarisierung gemäß `resolveSigningConfiguration()`. Zugangsdaten werden nicht in Manifeste oder Smoke-Berichte aufgenommen. Die Testprozesse erhalten keine Signing- oder GitHub-Zugangsdaten und keine geerbten Node-/Electron- oder Sketchdraw-Laufzeitüberschreibungen.
 
+GitHub Actions liefert fehlende Secrets als leere Strings. Vor Electron Builder werden diese optionalen leeren Pfade und Einstellungen entfernt, damit ein leeres `CSC_LINK` nicht als Checkoutverzeichnis interpretiert wird. Tatsächlich konfigurierte Werte werden unverändert weitergegeben; gültige leere Zertifikatpasswörter bleiben erhalten. Der unabhängige Review hat die optionale Erkennung eines Notarisierungsprofils im Standardkeychain als getrennten Folgefehler [#27](https://github.com/J-ARTS/de.sketchdraw.io/issues/27) erfasst. Die Ad-hoc-Auslieferung ohne Notarisierung ist davon nicht betroffen.
+
 Native Starttests bestätigen keine Gatekeeper-/SmartScreen-Freigabe oder erfolgreichen interaktiven Installationsdialog. Linux muss die Sandbox auf dem vorgesehenen Runner tatsächlich unterstützen; ein Fehlschlag darf nicht durch Abschalten der Sandbox verborgen werden.
 
 ## Lokale Prüfungen und verbleibende Abnahme

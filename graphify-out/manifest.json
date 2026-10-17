@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792250012.1791635,
-    "ast_hash": "c9efcd057fcfa39c4dc5935ff47faf87",
+    "mtime": 1792251769.8839943,
+    "ast_hash": "b556714fa3a7b63f8d3137442dd92016",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -20,13 +20,13 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1792248529.3382063,
-    "ast_hash": "65f06b18f7163e59c2a6a2aca359dd93",
+    "mtime": 1792250314.6410515,
+    "ast_hash": "35a48f281996c2fa4a4daa3625d08cba",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792249782.5311403,
-    "ast_hash": "f9b667655d377c459f65d1e53d5b6d82",
+    "mtime": 1792250314.641237,
+    "ast_hash": "5bb0fc653b72bf99f2b11e742605fd75",
     "semantic_hash": ""
   },
   "docs/architecture.md": {
@@ -35,13 +35,13 @@
     "semantic_hash": ""
   },
   "docs/concerns.md": {
-    "mtime": 1792249782.531685,
-    "ast_hash": "15085c089a31d953644276c227df571d",
+    "mtime": 1792251658.435214,
+    "ast_hash": "afe42be0e5449adab36062c3ad596ebf",
     "semantic_hash": ""
   },
   "docs/sprints.md": {
-    "mtime": 1792246973.9203231,
-    "ast_hash": "a164edc3f8dd359c2b4d4f192f078df7",
+    "mtime": 1792250981.1982408,
+    "ast_hash": "612ee9c1eecbb724cb66cece2bb7bed4",
     "semantic_hash": ""
   },
   "docs/graphify-traceability.md": {
@@ -145,8 +145,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1792248393.8458297,
-    "ast_hash": "03ae2925374d3c8da496f03c9cbaca68",
+    "mtime": 1792251754.8870506,
+    "ast_hash": "9fcd92220af342468a5577bded5714bf",
     "semantic_hash": ""
   },
   "playwright.config.ts": {
@@ -245,8 +245,8 @@
     "semantic_hash": ""
   },
   "docs/setup.md": {
-    "mtime": 1792241955.2381656,
-    "ast_hash": "03011e8ca4e26860a5081640cd717ec3",
+    "mtime": 1792251053.9058342,
+    "ast_hash": "9320041e08bf26397c4bee1a81190088",
     "semantic_hash": ""
   },
   "index.html": {
@@ -555,8 +555,8 @@
     "semantic_hash": ""
   },
   "scripts/release.mjs": {
-    "mtime": 1792245868.5513098,
-    "ast_hash": "46a7aabfc810f33db547f00f82a95cac",
+    "mtime": 1792251805.5487373,
+    "ast_hash": "2fb2f1cd74ef130798e27f97d5326be4",
     "semantic_hash": ""
   },
   "src/agent-access/errors.ts": {
@@ -620,8 +620,8 @@
     "semantic_hash": ""
   },
   "tests/unit/release.test.mjs": {
-    "mtime": 1792245868.5521965,
-    "ast_hash": "8468c2f28cbc73a702ff1448aa8c2a08",
+    "mtime": 1792251796.1980176,
+    "ast_hash": "4a2cb518a5342f58a7ac5249e9f5c20f",
     "semantic_hash": ""
   },
   "tsconfig.mcp.json": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "docs/release.md": {
-    "mtime": 1792248958.3616285,
-    "ast_hash": "72681084262ad932d85f958a9a4fec33",
+    "mtime": 1792251769.8322184,
+    "ast_hash": "20808664da7b46f256de1cf5662f118f",
     "semantic_hash": ""
   },
   "docs/reviews/antigravity-desktop-fixes.md": {
@@ -1105,8 +1105,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1792248472.9270816,
-    "ast_hash": "0e72659c5328b8be828b6955dc737b0c",
+    "mtime": 1792251112.3291104,
+    "ast_hash": "ee4a63f362b158518aa16ec2dad941d6",
     "semantic_hash": ""
   },
   "docs/reviews/codex-interop-external-acceptance.md": {
@@ -1187,6 +1187,11 @@
   "docs/reviews/codex-windows-cleanup.md": {
     "mtime": 1792249904.6361172,
     "ast_hash": "4564e34d9f91320a4ff8878b4b5687cd",
+    "semantic_hash": ""
+  },
+  "docs/reviews/release-validation.md": {
+    "mtime": 1792251667.1476462,
+    "ast_hash": "1be31579f63d38a981ff12114938fa12",
     "semantic_hash": ""
   }
 }

@@ -354,6 +354,112 @@ test('resolveSigningConfiguration uses honest ad-hoc/unsigned defaults and enabl
   assert.equal(winSigned.signed, true);
 });
 
+function captureBuilderSettings(t, platformKey, env) {
+  const root = mkdtempSync(join(tmpdir(), 'release-signing-env-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  createSyntheticProjectRoot(root);
+  const before = { ...env };
+  const stopAtBuilder = new Error('Signing environment captured; no native packaging in this unit test.');
+  let captured;
+  assert.throws(() => packagePlatformInstaller({
+    platformKey, rawTag: 'v0.1.0', commitSha: SAMPLE_COMMIT, rootDir: root, env,
+    actualPlatform: RELEASE_TARGETS[platformKey].nodePlatform,
+    actualArch: RELEASE_TARGETS[platformKey].arch,
+    runElectronBuilder(args, options) {
+      captured = { args, env: options.env };
+      throw stopAtBuilder;
+    },
+    runInstallerSmoke() { assert.fail('A failed builder must never reach installer smoke.'); },
+  }), error => error === stopAtBuilder);
+  assert.deepEqual(env, before, 'Caller environment must remain unchanged');
+  return captured;
+}
+
+const EMPTY_ACTIONS_SIGNING_SECRETS = Object.freeze({
+  CSC_LINK: '', CSC_KEY_PASSWORD: '', CSC_NAME: '',
+  WIN_CSC_LINK: '', WIN_CSC_KEY_PASSWORD: '',
+  APPLE_API_KEY: '', APPLE_API_KEY_ID: '', APPLE_API_ISSUER: '',
+  APPLE_ID: '', APPLE_APP_SPECIFIC_PASSWORD: '', APPLE_TEAM_ID: '',
+});
+
+for (const platformKey of ['mac', 'win']) {
+  test(`package ${platformKey}: unset GitHub Actions secrets never become empty certificate paths`, t => {
+    const input = { ...EMPTY_ACTIONS_SIGNING_SECRETS, PATH: '/synthetic/toolchain', UNRELATED_EMPTY: '',
+      CSC_INSTALLER_LINK: '  ', CSC_INSTALLER_KEY_PASSWORD: '', CSC_KEYCHAIN: '',
+      APPLE_KEYCHAIN: '', APPLE_KEYCHAIN_PROFILE: '\t', CSC_IDENTITY_AUTO_DISCOVERY: '' };
+    assert.deepEqual(resolveSigningConfiguration(platformKey, input), resolveSigningConfiguration(platformKey, {}));
+    const captured = captureBuilderSettings(t, platformKey, input);
+    for (const key of Object.keys(input).filter(key => /^(CSC_|WIN_CSC_|APPLE_)/.test(key))) {
+      if (key === 'CSC_IDENTITY_AUTO_DISCOVERY') continue;
+      assert.equal(Object.hasOwn(captured.env, key), false, `${key} must be absent, not empty`);
+    }
+    assert.equal(captured.env.CSC_IDENTITY_AUTO_DISCOVERY, 'false');
+    assert.equal(captured.env.PATH, input.PATH);
+    assert.equal(captured.env.UNRELATED_EMPTY, '');
+    if (platformKey === 'mac') {
+      assert.ok(captured.args.includes('-c.mac.identity=-'));
+      assert.ok(captured.args.includes('-c.mac.notarize=false'));
+    }
+  });
+}
+
+test('package mac: complete signing and notarization values reach the builder unchanged', t => {
+  const input = { ...EMPTY_ACTIONS_SIGNING_SECRETS,
+    CSC_LINK: '/synthetic/certificate.p12', CSC_KEY_PASSWORD: ' password with spaces ',
+    APPLE_API_KEY: '/synthetic/AuthKey.p8', APPLE_API_KEY_ID: 'key-id', APPLE_API_ISSUER: 'issuer-id' };
+  const captured = captureBuilderSettings(t, 'mac', input);
+  for (const key of ['CSC_LINK', 'CSC_KEY_PASSWORD', 'APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER']) {
+    assert.equal(captured.env[key], input[key]);
+  }
+  assert.ok(captured.args.includes('-c.mac.notarize=true'));
+  assert.equal(Object.hasOwn(captured.env, 'APPLE_ID'), false);
+  assert.equal(Object.hasOwn(captured.env, 'WIN_CSC_LINK'), false);
+});
+
+test('package win: blank Windows certificate option does not mask the real generic certificate', t => {
+  const input = { ...EMPTY_ACTIONS_SIGNING_SECRETS, CSC_LINK: '/synthetic/windows.p12', CSC_KEY_PASSWORD: 'real-password' };
+  const captured = captureBuilderSettings(t, 'win', input);
+  assert.equal(captured.env.CSC_LINK, input.CSC_LINK);
+  assert.equal(captured.env.CSC_KEY_PASSWORD, input.CSC_KEY_PASSWORD);
+  assert.equal(Object.hasOwn(captured.env, 'WIN_CSC_LINK'), false);
+  assert.equal(Object.hasOwn(captured.env, 'WIN_CSC_KEY_PASSWORD'), false);
+  assert.equal(resolveSigningConfiguration('win', captured.env).mode, 'authenticode-signed');
+});
+
+test('package win: explicit empty password overrides the generic password when the Windows link is absent', t => {
+  const input = { CSC_LINK: '/synthetic/passwordless.p12', CSC_KEY_PASSWORD: 'wrong-global-password',
+    WIN_CSC_KEY_PASSWORD: '' };
+  const captured = captureBuilderSettings(t, 'win', input);
+  assert.equal(Object.hasOwn(captured.env, 'WIN_CSC_LINK'), false);
+  assert.equal(Object.hasOwn(captured.env, 'WIN_CSC_KEY_PASSWORD'), true);
+  assert.equal(captured.env.WIN_CSC_KEY_PASSWORD, '');
+  assert.equal(captured.env.CSC_LINK, input.CSC_LINK);
+  assert.equal(captured.env.CSC_KEY_PASSWORD, input.CSC_KEY_PASSWORD);
+  assert.equal(resolveSigningConfiguration('win', captured.env).mode, 'authenticode-signed');
+});
+
+test('package signing preserves deliberately empty certificate passwords and builder failures', t => {
+  for (const [platformKey, input, passwordKey] of [
+    ['mac', { CSC_LINK: '/synthetic/passwordless.p12', CSC_KEY_PASSWORD: '' }, 'CSC_KEY_PASSWORD'],
+    ['win', { WIN_CSC_LINK: '/synthetic/passwordless.p12', WIN_CSC_KEY_PASSWORD: '', CSC_KEY_PASSWORD: 'wrong-global-password' }, 'WIN_CSC_KEY_PASSWORD'],
+    ['mac', { CSC_LINK: '/synthetic/app.p12', CSC_INSTALLER_LINK: '/synthetic/installer.p12', CSC_INSTALLER_KEY_PASSWORD: '' }, 'CSC_INSTALLER_KEY_PASSWORD'],
+  ]) {
+    const captured = captureBuilderSettings(t, platformKey, input);
+    assert.equal(Object.hasOwn(captured.env, passwordKey), true);
+    assert.equal(captured.env[passwordKey], '');
+    for (const [key, value] of Object.entries(input)) assert.equal(captured.env[key], value);
+  }
+});
+
+test('package mac: partial notarization retains the existing explicit non-notarized mode', t => {
+  const input = { ...EMPTY_ACTIONS_SIGNING_SECRETS, CSC_LINK: '/synthetic/app.p12', APPLE_API_KEY: '/synthetic/key.p8' };
+  const captured = captureBuilderSettings(t, 'mac', input);
+  assert.equal(captured.env.APPLE_API_KEY, input.APPLE_API_KEY);
+  assert.equal(Object.hasOwn(captured.env, 'APPLE_API_KEY_ID'), false);
+  assert.ok(captured.args.includes('-c.mac.notarize=false'));
+  assert.equal(resolveSigningConfiguration('mac', captured.env).mode, 'developer-id-signed');
+});
+
 test('inspectBinaryFile and binary architecture verifiers validate PE, Mach-O arm64, UDIF DMG, ELF64, and Debian .deb', () => {
   const tempDir = mkdtempSync(join(tmpdir(), 'sketchdraw-bin-test-'));
   try {

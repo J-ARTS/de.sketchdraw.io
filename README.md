@@ -21,6 +21,7 @@ Voraussetzungen und Plattformdetails stehen in [docs/setup.md](docs/setup.md). D
 
 ```sh
 npm ci
+npm run build:mcp
 npm run dev:electron
 ```
 

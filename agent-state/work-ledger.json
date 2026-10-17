@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T15:22:43.998218+00:00",
+  "updatedAt": "2026-10-17T15:44:25.392590+00:00",
   "issues": [
     {
       "number": 4,
@@ -404,7 +404,38 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/1",
       "owner": "Codex",
       "phase": "Governance",
-      "status": "review",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 26,
+      "title": "Release: Leere CI-Signingvariablen brechen den macOS-Installerbau ab",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/26",
+      "owner": "Antigravity",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "S5",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        24
+      ]
+    },
+    {
+      "number": 27,
+      "title": "Release: Notarisierungsprofil im macOS-Standardkeychain korrekt erkennen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/27",
+      "owner": "Antigravity",
+      "phase": "Follow-up",
+      "status": "planned",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1391,7 +1422,7 @@
         15,
         24
       ],
-      "status": "ci_partial",
+      "status": "verified_native_ci",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1410,7 +1441,7 @@
         "guest-ack-before-mirror",
         "native-drawio-container-border"
       ],
-      "measurementSource": "Published 654a416: CI39042878369 Ubuntu/macOS full jobs and governance passed; strict Electron/Chromium native P2P transport passed. Product P2P UI failed because notice intercepted recovery click; Windows teardown remained pending. Local metrics are validation counts, not agent time/token/cost."
+      "measurementSource": "Published 654a416: CI39042878369 Ubuntu/macOS full jobs and governance passed; strict Electron/Chromium native P2P transport passed. Product P2P UI failed because notice intercepted recovery click; Windows teardown remained pending. Local metrics are validation counts, not agent time/token/cost. Follow-up f91538a CI39044253516 passed every job: Windows/Linux/macOS plus governance and3nativeP2P. Windows279Vitest passed/3POSIX cases skipped;19UI/6Desktop passed."
     },
     {
       "id": "codex-p2p-feedback-003",
@@ -1420,7 +1451,7 @@
         14,
         15
       ],
-      "status": "verified_local",
+      "status": "verified_native_ci",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1438,7 +1469,7 @@
         "p2p-recovery-notice-intercepts-click"
       ],
       "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
-      "measurementSource": "Two real browser pages passed complete P2P flow after layout fix; 2 feedback regressions and 1 accessibility check passed. Authority/collaboration/store46 passed. Native Linux sandbox proof belongs to CI654a416; local Electron still has ICE timeout. No measured agent duration/tokens/cost."
+      "measurementSource": "Two real browser pages passed complete P2P flow after layout fix; 2 feedback regressions and 1 accessibility check passed. Authority/collaboration/store46 passed. Native Linux sandbox proof belongs to CI654a416; local Electron still has ICE timeout. No measured agent duration/tokens/cost. Linux CI39044253516 confirms full3/3native suite at f91538a, including productUI normal recovery click."
     },
     {
       "id": "codex-owned-process-cleanup-003",
@@ -1448,7 +1479,7 @@
         15,
         24
       ],
-      "status": "verified_local_windows_pending",
+      "status": "verified_native_windows",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1471,7 +1502,7 @@
         "primary-error-preservation"
       ],
       "authorization": "User explicitly authorized temporary Codex implementation takeover; regular ownership unchanged.",
-      "measurementSource": "Full local Desktop6/6, targeted backend4/4, simulated Windows boundaries8/8 and release24/24 passed; real Windows confirmation pending. Full Typecheck passed. No measured agent duration/tokens/cost."
+      "measurementSource": "Full local Desktop6/6, targeted backend4/4, simulated Windows boundaries8/8 and release24/24 passed; real Windows confirmation pending. Full Typecheck passed. No measured agent duration/tokens/cost. Actual Windows CI39044253516 at f91538a subsequently passed all6 Desktop cases; no process cleanup errors."
     },
     {
       "id": "codex-property-draft-025",
@@ -1525,7 +1556,7 @@
         25,
         1
       ],
-      "status": "github_closed_workflow_rule_local",
+      "status": "github_closed",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -1534,12 +1565,65 @@
       "artifacts": [
         "AGENTS.md",
         "CLAUDE.md",
-        "https://github.com/J-ARTS/de.sketchdraw.io/commit/f91538a07dd4f2ac77efa25ae00167bce1ffff4e"
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/f91538a07dd4f2ac77efa25ae00167bce1ffff4e",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/a041ceab3031f25bf391f1d3ce48527e244ea53a"
       ],
       "concerns": [
         "stale-open-issues-after-verified-integration"
       ],
-      "measurementSource": "Independent audits verified acceptance and main integration.21 issues actually closed as completed in GitHub; #1 active closure rule added and content-checked locally, pending publication. No measured agent duration/tokens/cost."
+      "measurementSource": "Independent audits verified acceptance and main integration.22 issues actually closed as completed in GitHub; active closure rule published identically in AGENTS.md/CLAUDE.md at a041cea and #1 closed. No measured agent duration/tokens/cost."
+    },
+    {
+      "id": "github-actions-release-39044870745",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        4,
+        15,
+        24
+      ],
+      "status": "failed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39044870745",
+        "https://github.com/J-ARTS/de.sketchdraw.io/tree/v0.1.0"
+      ],
+      "concerns": [
+        "native-three-installer-validation"
+      ],
+      "measurementSource": "Tag v0.1.0 fixed at a041cea. Full product CI passed on all three systems; actual Windows NSIS and Linux DEB GUI/MCP smokes passed. macOS installer build failed on empty signing env (#26); publication skipped. No measured duration/tokens/cost."
+    },
+    {
+      "id": "codex-ci-signing-env-026",
+      "tool": "codex-subagent",
+      "model": null,
+      "issues": [
+        26,
+        24,
+        27
+      ],
+      "status": "verified_local_ready_for_ci",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "scripts/release.mjs",
+        "tests/unit/release.test.mjs",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39044870745/job/117432880776",
+        "docs/reviews/release-validation.md"
+      ],
+      "concerns": [
+        "empty-ci-signing-values",
+        "optional-default-keychain-profile-followup"
+      ],
+      "authorization": "User explicitly authorized temporary Codex implementation takeover; regular DevOps ownership Antigravity unchanged.",
+      "measurementSource": "Six targeted tests: five failed before normalization,21/21 release unit and50/50 overall Node tests passed after first fix. Actual local macOS DMG package with all optional CI signing env strings empty passed extracted sandboxed GUI/ASAR/MCP smoke at a041cea plus uncommitted fix (not final release): sha2567298e18315b36afd93bd9e1a8cb69d37042f6ae00ce8fd1a89dfa66d0d4050b2. Independent review found Windows empty-password fallback edge; targeted correction pending. No measured agent duration/tokens/cost. Final Windows fallback regression failed before targeted correction, then independent release.test22/22, full release31/31, overallNode51/51 andPython22/22 passed. Mac behavior unchanged by the Windows-specific review fix. New packageVersion0.1.1 prepared; final tagged CI pending."
     }
   ],
   "evidencePolicy": {

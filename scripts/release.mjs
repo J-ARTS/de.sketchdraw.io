@@ -359,6 +359,35 @@ function hasNonEmptyEnv(env, key) {
   return typeof env[key] === 'string' && env[key].trim().length > 0;
 }
 
+function normalizeOptionalSigningEnvironment(env) {
+  const normalized = { ...env };
+  const optionalKeys = [
+    'CSC_LINK', 'CSC_KEY_PASSWORD', 'CSC_NAME', 'CSC_KEYCHAIN', 'CSC_IDENTITY_AUTO_DISCOVERY',
+    'CSC_INSTALLER_LINK', 'CSC_INSTALLER_KEY_PASSWORD', 'WIN_CSC_LINK', 'WIN_CSC_KEY_PASSWORD',
+    'APPLE_API_KEY', 'APPLE_API_KEY_ID', 'APPLE_API_ISSUER',
+    'APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID', 'APPLE_KEYCHAIN', 'APPLE_KEYCHAIN_PROFILE',
+  ];
+  const passwordSources = {
+    CSC_KEY_PASSWORD: ['CSC_LINK', 'WIN_CSC_LINK'],
+    WIN_CSC_KEY_PASSWORD: ['WIN_CSC_LINK'],
+    CSC_INSTALLER_KEY_PASSWORD: ['CSC_INSTALLER_LINK'],
+  };
+  for (const key of optionalKeys) {
+    if (typeof env[key] !== 'string' || env[key].trim().length !== 0) continue;
+    // A configured certificate can legitimately have an empty password. Keep
+    // that override, especially a Windows-specific one over a global password.
+    if (passwordSources[key]?.some(source => hasNonEmptyEnv(env, source))) continue;
+    // An omitted Windows link uses the generic certificate; an explicitly empty
+    // Windows password can still override its password. A blank link, however,
+    // is the Actions placeholder handled below, not this existing valid setup.
+    if (key === 'WIN_CSC_KEY_PASSWORD' && !Object.hasOwn(env, 'WIN_CSC_LINK') && hasNonEmptyEnv(env, 'CSC_LINK')) continue;
+    // Actions exposes unset secrets as ''. Builder treats a blank CSC_LINK as
+    // a real path (the project directory), and blank platform links mask fallback.
+    delete normalized[key];
+  }
+  return normalized;
+}
+
 /**
  * Determines code-signing and notarization settings based on configured environment variables.
  * Never reads or logs secret values, and never fabricates certificates or Apple Team IDs.
@@ -828,7 +857,7 @@ export function packagePlatformInstaller({
   ];
 
   const builderEnv = {
-    ...env,
+    ...normalizeOptionalSigningEnvironment(env),
     ...signing.envOverrides
   };
   // Never pass GITHUB_TOKEN or GH_TOKEN to electron-builder so it cannot auto-publish
