@@ -119,6 +119,13 @@ GitHub ist die maßgebliche, dauerhafte Quelle für den Aufgabenstatus. Chatverl
 
 Es gilt höchstens eines der drei Statuslabels gleichzeitig. Bei Statuswechseln nur die bisherigen Statuslabels entfernen, nicht die Fachlabels. Eine Blockade oder das Ende einer Sitzung ist kein Abschluss. Ein Issue erst schließen, wenn die Akzeptanzkriterien erfüllt, die erforderlichen Prüfungen dokumentiert und Repository-Änderungen im Zielbranch integriert sind. Diese Abschlussbedingung erteilt für sich genommen keine Erlaubnis zum Committen, Pushen oder Mergen. Bei Rückfällen wieder öffnen oder einen verknüpften Folgefehler erfassen. Verworfene Aufgaben oder Duplikate mit Begründung schließen, ohne sie als erfolgreich umgesetzt auszugeben.
 
+### Abschlussreife Tickets direkt in GitHub schließen
+
+- Nach wesentlichen Fortschritten, bestätigten Prüfungen und der Integration sowie vor Sitzungsende die offenen GitHub-Issues des bearbeiteten Projektumfangs aktiv auf Abschlussreife prüfen.
+- Sind Akzeptanzkriterien erfüllt, erforderliche Prüfungen dokumentiert und Änderungen im Zielbranch integriert, das Ticket ohne weitere Aufforderung **direkt in GitHub als abgeschlossen schließen** (`state: closed`, `state_reason: completed` bzw. `gh issue close --reason completed`). Der tatsächliche GitHub-Zustand ist maßgeblich; eine lokale Markierung oder Chatnachricht ersetzt den Abschluss nicht.
+- Vor dem Schließen den neuesten Issue-Stand lesen, den Abschnitt `Aktueller Arbeitsstand` aktualisieren und einen Abschlusskommentar mit Ergebnis, Testnachweisen und Commit-/PR-/Artefaktreferenzen hinterlassen. Aktive Statuslabels entfernen, Fachlabels erhalten und den bestätigten Abschluss im Arbeitsledger und Graphify nachführen. Codex koordiniert gemeinsame Tickets; Subagenten melden ihre Abnahme zurück.
+- Fehlen Abschlussbedingungen, das Ticket offen halten und den konkreten fehlenden Nachweis, Blocker oder nächsten Schritt dokumentieren. Veraltete Statusangaben nach dem Abgleich berichtigen.
+
 ### Fortschritt und Testergebnisse als Kommentare
 
 Jeder Testbericht nennt die geprüfte Änderung bzw. Revision, die Prüfung oder den ausgeführten Befehl, die relevante Umgebung, das tatsächliche Ergebnis und verfügbare Belege. Bestandene, fehlgeschlagene und nicht ausgeführte Prüfungen getrennt ausweisen. Nicht ausgeführte Prüfungen mit Grund und verbleibender Prüflücke dokumentieren; ein gestarteter oder geplanter Test ist kein bestandener Test. Nach relevanten Änderungen betroffene Prüfungen erneut ausführen; frühere Ergebnisse gelten nur für ihren geprüften Stand. Für reine Dokumentationsänderungen passende Inhalts- und Formatprüfungen festhalten.

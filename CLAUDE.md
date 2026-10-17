@@ -58,6 +58,13 @@ Issues-Tracker: https://github.com/J-ARTS/de.sketchdraw.io/issues (Repo `J-ARTS/
 - Commits und PRs referenzieren das Issue (`Refs #123` / `Closes #123`).
 - Ticket-Titel und -Beschreibungen auf Deutsch, mit klarem Ziel und Akzeptanzkriterien.
 
+### Abschlussreife Tickets direkt in GitHub schließen
+
+- Nach wesentlichen Fortschritten, bestätigten Prüfungen und der Integration sowie vor Sitzungsende die offenen GitHub-Issues des bearbeiteten Projektumfangs aktiv auf Abschlussreife prüfen.
+- Sind Akzeptanzkriterien erfüllt, erforderliche Prüfungen dokumentiert und Änderungen im Zielbranch integriert, das Ticket ohne weitere Aufforderung **direkt in GitHub als abgeschlossen schließen** (`state: closed`, `state_reason: completed` bzw. `gh issue close --reason completed`). Der tatsächliche GitHub-Zustand ist maßgeblich; eine lokale Markierung oder Chatnachricht ersetzt den Abschluss nicht.
+- Vor dem Schließen den neuesten Issue-Stand lesen, den Abschnitt `Aktueller Arbeitsstand` aktualisieren und einen Abschlusskommentar mit Ergebnis, Testnachweisen und Commit-/PR-/Artefaktreferenzen hinterlassen. Aktive Statuslabels entfernen, Fachlabels erhalten und den bestätigten Abschluss im Arbeitsledger und Graphify nachführen. Codex koordiniert gemeinsame Tickets; Subagenten melden ihre Abnahme zurück.
+- Fehlen Abschlussbedingungen, das Ticket offen halten und den konkreten fehlenden Nachweis, Blocker oder nächsten Schritt dokumentieren. Veraltete Statusangaben nach dem Abgleich berichtigen.
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.

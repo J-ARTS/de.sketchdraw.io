@@ -1,5 +1,37 @@
 {
   "byIssue": {
+    "1": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004"
+      ]
+    },
     "10": {
       "exclusiveRuns": {
         "costUsd": {
@@ -32,6 +64,7 @@
         "value": 8
       },
       "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -69,6 +102,7 @@
       "sharedUnallocatedRunIds": [
         "codex-codec-catalog-tests-001",
         "codex-s2-contract-001",
+        "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -107,6 +141,7 @@
       "sharedUnallocatedRunIds": [
         "codex-interop-contract-001",
         "codex-native-integration-002",
+        "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -147,6 +182,7 @@
         "codex-mcp-independent-review-001",
         "codex-native-integration-002",
         "codex-session-001",
+        "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -187,6 +223,7 @@
         "codex-p2p-contract-review-001",
         "codex-p2p-feedback-003",
         "codex-session-001",
+        "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
     },
@@ -261,7 +298,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-dependency-review-001"
+        "codex-dependency-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "17": {
@@ -293,7 +331,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "antigravity-desktop-fixes-001"
+        "antigravity-desktop-fixes-001",
+        "codex-ticket-closure-004"
       ]
     },
     "18": {
@@ -326,7 +365,8 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
-        "codex-domain-review-001"
+        "codex-domain-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "19": {
@@ -359,7 +399,40 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
-        "codex-domain-review-001"
+        "codex-domain-review-001",
+        "codex-ticket-closure-004"
+      ]
+    },
+    "2": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004"
       ]
     },
     "20": {
@@ -392,7 +465,8 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
-        "codex-domain-review-001"
+        "codex-domain-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "21": {
@@ -425,7 +499,8 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
-        "codex-domain-review-001"
+        "codex-domain-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "22": {
@@ -458,7 +533,8 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-desktop-fixes-001",
-        "codex-desktop-review-001"
+        "codex-desktop-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "23": {
@@ -491,7 +567,8 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-desktop-fixes-001",
-        "codex-desktop-review-001"
+        "codex-desktop-review-001",
+        "codex-ticket-closure-004"
       ]
     },
     "24": {
@@ -561,7 +638,41 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004"
+      ]
+    },
+    "3": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004"
+      ]
     },
     "4": {
       "exclusiveRuns": {
@@ -632,7 +743,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-architecture-001",
-        "claude-architecture-002"
+        "claude-architecture-002",
+        "codex-ticket-closure-004"
       ]
     },
     "6": {
@@ -673,7 +785,8 @@
         "codex-orchestration-001",
         "codex-p2p-contract-001",
         "codex-p2p-contract-review-001",
-        "codex-s2-contract-001"
+        "codex-s2-contract-001",
+        "codex-ticket-closure-004"
       ]
     },
     "7": {
@@ -706,7 +819,9 @@
         "unit": "story_points",
         "value": 3
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-ticket-closure-004"
+      ]
     },
     "8": {
       "exclusiveRuns": {
@@ -745,7 +860,8 @@
         "codex-dependency-review-001",
         "codex-desktop-review-001",
         "codex-electron-backend-tests-001",
-        "codex-setup-integration-001"
+        "codex-setup-integration-001",
+        "codex-ticket-closure-004"
       ]
     },
     "9": {
@@ -781,7 +897,8 @@
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
-        "codex-domain-tests-001"
+        "codex-domain-tests-001",
+        "codex-ticket-closure-004"
       ]
     }
   },
@@ -857,25 +974,26 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       },
-      "runCount": 3,
+      "runCount": 4,
       "runIds": [
         "codex-mcp-takeover-001",
         "codex-native-integration-002",
-        "codex-orchestration-001"
+        "codex-orchestration-001",
+        "codex-ticket-closure-004"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       }
     },
     "codex-subagent": {
@@ -931,15 +1049,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 47
+      "unknownRuns": 48
     },
     "observedSeconds": {
       "knownRuns": 20,
       "knownSubtotal": 12622.322263248963,
       "total": null,
-      "unknownRuns": 27
+      "unknownRuns": 28
     },
-    "runCount": 47,
+    "runCount": 48,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -987,13 +1105,14 @@
       "codex-s2-contract-001",
       "codex-session-001",
       "codex-setup-integration-001",
+      "codex-ticket-closure-004",
       "codex-whiteboard-takeover-001"
     ],
     "tokens": {
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 43
+      "unknownRuns": 44
     }
   },
   "officialScoreClaimReady": false,
@@ -1003,9 +1122,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 11
+    "unknownIssues": 14
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T15:13:32.178244+00:00"
+  "updatedAt": "2026-10-17T15:22:43.998218+00:00"
 }
