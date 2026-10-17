@@ -7,8 +7,9 @@ import type { ElementStyle } from '@/domain';
 import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
+import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 
-type Segment = 'geometry' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more';
+type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'align' | 'more';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -17,7 +18,6 @@ const info = computed(() => s.selectionInfo);
 const single = computed(() => s.document.elements.find((e) => e.id === info.value.singleId));
 const definition = computed(() => s.document.componentSets.flatMap((set) => set.components).find((c) => c.type === single.value?.componentType));
 
-const fields = [['x', 'X'], ['y', 'Y'], ['width', 'Breite'], ['height', 'Höhe'], ['rotation', 'Winkel']] as const;
 const SIZE_PRESETS = [{ label: 'Klein', value: 14 }, { label: 'Mittel', value: 20 }, { label: 'Groß', value: 28 }, { label: 'Sehr groß', value: 40 }] as const;
 const ALIGNMENTS: ReadonlyArray<{ value: ElementStyle['textAlign']; label: string; icon: IconName }> = [
   { value: 'left', label: 'Links', icon: 'align-left' },
@@ -42,11 +42,16 @@ const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite
 const textCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
-const barSize = ref({ width: 0, height: 52 });
+const barSize = ref({ width: 0, height: 56 });
+/** The bar stays invisible until its width is known, so it never jumps sideways on first paint. */
+const measured = ref(false);
 let observer: ResizeObserver | undefined;
 watch(bar, (element) => {
   observer?.disconnect();
+  measured.value = false;
   if (!element) return;
+  barSize.value = { width: element.offsetWidth, height: element.offsetHeight };
+  measured.value = true;
   observer = new ResizeObserver(() => { barSize.value = { width: element.offsetWidth, height: element.offsetHeight }; });
   observer.observe(element);
 });
@@ -73,7 +78,7 @@ const position = computed(() => {
 const openSegment = ref<Segment | null>(null);
 const triggers = ref<Partial<Record<Segment, HTMLButtonElement>>>({});
 const popover = ref<HTMLElement | null>(null);
-const popoverAt = ref({ left: 0, top: 0 });
+const popoverAt = ref({ left: 0, top: 0, maxHeight: 0 });
 
 function setTrigger(segment: Segment, element: unknown): void {
   if (element instanceof HTMLButtonElement) triggers.value[segment] = element;
@@ -93,11 +98,15 @@ function placePopover(): void {
   const barBox = bar.value?.getBoundingClientRect();
   if (!trigger || !box || !barBox) return;
   const rect = trigger.getBoundingClientRect();
-  const below = barBox.bottom + 8 + box.height <= window.innerHeight - 8;
-  popoverAt.value = {
-    left: Math.max(8, Math.min(rect.left, window.innerWidth - box.width - 8)),
-    top: below ? barBox.bottom + 8 : Math.max(8, barBox.top - 8 - box.height),
-  };
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - box.width - 8));
+  const spaceBelow = window.innerHeight - barBox.bottom - 16;
+  const spaceAbove = barBox.top - 16;
+  // Prefer below, then above; if neither fits, use the roomier side and scroll inside, never covering the bar.
+  const natural = (popover.value?.scrollHeight ?? box.height) + 2; // unclamped height, even after an earlier max-height
+  const below = natural <= spaceBelow || (natural > spaceAbove && spaceBelow >= spaceAbove);
+  const maxHeight = below ? spaceBelow : spaceAbove;
+  const height = Math.min(natural, maxHeight);
+  popoverAt.value = { left, top: below ? barBox.bottom + 8 : barBox.top - 8 - height, maxHeight };
 }
 
 function close(returnFocus: boolean): void {
@@ -136,7 +145,6 @@ onBeforeUnmount(() => { document.removeEventListener('pointerdown', onDocumentPo
 
 // --- Values --------------------------------------------------------------------------
 function style(patch: Partial<ElementStyle>): void { store.applyPatch({ style: patch }); }
-function number(field: typeof fields[number][0], event: Event): void { store.setPropertyDraft({ [field]: (event.target as HTMLInputElement).valueAsNumber }); }
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -160,6 +168,18 @@ function saveLink(): void {
   store.applyPatch({ documentationUrl: url || null });
 }
 const panelId = (segment: Segment) => `${uid}-${segment}`;
+
+// --- Shape swap (#40) ------------------------------------------------------------------
+const shapeQuery = ref('');
+const swappable = computed(() => info.value.kinds.length > 0 && info.value.kinds.every((kind) => SWAPPABLE_KINDS.has(kind)));
+const currentShape = computed(() => (info.value.kinds.length === 1 ? SHAPE_CATALOG.find((entry) => entry.kind === info.value.kinds[0]) : undefined) ?? SHAPE_CATALOG[1]);
+const shapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, shapeQuery.value)));
+watch(openSegment, () => { shapeQuery.value = ''; });
+function pickShape(entry: ShapeEntry): void {
+  if (!entry.kind) return;
+  store.replaceShape(entry.kind);
+  close(true);
+}
 
 // --- Fill and line modes (#38) ------------------------------------------------------
 const lastFill = ref('#f6c9c4');
@@ -196,15 +216,17 @@ function relayout(): void { void nextTick(placePopover); }
     role="toolbar"
     aria-label="Eigenschaften"
     data-testid="properties-panel"
-    :style="{ left: `${position.left}px`, top: `${position.top}px` }"
+    :style="{ left: `${position.left}px`, top: `${position.top}px`, visibility: measured ? undefined : 'hidden' }"
     @keydown="onBarKeydown"
     @compositionstart="store.setInputComposing(true)"
     @compositionend="store.setInputComposing(false)"
   >
-    <button :ref="(el) => setTrigger('geometry', el)" type="button" class="segment" aria-label="Position und Größe" :aria-expanded="openSegment === 'geometry'" :aria-controls="panelId('geometry')" title="Position und Größe" @click="toggle('geometry')">
-      <AppIcon name="shapes" /><AppIcon class="chev" name="chevron-down" :size="14" />
-    </button>
-    <span class="sep" aria-hidden="true" />
+    <template v-if="swappable">
+      <button :ref="(el) => setTrigger('shape', el)" type="button" class="segment" aria-label="Form ändern" :aria-expanded="openSegment === 'shape'" :aria-controls="panelId('shape')" title="Form ändern" @click="toggle('shape')">
+        <svg class="shape-icon" viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in currentShape?.icon ?? []" :key="d" :d="d" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+      </button>
+      <span class="sep" aria-hidden="true" />
+    </template>
     <button v-if="info.hasFill" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
       <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
@@ -249,15 +271,35 @@ function relayout(): void { void nextTick(placePopover); }
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'geometry' ? 'Position und Größe' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : 'Komponenteneinstellungen'"
-    :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px` }"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Dokumentationslink' : openSegment === 'align' ? 'Textausrichtung' : 'Komponenteneinstellungen'"
+    :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
     @compositionend="store.setInputComposing(false)"
   >
-    <div v-if="openSegment === 'geometry'" class="grid">
-      <label v-for="[field, label] in fields" :key="field" class="field">{{ label }}<input class="ctx-input" type="number" :aria-label="label" :value="info.mixed.includes(field) ? '' : info.values[field]" :placeholder="info.mixed.includes(field) ? 'Verschieden' : undefined" :min="field === 'width' || field === 'height' ? 1 : undefined" :disabled="field === 'rotation' && info.kinds.includes('container')" @input="number(field, $event)" @change="store.commitPropertyDraft()" /></label>
-    </div>
+    <template v-if="openSegment === 'shape'">
+      <label class="shape-search">
+        <AppIcon name="search" :size="18" />
+        <input v-model="shapeQuery" class="search-input" type="search" aria-label="Form suchen" placeholder="Form suchen" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="shape-grid" role="group" aria-label="Formen">
+        <button
+          v-for="entry in shapes"
+          :key="entry.id"
+          type="button"
+          class="shape-btn"
+          :aria-label="entry.label"
+          :title="entry.kind ? entry.label : `${entry.label} – folgt mit Formvarianten`"
+          :aria-pressed="Boolean(entry.kind) && entry === currentShape"
+          :aria-disabled="!entry.kind || undefined"
+          @click="pickShape(entry)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg>
+        </button>
+        <p v-if="!shapes.length" class="shape-empty">Keine Form gefunden</p>
+      </div>
+      <p class="shape-note">Weitere Formen folgen mit dem nächsten Dokumentformat.</p>
+    </template>
 
     <template v-else-if="openSegment === 'color'">
       <div class="modes" role="group" aria-label="Füllart">
@@ -292,7 +334,7 @@ function relayout(): void { void nextTick(placePopover); }
       <div class="choices column" role="group" aria-label="Größenvorgaben">
         <button v-for="preset in SIZE_PRESETS" :key="preset.value" type="button" class="choice" :aria-pressed="info.values.fontSize === preset.value && !info.mixed.includes('fontSize')" @click="style({ fontSize: preset.value })">{{ preset.label }} <span class="muted">{{ preset.value }} px</span></button>
       </div>
-      <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.values.fontSize" @input="store.setPropertyDraft({ style: { fontSize: ($event.target as HTMLInputElement).valueAsNumber } })" @change="store.commitPropertyDraft()" /></label>
+      <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? 'Verschieden' : undefined" @input="store.setPropertyDraft({ style: { fontSize: ($event.target as HTMLInputElement).valueAsNumber } })" @change="store.commitPropertyDraft()" /></label>
     </template>
 
     <template v-else-if="openSegment === 'link'">
@@ -416,6 +458,104 @@ function relayout(): void { void nextTick(placePopover); }
 }
 
 /* --- Popover --- */
+.shape-icon,
+.shape-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shape-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--menu-field);
+  border: 1px solid var(--menu-field-border);
+  border-radius: 10px;
+  color: var(--menu-muted);
+}
+
+.shape-search:focus-within {
+  border-color: var(--menu-focus);
+  box-shadow: 0 0 0 3px var(--menu-selected);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--menu-text);
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--menu-muted);
+}
+
+.shape-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 56px);
+  gap: 4px;
+  max-height: 248px;
+  overflow: auto;
+}
+
+.shape-btn {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--menu-text);
+  cursor: pointer;
+}
+
+.shape-btn:hover {
+  background: var(--menu-hover);
+}
+
+.shape-btn[aria-pressed='true'] {
+  background: var(--menu-selected);
+  box-shadow: inset 0 0 0 1.5px var(--menu-focus);
+  color: var(--menu-selected-text);
+}
+
+.shape-btn[aria-disabled='true'] {
+  color: var(--menu-muted);
+  cursor: default;
+}
+
+.shape-btn[aria-disabled='true']:hover {
+  background: transparent;
+}
+
+.shape-btn:focus-visible {
+  outline: 2px solid var(--menu-focus);
+  outline-offset: -2px;
+}
+
+.shape-empty,
+.shape-note {
+  color: var(--menu-muted);
+  font-size: 12px;
+}
+
+.shape-empty {
+  grid-column: 1 / -1;
+  padding: 12px 4px;
+}
+
 .modes,
 .widths {
   display: flex;

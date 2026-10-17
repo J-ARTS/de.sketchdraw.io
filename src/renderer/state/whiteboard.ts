@@ -22,6 +22,7 @@ import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
 import { pageClipboardPayload, pageSummaries, SINGLE_PAGE_ID } from './pages';
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
+import { SWAPPABLE_KINDS } from '../lib/shapes';
 
 type Gesture = {
   kind: 'draw' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
@@ -618,6 +619,29 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const rect = normalizedRect(start, end);
       const e = createElement('connector', { ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: a.id, anchor: { x: 1, y: .5 } }, to: { elementId: b.id, anchor: { x: 0, y: .5 } }, style: { ...DEFAULT_STYLE } });
       void dispatch({ type: 'add', elements: [e] }).then((ok) => { if (ok) setSelection([e.id]); });
+    },
+    replaceShape(kind) {
+      if (!state.canWrite || state.transitioning) return;
+      const targets = selected().filter((e) => SWAPPABLE_KINDS.has(e.kind) && e.kind !== kind);
+      if (!targets.length) return;
+      // The domain keeps kind immutable (#39): add a replacement, re-point connectors, delete the original, keep z-order.
+      const ids = new Map<string, string>();
+      try {
+        const added = targets.map((element) => {
+          const { id, kind: _kind, ...rest } = element;
+          const next = createElement(kind, { ...rest, id: uid(kind) });
+          ids.set(id, next.id);
+          return next;
+        });
+        const repoint = (endpoint: SketchElement['from']) => (endpoint && ids.has(endpoint.elementId) ? { ...endpoint, elementId: ids.get(endpoint.elementId)! } : undefined);
+        const changes = state.document.elements
+          .filter((e) => e.kind === 'connector' && (repoint(e.from) || repoint(e.to)))
+          .map((e) => ({ id: e.id, patch: { ...(repoint(e.from) ? { from: repoint(e.from) } : {}), ...(repoint(e.to) ? { to: repoint(e.to) } : {}) } }));
+        const order = state.document.elements.map((e) => ids.get(e.id) ?? e.id);
+        const selection = state.selection.map((id) => ids.get(id) ?? id);
+        const commands: DocumentCommand[] = [{ type: 'add', elements: added }, ...(changes.length ? [{ type: 'update' as const, changes }] : []), { type: 'delete', ids: [...ids.keys()] }, { type: 'reorder', ids: order }];
+        void dispatch({ type: 'batch', commands }).then((ok) => { if (ok) setSelection(selection); });
+      } catch (error) { fail(error); }
     },
     quickConnect(direction) {
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;

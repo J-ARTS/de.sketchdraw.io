@@ -31,8 +31,7 @@ test('a selected shape offers resize handles and quick connect but no rotate han
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   const se = await page.locator('[data-handle=se]').boundingBox();
   await page.mouse.move(se!.x + 5, se!.y + 5); await page.mouse.down(); await page.mouse.move(610, 400, { steps: 4 }); await page.mouse.up();
-  await page.getByRole('button', { name: 'Position und Größe' }).click();
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('260');
+  await expect(page.locator(`${shapes} > g > rect`)).toHaveAttribute('width', '260');
 });
 
 test('hovering previews and clicking creates a same-sized copy with an arrow in one undo step', async ({ page }) => {
@@ -44,9 +43,9 @@ test('hovering previews and clicking creates a same-sized copy with an arrow in 
   await right.click();
   await expect(page.locator(shapes)).toHaveCount(2); await expect(page.locator(arrows)).toHaveCount(1);
   await expect(page.getByTestId('quick-connect-preview')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Position und Größe' }).click();
-  await expect(page.getByRole('spinbutton', { name: 'X', exact: true })).toHaveValue('630');
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
+  const copy = page.locator(shapes).nth(1);
+  await expect(copy).toHaveAttribute('transform', /^translate\(630 220\)/);
+  await expect(copy.locator('> g > rect')).toHaveAttribute('width', '200');
   const ids = await page.locator(shapes).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-element-id')));
   const copyId = ids.find(id => id !== sourceId)!;
   const code = await documentCode(page);

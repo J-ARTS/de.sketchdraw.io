@@ -240,6 +240,8 @@ export interface WhiteboardStore {
   connectSelection(): void;
   /** Creates a same-shaped copy next to the single selected shape and an arrow to it (#36). */
   quickConnect(direction: QuickDirection): void;
+  /** Swaps selected rectangles, ellipses and diamonds to another of these kinds; connectors follow (#40). */
+  replaceShape(kind: 'ellipse' | 'rectangle' | 'diamond'): void;
   applyPatch(patch: ElementPatch): void;
   setPropertyDraft(patch: ElementPatch): void;
   setInputComposing(value: boolean): void;

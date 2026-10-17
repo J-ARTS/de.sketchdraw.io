@@ -8,10 +8,6 @@ async function draw(page: Page, tool: string, from = [350, 220], to = [550, 360]
   await page.mouse.move(to[0]!, to[1]!, { steps: 8 }); await page.mouse.up();
   await expect(page.locator('[data-element-id]').last()).toBeAttached();
 }
-/** Geometry fields live in the "Position und Größe" popover of the selection toolbar (#37). */
-async function geometry(page: Page) {
-  if (!await page.getByRole('group', { name: 'Position und Größe' }).isVisible()) await page.getByRole('button', { name: 'Position und Größe' }).click();
-}
 async function menu(page: Page, item: string) {
   await page.getByTestId('file-menu-button').click(); await page.getByTestId(`file-menu-${item}`).click();
 }
@@ -23,19 +19,19 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/'); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
 });
 
-test('draw, resize, rotate, undo/redo and zoom with the real domain', async ({ page }) => {
+test('draw, resize, undo/redo and zoom with the real domain', async ({ page }) => {
   await draw(page, 'Rechteck');
   await expect(page.locator('[data-kind="rectangle"]')).toHaveCount(1);
-  await geometry(page); await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
+  // Geometry is edited on the canvas; the selection toolbar no longer shows coordinates (#40).
+  const box = page.locator('[data-kind=rectangle] > g > rect');
+  await expect(box).toHaveAttribute('width', '200');
   const se = await page.locator('[data-handle=se]').boundingBox();
   await page.mouse.move(se!.x + 5, se!.y + 5); await page.mouse.down(); await page.mouse.move(610, 400); await page.mouse.up();
-  await geometry(page); await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('260');
+  await expect(box).toHaveAttribute('width', '260');
   await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('200');
+  await expect(box).toHaveAttribute('width', '200');
   await page.getByRole('button', { name: 'Wiederholen', exact: true }).click();
-  await expect(page.getByRole('spinbutton', { name: 'Breite', exact: true })).toHaveValue('260');
-  await page.getByRole('spinbutton', { name: 'Winkel', exact: true }).fill('30'); await page.keyboard.press('Tab');
-  await expect(page.locator('[data-kind=rectangle]')).toHaveAttribute('transform', /rotate\(30 /);
+  await expect(box).toHaveAttribute('width', '260');
   await page.getByRole('button', { name: 'Vergrößern', exact: true }).click(); await expect(page.getByRole('button', { name: 'Zoom auf 100 Prozent' })).toHaveText('120 %');
   await page.screenshot({ path: 'test-results/whiteboard-properties.png' });
 });

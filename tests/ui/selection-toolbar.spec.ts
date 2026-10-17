@@ -86,3 +86,32 @@ test('line and color popovers set fill mode, stroke style, width and custom colo
   await line.getByRole('button', { name: 'Durchgezogen' }).click();
   await expect(shape).toHaveAttribute('stroke', '#5aabf7');
 });
+
+test('the shape picker swaps shapes, keeps connections, filters by search and undoes in one step', async ({ page }) => {
+  await drawRectangle(page);
+  await page.getByTestId('quick-connect-right').click();
+  await page.mouse.click(370, 320); // reselect the original rectangle
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await expect(bar.getByRole('button', { name: 'Position und Größe' })).toHaveCount(0);
+  await bar.getByRole('button', { name: 'Form ändern' }).click();
+  const picker = page.getByRole('group', { name: 'Form ändern' });
+  await expect(picker.getByRole('button', { name: 'Quadrat' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(picker.getByRole('searchbox', { name: 'Form suchen' })).toBeFocused();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.keyboard.type('zylinder');
+  await expect(picker.getByRole('group', { name: 'Formen' }).getByRole('button')).toHaveText(['', '']);
+  await expect(picker.getByRole('button', { name: 'Zylinder', exact: true })).toHaveAttribute('aria-disabled', 'true');
+  await picker.getByRole('searchbox', { name: 'Form suchen' }).fill('');
+  await picker.getByRole('button', { name: 'Kreis' }).click();
+
+  await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(1);
+  await expect(page.locator('.whiteboard-canvas [data-kind=connector]')).toHaveCount(1);
+  const ellipseId = await page.locator('.whiteboard-canvas [data-kind=ellipse]').getAttribute('data-element-id');
+  await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Code', exact: true }).click();
+  expect(await page.getByTestId('diagram-code').inputValue()).toContain(`"elementId":"${ellipseId}"`);
+  await page.getByRole('button', { name: 'Codeansicht schließen' }).click();
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(0);
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(2);
+});
