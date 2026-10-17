@@ -10,7 +10,8 @@ export type ActionIconName =
   | 'group' | 'ungroup' | 'connect' | 'duplicate' | 'trash'
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
-  | 'menu' | 'users' | 'user' | 'code' | 'maximize';
+  | 'menu' | 'users' | 'user' | 'code' | 'maximize'
+  | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename';
 
 export type IconName = ToolIconName | ActionIconName;
 
@@ -79,4 +80,10 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   code: ['M8 7l-5 5 5 5', 'M16 7l5 5-5 5', 'M13.5 4.5l-3 15'],
   user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M4.5 20.5a7.5 7.5 0 0 1 15 0'],
   maximize: ['M4 9V4h5', 'M15 4h5v5', 'M20 15v5h-5', 'M9 20H4v-5'],
+  pages: ['M8 4h11a1 1 0 0 1 1 1v11', 'M5 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z'],
+  grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
+  more: ['M6 12h.01', 'M12 12h.01', 'M18 12h.01'],
+  copy: ['M9 9h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1z', 'M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1'],
+  paste: ['M9 4h6v3H9z', 'M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3', 'M9 13h6', 'M9 16h4'],
+  rename: ['M4 20h4L19 9l-4-4L4 16z', 'M13 7l4 4'],
 };

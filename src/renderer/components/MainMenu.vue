@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type Ref } from 'vue';
 import AppIcon from './AppIcon.vue';
+import PageSwitcher from './PageSwitcher.vue';
 import type { IconName } from './icons';
 import { isMacPlatform, modHint } from './platform';
 import { useWhiteboard } from './use-whiteboard';
@@ -81,10 +82,8 @@ const viewItems = computed<ViewItem[]>(() => [
 
 type MenuName = 'file' | 'view';
 const openMenuName = ref<MenuName | null>(null);
-const fileRoot = ref<HTMLElement | null>(null), viewRoot = ref<HTMLElement | null>(null);
 const fileTrigger = ref<HTMLButtonElement | null>(null), viewTrigger = ref<HTMLButtonElement | null>(null);
 const fileList = ref<HTMLElement | null>(null), viewList = ref<HTMLElement | null>(null);
-const roots: Record<MenuName, Ref<HTMLElement | null>> = { file: fileRoot, view: viewRoot };
 const triggers: Record<MenuName, Ref<HTMLButtonElement | null>> = { file: fileTrigger, view: viewTrigger };
 const lists: Record<MenuName, Ref<HTMLElement | null>> = { file: fileList, view: viewList };
 
@@ -140,14 +139,18 @@ function onMenuKeydown(name: MenuName, event: KeyboardEvent): void {
   items[next]?.focus();
 }
 
+/** A menu stays open only while focus or pointer is on its trigger or its list. */
+function belongsTo(name: MenuName, node: unknown): boolean {
+  return node instanceof Node && Boolean(triggers[name].value?.contains(node) || lists[name].value?.contains(node));
+}
+
 function onFocusOut(name: MenuName, event: FocusEvent): void {
-  const next = event.relatedTarget;
-  if (openMenuName.value === name && !(next instanceof Node && roots[name].value?.contains(next))) openMenuName.value = null;
+  if (openMenuName.value === name && !belongsTo(name, event.relatedTarget)) openMenuName.value = null;
 }
 
 function onDocumentPointerDown(event: PointerEvent): void {
   const name = openMenuName.value;
-  if (name && event.target instanceof Node && !roots[name].value?.contains(event.target)) openMenuName.value = null;
+  if (name && !belongsTo(name, event.target)) openMenuName.value = null;
 }
 
 function runFile(id: FileItemId): void {
@@ -177,7 +180,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
 </script>
 
 <template>
-  <header ref="fileRoot" class="doc-card sd-panel" @focusout="onFocusOut('file', $event)">
+  <header class="doc-card sd-panel" @focusout="onFocusOut('file', $event)">
     <span class="doc-icon" aria-hidden="true"><AppIcon name="file" :size="20" /></span>
     <div class="doc-text">
       <div class="doc-title-row">
@@ -221,6 +224,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
         aria-live="off"
       ><span class="status-dot" aria-hidden="true" /><span>{{ s.saveStatusText }}</span></p>
     </div>
+    <span class="doc-divider" aria-hidden="true" />
+    <PageSwitcher />
 
     <div
       v-if="openMenuName === 'file'"
@@ -288,7 +293,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
       <AppIcon :name="s.theme === 'dark' ? 'moon' : 'sun'" />
     </button>
     <span class="bar-sep" aria-hidden="true" />
-    <div ref="viewRoot" class="view-wrap" @focusout="onFocusOut('view', $event)">
+    <div class="view-wrap" @focusout="onFocusOut('view', $event)">
       <button
         ref="viewTrigger"
         type="button"
@@ -358,6 +363,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   border-radius: 10px;
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.doc-divider {
+  align-self: stretch;
+  width: 1px;
+  margin: calc(-1 * var(--space-2)) 0;
+  background: var(--border-subtle);
 }
 
 .doc-text {

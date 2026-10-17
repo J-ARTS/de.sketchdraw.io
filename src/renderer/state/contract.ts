@@ -117,6 +117,9 @@ export interface CreateStoreOptions {
   initialTheme?: 'light' | 'dark';
 }
 
+/** Renderer view of one document page (docs/reviews/multi-page-proposal.md §4). */
+export interface PageSummary { id: string; name: string; elementCount: number }
+
 export interface ObjectListItem {
   id: string; depth: number; kind: ElementKind; name: string; selected: boolean; parentId: string | null;
 }
@@ -172,6 +175,10 @@ export interface WhiteboardState {
   offscreenChanges: number;
   selectionInfo: SelectionInfo;
   objectList: readonly ObjectListItem[];
+  pages: readonly PageSummary[];
+  activePageId: string;
+  /** False while the document schema knows a single page only (#34); page mutations are unavailable then. */
+  pagesEditable: boolean;
   objectsOpen: boolean;
   propertiesCollapsed: boolean;
   theme: 'light' | 'dark';
@@ -276,6 +283,16 @@ export interface WhiteboardStore {
   closeDialog(): void;
 
   toggleObjects(open?: boolean): void;
+  selectPage(id: string): void;
+  addPage(): void;
+  renamePage(id: string, name: string): void;
+  duplicatePage(id: string): void;
+  deletePage(id: string): void;
+  movePage(id: string, toIndex: number): void;
+  /** Writes the page content to the clipboard (format `sketchdraw.page`). */
+  copyPage(id: string): Promise<void>;
+  /** Reads `sketchdraw.page` content from the clipboard and inserts it as a new page. */
+  pastePage(): Promise<void>;
   togglePropertiesCollapsed(collapsed?: boolean): void;
   setTheme(theme: 'light' | 'dark'): void;
   dismissNotice(id: number): void;

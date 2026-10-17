@@ -22,6 +22,12 @@
   --inverse-text: #f4f4f8;
   --shadow-panel: 0 1px 2px rgb(45 35 90 / 5%), 0 8px 24px rgb(45 35 90 / 8%);
   --scrim: rgb(27 26 46 / 45%);
+  /* Context menus stay dark in both themes, like the reference design. */
+  --menu-surface: #1f1d2b;
+  --menu-text: #f4f3f9;
+  --menu-muted: #a29fb8;
+  --menu-hover: #312e42;
+  --menu-separator: #3a3750;
 
   --control-size: 36px;
   --control-size-compact: 32px;
@@ -72,6 +78,9 @@
   --inverse-text: #16151f;
   --shadow-panel: 0 0 0 1px rgb(0 0 0 / 30%), 0 1px 2px rgb(0 0 0 / 35%), 0 8px 24px rgb(0 0 0 / 35%);
   --scrim: rgb(0 0 0 / 60%);
+  --menu-surface: #2a2738;
+  --menu-hover: #3a3650;
+  --menu-separator: #45415c;
 
   color-scheme: dark;
 }

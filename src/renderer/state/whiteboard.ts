@@ -20,6 +20,7 @@ import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '..
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
 import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
+import { pageClipboardPayload, pageSummaries, SINGLE_PAGE_ID } from './pages';
 
 type Gesture = {
   kind: 'draw' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
@@ -133,6 +134,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         canGroup: elements.length > 0, canUngroup: elements.some((e) => e.kind === 'container'), canConnect: elements.length === 2,
         canEditText: elements.length === 1, hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image'].includes(e.kind)), hasText: true };
     },
+    get pages() { return pageSummaries(this.document); },
+    activePageId: SINGLE_PAGE_ID,
+    pagesEditable: false,
     get objectList(): WhiteboardState['objectList'] {
       const index = new Map(this.document.elements.map((e) => [e.id, e]));
       return this.document.elements.map((e) => {
@@ -147,6 +151,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.liveMessage = text;
     state.notices = [...state.notices.slice(-3), { id: ++noticeId, kind, text }];
   }
+  function pagesUnavailable() { notice('Mehrere Seiten sind verfügbar, sobald das Dokumentformat v2 umgesetzt ist.'); }
   function fail(error: unknown) { notice(error instanceof Error ? error.message : 'Die Aktion konnte nicht ausgeführt werden.', 'error'); }
   function sync(snapshot: DocumentSession) {
     const before = state.document;
@@ -724,6 +729,21 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     openHelp() { if (!state.transitioning) state.dialog = { kind: 'help' }; },
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
     toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; },
+    selectPage(id) { if (state.pages.some((page) => page.id === id)) state.activePageId = id; },
+    addPage() { pagesUnavailable(); },
+    renamePage() { pagesUnavailable(); },
+    duplicatePage() { pagesUnavailable(); },
+    deletePage() { pagesUnavailable(); },
+    movePage() { pagesUnavailable(); },
+    async copyPage(id) {
+      const page = state.pages.find((entry) => entry.id === id);
+      if (!page) return;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, state.document.elements, state.document.assets)));
+        notice(`Inhalt von „${page.name}“ kopiert.`);
+      } catch { notice('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.', 'error'); }
+    },
+    async pastePage() { pagesUnavailable(); },
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
     setTheme(theme) { state.theme = theme; },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
