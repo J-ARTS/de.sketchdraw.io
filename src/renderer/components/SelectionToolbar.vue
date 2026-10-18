@@ -12,7 +12,7 @@ import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@
 import { isResourceCard } from '@/catalog';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 
-type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'route' | 'start' | 'end';
+type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -116,7 +116,7 @@ async function toggle(segment: Segment): Promise<void> {
   openSegment.value = segment;
   await nextTick();
   placePopover();
-  popover.value?.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
+  popover.value?.querySelector<HTMLElement>('input, select, textarea, button:not(:disabled)')?.focus();
 }
 
 /**
@@ -209,7 +209,7 @@ function style(patch: Partial<ElementStyle>): void {
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
-watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'resource', 'author', 'more'].includes(openSegment.value)) close(false); });
+watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'resource', 'author', 'more', 'actions'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -251,6 +251,26 @@ function saveAuthor(): void {
   store.applyPatch({ author: author || null });
 }
 const panelId = (segment: Segment) => `${uid}-${segment}`;
+
+// --- Selection actions -------------------------------------------------------------
+const selectedIds = computed(() => new Set(s.selection));
+const canMoveBackward = computed(() => s.document.elements.some((element, index, elements) => (
+  selectedIds.value.has(element.id) && index > 0 && !selectedIds.value.has(elements[index - 1]!.id)
+)));
+const canMoveForward = computed(() => s.document.elements.some((element, index, elements) => (
+  selectedIds.value.has(element.id) && index < elements.length - 1 && !selectedIds.value.has(elements[index + 1]!.id)
+)));
+function runSelectionAction(action: 'back' | 'backward' | 'forward' | 'front' | 'clone' | 'delete'): void {
+  if (editing.value) return;
+  if (action === 'delete') {
+    close(false);
+    store.deleteSelection();
+    return;
+  }
+  close(true);
+  if (action === 'clone') store.duplicateSelection();
+  else store.reorder(action);
+}
 
 // --- Shape swap (#40) ------------------------------------------------------------------
 const shapeQuery = ref('');
@@ -369,6 +389,10 @@ function relayout(): void { void nextTick(placePopover); }
         <AppIcon name="more" />
       </button>
     </template>
+    <span class="sep" aria-hidden="true" />
+    <button :ref="(el) => setTrigger('actions', el)" type="button" class="tool-btn" aria-label="Elementaktionen" :disabled="editing" :aria-expanded="openSegment === 'actions'" :aria-controls="panelId('actions')" :title="unavailable('Elementaktionen')" @click="toggle('actions')">
+      <AppIcon name="more" />
+    </button>
   </div>
 
   <div
@@ -378,7 +402,7 @@ function relayout(): void { void nextTick(placePopover); }
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -467,6 +491,16 @@ function relayout(): void { void nextTick(placePopover); }
 
     <div v-else-if="openSegment === 'align'" class="choices" role="group" aria-label="Textausrichtung">
       <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="align.label" :title="align.label" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
+    </div>
+
+    <div v-else-if="openSegment === 'actions'" class="action-strip">
+      <button type="button" class="action-button" aria-label="Ganz nach hinten" title="Ganz nach hinten" :disabled="!canMoveBackward" @click="runSelectionAction('back')"><AppIcon name="order-back" /></button>
+      <button type="button" class="action-button" aria-label="Eine Ebene zurück" title="Eine Ebene zurück" :disabled="!canMoveBackward" @click="runSelectionAction('backward')"><AppIcon name="order-backward" /></button>
+      <button type="button" class="action-button" aria-label="Eine Ebene vor" title="Eine Ebene vor" :disabled="!canMoveForward" @click="runSelectionAction('forward')"><AppIcon name="order-forward" /></button>
+      <button type="button" class="action-button" aria-label="Ganz nach vorn" title="Ganz nach vorn" :disabled="!canMoveForward" @click="runSelectionAction('front')"><AppIcon name="order-front" /></button>
+      <span class="action-separator" aria-hidden="true" />
+      <button type="button" class="action-button" aria-label="Klonen" title="Klonen" @click="runSelectionAction('clone')"><AppIcon name="duplicate" /></button>
+      <button type="button" class="action-button danger" aria-label="Löschen" title="Löschen" @click="runSelectionAction('delete')"><AppIcon name="trash" /></button>
     </div>
 
     <template v-else-if="openSegment === 'more'">
@@ -776,6 +810,32 @@ function relayout(): void { void nextTick(placePopover); }
   box-shadow: var(--shadow-panel);
   color: var(--menu-text);
 }
+
+.action-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--menu-text);
+  cursor: pointer;
+}
+
+.action-button:hover:not(:disabled) { background: var(--menu-hover); }
+.action-button:disabled { color: var(--menu-muted); cursor: not-allowed; opacity: .45; }
+.action-button.danger { color: var(--status-error); }
+.action-button:focus-visible { outline: 2px solid var(--menu-focus); outline-offset: -2px; }
+.action-separator { width: 1px; height: 30px; margin: 0 4px; background: var(--menu-separator); }
 
 .grid {
   display: grid;

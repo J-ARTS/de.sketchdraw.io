@@ -3,9 +3,19 @@ import AxeBuilder from '@axe-core/playwright';
 
 // #37: properties live in a floating toolbar above the selection.
 async function drawRectangle(page: Page, from = [350, 300], to = [550, 420]) {
+  const before = await page.locator('.whiteboard-canvas [data-kind=rectangle]').count();
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
   await page.mouse.move(from[0]!, from[1]!); await page.mouse.down(); await page.mouse.move(to[0]!, to[1]!, { steps: 8 }); await page.mouse.up();
-  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(1);
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(before + 1);
+}
+
+async function elementOrder(page: Page): Promise<string[]> {
+  return page.locator('.whiteboard-canvas [data-kind=rectangle]').evaluateAll((elements) => elements.map((element) => element.getAttribute('data-element-id') ?? ''));
+}
+
+async function selectElement(page: Page, id: string): Promise<void> {
+  const box = await page.locator(`.whiteboard-canvas [data-element-id="${id}"]`).boundingBox();
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -34,8 +44,9 @@ test('the toolbar floats centered above the selection and edits style through po
   await page.getByRole('button', { name: /^Groß/ }).click();
   await expect(bar.getByRole('button', { name: 'Schriftgröße: Groß' })).toBeVisible();
 
-  // Label, description and arrange actions were removed from the toolbar; deleting uses the keyboard.
+  // Detailed fields stay outside the compact toolbar; document actions live in one trailing menu.
   await expect(bar.getByRole('button', { name: 'Komponenteneinstellungen' })).toHaveCount(0);
+  await expect(bar.getByRole('button', { name: 'Elementaktionen' })).toBeVisible();
   await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('Delete');
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(0);
   await expect(bar).toHaveCount(0);
@@ -59,7 +70,7 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   expect(editBox.x).toBeGreaterThanOrEqual(0); expect(editBox.x + editBox.width).toBeLessThanOrEqual(480);
   expect(editBox.y + editBox.height).toBeLessThanOrEqual(330);
   await expect(bar.getByRole('button')).toHaveCount(buttonCount);
-  for (const name of ['Form ändern', 'Text bearbeiten', 'Dokumentationslink']) {
+  for (const name of ['Form ändern', 'Text bearbeiten', 'Dokumentationslink', 'Elementaktionen']) {
     const action = bar.getByRole('button', { name });
     await expect(action).toBeVisible(); await expect(action).toBeDisabled();
   }
@@ -96,6 +107,61 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   // One undo reverts text and style together.
   await page.getByRole('button', { name: 'Rückgängig' }).click();
   await expect(text).toHaveCount(0);
+});
+
+test('element actions reorder, clone and delete through one keyboard-accessible undoable menu', async ({ page }) => {
+  const positions = [220, 360, 500, 640];
+  for (const x of positions) await drawRectangle(page, [x, 340], [x + 70, 410]);
+  const initial = await elementOrder(page);
+  expect(initial).toHaveLength(4);
+  const [a, b, c, d] = initial as [string, string, string, string];
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  const trigger = bar.getByRole('button', { name: 'Elementaktionen' });
+  const actions = page.getByRole('group', { name: 'Elementaktionen' });
+
+  await selectElement(page, c);
+  await trigger.click();
+  await expect(actions.getByRole('button', { name: 'Ganz nach hinten' })).toBeFocused();
+  for (const name of ['Ganz nach hinten', 'Eine Ebene zurück', 'Eine Ebene vor', 'Ganz nach vorn', 'Klonen', 'Löschen']) {
+    await expect(actions.getByRole('button', { name })).toBeVisible();
+  }
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(actions).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  await trigger.click(); await actions.getByRole('button', { name: 'Ganz nach hinten' }).click();
+  await expect.poll(() => elementOrder(page)).toEqual([c, a, b, d]);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(() => elementOrder(page)).toEqual(initial);
+
+  await trigger.click(); await actions.getByRole('button', { name: 'Eine Ebene zurück' }).click();
+  await expect.poll(() => elementOrder(page)).toEqual([a, c, b, d]);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(() => elementOrder(page)).toEqual(initial);
+
+  await selectElement(page, b);
+  await trigger.click(); await actions.getByRole('button', { name: 'Eine Ebene vor' }).click();
+  await expect.poll(() => elementOrder(page)).toEqual([a, c, b, d]);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(() => elementOrder(page)).toEqual(initial);
+
+  await trigger.click(); await actions.getByRole('button', { name: 'Ganz nach vorn' }).click();
+  await expect.poll(() => elementOrder(page)).toEqual([a, c, d, b]);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(() => elementOrder(page)).toEqual(initial);
+
+  await selectElement(page, b);
+  await page.keyboard.down('Shift'); await selectElement(page, c); await page.keyboard.up('Shift');
+  await trigger.click(); await actions.getByRole('button', { name: 'Klonen' }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(6);
+  await trigger.click(); await actions.getByRole('button', { name: 'Löschen' }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(4);
+  await expect.poll(() => elementOrder(page)).toEqual(initial);
 });
 
 test('line and color popovers set fill mode, stroke style, width and custom colors', async ({ page }) => {

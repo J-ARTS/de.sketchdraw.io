@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T01:03:45Z",
+  "updatedAt": "2026-10-18T01:12:55Z",
   "issues": [
     {
       "number": 1,
@@ -833,6 +833,23 @@
       },
       "dependencies": [
         53
+      ]
+    },
+    {
+      "number": 55,
+      "title": "Auswahlmenü für Ebenenreihenfolge, Klonen und Löschen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/55",
+      "owner": "Claude Code (UI), Google Antigravity (logic), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Codex temporary user-authorized takeover; Claude Code UI review completed; Antigravity quota unavailable",
+      "phase": "Architecture, UI, logic and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        44
       ]
     }
   ],
@@ -3530,6 +3547,78 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for exact commit a686578faa1979665893426c59d22704be118196. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between recorded run start and completion timestamps."
+    },
+    {
+      "id": "claude-code-element-actions-review-055",
+      "tool": "claude-code",
+      "model": "claude-sonnet",
+      "issues": [
+        55
+      ],
+      "status": "review_completed",
+      "startedAt": "2026-10-18T01:12:55Z",
+      "endedAt": "2026-10-18T01:12:55Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/55",
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/selection-toolbar.spec.ts"
+      ],
+      "concerns": [
+        "Keep all six document actions behind one trailing toolbar trigger, disable them during text editing and restore trigger focus when the popover closes.",
+        "Reuse the existing store operations and extend the UI regression coverage."
+      ],
+      "authorization": "Claude Code owns UI review under the project role assignment; the local invocation was read-only.",
+      "measurementSource": "Local Claude Code read-only review. Timestamps record the coordinator checkpoint; elapsed time, token use and cost were not reported and remain null."
+    },
+    {
+      "id": "antigravity-element-actions-attempt-055",
+      "tool": "antigravity",
+      "model": null,
+      "issues": [
+        55
+      ],
+      "status": "no_work_product",
+      "startedAt": "2026-10-18T01:12:55Z",
+      "endedAt": "2026-10-18T01:12:55Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/55"
+      ],
+      "concerns": [
+        "The Antigravity UI reported exhausted baseline model quota until 24 October 2026 and disabled message submission; no implementation or review was produced."
+      ],
+      "authorization": "The project role assigns action logic to Antigravity; the user authorized Codex temporary takeover with actual-tool attribution.",
+      "measurementSource": "Observed local Antigravity UI quota state. Timestamps record the coordinator checkpoint; no elapsed duration is inferred."
+    },
+    {
+      "id": "codex-element-actions-055",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        55
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T01:05:54Z",
+      "endedAt": "2026-10-18T01:12:55Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/55",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json",
+        "release/mac-arm64/Sketchdraw.app"
+      ],
+      "concerns": [],
+      "authorization": "The user requested the selection actions and previously authorized Codex to temporarily implement unavailable agents’ scope with actual-tool attribution.",
+      "measurementSource": "Codex implemented and locally verified the action menu. Typecheck and production build passed; 323 Vitest tests, 47 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify tests passed; the unsigned macOS arm64 package directory target completed."
     }
   ],
   "evidencePolicy": {

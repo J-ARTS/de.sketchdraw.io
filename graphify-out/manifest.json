@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792284935.8657606,
-    "ast_hash": "40e1185daa234ad78ae235cfd3019958",
+    "mtime": 1792285987.8097801,
+    "ast_hash": "6b34f8cf7f630877ca691693898d9895",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/SelectionToolbar.vue": {
-    "mtime": 1792284490.1103244,
-    "ast_hash": "b73079aeec34ade1fcf97ad137bc457c",
+    "mtime": 1792285764.8560848,
+    "ast_hash": "926d7d82b607389a3aaa0fb074fbaf14",
     "semantic_hash": ""
   },
   "src/renderer/lib/color.ts": {
@@ -1270,8 +1270,8 @@
     "semantic_hash": ""
   },
   "tests/ui/selection-toolbar.spec.ts": {
-    "mtime": 1792281123.7685227,
-    "ast_hash": "1407a80accfa689a35938312562f1592",
+    "mtime": 1792285830.185954,
+    "ast_hash": "fc2eded648790b918f905966c88c08bd",
     "semantic_hash": ""
   },
   "docs/reviews/multi-page-proposal.md": {
