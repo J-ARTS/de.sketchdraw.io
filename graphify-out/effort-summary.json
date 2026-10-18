@@ -3272,6 +3272,38 @@
         "value": null
       },
       "sharedUnallocatedRunIds": []
+    },
+    "97": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-web-embed-compatibility-97"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
     }
   },
   "byTool": {
@@ -3560,15 +3592,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       },
-      "runCount": 10,
+      "runCount": 11,
       "runIds": [
         "codex-build-composable-evaluation-73",
         "codex-connector-marker-palette-96",
@@ -3578,6 +3610,7 @@
         "codex-shape-header-regression-89",
         "codex-trystero-architecture-70",
         "codex-vueuse-uiux-audit-74-82",
+        "codex-web-embed-compatibility-97",
         "codex-yjs-openpencil-architecture-70-72",
         "codex-yjs-trystero-implementation-71-72"
       ],
@@ -3585,7 +3618,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       }
     }
   },
@@ -3594,15 +3627,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 152
+      "unknownRuns": 153
     },
     "observedSeconds": {
       "knownRuns": 47,
       "knownSubtotal": 23559.322263248963,
       "total": null,
-      "unknownRuns": 105
+      "unknownRuns": 106
     },
-    "runCount": 152,
+    "runCount": 153,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3720,6 +3753,7 @@
       "codex-ui-review-031",
       "codex-vueuse-uiux-audit-74-82",
       "codex-web-embed-063",
+      "codex-web-embed-compatibility-97",
       "codex-whiteboard-takeover-001",
       "codex-yjs-openpencil-architecture-70-72",
       "codex-yjs-trystero-implementation-71-72",
@@ -3761,7 +3795,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 148
+      "unknownRuns": 149
     }
   },
   "officialScoreClaimReady": false,
@@ -3771,9 +3805,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 81
+    "unknownIssues": 82
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:49:49.311185Z"
+  "updatedAt": "2026-10-18T10:11:36.994642Z"
 }

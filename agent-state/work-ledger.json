@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:49:49.311185Z",
+  "updatedAt": "2026-10-18T10:11:36.994642Z",
   "issues": [
     {
       "number": 1,
@@ -1515,6 +1515,23 @@
       },
       "dependencies": [
         91
+      ]
+    },
+    {
+      "number": 97,
+      "title": "Web-Embed zeigt hinzugefügte Webseiten nicht zuverlässig an",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/97",
+      "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI, logic and interfaces",
+      "status": "local_verification_complete",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        63
       ]
     }
   ],
@@ -5640,6 +5657,33 @@
       ],
       "authorization": "Triggered automatically by pushes to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 375 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-web-embed-compatibility-97",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        97
+      ],
+      "status": "local_verification_complete",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:efe5aa0",
+        "src/renderer/components/ElementView.vue",
+        "tests/ui/web-embed.spec.ts",
+        "tests/electron/desktop.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/97"
+      ],
+      "concerns": [
+        "A provider can intentionally deny iframe embedding through Content-Security-Policy frame-ancestors or X-Frame-Options; Sketchdraw preserves that boundary and exposes a visible external-open fallback.",
+        "The combination allow-scripts plus allow-same-origin is never granted to a URL matching the Sketchdraw application origin."
+      ],
+      "authorization": "The user reported the iframe defect and had already authorized Codex to temporarily implement work assigned to Claude Code or Antigravity when necessary, with actual tool attribution.",
+      "measurementSource": "Local macOS arm64 evidence at product commit efe5aa0: typecheck passed; 48/48 Vitest files and 382/382 tests passed; targeted web-embed Playwright tests passed 3/3; full UI regression passed 75/76 with only a symlinked-font test-environment failure, and that font test passed 1/1 after the temporary Vite allowlist was corrected; the built Electron product test passed 1/1 and production build passed. Exact Codex duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
