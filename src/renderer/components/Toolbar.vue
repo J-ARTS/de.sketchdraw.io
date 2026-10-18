@@ -154,7 +154,7 @@ onBeforeUnmount(cancelLongPress);
       <span class="sep" aria-hidden="true" />
       <template v-for="def in afterShapes" :key="def.tool">
         <span v-if="def.tool === 'text'" class="sep" aria-hidden="true" />
-        <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite" :aria-label="def.label" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
+        <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="def.label" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
       </template>
       <ImageFileInput ref="imageInput" />
     </div>

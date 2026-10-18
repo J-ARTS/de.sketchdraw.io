@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792293889.268903,
-    "ast_hash": "d681f3dfd57f4ffbc7ebdc731629e8fa",
+    "mtime": 1792294793.2552996,
+    "ast_hash": "ab008ef4d491c821ad94693a3991751e",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -370,13 +370,13 @@
     "semantic_hash": ""
   },
   "src/renderer/components/Toolbar.vue": {
-    "mtime": 1792293779.834516,
-    "ast_hash": "c89c30897631d88e80ab79027660ec26",
+    "mtime": 1792294697.3582804,
+    "ast_hash": "04ac118ff787563b252fc9f19a699cf7",
     "semantic_hash": ""
   },
   "src/renderer/components/icons.ts": {
-    "mtime": 1792292611.41361,
-    "ast_hash": "b253ce552a4904566e9ebe3c32d49b31",
+    "mtime": 1792294697.357922,
+    "ast_hash": "621aaf4f7558456537d05f6a2447f69c",
     "semantic_hash": ""
   },
   "src/renderer/components/platform.ts": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "src/renderer/lib/shortcuts.ts": {
-    "mtime": 1792292611.4131775,
-    "ast_hash": "35d0c69dd4938ade0f4abbe100310d0b",
+    "mtime": 1792294697.357644,
+    "ast_hash": "6ea16568f7fbfc9763bd0cda7316768b",
     "semantic_hash": ""
   },
   "src/renderer/lib/theme.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792293446.5688806,
-    "ast_hash": "51ab926e06a42820f4e20c06f0631e90",
+    "mtime": 1792294697.3573658,
+    "ast_hash": "3b35e5e68cf2bd4ba9ad55ea712cc97f",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/WhiteboardCanvas.vue": {
-    "mtime": 1792292611.4141524,
-    "ast_hash": "c6a8856c0eba27d1ae84e2ef959685d0",
+    "mtime": 1792294697.3592567,
+    "ast_hash": "13f1b09fbd5add4781abb5a155b595b5",
     "semantic_hash": ""
   },
   "src/renderer/components/WorkspacePanels.vue": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792293459.1940024,
-    "ast_hash": "d635f4c3f4e2271c8807074f6acc26c7",
+    "mtime": 1792294786.781349,
+    "ast_hash": "05b8d94a4b998e3244fab25f8ad2dedc",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "tests/ui/whiteboard.spec.ts": {
-    "mtime": 1792293541.1199646,
-    "ast_hash": "e382f37163664c62d12d10fd2e5a061a",
+    "mtime": 1792294732.007626,
+    "ast_hash": "63fb158f728c188b997536b097982884",
     "semantic_hash": ""
   },
   "tests/unit/collaboration/protocol.spec.ts": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "tests/unit/renderer/guest-store.spec.ts": {
-    "mtime": 1792293527.9687452,
-    "ast_hash": "1db2772eb4a80cc2c5d458fe9b1bc0cb",
+    "mtime": 1792294738.8413124,
+    "ast_hash": "3c2227b5b9315df94d63c4db19517faa",
     "semantic_hash": ""
   },
   "tests/unit/renderer/whiteboard.spec.ts": {
-    "mtime": 1792293527.9676714,
-    "ast_hash": "f690d756dbc9bb44394d39d7878aee4e",
+    "mtime": 1792294732.0070853,
+    "ast_hash": "8695adc11952c9a94061f13d3642ed4c",
     "semantic_hash": ""
   },
   "tests/unit/session/authority.spec.ts": {
@@ -1512,6 +1512,21 @@
   "src/renderer/lib/drawing-tools.ts": {
     "mtime": 1792293446.5692046,
     "ast_hash": "f5486e7a1485fc0a03ac5023cceedf84",
+    "semantic_hash": ""
+  },
+  "src/renderer/components/LaserPointerOverlay.vue": {
+    "mtime": 1792294697.3565578,
+    "ast_hash": "33c469a74cb0ca826eb3a51b2817c2bf",
+    "semantic_hash": ""
+  },
+  "src/renderer/lib/laser-pointer.ts": {
+    "mtime": 1792294786.780821,
+    "ast_hash": "7d4e2170ada8d946f411a662f50af90b",
+    "semantic_hash": ""
+  },
+  "tests/unit/renderer/laser-pointer.spec.ts": {
+    "mtime": 1792294732.0066962,
+    "ast_hash": "ed649b1cb61b36b952240ffbdea3f9ca",
     "semantic_hash": ""
   }
 }

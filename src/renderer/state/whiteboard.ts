@@ -35,6 +35,7 @@ import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { eraserOption, pencilOption } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
+import { LASER_CURSOR } from '../lib/laser-pointer';
 
 type Gesture = {
   kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
@@ -132,7 +133,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
-    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : this.tool === 'eraser' ? 'cell' : 'crosshair'; },
+    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : this.tool === 'eraser' ? 'cell' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair'; },
     get frame(): WhiteboardState['frame'] {
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
       const first = elements[0];
@@ -349,7 +350,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   function createDraw(g: Gesture, point: Point, shift: boolean): SketchElement | null {
-    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'eraser' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment') return null;
+    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'eraser' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment' || g.tool === 'laser') return null;
     let end = point;
     if (shift && !['path', 'connector'].includes(g.tool)) {
       const side = Math.max(Math.abs(point.x - g.start.x), Math.abs(point.y - g.start.y));
@@ -584,7 +585,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     subscribeAuthority(listener) { authorityListeners.add(listener); return () => authorityListeners.delete(listener); },
     setTool(tool) {
-      if ((!state.canWrite && !['select', 'hand'].includes(tool)) || state.transitioning) return;
+      if ((!state.canWrite && !['select', 'hand', 'laser'].includes(tool)) || state.transitioning) return;
       if (state.textEdit) void applyText();
       state.tool = tool;
       state.workspaceView = 'canvas';
@@ -621,6 +622,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pointerDown(input) {
       lastPointerScreen = { x: input.x, y: input.y };
       if (state.transitioning || state.dialog || state.gestureConflict || pendingWrites > 0) return;
+      if (state.tool === 'laser') return;
       if (state.textEdit) { void applyText(); return; }
       const point = screenToDoc(state.viewport, input);
       const target = hit(point);

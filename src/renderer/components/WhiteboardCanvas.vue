@@ -5,6 +5,7 @@ import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
 import AnnotationEditor from './AnnotationEditor.vue';
 import TableOverlay from './TableOverlay.vue';
+import LaserPointerOverlay from './LaserPointerOverlay.vue';
 import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
@@ -14,8 +15,10 @@ const store = useWhiteboard();
 const s = store.state;
 const canvas = ref<SVGSVGElement>();
 const editor = ref<HTMLTextAreaElement>();
+const laser = ref<InstanceType<typeof LaserPointerOverlay>>();
 let observer: ResizeObserver | undefined;
 let activePointer: number | null = null;
+let laserGesture = false;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
 const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
 const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
@@ -67,14 +70,27 @@ function down(event: PointerEvent) {
   if (activePointer !== null) return;
   canvas.value?.focus({ preventScroll: true });
   event.preventDefault(); activePointer = event.pointerId;
-  canvas.value?.setPointerCapture(event.pointerId); store.pointerDown(input(event));
+  canvas.value?.setPointerCapture(event.pointerId);
+  const value = input(event);
+  laserGesture = s.tool === 'laser' && event.button === 0;
+  if (laserGesture) laser.value?.start(value);
+  else store.pointerDown(value);
+}
+function move(event: PointerEvent) {
+  const value = input(event);
+  if (laserGesture && activePointer === event.pointerId) laser.value?.add(value);
+  else store.pointerMove(value);
 }
 function up(event: PointerEvent) {
   if (activePointer !== event.pointerId) return;
-  store.pointerUp(input(event)); activePointer = null;
+  const value = input(event);
+  if (laserGesture) laser.value?.end(value);
+  else store.pointerUp(value);
+  laserGesture = false; activePointer = null;
   if (canvas.value?.hasPointerCapture(event.pointerId)) canvas.value.releasePointerCapture(event.pointerId);
 }
-function cancel(event: PointerEvent) { if (activePointer === event.pointerId) { activePointer = null; store.pointerCancel(); } }
+function cancel(event: PointerEvent) { if (activePointer === event.pointerId) { activePointer = null; if (laserGesture) laser.value?.cancel(); else store.pointerCancel(); laserGesture = false; } }
+function doubleClick(event: MouseEvent) { if (s.tool !== 'laser') store.doubleClick(input(event)); }
 function wheel(event: WheelEvent) {
   const box = canvas.value!.getBoundingClientRect();
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
@@ -90,7 +106,7 @@ onBeforeUnmount(() => observer?.disconnect());
 
 <template>
   <div class="canvas-wrap">
-    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerdown="down" @pointermove="store.pointerMove(input($event))" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="store.doubleClick(input($event))" @wheel.prevent="wheel" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
+    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">
@@ -104,6 +120,7 @@ onBeforeUnmount(() => observer?.disconnect());
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
         <rect v-for="handle in s.handles" :key="handle.id" :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
       </g>
+      <LaserPointerOverlay ref="laser" />
     </svg>
     <QuickConnect />
     <TableOverlay />
@@ -113,7 +130,7 @@ onBeforeUnmount(() => observer?.disconnect());
       <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
     </div>
-    <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen und mit Umschalt+E den Radierer aktivieren. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
+    <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen, mit Umschalt+E den Radierer und mit Umschalt+K den Laserpointer aktivieren. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
   </div>
 </template>
 

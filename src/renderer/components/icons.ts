@@ -1,6 +1,6 @@
 export type ToolIconName =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'comment';
+  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'comment' | 'laser';
 
 export type ActionIconName =
   | 'component' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
@@ -38,6 +38,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   image: ['M4 5h16v14H4z', 'M4 16l5-5 4 4 3-3 4 4', 'M14.5 9a1 1 0 1 0 2 0 1 1 0 1 0-2 0'],
   container: ['M3 5h18v14H3z', 'M7 10h6v5H7z'],
   comment: ['M4 5h16v12H9l-5 4z', 'M8 9h8', 'M8 13h5'],
+  laser: ['M7.5 16.5l7-7 3 3-7 7z', 'M14.5 9.5l2-2 3 3-2 2', 'M5 5v2', 'M2.5 7.5h2', 'M4 10l-1.5 1.5'],
   component: ['M12 3l8 4.5v9L12 21l-8-4.5v-9z', 'M12 12l8-4.5', 'M12 12v9', 'M12 12L4 7.5'],
   undo: ['M9 14L4 9l5-5', 'M4 9h10a6 6 0 0 1 0 12h-3'],
   redo: ['M15 14l5-5-5-5', 'M20 9H10a6 6 0 0 0 0 12h3'],

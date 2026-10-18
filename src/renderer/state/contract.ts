@@ -28,7 +28,7 @@ import type {
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
-  | 'comment';
+  | 'comment' | 'laser';
 
 export type PencilPreset = 'fine' | 'pencil' | 'marker';
 export type EraserSize = 'small' | 'medium' | 'large';

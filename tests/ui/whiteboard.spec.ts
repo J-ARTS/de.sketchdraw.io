@@ -93,6 +93,40 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
   const compact = await options.boundingBox(); expect(compact!.x).toBeGreaterThanOrEqual(0); expect(compact!.x + compact!.width).toBeLessThanOrEqual(480);
 });
 
+test('laser pointer draws only a stable fading overlay and supports its shortcut', async ({ page }) => {
+  const laser = page.getByRole('button', { name: 'Laserpointer', exact: true });
+  await expect(laser).toHaveAttribute('title', /Umschalt\+k/i);
+  await laser.click(); await expect(laser).toHaveAttribute('aria-pressed', 'true');
+
+  await page.mouse.move(420, 260); await page.mouse.down();
+  await page.mouse.move(650, 360, { steps: 24 });
+  const layer = page.getByTestId('laser-pointer-layer');
+  await expect(layer).toBeVisible(); await expect(page.getByTestId('laser-pointer-head')).toBeVisible();
+  expect(await layer.locator('line.laser-core').count()).toBeGreaterThan(3);
+  const firstSegment = layer.locator('line.laser-core').first();
+  const xBefore = await firstSegment.getAttribute('x1');
+  await page.mouse.wheel(0, 120);
+  await expect(firstSegment).toHaveAttribute('x1', xBefore!);
+  await page.mouse.up();
+  await expect(page.getByTestId('laser-pointer-head')).toHaveCount(0);
+  await expect(layer).toHaveCount(0, { timeout: 2_000 });
+  await expect(page.locator('[data-element-id]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Rückgängig', exact: true })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Auswahl', exact: true }).click();
+  await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('Shift+K');
+  await expect(laser).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('reduced motion keeps the laser to a live point and removes it on release', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.reload();
+  await page.getByRole('button', { name: 'Laserpointer', exact: true }).click();
+  await page.mouse.move(460, 280); await page.mouse.down(); await page.mouse.move(560, 320, { steps: 6 });
+  const layer = page.getByTestId('laser-pointer-layer');
+  await expect(layer).toBeVisible(); await expect(layer.locator('line')).toHaveCount(0);
+  await page.mouse.up(); await expect(layer).toHaveCount(0);
+});
+
 test('all primitive shapes, freehand, connection, text and image render', async ({ page }) => {
   await draw(page, 'Rechteck', [300, 180], [440, 270]);
   await draw(page, 'Ellipse', [520, 180], [660, 270]);

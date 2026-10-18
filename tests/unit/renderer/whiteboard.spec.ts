@@ -24,6 +24,20 @@ async function draw(store: WhiteboardStore, kind = 'rectangle' as 'rectangle' | 
 async function tick() { await new Promise(resolve => setTimeout(resolve, 0)); }
 
 describe('Whiteboard uses the real session gateway', () => {
+  test('laser input stays outside the document, drafts and undo history', async () => {
+    const { store } = setup();
+    const document = store.state.document;
+    const revision = store.state.revision;
+    store.setTool('laser');
+    expect(store.state.tool).toBe('laser');
+    store.pointerDown(point(320, 220)); store.pointerMove(point(480, 300)); store.pointerUp(point(480, 300));
+    await store.whenIdle();
+    expect(store.state.document).toBe(document);
+    expect(store.state.revision).toBe(revision);
+    expect(store.state.hasDraft).toBe(false);
+    expect(store.state.history).toEqual({ canUndo: false, canRedo: false });
+  });
+
   test('connector tool commits only a binding between two distinct elements', async () => {
     const { store } = setup();
     await draw(store, 'rectangle', 200); await draw(store, 'ellipse', 500);
