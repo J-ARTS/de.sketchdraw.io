@@ -1,7 +1,7 @@
 /** Shared architecture contract. Runtime validation is required at every input boundary. */
 export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
-  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation' | 'table' | 'web-embed';
+  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation' | 'table' | 'web-embed' | 'frame';
 
 export type AnnotationBlockType =
   | 'paragraph' | 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4'

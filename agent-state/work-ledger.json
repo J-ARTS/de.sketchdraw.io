@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:20:13Z",
+  "updatedAt": "2026-10-18T04:38:39Z",
   "issues": [
     {
       "number": 1,
@@ -1033,6 +1033,21 @@
         63
       ],
       "currentImplementer": "Codex"
+    },
+    {
+      "number": 65,
+      "title": "Frame-Modus mit Folienleiste und Presenter Mode",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/65",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface)",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Canvas presentation, UI, logic, interface and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -4487,6 +4502,41 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact integrated commit c2e33d1bdc8df54575003148975cae659b15cb91. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, 59 Node tests, 348 Vitest tests, production build, 58 browser UI tests including web-embed and laser behavior, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-frame-presenter-065",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        65
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T04:21:00Z",
+      "endedAt": "2026-10-18T04:38:39Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/65",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/65#issuecomment-6245620204",
+        "src/domain/frames.ts",
+        "src/renderer/components/FramePreview.vue",
+        "src/renderer/components/FrameSidebar.vue",
+        "src/renderer/components/PresenterMode.vue",
+        "src/renderer/state/whiteboard.ts",
+        "src/interop/export.ts",
+        "tests/unit/frame-presentation.spec.ts",
+        "tests/ui/frame-presentation.spec.ts",
+        "https://github.com/excalidraw/excalidraw/pull/12157",
+        "https://github.com/excalidraw/excalidraw/issues/253",
+        "https://github.com/excalidraw/excalidraw/issues/7230"
+      ],
+      "concerns": [
+        "The referenced Excalidraw presentation implementation is still an open pull request; Sketchdraw follows the documented frame-as-slide interaction while keeping its own stable document contract.",
+        "The source-code Graphify refresh was guarded because the rebuilt graph contained fewer nodes than the merged existing graph; the existing graph is preserved and only the deterministic traceability projection is refreshed."
+      ],
+      "authorization": "The user explicitly requested Excalidraw-style frames, slide previews and Presenter Mode and previously authorized temporary Codex implementation with actual-tool attribution.",
+      "measurementSource": "Codex implemented the frame viewport contract, persistent slide order, searchable/agent-readable document representation, sidebar previews, rename/reorder controls and keyboard/touch Presenter Mode. The sidebar and presenter reuse the production element renderer while disabling interactive web embeds and links in static previews. Local evidence on the uncommitted issue #65 state: typecheck passed; 351/351 Vitest tests, 59/59 browser UI tests and 6/6 Electron tests passed, including the production renderer/Electron/MCP build. One first-run browser regression revealed that the closed slide button overlapped the code-panel apply action; the button visibility was corrected and the targeted regression plus the full 59-test UI suite passed. No measured implementation duration, token or cost metric is claimed."
     }
   ],
   "evidencePolicy": {

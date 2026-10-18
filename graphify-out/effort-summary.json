@@ -2193,6 +2193,38 @@
         "github-actions-web-embed-39096206588"
       ]
     },
+    "65": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-frame-presenter-065"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "7": {
       "exclusiveRuns": {
         "costUsd": {
@@ -2431,15 +2463,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       },
-      "runCount": 34,
+      "runCount": 35,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
@@ -2453,6 +2485,7 @@
         "codex-fallback-page-rename-logic-035",
         "codex-final-release-closure-029",
         "codex-font-integration-review-043",
+        "codex-frame-presenter-065",
         "codex-github-ticket-audit-057",
         "codex-laser-pointer-062",
         "codex-laser-pointer-ci-stability-064",
@@ -2480,7 +2513,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       }
     },
     "codex-subagent": {
@@ -2587,15 +2620,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 133
+      "unknownRuns": 134
     },
     "observedSeconds": {
       "knownRuns": 42,
       "knownSubtotal": 21470.322263248963,
       "total": null,
-      "unknownRuns": 91
+      "unknownRuns": 92
     },
-    "runCount": 133,
+    "runCount": 134,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2663,6 +2696,7 @@
       "codex-fallback-page-rename-logic-035",
       "codex-final-release-closure-029",
       "codex-font-integration-review-043",
+      "codex-frame-presenter-065",
       "codex-github-ticket-audit-057",
       "codex-graph-001",
       "codex-interop-001",
@@ -2735,7 +2769,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 129
+      "unknownRuns": 130
     }
   },
   "officialScoreClaimReady": false,
@@ -2745,9 +2779,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 52
+    "unknownIssues": 53
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:20:13Z"
+  "updatedAt": "2026-10-18T04:38:39Z"
 }

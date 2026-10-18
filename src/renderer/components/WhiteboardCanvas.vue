@@ -130,7 +130,7 @@ onBeforeUnmount(() => observer?.disconnect());
       <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
     </div>
-    <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen, mit Umschalt+E den Radierer und mit Umschalt+K den Laserpointer aktivieren. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
+    <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck und mit F einen Präsentationsframe zeichnen. Mit Alt+Umschalt+P startest du die Präsentation. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
   </div>
 </template>
 

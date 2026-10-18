@@ -17,6 +17,7 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'annotation', label: 'Annotation', key: 'a', description: 'Formatierbaren Textblock einfügen' },
   { tool: 'image', label: 'Bild', key: 'b', description: 'Bild einfügen' },
   { tool: 'container', label: 'Container', key: 'c', description: 'Container zum Gruppieren von Elementen aufziehen' },
+  { tool: 'frame', label: 'Frame', key: 'f', description: 'Präsentationsrahmen als Folie aufziehen' },
   { tool: 'web-embed', label: 'Web-Embed', key: 'w', description: 'Webseite als eingebetteten Frame hinzufügen' },
   { tool: 'comment', label: 'Kommentar', key: 'k', description: 'Kommentar an ein Element oder eine Tabellenzelle heften' },
   { tool: 'laser', label: 'Laserpointer', key: 'k', shift: true, description: 'Temporär auf Bereiche der Zeichenfläche zeigen' },
@@ -40,6 +41,7 @@ const NONE: ModifierSpec = { primary: false, shift: false, alt: false };
 const NONE_ANY_SHIFT: ModifierSpec = { primary: false, shift: 'any', alt: false };
 const SHIFT: ModifierSpec = { primary: false, shift: true, alt: false };
 const ALT: ModifierSpec = { primary: false, shift: false, alt: true };
+const ALT_SHIFT: ModifierSpec = { primary: false, shift: true, alt: true };
 const PRIMARY: ModifierSpec = { primary: true, shift: false, alt: false };
 const PRIMARY_SHIFT: ModifierSpec = { primary: true, shift: true, alt: false };
 const PRIMARY_ANY_SHIFT: ModifierSpec = { primary: true, shift: 'any', alt: false };
@@ -139,6 +141,7 @@ const BINDINGS: readonly Binding[] = [
   bind({ id: 'view.fit-all', label: 'Alles anzeigen', combo: 'Umschalt+1', scope: 'canvas', group: VIEW }, [SHIFT, codeIs('Digit1')]),
   bind({ id: 'view.fit-selection', label: 'Zur Auswahl zoomen', combo: 'Umschalt+2', scope: 'canvas', group: VIEW }, [SHIFT, codeIs('Digit2')]),
   bind({ id: 'view.objects', label: 'Objekte ein- oder ausblenden', combo: 'O', scope: 'canvas', group: VIEW }, [NONE, letterIs('o')]),
+  bind({ id: 'view.present', label: 'Frames präsentieren', combo: 'Alt+Umschalt+P', scope: 'canvas', group: VIEW }, [ALT_SHIFT, letterIs('p')]),
   bind({ id: 'view.help', label: 'Tastaturhilfe anzeigen', combo: '?', scope: 'canvas', group: VIEW }, [NONE_ANY_SHIFT, keyIs('?')]),
   bind(
     { id: 'cancel', label: 'Abbrechen, schließen, Auswahl aufheben', combo: 'Esc', scope: 'global', group: GENERAL },

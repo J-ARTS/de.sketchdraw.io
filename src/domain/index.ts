@@ -12,4 +12,5 @@ export * from './connectors';
 export * from './annotation';
 export * from './table';
 export * from './web-embed';
+export * from './frames';
 export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';

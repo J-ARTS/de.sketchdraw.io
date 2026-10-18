@@ -31,11 +31,14 @@ function createDefaultStyle(kind: ElementKind): ElementStyle {
   const annotation = kind === 'annotation';
   const table = kind === 'table';
   const webEmbed = kind === 'web-embed';
+  const frame = kind === 'frame';
   return {
-    stroke: sticky ? '#53675a' : annotation ? '#242424' : table || webEmbed ? '#cbd5e1' : '#1e293b',
+    stroke: frame ? '#8558f0' : sticky ? '#53675a' : annotation ? '#242424' : table || webEmbed ? '#cbd5e1' : '#1e293b',
     fill:
       kind === 'container'
         ? '#f8fafc'
+        : frame
+          ? 'transparent'
         : annotation || table || webEmbed
           ? '#ffffff'
         : sticky
@@ -145,8 +148,8 @@ export function createElement(
     }
   }
 
-  const defaultWidth = kind === 'web-embed' ? 640 : kind === 'table' ? 480 : kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
-  const defaultHeight = kind === 'web-embed' ? 400 : kind === 'table' ? 240 : kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
+  const defaultWidth = kind === 'frame' ? 1280 : kind === 'web-embed' ? 640 : kind === 'table' ? 480 : kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
+  const defaultHeight = kind === 'frame' ? 720 : kind === 'web-embed' ? 400 : kind === 'table' ? 240 : kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
 
   const width = overrides?.width !== undefined ? overrides.width : defaultWidth;
   const height = overrides?.height !== undefined ? overrides.height : defaultHeight;

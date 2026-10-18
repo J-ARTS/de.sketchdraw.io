@@ -100,7 +100,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       return { ...base, query: input.query, totalMatches: matches.length, truncated: matches.length > limit, matches: matches.slice(0, limit) };
     }
     if (request.operation === 'sketchdraw_analyze_document') {
-      const counts = Object.fromEntries(['rectangle', 'ellipse', 'diamond', 'text', 'path', 'image', 'connector', 'container', 'component', 'sticky-note', 'annotation', 'table', 'web-embed'].map(kind => [kind, 0])) as Record<ElementKind, number>;
+      const counts = Object.fromEntries(['rectangle', 'ellipse', 'diamond', 'text', 'path', 'image', 'connector', 'container', 'component', 'sticky-note', 'annotation', 'table', 'web-embed', 'frame'].map(kind => [kind, 0])) as Record<ElementKind, number>;
       const findings: AnalyzeDocumentOutput['findings'] = [];
       const byId = new Map(document.elements.map(element => [element.id, element]));
       const parents = new Set(document.elements.flatMap(element => element.parentId ? [element.parentId] : []));

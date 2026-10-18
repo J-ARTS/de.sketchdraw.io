@@ -11,6 +11,7 @@ import {
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
   parseWebEmbedUrl, webEmbedLabel,
+  FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
@@ -182,13 +183,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const others = displayed.slice(1);
       const mixed = [...new Set([...(Object.keys(values) as Array<keyof typeof values>).filter(key => others.some(value => !same(value[key], values[key]))), ...tableMixed])];
       return { count: elements.length, kinds: [...new Set(elements.map((e) => e.kind))], singleId: elements.length === 1 ? first!.id : null, values, mixed,
-        canGroup: elements.length > 0, canUngroup: elements.some((e) => e.kind === 'container'), canConnect: elements.length === 2,
-        canEditText: elements.length === 1 && first?.kind !== 'web-embed', hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image'].includes(e.kind)), hasText: elements.some((e) => e.kind !== 'web-embed') };
+        canGroup: elements.length > 0 && elements.every((e) => e.kind !== 'frame'), canUngroup: elements.some((e) => e.kind === 'container'), canConnect: elements.length === 2,
+        canEditText: elements.length === 1 && !['web-embed', 'frame'].includes(first?.kind ?? ''), hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image', 'frame'].includes(e.kind)), hasText: elements.some((e) => !['web-embed', 'frame'].includes(e.kind)) };
     },
     get pages() { return pageSummaries(this.document); },
     activePageId: SINGLE_PAGE_ID,
     workspaceView: 'canvas' as const,
     commentSidebarOpen: false,
+    frameSidebarOpen: false,
+    get frameSlides() { return orderedFrames(this.document); },
+    presenterOpen: false,
+    presenterIndex: 0,
     activeCommentId: null as string | null,
     commentComposerTarget: null as CommentTarget | null,
     unreadCommentIds: [] as string[],
@@ -227,6 +232,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.code.dirty) { state.code.text = formatDiagram(snapshot.document); state.code.baseRevision = snapshot.revision; codeBase = snapshot.document; }
     if (titleDraft === before.title) titleDraft = snapshot.document.title;
     if (!localCommit && before !== snapshot.document) state.offscreenChanges += 1;
+    if (!state.frameSlides.length) { state.presenterOpen = false; state.presenterIndex = 0; }
+    else state.presenterIndex = Math.min(state.presenterIndex, state.frameSlides.length - 1);
   }
   function bind() {
     if (guest) {
@@ -271,6 +278,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return write({ kind: 'dispatch', command }, revision, source, recover);
   }
   function patch(patches: Array<{ id: string; patch: ElementPatch }>) { if (patches.length) void dispatch({ type: 'update', changes: patches }); }
+  function deleteCommand(ids: readonly string[]): DocumentCommand {
+    const removed = new Set(ids);
+    const removesFrame = state.frameSlides.some((frame) => removed.has(frame.id));
+    if (!removesFrame) return { type: 'delete', ids: [...ids] };
+    const remaining = state.frameSlides.filter((frame) => !removed.has(frame.id)).map((frame) => frame.id);
+    return { type: 'batch', commands: [
+      { type: 'delete', ids: [...ids] },
+      { type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(remaining) } },
+    ] };
+  }
   function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
   function extendEraseGesture(g: Gesture, point: Point): void {
     const ids = g.preview?.type === 'delete' ? [...g.preview.ids] : [];
@@ -331,7 +348,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   async function finishGesture(g: Gesture): Promise<boolean> {
     const owner = activeSession();
-    const command = g.element ? { type: 'add' as const, elements: [g.element] } : g.preview;
+    const command = g.element ? { type: 'add' as const, elements: [g.element] } : g.preview?.type === 'delete' ? deleteCommand(g.preview.ids) : g.preview;
     if (!command) return true;
     const unchanged = g.targets.every((e) => same(e, state.document.elements.find((current) => current.id === e.id)));
     if (!unchanged) {
@@ -339,11 +356,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.gestureConflict = { message: 'Ein betroffenes Element wurde während der Geste geändert. Die Vorschau bleibt erhalten.', canRetry: g.targets.every((e) => state.document.elements.some((current) => current.id === e.id)) };
       return false;
     }
-    const recover = () => { if (gesture === g || failedGesture === g) { if (g.element) { setSelection([g.element.id]); state.tool = 'select'; } resetGesture(); failedGesture = null; state.gestureConflict = null; } };
+    const recover = () => { if (gesture === g || failedGesture === g) { if (g.element) { setSelection([g.element.id]); state.tool = 'select'; if (g.element.kind === 'frame') state.frameSidebarOpen = true; } resetGesture(); failedGesture = null; state.gestureConflict = null; } };
     const ok = await dispatch(command, state.revision, 'human', recover);
     if (owner !== activeSession()) return false;
     if (ok) {
-      if (g.element) { setSelection([g.element.id]); state.tool = 'select'; }
+      if (g.element) { setSelection([g.element.id]); state.tool = 'select'; if (g.element.kind === 'frame') state.frameSidebarOpen = true; }
       const editTextId = g.element && ['sticky-note', 'annotation'].includes(g.element.kind) ? g.element.id : null;
       resetGesture(); failedGesture = null; state.gestureConflict = null;
       if (editTextId) store.startTextEdit(editTextId);
@@ -367,6 +384,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       style.opacity = pencil.opacity;
     }
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool), ...(SWAPPABLE_KINDS.has(g.tool as SketchElement['kind']) ? { shapeVariant: state.shapeVariant } : {}) };
+    if (g.tool === 'frame') value.label = g.element?.label ?? nextFrameLabel(state.document);
     if (g.tool === 'sticky-note') value.author = authorName;
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
@@ -489,6 +507,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
     state.selection = []; state.focusedId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
+    state.presenterOpen = false; state.presenterIndex = 0; state.frameSidebarOpen = false;
     gesture = null; failedGesture = null; nudge = null; state.previewCommand = null; state.drawing = null;
     titleDraft = document.title; codeBase = document;
     state.code = { text: formatDiagram(document), baseRevision: state.revision, dirty: false, diagnostics: [] };
@@ -593,6 +612,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (tool === 'rectangle') state.shapeVariant = 'square';
       if (tool === 'ellipse') state.shapeVariant = 'circle';
       if (tool === 'diamond') state.shapeVariant = 'diamond';
+      if (tool === 'frame') state.frameSidebarOpen = true;
       state.liveMessage = `Werkzeug: ${tool}`;
     },
     setShapeTool(variant) {
@@ -747,7 +767,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       void finishGesture(g);
     },
     pointerCancel() { if (state.transitioning) return; resetGesture(); },
-    doubleClick(input) { if (!state.canWrite || state.transitioning) return; const e = hit(screenToDoc(state.viewport, input)); if (e && e.kind !== 'table' && !isResourceCard(e)) store.startTextEdit(e.id); },
+    doubleClick(input) {
+      if (!state.canWrite || state.transitioning) return;
+      const e = hit(screenToDoc(state.viewport, input));
+      if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = 'Frame in der Folienleiste zum Umbenennen ausgewählt.'; return; }
+      if (e && e.kind !== 'table' && !isResourceCard(e)) store.startTextEdit(e.id);
+    },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
     handleKeyDown(input) {
       if (state.transitioning || state.dialog || input.isComposing) return false;
@@ -759,9 +784,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         'file.open': () => { void store.openDocument(); }, 'file.save': () => { void store.save(); }, 'file.save-as': () => { void store.saveAs(); },
         'edit.undo': store.undo, 'edit.redo': store.redo, 'edit.select-all': store.selectAll,
         'edit.copy': () => { void store.copySelection(); }, 'edit.paste': () => { void store.pasteSelection(); }, 'edit.duplicate': store.duplicateSelection,
-        'edit.group': store.groupSelection, 'edit.ungroup': store.ungroupSelection, 'edit.delete': store.deleteSelection, 'edit.text': () => store.startTextEdit(state.selection[0]),
+        'edit.group': store.groupSelection, 'edit.ungroup': store.ungroupSelection, 'edit.delete': store.deleteSelection, 'edit.text': () => { if (selected()[0]?.kind !== 'frame') store.startTextEdit(state.selection[0]); },
         'view.zoom-in': () => store.zoomBy(1.2), 'view.zoom-out': () => store.zoomBy(1 / 1.2), 'view.zoom-reset': () => store.zoomTo(1),
-        'view.fit-all': store.fitAll, 'view.fit-selection': store.fitSelection, 'view.help': store.openHelp, 'view.objects': store.toggleObjects,
+        'view.fit-all': store.fitAll, 'view.fit-selection': store.fitSelection, 'view.help': store.openHelp, 'view.objects': store.toggleObjects, 'view.present': () => store.startPresentation(),
         'text.commit': () => { store.commitTextEdit(); },
       };
       if (action === 'move.nudge' || action === 'move.nudge-large') {
@@ -790,7 +815,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     revealOffscreenChanges() { store.fitAll(); state.offscreenChanges = 0; },
     select: setSelection, selectAll() { setSelection(state.document.elements.map((e) => e.id)); }, clearSelection() { setSelection([]); },
     focusElement(id) { setSelection([id]); store.fitSelection(); },
-    deleteSelection() { if (!state.transitioning && state.selection.length) void dispatch({ type: 'delete', ids: [...state.selection] }); },
+    deleteSelection() { if (!state.transitioning && state.selection.length) void dispatch(deleteCommand(state.selection)); },
     async copySelection() {
       if (state.transitioning) return;
       const payload = elementClipboardPayload(state.document, state.selection);
@@ -1013,7 +1038,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!element) return;
       if (tableCellId && (element.kind !== 'table' || !element.table?.cells.some((cell) => cell.id === tableCellId))) return;
       state.commentComposerTarget = commentTargetFor(element, tableCellId, at);
-      state.commentSidebarOpen = true;
+      state.commentSidebarOpen = true; state.frameSidebarOpen = false;
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.activeCommentId = null;
       state.workspaceView = 'canvas';
@@ -1027,13 +1052,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const message: CommentMessage = { id: uid('comment'), authorId: actorId, authorName, body: text, createdAt: now };
       const thread: CommentThread = { id: uid('thread'), target: clone(target), messages: [message], resolved: false, createdAt: now, updatedAt: now };
       const ok = await dispatch({ type: 'set-comments', threads: [...(state.document.commentThreads ?? []), thread] });
-      if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.tool = 'select'; state.liveMessage = 'Kommentar erstellt.'; }
+      if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.frameSidebarOpen = false; state.tool = 'select'; state.liveMessage = 'Kommentar erstellt.'; }
       return ok;
     },
     openComment(threadId) {
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId);
       if (!thread) return;
-      state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true;
+      state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true; state.frameSidebarOpen = false;
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId);
       const element = thread.target.elementId ? state.document.elements.find((entry) => entry.id === thread.target.elementId) : undefined;
@@ -1112,6 +1137,53 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = 'Aufgabenboard geöffnet.'; },
     showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = 'Zeichenfläche geöffnet.'; },
+    toggleFrameSidebar(open) {
+      state.frameSidebarOpen = open ?? !state.frameSidebarOpen;
+      if (state.frameSidebarOpen) {
+        state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+        state.liveMessage = 'Folienleiste geöffnet.';
+      }
+    },
+    focusFrame(id) {
+      const frame = state.frameSlides.find((entry) => entry.id === id);
+      if (!frame) return;
+      setSelection([id]);
+      state.viewport = fitRect(state.viewportSize, frame, 72, 2);
+      state.liveMessage = `${frame.label || 'Folie'} ausgewählt.`;
+    },
+    renameFrame(id, name) {
+      if (!state.canWrite || state.transitioning) return;
+      const frame = state.frameSlides.find((entry) => entry.id === id);
+      const label = name.trim().slice(0, 120);
+      if (!frame || !label || frame.label === label) return;
+      void dispatch({ type: 'update', changes: [{ id, patch: { label } }] });
+    },
+    moveFrame(id, toIndex) {
+      if (!state.canWrite || state.transitioning) return;
+      const ids = state.frameSlides.map((frame) => frame.id);
+      const from = ids.indexOf(id);
+      if (from < 0) return;
+      const target = Math.max(0, Math.min(ids.length - 1, toIndex));
+      if (target === from) return;
+      ids.splice(target, 0, ids.splice(from, 1)[0]!);
+      void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(ids) } });
+      state.presenterIndex = target;
+    },
+    startPresentation(frameId) {
+      const slides = state.frameSlides;
+      if (!slides.length) { notice('Lege zuerst mindestens einen Frame an.', 'error'); return; }
+      const selectedFrame = frameId ?? state.selection.find((id) => slides.some((frame) => frame.id === id));
+      const index = selectedFrame ? slides.findIndex((frame) => frame.id === selectedFrame) : 0;
+      state.presenterIndex = Math.max(0, index);
+      state.presenterOpen = true;
+      state.liveMessage = `Präsentation gestartet: ${slides[state.presenterIndex]?.label || `Folie ${state.presenterIndex + 1}`}.`;
+    },
+    stopPresentation() { state.presenterOpen = false; state.liveMessage = 'Präsentation beendet.'; },
+    goToPresentation(index) {
+      if (!state.presenterOpen || !state.frameSlides.length) return;
+      state.presenterIndex = Math.max(0, Math.min(state.frameSlides.length - 1, index));
+      state.liveMessage = `${state.frameSlides[state.presenterIndex]?.label || `Folie ${state.presenterIndex + 1}`}, ${state.presenterIndex + 1} von ${state.frameSlides.length}.`;
+    },
     async insertImageFile(file, at) {
       if (state.transitioning) return;
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice('Erlaubt sind PNG, JPEG und WebP.', 'error'); return; }
@@ -1174,7 +1246,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     openHelp() { if (!state.transitioning) state.dialog = { kind: 'help' }; },
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
-    toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; },
+    toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; if (state.objectsOpen) state.frameSidebarOpen = false; },
     selectPage(id) { if (state.pages.some((page) => page.id === id)) state.activePageId = id; },
     // Structural page mutations stay unavailable until the multi-page schema (#34) lands.
     addPage() {},
@@ -1204,12 +1276,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     setTheme(theme) { state.theme = theme; },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
-    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) state.catalogOpen = false; },
+    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; } },
     setCodeDraft(text) { if (state.canWrite && !state.transitioning) { state.code.text = text; state.code.dirty = text !== formatDiagram(codeBase); state.code.diagnostics = []; changedDraft(); } },
     applyCode() { return state.transitioning ? Promise.resolve(false) : applyCode(); },
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
-    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) state.codeOpen = false; },
-    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) state.codeOpen = false; },
+    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
+    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
     async insertComponent(set: ComponentSet, type: string) {
       if (state.transitioning) return;
       try { const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at: currentCenter() }); if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; } }

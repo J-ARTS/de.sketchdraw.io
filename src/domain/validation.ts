@@ -50,6 +50,7 @@ export const ELEMENT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'annotation',
   'table',
   'web-embed',
+  'frame',
 ]);
 
 const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
@@ -64,6 +65,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'annotation',
   'table',
   'web-embed',
+  'frame',
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);

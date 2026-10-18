@@ -14,6 +14,7 @@ export const KIND_LABELS: Record<ElementKind, string> = {
   annotation: 'Annotation',
   table: 'Tabelle',
   'web-embed': 'Web-Embed',
+  frame: 'Frame',
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;

@@ -28,7 +28,7 @@ import type {
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
-  | 'web-embed' | 'comment' | 'laser';
+  | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type PencilPreset = 'fine' | 'pencil' | 'marker';
 export type EraserSize = 'small' | 'medium' | 'large';
@@ -228,6 +228,10 @@ export interface WhiteboardState {
   activePageId: string;
   workspaceView: 'canvas' | 'tasks';
   commentSidebarOpen: boolean;
+  frameSidebarOpen: boolean;
+  frameSlides: readonly SketchElement[];
+  presenterOpen: boolean;
+  presenterIndex: number;
   activeCommentId: string | null;
   commentComposerTarget: CommentTarget | null;
   unreadCommentIds: readonly string[];
@@ -342,6 +346,14 @@ export interface WhiteboardStore {
   deleteTask(taskId: string): Promise<boolean>;
   openTaskBoard(): void;
   showCanvas(): void;
+
+  toggleFrameSidebar(open?: boolean): void;
+  focusFrame(id: string): void;
+  renameFrame(id: string, name: string): void;
+  moveFrame(id: string, toIndex: number): void;
+  startPresentation(frameId?: string): void;
+  stopPresentation(): void;
+  goToPresentation(index: number): void;
 
   insertImageFile(file: File, at?: Point): Promise<void>;
 

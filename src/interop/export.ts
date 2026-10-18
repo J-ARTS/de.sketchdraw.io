@@ -167,6 +167,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       out.append(`<path d="M0 34H${n(el.width)}" stroke="${safeColor(el.style.stroke, d, el)}" stroke-width="1" opacity=".55"/><circle cx="16" cy="17" r="4" fill="#22c55e"/><text x="28" y="22" font-size="12" font-family="sans-serif" fill="${safeColor(el.style.stroke, d, el)}">${escapeXmlText(xmlText(el.label ?? el.embedUrl ?? 'Web-Embed', d, el))}</text></a>`);
       diagnostic(d, el, 'WEB_EMBED_PROJECTED_AS_LINK', 'Web embed is exported as a static linked card; remote page content is not embedded.');
     }
+    else if (el.kind === 'frame') {
+      out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" fill="none"${attrs({ stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, 'stroke-dasharray': '10 7', opacity: el.style.opacity, 'data-sketchdraw-kind': 'frame' })}/>`);
+      diagnostic(d, el, 'FRAME_PROJECTED_AS_VIEWPORT', 'Frame is exported as an editable outline; slide order remains in embedded document metadata.', false);
+    }
     else if (shapeVariant) {
       if (shapeVariant === 'square') out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" data-sketchdraw-shape="square"${paint}/>`);
       else if (shapeVariant === 'circle') out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}" data-sketchdraw-shape="circle"${paint}/>`);
@@ -238,6 +242,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('text', 'strokeColor=none', 'fillColor=none');
     else if (el.kind === 'container')
       style.push('container=1', 'verticalAlign=top');
+    else if (el.kind === 'frame') {
+      style.push('fillColor=none', 'dashed=1', 'dashPattern=10 7', 'verticalAlign=top', 'sketchdrawKind=frame');
+      diagnostic(d, el, 'FRAME_PROJECTED_AS_VIEWPORT', 'Frame is exported as an editable viewport outline; slide order remains in embedded document metadata.', false);
+    }
     else if (el.kind === 'image')
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
     else if (el.kind === 'sticky-note')

@@ -71,6 +71,13 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
   if (element.kind === 'path' || element.kind === 'connector') {
     return (element.points ?? []).some((b, i, points) => i > 0 && segmentDistance({ x, y }, points[i - 1]!, b) <= tolerance + element.style.strokeWidth / 2);
   }
+  // Frames are viewports around ordinary canvas elements. Only their outline is selectable so
+  // a frame added later in z-order never blocks interaction with content inside it.
+  if (element.kind === 'frame') {
+    if (x < -tolerance || y < -tolerance || x > element.width + tolerance || y > element.height + tolerance) return false;
+    const edge = Math.min(Math.abs(x), Math.abs(y), Math.abs(element.width - x), Math.abs(element.height - y));
+    return edge <= tolerance + element.style.strokeWidth / 2;
+  }
   if (x < -tolerance || y < -tolerance || x > element.width + tolerance || y > element.height + tolerance) return false;
   const variant = effectiveShapeVariant(element);
   if (variant === 'circle' || variant === 'summing' || variant === 'or') {

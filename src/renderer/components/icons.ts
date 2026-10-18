@@ -1,6 +1,6 @@
 export type ToolIconName =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'web-embed' | 'comment' | 'laser';
+  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type ActionIconName =
   | 'component' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
@@ -37,6 +37,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   table: ['M3 4h18v16H3z', 'M3 9h18', 'M3 14h18', 'M9 4v16', 'M15 4v16'],
   image: ['M4 5h16v14H4z', 'M4 16l5-5 4 4 3-3 4 4', 'M14.5 9a1 1 0 1 0 2 0 1 1 0 1 0-2 0'],
   container: ['M3 5h18v14H3z', 'M7 10h6v5H7z'],
+  frame: ['M4 4h6', 'M4 4v6', 'M20 4h-6', 'M20 4v6', 'M4 20h6', 'M4 20v-6', 'M20 20h-6', 'M20 20v-6'],
   'web-embed': ['M3 5h18v14H3z', 'M3 9h18', 'M7 7h.01', 'M10 7h.01', 'M8 14h8', 'M12 11l3 3-3 3'],
   comment: ['M4 5h16v12H9l-5 4z', 'M8 9h8', 'M8 13h5'],
   laser: ['M7.5 16.5l7-7 3 3-7 7z', 'M14.5 9.5l2-2 3 3-2 2', 'M5 5v2', 'M2.5 7.5h2', 'M4 10l-1.5 1.5'],

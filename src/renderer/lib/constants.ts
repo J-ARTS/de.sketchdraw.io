@@ -61,6 +61,10 @@ export const STYLE_BY_KIND: Readonly<Partial<Record<ElementKind, Readonly<Partia
     fill: '#ffffff', stroke: '#cbd5e1', strokeWidth: 1, fontSize: 16,
     textAlign: 'left', fontFamily: 'sans', fontWeight: 'normal', textDecoration: 'none', listStyle: 'none',
   },
+  frame: {
+    fill: 'transparent', stroke: '#8558f0', strokeWidth: 2, strokeDash: 'dashed', fontSize: 16,
+    textAlign: 'left', fontFamily: 'sans', fontWeight: 'normal', textDecoration: 'none', listStyle: 'none',
+  },
 };
 
 export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
@@ -72,6 +76,7 @@ export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
   'sticky-note': { width: 240, height: 240 },
   annotation: { width: 520, height: 320 },
   table: { width: 480, height: 240 },
+  frame: { width: 1280, height: 720 },
 };
 
 export interface NamedColor { name: string; value: string }

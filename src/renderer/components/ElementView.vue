@@ -10,7 +10,7 @@ import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCar
 import AnnotationContent from './AnnotationContent.vue';
 import TableContent from './TableContent.vue';
 
-const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean; interactive?: boolean }>();
+const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean; interactive?: boolean; staticPreview?: boolean }>();
 const emit = defineEmits<{ openLink: [url: string] }>();
 const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 const e = computed(() => props.element);
@@ -66,6 +66,7 @@ const embedHost = computed(() => {
   try { return new URL(e.value.embedUrl ?? '').hostname; }
   catch { return 'Webseite'; }
 });
+const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
 </script>
 
 <template>
@@ -82,7 +83,8 @@ const embedHost = computed(() => {
       <marker :id="`${uid}-diamond`" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 7 L7 1 L13 7 L7 13 Z" :fill="fill === 'transparent' ? 'var(--surface-canvas)' : fill" :stroke="stroke" :stroke-width="Math.max(1, e.style.strokeWidth * .75)" /></marker>
     </defs>
     <g :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
-      <rect v-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
+      <rect v-if="e.kind === 'frame'" data-testid="frame-surface" :width="e.width" :height="e.height" fill="transparent" :stroke="stroke" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash ?? '10 7'" />
+      <rect v-else-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
       <ellipse v-else-if="shape?.id === 'circle'" :cx="e.width / 2" :cy="e.height / 2" :rx="e.width / 2" :ry="e.height / 2" />
       <polygon v-else-if="shape?.id === 'diamond'" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
       <svg v-else-if="shape" :width="e.width" :height="e.height" viewBox="3 3 18 18" preserveAspectRatio="none" overflow="visible">
@@ -113,9 +115,9 @@ const embedHost = computed(() => {
         :key="link.id"
         :data-testid="`resource-card-link-${index}`"
         :transform="`translate(${index * e.width / cardLinks.length} ${e.height - cardFooterHeight})`"
-        role="link"
-        tabindex="0"
-        pointer-events="all"
+        :role="staticPreview ? undefined : 'link'"
+        :tabindex="staticPreview ? -1 : 0"
+        :pointer-events="staticPreview ? 'none' : 'all'"
         :aria-label="`${link.label} öffnen`"
         @pointerdown.stop
         @click.stop="emit('openLink', link.url)"
@@ -127,7 +129,11 @@ const embedHost = computed(() => {
         <text :x="e.width / cardLinks.length / 2" :y="cardFooterHeight / 2" fill="var(--accent)" :font-size="Math.max(10, Math.min(14, e.style.fontSize * .65))" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle" dominant-baseline="central">{{ clampCardLinkLabel(link.label, cardLinks.length, Math.max(10, e.style.fontSize * .65)) }}</text>
       </g>
     </template>
-    <g v-if="e.kind === 'connector' && text && !editing" pointer-events="none">
+    <g v-if="e.kind === 'frame'" data-testid="frame-label" pointer-events="none">
+      <rect x="0" y="-32" :width="Math.max(92, frameTitle.length * 9 + 28)" height="26" rx="7" :fill="stroke" stroke="none" />
+      <text x="12" y="-19" fill="#ffffff" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" dominant-baseline="central">{{ frameTitle }}</text>
+    </g>
+    <g v-else-if="e.kind === 'connector' && text && !editing" pointer-events="none">
       <rect :x="e.width / 2 - connectorLabelWidth / 2" :y="e.height / 2 - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
       <text :x="e.width / 2" :y="e.height / 2" :fill="stroke" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
     </g>
@@ -138,7 +144,7 @@ const embedHost = computed(() => {
       <div class="web-embed" data-testid="web-embed-frame">
         <div class="web-embed-header" aria-hidden="true"><span class="web-embed-dot" />{{ embedHost }}<span>Live-Vorschau</span></div>
         <iframe
-          v-if="e.embedUrl"
+          v-if="e.embedUrl && !staticPreview"
           :src="e.embedUrl"
           :title="`Eingebettete Webseite ${embedHost}`"
           sandbox="allow-forms allow-scripts"
@@ -146,10 +152,11 @@ const embedHost = computed(() => {
           loading="lazy"
           :tabindex="interactive ? 0 : -1"
         />
-        <div class="web-embed-hint">Wenn die Vorschau leer bleibt, verbietet die Webseite das Einbetten. Über das Link-Symbol kannst du sie extern öffnen.</div>
+        <div v-if="staticPreview" class="web-embed-placeholder">{{ e.label || embedHost }}</div>
+        <div v-else class="web-embed-hint">Wenn die Vorschau leer bleibt, verbietet die Webseite das Einbetten. Über das Link-Symbol kannst du sie extern öffnen.</div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table', 'web-embed'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table', 'web-embed', 'frame'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
@@ -161,4 +168,5 @@ const embedHost = computed(() => {
 .web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-ui)}
 .web-embed-header{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-raised);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden}.web-embed-header span:last-child{margin-left:auto;color:var(--text-muted);font-size:10px;font-weight:500}.web-embed-dot{width:8px;height:8px;border-radius:50%;background:var(--status-ok);flex:none}
 .web-embed iframe{display:block;width:100%;height:100%;border:0;background:#fff}.web-embed-hint{padding:5px 10px;border-top:1px solid var(--border-subtle);background:var(--surface-panel);color:var(--text-muted);font-size:9px;line-height:1.35}
+.web-embed-placeholder{display:grid;place-items:center;padding:12px;color:var(--text-muted);font-size:14px;text-align:center}
 </style>
