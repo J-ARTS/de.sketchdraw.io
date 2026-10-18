@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:34:33.458034Z",
+  "updatedAt": "2026-10-18T09:42:50.203837Z",
   "issues": [
     {
       "number": 1,
@@ -1499,6 +1499,23 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 96,
+      "title": "Connector-Endpunkte um Figma-ähnliche Markierungsvarianten erweitern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/96",
+      "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI, logic and interfaces",
+      "status": "integrated_local_verification_complete",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        91
+      ]
     }
   ],
   "runs": [
@@ -5560,6 +5577,39 @@
       ],
       "authorization": "Triggered automatically by pushes to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 415 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify jobs on Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-connector-marker-palette-96",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        96
+      ],
+      "status": "integrated_local_verification_complete",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:dd1c37d537ace37dc8f46c71df5aafb82154387d",
+        "src/domain/types.ts",
+        "src/domain/validation.ts",
+        "src/renderer/components/ConnectorMarkerIcon.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/interop/export.ts",
+        "src/interop/drawio.ts",
+        "tests/unit/domain/connectors.spec.ts",
+        "tests/unit/interop/connectors.spec.ts",
+        "tests/ui/connectors.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/96"
+      ],
+      "concerns": [
+        "diagrams.net has no distinct reversed-triangle end marker; unembedded draw.io export uses block as the documented closest projection, while embedded Sketchdraw metadata preserves the exact marker."
+      ],
+      "authorization": "The user supplied the endpoint-palette reference and had already authorized Codex to temporarily implement work assigned to Claude Code or Antigravity when necessary, with actual tool attribution.",
+      "measurementSource": "Local macOS arm64 evidence at integrated product commit dd1c37d: typecheck passed; 48/48 Vitest files and 382/382 tests passed; connector Playwright UI tests passed 2/2 on an isolated Vite port; production build passed. The twelve-option palette and a zero-or-many marker were visually inspected in the running Electron app. Exact duration, token usage and cost were not measured and remain null. CI was pending when this snapshot was written."
     }
   ],
   "evidencePolicy": {
