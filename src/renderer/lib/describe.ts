@@ -13,6 +13,7 @@ export const KIND_LABELS: Record<ElementKind, string> = {
   'sticky-note': 'Notiz',
   annotation: 'Annotation',
   table: 'Tabelle',
+  'web-embed': 'Web-Embed',
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;
@@ -96,6 +97,12 @@ function nameParts(element: SketchElement, doc: SketchDocument, depth: number): 
   if (element.kind === 'image' && element.assetId !== undefined && Object.hasOwn(doc.assets, element.assetId)) {
     const name = collapse(doc.assets[element.assetId]?.name);
     if (name !== '') return { name, includesKind: false, includesPosition: false };
+  }
+
+  if (element.kind === 'web-embed' && element.embedUrl) {
+    try {
+      return { name: new URL(element.embedUrl).hostname, includesKind: false, includesPosition: false };
+    } catch { /* validated documents cannot reach this fallback */ }
   }
 
   if (element.kind === 'connector') {

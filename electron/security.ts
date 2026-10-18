@@ -103,11 +103,24 @@ export function buildContentSecurityPolicy(mode: 'dev' | 'bundled'): string {
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     `connect-src ${connectSrc}`,
+    "frame-src https: http:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'none'",
     "frame-ancestors 'none'",
   ].join('; ');
+}
+
+/** True only for resources owned by the trusted renderer, never for remote iframe responses. */
+export function isTrustedRendererResourceUrl(rawUrl: string, target: RendererTarget): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (target.mode === 'dev') return parsed.origin === DEV_SERVER_ORIGIN;
+    return parsed.protocol === `${APP_SCHEME}:` && parsed.hostname === APP_HOST &&
+      parsed.username === '' && parsed.password === '' && parsed.port === '';
+  } catch {
+    return false;
+  }
 }
 
 export function resolveRendererTarget(options: {

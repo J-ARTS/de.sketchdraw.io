@@ -49,6 +49,7 @@ export const ELEMENT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'sticky-note',
   'annotation',
   'table',
+  'web-embed',
 ]);
 
 const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
@@ -62,6 +63,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'sticky-note',
   'annotation',
   'table',
+  'web-embed',
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);
@@ -142,6 +144,7 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'componentType',
   'metadata',
   'documentationUrl',
+  'embedUrl',
 ]);
 
 export const STYLE_KEYS: ReadonlySet<string> = new Set([
@@ -1318,6 +1321,27 @@ export function validateElementIntrinsic(
     value.documentationUrl !== undefined
   ) {
     validateDocumentationUrl(value.documentationUrl, joinPath(path, 'documentationUrl'), issues);
+  }
+
+  const hasEmbedUrl =
+    Object.prototype.hasOwnProperty.call(value, 'embedUrl') && value.embedUrl !== undefined;
+  if (typedKind === 'web-embed' && !hasEmbedUrl) {
+    issues.push({
+      path: joinPath(path, 'embedUrl'),
+      code: 'MISSING_EMBED_URL',
+      message: 'Web embed elements must specify an embedUrl.',
+    });
+  }
+  if (hasEmbedUrl) {
+    if (typedKind !== null && typedKind !== 'web-embed') {
+      issues.push({
+        path: joinPath(path, 'embedUrl'),
+        code: 'FORBIDDEN_ELEMENT_FIELD',
+        message: 'Property "embedUrl" is only allowed on web embed elements.',
+      });
+    } else {
+      validateDocumentationUrl(value.embedUrl, joinPath(path, 'embedUrl'), issues);
+    }
   }
 
   ancestors.delete(value);

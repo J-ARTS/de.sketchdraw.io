@@ -1,7 +1,7 @@
 /** Shared architecture contract. Runtime validation is required at every input boundary. */
 export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
-  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation' | 'table';
+  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation' | 'table' | 'web-embed';
 
 export type AnnotationBlockType =
   | 'paragraph' | 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4'
@@ -130,6 +130,8 @@ export interface SketchElement {
   componentType?: string;
   metadata?: Record<string, string>;
   documentationUrl?: string;
+  /** Web-embed-only absolute HTTP(S) URL. Remote page content is never persisted. */
+  embedUrl?: string;
 }
 
 export interface SketchAsset {
@@ -246,6 +248,7 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   componentType?: string | null;
   metadata?: Record<string, string | null> | null;
   documentationUrl?: string | null;
+  embedUrl?: string | null;
   shapeVariant?: ShapeVariant | null;
 };
 

@@ -29,6 +29,7 @@ import {
   type IpcSecurityContext,
   type IpcSenderEventLike,
   isAllowedNavigationUrl,
+  isTrustedRendererResourceUrl,
   PRIVILEGED_APP_SCHEME_CONFIG,
   type RendererTarget,
   resolveRendererTarget,
@@ -198,6 +199,10 @@ function configureDefaultSessionSecurity(target: RendererTarget): void {
   const cspHeader = buildContentSecurityPolicy(target.mode);
 
   defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (!isTrustedRendererResourceUrl(details.url, target)) {
+      callback({ responseHeaders: details.responseHeaders });
+      return;
+    }
     const responseHeaders: Record<string, string | string[]> = {
       ...(details.responseHeaders ?? {}),
       'Content-Security-Policy': [cspHeader],

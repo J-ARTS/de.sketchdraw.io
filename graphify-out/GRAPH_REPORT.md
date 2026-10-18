@@ -1,16 +1,16 @@
 # Graph Report - de.sketchdraw.io  (2026-10-18)
 
 ## Corpus Check
-- 281 files · ~334,069 words
+- 285 files · ~336,284 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3395 nodes · 6670 edges · 243 communities (214 shown, 29 thin omitted)
+- 3435 nodes · 6718 edges · 249 communities (221 shown, 28 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 40 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f8c4e988`
+- Built from commit: `1e62a04d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -219,12 +219,16 @@
 - [[_COMMUNITY_Community 239|Community 239]]
 - [[_COMMUNITY_Community 240|Community 240]]
 - [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
+- [[_COMMUNITY_Community 245|Community 245]]
+- [[_COMMUNITY_Community 246|Community 246]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Tool codex` - 92 edges
+1. `Tool codex` - 94 edges
 2. `Run codex-github-ticket-audit-057` - 72 edges
-3. `Tool antigravity` - 57 edges
-4. `Tool github-actions` - 57 edges
+3. `Tool github-actions` - 59 edges
+4. `Tool antigravity` - 57 edges
 5. `Tool codex-subagent` - 47 edges
 6. `fail()` - 46 edges
 7. `createElement()` - 42 edges
@@ -234,20 +238,20 @@
 
 ## Surprising Connections (you probably didn't know these)
 - `setup()` --calls--> `createWhiteboardStore()`  [INFERRED]
-  tests/unit/renderer/guest-store.spec.ts → src/renderer/state/whiteboard.ts
-- `setup()` --calls--> `createWhiteboardStore()`  [INFERRED]
   tests/unit/renderer/text-edit-style.spec.ts → src/renderer/state/whiteboard.ts
 - `setup()` --calls--> `createWhiteboardStore()`  [INFERRED]
   tests/unit/renderer/whiteboard.spec.ts → src/renderer/state/whiteboard.ts
-- `PersistenceServiceOptions` --references--> `SketchDocument`  [EXTRACTED]
-  electron/persistence.ts → src/domain/types.ts
 - `verifyGitTagRevision()` --calls--> `runGit()`  [INFERRED]
   scripts/release.mjs → tests/unit/release.test.mjs
+- `publishGitHubRelease()` --calls--> `verify()`  [INFERRED]
+  scripts/release.mjs → src/collaboration/crypto.ts
+- `expectParseError()` --calls--> `parseDiagram()`  [EXTRACTED]
+  tests/unit/codec-catalog-acceptance.spec.ts → src/codec/index.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (243 total, 29 thin omitted)
+## Communities (249 total, 28 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.26
@@ -263,11 +267,11 @@ Nodes (5): GraphTests, ledger_fixture(), LedgerTests, PathSafetyTests, Regressio
 
 ### Community 3 - "Community 3"
 Cohesion: 0.04
-Nodes (86): Verantwortung: Claude Code, Verantwortung: Claude Code (UI), Google Antigravity (logic), OpenAI Codex (architecture/testing), Verantwortung: Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing), Verantwortung: Claude Code + Antigravity + Codex, Verantwortung: Google Antigravity (logic/interface), OpenAI Codex (architecture/testing), Verantwortung: OpenAI Codex, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/56, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35 (+78 more)
+Nodes (90): Verantwortung: Claude Code, Verantwortung: Claude Code (UI), Google Antigravity (logic), OpenAI Codex (architecture/testing), Verantwortung: Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing), Verantwortung: Claude Code + Antigravity + Codex, Verantwortung: Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained), Verantwortung: Google Antigravity, Verantwortung: Google Antigravity (logic/interface), OpenAI Codex (architecture/testing), Verantwortung: OpenAI Codex (+82 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.10
-Nodes (30): installElectronAgentBridge(), Pending, Reply, agentRuntimeFilePath(), ExportFileResult, OpenDocumentResult, configureDefaultSessionSecurity(), createMainWindow() (+22 more)
+Cohesion: 0.11
+Nodes (30): OpenDocumentResult, IPC_CHANNELS, MenuCommand, validateOpenExternalRequest(), configureDefaultSessionSecurity(), getCurrentSecurityContext(), registerIpcHandlers(), createPreloadDesktopBridge() (+22 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.10
@@ -278,16 +282,16 @@ Cohesion: 0.20
 Nodes (9): Abschlussreife Tickets direkt in GitHub schließen, de.sketchdraw.io, graphify, Konventionen, Kritische Zusammenarbeit und Nachvollziehbarkeit, Ticket-Workflow (GitHub Issues), Verantwortlichkeiten, Vision und Projektziel (+1 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.06
-Nodes (60): Verantwortung: Antigravity / Codex Testing, Verantwortung: Codex / Antigravity, Artifact: docs/reviews/antigravity-domain-fixes.md, Artifact: src/domain/controller.ts, Artifact: src/domain/validation.ts, Artifact: src/domain/geometry.ts, Artifact: docs/reviews/domain-validation.md, Artifact: tests/unit/build-downloader.test.mjs (+52 more)
+Cohesion: 0.05
+Nodes (57): Verantwortung: Antigravity / Codex, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/c4bdfd6e38ac4f6db470ff7f8bf3f3788e78e1ee, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39044870745/job/117432880776, Artifact: docs/reviews/release-validation.md, Artifact: tests/unit/release.test.mjs, Artifact: tests/unit/domain.spec.ts, Artifact: docs/reviews/electron-backend-validation.md, Artifact: tests/electron/agent-product.spec.ts (+49 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.15
 Nodes (13): Architektur-Bedenken für das zentrale Register, Azure Diagrams: konkrete Beobachtungen, Design Directions, diagrams.net: konkrete Beobachtungen und Dokumentationsgrenze, Excalidraw: konkrete Beobachtungen, Human Preference Check, Recommendation und konkrete Komponentenanforderungen, Referenzen und Evidenz (+5 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.11
-Nodes (28): defaultRunGit(), __dirname, fetchReleaseByTag(), __filename, FORBIDDEN_RELEASE_ASSET_PATTERNS, formatByteSize(), generateReleaseNotes(), isForbiddenReleaseAsset() (+20 more)
+Cohesion: 0.05
+Nodes (71): projectRoot, installCiSandboxProfile(), sandboxProfile(), computeSha256(), defaultRunGit(), __dirname, fetchReleaseByTag(), __filename (+63 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.20
@@ -298,8 +302,8 @@ Cohesion: 0.13
 Nodes (15): scripts, build, build:electron, build:mcp, build:renderer, dev:browser, dev:electron, mcp (+7 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.09
-Nodes (29): DesktopBridge, ALLOWED_EXPORT_FORMATS, BrowserAnchorLike, BrowserCloseDecision, BrowserDesktopBridgeOptions, BrowserDomAdapter, BrowserExportFormat, BrowserFileInputLike (+21 more)
+Cohesion: 0.11
+Nodes (27): DesktopBridge, ALLOWED_EXPORT_FORMATS, BrowserAnchorLike, BrowserCloseDecision, BrowserDomAdapter, BrowserExportFormat, BrowserFileInputLike, BrowserMenuCommand (+19 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
@@ -334,8 +338,8 @@ Cohesion: 0.29
 Nodes (4): ENTRYPOINTS, errors, modeArg, rootDir
 
 ### Community 21 - "Community 21"
-Cohesion: 0.04
-Nodes (47): Artifact: src/domain/index.ts, Artifact: src/domain/validation.ts, Artifact: docs/reviews/antigravity-domain.md, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/59, Artifact: docs/reviews/claude-comments-059.md, Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/comments-tasks.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/59 (+39 more)
+Cohesion: 0.05
+Nodes (50): Verantwortung: Codex / Antigravity, Artifact: electron/security.ts, Artifact: docs/reviews/antigravity-desktop.md, Artifact: src/platform/index.ts, Artifact: electron/main.ts, Artifact: docs/reviews/antigravity-desktop-fixes.md, Artifact: electron/persistence.ts, Artifact: docs/reviews/desktop-validation.md (+42 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.33
@@ -351,15 +355,15 @@ Nodes (13): centerOnPoint(), clampZoom(), docToScreen(), fitRect(), normalizeZer
 
 ### Community 31 - "Community 31"
 Cohesion: 0.04
-Nodes (61): createAnnotationDocument(), AnnotationBlock, AnnotationBlockType, AnnotationDocument, AnnotationRun, CodeDraft, CommentMessage, CommentTarget (+53 more)
+Nodes (57): AnnotationBlock, AnnotationBlockType, AnnotationDocument, AnnotationRun, CodeDraft, CommentMessage, CommentTarget, ElementPatch (+49 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.05
-Nodes (42): Verantwortung: Antigravity + Claude Code, Artifact: src/codec/index.ts, Artifact: src/catalog/index.ts, Artifact: docs/reviews/codex-codec-catalog-findings.md, Artifact: src/renderer/state/contract.ts, Artifact: docs/reviews/codec-catalog-validation.md, Artifact: docs/reviews/codex-interop-external-acceptance.md, Artifact: tests/unit/interop-review.spec.ts (+34 more)
+Nodes (44): Artifact: src/renderer/lib/shortcuts.ts, Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/ui/element-clipboard.spec.ts, Artifact: src/renderer/state/element-clipboard.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/c0becf6843b2ee0209e4aae08a44c8e0e8f8ed7a, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/51, Artifact: tests/unit/renderer/element-clipboard.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/0e2ca9a7e3487a451000328c76f3c0d0f2dcd481 (+36 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.13
-Nodes (29): applyDiagnosticCap(), applyElementScriptDefaults(), DOCUMENT_DECL_ALLOWED_KEYS, formatAssetTail(), formatElementTail(), formatSetTail(), isHorizontalWs(), lookupSpanInJson() (+21 more)
+Cohesion: 0.09
+Nodes (40): prepareComponentSetImport(), applyDiagnosticCap(), applyElementScriptDefaults(), CODEC_LIMITS, DOCUMENT_DECL_ALLOWED_KEYS, formatAssetTail(), formatDiagram(), formatElementTail() (+32 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.07
@@ -370,12 +374,12 @@ Cohesion: 0.08
 Nodes (26): ALLOWED_PATH_COMMANDS, ALLOWED_TAGS, CONTAINER_ICON_TAGS, deepFreezeIconTree(), FILL_RULES, GEOMETRY_ATTRIBUTES_BY_TAG, MutableIconNode, parsedFallback (+18 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.14
-Nodes (37): areAnnotationDocumentsEqual(), cloneAnnotationDocument(), ActorHistory, arraysEqual(), COMMAND_SOURCES, CONTEXT_KEYS, evaluateTransition(), hasSameGeometry() (+29 more)
+Cohesion: 0.13
+Nodes (39): areAnnotationDocumentsEqual(), cloneAnnotationDocument(), ActorHistory, arraysEqual(), COMMAND_SOURCES, CONTEXT_KEYS, evaluateTransition(), hasSameGeometry() (+31 more)
 
 ### Community 37 - "Community 37"
 Cohesion: 0.06
-Nodes (39): ERASER_OPTIONS, eraserOption, PENCIL_OPTIONS, pencilOption, CreateStoreOptions, DialogChoice, DialogState, EraserSize (+31 more)
+Nodes (43): DEFAULT_SIZES, DEFAULT_STYLE, FONT_FAMILY_CSS, NamedColor, PALETTE, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND (+35 more)
 
 ### Community 38 - "Community 38"
 Cohesion: 0.22
@@ -390,36 +394,36 @@ Cohesion: 0.40
 Nodes (4): draw(), point(), setup(), stores
 
 ### Community 41 - "Community 41"
-Cohesion: 0.12
-Nodes (25): createEmptyDocument(), formatDiagram(), applyCommand(), createDefaultStyle(), createElement(), generateUniqueId(), serializeDocument(), validateDocument() (+17 more)
+Cohesion: 0.21
+Nodes (12): importBoundary(), Cell, importDrawio(), inspectDrawio(), exportDrawio(), exportSvg(), prepareDrawioExport(), prepareSvgExport() (+4 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.07
-Nodes (39): Verantwortung: Antigravity / Codex, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1, Artifact: scripts/release.mjs, Artifact: docs/reviews/release-v0.1.1-verification.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39046419226/job/117438655094, Artifact: tests/unit/release.test.mjs, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/15 (+31 more)
+Cohesion: 0.05
+Nodes (43): Verantwortung: Antigravity + Claude Code, Artifact: src/codec/index.ts, Artifact: src/catalog/index.ts, Artifact: docs/reviews/codex-codec-catalog-findings.md, Artifact: src/renderer/state/contract.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/lib/viewport.ts, Artifact: docs/reviews/codec-catalog-validation.md (+35 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.06
-Nodes (38): Verantwortung: Claude Code / Codex-Recherche, Artifact: tests/electron/desktop.spec.ts, Artifact: scripts/linux-sandbox.mjs, Artifact: tests/ui/collaboration.spec.ts, Artifact: tests/unit/linux-sandbox.test.mjs, Artifact: docs/sprints.md, Artifact: CLAUDE.md, Artifact: docs/decisions/0002-direct-peer-session-order.md (+30 more)
+Cohesion: 0.05
+Nodes (43): Artifact: src/agent-access/types.ts, Artifact: src/agent-access/fingerprint.ts, Artifact: src/agent-access/errors.ts, Artifact: tests/unit/mcp-review-boundaries.spec.ts, Artifact: tests/electron/agent-product.spec.ts, Artifact: src/agent-access, Artifact: src/mcp, Artifact: docs/reviews/codex-mcp-integration.md (+35 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.15
-Nodes (38): ADD_COMMAND_KEYS, applyCommandInternal(), BATCH_COMMAND_KEYS, BatchExecutionState, CHANGE_ENTRY_KEYS, DELETE_COMMAND_KEYS, PATCH_KEYS, RENAME_COMMAND_KEYS (+30 more)
+Cohesion: 0.12
+Nodes (16): ADD_COMMAND_KEYS, BATCH_COMMAND_KEYS, BatchExecutionState, CHANGE_ENTRY_KEYS, DELETE_COMMAND_KEYS, PATCH_KEYS, RENAME_COMMAND_KEYS, REORDER_COMMAND_KEYS (+8 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.09
-Nodes (36): SaveDocumentRequest, CloseHandshakeCallbacks, CLOSE_DECISIONS, CloseDecision, EXPORT_ALLOWED_KEYS, EXPORT_FORMATS, ExportFileIpcPayload, ExportFormat (+28 more)
+Nodes (29): createAgentAccessPreload(), ExportFileResult, CLOSE_DECISIONS, EXPORT_ALLOWED_KEYS, EXPORT_FORMATS, ExportFileIpcPayload, ExportFormat, FORBIDDEN_KEYS (+21 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.07
-Nodes (35): Verantwortung: Antigravity, Verantwortung: Antigravity + Codex, Verantwortung: Codex, Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/42#issuecomment-6244505676, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/37#issuecomment-6244505220, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/57, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087754787 (+27 more)
+Cohesion: 0.05
+Nodes (38): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/53, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/52, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/39, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/components/WorkspacePanels.vue, Artifact: src/renderer/lib/shapes.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/components/SelectionToolbar.vue (+30 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.18
-Nodes (17): installCiSandboxProfile(), sandboxProfile(), computeSha256(), cleanSmokeEnvironment(), contained(), EXPECTED_MCP_TOOLS, extractInstaller(), findFiles() (+9 more)
+Cohesion: 0.06
+Nodes (34): Artifact: tests/ui/pages.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39069887042, Artifact: src/renderer/state/whiteboard.ts, Artifact: src/renderer/i18n/de.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35, Artifact: src/renderer/components/PageSwitcher.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39068735903 (+26 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.17
-Nodes (20): hasNonEmptyEnv(), inspectBinaryFile(), normalizeOptionalSigningEnvironment(), packagePlatformInstaller(), readBytesAt(), resolveSigningConfiguration(), verifyBuildPrerequisites(), verifyInstallerBinaryHeader() (+12 more)
+Cohesion: 0.07
+Nodes (33): Verantwortung: Antigravity, Verantwortung: Antigravity + Codex, Verantwortung: Codex, Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/42#issuecomment-6244505676, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/37#issuecomment-6244505220, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/57, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087754787 (+25 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.18
@@ -430,7 +434,7 @@ Cohesion: 0.12
 Nodes (16): 10. Konkrete Renderer-Anbindung, 11. Abnahmematrix, 12. Offene Entscheidungen und Grenzen für die Rootfreigabe, 1. Autorität und tatsächlich vorhandene Integrationsgrenzen, 2. Gemeinsame Gateway-Typen, 3. Öffentliche Collaboration-API, 4. Transport und manuelles Pairing, 5. Identität, Fingerprints und Rollen (+8 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (19): FileError, FileReference, SaveDocumentResult, computeVersionToken(), defaultFsAdapter, DocumentPersistenceService, ExpectedTargetState, FileHandleLike (+11 more)
 
 ### Community 52 - "Community 52"
@@ -449,10 +453,6 @@ Nodes (11): Befunde vor Freigabe zur Implementierung, Bestätigte Grundlagen und
 Cohesion: 0.20
 Nodes (9): #18 — Inverse Rotation für gebundene Endpunkte rotierter Connectoren, #19 — Wiederherstellung von `ElementKind` nach `replace` im Per-Actor Undo/Redo, 1. Behobene Befunde und geprüfte Folgepfade, #20 — Kanonisches JSON-Bytebudget (`MAX_DOCUMENT_JSON_BYTES`) an allen Validierungs- und Commit-Grenzen, #21 — Sichere Ganzzahl-Revisionen (`Number.isSafeInteger`) und Überlaufschutz für `dispatch`, `undo`, `redo`, 2. Geänderte Dateien, 3. Prüfungen, Antigravity Domain-Reparaturbericht — Issues #18, #19, #20, #21 (+1 more)
 
-### Community 56 - "Community 56"
-Cohesion: 0.14
-Nodes (9): Lokale Agenten mit Sketchdraw verbinden, Technische Grenze, Werkzeuge, Änderungen und Wiederholungen, Abnahmematrix, Agentenkoordination, Definition of Done, Sprintplan und Abnahme (+1 more)
-
 ### Community 57 - "Community 57"
 Cohesion: 0.25
 Nodes (7): MessageKey, MessageParams, MESSAGES, PluralBase, SHORTCUT_GROUP_TITLES, t(), tCount()
@@ -467,11 +467,11 @@ Nodes (13): Ausgelieferter Adapter und Ressourcen, Commit, Widerruf und Schließ
 
 ### Community 60 - "Community 60"
 Cohesion: 0.07
-Nodes (30): Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/44, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: src/renderer/state/whiteboard.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/44 (+22 more)
+Nodes (32): Verantwortung: Claude Code / Codex-Recherche, Artifact: docs/contracts-mcp.md, Artifact: docs/reviews/codex-mcp-contract-review.md, Artifact: docs/sprints.md, Artifact: docs/decisions/0002-direct-peer-session-order.md, Artifact: docs/contracts.md, Artifact: src/domain/types.ts, Artifact: docs/decisions/0001-shared-document-contract.md (+24 more)
 
 ### Community 61 - "Community 61"
-Cohesion: 0.10
-Nodes (34): builtInComponentSets, ICON_LIMITS, CATALOG_LIMITS, CatalogSearchResult, checkSetImportCompatibility(), COMPONENT_DEF_KEYS, COMPONENT_SET_KEYS, formatWidgetMetadataKey() (+26 more)
+Cohesion: 0.13
+Nodes (47): builtInComponentSets, createEmptyDocument(), ICON_LIMITS, CATALOG_LIMITS, CatalogSearchResult, checkSetImportCompatibility(), COMPONENT_DEF_KEYS, COMPONENT_SET_KEYS (+39 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.17
@@ -486,8 +486,8 @@ Cohesion: 0.17
 Nodes (12): dependencies, fflate, @fontsource-variable/caveat, @fontsource-variable/inter, @fontsource-variable/jetbrains-mono, @fontsource-variable/roboto, htmlparser2, jsonc-parser (+4 more)
 
 ### Community 66 - "Community 66"
-Cohesion: 0.07
-Nodes (30): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/52, Artifact: src/renderer/state/contract.ts, Artifact: src/renderer/lib/shapes.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/lib/viewport.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/lib/shape-toolbar-preferences.ts (+22 more)
+Cohesion: 0.11
+Nodes (29): Verantwortung: Antigravity / Codex Testing, Artifact: docs/reviews/antigravity-domain-fixes.md, Artifact: src/domain/controller.ts, Artifact: src/domain/validation.ts, Artifact: src/domain/geometry.ts, Artifact: docs/reviews/domain-validation.md, Artifact: tests/unit/domain-review.spec.ts, Artifact: docs/reviews/codex-domain-findings.md (+21 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.40
@@ -498,24 +498,24 @@ Cohesion: 0.40
 Nodes (4): Ausgeführt, Domain-Abnahme nach Reparatur, Geprüfte Dateien (SHA-256), Grenzen
 
 ### Community 69 - "Community 69"
-Cohesion: 0.09
-Nodes (29): Verantwortung: Claude Code / Antigravity, Artifact: electron/agent-access/runtime-access.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662, Artifact: tests/unit/mcp/runtime-access.spec.ts, Artifact: electron/agent-access/electron-bridge.ts, Artifact: tests/electron/agent-product.spec.ts, Artifact: tests/electron/desktop.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/32 (+21 more)
+Cohesion: 0.08
+Nodes (28): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.1, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6, Artifact: scripts/release.mjs, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39046419226/job/117438655094, Artifact: docs/reviews/release-v0.1.1-verification.json, Artifact: README.md, Artifact: electron-builder.json, Artifact: docs/licensing/README.md (+20 more)
 
 ### Community 70 - "Community 70"
-Cohesion: 0.07
-Nodes (29): Artifact: package.json, Artifact: scripts/build-electron.mjs, Artifact: .github/workflows/ci.yml, Artifact: docs/setup.md, Artifact: docs/licensing/README.md, Artifact: README.md, Artifact: electron-builder.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/38f5170a89880ba989b4d24cec247f147e5b0ea6 (+21 more)
+Cohesion: 0.13
+Nodes (20): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838305, Artifact: src/renderer/state/whiteboard.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814246, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: tests/unit/interop/connectors.spec.ts, Artifact: tests/unit/domain/connectors.spec.ts, Artifact: src/renderer/components/SelectionToolbar.vue (+12 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.08
-Nodes (26): Artifact: src/agent-access/types.ts, Artifact: src/agent-access/fingerprint.ts, Artifact: src/agent-access/errors.ts, Artifact: docs/contracts-mcp.md, Artifact: docs/reviews/codex-mcp-contract-review.md, Artifact: tests/unit/mcp-review-boundaries.spec.ts, Artifact: docs/reviews/codex-session.md, Artifact: src/session (+18 more)
+Cohesion: 0.14
+Nodes (19): Artifact: src/renderer/state/whiteboard.ts, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: tests/ui/sticky-note.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39077766935, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39077766935/job/117528371031, Artifact: src/domain/types.ts (+11 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.07
 Nodes (25): 1. Zusammenfassung der Implementierung, 2.1 Metadaten in `package.json`, 2.2 Optionale NPM-Skripte in `package.json`, 2. Notwendige `package.json`-Ergänzungen für Codex, 3. Technische Bedenken und Architekturentscheidungen (für `docs/concerns.md`), 4. Prüfstatus (Ehrliche Ausweisung gemäß `AGENTS.md`), Architektur-, Sicherheits- und Bedenkenbericht: Cross-Platform Release-Pipeline (Issue #24), Bedenken 1: Abweichendes `${arch}`-Token für Debian-Pakete in `electron-builder` (`amd64` statt `x64`) (+17 more)
 
 ### Community 74 - "Community 74"
-Cohesion: 0.17
-Nodes (19): comparison(), ParsedPair, freeze(), LocalIntent, QueryOutcome, activeOwners, CommitRecord, intentDigest() (+11 more)
+Cohesion: 0.10
+Nodes (33): ParsedPair, freeze(), LocalIntent, QueryOutcome, activeOwners, CommitRecord, intentDigest(), Invitation (+25 more)
 
 ### Community 75 - "Community 75"
 Cohesion: 0.18
@@ -526,60 +526,60 @@ Cohesion: 0.10
 Nodes (10): afterShapes, beforeShapes, cancelLongPress(), favoriteEntries, leaveEditMode(), onKeydown(), tabStop, toggleCatalog() (+2 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.10
-Nodes (24): Artifact: tests/ui/table.spec.ts, Artifact: src/renderer/components/TableOverlay.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564219839, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/42ba3d923cf00a78672b84d181ba4e12e81de5a7, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/58, Artifact: src/domain/table.ts (+16 more)
+Cohesion: 0.14
+Nodes (13): ReadDocumentOutput, HistoryEntry, ParseResult, SketchDocument, PersistenceServiceOptions, BrowserDesktopBridgeOptions, asset(), componentSet() (+5 more)
 
 ### Community 84 - "Community 84"
 Cohesion: 0.06
-Nodes (35): LocalGrant, RendererAgentHandler, attachRendererAgentSession(), RendererAgentSession, AGENT_READ_OPERATIONS, AgentControlAck, AgentGrantSummary, AgentIssuedGrant (+27 more)
+Nodes (36): LocalGrant, RendererAgentHandler, attachRendererAgentSession(), RendererAgentSession, AGENT_READ_OPERATIONS, AgentControlAck, AgentGrantSummary, AgentIssuedGrant (+28 more)
 
 ### Community 85 - "Community 85"
-Cohesion: 0.19
-Nodes (17): cell(), cloneTableDocument(), DEFAULT_TABLE_CELL_STYLE, deleteTableColumn(), deleteTableRow(), duplicateTableColumn(), duplicateTableRow(), formatTableCells() (+9 more)
+Cohesion: 0.25
+Nodes (14): cell(), cloneTableDocument(), DEFAULT_TABLE_CELL_STYLE, deleteTableColumn(), deleteTableRow(), duplicateTableColumn(), duplicateTableRow(), formatTableCells() (+6 more)
 
 ### Community 86 - "Community 86"
-Cohesion: 0.25
-Nodes (20): signedEnvelope(), Incoming, LinkOptions, fromHex(), hex(), id(), integer(), LIMIT (+12 more)
+Cohesion: 0.28
+Nodes (17): Incoming, LinkOptions, hex(), id(), integer(), LIMIT, record(), sameSession() (+9 more)
 
 ### Community 87 - "Community 87"
-Cohesion: 0.08
-Nodes (25): AnalyzeDocumentOutput, ReadDocumentOutput, ComponentInstantiation, CODEC_LIMITS, HistoryEntry, ALL_KINDS, DomainConflictError, DomainValidationError (+17 more)
+Cohesion: 0.09
+Nodes (20): AnalyzeDocumentOutput, ComponentInstantiation, ALL_KINDS, DomainConflictError, DomainValidationError, DOMAIN_LIMITS, DomainLimits, deserializeDocument() (+12 more)
 
 ### Community 88 - "Community 88"
-Cohesion: 0.21
-Nodes (7): Guest, rejected(), OutcomeEntry, boundedJson(), notify(), DocumentSession, WriteOutcome
+Cohesion: 0.24
+Nodes (5): Guest, rejected(), notify(), DocumentSession, WriteOutcome
 
 ### Community 89 - "Community 89"
 Cohesion: 0.29
 Nodes (6): Aufbau des Nachweises, Die drei bestandenen Fälle, Electron-Backend: bestätigter Laufzeitnachweis, Ergebnis und geprüfter Stand, Grenzen und Fortsetzung, Testharness-Korrekturen und weitere Prüfungen
 
 ### Community 90 - "Community 90"
-Cohesion: 0.24
-Nodes (5): AgentHost, randomId(), Entry, AgentOperationOutput, AgentSessionDescriptor
+Cohesion: 0.30
+Nodes (3): AgentHost, randomId(), AgentSessionDescriptor
 
 ### Community 91 - "Community 91"
 Cohesion: 0.50
 Nodes (4): @electron/get@3.1.0, global-agent, overrides, app-builder-lib@26.15.3
 
 ### Community 92 - "Community 92"
-Cohesion: 0.12
-Nodes (23): BindingState, Entry, errorCode(), initialSnapshot(), ownedControllers, SOURCES, Transition, SessionAccessError (+15 more)
+Cohesion: 0.08
+Nodes (36): CommandContext, DocumentCommand, DocumentController, HistoryAvailability, BindingState, Entry, errorCode(), initialSnapshot() (+28 more)
 
 ### Community 95 - "Community 95"
-Cohesion: 0.11
-Nodes (54): shapeBaseKind(), createTableDocument(), tablePlainText(), Point, add(), baseStyle(), color(), context() (+46 more)
+Cohesion: 0.12
+Nodes (50): shapeBaseKind(), createTableDocument(), tablePlainText(), Point, add(), baseStyle(), color(), context() (+42 more)
 
 ### Community 97 - "Community 97"
-Cohesion: 0.11
-Nodes (23): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/50, Artifact: src/renderer/state/whiteboard.ts, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39077766935/job/117528392149, Artifact: tests/ui/sticky-note.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39077766935 (+15 more)
+Cohesion: 0.12
+Nodes (17): Artifact: docs/reviews/claude-architecture.md, Concern: CL-13, Concern: CL-08, Concern: CL-14, Concern: CL-06, Concern: CL-09, Concern: CL-03, Concern: CL-02 (+9 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.28
-Nodes (4): PeerLink, deferred(), fail(), timeout()
+Cohesion: 0.26
+Nodes (5): PeerLink, deferred(), fail(), fromHex(), timeout()
 
 ### Community 100 - "Community 100"
 Cohesion: 0.15
-Nodes (22): assertIdentity(), createSessionIdentity(), identities, identityKeys(), importKey(), pairText(), parsePair(), sign() (+14 more)
+Nodes (25): assertIdentity(), comparison(), createSessionIdentity(), identities, identityKeys(), importKey(), PairPayload, pairText() (+17 more)
 
 ### Community 101 - "Community 101"
 Cohesion: 0.20
@@ -590,28 +590,28 @@ Cohesion: 0.12
 Nodes (15): 1. Nutzerauftrag und Entscheidungen, 2. Ausgangslage, 3.1 Schema v2, 3.2 Migration und Kompatibilität, 3.3 Commands, 3.4 Diagram-as-Code, 3.5 Interop, 3.6 MCP (+7 more)
 
 ### Community 103 - "Community 103"
-Cohesion: 0.19
-Nodes (31): isResourceCard(), resourceCardIconType(), annotationPlainText(), connectorEndMarker(), connectorStartMarker(), resolveAnchorWorldPoint(), syncConnectorEndpoints(), encodeEnvelope() (+23 more)
+Cohesion: 0.16
+Nodes (32): isResourceCard(), resourceCardIconType(), annotationPlainText(), connectorEndMarker(), connectorStartMarker(), resolveAnchorWorldPoint(), syncConnectorEndpoints(), encodeEnvelope() (+24 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.16
-Nodes (13): areXmlTreesEquivalent(), getExpandedAttrKey(), isXmlnsAttribute(), normalizeChildrenForComparison(), parseXmlDocument(), ParseXmlOptions, precheckForbiddenXmlConstructs(), TEXT_PRESERVING_LOCAL_NAMES (+5 more)
+Cohesion: 0.11
+Nodes (16): utf8ByteLength(), checkText(), XmlOutputBuilder, areXmlTreesEquivalent(), getExpandedAttrKey(), isXmlnsAttribute(), normalizeChildrenForComparison(), parseXmlDocument() (+8 more)
 
 ### Community 105 - "Community 105"
 Cohesion: 0.12
-Nodes (25): PairPayload, CollaborationStatus, GuestSession, OwnerSession, OwnerSessionOptions, PairingText, PeerRole, CommandContext (+17 more)
+Nodes (16): Artifact: docs/reviews/codex-interop-external-acceptance.md, Artifact: tests/unit/interop-review.spec.ts, Artifact: tests/unit/interop/external.spec.ts, Artifact: src/interop, Artifact: docs/reviews/codex-interop.md, Artifact: docs/contracts-interop.md, Ist-Aufwand antigravity-interop-001: observedSeconds=1105.4238145420095, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand antigravity-interop-claude-001: observedSeconds=93.86574745899998, tokens=unbekannt, costUsd=unbekannt (+8 more)
 
 ### Community 106 - "Community 106"
 Cohesion: 0.20
 Nodes (14): base64CharToVal(), decodeBase64Bounded(), decodeBase64ToUtf8String(), decodeUriPageBounded(), decompressDrawioPageXml(), encodeBytesToBase64(), encodeUtf8JsonToBase64(), ensureAsciiEscapedLoneSurrogatesInJson() (+6 more)
 
 ### Community 107 - "Community 107"
-Cohesion: 0.11
-Nodes (27): endpointOptions(), authOkSchema, base, challengeSchema, helloSchema, mcpBase, mcpOperationSchemas, mcpWrite (+19 more)
+Cohesion: 0.10
+Nodes (29): authMac(), endpointOptions(), sameMac(), Entry, authOkSchema, base, challengeSchema, helloSchema (+21 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.09
-Nodes (23): Artifact: tests/electron/agent-product.spec.ts, Artifact: src/agent-access, Artifact: src/mcp, Artifact: docs/reviews/codex-mcp-integration.md, Artifact: skills/sketchdraw-desktop/SKILL.md, Artifact: tests/unit/mcp/backend.spec.ts, Artifact: electron/agent-access, Artifact: tests/electron/helpers/stop-electron.ts (+15 more)
+Cohesion: 0.12
+Nodes (16): Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/renderer/guest-store.spec.ts, Artifact: src/renderer/components/ToolOptionsBar.vue, Artifact: src/renderer/state/contract.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/61#issuecomment-6245136041, Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: src/renderer/lib/drawing-tools.ts, Artifact: src/renderer/components/Toolbar.vue (+8 more)
 
 ### Community 109 - "Community 109"
 Cohesion: 0.18
@@ -622,24 +622,24 @@ Cohesion: 0.13
 Nodes (15): 1. Adapter-API und Ergebnissemantik, 2. Ressourcen- und Sicherheitsgrenzen, 3. draw.io: Container, Seiten und Einlesen, 4. SVG: sichere editierbare Projektion, 5. Herkunft, IDs und Verlustbericht, 6. Eigene Zusatzmetadaten und echte Roundtrips, 7. Anwendung, Renderer und Autorisierung, 8. Abnahmefälle (+7 more)
 
 ### Community 111 - "Community 111"
-Cohesion: 0.50
-Nodes (3): AGENT_IPC, createAgentAccessPreload(), SketchdrawAgentAccessBridge
+Cohesion: 0.12
+Nodes (16): Artifact: tests/ui/table.spec.ts, Artifact: src/renderer/components/TableOverlay.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/42ba3d923cf00a78672b84d181ba4e12e81de5a7, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/58, Artifact: src/domain/table.ts, Artifact: tests/unit/table.spec.ts (+8 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.11
-Nodes (21): Artifact: src/renderer/components/AnnotationEditor.vue, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/56, Artifact: src/renderer/state/whiteboard.ts, Artifact: src/domain/annotation.ts, Artifact: release/mac-arm64/Sketchdraw.app, Artifact: src/renderer/lib/annotation.ts, Artifact: tests/ui/annotation.spec.ts (+13 more)
+Cohesion: 0.18
+Nodes (15): Verantwortung: Claude Code / Antigravity, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054281662, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39054540682, Artifact: tests/unit/mcp/runtime-access.spec.ts, Artifact: electron/agent-access/runtime-access.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/596517eda486d31fee8224288606679e70e12a2b, Concern: cross-platform-runtime-path-semantics, Ist-Aufwand codex-runtime-path-fix-030: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+7 more)
 
 ### Community 113 - "Community 113"
 Cohesion: 0.08
-Nodes (29): createAgentHost(), createRendererAgentHandler(), AgentControlMessage, AgentRendererRequest, cleanups, setup(), until(), createController() (+21 more)
+Nodes (31): createAgentHost(), createRendererAgentHandler(), AgentRendererRequest, cleanups, setup(), until(), createController(), createDocument() (+23 more)
 
 ### Community 114 - "Community 114"
 Cohesion: 0.22
 Nodes (9): Gezielte Linux-Sandbox-Voraussetzung in CI, Lokale Prüfungen und native Abnahme, Prüfungen vor der Veröffentlichung, Release-Pipeline und Desktop-Packaging (Issue #24), Signing, Tatsächlicher Installer- und Starttest, Veröffentlichtes Release, Wiederaufnahme und Schutz vorhandener Releases (+1 more)
 
 ### Community 115 - "Community 115"
-Cohesion: 0.16
-Nodes (11): BackendShell, FixtureWindow, projectRoot, saveRequest, test, projectRoot, deadline(), execFileAsync (+3 more)
+Cohesion: 0.22
+Nodes (6): SaveDocumentRequest, BackendShell, FixtureWindow, projectRoot, saveRequest, test
 
 ### Community 116 - "Community 116"
 Cohesion: 0.16
@@ -663,11 +663,11 @@ Nodes (8): Auftrag und tatsächliches Werkzeug, Codex: Whiteboard, Agentenzugrif
 
 ### Community 122 - "Community 122"
 Cohesion: 0.13
-Nodes (20): Artifact: src/renderer/state/whiteboard.ts, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: tests/unit/interop/connectors.spec.ts, Artifact: tests/unit/domain/connectors.spec.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522814096, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39075881787/job/117522838260 (+12 more)
+Nodes (15): Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/comments-tasks.spec.ts, Artifact: src/renderer/components/CommentsLayer.vue, Artifact: tests/ui/comments-tasks.spec.ts, Artifact: src/domain/validation.ts, Artifact: graphify-out/traceability.json, Artifact: src/renderer/components/CommentSidebar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/59#issuecomment-6244882417 (+7 more)
 
 ### Community 123 - "Community 123"
-Cohesion: 0.13
-Nodes (19): Verantwortung: Google Antigravity, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/46, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/49, Artifact: https://www.figma.com/board/s2F3iDDeVgyjrie7NgxmsG/Untitled?node-id=6-280, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/45, Concern: Antigravity displayed exhausted baseline and individual Claude quotas, so it produced no repository work for this ticket., Ist-Aufwand antigravity-connector-attempt-046: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand antigravity-sticky-domain-attempt-049: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+11 more)
+Cohesion: 0.15
+Nodes (14): Artifact: src/renderer/state/whiteboard.ts, Artifact: src/renderer/state/contract.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd, Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/renderer/text-edit-style.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/44 (+6 more)
 
 ### Community 124 - "Community 124"
 Cohesion: 0.33
@@ -690,20 +690,20 @@ Cohesion: 0.33
 Nodes (6): Abschließende Prüfung des integrierten main-Stands, Aktuelle Evidenz für v0.1.1, Aussagegrenzen und Fortsetzung, Historische Vorläufe, Identität der tatsächlich geprüften Installer, Konsolidierte Produkt- und Release-Nachweise
 
 ### Community 133 - "Community 133"
-Cohesion: 0.12
-Nodes (19): Artifact: scripts/release.mjs, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/c4bdfd6e38ac4f6db470ff7f8bf3f3788e78e1ee, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39044870745/job/117432880776, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/27, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39056131370, Artifact: tests/unit/release.test.mjs, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/b030ddc620f02a75921f875b6b333ed6c8204fd1, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/213932c (+11 more)
+Cohesion: 0.14
+Nodes (14): Artifact: src/renderer/lib/shortcuts.ts, Artifact: src/renderer/state/whiteboard.ts, Artifact: src/renderer/components/LaserPointerOverlay.vue, Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: tests/unit/renderer/laser-pointer.spec.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/62#issuecomment-6245298821, Artifact: graphify-out/traceability.json (+6 more)
 
 ### Community 141 - "Community 141"
 Cohesion: 0.06
-Nodes (27): annotation, asset, cardBodyHeight, cardDescription, cardFooterHeight, cardIconSize, cardLinks, cardTextX (+19 more)
+Nodes (28): annotation, asset, cardBodyHeight, cardDescription, cardFooterHeight, cardIconSize, cardLinks, cardTextX (+20 more)
 
 ### Community 143 - "Community 143"
-Cohesion: 0.29
-Nodes (6): Datenvertrag und Aufwand, Erzeugen und abfragen, Nach Änderungen aktualisieren, Provenienz und Grenzen, Prüfen, Tickets, Agentenläufe und Aufwand in Graphify
+Cohesion: 0.16
+Nodes (10): Datenvertrag und Aufwand, Erzeugen und abfragen, Nach Änderungen aktualisieren, Provenienz und Grenzen, Prüfen, Tickets, Agentenläufe und Aufwand in Graphify, Abnahmematrix, Agentenkoordination (+2 more)
 
 ### Community 144 - "Community 144"
 Cohesion: 0.15
-Nodes (18): Artifact: src/renderer/lib/shortcuts.ts, Artifact: src/renderer/state/whiteboard.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39079373635/job/117533039450, Artifact: tests/ui/element-clipboard.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39079373635, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39079373635/job/117533012483, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/c0becf6843b2ee0209e4aae08a44c8e0e8f8ed7a, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/51 (+10 more)
+Nodes (13): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/56, Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/55, Concern: The Antigravity UI reported exhausted baseline model quota until 24 October 2026 and disabled message submission; no implementation or review was produced., Concern: Keep all six document actions behind one trailing toolbar trigger, disable them during text editing and restore trigger focus when the popover closes., Concern: Reuse the existing store operations and extend the UI regression coverage., Ist-Aufwand antigravity-annotation-attempt-056: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+5 more)
 
 ### Community 145 - "Community 145"
 Cohesion: 0.33
@@ -714,8 +714,8 @@ Cohesion: 0.33
 Nodes (4): drawRect(), point(), setup(), stores
 
 ### Community 147 - "Community 147"
-Cohesion: 0.18
-Nodes (13): AgentClientConfig, AgentRuntimeAccess, assertPrivateRuntimeFile(), clearAgentRuntimeAccess(), grantSchema, readAgentRuntimeAccess(), runtimeSchema, writeAgentRuntimeAccess() (+5 more)
+Cohesion: 0.12
+Nodes (21): installElectronAgentBridge(), Pending, Reply, AGENT_IPC, AgentClientConfig, AgentRuntimeAccess, agentRuntimeFilePath(), assertPrivateRuntimeFile() (+13 more)
 
 ### Community 148 - "Community 148"
 Cohesion: 0.20
@@ -726,8 +726,8 @@ Cohesion: 0.22
 Nodes (11): AnnotationFormatCommand, annotationFromEditable(), appendRun(), BLOCK_TAGS, blockFrom(), escapeHtml(), inlineRuns(), Marks (+3 more)
 
 ### Community 154 - "Community 154"
-Cohesion: 0.12
-Nodes (17): Artifact: docs/reviews/claude-architecture.md, Concern: CL-13, Concern: CL-08, Concern: CL-14, Concern: CL-06, Concern: CL-09, Concern: CL-03, Concern: CL-02 (+9 more)
+Cohesion: 0.15
+Nodes (13): Artifact: docs/reviews/antigravity-architecture.md, Concern: AG-03, Concern: AG-06, Concern: AG-09, Concern: AG-01, Concern: AG-02, Concern: AG-08, Concern: AG-04 (+5 more)
 
 ### Community 155 - "Community 155"
 Cohesion: 0.40
@@ -742,56 +742,60 @@ Cohesion: 0.38
 Nodes (5): fillMode, hexToHsv(), Hsv, normalizeHex(), withFillMode()
 
 ### Community 160 - "Community 160"
-Cohesion: 0.13
-Nodes (16): Artifact: tests/ui/font-family.spec.ts, Artifact: tests/unit/interop/font-family.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278, Artifact: src/domain/validation.ts, Artifact: src/interop/svg.ts, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/43 (+8 more)
+Cohesion: 0.15
+Nodes (13): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/43, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64, Artifact: src/interop/drawio.ts, Artifact: src/interop/export.ts, Artifact: src/domain/validation.ts, Artifact: src/interop/svg.ts, Artifact: src/domain/types.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278 (+5 more)
 
 ### Community 161 - "Community 161"
-Cohesion: 0.13
-Nodes (16): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/54, Artifact: src/renderer/components/ResourceCardEditor.vue, Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/resource-card.spec.ts, Artifact: src/catalog/resource-card.ts, Artifact: src/catalog/builtin.ts, Artifact: src/interop/export.ts, Artifact: src/renderer/components/SelectionToolbar.vue (+8 more)
+Cohesion: 0.18
+Nodes (13): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/27, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39056131370, Artifact: scripts/release.mjs, Artifact: tests/unit/release.test.mjs, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/b030ddc620f02a75921f875b6b333ed6c8204fd1, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/213932c, Concern: default-keychain-notarization-profile, Ist-Aufwand codex-default-keychain-profile-027: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+5 more)
 
 ### Community 162 - "Community 162"
 Cohesion: 0.08
-Nodes (26): annotationOnly, barSize, close(), CONNECTOR_WIDTHS, connectorOnly, definition, editing, HEADING_LEVELS (+18 more)
+Nodes (27): annotationOnly, barSize, close(), CONNECTOR_WIDTHS, connectorOnly, definition, editing, HEADING_LEVELS (+19 more)
 
 ### Community 163 - "Community 163"
 Cohesion: 0.12
 Nodes (19): allowed, DEFAULT_SHAPE_FAVORITES, loadShapeFavorites(), saveShapeFavorites(), StorageLike, validateShapeFavorites(), addFavorite(), announcement (+11 more)
 
 ### Community 164 - "Community 164"
-Cohesion: 0.13
-Nodes (16): Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: release/mac-arm64/Sketchdraw.app, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/84e9a71e75768bacebfdc38a9c5acec8895eeff2, Artifact: graphify-out/graph.json, Artifact: graphify-out/traceability.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767224, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767251 (+8 more)
+Cohesion: 0.15
+Nodes (13): Artifact: tests/unit/renderer/guest-store.spec.ts, Artifact: src/renderer/state/contract.ts, Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: graphify-out/traceability.json, Artifact: src/renderer/components/WhiteboardCanvas.vue, Artifact: graphify-out/graph.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/60#issuecomment-6245007553, Artifact: agent-state/work-ledger.json (+5 more)
 
 ### Community 167 - "Community 167"
-Cohesion: 0.22
+Cohesion: 0.25
 Nodes (8): 1. Übersicht der implementierten Dateien, 2. Dokumentierte externe CAS-Restgrenze beim atomaren Speichern, 3. Neue Bedenken und Hinweise für die Integration, 4. Nicht ausgeführte Prüfungen (durch Codex auszuführen), AG-D01 (P2 / Mittel) — `esbuild`-Pfadalias-Auflösung in `scripts/build-electron.mjs`, AG-D02 (P1 / Hoch) — Sandboxed Preload (`sandbox: true`) darf keine Node-Builtins im Preload-Bundle referenzieren, AG-D03 (P2 / Mittel) — Zusammenspiel zwischen Renderer-Speicherfluss und `respondToClose` bei „Speichern & Schließen", Implementierungs- und Sicherheitsbericht (Antigravity) zu Issue #8 — Desktop-Shell, Preload-Brücke, Persistenz & Browser-Adapter
 
 ### Community 171 - "Community 171"
 Cohesion: 0.18
-Nodes (14): authMac(), sameMac(), canonicalizeJsonValue(), canonicalizeMutationRequest(), computeMutationFingerprint(), MutationFingerprintInput, validateAgentId(), validateExpectedRevision() (+6 more)
+Nodes (14): canonicalizeJsonValue(), canonicalizeMutationRequest(), computeMutationFingerprint(), MutationFingerprintInput, validateAgentId(), validateExpectedRevision(), AgentHostOptions, Connection (+6 more)
 
 ### Community 172 - "Community 172"
-Cohesion: 0.13
-Nodes (15): Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/renderer/guest-store.spec.ts, Artifact: src/renderer/components/ToolOptionsBar.vue, Artifact: src/renderer/state/contract.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/61#issuecomment-6245136041, Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: src/renderer/lib/drawing-tools.ts, Artifact: src/renderer/components/Toolbar.vue (+7 more)
+Cohesion: 0.15
+Nodes (13): Artifact: src/catalog/builtin.ts, Artifact: src/catalog/icon.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: release/mac-arm64/Sketchdraw.app, Artifact: THIRD_PARTY_ICONS.md, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/53, Artifact: graphify-out/traceability.json, Artifact: src/renderer/components/ShapeLibraryPanel.vue (+5 more)
 
 ### Community 173 - "Community 173"
-Cohesion: 0.15
-Nodes (14): Artifact: docs/reviews/antigravity-desktop.md, Artifact: src/platform/index.ts, Artifact: electron/main.ts, Artifact: electron/security.ts, Artifact: docs/reviews/antigravity-desktop-fixes.md, Artifact: electron/persistence.ts, Artifact: docs/reviews/desktop-validation.md, Concern: issue-22 (+6 more)
+Cohesion: 0.17
+Nodes (12): Artifact: src/renderer/state/whiteboard.ts, Artifact: src/interop/export.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: src/renderer/lib/annotation.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/56, Artifact: tests/unit/annotation.spec.ts, Artifact: src/domain/types.ts, Artifact: src/domain/validation.ts (+4 more)
 
 ### Community 174 - "Community 174"
-Cohesion: 0.15
-Nodes (13): Artifact: docs/reviews/antigravity-architecture.md, Concern: AG-03, Concern: AG-06, Concern: AG-09, Concern: AG-01, Concern: AG-02, Concern: AG-08, Concern: AG-04 (+5 more)
+Cohesion: 0.18
+Nodes (12): Artifact: src/renderer/components/CollaborationPanel.vue, Artifact: tests/p2p/native.spec.ts, Artifact: src/collaboration, Artifact: src/renderer/App.vue, Artifact: docs/reviews/codex-p2p-feedback.md, Artifact: tests/unit/collaboration/store.spec.ts, Artifact: docs/reviews/codex-p2p.md, Concern: p2p-recovery-notice-intercepts-click (+4 more)
+
+### Community 179 - "Community 179"
+Cohesion: 0.22
+Nodes (3): CloseHandshakeCallbacks, CloseHandshakeCoordinator, CloseDecision
 
 ### Community 180 - "Community 180"
 Cohesion: 0.31
 Nodes (9): bounds(), clone(), ELEMENT_CLIPBOARD_FORMAT, elementClipboardPayload, ElementPastePlan, isRecord(), parseElementClipboard(), planElementPaste() (+1 more)
 
 ### Community 182 - "Community 182"
-Cohesion: 0.18
-Nodes (12): Artifact: src/renderer/App.vue, Artifact: src/renderer/components/CollaborationPanel.vue, Artifact: tests/p2p/native.spec.ts, Artifact: src/collaboration, Artifact: docs/reviews/codex-p2p.md, Artifact: docs/reviews/codex-p2p-feedback.md, Artifact: tests/unit/collaboration/store.spec.ts, Concern: p2p-recovery-notice-intercepts-click (+4 more)
-
-### Community 183 - "Community 183"
 Cohesion: 0.17
 Nodes (12): Artifact: docs/research/2026-10-17/README.md, Artifact: docs/design-research.md, Artifact: docs/research/2026-10-17/validation.txt, Concern: DR-C02, Concern: DR-C07, Concern: C-008, Concern: C-009, Concern: DR-C01 (+4 more)
+
+### Community 183 - "Community 183"
+Cohesion: 0.20
+Nodes (11): Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/38, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817, Artifact: tests/ui/selection-toolbar.spec.ts, Concern: Near the top chrome, the available space above the selection can be smaller than a popover natural height; the popover remains above the element and scrolls internally., Ist-Aufwand claude-selection-popover-anchor-038: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+3 more)
 
 ### Community 186 - "Community 186"
 Cohesion: 0.22
@@ -799,27 +803,27 @@ Nodes (3): ByteBudget, JsonFrames, AGENT_ACCESS_LIMITS
 
 ### Community 187 - "Community 187"
 Cohesion: 0.18
-Nodes (11): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/43, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: src/renderer/components/ElementView.vue, Artifact: src/renderer/styles/tokens.css, Artifact: src/renderer/styles/fonts.css, Artifact: src/renderer/lib/constants.ts, Artifact: src/renderer/components/WhiteboardCanvas.vue (+3 more)
+Nodes (11): Artifact: docs/reviews/graphify-validation.md, Artifact: tools/tests/test_graphify_links.py, Artifact: tools/graphify-links.py, Artifact: docs/graphify-traceability.md, Concern: issue-7:path-collision, Concern: issue-7:parallel-edge, Concern: issue-7:hyperedge-reference, Concern: C-005 (+3 more)
 
 ### Community 188 - "Community 188"
-Cohesion: 0.22
-Nodes (11): Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/38, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817, Artifact: tests/ui/selection-toolbar.spec.ts, Concern: Near the top chrome, the available space above the selection can be smaller than a popover natural height; the popover remains above the element and scrolls internally., Ist-Aufwand claude-selection-popover-anchor-038: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+3 more)
+Cohesion: 0.20
+Nodes (10): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278, Artifact: src/renderer/components/ElementView.vue, Artifact: src/renderer/styles/tokens.css, Artifact: src/renderer/styles/fonts.css, Artifact: src/renderer/lib/constants.ts, Concern: For a mixed selection the toolbar preview shows the first selected element font while no option is marked pressed; the underlying mixed state remains explicit and accessible. (+2 more)
 
 ### Community 190 - "Community 190"
 Cohesion: 0.20
-Nodes (8): DEFAULT_SIZES, DEFAULT_STYLE, FONT_FAMILY_CSS, NamedColor, PALETTE, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND
+Nodes (10): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/44, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/5841866c527514501edddb87ad50edc9e17445dd, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39073704784, Concern: Antigravity reached its individual quota after the final layout-preserving refinement and did not return a final prose report; the repository changes and background task result were present and independently validated by Codex., Ist-Aufwand antigravity-claude-text-edit-toolbar-044: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand github-actions-text-edit-toolbar-39073704784: observedSeconds=418, tokens=unbekannt, costUsd=unbekannt (+2 more)
 
 ### Community 191 - "Community 191"
-Cohesion: 0.18
-Nodes (11): Artifact: src/renderer/state/contract.ts, Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: graphify-out/traceability.json, Artifact: graphify-out/graph.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/60#issuecomment-6245007553, Artifact: src/renderer/components/icons.ts, Artifact: agent-state/work-ledger.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/60 (+3 more)
+Cohesion: 0.20
+Nodes (10): Artifact: src/domain/index.ts, Artifact: docs/reviews/antigravity-domain.md, Artifact: src/domain/controller.ts, Artifact: src/domain/commands.ts, Concern: issue-18, Concern: issue-19, Concern: issue-21, Concern: issue-20 (+2 more)
 
 ### Community 192 - "Community 192"
-Cohesion: 0.18
-Nodes (11): Artifact: docs/reviews/graphify-validation.md, Artifact: tools/tests/test_graphify_links.py, Artifact: tools/graphify-links.py, Artifact: docs/graphify-traceability.md, Concern: issue-7:path-collision, Concern: issue-7:parallel-edge, Concern: issue-7:hyperedge-reference, Concern: C-005 (+3 more)
+Cohesion: 0.20
+Nodes (10): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/47, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: src/renderer/components/WhiteboardCanvas.vue, Artifact: tests/ui/connectors.spec.ts, Artifact: src/renderer/components/ElementView.vue, Concern: Claude requested explicit color coverage; Codex added a browser assertion for connector stroke color., Concern: Claude recommended avoiding an incomplete ARIA radio pattern; Codex changed the connector choices to ordinary pressed-button groups., Concern: Other reported points concerned existing text/shape behavior or were disproved by the global keyboard handler and existing viewport tests. (+2 more)
 
 ### Community 193 - "Community 193"
-Cohesion: 0.18
-Nodes (11): Artifact: src/renderer/components/ShapeLibraryPanel.vue, Artifact: src/catalog/icon.ts, Artifact: tests/ui/shape-toolbar.spec.ts, Artifact: src/renderer/components/Toolbar.vue, Artifact: THIRD_PARTY_ICONS.md, Artifact: graphify-out/traceability.json, Artifact: graphify-out/graph.json, Artifact: src/catalog/official-icons.ts (+3 more)
+Cohesion: 0.22
+Nodes (9): Artifact: src/renderer/components/AnnotationEditor.vue, Artifact: src/domain/annotation.ts, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: tests/ui/annotation.spec.ts, Concern: Claude Code suggested TipTap v2; Codex retained the same structured boundary and safeguards with the existing Chromium editing surface to avoid adding a new runtime dependency., Concern: Keep a versioned structured rich-text model at the domain boundary and avoid storing editor HTML., Concern: Exercise SVG foreignObject placement, editor undo versus document undo, IME input, bounded document size and accessibility in tests., Ist-Aufwand claude-code-annotation-review-056: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 194 - "Community 194"
 Cohesion: 0.29
@@ -830,20 +834,20 @@ Cohesion: 0.33
 Nodes (5): Ausgeführte Prüfungen, Bestätigter Ausgangsbefund, Windows-CI: Backend-Gesture-Test und Prozessabbau (#15), Änderungen, Übergabe und Grenzen
 
 ### Community 196 - "Community 196"
-Cohesion: 0.20
-Nodes (10): Artifact: src/renderer/components/WhiteboardCanvas.vue, Artifact: src/renderer/components/SelectionToolbar.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/47, Artifact: tests/ui/connectors.spec.ts, Artifact: src/renderer/components/ElementView.vue, Concern: Claude requested explicit color coverage; Codex added a browser assertion for connector stroke color., Concern: Claude recommended avoiding an incomplete ARIA radio pattern; Codex changed the connector choices to ordinary pressed-button groups., Concern: Other reported points concerned existing text/shape behavior or were disproved by the global keyboard handler and existing viewport tests. (+2 more)
+Cohesion: 0.22
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/77f47039eb74a59414b001cc7aaf1bf7a7bfaa0d, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377046, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377065, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377021, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556353234, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556353420, Ist-Aufwand github-actions-annotation-39087268278: observedSeconds=457, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 197 - "Community 197"
-Cohesion: 0.33
-Nodes (3): bridge, fixture(), stores
+Cohesion: 0.09
+Nodes (15): createAnnotationDocument(), applyCommand(), createDefaultStyle(), createElement(), generateUniqueId(), ELEMENT_KINDS, STYLE_KEYS, connectorDocument() (+7 more)
 
 ### Community 198 - "Community 198"
-Cohesion: 0.09
-Nodes (18): ADR 0002 — Direkte Peer-Sessions mit validierter Reihenfolge, Entscheidung, Erforderliche Nachweise, Konsequenzen und Grenzen, Kontext, Codex-Implementierung und Eigenprüfung: Strict P2P v1, Bestätigte Konsistenzpunkte, Kleinste vorgeschlagene Ergänzung (+10 more)
+Cohesion: 0.22
+Nodes (8): Codex-Implementierung und Eigenprüfung: Strict P2P v1, Ergebnis und Grenze der Aussage, Geprüfte Arbeitsdateien (SHA-256), Implementierte Verträge, Native Diagnose und nächster Nachweis, Prüfungen, Quellen der technischen Prüfung, Read-only UI-Review an Root
 
 ### Community 201 - "Community 201"
 Cohesion: 0.22
-Nodes (10): Artifact: src/renderer/state/whiteboard.ts, Artifact: src/renderer/i18n/de.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/cd15ab2da7cb76fba789218035bda516ef09f613, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39068735903, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/4eb8d32491fe207bdf8ccb0a7e0a00f8f7a4e303, Ist-Aufwand claude-page-ui-cleanup-035: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand github-actions-page-ui-cleanup-39068735903: observedSeconds=416, tokens=unbekannt, costUsd=unbekannt (+2 more)
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/45d8384208236565201a6652a7531f6d062ed2d7, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569209584, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231340, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231382, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569209449, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231377, Ist-Aufwand github-actions-comments-39091555196: observedSeconds=472, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 204 - "Community 204"
 Cohesion: 0.22
@@ -859,39 +863,43 @@ Nodes (8): anchorDirection(), connectorPathData(), connectorRouting(), n(), poin
 
 ### Community 209 - "Community 209"
 Cohesion: 0.22
-Nodes (9): Artifact: tests/ui/pages.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39069887042, Artifact: src/renderer/components/PageSwitcher.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/21bef10bcade864d18c0841b9e8fdec18e257d9b, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/21bef10bcade864d18c0841b9e8fdec18e257d9b, Ist-Aufwand claude-page-rename-ui-035: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand github-actions-page-rename-39069887042: observedSeconds=344, tokens=unbekannt, costUsd=unbekannt, Run claude-page-rename-ui-035 (+1 more)
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/6f90ef8237e2c50fa4c45f8b48edca2cc61999f7, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826/job/117578260286, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826/job/117578260292, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826/job/117578240008, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826/job/117578239893, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39094577826/job/117578260261, Ist-Aufwand github-actions-laser-pointer-39094577826: observedSeconds=482, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 210 - "Community 210"
 Cohesion: 0.22
-Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/77f47039eb74a59414b001cc7aaf1bf7a7bfaa0d, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377046, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377065, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556377021, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556353234, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087268278/job/117556353420, Ist-Aufwand github-actions-annotation-39087268278: observedSeconds=457, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869929, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/1868e679057e444a414523570cd1c81dc9560a5f, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543844979, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543844968, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869961, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869886, Ist-Aufwand github-actions-shape-library-39083060297: observedSeconds=367, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 211 - "Community 211"
 Cohesion: 0.22
-Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/44dcb77d0a911fdc3fc08561837c97ae320f6f23, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572099963, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124717, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124736, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572100026, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124743, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436, Ist-Aufwand github-actions-eraser-39092530436: observedSeconds=385, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572099963, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/44dcb77d0a911fdc3fc08561837c97ae320f6f23, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124717, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124736, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572100026, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124743, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436, Ist-Aufwand github-actions-eraser-39092530436: observedSeconds=385, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 212 - "Community 212"
 Cohesion: 0.22
-Nodes (9): Artifact: src/renderer/state/whiteboard.ts, Artifact: tests/unit/renderer/guest-store.spec.ts, Artifact: docs/reviews/multi-page-proposal.md, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39069887042, Artifact: src/renderer/state/pages.ts, Concern: Schema-v2 migration in issue #34 must consume and remove metadata['sketchdraw.page.v1.name'] when creating the first SketchPage., Ist-Aufwand codex-fallback-page-rename-logic-035: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254565, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282884, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254417, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/e7db145229e97b1324989bbb9ab3ad842f9cd732, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282804, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282815, Ist-Aufwand github-actions-pencil-eraser-options-39093583086: observedSeconds=471, tokens=unbekannt, costUsd=unbekannt (+1 more)
 
 ### Community 213 - "Community 213"
 Cohesion: 0.29
 Nodes (6): Bereits gebaute Installer und künftige Pakete, Drittanbieter und Schriften, Herkunft des Lizenztexts, Kopien und Weitergabe, Lizenzierung von Sketchdraw, Zulässige Zwecke
 
 ### Community 215 - "Community 215"
-Cohesion: 0.22
-Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/a686578faa1979665893426c59d22704be118196, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777/job/117548484683, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777/job/117548456555, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777/job/117548484567, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777/job/117548484564, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39084611777/job/117548456452, Ist-Aufwand github-actions-resource-card-39084611777: observedSeconds=448, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Cohesion: 0.25
+Nodes (8): Artifact: release/mac-arm64/Sketchdraw.app, Artifact: tests/ui/selection-toolbar.spec.ts, Artifact: graphify-out/traceability.json, Artifact: graphify-out/graph.json, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/55, Ist-Aufwand codex-element-actions-055: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-element-actions-055
 
 ### Community 219 - "Community 219"
 Cohesion: 0.33
 Nodes (6): Dokumentation, Download, Entwicklung, Funktionen, Lizenz, Sketchdraw
 
 ### Community 220 - "Community 220"
-Cohesion: 0.22
-Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869929, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/1868e679057e444a414523570cd1c81dc9560a5f, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543844979, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543844968, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869961, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39083060297/job/117543869886, Ist-Aufwand github-actions-shape-library-39083060297: observedSeconds=367, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Cohesion: 0.25
+Nodes (8): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/30, Artifact: docs/reviews/automatic-agent-access.md, Artifact: src/mcp/server.ts, Concern: same-user-runtime-capability, Concern: automatic-local-write-access, Concern: guest-access-disabled, Ist-Aufwand codex-auto-agent-access-030: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-auto-agent-access-030
+
+### Community 221 - "Community 221"
+Cohesion: 0.25
+Nodes (8): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564193919, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564194152, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564219839, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564219907, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688/job/117564219824, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39089888688, Ist-Aufwand github-actions-table-39089888688: observedSeconds=466, tokens=unbekannt, costUsd=unbekannt, Run github-actions-table-39089888688
 
 ### Community 222 - "Community 222"
-Cohesion: 0.22
-Nodes (9): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254565, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282884, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254417, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/e7db145229e97b1324989bbb9ab3ad842f9cd732, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282804, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282815, Ist-Aufwand github-actions-pencil-eraser-options-39093583086: observedSeconds=471, tokens=unbekannt, costUsd=unbekannt (+1 more)
+Cohesion: 0.25
+Nodes (8): Artifact: src/renderer/components/MainMenu.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/31, Artifact: src/renderer/components/Minimap.vue, Artifact: tests/ui, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/5c21fc175aa008ee50b5cbc900c43da31ccd3d37, Concern: workspace-ui-regression, Ist-Aufwand codex-ui-review-031: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-ui-review-031
 
 ### Community 223 - "Community 223"
 Cohesion: 0.39
@@ -911,63 +919,79 @@ Nodes (4): clamp01(), easeOut(), LaserPoint, LaserSegment
 
 ### Community 227 - "Community 227"
 Cohesion: 0.25
-Nodes (8): Artifact: src/renderer/components/Toolbar.vue, Artifact: src/renderer/components/WorkspacePanels.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/53, Concern: Use a non-modal sidebar, restore focus on close, and keep Escape behavior consistent., Concern: Keep the toolbar as a fast favorites strip with keyboard alternatives and visible source terms for official icons., Concern: Unify the toolbar popup and component catalog into one global sidebar state., Ist-Aufwand claude-code-shape-library-review-053: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run claude-code-shape-library-review-053
+Nodes (8): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767224, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767251, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551743004, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767342, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/84e9a71e75768bacebfdc38a9c5acec8895eeff2, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551742775, Ist-Aufwand github-actions-element-actions-39085721119: observedSeconds=331, tokens=unbekannt, costUsd=unbekannt, Run github-actions-element-actions-39085721119
 
 ### Community 229 - "Community 229"
-Cohesion: 0.25
-Nodes (8): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/30, Artifact: docs/reviews/automatic-agent-access.md, Artifact: src/mcp/server.ts, Concern: same-user-runtime-capability, Concern: automatic-local-write-access, Concern: guest-access-disabled, Ist-Aufwand codex-auto-agent-access-030: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-auto-agent-access-030
+Cohesion: 0.29
+Nodes (7): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/46, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/49, Concern: Antigravity displayed exhausted baseline and individual Claude quotas, so it produced no repository work for this ticket., Ist-Aufwand antigravity-connector-attempt-046: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Ist-Aufwand antigravity-sticky-domain-attempt-049: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run antigravity-connector-attempt-046, Run antigravity-sticky-domain-attempt-049
 
 ### Community 230 - "Community 230"
-Cohesion: 0.25
-Nodes (8): Artifact: src/renderer/components/MainMenu.vue, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/31, Artifact: src/renderer/components/Minimap.vue, Artifact: tests/ui, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/5c21fc175aa008ee50b5cbc900c43da31ccd3d37, Concern: workspace-ui-regression, Ist-Aufwand codex-ui-review-031: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-ui-review-031
+Cohesion: 0.29
+Nodes (7): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/43, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64, Artifact: tests/unit/interop/font-family.spec.ts, Artifact: tests/ui/font-family.spec.ts, Ist-Aufwand codex-font-integration-review-043: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-font-integration-review-043
 
 ### Community 231 - "Community 231"
-Cohesion: 0.40
-Nodes (4): draw(), point(), setup(), stores
-
-### Community 232 - "Community 232"
-Cohesion: 0.33
-Nodes (6): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/35, Artifact: tests/ui/pages.spec.ts, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/cd15ab2da7cb76fba789218035bda516ef09f613, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39068735903, Ist-Aufwand codex-page-ui-cleanup-review-035: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-page-ui-cleanup-review-035
-
-### Community 233 - "Community 233"
 Cohesion: 0.33
 Nodes (6): Artifact: tests/unit/renderer/whiteboard.spec.ts, Artifact: tests/ui/feedback.spec.ts, Artifact: src/renderer/state/whiteboard.ts, Concern: single-selection-false-mixed-draft, Ist-Aufwand codex-property-draft-025: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run codex-property-draft-025
 
+### Community 232 - "Community 232"
+Cohesion: 0.40
+Nodes (5): ADR 0002 — Direkte Peer-Sessions mit validierter Reihenfolge, Entscheidung, Erforderliche Nachweise, Konsequenzen und Grenzen, Kontext
+
+### Community 233 - "Community 233"
+Cohesion: 0.40
+Nodes (4): ERASER_OPTIONS, eraserOption, PENCIL_OPTIONS, pencilOption
+
 ### Community 237 - "Community 237"
-Cohesion: 0.50
-Nodes (5): Verantwortung: Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained), Ticket #60: Radierer neben dem Stift in der oberen Werkzeugleiste, Ticket #61: Optionsleiste für Freihandstift und Radierer, Planaufwand #60: unbekannt Story Points, Planaufwand #61: unbekannt Story Points
+Cohesion: 0.40
+Nodes (5): Bestätigte Konsistenzpunkte, Kleinste vorgeschlagene Ergänzung, PP-01 — P2: Peer-Journale lassen sich nach Sessionende über die öffentliche Authority-API nicht freigeben, Prüfumfang und Übergabe, Unabhängige Prüfung der P2P- und Sessionverträge
 
 ### Community 238 - "Community 238"
-Cohesion: 0.50
-Nodes (4): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/96f75ff1e72ba4869b210dbae969605517a2fd64, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39072428278, Ist-Aufwand github-actions-font-families-39072428278: observedSeconds=416, tokens=unbekannt, costUsd=unbekannt, Run github-actions-font-families-39072428278
+Cohesion: 0.40
+Nodes (5): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/59, Artifact: docs/reviews/antigravity-comments-059.md, Concern: The Antigravity UI reported exhausted baseline quota until 24 October 2026 and disabled submission, so it accepted no task and produced no implementation., Ist-Aufwand antigravity-comments-059: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run antigravity-comments-059
 
 ### Community 239 - "Community 239"
+Cohesion: 0.40
+Nodes (5): Artifact: docs/reviews/claude-comments-059.md, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/59, Concern: CL-CMT-01 through CL-CMT-15 cover domain validation, deletion fallback, permissions, P2P conflicts, export privacy and accessible comment interactions., Ist-Aufwand claude-comments-review-059: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run claude-comments-review-059
+
+### Community 240 - "Community 240"
 Cohesion: 0.50
-Nodes (4): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/54, Concern: The Antigravity UI reported exhausted baseline and Claude individual quotas; the send action was unavailable and no work product was produced., Ist-Aufwand antigravity-resource-card-attempt-054: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run antigravity-resource-card-attempt-054
+Nodes (4): Lokale Agenten mit Sketchdraw verbinden, Technische Grenze, Werkzeuge, Änderungen und Wiederholungen
 
 ### Community 241 - "Community 241"
+Cohesion: 0.50
+Nodes (4): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/issues/50, Concern: The Claude Code plan invocation returned no output and ended with an execution error; it made no repository changes., Ist-Aufwand claude-code-sticky-ui-review-050: observedSeconds=unbekannt, tokens=unbekannt, costUsd=unbekannt, Run claude-code-sticky-ui-review-050
+
+### Community 243 - "Community 243"
+Cohesion: 0.50
+Nodes (4): Artifact: src/renderer/state/contract.ts, Concern: claude-session-limit-2026-10-17, Ist-Aufwand claude-whiteboard-002: observedSeconds=332.47125441697426, tokens=unbekannt, costUsd=unbekannt, Run claude-whiteboard-002
+
+### Community 244 - "Community 244"
+Cohesion: 0.50
+Nodes (4): Artifact: https://github.com/J-ARTS/de.sketchdraw.io/commit/b26bfdddc18837d5feabdf20fc034b71cb266d46, Artifact: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39070996817, Ist-Aufwand github-actions-popover-anchor-39070996817: observedSeconds=408, tokens=unbekannt, costUsd=unbekannt, Run github-actions-popover-anchor-39070996817
+
+### Community 245 - "Community 245"
 Cohesion: 0.67
 Nodes (3): Verantwortung: Codex (temporary takeover; Claude Code review, Antigravity quota-limited), Ticket #58: Figma-nahe, formatierbare Tabellen als Canvas-Shape, Planaufwand #58: unbekannt Story Points
 
 ## Knowledge Gaps
-- **1492 isolated node(s):** `Reply`, `Pending`, `JournalEntry`, `Grant`, `Connection` (+1487 more)
+- **1519 isolated node(s):** `Reply`, `Pending`, `JournalEntry`, `Grant`, `Connection` (+1514 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Tool codex` connect `Community 3` to `Community 133`, `Community 7`, `Community 144`, `Community 21`, `Community 32`, `Community 160`, `Community 161`, `Community 164`, `Community 42`, `Community 43`, `Community 172`, `Community 46`, `Community 188`, `Community 60`, `Community 191`, `Community 193`, `Community 66`, `Community 69`, `Community 70`, `Community 71`, `Community 83`, `Community 212`, `Community 97`, `Community 229`, `Community 230`, `Community 232`, `Community 108`, `Community 237`, `Community 112`, `Community 241`, `Community 122`, `Community 123`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `createDocument()` connect `Community 113` to `Community 100`, `Community 197`, `Community 41`, `Community 12`, `Community 180`, `Community 87`, `Community 61`, `Community 95`, `Community 31`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `Tool antigravity` connect `Community 3` to `Community 32`, `Community 160`, `Community 66`, `Community 70`, `Community 7`, `Community 71`, `Community 42`, `Community 43`, `Community 187`, `Community 174`, `Community 173`, `Community 239`, `Community 21`, `Community 123`, `Community 60`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `Tool codex` connect `Community 3` to `Community 133`, `Community 7`, `Community 21`, `Community 32`, `Community 161`, `Community 164`, `Community 42`, `Community 43`, `Community 172`, `Community 173`, `Community 46`, `Community 47`, `Community 48`, `Community 183`, `Community 60`, `Community 66`, `Community 69`, `Community 70`, `Community 71`, `Community 215`, `Community 220`, `Community 222`, `Community 230`, `Community 105`, `Community 108`, `Community 111`, `Community 112`, `Community 245`, `Community 122`, `Community 123`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
+- **Why does `Tool github-actions` connect `Community 3` to `Community 7`, `Community 32`, `Community 161`, `Community 160`, `Community 43`, `Community 46`, `Community 47`, `Community 60`, `Community 190`, `Community 196`, `Community 69`, `Community 70`, `Community 71`, `Community 201`, `Community 209`, `Community 210`, `Community 211`, `Community 212`, `Community 221`, `Community 227`, `Community 112`, `Community 244`, `Community 245`?**
+  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+- **Why does `createDocument()` connect `Community 113` to `Community 33`, `Community 100`, `Community 197`, `Community 41`, `Community 12`, `Community 51`, `Community 180`, `Community 87`, `Community 92`, `Community 61`, `Community 95`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **What connects `Reply`, `Pending`, `JournalEntry` to the rest of the system?**
-  _1496 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1523 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.12807881773399016 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.04404924760601915 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.044194756554307116 - nodes in this community are weakly interconnected._

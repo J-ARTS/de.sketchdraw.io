@@ -20,7 +20,9 @@ import {
   APP_ORIGIN,
   DEV_SERVER_ENTRY_URL,
   DEV_SERVER_ORIGIN,
+  buildContentSecurityPolicy,
   isAllowedRendererUrl,
+  isTrustedRendererResourceUrl,
   PRIVILEGED_APP_SCHEME_CONFIG,
   resolveAppProtocolPath,
   resolveRendererTarget,
@@ -49,6 +51,17 @@ describe('Electron security, protocol handler, IPC sender verification, and clos
     expect(PRIVILEGED_APP_SCHEME_CONFIG.privileges.secure).toBe(true);
     expect(PRIVILEGED_APP_SCHEME_CONFIG.privileges.standard).toBe(true);
     expect(PRIVILEGED_APP_SCHEME_CONFIG.privileges.bypassCSP).toBe(false);
+  });
+
+  it('allows sandboxed HTTP(S) frames while applying app CSP headers only to trusted renderer resources', () => {
+    const bundled = resolveRendererTarget({ isPackaged: true, env: {} });
+    const dev = resolveRendererTarget({ isPackaged: false, env: { SKETCHDRAW_DEV_SERVER_URL: DEV_SERVER_ENTRY_URL } });
+    expect(buildContentSecurityPolicy('bundled')).toContain('frame-src https: http:');
+    expect(buildContentSecurityPolicy('bundled')).toContain("object-src 'none'");
+    expect(isTrustedRendererResourceUrl('app://sketchdraw/assets/app.js', bundled)).toBe(true);
+    expect(isTrustedRendererResourceUrl('https://example.com/embed', bundled)).toBe(false);
+    expect(isTrustedRendererResourceUrl('http://127.0.0.1:5173/src/renderer/main.ts', dev)).toBe(true);
+    expect(isTrustedRendererResourceUrl('http://127.0.0.1:5174/attacker.js', dev)).toBe(false);
   });
 
   it('loads Vite 127.0.0.1:5173 only in unpacked dev mode with verified env, and bundled app:// in production', () => {

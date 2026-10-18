@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:50:44Z",
+  "updatedAt": "2026-10-18T04:01:44Z",
   "issues": [
     {
       "number": 1,
@@ -994,6 +994,21 @@
       "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
       "phase": "Canvas presentation interaction and testing",
       "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 63,
+      "title": "Web-Embed als sicheres iframe-Canvas-Element",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/63",
+      "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
+      "phase": "Canvas embedding, security, interoperability and testing",
+      "status": "in_progress",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4364,6 +4379,38 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact feature commit 6f90ef8237e2c50fa4c45f8b48edca2cc61999f7. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, 59 Node tests, 343 Vitest tests, production build, 56 browser UI tests including laser behavior and accessibility, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-web-embed-063",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        63
+      ],
+      "status": "locally_verified",
+      "startedAt": "2026-10-18T03:53:00Z",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/63",
+        "src/domain/web-embed.ts",
+        "src/renderer/components/WebEmbedDialog.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "electron/security.ts",
+        "electron/main.ts",
+        "src/interop/export.ts",
+        "tests/unit/web-embed.spec.ts",
+        "tests/ui/web-embed.spec.ts",
+        "tests/unit/platform/security-and-ipc.spec.ts"
+      ],
+      "concerns": [
+        "External sites may refuse iframe embedding through their own Content-Security-Policy or X-Frame-Options; the canvas keeps this protection intact and exposes an external-open fallback."
+      ],
+      "authorization": "The user explicitly requested iframe-based web embeds and previously authorized temporary Codex implementation with actual-tool attribution.",
+      "measurementSource": "Codex implemented the web-embed element using the user-authorized temporary takeover. Local verification is recorded against the uncommitted issue #63 worktree state; cross-platform GitHub Actions evidence remains pending. No measured implementation duration, token or cost metric is claimed."
     }
   ],
   "evidencePolicy": {

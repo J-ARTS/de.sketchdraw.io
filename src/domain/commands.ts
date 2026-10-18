@@ -373,6 +373,7 @@ function applyCommandInternal(
           'parentId',
           'componentType',
           'documentationUrl',
+          'embedUrl',
           'shapeVariant',
         ] as const) {
           if (!Object.prototype.hasOwnProperty.call(patch, nullableKey)) {

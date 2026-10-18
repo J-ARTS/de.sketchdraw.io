@@ -10,7 +10,7 @@ import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCar
 import AnnotationContent from './AnnotationContent.vue';
 import TableContent from './TableContent.vue';
 
-const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean }>();
+const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean; interactive?: boolean }>();
 const emit = defineEmits<{ openLink: [url: string] }>();
 const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 const e = computed(() => props.element);
@@ -62,6 +62,10 @@ const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMark
 const markerUrl = (marker: ConnectorMarker) => marker === 'none' ? undefined : `url(#${uid}-${marker})`;
 const connectorLabelWidth = computed(() => Math.max(36, text.value.length * fontSize.value * .62 + 16));
 const shape = computed(() => shapeEntryForElement(e.value));
+const embedHost = computed(() => {
+  try { return new URL(e.value.embedUrl ?? '').hostname; }
+  catch { return 'Webseite'; }
+});
 </script>
 
 <template>
@@ -92,6 +96,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
       <TableContent v-else-if="e.kind === 'table'" :element="e" :theme="theme" />
+      <rect v-else-if="e.kind === 'web-embed'" data-testid="web-embed-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" />
       <polyline v-else-if="e.kind === 'path'" :points="e.points?.map(p => `${p.x},${p.y}`).join(' ')" fill="none" />
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
@@ -129,7 +134,22 @@ const shape = computed(() => shapeEntryForElement(e.value));
     <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
       <div class="annotation-body" :style="{ color: stroke, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <foreignObject v-else-if="e.kind === 'web-embed'" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" :pointer-events="interactive ? 'all' : 'none'">
+      <div class="web-embed" data-testid="web-embed-frame">
+        <div class="web-embed-header" aria-hidden="true"><span class="web-embed-dot" />{{ embedHost }}<span>Live-Vorschau</span></div>
+        <iframe
+          v-if="e.embedUrl"
+          :src="e.embedUrl"
+          :title="`Eingebettete Webseite ${embedHost}`"
+          sandbox="allow-forms allow-scripts"
+          referrerpolicy="no-referrer"
+          loading="lazy"
+          :tabindex="interactive ? 0 : -1"
+        />
+        <div class="web-embed-hint">Wenn die Vorschau leer bleibt, verbietet die Webseite das Einbetten. Über das Link-Symbol kannst du sie extern öffnen.</div>
+      </div>
+    </foreignObject>
+    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table', 'web-embed'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
@@ -138,4 +158,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
 
 <style scoped>
 .annotation-body{width:100%;height:100%;box-sizing:border-box;padding:28px;overflow:hidden;background:transparent}
+.web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-ui)}
+.web-embed-header{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-raised);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden}.web-embed-header span:last-child{margin-left:auto;color:var(--text-muted);font-size:10px;font-weight:500}.web-embed-dot{width:8px;height:8px;border-radius:50%;background:var(--status-ok);flex:none}
+.web-embed iframe{display:block;width:100%;height:100%;border:0;background:#fff}.web-embed-hint{padding:5px 10px;border-top:1px solid var(--border-subtle);background:var(--surface-panel);color:var(--text-muted);font-size:9px;line-height:1.35}
 </style>

@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } fro
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
-import { effectiveShapeVariant, type ConnectorMarker, type ConnectorRouting, type ElementPatch, type ElementStyle } from '@/domain';
+import { effectiveShapeVariant, parseWebEmbedUrl, webEmbedLabel, type ConnectorMarker, type ConnectorRouting, type ElementPatch, type ElementStyle } from '@/domain';
 import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
@@ -61,7 +61,8 @@ const stickyOnly = computed(() => info.value.count === 1 && info.value.kinds.len
 const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard(single.value));
 const annotationOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'annotation');
 const tableOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'table');
-const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
+const webEmbedOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'web-embed');
+const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
 const barSize = ref({ width: 0, height: 56 });
@@ -260,11 +261,17 @@ const fontMixed = computed(() => info.value.mixed.includes('fontFamily'));
 const currentFont = computed<FontFamilyValue>(() => (info.value.values.fontFamily as FontFamilyValue | undefined) ?? 'sans');
 const fontGlyphStyle = computed(() => ({ fontFamily: FONT_FAMILY_CSS[currentFont.value], fontStyle: 'normal' }));
 const linkDraft = ref('');
-watch(() => single.value?.documentationUrl, (url) => { linkDraft.value = url ?? ''; }, { immediate: true });
+watch(() => webEmbedOnly.value ? single.value?.embedUrl : single.value?.documentationUrl, (url) => { linkDraft.value = url ?? ''; }, { immediate: true });
 function saveLink(): void {
   const url = linkDraft.value.trim();
-  if (url === (single.value?.documentationUrl ?? '')) return;
-  store.applyPatch({ documentationUrl: url || null });
+  const current = webEmbedOnly.value ? single.value?.embedUrl : single.value?.documentationUrl;
+  if (url === (current ?? '') || (webEmbedOnly.value && !url)) return;
+  if (webEmbedOnly.value) {
+    const parsed = parseWebEmbedUrl(url);
+    if (!parsed.ok) return;
+    linkDraft.value = parsed.url;
+    store.applyPatch({ embedUrl: parsed.url, label: webEmbedLabel(parsed.url) });
+  } else store.applyPatch({ documentationUrl: url || null });
 }
 const authorDraft = ref('');
 watch(() => single.value?.author, (author) => { authorDraft.value = author ?? ''; }, { immediate: true });
@@ -404,7 +411,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <span class="size-label">{{ sizeLabel }}</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
-      <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly && !tableOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
+      <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly && !tableOnly && !webEmbedOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
         <AppIcon name="text" />
       </button>
     </template>
@@ -422,7 +429,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" aria-label="Ressourcenkarte bearbeiten" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable('Ressourcenkarte bearbeiten')" @click="toggle('resource')">
       <AppIcon name="more" />
     </button>
-    <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
+    <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="webEmbedOnly ? 'Webadresse' : 'Dokumentationslink'" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable(webEmbedOnly ? 'Webadresse' : 'Dokumentationslink')" @click="toggle('link')">
       <AppIcon name="link" />
     </button>
     <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
@@ -546,8 +553,9 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
 
     <template v-else-if="openSegment === 'link'">
-      <label class="field">{{ stickyOnly ? 'Link' : 'Dokumentationslink' }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="stickyOnly ? 'Link' : 'Dokumentationslink'" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>
-      <button v-if="single?.documentationUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.documentationUrl)">{{ stickyOnly ? 'Link öffnen' : 'Dokumentation öffnen' }} ↗</button>
+      <label class="field">{{ webEmbedOnly ? 'Webadresse' : stickyOnly ? 'Link' : 'Dokumentationslink' }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="webEmbedOnly ? 'Webadresse' : stickyOnly ? 'Link' : 'Dokumentationslink'" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>
+      <button v-if="webEmbedOnly && single?.embedUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.embedUrl)">Webseite extern öffnen ↗</button>
+      <button v-else-if="single?.documentationUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.documentationUrl)">{{ stickyOnly ? 'Link öffnen' : 'Dokumentation öffnen' }} ↗</button>
     </template>
 
     <template v-else-if="openSegment === 'author'">

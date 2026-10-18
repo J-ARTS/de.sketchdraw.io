@@ -30,19 +30,20 @@ function createDefaultStyle(kind: ElementKind): ElementStyle {
   const sticky = kind === 'sticky-note';
   const annotation = kind === 'annotation';
   const table = kind === 'table';
+  const webEmbed = kind === 'web-embed';
   return {
-    stroke: sticky ? '#53675a' : annotation ? '#242424' : table ? '#cbd5e1' : '#1e293b',
+    stroke: sticky ? '#53675a' : annotation ? '#242424' : table || webEmbed ? '#cbd5e1' : '#1e293b',
     fill:
       kind === 'container'
         ? '#f8fafc'
-        : annotation || table
+        : annotation || table || webEmbed
           ? '#ffffff'
         : sticky
           ? '#aeeebd'
         : kind === 'text' || kind === 'path' || kind === 'connector'
           ? 'transparent'
           : '#ffffff',
-    strokeWidth: sticky ? 0 : annotation || table ? 1 : 2,
+    strokeWidth: sticky ? 0 : annotation || table || webEmbed ? 1 : 2,
     opacity: 1,
     fontSize: sticky ? 20 : annotation ? 18 : 16,
     textAlign: 'left',
@@ -144,8 +145,8 @@ export function createElement(
     }
   }
 
-  const defaultWidth = kind === 'table' ? 480 : kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
-  const defaultHeight = kind === 'table' ? 240 : kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
+  const defaultWidth = kind === 'web-embed' ? 640 : kind === 'table' ? 480 : kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
+  const defaultHeight = kind === 'web-embed' ? 400 : kind === 'table' ? 240 : kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
 
   const width = overrides?.width !== undefined ? overrides.width : defaultWidth;
   const height = overrides?.height !== undefined ? overrides.height : defaultHeight;
@@ -237,6 +238,9 @@ export function createElement(
   if (kind === 'component' && overrides?.componentType === undefined) {
     candidate.componentType = 'generic.component';
   }
+  if (kind === 'web-embed' && overrides?.embedUrl === undefined) {
+    candidate.embedUrl = 'https://example.com/';
+  }
 
   if (overrides) {
     for (const optKey of [
@@ -257,6 +261,7 @@ export function createElement(
       'componentType',
       'metadata',
       'documentationUrl',
+      'embedUrl',
     ] as const) {
       if (Object.prototype.hasOwnProperty.call(overrides, optKey) && overrides[optKey] !== undefined) {
         candidate[optKey] = overrides[optKey];

@@ -278,6 +278,7 @@ export function cloneElement(element: SketchElement): SketchElement {
   if (element.componentType !== undefined) cloned.componentType = element.componentType;
   if (element.metadata !== undefined) cloned.metadata = cloneStringRecord(element.metadata);
   if (element.documentationUrl !== undefined) cloned.documentationUrl = element.documentationUrl;
+  if (element.embedUrl !== undefined) cloned.embedUrl = element.embedUrl;
   return cloned;
 }
 
@@ -481,7 +482,8 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
     a.parentId === b.parentId &&
     a.componentType === b.componentType &&
     areStringRecordsEqual(a.metadata, b.metadata) &&
-    a.documentationUrl === b.documentationUrl
+    a.documentationUrl === b.documentationUrl &&
+    a.embedUrl === b.embedUrl
   );
 }
 

@@ -2125,6 +2125,38 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "63": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-web-embed-063"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "7": {
       "exclusiveRuns": {
         "costUsd": {
@@ -2363,15 +2395,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 32
+        "unknownRuns": 33
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 32
+        "unknownRuns": 33
       },
-      "runCount": 32,
+      "runCount": 33,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
@@ -2404,13 +2436,14 @@
         "codex-text-edit-toolbar-review-044",
         "codex-ticket-closure-004",
         "codex-ticket-closure-015",
-        "codex-ui-review-031"
+        "codex-ui-review-031",
+        "codex-web-embed-063"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 32
+        "unknownRuns": 33
       }
     },
     "codex-subagent": {
@@ -2516,15 +2549,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 130
+      "unknownRuns": 131
     },
     "observedSeconds": {
       "knownRuns": 41,
       "knownSubtotal": 20918.322263248963,
       "total": null,
-      "unknownRuns": 89
+      "unknownRuns": 90
     },
-    "runCount": 130,
+    "runCount": 131,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2629,6 +2662,7 @@
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
       "codex-ui-review-031",
+      "codex-web-embed-063",
       "codex-whiteboard-takeover-001",
       "github-actions-agent-access-39054281662",
       "github-actions-agent-access-39054540682",
@@ -2661,7 +2695,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 126
+      "unknownRuns": 127
     }
   },
   "officialScoreClaimReady": false,
@@ -2671,9 +2705,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 50
+    "unknownIssues": 51
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:50:44Z"
+  "updatedAt": "2026-10-18T04:01:44Z"
 }

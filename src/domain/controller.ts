@@ -62,6 +62,7 @@ const SCALAR_ELEMENT_FIELDS = [
   'parentId',
   'componentType',
   'documentationUrl',
+  'embedUrl',
 ] as const;
 
 const STYLE_FIELD_LIST: ReadonlyArray<keyof ElementStyle> = [

@@ -162,6 +162,11 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: 8, fill: safeColor(el.style.fill, d, el), stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity, filter: `url(#sd-${index}-annotation-shadow)` })}/>`);
     }
     else if (el.kind === 'table') out.append(tableSvgContent(el, d));
+    else if (el.kind === 'web-embed') {
+      out.append(`<a href="${escapeXmlAttr(el.embedUrl!)}"><rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: 8, fill: safeColor(el.style.fill, d, el), stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity })}/>`);
+      out.append(`<path d="M0 34H${n(el.width)}" stroke="${safeColor(el.style.stroke, d, el)}" stroke-width="1" opacity=".55"/><circle cx="16" cy="17" r="4" fill="#22c55e"/><text x="28" y="22" font-size="12" font-family="sans-serif" fill="${safeColor(el.style.stroke, d, el)}">${escapeXmlText(xmlText(el.label ?? el.embedUrl ?? 'Web-Embed', d, el))}</text></a>`);
+      diagnostic(d, el, 'WEB_EMBED_PROJECTED_AS_LINK', 'Web embed is exported as a static linked card; remote page content is not embedded.');
+    }
     else if (shapeVariant) {
       if (shapeVariant === 'square') out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" data-sketchdraw-shape="square"${paint}/>`);
       else if (shapeVariant === 'circle') out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}" data-sketchdraw-shape="circle"${paint}/>`);
@@ -193,9 +198,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const iconSize = isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
       out.append(`<svg${attrs({ ...tree.attributes, x: isResourceCard(el) ? 20 : 4, y: isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : el.kind === 'annotation' ? annotationSvgContent(el, d) : el.kind === 'table' ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
-    out.append(el.kind === 'sticky-note' && el.documentationUrl
-      ? `<a href="${escapeXmlAttr(el.documentationUrl)}">${visibleText}</a>`
+    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
+    out.append(exportLink
+      ? `<a href="${escapeXmlAttr(exportLink)}">${visibleText}</a>`
       : visibleText);
     out.append('</g>');
   }
@@ -240,6 +246,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('rounded=1', 'arcSize=8', 'shadow=1', 'verticalAlign=top', 'spacing=24', 'whiteSpace=wrap', 'sketchdrawKind=annotation');
     else if (el.kind === 'table')
       style.push('shape=table', 'childLayout=tableLayout', 'whiteSpace=wrap', 'verticalAlign=top', 'sketchdrawKind=table');
+    else if (el.kind === 'web-embed') {
+      style.push('rounded=1', 'arcSize=8', 'whiteSpace=wrap', 'verticalAlign=top', 'sketchdrawKind=web-embed', `link=${encodeURIComponent(el.embedUrl ?? '')}`);
+      diagnostic(d, el, 'WEB_EMBED_PROJECTED_AS_LINK', 'Web embed is exported as a static linked card; remote page content is not embedded.');
+    }
     const edge = el.kind === 'connector' || el.kind === 'path';
     if (edge) {
       if (el.kind === 'connector' && connectorRouting(el) === 'elbowed') style.push('edgeStyle=orthogonalEdgeStyle', 'rounded=1', 'noEdgeStyle=0');
