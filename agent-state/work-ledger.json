@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T14:53:53.814449Z",
+  "updatedAt": "2026-10-18T15:25:52.284868+00:00",
   "issues": [
     {
       "number": 1,
@@ -1687,6 +1687,23 @@
       },
       "dependencies": [
         92
+      ]
+    },
+    {
+      "number": 109,
+      "title": "Freihandstift: Deckkraft einstellbar machen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/109",
+      "owner": "Claude Code (UI), Google Antigravity (logic), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI / Logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        61
       ]
     }
   ],
@@ -6677,6 +6694,89 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized branch push and cancelled once the authoritative main run was active.",
       "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39137335585. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-pencil-opacity-109",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        109
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0a5d9f1886216346846ef0d322c5261e4124bb66",
+        "src/renderer/components/ToolOptionsBar.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/drawing-tools.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "tests/unit/renderer/guest-store.spec.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/109",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207"
+      ],
+      "concerns": [
+        "The first local type and targeted unit invocations ran before npm ci in the fresh managed worktree and therefore lacked vue-tsc and vitest. No product result was inferred from them; after installing the pinned dependency set, every requested local verification passed.",
+        "Port 5173 was already occupied by another checkout. Browser UI verification used an isolated Vite server on port 5184 so the exact changed checkout was tested.",
+        "Graphify source refresh was guarded: the new extraction had 4,491 nodes versus 4,543 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested adjustable pencil opacity. The implementation adds a 0–100 percent control for new freehand paths while preserving existing path styles.",
+      "measurementSource": "Local macOS evidence at commit 0a5d9f1: typecheck, 401 Vitest unit tests, 84 Playwright browser UI tests, 6 Electron tests, 59 Node build and release lifecycle tests, production build and diff check passed. GitHub Actions run 39139700207 verified the exact commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-pencil-opacity-39139700207",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        109
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T15:16:00Z",
+      "endedAt": "2026-10-18T15:25:21Z",
+      "observedSeconds": 561,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0a5d9f1886216346846ef0d322c5261e4124bb66",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207/job/117711394692",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207/job/117711394850",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207/job/117711423614",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207/job/117711423661",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139700207/job/117711423682"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 109 pencil-opacity change into main.",
+      "measurementSource": "GitHub Actions run 39139700207 timestamps report 561 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-pencil-opacity-duplicate-39139698078",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        109
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T15:15:58Z",
+      "endedAt": "2026-10-18T15:16:52Z",
+      "observedSeconds": 54,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0a5d9f1886216346846ef0d322c5261e4124bb66",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39139698078"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized branch push and cancelled once the authoritative main run was active.",
+      "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39139698078. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {
