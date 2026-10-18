@@ -415,3 +415,22 @@ test('cloud cards center their icon and take fill and border colors from the pro
   await page.getByRole('button', { name: /^Kontur Rot/ }).click();
   await expect.poll(() => surface.getAttribute('stroke')).not.toBe('var(--border-subtle)');
 });
+
+test('comment pins are bubble-shaped, stay put on click and use the same shape as the placement cursor', async ({ page }) => {
+  await createComment(page);
+  const pin = page.getByRole('button', { name: /Kommentar von .* öffnen/ });
+  const radius = await pin.evaluate((element) => getComputedStyle(element).borderRadius);
+  expect(radius).toBe('50% 50% 50% 0px');
+  expect(await pin.evaluate((element) => getComputedStyle(element).borderTopWidth)).toBe('0px');
+  await page.getByRole('button', { name: 'Kommentar schließen' }).click();
+  const before = await box(pin);
+  const rectBefore = await box(page.locator('[data-kind=rectangle]'));
+  await pin.click();
+  expect(Math.abs((await box(page.locator('[data-kind=rectangle]'))).width - rectBefore.width)).toBeLessThan(0.5);
+  await page.getByRole('button', { name: 'Kommentar schließen' }).click();
+  await pin.hover();
+  const after = await box(pin);
+  expect(Math.abs(after.x - before.x) + Math.abs(after.y - before.y) + Math.abs(after.width - before.width)).toBeLessThan(0.5);
+  await page.getByRole('button', { name: 'Kommentar', exact: true }).click();
+  expect(await page.getByTestId('whiteboard-canvas').evaluate((element) => getComputedStyle(element).cursor)).toContain('data:image/svg');
+});

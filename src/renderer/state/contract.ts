@@ -369,7 +369,8 @@ export interface WhiteboardStore {
   startComment(elementId?: string, tableCellId?: string, at?: Point): void;
   cancelComment(): void;
   createComment(body: string): Promise<boolean>;
-  openComment(threadId: string): void;
+  /** `reveal: false` keeps the viewport (used when the pin was clicked on the canvas and is already visible). */
+  openComment(threadId: string, options?: { reveal?: boolean }): void;
   closeCommentThread(): void;
   closeCommentSidebar(): void;
   addCommentReply(threadId: string, body: string): Promise<boolean>;

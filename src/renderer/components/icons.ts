@@ -5,7 +5,7 @@ export type ToolIconName =
 export type ActionIconName =
   | 'component' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
   | 'file' | 'file-plus' | 'folder-open' | 'save' | 'save-as' | 'help' | 'sun' | 'moon'
-  | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'close' | 'check'
+  | 'arrow-up' | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'close' | 'check'
   | 'warning' | 'info' | 'dot' | 'saving' | 'download'
   | 'group' | 'ungroup' | 'connect' | 'duplicate' | 'trash'
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
@@ -63,6 +63,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
     'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M4.9 19.1l1.4-1.4', 'M17.7 6.3l1.4-1.4',
   ],
   moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
+  'arrow-up': ['M12 19V5', 'M5 12l7-7 7 7'],
   'chevron-up': ['M6 15l6-6 6 6'],
   'chevron-down': ['M6 9l6 6 6-6'],
   'chevron-left': ['M15 6l-6 6 6 6'],

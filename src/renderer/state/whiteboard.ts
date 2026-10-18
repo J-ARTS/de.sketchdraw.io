@@ -50,6 +50,7 @@ import {
 } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
+import { COMMENT_CURSOR } from '../lib/comment-cursor';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 type Gesture = {
@@ -192,7 +193,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         if (hovered?.kind === 'connector-endpoint') return 'crosshair';
         if (hovered?.kind === 'connector-control') return 'move';
       }
-      return this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : ['path', 'eraser'].includes(this.tool) ? 'none' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair';
+      return this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : ['path', 'eraser'].includes(this.tool) ? 'none' : this.tool === 'laser' ? LASER_CURSOR : this.tool === 'comment' ? COMMENT_CURSOR : 'crosshair';
     },
     get frame(): WhiteboardState['frame'] {
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
@@ -1314,7 +1315,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.frameSidebarOpen = false; state.tool = 'select'; state.liveMessage = 'Kommentar erstellt.'; }
       return ok;
     },
-    openComment(threadId) {
+    openComment(threadId, options) {
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId);
       if (!thread) return;
       state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true; state.frameSidebarOpen = false;
@@ -1331,8 +1332,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
             store.selectTableCells(element.id, [cell.id], 'cell', rowIndex, columnIndex);
           }
         }
-        store.fitSelection();
-      } else {
+        if (options?.reveal !== false) store.fitSelection();
+      } else if (options?.reveal !== false) {
         state.viewport = { ...state.viewport, panX: state.viewportSize.width / 2 - thread.target.fallback.x * state.viewport.zoom, panY: state.viewportSize.height / 2 - thread.target.fallback.y * state.viewport.zoom };
       }
       state.liveMessage = 'Kommentar geöffnet und Ziel hervorgehoben.';

@@ -118,8 +118,12 @@ test('a comment marker can be placed freely or select an element as its target',
   await expect(draftPin).toBeVisible();
   const freeDraftBox = await draftPin.boundingBox();
   expect(freeDraftBox).not.toBeNull();
-  expect(freeDraftBox!.x + freeDraftBox!.width / 2).toBeCloseTo(700, 0);
-  expect(freeDraftBox!.y + freeDraftBox!.height / 2).toBeCloseTo(420, 0);
+  // The square bottom-left corner of the bubble marks the target; the input opens right beside the pin.
+  expect(freeDraftBox!.x).toBeCloseTo(700, 0);
+  expect(freeDraftBox!.y + freeDraftBox!.height).toBeCloseTo(420, 0);
+  const composerBox = (await page.locator('.comment-composer').boundingBox())!;
+  expect(composerBox.x - (freeDraftBox!.x + freeDraftBox!.width)).toBeLessThanOrEqual(12);
+  expect(Math.abs(composerBox.y - freeDraftBox!.y)).toBeLessThanOrEqual(2);
   await page.getByRole('textbox', { name: 'Kommentar' }).fill('Freier Canvas-Kommentar');
   await page.getByRole('button', { name: 'Senden' }).click();
   await expect(page.getByTestId('comment-sidebar')).toContainText('Zeichenfläche');
