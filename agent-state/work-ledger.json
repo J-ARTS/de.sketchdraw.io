@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T00:38:33Z",
+  "updatedAt": "2026-10-18T00:55:22Z",
   "issues": [
     {
       "number": 1,
@@ -816,6 +816,23 @@
       },
       "dependencies": [
         52
+      ]
+    },
+    {
+      "number": 54,
+      "title": "Editierbare Ressourcenkarten mit Icon, Text und Links",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/54",
+      "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Codex temporary user-authorized takeover; Claude Code architecture/UI review completed; Antigravity quota unavailable",
+      "phase": "Architecture, UI, logic, interface and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        53
       ]
     }
   ],
@@ -3405,6 +3422,88 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for exact commit 1868e679057e444a414523570cd1c81dc9560a5f. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between the recorded run start and completion timestamps."
+    },
+    {
+      "id": "claude-code-resource-card-review-054",
+      "tool": "claude-code",
+      "model": "claude-sonnet",
+      "issues": [
+        54
+      ],
+      "status": "review_completed",
+      "startedAt": "2026-10-18T00:55:22Z",
+      "endedAt": "2026-10-18T00:55:22Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/54",
+        "src/catalog/resource-card.ts",
+        "src/renderer/components/ResourceCardEditor.vue"
+      ],
+      "concerns": [
+        "Use a safe SVG-based three-zone card, a searchable catalog icon picker, explicit keyboard focus handling, the desktop link bridge, and a bounded link count."
+      ],
+      "authorization": "Claude Code owns UI review under the project role assignment; the local invocation was read-only.",
+      "measurementSource": "Local Claude Code read-only review. Timestamps record the coordinator checkpoint; elapsed time, token use and cost were not reported and remain null."
+    },
+    {
+      "id": "antigravity-resource-card-attempt-054",
+      "tool": "antigravity",
+      "model": null,
+      "issues": [
+        54
+      ],
+      "status": "no_work_product",
+      "startedAt": "2026-10-18T00:55:22Z",
+      "endedAt": "2026-10-18T00:55:22Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/54"
+      ],
+      "concerns": [
+        "The Antigravity UI reported exhausted baseline and Claude individual quotas; the send action was unavailable and no work product was produced."
+      ],
+      "authorization": "The project role assigns card logic and interfaces to Antigravity; the user authorized Codex temporary takeover with actual-tool attribution.",
+      "measurementSource": "Observed local Antigravity UI quota state. Timestamps record the coordinator checkpoint; no elapsed duration is inferred."
+    },
+    {
+      "id": "codex-resource-card-054",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        54
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T00:40:12Z",
+      "endedAt": "2026-10-18T00:55:22Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/catalog/resource-card.ts",
+        "src/catalog/builtin.ts",
+        "src/renderer/components/ResourceCardEditor.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "src/renderer/state/element-clipboard.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/interop/export.ts",
+        "tests/unit/resource-card.spec.ts",
+        "tests/ui/resource-card.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/54",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json",
+        "release/mac-arm64/Sketchdraw.app"
+      ],
+      "concerns": [
+        "Cross-platform GitHub Actions verification is pending for the committed revision."
+      ],
+      "authorization": "The user requested editable resource cards and previously authorized Codex to temporarily implement unavailable agents’ scope with actual-tool attribution.",
+      "measurementSource": "Codex implementation and local verification: typecheck and production build passed; 323 Vitest tests, 46 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify tests passed; the unsigned macOS package directory target completed."
     }
   ],
   "evidencePolicy": {

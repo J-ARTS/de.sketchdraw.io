@@ -9,8 +9,10 @@ import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@
 import { docToScreen } from '@/renderer/lib/viewport';
 import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
+import { isResourceCard } from '@/catalog';
+import ResourceCardEditor from './ResourceCardEditor.vue';
 
-type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'author' | 'align' | 'more' | 'route' | 'start' | 'end';
+type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -54,7 +56,8 @@ const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !=
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
 const stickyOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'sticky-note');
-const textCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
+const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard(single.value));
+const textCapable = computed(() => !resourceCardOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
 const barSize = ref({ width: 0, height: 56 });
@@ -206,7 +209,7 @@ function style(patch: Partial<ElementStyle>): void {
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
-watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'author', 'more'].includes(openSegment.value)) close(false); });
+watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'resource', 'author', 'more'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -337,7 +340,7 @@ function relayout(): void { void nextTick(placePopover); }
         <span class="size-label">{{ sizeLabel }}</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
-      <button v-if="info.canEditText && !stickyOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
+      <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
         <AppIcon name="text" />
       </button>
     </template>
@@ -346,7 +349,10 @@ function relayout(): void { void nextTick(placePopover); }
       <button type="button" class="tool-btn format-letter" aria-label="Fett" :aria-pressed="info.values.fontWeight === 'bold'" title="Fett" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
       <button type="button" class="tool-btn format-letter strike" aria-label="Durchgestrichen" :aria-pressed="info.values.textDecoration === 'line-through'" title="Durchgestrichen" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
     </template>
-    <button v-if="info.count === 1 && !connectorOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
+    <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" aria-label="Ressourcenkarte bearbeiten" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable('Ressourcenkarte bearbeiten')" @click="toggle('resource')">
+      <AppIcon name="more" />
+    </button>
+    <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
       <AppIcon name="link" />
     </button>
     <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
@@ -372,7 +378,7 @@ function relayout(): void { void nextTick(placePopover); }
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Link' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -447,6 +453,8 @@ function relayout(): void { void nextTick(placePopover); }
       </div>
       <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? 'Verschieden' : undefined" @input="store.setPropertyDraft({ style: { fontSize: ($event.target as HTMLInputElement).valueAsNumber } })" @change="store.commitPropertyDraft()" /></label>
     </template>
+
+    <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
 
     <template v-else-if="openSegment === 'link'">
       <label class="field">{{ stickyOnly ? 'Link' : 'Dokumentationslink' }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="stickyOnly ? 'Link' : 'Dokumentationslink'" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>

@@ -10,6 +10,7 @@ import {
   type SketchElement,
 } from '@/domain';
 import { bounds } from '../lib/geometry';
+import { isResourceCard, resourceCardIconType } from '@/catalog';
 
 export const ELEMENT_CLIPBOARD_FORMAT = 'sketchdraw.elements' as const;
 
@@ -69,7 +70,10 @@ export function elementClipboardPayload(document: SketchDocument, selection: rea
     if (element.assetId && document.assets[element.assetId]) assets[element.assetId] = clone(document.assets[element.assetId]!);
   }
 
-  const componentTypes = new Set(elements.flatMap((element) => element.componentType ? [element.componentType] : []));
+  const componentTypes = new Set(elements.flatMap((element) => [
+    ...(element.componentType ? [element.componentType] : []),
+    ...(isResourceCard(element) ? [resourceCardIconType(element)] : []),
+  ]));
   const componentSets = document.componentSets
     .filter((set) => set.components.some((definition) => componentTypes.has(definition.type)))
     .map(clone);

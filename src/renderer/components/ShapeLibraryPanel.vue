@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
+import { RESOURCE_CARD_COMPONENT_TYPE, builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
 import type { ComponentDefinition, ShapeVariant } from '@/domain';
 import { matchesShape, SHAPE_CATALOG, type ShapeEntry } from '@/renderer/lib/shapes';
 import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
@@ -146,8 +146,9 @@ onBeforeUnmount(() => {
         <section v-for="group in groupedLibraryComponents" :key="group.category" class="component-group">
           <h3>{{ group.category }}</h3>
           <div class="component-grid">
-            <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)">
-              <SafeIcon :source="item.component.iconSvg" :size="42" />
+            <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)">
+              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span>
+              <SafeIcon v-else :source="item.component.iconSvg" :size="42" />
               <span>{{ item.component.name }}</span>
               <small>{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
             </button>
@@ -168,8 +169,9 @@ onBeforeUnmount(() => {
           </div>
           <h3>Architektur</h3>
           <div class="component-grid search-components">
-            <button v-for="item in allComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)">
-              <SafeIcon :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
+            <button v-for="item in allComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)">
+              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span>
+              <SafeIcon v-else :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
           <p v-if="!filteredShapes.length && !allComponents.length" class="empty-state">Keine Form oder Komponente gefunden.</p>
@@ -195,7 +197,7 @@ onBeforeUnmount(() => {
         <section class="accordion-section">
           <button type="button" class="accordion-trigger" :aria-expanded="expanded.architecture" aria-controls="shape-section-architecture" @click="toggleSection('architecture')"><span>Architektur</span><span aria-hidden="true">⌄</span></button>
           <div v-if="expanded.architecture" id="shape-section-architecture" class="component-grid">
-            <button v-for="item in genericComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)"><SafeIcon :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
+            <button v-for="item in genericComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)"><span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span><SafeIcon v-else :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
           </div>
         </section>
 
@@ -226,6 +228,7 @@ onBeforeUnmount(() => {
 .library-scroll{flex:1;min-height:0;overflow:auto;background:var(--surface-panel)}.accordion-section{border-bottom:1px solid var(--border-subtle)}.accordion-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:66px;padding:0 24px;border:0;background:transparent;color:var(--text-primary);font-size:17px;font-weight:650;text-align:left;cursor:pointer}.accordion-trigger:hover{background:var(--surface-hover)}.accordion-trigger>span:last-child{font-size:24px;transition:transform .16s ease}.accordion-trigger[aria-expanded=true]>span:last-child{transform:rotate(180deg)}
 .shape-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 20px 18px}.shape-tile{position:relative;display:flex;min-width:0;min-height:78px;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px 4px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--text-primary);font-size:10px;text-align:center;cursor:pointer}.shape-tile:hover,.shape-tile:focus-visible{border-color:var(--border-subtle);background:var(--surface-hover)}.shape-tile.favorite{color:var(--accent)}.shape-tile svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.favorite-mark{position:absolute;top:4px;right:7px;font-weight:700}
 .component-group,.search-results{padding:20px 20px 4px}.component-group h3,.search-results h3{margin:0 4px 12px;font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em}.component-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px 18px}.component-group .component-grid,.search-results .component-grid{padding:0}.component-tile{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 7px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);color:var(--text-primary);text-align:center;cursor:pointer}.component-tile:hover,.component-tile:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.component-tile span{width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:650}.component-tile small{font-size:9px;color:var(--text-muted)}.search-components{margin-bottom:16px}
+.component-grid .resource-card-tile{grid-column:1/-1;min-height:126px;padding:10px}.resource-card-preview{display:grid!important;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;width:100%!important;min-height:62px;padding:10px 10px 18px;box-sizing:border-box;border:1px solid var(--border-default);border-radius:7px;background:var(--surface-panel);box-shadow:inset 0 -10px var(--accent-soft);text-align:left}.resource-card-preview>span{display:grid;gap:3px;font-size:12px!important}.resource-card-preview b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-card-preview small{text-transform:uppercase}
 .other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-hover)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}.provider-row>span:last-child{font-size:25px;color:var(--text-muted)}
 .source-note,.empty-state{padding:18px 24px;color:var(--text-secondary);font-size:11px;line-height:1.5}.library-footer{flex:none;display:grid;gap:10px;padding:12px 20px;border-top:1px solid var(--border-subtle);background:var(--surface-panel)}.reset-button{justify-self:start}.import-set{font-size:11px;font-weight:600;color:var(--text-secondary)}.import-set input{display:block;width:100%;margin-top:7px;font-size:11px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.shape-library{top:136px;right:12px;bottom:12px;width:calc(100vw - 24px)}.library-header{padding:16px}.shape-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding-inline:14px}.component-grid{padding-inline:14px}.provider-row{padding-inline:16px}}

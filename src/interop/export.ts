@@ -2,7 +2,7 @@ import { connectorEndMarker, connectorPathData, connectorRouting, connectorStart
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
-import { builtInComponentSets } from '../catalog';
+import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
 import { SVG_NS, OWN_NS, color, encodeEnvelope } from './common';
 import { parseXmlDocument } from './xml';
@@ -47,6 +47,25 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
 function stickyAuthor(el: SketchElement, d: DiagnosticCollector): string {
   if (el.kind !== 'sticky-note' || !el.author) return '';
   return `<text${attrs({ x: 20, y: el.height - 20, 'font-size': Math.max(12, el.style.fontSize * .72), 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity * .82 })}>${escapeXmlText(xmlText(el.author, d, el))}</text>`;
+}
+function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): string {
+  if (!isResourceCard(el)) return '';
+  const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
+  const titleSize = Math.max(14, el.style.fontSize);
+  const descriptionSize = Math.max(10, el.style.fontSize * .65);
+  const footerHeight = Math.max(28, Math.min(36, el.height * .24));
+  const bodyHeight = Math.max(0, el.height - footerHeight);
+  const iconSize = Math.max(28, Math.min(52, bodyHeight * .48, el.width * .16));
+  const textX = 20 + iconSize + 18;
+  const title = escapeXmlText(xmlText(el.text || el.label || 'Ressourcenkarte', d, el));
+  const description = escapeXmlText(xmlText((el.description || 'BESCHREIBUNG').toUpperCase(), d, el));
+  const links = resourceCardLinks(el);
+  const linkMarkup = links.map((link, index) => {
+    const width = el.width / links.length;
+    const x = width * (index + .5);
+    return `<a href="${escapeXmlAttr(link.url)}"><text${attrs({ x, y: el.height - footerHeight / 2, 'font-size': Math.max(10, Math.min(14, descriptionSize)), 'font-family': fontFamily, 'font-weight': 650, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#2563eb' })}>${escapeXmlText(xmlText(link.label.toUpperCase(), d, el))}</text></a>`;
+  }).join('');
+  return `<text${attrs({ x: textX, y: bodyHeight / 2 - Math.max(5, titleSize * .25), 'font-size': titleSize, 'font-family': fontFamily, 'font-weight': 600, 'dominant-baseline': 'central', fill: safeColor(el.style.stroke, d, el) })}>${title}</text><text${attrs({ x: textX, y: bodyHeight / 2 + Math.max(16, titleSize * .85), 'font-size': descriptionSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill: safeColor(el.style.stroke, d, el), 'fill-opacity': .55 })}>${description}</text>${linkMarkup}`;
 }
 const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = { none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block', circle: 'oval', diamond: 'diamond' };
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
@@ -110,6 +129,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
         out.append(`<g${attrs({ width: el.width, height: el.height, 'data-sketchdraw-shape': shapeVariant })}${paint}>${paths.map((path, pathIndex) => `<path d="${escapeXmlAttr(path)}" transform="translate(${-el.width / 6} ${-el.height / 6}) scale(${n(el.width / 18)} ${n(el.height / 18)})" fill="${pathIndex === 0 ? 'inherit' : 'none'}" vector-effect="non-scaling-stroke"/>`).join('')}</g>`);
       }
     }
+    else if (isResourceCard(el)) {
+      const footerHeight = Math.max(28, Math.min(36, el.height * .24));
+      out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" rx="8"${paint}/><path d="M0 ${n(el.height - footerHeight)}H${n(el.width)}V${n(el.height - 8)}Q${n(el.width)} ${n(el.height)} ${n(el.width - 8)} ${n(el.height)}H8Q0 ${n(el.height)} 0 ${n(el.height - 8)}Z" fill="#eef4fb" stroke="none"/>`);
+    }
     else if (['container', 'component'].includes(el.kind))
       out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}"${paint}/>`);
     else if (el.kind === 'connector')
@@ -119,14 +142,16 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     else if (el.kind === 'image')
       out.append(`<image${attrs({ x: 0, y: 0, width: el.width, height: el.height, href: document.assets[el.assetId!]!.dataUrl, opacity: el.style.opacity, preserveAspectRatio: 'none' })}/>`);
     if (el.kind === 'component') {
-      const definition = [...document.componentSets, ...builtInComponentSets].flatMap(set => set.components).find(c => c.type === el.componentType);
+      const definition = [...document.componentSets, ...builtInComponentSets].flatMap(set => set.components).find(c => c.type === (isResourceCard(el) ? resourceCardIconType(el) : el.componentType));
       const icon = resolveCatalogIcon(definition?.iconSvg);
       if (icon.isFallback)
         diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'Component uses the safe generic icon; provider semantics remain metadata.');
       const tree = icon.tree;
-      out.append(`<svg${attrs({ ...tree.attributes, x: 4, y: 4, width: Math.min(32, el.width), height: Math.min(32, el.height), viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+      const footerHeight = isResourceCard(el) ? Math.max(28, Math.min(36, el.height * .24)) : 0;
+      const iconSize = isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
+      out.append(`<svg${attrs({ ...tree.attributes, x: isResourceCard(el) ? 20 : 4, y: isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
     out.append(el.kind === 'sticky-note' && el.documentationUrl
       ? `<a href="${escapeXmlAttr(el.documentationUrl)}">${visibleText}</a>`
       : visibleText);

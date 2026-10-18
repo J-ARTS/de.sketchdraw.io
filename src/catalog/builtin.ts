@@ -50,6 +50,34 @@ const ICON_USER =
 const ICON_NETWORK =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="10.5" y1="7" x2="6.5" y2="17"/><line x1="13.5" y1="7" x2="17.5" y2="17"/><line x1="7.5" y1="19" x2="16.5" y2="19"/></svg>';
 
+const ICON_RESOURCE_CARD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 16h20"/><rect x="5" y="7" width="5" height="5" rx="1"/><path d="M13 8h6M13 11h4"/></svg>';
+
+const RESOURCE_CARD_COMPONENTS: ComponentDefinition[] = [
+  {
+    type: 'generic.resource-card',
+    name: 'Ressourcenkarte',
+    provider: 'generic',
+    category: 'Advanced',
+    aliases: ['ResourceCard', 'CloudResource', 'Dokumentation', 'Links', 'Architekturkarte'],
+    defaultWidth: 360,
+    defaultHeight: 150,
+    style: {
+      stroke: '#cbd5e1',
+      fill: '#ffffff',
+      strokeWidth: 1.5,
+      fontSize: 20,
+      textAlign: 'left',
+    },
+    metadata: {
+      provenance: 'sketchdraw-generic-symbol',
+      'resource-card:icon': 'generic.service',
+      'resource-card:link-order': '',
+    },
+    iconSvg: ICON_RESOURCE_CARD,
+  },
+];
+
 const GENERIC_COMPONENTS: ComponentDefinition[] = [
   {
     type: 'generic.service',
@@ -287,6 +315,7 @@ const KUBERNETES_COMPONENTS: ComponentDefinition[] = [
 
 export const builtInComponentSets: ComponentSet[] = deepFreezeComponentSets([
   { id: 'sketchdraw.generic', name: 'Generic Architecture (Starter)', version: '1.0.0', components: GENERIC_COMPONENTS },
+  { id: 'sketchdraw.resource-cards', name: 'Resource Cards', version: '1.0.0', components: RESOURCE_CARD_COMPONENTS },
   { id: 'sketchdraw.aws', name: 'AWS Architecture (Official Starter)', version: '2026.10', components: AWS_COMPONENTS },
   { id: 'sketchdraw.azure', name: 'Azure Architecture (Official Starter)', version: '2026.10', components: AZURE_COMPONENTS },
   { id: 'sketchdraw.gcp', name: 'Google Cloud Architecture (Official Starter)', version: '2026.10', components: GCP_COMPONENTS },

@@ -45,6 +45,7 @@ import { ICON_LIMITS, parseSafeIconSvg } from './icon';
 
 export { builtInComponentSets } from './builtin';
 export * from './icon';
+export * from './resource-card';
 
 export const CATALOG_LIMITS = Object.freeze({
   MAX_COMPONENT_SET_JSON_BYTES: 2 * 1024 * 1024,

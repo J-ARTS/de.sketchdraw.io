@@ -1620,6 +1620,40 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "54": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "runCount": 3,
+        "runIds": [
+          "antigravity-resource-card-attempt-054",
+          "claude-code-resource-card-review-054",
+          "codex-resource-card-054"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "6": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1781,15 +1815,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 25
+        "unknownRuns": 26
       },
       "observedSeconds": {
         "knownRuns": 16,
         "knownSubtotal": 9941.981845207978,
         "total": null,
-        "unknownRuns": 9
+        "unknownRuns": 10
       },
-      "runCount": 25,
+      "runCount": 26,
       "runIds": [
         "antigravity-architecture-001",
         "antigravity-architecture-002",
@@ -1810,6 +1844,7 @@
         "antigravity-p2p-claude-001",
         "antigravity-page-rename-attempt-035",
         "antigravity-release-pipeline-001",
+        "antigravity-resource-card-attempt-054",
         "antigravity-setup-001",
         "antigravity-setup-002",
         "antigravity-shape-library-attempt-053",
@@ -1821,7 +1856,7 @@
         "knownRuns": 4,
         "knownSubtotal": 391342,
         "total": null,
-        "unknownRuns": 21
+        "unknownRuns": 22
       }
     },
     "chrome": {
@@ -1853,20 +1888,21 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 13
+        "unknownRuns": 14
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
         "total": null,
-        "unknownRuns": 9
+        "unknownRuns": 10
       },
-      "runCount": 13,
+      "runCount": 14,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
         "claude-code-connector-ui-review-047",
         "claude-code-font-ui-attempt-043",
+        "claude-code-resource-card-review-054",
         "claude-code-shape-library-review-053",
         "claude-code-shape-toolbar-review-052",
         "claude-code-sticky-ui-review-050",
@@ -1881,7 +1917,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 13
+        "unknownRuns": 14
       }
     },
     "codex": {
@@ -1889,15 +1925,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       },
-      "runCount": 23,
+      "runCount": 24,
       "runIds": [
         "codex-auto-agent-access-030",
         "codex-connector-implementation-045",
@@ -1912,6 +1948,7 @@
         "codex-noncommercial-license-029",
         "codex-orchestration-001",
         "codex-page-ui-cleanup-review-035",
+        "codex-resource-card-054",
         "codex-runtime-path-fix-030",
         "codex-selection-popover-review-038",
         "codex-shape-library-053",
@@ -1927,7 +1964,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       }
     },
     "codex-subagent": {
@@ -2025,15 +2062,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 105
+      "unknownRuns": 108
     },
     "observedSeconds": {
       "knownRuns": 33,
       "knownSubtotal": 17406.322263248963,
       "total": null,
-      "unknownRuns": 72
+      "unknownRuns": 75
     },
-    "runCount": 105,
+    "runCount": 108,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -2054,6 +2091,7 @@
       "antigravity-p2p-claude-001",
       "antigravity-page-rename-attempt-035",
       "antigravity-release-pipeline-001",
+      "antigravity-resource-card-attempt-054",
       "antigravity-setup-001",
       "antigravity-setup-002",
       "antigravity-shape-library-attempt-053",
@@ -2065,6 +2103,7 @@
       "claude-architecture-002",
       "claude-code-connector-ui-review-047",
       "claude-code-font-ui-attempt-043",
+      "claude-code-resource-card-review-054",
       "claude-code-shape-library-review-053",
       "claude-code-shape-toolbar-review-052",
       "claude-code-sticky-ui-review-050",
@@ -2108,6 +2147,7 @@
       "codex-release-fixes-001",
       "codex-release-review-001",
       "codex-research-001",
+      "codex-resource-card-054",
       "codex-runtime-path-fix-030",
       "codex-s2-contract-001",
       "codex-selection-popover-review-038",
@@ -2145,7 +2185,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 101
+      "unknownRuns": 104
     }
   },
   "officialScoreClaimReady": false,
@@ -2155,9 +2195,9 @@
     "knownSubtotal": 68,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 39
+    "unknownIssues": 40
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T00:38:33Z"
+  "updatedAt": "2026-10-18T00:55:22Z"
 }

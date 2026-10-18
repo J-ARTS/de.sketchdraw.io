@@ -10,7 +10,7 @@ import { createDocumentAuthority, SessionAccessError, type ActorBinding, type Do
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
 import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
-import { instantiateComponent, parseComponentSet, prepareComponentSetImport } from '@/catalog';
+import { instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, HandleId, Rect,
   SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
@@ -591,7 +591,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       void finishGesture(g);
     },
     pointerCancel() { if (state.transitioning) return; resetGesture(); },
-    doubleClick(input) { if (!state.canWrite || state.transitioning) return; const e = hit(screenToDoc(state.viewport, input)); if (e) store.startTextEdit(e.id); },
+    doubleClick(input) { if (!state.canWrite || state.transitioning) return; const e = hit(screenToDoc(state.viewport, input)); if (e && !isResourceCard(e)) store.startTextEdit(e.id); },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
     handleKeyDown(input) {
       if (state.transitioning || state.dialog || input.isComposing) return false;
@@ -783,6 +783,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     startTextEdit(elementId) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
       const e = elementId ? state.document.elements.find((e) => e.id === elementId) : undefined;
+      if (isResourceCard(e)) return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
       state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', composing: false, conflict: null }; changedDraft();

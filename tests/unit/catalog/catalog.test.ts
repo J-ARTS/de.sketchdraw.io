@@ -45,9 +45,10 @@ function getBuiltInSet(id: string): ComponentSet {
 
 describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => {
   describe('Built-in component sets & search', () => {
-    it('provides generic and four official provider starter sets with valid definitions and icons', () => {
+    it('provides generic, resource card, and four official provider starter sets with valid definitions and icons', () => {
       expect(builtInComponentSets.map((s) => s.id)).toEqual([
         'sketchdraw.generic',
+        'sketchdraw.resource-cards',
         'sketchdraw.aws',
         'sketchdraw.azure',
         'sketchdraw.gcp',
@@ -56,7 +57,7 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
 
       for (const set of builtInComponentSets) {
         expect(set.version.length).toBeGreaterThan(0);
-        expect(set.components.length).toBeGreaterThanOrEqual(3);
+        expect(set.components.length).toBeGreaterThanOrEqual(1);
 
         const validated = validateComponentSet(set);
         expect(validated).toEqual(set);
@@ -113,7 +114,10 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(awsOnlyHits.every((r) => r.component.provider === 'aws')).toBe(true);
 
       const allHits = searchCatalogComponents();
-      expect(allHits.length).toBe(37);
+      expect(allHits.length).toBe(38);
+
+      const resourceCardHits = searchCatalogComponents(builtInComponentSets, 'Ressourcenkarte');
+      expect(resourceCardHits.some((result) => result.component.type === 'generic.resource-card')).toBe(true);
 
       const kubernetesHits = searchCatalogComponents(builtInComponentSets, 'Pod', 'kubernetes');
       expect(kubernetesHits.some((result) => result.component.type === 'kubernetes.workload.pod')).toBe(true);
