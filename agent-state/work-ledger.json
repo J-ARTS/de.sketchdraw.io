@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:01:44Z",
+  "updatedAt": "2026-10-18T04:10:24Z",
   "issues": [
     {
       "number": 1,
@@ -1016,6 +1016,23 @@
       },
       "dependencies": [],
       "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 64,
+      "title": "Flaky Laserpointer-Zoomtest auf macOS stabilisieren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/64",
+      "owner": "Codex (testing responsibility)",
+      "phase": "Cross-platform test reliability",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        63
+      ],
+      "currentImplementer": "Codex"
     }
   ],
   "runs": [
@@ -4404,13 +4421,38 @@
         "src/interop/export.ts",
         "tests/unit/web-embed.spec.ts",
         "tests/ui/web-embed.spec.ts",
-        "tests/unit/platform/security-and-ipc.spec.ts"
+        "tests/unit/platform/security-and-ipc.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39095747557"
       ],
       "concerns": [
-        "External sites may refuse iframe embedding through their own Content-Security-Policy or X-Frame-Options; the canvas keeps this protection intact and exposes an external-open fallback."
+        "External sites may refuse iframe embedding through their own Content-Security-Policy or X-Frame-Options; the canvas keeps this protection intact and exposes an external-open fallback.",
+        "Initial cross-platform run 39095747557 exposed an unrelated flaky laser-pointer zoom assertion on macOS; web-embed tests themselves passed there. Follow-up issue #64 tracks the correction before final verification."
       ],
       "authorization": "The user explicitly requested iframe-based web embeds and previously authorized temporary Codex implementation with actual-tool attribution.",
       "measurementSource": "Codex implemented the web-embed element using the user-authorized temporary takeover. Local verification is recorded against the uncommitted issue #63 worktree state; cross-platform GitHub Actions evidence remains pending. No measured implementation duration, token or cost metric is claimed."
+    },
+    {
+      "id": "codex-laser-pointer-ci-stability-064",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        64,
+        63
+      ],
+      "status": "locally_verified",
+      "startedAt": "2026-10-18T04:08:00Z",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/64",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39095747557/job/117581727928",
+        "tests/ui/whiteboard.spec.ts"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns testing and remediation of the cross-platform regression discovered while completing issue #63.",
+      "measurementSource": "macOS CI showed that the fading trail's dynamic first locator retargeted another segment during the zoom assertion. The assertion now uses the active laser head, which remains stable until pointer release. Five consecutive targeted local browser runs passed. Cross-platform rerun remains pending."
     }
   ],
   "evidencePolicy": {

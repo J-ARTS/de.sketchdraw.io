@@ -101,12 +101,13 @@ test('laser pointer draws only a stable fading overlay and supports its shortcut
   await page.mouse.move(420, 260); await page.mouse.down();
   await page.mouse.move(650, 360, { steps: 24 });
   const layer = page.getByTestId('laser-pointer-layer');
-  await expect(layer).toBeVisible(); await expect(page.getByTestId('laser-pointer-head')).toBeVisible();
+  const head = page.getByTestId('laser-pointer-head');
+  await expect(layer).toBeVisible(); await expect(head).toBeVisible();
   expect(await layer.locator('line.laser-core').count()).toBeGreaterThan(3);
-  const firstSegment = layer.locator('line.laser-core').first();
-  const xBefore = await firstSegment.getAttribute('x1');
+  const headBefore = { cx: await head.getAttribute('cx'), cy: await head.getAttribute('cy') };
   await page.mouse.wheel(0, 120);
-  await expect(firstSegment).toHaveAttribute('x1', xBefore!);
+  await expect(head).toHaveAttribute('cx', headBefore.cx!);
+  await expect(head).toHaveAttribute('cy', headBefore.cy!);
   await page.mouse.up();
   await expect(page.getByTestId('laser-pointer-head')).toHaveCount(0);
   await expect(layer).toHaveCount(0, { timeout: 2_000 });

@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792296104.450604,
-    "ast_hash": "fe2b178708fdbcdc441d312580c0b868",
+    "mtime": 1792296624.0209198,
+    "ast_hash": "705001ed25eeaf5039e5cb1482d09b43",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "tests/ui/whiteboard.spec.ts": {
-    "mtime": 1792294732.007626,
-    "ast_hash": "63fb158f728c188b997536b097982884",
+    "mtime": 1792296591.5811636,
+    "ast_hash": "20ba7cbd382a1ebb4045257edd32ac58",
     "semantic_hash": ""
   },
   "tests/unit/collaboration/protocol.spec.ts": {

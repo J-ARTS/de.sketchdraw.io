@@ -2155,7 +2155,41 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-laser-pointer-ci-stability-064"
+      ]
+    },
+    "64": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-laser-pointer-ci-stability-064"
+      ]
     },
     "7": {
       "exclusiveRuns": {
@@ -2395,15 +2429,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 33
+        "unknownRuns": 34
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 33
+        "unknownRuns": 34
       },
-      "runCount": 33,
+      "runCount": 34,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
@@ -2419,6 +2453,7 @@
         "codex-font-integration-review-043",
         "codex-github-ticket-audit-057",
         "codex-laser-pointer-062",
+        "codex-laser-pointer-ci-stability-064",
         "codex-mcp-takeover-001",
         "codex-native-integration-002",
         "codex-noncommercial-license-029",
@@ -2443,7 +2478,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 33
+        "unknownRuns": 34
       }
     },
     "codex-subagent": {
@@ -2549,15 +2584,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 131
+      "unknownRuns": 132
     },
     "observedSeconds": {
       "knownRuns": 41,
       "knownSubtotal": 20918.322263248963,
       "total": null,
-      "unknownRuns": 90
+      "unknownRuns": 91
     },
-    "runCount": 131,
+    "runCount": 132,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2630,6 +2665,7 @@
       "codex-interop-001",
       "codex-interop-contract-001",
       "codex-laser-pointer-062",
+      "codex-laser-pointer-ci-stability-064",
       "codex-mcp-contract-review-001",
       "codex-mcp-independent-review-001",
       "codex-mcp-takeover-001",
@@ -2695,7 +2731,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 127
+      "unknownRuns": 128
     }
   },
   "officialScoreClaimReady": false,
@@ -2705,9 +2741,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 51
+    "unknownIssues": 52
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:01:44Z"
+  "updatedAt": "2026-10-18T04:10:24Z"
 }
