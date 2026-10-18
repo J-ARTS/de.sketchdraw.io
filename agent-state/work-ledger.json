@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T14:24:41.734167Z",
+  "updatedAt": "2026-10-18T14:53:53.814449Z",
   "issues": [
     {
       "number": 1,
@@ -1670,6 +1670,23 @@
       },
       "dependencies": [
         58
+      ]
+    },
+    {
+      "number": 108,
+      "title": "Formenbibliothek: Quellenhinweis aus Anbieteransicht entfernen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/108",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        92
       ]
     }
   ],
@@ -6584,6 +6601,82 @@
       ],
       "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 92 deterministic test correction to main.",
       "measurementSource": "GitHub Actions run 39135038919 timestamps report 640 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-remove-library-source-note-108",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        108
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:46929dbd9999bce54396a7aeb648dd3d45c3ba33",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "tests/ui/official-library.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/108",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429"
+      ],
+      "concerns": [
+        "The first local Playwright invocation reused an already running Vite preview on port 5173 from another checkout. It was excluded as product evidence; an isolated rerun on port 5183 verified the exact changed checkout with 3/3 tests passing.",
+        "Graphify source refresh was guarded: the new extraction had 4,465 nodes versus 4,518 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested removing the visible official-architecture-symbol source note. The underlying THIRD_PARTY_ICONS.md license and source documentation remains unchanged.",
+      "measurementSource": "Local macOS evidence at commit 46929db: typecheck, git diff check, and 3/3 targeted official-library Playwright tests passed on an isolated Vite port. GitHub Actions run 39137338429 verified the exact commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null. The preserved graph projection was refreshed with 1,889 traceability nodes and 2,585 links; the link check and 22 Python Graphify tests passed."
+    },
+    {
+      "id": "github-actions-remove-library-source-note-39137338429",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        108
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T14:44:22Z",
+      "endedAt": "2026-10-18T14:53:33Z",
+      "observedSeconds": 551,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:46929dbd9999bce54396a7aeb648dd3d45c3ba33",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429/job/117704434043",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429/job/117704434236",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429/job/117704463548",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429/job/117704463570",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137338429/job/117704463592"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 108 UI change into main.",
+      "measurementSource": "GitHub Actions run 39137338429 timestamps report 551 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-remove-library-source-note-duplicate-39137335585",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        108
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T14:44:20Z",
+      "endedAt": "2026-10-18T14:45:14Z",
+      "observedSeconds": 54,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:46929dbd9999bce54396a7aeb648dd3d45c3ba33",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39137335585"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized branch push and cancelled once the authoritative main run was active.",
+      "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39137335585. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {

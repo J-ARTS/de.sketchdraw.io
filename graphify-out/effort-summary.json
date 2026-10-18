@@ -234,6 +234,40 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "108": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "observedSeconds": {
+          "knownRuns": 2,
+          "knownSubtotal": 605,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 3,
+        "runIds": [
+          "codex-remove-library-source-note-108",
+          "github-actions-remove-library-source-note-39137338429",
+          "github-actions-remove-library-source-note-duplicate-39137335585"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "11": {
       "exclusiveRuns": {
         "costUsd": {
@@ -3811,15 +3845,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 48
+        "unknownRuns": 50
       },
       "observedSeconds": {
-        "knownRuns": 42,
-        "knownSubtotal": 19276,
+        "knownRuns": 44,
+        "knownSubtotal": 19881,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 48,
+      "runCount": 50,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -3852,6 +3886,8 @@
         "github-actions-popover-anchor-39070996817",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226",
+        "github-actions-remove-library-source-note-39137338429",
+        "github-actions-remove-library-source-note-duplicate-39137335585",
         "github-actions-resource-card-39084611777",
         "github-actions-shape-header-39114208217",
         "github-actions-shape-library-39083060297",
@@ -3874,7 +3910,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 48
+        "unknownRuns": 50
       }
     },
     "openai-codex": {
@@ -3882,15 +3918,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       },
-      "runCount": 23,
+      "runCount": 24,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -3904,6 +3940,7 @@
         "codex-official-cloud-library-cards-92",
         "codex-pencil-size-preview-61",
         "codex-plugin-platform-local-66-69",
+        "codex-remove-library-source-note-108",
         "codex-shape-header-regression-89",
         "codex-simple-connector-icon-103",
         "codex-slides-under-user-menu-85",
@@ -3920,7 +3957,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 23
+        "unknownRuns": 24
       }
     }
   },
@@ -3929,15 +3966,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 180
+      "unknownRuns": 183
     },
     "observedSeconds": {
-      "knownRuns": 62,
-      "knownSubtotal": 31898.322263248963,
+      "knownRuns": 64,
+      "knownSubtotal": 32503.322263248963,
       "total": null,
-      "unknownRuns": 118
+      "unknownRuns": 119
     },
-    "runCount": 180,
+    "runCount": 183,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -4042,6 +4079,7 @@
       "codex-property-draft-025",
       "codex-release-fixes-001",
       "codex-release-review-001",
+      "codex-remove-library-source-note-108",
       "codex-research-001",
       "codex-resource-card-054",
       "codex-runtime-path-fix-030",
@@ -4102,6 +4140,8 @@
       "github-actions-popover-anchor-39070996817",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226",
+      "github-actions-remove-library-source-note-39137338429",
+      "github-actions-remove-library-source-note-duplicate-39137335585",
       "github-actions-resource-card-39084611777",
       "github-actions-shape-header-39114208217",
       "github-actions-shape-library-39083060297",
@@ -4124,7 +4164,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 176
+      "unknownRuns": 179
     }
   },
   "officialScoreClaimReady": false,
@@ -4134,9 +4174,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 90
+    "unknownIssues": 91
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T14:24:41.734167Z"
+  "updatedAt": "2026-10-18T14:53:53.814449Z"
 }
