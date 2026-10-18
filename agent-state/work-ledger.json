@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T11:21:29Z",
+  "updatedAt": "2026-10-18T11:38:42Z",
   "issues": [
     {
       "number": 1,
@@ -1602,6 +1602,24 @@
       "dependencies": [
         50,
         59
+      ]
+    },
+    {
+      "number": 102,
+      "title": "Aufgabenboard: neue Aufgabe direkt anlegen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/102",
+      "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        59,
+        101
       ]
     }
   ],
@@ -5963,6 +5981,64 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 606 seconds elapsed from queued creation to completion. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, Ubuntu 24.04, and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-task-board-create-102",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        102
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:f6808e64f75fa7a1756cac7e6bf1719d8f512836",
+        "src/renderer/components/TaskBoard.vue",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/task-board.spec.ts",
+        "tests/ui/comments-tasks.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/102",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193"
+      ],
+      "concerns": [
+        "Standalone tasks intentionally have no comment or sticky-note source reference.",
+        "The complete UI run against the concurrently modified root checkout passed 78 of 79 tests; its unrelated catalog assertion expected 8 Kubernetes symbols while that checkout served 39. The issue-specific suite passed 4 of 4 against an isolated branch server."
+      ],
+      "authorization": "The user reported that the task board could not create new tasks and had already authorized Codex to temporarily implement UI and logic work with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit f6808e6: typecheck passed; 49/49 Vitest files and 387/387 tests passed; the isolated comments/tasks Playwright suite passed 4/4 including Axe; production build passed; 59/59 build-lifecycle tests passed. Exact Codex duration, token usage and cost were not measured and remain null. GitHub Actions run 39123411193 passed Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025."
+    },
+    {
+      "id": "github-actions-task-board-create-39123411193",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        102
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T11:29:02Z",
+      "endedAt": "2026-10-18T11:38:19Z",
+      "observedSeconds": 557,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:f6808e64f75fa7a1756cac7e6bf1719d8f512836",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193/job/117663492345",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193/job/117663492428",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193/job/117663518597",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193/job/117663518614",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39123411193/job/117663518669"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 557 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
