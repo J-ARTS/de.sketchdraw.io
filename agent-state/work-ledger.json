@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T05:05:18Z",
+  "updatedAt": "2026-10-18T05:12:07Z",
   "issues": [
     {
       "number": 1,
@@ -1056,7 +1056,7 @@
       "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Plugin architecture, coordination and testing",
-      "status": "integration_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1071,7 +1071,7 @@
       "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Desktop settings, UI, interface, IAM and testing",
-      "status": "integration_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1088,7 +1088,7 @@
       "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Git logic, interface, DevOps and testing",
-      "status": "integration_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1106,7 +1106,7 @@
       "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Atlassian UI, logic, interface, IAM and testing",
-      "status": "integration_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4646,7 +4646,7 @@
         68,
         69
       ],
-      "status": "local_verified_integration_pending",
+      "status": "verified_cross_platform",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -4666,15 +4666,47 @@
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/66",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/67",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/68",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/69"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/69",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/c4b3782c8d31c41e185f65a7aa89dd7c73760b42",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855"
       ],
       "concerns": [
         "A live Atlassian acceptance run requires user-owned credentials and permissions; automated REST-contract tests use deterministic mock responses.",
-        "Cross-platform GitHub Actions verification is pending until the local change is committed and pushed.",
         "The source-code Graphify refresh was guarded because the rebuilt graph contained fewer nodes than the merged existing graph; the existing graph is preserved and the deterministic traceability projection is refreshed."
       ],
       "authorization": "The user explicitly requested configurable Git and Atlassian plugins and previously authorized Codex to temporarily implement responsibilities assigned to Claude Code and Antigravity with actual-tool attribution.",
-      "measurementSource": "Codex implemented the local desktop plugin capability and recorded only observed verification. Exact local evidence: typecheck passed; 359/359 Vitest tests, 60/60 browser UI tests and 6/6 Electron integration tests passed; renderer, Electron and MCP production builds passed. No duration, token or cost estimate is inferred."
+      "measurementSource": "Codex implementation at commit c4b3782c8d31c41e185f65a7aa89dd7c73760b42. Local evidence: typecheck passed; 359/359 Vitest tests, 60/60 browser UI tests and 6/6 Electron integration tests passed; renderer, Electron and MCP production builds passed. GitHub Actions run 39099388855 verified the exact feature commit on macOS 15, Ubuntu 24.04 and Windows 2025, plus Direct P2P and Governance & Graphify jobs. No duration, token or cost estimate is inferred for the local run."
+    },
+    {
+      "id": "github-actions-plugin-platform-39099388855",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        66,
+        67,
+        68,
+        69
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T05:06:12Z",
+      "endedAt": "2026-10-18T05:12:07Z",
+      "observedSeconds": 355,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/c4b3782c8d31c41e185f65a7aa89dd7c73760b42",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855/job/117592350395",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855/job/117592350553",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855/job/117592375953",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855/job/117592375958",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39099388855/job/117592376043"
+      ],
+      "concerns": [
+        "GitHub Actions reports the upstream Node.js 20 action-runtime deprecation warning for checkout/setup/upload actions; all jobs still completed successfully under the forced Node.js 24 runtime."
+      ],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions metadata for exact feature commit c4b3782c8d31c41e185f65a7aa89dd7c73760b42. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each desktop platform passed typechecks, Node/Vitest suites, production builds, 60 browser UI tests including plugin settings and accessibility, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
     }
   ],
   "evidencePolicy": {
