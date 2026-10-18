@@ -1,5 +1,6 @@
 /** Renderer-internal contract between the store (logic) and the Vue components (presentation). Types only. */
 import type { InjectionKey } from 'vue';
+import type { LanguageCode, Preferences } from '../lib/preferences';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
 import type { CrdtDocumentController } from '@/crdt';
@@ -167,6 +168,8 @@ export interface CreateStoreOptions {
   clipboard?: TextClipboard;
   isMac?: boolean;
   initialTheme?: 'light' | 'dark';
+  /** Where preferences (theme, canvas background, language) persist; defaults to localStorage. Tests may inject or disable. */
+  preferences?: { load(): Preferences; save(value: Preferences): void } | null;
 }
 
 /** Side of a selected shape from which a connected copy is created (#36). */
@@ -267,6 +270,9 @@ export interface WhiteboardState {
   objectsOpen: boolean;
   propertiesCollapsed: boolean;
   theme: 'light' | 'dark';
+  /** Preset id or `#rrggbb`; null = the theme's default canvas. */
+  canvasBackground: string | null;
+  language: LanguageCode;
   bridgePlatform: 'electron' | 'browser';
   empty: boolean;
   propertyDraft: { patch: ElementPatch; baseRevision: number; ids: string[] } | null;
@@ -458,6 +464,8 @@ export interface WhiteboardStore {
   pastePage(): Promise<void>;
   togglePropertiesCollapsed(collapsed?: boolean): void;
   setTheme(theme: 'light' | 'dark'): void;
+  setCanvasBackground(value: string | null): void;
+  setLanguage(language: LanguageCode): void;
   dismissNotice(id: number): void;
   openDocumentationLink(url: string): Promise<void>;
   dispose(): void;

@@ -51,6 +51,7 @@ import {
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
+import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 type Gesture = {
@@ -97,6 +98,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     }
     return controller;
   }
+  const preferenceStore = options.preferences === undefined
+    ? { load: () => loadPreferences(), save: (value: Preferences) => { savePreferences(value); } }
+    : options.preferences;
+  const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de' };
+  function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language }); }
   const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
   let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
   let guest: GuestSession | null = null;
@@ -166,7 +172,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
-    theme: options.initialTheme ?? 'light', bridgePlatform: bridge.platform,
+    theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
@@ -1756,7 +1762,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     async pastePage() {},
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
-    setTheme(theme) { state.theme = theme; },
+    setTheme(theme) { state.theme = theme; persistPreferences(); },
+    setCanvasBackground(value) {
+      const next = value && value !== 'default' && isCanvasBackground(value) ? value : null;
+      if (next === state.canvasBackground) return;
+      state.canvasBackground = next; persistPreferences();
+    },
+    setLanguage(language) {
+      if (language === state.language || !LANGUAGES.some((entry) => entry.code === language && entry.available)) return;
+      state.language = language; persistPreferences();
+    },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
     toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; } },

@@ -10,7 +10,7 @@ export type ActionIconName =
   | 'group' | 'ungroup' | 'connect' | 'duplicate' | 'trash'
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
-  | 'menu' | 'users' | 'user' | 'code' | 'maximize'
+  | 'settings' | 'globe' | 'menu' | 'users' | 'user' | 'code' | 'maximize'
   | 'more-vertical' | 'calendar'
   | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow'
   | 'shapes' | 'stroke' | 'link'
@@ -64,6 +64,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   ],
   moon: ['M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z'],
   'arrow-up': ['M12 19V5', 'M5 12l7-7 7 7'],
+  settings: ['M4 7h9', 'M17 7h3', 'M4 17h3', 'M11 17h9', 'M15 4v6', 'M9 14v6'],
+  globe: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M3 12h18', 'M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z'],
   'chevron-up': ['M6 15l6-6 6 6'],
   'chevron-down': ['M6 9l6 6 6-6'],
   'chevron-left': ['M15 6l-6 6 6 6'],
