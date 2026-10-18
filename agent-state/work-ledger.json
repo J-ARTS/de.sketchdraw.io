@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:08:34Z",
+  "updatedAt": "2026-10-18T03:14:15Z",
   "issues": [
     {
       "number": 1,
@@ -961,7 +961,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/60",
       "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
       "phase": "Canvas interaction and testing",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4156,9 +4156,9 @@
       "issues": [
         60
       ],
-      "status": "locally_verified",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-18T03:01:30Z",
-      "endedAt": null,
+      "endedAt": "2026-10-18T03:14:15Z",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
@@ -4175,11 +4175,39 @@
         "tests/ui/whiteboard.spec.ts",
         "agent-state/work-ledger.json",
         "graphify-out/graph.json",
-        "graphify-out/traceability.json"
+        "graphify-out/traceability.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/44dcb77d0a911fdc3fc08561837c97ae320f6f23",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436"
       ],
       "concerns": [],
       "authorization": "The user explicitly requested an eraser beside the pencil and previously authorized temporary Codex implementation with actual-tool attribution.",
-      "measurementSource": "Codex implemented the element eraser through the existing authority and delete-command path. Local evidence: typecheck passed; 338/338 Vitest unit tests, 59/59 Node lifecycle/release tests, 53/53 browser UI tests including the new eraser and accessibility regression, 6/6 Electron tests and 22/22 Graphify projection tests passed; production renderer, Electron and MCP bundles built; diff and Graphify ledger checks passed. Cross-platform CI and exact integrated commit are pending. No measured implementation duration, token or cost metric."
+      "measurementSource": "Codex implemented the element eraser through the existing authority and delete-command path. Local evidence at commit 44dcb77d0a911fdc3fc08561837c97ae320f6f23: typecheck passed; 338/338 Vitest unit tests, 59/59 Node lifecycle/release tests, 53/53 browser UI tests including the new eraser and accessibility regression, 6/6 Electron tests and 22/22 Graphify projection tests passed; production renderer, Electron and MCP bundles built; diff and Graphify ledger checks passed. GitHub Actions run 39092530436 verified the exact feature commit on Windows 2025, macOS 15 and Ubuntu 24.04 plus Governance/Graphify and Direct P2P; all five jobs passed. No measured implementation duration, token or cost metric."
+    },
+    {
+      "id": "github-actions-eraser-39092530436",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        60
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T03:07:50Z",
+      "endedAt": "2026-10-18T03:14:15Z",
+      "observedSeconds": 385,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/44dcb77d0a911fdc3fc08561837c97ae320f6f23",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572099963",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572100026",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124717",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124736",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39092530436/job/117572124743"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions metadata for exact feature commit 44dcb77d0a911fdc3fc08561837c97ae320f6f23. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production build, 53 browser UI tests including the eraser and accessibility regression, Electron integration and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
     }
   ],
   "evidencePolicy": {
