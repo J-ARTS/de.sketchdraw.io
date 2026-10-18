@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:38:39Z",
+  "updatedAt": "2026-10-18T04:47:43Z",
   "issues": [
     {
       "number": 1,
@@ -1041,7 +1041,7 @@
       "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface)",
       "currentImplementer": "Codex (temporary user-authorized takeover)",
       "phase": "Canvas presentation, UI, logic, interface and testing",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4510,9 +4510,9 @@
       "issues": [
         65
       ],
-      "status": "verified_local",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-18T04:21:00Z",
-      "endedAt": "2026-10-18T04:38:39Z",
+      "endedAt": "2026-10-18T04:47:43Z",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
@@ -4529,14 +4529,44 @@
         "tests/ui/frame-presentation.spec.ts",
         "https://github.com/excalidraw/excalidraw/pull/12157",
         "https://github.com/excalidraw/excalidraw/issues/253",
-        "https://github.com/excalidraw/excalidraw/issues/7230"
+        "https://github.com/excalidraw/excalidraw/issues/7230",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/8aea627316e38b0d2bfc0a0efb2a239cb5321e32",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391"
       ],
       "concerns": [
         "The referenced Excalidraw presentation implementation is still an open pull request; Sketchdraw follows the documented frame-as-slide interaction while keeping its own stable document contract.",
         "The source-code Graphify refresh was guarded because the rebuilt graph contained fewer nodes than the merged existing graph; the existing graph is preserved and only the deterministic traceability projection is refreshed."
       ],
       "authorization": "The user explicitly requested Excalidraw-style frames, slide previews and Presenter Mode and previously authorized temporary Codex implementation with actual-tool attribution.",
-      "measurementSource": "Codex implemented the frame viewport contract, persistent slide order, searchable/agent-readable document representation, sidebar previews, rename/reorder controls and keyboard/touch Presenter Mode. The sidebar and presenter reuse the production element renderer while disabling interactive web embeds and links in static previews. Local evidence on the uncommitted issue #65 state: typecheck passed; 351/351 Vitest tests, 59/59 browser UI tests and 6/6 Electron tests passed, including the production renderer/Electron/MCP build. One first-run browser regression revealed that the closed slide button overlapped the code-panel apply action; the button visibility was corrected and the targeted regression plus the full 59-test UI suite passed. No measured implementation duration, token or cost metric is claimed."
+      "measurementSource": "Codex implemented the frame viewport contract, persistent slide order, searchable/agent-readable document representation, sidebar previews, rename/reorder controls and keyboard/touch Presenter Mode using the user-authorized temporary takeover. The sidebar and presenter reuse the production element renderer while disabling interactive web embeds and links in static previews. Local evidence for feature commit 8aea627316e38b0d2bfc0a0efb2a239cb5321e32: typecheck passed; 351/351 Vitest tests, 59/59 browser UI tests and 6/6 Electron tests passed, including production renderer/Electron/MCP builds; 22/22 Graphify adapter tests passed. GitHub Actions run 39097844391 verified that exact commit across Governance/Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04; all five jobs passed. No measured implementation duration, token or cost metric is claimed."
+    },
+    {
+      "id": "github-actions-frame-presenter-39097844391",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        65
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T04:39:26Z",
+      "endedAt": "2026-10-18T04:47:43Z",
+      "observedSeconds": 497,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/8aea627316e38b0d2bfc0a0efb2a239cb5321e32",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391/job/117587884553",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391/job/117587884694",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391/job/117587904605",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391/job/117587904628",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39097844391/job/117587904642"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions metadata for exact feature commit 8aea627316e38b0d2bfc0a0efb2a239cb5321e32. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production builds, 59 browser UI tests including frame presentation, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
     }
   ],
   "evidencePolicy": {
