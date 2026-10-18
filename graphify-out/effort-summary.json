@@ -2156,7 +2156,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-laser-pointer-ci-stability-064"
+        "codex-laser-pointer-ci-stability-064",
+        "github-actions-web-embed-39096206588"
       ]
     },
     "64": {
@@ -2188,7 +2189,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-laser-pointer-ci-stability-064"
+        "codex-laser-pointer-ci-stability-064",
+        "github-actions-web-embed-39096206588"
       ]
     },
     "7": {
@@ -2534,15 +2536,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 26
+        "unknownRuns": 27
       },
       "observedSeconds": {
-        "knownRuns": 21,
-        "knownSubtotal": 8296,
+        "knownRuns": 22,
+        "knownSubtotal": 8848,
         "total": null,
         "unknownRuns": 5
       },
-      "runCount": 26,
+      "runCount": 27,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -2569,13 +2571,14 @@
         "github-actions-shutdown-cleanup-39055418909",
         "github-actions-sticky-notes-39077766935",
         "github-actions-table-39089888688",
-        "github-actions-text-edit-toolbar-39073704784"
+        "github-actions-text-edit-toolbar-39073704784",
+        "github-actions-web-embed-39096206588"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 26
+        "unknownRuns": 27
       }
     }
   },
@@ -2584,15 +2587,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 132
+      "unknownRuns": 133
     },
     "observedSeconds": {
-      "knownRuns": 41,
-      "knownSubtotal": 20918.322263248963,
+      "knownRuns": 42,
+      "knownSubtotal": 21470.322263248963,
       "total": null,
       "unknownRuns": 91
     },
-    "runCount": 132,
+    "runCount": 133,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2725,13 +2728,14 @@
       "github-actions-shutdown-cleanup-39055418909",
       "github-actions-sticky-notes-39077766935",
       "github-actions-table-39089888688",
-      "github-actions-text-edit-toolbar-39073704784"
+      "github-actions-text-edit-toolbar-39073704784",
+      "github-actions-web-embed-39096206588"
     ],
     "tokens": {
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 128
+      "unknownRuns": 129
     }
   },
   "officialScoreClaimReady": false,
@@ -2745,5 +2749,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:10:24Z"
+  "updatedAt": "2026-10-18T04:20:13Z"
 }
