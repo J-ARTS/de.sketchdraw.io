@@ -187,8 +187,8 @@ onBeforeUnmount(() => {
     <header class="library-header">
       <div class="library-title-row">
         <button v-if="activeLibrary" type="button" class="header-action" aria-label="Zurück zu allen Formen" @click="activeLibrary = null"><span aria-hidden="true">←</span></button>
-        <h2>{{ activeLibrary ? libraryLabel : 'Formen' }}</h2>
-        <button type="button" class="header-action close-button" aria-label="Formen schließen" @click="close">×</button>
+        <h2 class="sd-panel-title">{{ activeLibrary ? libraryLabel : 'Formen' }}</h2>
+        <button type="button" class="header-action close-button sd-panel-close" aria-label="Formen schließen" @click="close"><AppIcon name="close" /></button>
       </div>
       <label class="library-search">
         <AppIcon name="search" :size="20" />
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .shape-library{position:absolute;z-index:22;top:var(--panel-top);right:18px;bottom:18px;width:min(420px,calc(100vw - 36px));display:flex;flex-direction:column;overflow:hidden;border-radius:22px;box-shadow:var(--shadow-panel)}
 .library-header{flex:none;padding:8px 24px 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-panel)}
-.library-title-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}.library-title-row h2{font-size:24px;line-height:1.2;font-weight:700}.close-button{margin-left:auto}.header-action{display:grid;width:36px;height:36px;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--text-primary);font-size:28px;line-height:1;cursor:pointer}.header-action:hover{background:var(--surface-raised)}
+.library-title-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}.close-button{margin-left:auto}.header-action{display:grid;width:36px;height:36px;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--text-primary);font-size:18px;line-height:1;cursor:pointer}.header-action:hover{background:var(--surface-raised)}
 .library-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 12px;border:1px solid transparent;border-radius:12px;background:var(--surface-raised);color:var(--text-muted)}.library-search:focus-within{border-color:var(--accent)}.library-search input{min-width:0;width:100%;height:100%;border:0;outline:0;background:transparent;color:var(--text-primary);font:inherit;font-size:16px}.library-search input::placeholder{color:var(--text-muted)}
 .customize-row{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--text-muted);font-size:11px}.customize-row p,.customize-row span{flex:1;margin:0}.customize-row button,.reset-button{flex:none;min-height:34px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-raised);color:var(--text-primary);cursor:pointer}.customize-row button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .library-scroll{flex:1;min-height:0;overflow:auto;background:var(--surface-panel)}.accordion-section{border-bottom:1px solid var(--border-subtle)}.accordion-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:66px;padding:0 24px;border:0;background:transparent;color:var(--text-primary);font-size:17px;font-weight:650;text-align:left;cursor:pointer}.accordion-trigger:hover{background:var(--surface-raised)}.accordion-trigger>span:last-child{font-size:24px;transition:transform .16s ease}.accordion-trigger[aria-expanded=true]>span:last-child{transform:rotate(180deg)}

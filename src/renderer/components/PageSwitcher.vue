@@ -287,7 +287,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       @keydown="onPanelKeydown"
     >
       <div class="panel-head">
-        <h2 :id="headingId" class="panel-title">{{ t('pages.label') }}</h2>
+        <h2 :id="headingId" class="sd-panel-title">{{ t('pages.label') }}</h2>
         <button
           type="button"
           class="sd-icon-btn head-btn"
@@ -471,11 +471,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   align-items: center;
   justify-content: space-between;
   padding: 2px 2px 6px 10px;
-}
-
-.panel-title {
-  font-size: var(--font-size-m);
-  font-weight: 650;
 }
 
 .head-btn {

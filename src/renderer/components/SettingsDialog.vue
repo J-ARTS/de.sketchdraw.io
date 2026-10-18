@@ -55,7 +55,7 @@ function onRadioKeydown(event: KeyboardEvent): void {
 <template>
   <dialog ref="dialog" class="settings-dialog" data-testid="settings-dialog" aria-labelledby="settings-title" @cancel.prevent="emit('close')" @pointerdown.self="emit('close')" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
     <div class="settings-panel sd-panel">
-      <header><h2 id="settings-title">Einstellungen</h2><button ref="closeButton" type="button" class="sd-icon-btn" aria-label="Einstellungen schließen" @click="emit('close')"><AppIcon name="close" /></button></header>
+      <header><h2 id="settings-title" class="sd-panel-title">Einstellungen</h2><button ref="closeButton" type="button" class="sd-icon-btn sd-panel-close" aria-label="Einstellungen schließen" @click="emit('close')"><AppIcon name="close" /></button></header>
 
       <section class="setting" aria-labelledby="canvas-bg-title">
         <h3 id="canvas-bg-title">Canvas-Hintergrund</h3>
@@ -108,7 +108,6 @@ function onRadioKeydown(event: KeyboardEvent): void {
 .settings-dialog::backdrop{background:var(--scrim)}
 .settings-panel{display:flex;flex-direction:column;max-height:calc(100dvh - 32px);overflow:auto;padding:20px}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-h2{font-size:20px}
 h3{margin:0 0 10px;font-size:14px;font-weight:650}
 .setting{padding:14px 0;border-top:1px solid var(--border-subtle)}
 .swatches{display:flex;flex-wrap:wrap;align-items:center;gap:8px}

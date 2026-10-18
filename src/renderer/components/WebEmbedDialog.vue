@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { parseWebEmbedUrl } from '@/domain';
 import { useWhiteboard } from './use-whiteboard';
+import AppIcon from './AppIcon.vue';
 
 const store = useWhiteboard();
 const dialog = ref<HTMLDialogElement>();
@@ -54,8 +55,8 @@ watch(() => store.state.tool, (tool) => {
   <dialog ref="dialog" class="web-embed-dialog sd-panel" aria-labelledby="web-embed-title" @cancel.prevent="close">
     <form method="dialog" @submit.prevent="submit">
       <div class="heading">
-        <h2 id="web-embed-title">Webseite einbetten</h2>
-        <button type="button" class="sd-icon-btn" aria-label="Dialog schließen" :disabled="busy" @click="close">×</button>
+        <h2 id="web-embed-title" class="sd-panel-title">Webseite einbetten</h2>
+        <button type="button" class="sd-icon-btn sd-panel-close" aria-label="Dialog schließen" :disabled="busy" @click="close"><AppIcon name="close" /></button>
       </div>
       <p>Füge eine vollständige Webadresse ein. Manche Seiten verhindern die Anzeige in eingebetteten Frames.</p>
       <label for="web-embed-url">Webadresse</label>
@@ -73,7 +74,7 @@ watch(() => store.state.tool, (tool) => {
 <style scoped>
 .web-embed-dialog{width:min(520px,calc(100vw - 32px));padding:24px;color:var(--text-primary)}
 .web-embed-dialog::backdrop{background:var(--scrim)}
-.heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.heading h2{font-size:20px;letter-spacing:-.02em}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
 p{margin:12px 0 20px;color:var(--text-muted);font-size:13px;line-height:1.6}
 label{display:block;margin-bottom:7px;font-size:12px;font-weight:650}
 input{width:100%;height:42px;padding:0 12px;border:1px solid var(--border-default);border-radius:9px;background:var(--surface-panel);color:var(--text-primary);font:inherit}

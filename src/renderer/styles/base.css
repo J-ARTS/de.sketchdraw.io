@@ -79,6 +79,20 @@ ol {
   background-clip: padding-box;
 }
 
+/* Shared dialog/sidebar heading scale. Keep these aligned with the Objects panel. */
+.sd-panel-title {
+  margin: 0;
+  font-size: var(--font-size-m);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: normal;
+}
+
+.sd-panel-close .app-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .sd-btn,
 .sd-icon-btn {
   display: inline-flex;

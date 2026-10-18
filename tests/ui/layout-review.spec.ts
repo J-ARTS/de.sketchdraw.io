@@ -126,6 +126,36 @@ test('the shape library header stays compact on desktop and compact screens (#89
   }
 });
 
+test('dialog and sidebar headers share the Objects title and close icon scale (#119)', async ({ page }) => {
+  async function expectSharedScale(title: Locator, close: Locator): Promise<void> {
+    await expect(title).toHaveCSS('font-size', '13px');
+    await expect(title).toHaveCSS('font-weight', '650');
+    const icon = close.locator('svg.app-icon');
+    await expect(icon).toHaveCSS('width', '16px');
+    await expect(icon).toHaveCSS('height', '16px');
+  }
+
+  await page.getByTestId('objects-toggle').click();
+  await expectSharedScale(page.getByRole('heading', { name: /Objekte/ }), page.getByRole('button', { name: 'Objekte schließen' }));
+  await page.getByRole('button', { name: 'Objekte schließen' }).click();
+
+  await page.getByTestId('page-switcher').click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Seiten' })).toHaveCSS('font-size', '13px');
+  await page.keyboard.press('Escape');
+
+  await page.getByTestId('more-shapes').click();
+  await expectSharedScale(page.getByRole('heading', { name: 'Formen' }), page.getByRole('button', { name: 'Formen schließen' }));
+  await page.getByRole('button', { name: 'Formen schließen' }).click();
+
+  await openWorkspaceItem(page, 'Folien');
+  await expectSharedScale(page.getByRole('heading', { name: 'Folien' }), page.getByRole('button', { name: 'Folienleiste schließen' }));
+  await page.getByRole('button', { name: 'Folienleiste schließen' }).click();
+
+  await page.getByTestId('help-button').click();
+  const help = page.getByRole('dialog', { name: 'Schneller mit der Tastatur' });
+  await expectSharedScale(help.getByRole('heading', { name: 'Schneller mit der Tastatur' }), help.getByRole('button', { name: 'Hilfe schließen' }));
+});
+
 test('the slides button is gone; slides open from the workspace menu (#85)', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Folienleiste öffnen' })).toHaveCount(0);
   await openWorkspaceItem(page, 'Folien');
