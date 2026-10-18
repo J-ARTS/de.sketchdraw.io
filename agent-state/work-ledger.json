@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:39:04Z",
+  "updatedAt": "2026-10-18T12:52:18Z",
   "issues": [
     {
       "number": 1,
@@ -1369,7 +1369,7 @@
     },
     {
       "number": 85,
-      "title": "Folien-Button überdeckt Minimap, Zoomleiste ragt bei 320 px über den Rand",
+      "title": "Folien-Button unter dem Benutzer-Menü positionieren",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/85",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
@@ -1381,7 +1381,8 @@
       },
       "dependencies": [
         75
-      ]
+      ],
+      "currentImplementer": "OpenAI Codex (temporary)"
     },
     {
       "number": 86,
@@ -6284,6 +6285,59 @@
       "concerns": [],
       "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 89 product change to main.",
       "measurementSource": "GitHub Actions run 39127648724 timestamps report 438 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-slides-under-user-menu-85",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        85
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:717d2eae40ea776488807ca9033bb53663070ff2",
+        "src/renderer/App.vue",
+        "tests/ui/layout-review.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/85",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880"
+      ],
+      "concerns": [
+        "Below 1040 px the toolbar occupies the second top-chrome row, so the slides control intentionally uses a third row while preserving right alignment with the user area.",
+        "Graphify source refresh was guarded: the new extraction had 4,254 nodes versus 4,410 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket/run links were refreshed and validated instead."
+      ],
+      "authorization": "The user supplied a visual reference and requested that the slides control appear under the user menu; Codex remains authorized to implement UI work temporarily with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit 717d2ea: typecheck passed; 15/15 targeted Playwright UI tests passed; production build passed; live Electron inspection confirmed the slides control below the user area and clear of the minimap. GitHub Actions run 39128391880 passed Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-slides-under-user-menu-39128391880",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        85
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T12:42:11Z",
+      "endedAt": "2026-10-18T12:51:59Z",
+      "observedSeconds": 588,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:717d2eae40ea776488807ca9033bb53663070ff2",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880/job/117678379065",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880/job/117678379239",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880/job/117678422727",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880/job/117678422753",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39128391880/job/117678422838"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 85 product change to main.",
+      "measurementSource": "GitHub Actions run 39128391880 timestamps report 588 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
