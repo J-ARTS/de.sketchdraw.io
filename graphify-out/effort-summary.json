@@ -2231,24 +2231,26 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         },
         "observedSeconds": {
-          "knownRuns": 1,
-          "knownSubtotal": 471,
+          "knownRuns": 2,
+          "knownSubtotal": 957,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
-        "runCount": 2,
+        "runCount": 4,
         "runIds": [
+          "codex-eraser-radius-preview-61",
           "codex-pencil-eraser-options-061",
+          "github-actions-eraser-radius-preview-39130528111",
           "github-actions-pencil-eraser-options-39093583086"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         }
       },
       "planning": {
@@ -3772,15 +3774,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 43
+        "unknownRuns": 44
       },
       "observedSeconds": {
-        "knownRuns": 37,
-        "knownSubtotal": 17098,
+        "knownRuns": 38,
+        "knownSubtotal": 17584,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 43,
+      "runCount": 44,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -3795,6 +3797,7 @@
         "github-actions-element-actions-39085721119",
         "github-actions-element-clipboard-39079373635",
         "github-actions-eraser-39092530436",
+        "github-actions-eraser-radius-preview-39130528111",
         "github-actions-final-39049794209",
         "github-actions-font-families-39072428278",
         "github-actions-frame-presenter-39097844391",
@@ -3830,7 +3833,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 43
+        "unknownRuns": 44
       }
     },
     "openai-codex": {
@@ -3838,15 +3841,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 20
+        "unknownRuns": 21
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 20
+        "unknownRuns": 21
       },
-      "runCount": 20,
+      "runCount": 21,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -3854,6 +3857,7 @@
         "codex-comment-marker-targets-99",
         "codex-connector-marker-palette-96",
         "codex-delete-table-row-column-104",
+        "codex-eraser-radius-preview-61",
         "codex-laser-icon-verification-95",
         "codex-live-ui-page-table-connectors-35-89-91",
         "codex-plugin-platform-local-66-69",
@@ -3873,7 +3877,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 20
+        "unknownRuns": 21
       }
     }
   },
@@ -3882,15 +3886,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 172
+      "unknownRuns": 174
     },
     "observedSeconds": {
-      "knownRuns": 57,
-      "knownSubtotal": 29720.322263248963,
+      "knownRuns": 58,
+      "knownSubtotal": 30206.322263248963,
       "total": null,
-      "unknownRuns": 115
+      "unknownRuns": 116
     },
-    "runCount": 172,
+    "runCount": 174,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3963,6 +3967,7 @@
       "codex-element-actions-055",
       "codex-element-clipboard-051",
       "codex-eraser-060",
+      "codex-eraser-radius-preview-61",
       "codex-fallback-page-rename-logic-035",
       "codex-final-release-closure-029",
       "codex-font-integration-review-043",
@@ -4034,6 +4039,7 @@
       "github-actions-element-actions-39085721119",
       "github-actions-element-clipboard-39079373635",
       "github-actions-eraser-39092530436",
+      "github-actions-eraser-radius-preview-39130528111",
       "github-actions-final-39049794209",
       "github-actions-font-families-39072428278",
       "github-actions-frame-presenter-39097844391",
@@ -4069,7 +4075,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 168
+      "unknownRuns": 170
     }
   },
   "officialScoreClaimReady": false,
@@ -4083,5 +4089,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:52:18Z"
+  "updatedAt": "2026-10-18T13:20:58.304311Z"
 }

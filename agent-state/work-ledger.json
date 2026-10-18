@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:52:18Z",
+  "updatedAt": "2026-10-18T13:20:58.304311Z",
   "issues": [
     {
       "number": 1,
@@ -974,8 +974,8 @@
       "number": 61,
       "title": "Optionsleiste für Freihandstift und Radierer",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
-      "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
-      "phase": "Canvas drawing interaction and testing",
+      "owner": "Claude Code (UI), Google Antigravity (logic), OpenAI Codex (testing)",
+      "phase": "Canvas eraser interaction and cross-platform verification",
       "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
@@ -985,7 +985,7 @@
       "dependencies": [
         60
       ],
-      "currentImplementer": "Codex (temporary user-authorized takeover)"
+      "currentImplementer": "OpenAI Codex (temporary user-authorized takeover)"
     },
     {
       "number": 62,
@@ -6338,6 +6338,65 @@
       "concerns": [],
       "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 85 product change to main.",
       "measurementSource": "GitHub Actions run 39128391880 timestamps report 588 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-eraser-radius-preview-61",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        61
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bca29f82ce0f094ca4aeea71a3eb14434dcac0cc",
+        "src/renderer/components/ToolOptionsBar.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/drawing-tools.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "tests/unit/renderer/guest-store.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111"
+      ],
+      "concerns": [
+        "A supplemental run in the shared dirty workspace passed 80/82 UI tests; its shape-library timeout was transient and its web-embed mismatch belonged to a parallel uncommitted allow-same-origin change. The clean Issue 61 branch passed all 81/81 UI tests and the exact product commit passed CI on every target platform.",
+        "Graphify source refresh was guarded: the new extraction had 4,269 nodes versus 4,428 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket/run links were refreshed and validated instead."
+      ],
+      "authorization": "The user explicitly requested a visible eraser-radius circle and a settings slider up to 500 px. Codex remains authorized to implement temporarily with Claude Code UI and Antigravity logic ownership retained and actual-tool attribution recorded.",
+      "measurementSource": "Local macOS evidence at product commit bca29f8: typecheck passed; 387/387 Vitest tests, 81/81 browser UI tests, 6/6 Electron tests and production build passed. Live Electron inspection confirmed the slider at 18 px and 500 px and the matching unfilled dashed radius circle. Exact Codex duration, token usage and cost were not measured and remain null. GitHub Actions run 39130528111 passed all five jobs on the exact product commit."
+    },
+    {
+      "id": "github-actions-eraser-radius-preview-39130528111",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        61
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T13:12:28Z",
+      "endedAt": "2026-10-18T13:20:34Z",
+      "observedSeconds": 486,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bca29f82ce0f094ca4aeea71a3eb14434dcac0cc",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111/job/117684581036",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111/job/117684581228",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111/job/117684611113",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111/job/117684611119",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39130528111/job/117684611159"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 61 eraser-radius enhancement into main.",
+      "measurementSource": "GitHub Actions run 39130528111 timestamps report 486 seconds elapsed. Governance/Graphify, Direct P2P, and complete Build & Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all succeeded. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
