@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:27:02.757162Z",
+  "updatedAt": "2026-10-18T09:34:33.458034Z",
   "issues": [
     {
       "number": 1,
@@ -1492,7 +1492,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code 2.1.185 / OpenAI Codex verification",
       "phase": "UI",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5514,7 +5514,7 @@
       "issues": [
         95
       ],
-      "status": "integrated_and_locally_verified_ci_pending",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5523,13 +5523,43 @@
       "artifacts": [
         "git:0b0173d8f2c1a83bc4862416d85f6004f356210a",
         "src/renderer/components/icons.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/95"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/95",
+        "git:c9c918421fbec0649d3f17da88840fcc19f445e9",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968"
       ],
       "concerns": [
-        "Cross-platform GitHub Actions evidence remains pending; local evidence is macOS arm64 only."
+        "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 4,023 nodes versus 4,153 in the existing graph; deterministic ticket/run/artifact traceability was refreshed and validated."
       ],
       "authorization": "Codex retains testing responsibility and was authorized to integrate and verify the requested UI correction.",
-      "measurementSource": "On the isolated target-main worktree, npm run typecheck passed and 26/26 relevant Playwright UI tests passed. Active and inactive toolbar states were visually inspected in the running Electron app. Exact duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Integrated in product commit 0b0173d and traceability commit c9c9184. Local macOS arm64 evidence: npm run typecheck passed; 26/26 relevant Playwright UI tests and 22/22 Python Graphify tests passed; active and inactive toolbar states were visually inspected in the running Electron app. GitHub Actions run 39115392968 passed Governance/Graphify, direct P2P and full build/test/package verification on Windows 2025, Ubuntu 24.04 and macOS 15. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-laser-icon-39115392968",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        95
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T09:27:18Z",
+      "endedAt": "2026-10-18T09:34:13Z",
+      "observedSeconds": 415,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:c9c918421fbec0649d3f17da88840fcc19f445e9",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968/job/117640197325",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968/job/117640197562",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968/job/117640221600",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968/job/117640221609",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39115392968/job/117640221683"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by pushes to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 415 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify jobs on Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
