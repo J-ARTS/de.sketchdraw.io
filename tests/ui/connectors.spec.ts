@@ -129,12 +129,23 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
 
   await bar.getByRole('button', { name: /^Startpunkt:/ }).click();
   const startChoices = page.getByRole('group', { name: 'Startpunkt' });
-  await expect(startChoices.getByRole('button')).toHaveCount(12);
+  await expect(startChoices.getByRole('button')).toHaveCount(14);
+  await startChoices.getByRole('button', { name: 'Gefüllter Kreis' }).click();
+  await expect(path).toHaveAttribute('marker-start', /solid-circle/);
+  await expect(connector.locator('marker[id$="-solid-circle"] circle')).toHaveAttribute('fill', '#e5533a');
+
+  await bar.getByRole('button', { name: /^Endpunkt:/ }).click();
+  const endChoices = page.getByRole('group', { name: 'Endpunkt' });
+  await endChoices.getByRole('button', { name: 'Gefülltes Dreieck' }).click();
+  await expect(path).toHaveAttribute('marker-end', /solid-triangle/);
+  await expect(connector.locator('marker[id$="-solid-triangle"] path')).toHaveAttribute('fill', '#e5533a');
+
+  await bar.getByRole('button', { name: /^Startpunkt:/ }).click();
   await startChoices.getByRole('button', { name: 'Null oder eins' }).click();
   await expect(path).toHaveAttribute('marker-start', /zero-or-one/);
 
   await bar.getByRole('button', { name: /^Endpunkt:/ }).click();
-  await page.getByRole('group', { name: 'Endpunkt' }).getByRole('button', { name: 'Eins oder viele' }).click();
+  await endChoices.getByRole('button', { name: 'Eins oder viele' }).click();
   await expect(path).toHaveAttribute('marker-end', /one-or-many/);
 
   await bar.getByRole('button', { name: 'Linie', exact: true }).click();
@@ -202,6 +213,8 @@ test('connectors default to right-angled lines and remember the chosen type and 
   const options = page.getByTestId('connector-options');
   await expect(options).toBeVisible();
   await expect(options.getByRole('button', { name: 'Linienform Rechtwinklig' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(options.getByRole('button', { name: 'Pfeilspitze Gefüllter Kreis' })).toBeVisible();
+  await expect(options.getByRole('button', { name: 'Pfeilspitze Gefülltes Dreieck' })).toBeVisible();
   await page.keyboard.press('Escape');
   await connect();
   await expect(bar.getByRole('button', { name: 'Linienform: Rechtwinklig' })).toBeVisible();
@@ -209,13 +222,13 @@ test('connectors default to right-angled lines and remember the chosen type and 
   // Picking another type in the tool applies to the next connector...
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
   await options.getByRole('button', { name: 'Linienform Gebogen' }).click();
-  await options.getByRole('button', { name: 'Pfeilspitze Dreieck' }).click();
+  await options.getByRole('button', { name: 'Pfeilspitze Gefülltes Dreieck' }).click();
   await expect(options.getByRole('button', { name: 'Linienform Gebogen' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
   await page.mouse.click(900, 200);
   await connect();
   await expect(bar.getByRole('button', { name: 'Linienform: Gebogen' })).toBeVisible();
-  await expect(page.locator('.whiteboard-canvas [data-kind=connector]').last().locator('path').last()).toHaveAttribute('marker-end', /triangle/);
+  await expect(page.locator('.whiteboard-canvas [data-kind=connector]').last().locator('path').last()).toHaveAttribute('marker-end', /solid-triangle/);
 
   // ...and changing a selected connector's type becomes the new default as well, also after a reload.
   await bar.getByRole('button', { name: 'Linienform: Gebogen' }).click();
@@ -223,6 +236,7 @@ test('connectors default to right-angled lines and remember the chosen type and 
   await page.reload(); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
   await expect(page.getByTestId('connector-options').getByRole('button', { name: 'Linienform Gerade' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('connector-options').getByRole('button', { name: 'Pfeilspitze Gefülltes Dreieck' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 

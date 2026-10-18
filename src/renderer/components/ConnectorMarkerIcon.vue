@@ -10,8 +10,10 @@ defineProps<{ marker: ConnectorMarker }>();
     <path v-if="marker === 'line-arrow'" d="M36 6l10 8-10 8" />
     <path v-else-if="marker === 'solid-arrow'" d="M34 5l12 9-12 9z" class="filled" />
     <path v-else-if="marker === 'triangle'" d="M33 5l13 9-13 9z" class="canvas-filled" />
+    <path v-else-if="marker === 'solid-triangle'" d="M33 5l13 9-13 9z" class="filled" />
     <path v-else-if="marker === 'reverse-triangle'" d="M46 5L33 14l13 9z" class="canvas-filled" />
     <circle v-else-if="marker === 'circle'" cx="41" cy="14" r="6" class="canvas-filled" />
+    <circle v-else-if="marker === 'solid-circle'" cx="41" cy="14" r="6" class="filled" />
     <path v-else-if="marker === 'diamond'" d="M33 14l7-7 7 7-7 7z" class="canvas-filled" />
     <path v-else-if="marker === 'exactly-one'" d="M36 7v14M44 7v14" />
     <path v-else-if="marker === 'many'" d="M34 14h4M38 14l8-8M38 14h8M38 14l8 8" />

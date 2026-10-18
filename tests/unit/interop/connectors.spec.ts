@@ -48,4 +48,20 @@ describe('connector interoperability', () => {
       startMarker: 'zero-or-one', endMarker: 'one-or-many',
     });
   });
+
+  test('filled circle and triangle markers stay distinct in SVG and draw.io projections', () => {
+    const document = connectorDocument('solid-circle', 'solid-triangle');
+    const svg = prepareSvgExport(document, { embedDocument: false });
+    expect(svg.contents).toMatch(/<circle[^>]+fill="#1e293b"/);
+    expect(svg.contents).toMatch(/<path d="M1 1L12 7L1 13Z" fill="#1e293b"/);
+
+    const drawio = prepareDrawioExport(document, { embedDocument: false });
+    expect(drawio.contents).toContain('startArrow=oval');
+    expect(drawio.contents).toContain('startFill=1');
+    expect(drawio.contents).toContain('endArrow=block');
+    expect(drawio.contents).toContain('endFill=1');
+    expect(importDrawio(drawio.contents).document.elements.find((element) => element.kind === 'connector')).toMatchObject({
+      startMarker: 'solid-circle', endMarker: 'solid-triangle',
+    });
+  });
 });

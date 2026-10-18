@@ -25,7 +25,7 @@ describe('connector contract', () => {
 
   test('preserves the complete endpoint marker palette through JSON', () => {
     const markers: ConnectorMarker[] = [
-      'none', 'line-arrow', 'solid-arrow', 'triangle', 'reverse-triangle', 'circle', 'diamond',
+      'none', 'line-arrow', 'solid-arrow', 'triangle', 'solid-triangle', 'reverse-triangle', 'circle', 'solid-circle', 'diamond',
       'exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many',
     ];
     for (const [index, marker] of markers.entries()) {

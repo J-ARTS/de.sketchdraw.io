@@ -79,6 +79,13 @@ const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = {
   ERmandOne: 'exactly-one', ERone: 'exactly-one', ERmany: 'many', ERzeroToOne: 'zero-or-one',
   ERzeroToMany: 'zero-or-many', ERoneToMany: 'one-or-many',
 };
+function markerOf(style: Readonly<Record<string, string>>, side: 'start' | 'end'): ConnectorMarker {
+  const marker = DRAWIO_MARKERS[style[`${side}Arrow`] ?? 'none'] ?? 'none';
+  if (style[`${side}Fill`] !== '1') return marker;
+  if (marker === 'triangle') return 'solid-triangle';
+  if (marker === 'circle') return 'solid-circle';
+  return marker;
+}
 function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
   s.fill = color(v['fillColor'], cell.edge ? 'transparent' : '#ffffff', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'fillColor', 'Unsupported fill replaced.'));
@@ -305,8 +312,8 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
       warn(ctx, cell.node, 'ROUTING_APPROXIMATED', 'edgeStyle', 'Stored waypoints are retained without executing a foreign router.');
     const element = pointsElement(ctx, [endpoints[0]!.point!, ...waypoints, endpoints[1]!.point!], cell.node, edgeStyle, 'connector', ctx.ids.resolveId(cell.id, 'edge', ctx.diagnostics));
     element.connectorRouting = cell.style['curved'] === '1' ? 'curved' : cell.style['edgeStyle'] === 'orthogonalEdgeStyle' ? 'elbowed' : 'straight';
-    element.startMarker = DRAWIO_MARKERS[cell.style['startArrow'] ?? 'none'] ?? 'none';
-    element.endMarker = DRAWIO_MARKERS[cell.style['endArrow'] ?? 'none'] ?? 'none';
+    element.startMarker = markerOf(cell.style, 'start');
+    element.endMarker = markerOf(cell.style, 'end');
     if (endpoints[0]!.binding)
       element.from = endpoints[0]!.binding;
     if (endpoints[1]!.binding)

@@ -109,12 +109,14 @@ function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): stri
 }
 const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = {
   none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block',
+  'solid-triangle': 'block',
   // diagrams.net has no distinct reversed-triangle end marker. The embedded
   // Sketchdraw model retains it; an unembedded projection uses the closest cap.
-  'reverse-triangle': 'block', circle: 'oval', diamond: 'diamond',
+  'reverse-triangle': 'block', circle: 'oval', 'solid-circle': 'oval', diamond: 'diamond',
   'exactly-one': 'ERmandOne', many: 'ERmany', 'zero-or-one': 'ERzeroToOne',
   'zero-or-many': 'ERzeroToMany', 'one-or-many': 'ERoneToMany',
 };
+const DRAWIO_FILLED_MARKERS: ReadonlySet<ConnectorMarker> = new Set(['solid-arrow', 'solid-triangle', 'solid-circle']);
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
   if (marker === 'none') return '';
   const er = ['exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many'].includes(marker);
@@ -124,8 +126,10 @@ function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: n
   if (marker === 'line-arrow') return `<marker ${common}><path d="M2 2L11 7L2 12" fill="none" ${paint}/></marker>`;
   if (marker === 'solid-arrow') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="${escapeXmlAttr(stroke)}" ${paint}/></marker>`;
   if (marker === 'triangle') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="white" ${paint}/></marker>`;
+  if (marker === 'solid-triangle') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="${escapeXmlAttr(stroke)}" ${paint}/></marker>`;
   if (marker === 'reverse-triangle') return `<marker ${common}><path d="M11 1L1 7L11 13Z" fill="white" ${paint}/></marker>`;
   if (marker === 'circle') return `<marker ${common}><circle cx="7" cy="7" r="5" fill="white" ${paint}/></marker>`;
+  if (marker === 'solid-circle') return `<marker ${common}><circle cx="7" cy="7" r="5" fill="${escapeXmlAttr(stroke)}" ${paint}/></marker>`;
   if (marker === 'diamond') return `<marker ${common}><path d="M1 7L7 1L13 7L7 13Z" fill="white" ${paint}/></marker>`;
   if (marker === 'exactly-one') return `<marker ${common}><path d="M7 2V12M14 2V12" fill="none" ${paint}/></marker>`;
   if (marker === 'many') return `<marker ${common}><path d="M5 7H9M9 7L17 1M9 7L17 7M9 7L17 13" fill="none" ${paint}/></marker>`;
@@ -242,7 +246,9 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const text = xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
     const shapeVariant = effectiveShapeVariant(el);
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorStartMarker(el)] : 'none'}`, `endArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorEndMarker(el)] : 'none'}`];
+    const startMarker = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
+    const endMarker = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${DRAWIO_MARKER[startMarker]}`, `startFill=${DRAWIO_FILLED_MARKERS.has(startMarker) ? 1 : 0}`, `endArrow=${DRAWIO_MARKER[endMarker]}`, `endFill=${DRAWIO_FILLED_MARKERS.has(endMarker) ? 1 : 0}`];
     if (shapeVariant) {
       style.push(`sketchdrawShapeVariant=${shapeVariant}`);
       const native: Partial<Record<typeof shapeVariant, readonly string[]>> = {

@@ -51,7 +51,8 @@ const ROUTES: ReadonlyArray<{ value: ConnectorRouting; label: string }> = [
 const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
   { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
   { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
-  { value: 'reverse-triangle', label: 'Umgekehrtes Dreieck' }, { value: 'circle', label: 'Kreis' },
+  { value: 'solid-triangle', label: 'Gefülltes Dreieck' }, { value: 'reverse-triangle', label: 'Umgekehrtes Dreieck' },
+  { value: 'circle', label: 'Kreis' }, { value: 'solid-circle', label: 'Gefüllter Kreis' },
   { value: 'diamond', label: 'Raute' }, { value: 'zero-or-one', label: 'Null oder eins' },
   { value: 'exactly-one', label: 'Genau eins' }, { value: 'zero-or-many', label: 'Null oder viele' },
   { value: 'one-or-many', label: 'Eins oder viele' }, { value: 'many', label: 'Viele' },

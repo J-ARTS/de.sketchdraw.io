@@ -79,7 +79,7 @@ function onKeydown(event: KeyboardEvent): void {
         :disabled="!s.canWrite || s.transitioning"
         @click="store.setConnectorDefaults({ endMarker: option.value })"
       >
-        <svg viewBox="0 0 48 24" aria-hidden="true"><line x1="5" y1="12" x2="40" y2="12" /><path v-if="option.value === 'line-arrow'" d="M32 5l8 7-8 7" /><path v-else-if="option.value === 'solid-arrow'" d="M30 4l11 8-11 8z" class="filled" /><path v-else-if="option.value === 'triangle'" d="M29 4l12 8-12 8z" /><circle v-else-if="option.value === 'circle'" cx="37" cy="12" r="6" /><path v-else-if="option.value === 'diamond'" d="M29 12l6-7 7 7-7 7z" /></svg>
+        <svg viewBox="0 0 48 24" aria-hidden="true"><line x1="5" y1="12" x2="40" y2="12" /><path v-if="option.value === 'line-arrow'" d="M32 5l8 7-8 7" /><path v-else-if="option.value === 'solid-arrow'" d="M30 4l11 8-11 8z" class="filled" /><path v-else-if="option.value === 'triangle'" d="M29 4l12 8-12 8z" /><path v-else-if="option.value === 'solid-triangle'" d="M29 4l12 8-12 8z" class="filled" /><circle v-else-if="option.value === 'circle'" cx="37" cy="12" r="6" /><circle v-else-if="option.value === 'solid-circle'" cx="37" cy="12" r="6" class="filled" /><path v-else-if="option.value === 'diamond'" d="M29 12l6-7 7 7-7 7z" /></svg>
       </button>
     </div>
   </div>

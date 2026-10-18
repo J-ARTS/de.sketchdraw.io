@@ -17,7 +17,8 @@ export const CONNECTOR_ROUTING_OPTIONS: ReadonlyArray<{ value: ConnectorRouting;
 export const CONNECTOR_END_MARKER_OPTIONS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
   { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
   { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
-  { value: 'circle', label: 'Kreis' }, { value: 'diamond', label: 'Raute' },
+  { value: 'solid-triangle', label: 'Gefülltes Dreieck' }, { value: 'circle', label: 'Kreis' },
+  { value: 'solid-circle', label: 'Gefüllter Kreis' }, { value: 'diamond', label: 'Raute' },
 ];
 
 interface StorageLike {
