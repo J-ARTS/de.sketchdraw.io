@@ -17,11 +17,12 @@ const s = store.state;
 const canvas = ref<SVGSVGElement>();
 const editor = ref<HTMLTextAreaElement>();
 const laser = ref<InstanceType<typeof LaserPointerOverlay>>();
-const eraserPointer = ref<{ x: number; y: number } | null>(null);
+const toolPointer = ref<{ x: number; y: number } | null>(null);
 let activePointer: number | null = null;
 let laserGesture = false;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
-const eraserCursorVisible = computed(() => s.tool === 'eraser' && s.canWrite && !s.transitioning && eraserPointer.value !== null);
+const pencilCursorVisible = computed(() => s.tool === 'path' && s.canWrite && !s.transitioning && toolPointer.value !== null);
+const eraserCursorVisible = computed(() => s.tool === 'eraser' && s.canWrite && !s.transitioning && toolPointer.value !== null);
 const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
 const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
@@ -74,22 +75,22 @@ function down(event: PointerEvent) {
   event.preventDefault(); activePointer = event.pointerId;
   canvas.value?.setPointerCapture(event.pointerId);
   const value = input(event);
-  eraserPointer.value = { x: value.x, y: value.y };
+  toolPointer.value = { x: value.x, y: value.y };
   laserGesture = s.tool === 'laser' && event.button === 0;
   if (laserGesture) laser.value?.start(value);
   else store.pointerDown(value);
 }
 function move(event: PointerEvent) {
   const value = input(event);
-  eraserPointer.value = { x: value.x, y: value.y };
+  toolPointer.value = { x: value.x, y: value.y };
   if (laserGesture && activePointer === event.pointerId) laser.value?.add(value);
   else store.pointerMove(value);
 }
 function enter(event: PointerEvent) {
   const value = input(event);
-  eraserPointer.value = { x: value.x, y: value.y };
+  toolPointer.value = { x: value.x, y: value.y };
 }
-function leave() { eraserPointer.value = null; }
+function leave() { toolPointer.value = null; }
 function up(event: PointerEvent) {
   if (activePointer !== event.pointerId) return;
   const value = input(event);
@@ -130,9 +131,12 @@ onMounted(() => canvas.value?.focus());
           <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
         </template>
       </g>
-      <g v-if="eraserCursorVisible && eraserPointer" class="eraser-cursor" data-testid="eraser-cursor" :data-radius="s.eraserRadius" pointer-events="none" aria-hidden="true">
-        <circle :cx="eraserPointer.x" :cy="eraserPointer.y" :r="s.eraserRadius" fill="none" stroke="var(--text-primary)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".82" />
-        <circle :cx="eraserPointer.x" :cy="eraserPointer.y" r="2.5" fill="var(--text-primary)" />
+      <g v-if="pencilCursorVisible && toolPointer" class="pencil-cursor" data-testid="pencil-cursor" :data-size="s.pencilSize" pointer-events="none" aria-hidden="true">
+        <circle :cx="toolPointer.x" :cy="toolPointer.y" :r="s.pencilSize / 2" fill="none" :stroke="s.pencilColor" stroke-width="1.5" opacity=".9" />
+      </g>
+      <g v-if="eraserCursorVisible && toolPointer" class="eraser-cursor" data-testid="eraser-cursor" :data-radius="s.eraserRadius" pointer-events="none" aria-hidden="true">
+        <circle :cx="toolPointer.x" :cy="toolPointer.y" :r="s.eraserRadius" fill="none" stroke="var(--text-primary)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".82" />
+        <circle :cx="toolPointer.x" :cy="toolPointer.y" r="2.5" fill="var(--text-primary)" />
       </g>
       <LaserPointerOverlay ref="laser" />
     </svg>

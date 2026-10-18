@@ -199,6 +199,8 @@ export interface WhiteboardState {
   shapeVariant: ShapeVariant;
   pencilPreset: PencilPreset;
   pencilColor: string;
+  /** Pencil stroke width in CSS screen pixels while drawing; independent from the canvas zoom. */
+  pencilSize: number;
   /** Eraser hit radius in CSS screen pixels; independent from the canvas zoom. */
   eraserRadius: number;
   viewport: Viewport;
@@ -271,6 +273,7 @@ export interface WhiteboardStore {
   setShapeTool(variant: ShapeVariant): void;
   setPencilPreset(preset: PencilPreset): void;
   setPencilColor(color: string): void;
+  setPencilSize(size: number): void;
   setEraserRadius(radius: number): void;
   addWebEmbed(url: string): Promise<boolean>;
   setViewportSize(width: number, height: number): void;

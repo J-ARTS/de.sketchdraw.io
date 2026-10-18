@@ -43,7 +43,7 @@ import {
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
-import { clampEraserRadius, ERASER_RADIUS_DEFAULT, pencilOption } from '../lib/drawing-tools';
+import { clampEraserRadius, clampPencilSize, ERASER_RADIUS_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
 
@@ -55,6 +55,7 @@ type Gesture = {
   connectorFromId?: string;
   connectorPoints?: Point[];
   connectorPointIndex?: number;
+  pencilStrokeWidth?: number;
   eraserRadius?: number;
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -143,7 +144,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get canWrite() { return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
-    pencilPreset: 'fine' as PencilPreset, pencilColor: DEFAULT_STYLE.stroke, eraserRadius: ERASER_RADIUS_DEFAULT,
+    pencilPreset: 'fine' as PencilPreset, pencilColor: DEFAULT_STYLE.stroke, pencilSize: PENCIL_SIZE_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
@@ -170,7 +171,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
-    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : this.tool === 'eraser' ? 'none' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair'; },
+    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : ['path', 'eraser'].includes(this.tool) ? 'none' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair'; },
     get frame(): WhiteboardState['frame'] {
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
       const first = elements[0];
@@ -454,7 +455,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (g.tool === 'path') {
       const pencil = pencilOption(state.pencilPreset);
       style.stroke = state.pencilColor;
-      style.strokeWidth = pencil.strokeWidth;
+      style.strokeWidth = g.pencilStrokeWidth ?? state.pencilSize / state.viewport.zoom;
       style.opacity = pencil.opacity;
     }
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool), ...(SWAPPABLE_KINDS.has(g.tool as SketchElement['kind']) ? { shapeVariant: state.shapeVariant } : {}) };
@@ -701,6 +702,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     setPencilPreset(preset) {
       if (!state.canWrite || state.transitioning || !(['fine', 'pencil', 'marker'] as PencilPreset[]).includes(preset)) return;
       state.pencilPreset = preset;
+      state.pencilSize = pencilOption(preset).strokeWidth;
       state.liveMessage = `Stifttyp: ${pencilOption(preset).label}`;
     },
     setPencilColor(color) {
@@ -709,6 +711,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!normalized) return;
       state.pencilColor = normalized;
       state.liveMessage = `Stiftfarbe: ${normalized}`;
+    },
+    setPencilSize(size) {
+      if (!state.canWrite || state.transitioning || !Number.isFinite(size)) return;
+      state.pencilSize = clampPencilSize(size);
+      state.liveMessage = `Pinselgröße: ${state.pencilSize} Pixel`;
     },
     setEraserRadius(radius) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(radius)) return;
@@ -791,6 +798,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         } else connectorPointIndex = Number(handle.id.slice('connector:'.length));
       }
       gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets, handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
+        ...(state.tool === 'path' ? { pencilStrokeWidth: state.pencilSize / state.viewport.zoom } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex } : {}),
         ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
       if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };

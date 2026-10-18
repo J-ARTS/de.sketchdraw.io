@@ -148,14 +148,19 @@ describe('Whiteboard uses the real session gateway', () => {
     store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(2);
     store.redo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(0);
   });
-  test('pencil options style only new paths and the eraser uses a clamped screen-pixel radius', async () => {
+  test('pencil options style only new paths and both drawing tools clamp their screen-pixel size', async () => {
     const { store } = setup();
-    store.setPencilPreset('marker'); store.setPencilColor('#e5533a'); store.setTool('path');
+    store.setPencilPreset('marker'); expect(store.state.pencilSize).toBe(10); store.setPencilSize(37); store.setPencilColor('#e5533a'); store.setTool('path');
     store.pointerDown(point(200, 120)); store.pointerMove(point(300, 180)); store.pointerUp(point(300, 180)); await store.whenIdle();
     const path = store.state.document.elements[0]!;
-    expect(path).toMatchObject({ kind: 'path', style: { stroke: '#e5533a', strokeWidth: 10, opacity: 0.55 } });
+    expect(path).toMatchObject({ kind: 'path', style: { stroke: '#e5533a', strokeWidth: 37, opacity: 0.55 } });
     store.setPencilPreset('fine'); store.setPencilColor('#5aabf7');
+    expect(store.state.pencilSize).toBe(2);
     expect(store.state.document.elements[0]).toEqual(path);
+    store.setPencilSize(900); expect(store.state.pencilSize).toBe(500);
+    store.setPencilSize(-10); expect(store.state.pencilSize).toBe(1);
+    store.setPencilSize(24.6); expect(store.state.pencilSize).toBe(25);
+    store.setPencilSize(Number.NaN); expect(store.state.pencilSize).toBe(25);
 
     await draw(store, 'rectangle', 300);
     store.setTool('eraser'); store.setEraserRadius(8);
@@ -177,6 +182,16 @@ describe('Whiteboard uses the real session gateway', () => {
     store.setEraserRadius(32);
     store.pointerDown(point(815, 480)); store.pointerUp(point(815, 480)); await store.whenIdle();
     expect(store.state.document.elements.some((element) => element.kind === 'rectangle')).toBe(false);
+  });
+  test('pencil freezes its size for a gesture and converts the screen width at the current zoom', async () => {
+    const { store } = setup();
+    store.setTool('path'); store.setPencilSize(40);
+    store.pointerDown(point(200, 120)); store.setPencilSize(80); store.pointerMove(point(300, 180)); store.pointerUp(point(300, 180)); await store.whenIdle();
+    expect(store.state.document.elements[0]).toMatchObject({ kind: 'path', style: { strokeWidth: 40 } });
+
+    store.zoomTo(2, { x: 0, y: 0 }); store.setTool('path'); store.setPencilSize(40);
+    store.pointerDown(point(500, 300)); store.pointerMove(point(620, 360)); store.pointerUp(point(620, 360)); await store.whenIdle();
+    expect(store.state.document.elements[1]).toMatchObject({ kind: 'path', style: { strokeWidth: 20 } });
   });
   test('a click creates the tool default size and group movement moves children once', async () => {
     const { store } = setup(); store.setTool('rectangle'); store.pointerDown(point(300, 200)); store.pointerUp(point(300, 200)); await store.whenIdle();

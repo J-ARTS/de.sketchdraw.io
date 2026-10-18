@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { PALETTE } from '@/renderer/lib/constants';
-import { ERASER_RADIUS_MAX, ERASER_RADIUS_MIN, PENCIL_OPTIONS } from '@/renderer/lib/drawing-tools';
+import { ERASER_RADIUS_MAX, ERASER_RADIUS_MIN, PENCIL_OPTIONS, PENCIL_SIZE_MAX, PENCIL_SIZE_MIN } from '@/renderer/lib/drawing-tools';
 import { useWhiteboard } from './use-whiteboard';
 
 const store = useWhiteboard();
@@ -40,17 +40,30 @@ function onKeydown(event: KeyboardEvent): void {
 function pickCustomColor(event: Event): void {
   store.setPencilColor((event.target as HTMLInputElement).value);
 }
+function setPencilSize(event: Event): void {
+  store.setPencilSize(Number((event.target as HTMLInputElement).value));
+}
 function setEraserRadius(event: Event): void {
   store.setEraserRadius(Number((event.target as HTMLInputElement).value));
 }
+function sliderKeyValue(event: KeyboardEvent, value: number, minimum: number, maximum: number): number | null {
+  if (event.key === 'ArrowRight' || event.key === 'ArrowUp') return value + 1;
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') return value - 1;
+  if (event.key === 'PageUp') return value + 10;
+  if (event.key === 'PageDown') return value - 10;
+  if (event.key === 'Home') return minimum;
+  if (event.key === 'End') return maximum;
+  return null;
+}
+function onPencilSizeKeydown(event: KeyboardEvent): void {
+  const size = sliderKeyValue(event, s.pencilSize, PENCIL_SIZE_MIN, PENCIL_SIZE_MAX);
+  if (size === null) return;
+  event.preventDefault();
+  event.stopPropagation();
+  store.setPencilSize(size);
+}
 function onEraserRadiusKeydown(event: KeyboardEvent): void {
-  let radius: number | null = null;
-  if (event.key === 'ArrowRight' || event.key === 'ArrowUp') radius = s.eraserRadius + 1;
-  else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') radius = s.eraserRadius - 1;
-  else if (event.key === 'PageUp') radius = s.eraserRadius + 10;
-  else if (event.key === 'PageDown') radius = s.eraserRadius - 10;
-  else if (event.key === 'Home') radius = ERASER_RADIUS_MIN;
-  else if (event.key === 'End') radius = ERASER_RADIUS_MAX;
+  const radius = sliderKeyValue(event, s.eraserRadius, ERASER_RADIUS_MIN, ERASER_RADIUS_MAX);
   if (radius === null) return;
   event.preventDefault();
   event.stopPropagation();
@@ -95,6 +108,28 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
         </button>
       </div>
       <span class="separator" aria-hidden="true" />
+      <div class="option-group size-group" role="group" aria-label="Pinselgröße">
+        <label class="size-control" for="pencil-size">
+          <span>Größe</span>
+          <input
+            id="pencil-size"
+            data-testid="pencil-size-slider"
+            type="range"
+            :min="PENCIL_SIZE_MIN"
+            :max="PENCIL_SIZE_MAX"
+            step="1"
+            :value="s.pencilSize"
+            aria-label="Pinselgröße"
+            :aria-valuetext="`${s.pencilSize} Pixel Strichbreite`"
+            title="Pinselgröße von 1 bis 500 Pixel"
+            :disabled="!s.canWrite || s.transitioning"
+            @input="setPencilSize"
+            @keydown="onPencilSizeKeydown"
+          />
+          <output for="pencil-size" aria-live="polite">{{ s.pencilSize }} px</output>
+        </label>
+      </div>
+      <span class="separator" aria-hidden="true" />
       <div class="option-group color-group" role="group" aria-label="Stiftfarbe">
         <button
           v-for="color in colors"
@@ -126,8 +161,8 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
       </div>
     </template>
 
-    <div v-else class="option-group eraser-group" role="group" aria-label="Radierergröße">
-      <label class="eraser-radius-control" for="eraser-radius">
+    <div v-else class="option-group size-group" role="group" aria-label="Radierergröße">
+      <label class="size-control" for="eraser-radius">
         <span>Radius</span>
         <input
           id="eraser-radius"
@@ -168,12 +203,12 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .custom-color{border:0;background:radial-gradient(circle,#fff 0 18%,transparent 62%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .custom-color:hover,.custom-color[aria-pressed='true']{background:radial-gradient(circle,#fff 0 18%,transparent 62%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .native-color{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.eraser-group{padding:0 7px}
-.eraser-radius-control{display:grid;grid-template-columns:auto minmax(120px,220px) 54px;align-items:center;gap:12px;font-size:12px;font-weight:650;white-space:nowrap}
-.eraser-radius-control input{width:220px;max-width:36vw;accent-color:var(--accent);cursor:pointer}
-.eraser-radius-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-muted)}
-.eraser-radius-control input:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:999px}
-.eraser-radius-control input:disabled{cursor:not-allowed;opacity:.45}
-@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.color-group{gap:6px}.color-option{width:26px;height:26px}.eraser-radius-control{grid-template-columns:auto minmax(100px,1fr) 50px;gap:8px}.eraser-radius-control input{width:min(180px,42vw);max-width:none}}
+.size-group{padding:0 7px}
+.size-control{display:grid;grid-template-columns:auto minmax(120px,220px) 54px;align-items:center;gap:12px;font-size:12px;font-weight:650;white-space:nowrap}
+.size-control input{width:220px;max-width:36vw;accent-color:var(--accent);cursor:pointer}
+.size-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-muted)}
+.size-control input:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:999px}
+.size-control input:disabled{cursor:not-allowed;opacity:.45}
+@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.color-group{gap:6px}.color-option{width:26px;height:26px}.size-control{grid-template-columns:auto minmax(100px,1fr) 50px;gap:8px}.size-control input{width:min(180px,42vw);max-width:none}}
 @media(forced-colors:active){button[aria-pressed='true']{outline:2px solid Highlight;box-shadow:none}.color-option{forced-color-adjust:none}}
 </style>

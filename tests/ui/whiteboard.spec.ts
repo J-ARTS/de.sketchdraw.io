@@ -70,16 +70,27 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
 
   const fine = options.getByRole('button', { name: 'Fein, 2 Pixel', exact: true });
   const pencil = options.getByRole('button', { name: 'Stift, 4 Pixel', exact: true });
+  const pencilSize = options.getByRole('slider', { name: 'Pinselgröße' });
+  await expect(pencilSize).toHaveAttribute('min', '1'); await expect(pencilSize).toHaveAttribute('max', '500'); await expect(pencilSize).toHaveValue('2');
   await fine.focus(); await page.keyboard.press('ArrowRight'); await expect(pencil).toBeFocused();
   await options.getByRole('button', { name: 'Marker, 10 Pixel', exact: true }).click();
+  await expect(pencilSize).toHaveValue('10');
+  await pencilSize.focus(); await page.keyboard.press('End'); await expect(pencilSize).toHaveValue('500');
+  await pencilSize.evaluate((element) => { const input = element as HTMLInputElement; input.value = '24'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  await expect(pencilSize).toHaveValue('24'); await expect(options).toContainText('24 px');
   await options.getByRole('button', { name: 'Stiftfarbe Rot', exact: true }).click();
+  await page.mouse.move(650, 300);
+  const pencilCursor = page.getByTestId('pencil-cursor'); await expect(pencilCursor).toBeVisible(); await expect(pencilCursor).toHaveAttribute('data-size', '24');
+  await expect(pencilCursor.locator('circle')).toHaveAttribute('r', '12');
+  await expect(page.getByTestId('whiteboard-canvas')).toHaveCSS('cursor', 'none');
   await page.mouse.move(650, 300); await page.mouse.down(); await page.mouse.move(760, 360, { steps: 12 }); await page.mouse.up();
   const path = page.locator('[data-kind=path]'); const pathStyle = path.locator('g').first();
   await expect(path).toHaveAttribute('opacity', '0.55');
-  await expect(pathStyle).toHaveAttribute('stroke', '#e5533a'); await expect(pathStyle).toHaveAttribute('stroke-width', '10');
+  await expect(pathStyle).toHaveAttribute('stroke', '#e5533a'); await expect(pathStyle).toHaveAttribute('stroke-width', '24');
 
   await draw(page, 'Rechteck', [350, 300], [450, 380]);
   await page.getByRole('button', { name: 'Radierer', exact: true }).click();
+  await expect(pencilCursor).toHaveCount(0);
   const eraserOptions = page.getByTestId('eraser-options'); await expect(eraserOptions).toBeVisible(); await expect(options).toHaveCount(0);
   const radius = eraserOptions.getByRole('slider', { name: 'Radierer-Radius' });
   await expect(radius).toHaveAttribute('min', '1'); await expect(radius).toHaveAttribute('max', '500'); await expect(radius).toHaveValue('18');
@@ -98,7 +109,7 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
   await radius.evaluate((element) => { const input = element as HTMLInputElement; input.value = '500'; input.dispatchEvent(new Event('input', { bubbles: true })); });
   await expect(radius).toHaveValue('500'); await expect(eraserOptions).toContainText('500 px');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
-  await page.getByRole('button', { name: 'Auswahl', exact: true }).click(); await expect(cursor).toHaveCount(0);
+  await page.getByRole('button', { name: 'Auswahl', exact: true }).click(); await expect(cursor).toHaveCount(0); await expect(pencilCursor).toHaveCount(0);
   await page.setViewportSize({ width: 480, height: 720 });
   await page.getByRole('button', { name: 'Freihand', exact: true }).click(); await expect(options).toBeVisible();
   const compact = await options.boundingBox(); expect(compact!.x).toBeGreaterThanOrEqual(0); expect(compact!.x + compact!.width).toBeLessThanOrEqual(480);
