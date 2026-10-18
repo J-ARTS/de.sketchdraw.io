@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T11:53:53.009660Z",
+  "updatedAt": "2026-10-18T12:06:24Z",
   "issues": [
     {
       "number": 1,
@@ -1621,6 +1621,21 @@
         59,
         101
       ]
+    },
+    {
+      "number": 103,
+      "title": "Werkzeugleiste: Verbindung als einfachen Rechtspfeil darstellen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/103",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -6093,6 +6108,57 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 642 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-simple-connector-icon-103",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        103
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b5149155f44a8f17d57c8277ff8af2505b9f41c9",
+        "src/renderer/components/icons.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/103",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089"
+      ],
+      "concerns": [
+        "The shared connector icon is used by both the top toolbar and the shape library, so the visual change is intentionally consistent across both surfaces."
+      ],
+      "authorization": "The user supplied a visual reference and asked that the arrow use the simple horizontal open-arrow form; Codex remains authorized to implement UI work temporarily with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit b514915: typecheck and production build passed; the targeted connector Playwright suite passed 2/2; live Electron inspection confirmed the centered horizontal open-arrow icon in inactive and active states. GitHub Actions run 39125202089 passed governance/Graphify, direct P2P, and full build/UI/Electron/package verification on Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-simple-connector-icon-39125202089",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        103
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T11:55:52Z",
+      "endedAt": "2026-10-18T12:06:24Z",
+      "observedSeconds": 632,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b5149155f44a8f17d57c8277ff8af2505b9f41c9",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089/job/117669019367",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089/job/117669019593",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089/job/117669053972",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089/job/117669053985",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39125202089/job/117669054001"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 103 product change to main.",
+      "measurementSource": "GitHub Actions run 39125202089 timestamps and conclusions. All five jobs completed successfully; observedSeconds is the run wall-clock interval from startedAt to updatedAt. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
