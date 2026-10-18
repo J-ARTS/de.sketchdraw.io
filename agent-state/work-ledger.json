@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T15:25:52.284868+00:00",
+  "updatedAt": "2026-10-18T16:19:49.544255+00:00",
   "issues": [
     {
       "number": 1,
@@ -1673,6 +1673,23 @@
       ]
     },
     {
+      "number": 107,
+      "title": "Schnellverbinder: per Ziehen mit bestehendem Element verbinden",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/107",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        36
+      ]
+    },
+    {
       "number": 108,
       "title": "Formenbibliothek: Quellenhinweis aus Anbieteransicht entfernen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/108",
@@ -1704,6 +1721,25 @@
       },
       "dependencies": [
         61
+      ]
+    },
+    {
+      "number": 110,
+      "title": "Connectoren auf FigJam-Segmentverhalten angleichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/110",
+      "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI, logic and architecture",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        91,
+        96,
+        107
       ]
     }
   ],
@@ -6777,6 +6813,147 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized branch push and cancelled once the authoritative main run was active.",
       "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39139698078. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-figjam-connector-parity-110",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        110
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8939095e5ae3cdc9a17794c0ed78f4db12fd0cc4",
+        "git:27f99609b1aeae8ebc95b0fa54e8d43fcb8c8593",
+        "src/domain/connectors.ts",
+        "src/domain/geometry.ts",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/geometry.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/connectors.spec.ts",
+        "tests/unit/connectors.spec.ts",
+        "tests/unit/geometry-acceptance.spec.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "https://www.figma.com/board/s2F3iDDeVgyjrie7NgxmsG/Untitled?node-id=23-361",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/110",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019"
+      ],
+      "concerns": [
+        "The user review found that the first integrated revision still allowed diagonal stored route sections after bound targets moved and did not expose segment handles on hover or shape docking points. Commit 27f9960 corrects all three behaviors and is the completion revision.",
+        "The first local browser invocation reused the already-running port 5173 server from another checkout and was excluded from evidence. The exact changed checkout passed all 87 browser tests on isolated port 5174.",
+        "A full unit run caught an initially over-broad normalization of legacy straight connectors. The implementation was restricted to elbowed connectors before commit; the final 408-test unit suite passed.",
+        "Graphify source refresh was guarded: the new extraction had 4,536 nodes versus 4,575 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately.",
+        "The initial branch CI run 39142240627 had a Windows Electron failure while the main run for the identical SHA passed all jobs. The final completion revision 27f9960 subsequently passed all jobs on Ubuntu, macOS and Windows in run 39143661019."
+      ],
+      "authorization": "The user explicitly requested FigJam-compatible connector editing, strict right-angle routing, blue segment bars on hover and visible docking points around shapes. Codex remains authorized to implement temporarily while recording the regular Claude Code and Antigravity ownership separately.",
+      "measurementSource": "Local macOS evidence at final product commit 27f9960: typecheck, production build, 408/408 Vitest unit tests, 87/87 Playwright browser UI tests, 6/6 Electron tests, 59/59 Node lifecycle tests and diff check passed. GitHub Actions run 39143661019 verified the exact commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-figjam-connector-initial-39142278991",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        110
+      ],
+      "status": "completed_then_superseded_by_user_review",
+      "startedAt": "2026-10-18T15:50:19Z",
+      "endedAt": "2026-10-18T16:00:21Z",
+      "observedSeconds": 602,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8939095e5ae3cdc9a17794c0ed78f4db12fd0cc4",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991/job/117718961711",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991/job/117718961863",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991/job/117719002106",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991/job/117719002095",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142278991/job/117719002128"
+      ],
+      "concerns": [
+        "The run passed the exact initial implementation, but later user review identified missing hover, docking and post-move orthogonality behavior. It is retained as historical evidence and is not the final completion run."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized initial integration for Issue 110.",
+      "measurementSource": "GitHub Actions timestamps report 602 seconds elapsed. All five jobs passed for the initial revision, which was later superseded by commit 27f9960."
+    },
+    {
+      "id": "github-actions-figjam-connector-initial-branch-failure-39142240627",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        110
+      ],
+      "status": "failed_then_superseded",
+      "startedAt": "2026-10-18T15:49:51Z",
+      "endedAt": "2026-10-18T16:00:36Z",
+      "observedSeconds": 645,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8939095e5ae3cdc9a17794c0ed78f4db12fd0cc4",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142240627",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39142240627/job/117719140855"
+      ],
+      "concerns": [
+        "The Windows Electron step failed on the branch run while Ubuntu, macOS and the Windows browser suite passed. The main run for the identical SHA passed Windows Electron, and final run 39143661019 passed all platforms on the corrected revision."
+      ],
+      "authorization": "The branch verification was triggered by the authorized Issue 110 branch push.",
+      "measurementSource": "GitHub Actions timestamps and job conclusions for run 39142240627. This failed run is recorded transparently and is not used as completion evidence."
+    },
+    {
+      "id": "github-actions-figjam-connector-final-39143661019",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        110
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T16:08:36Z",
+      "endedAt": "2026-10-18T16:18:35Z",
+      "observedSeconds": 599,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:27f99609b1aeae8ebc95b0fa54e8d43fcb8c8593",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019/job/117723010217",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019/job/117723010391",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019/job/117723043943",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019/job/117723043962",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143661019/job/117723043997"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the final Issue 110 correction into main.",
+      "measurementSource": "GitHub Actions timestamps report 599 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-figjam-connector-final-duplicate-39143660662",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        110
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T16:08:36Z",
+      "endedAt": "2026-10-18T16:10:17Z",
+      "observedSeconds": 101,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:27f99609b1aeae8ebc95b0fa54e8d43fcb8c8593",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39143660662"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
+      "measurementSource": "GitHub Actions timestamps report 101 seconds from creation to final cancellation. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {
