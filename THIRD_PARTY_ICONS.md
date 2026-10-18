@@ -1,6 +1,6 @@
 # Third-party architecture icons
 
-Sketchdraw includes a small offline starter set of official architecture icons. The source SVG geometry and colors are preserved. Editor metadata and unsupported XML attributes are removed so the files can pass the application’s strict, script-free SVG parser. The icon files remain subject to their publishers’ terms and trademarks; the project’s PolyForm Noncommercial license does not replace those terms.
+Sketchdraw includes the official architecture icon libraries of AWS, Microsoft Azure, Google Cloud, and Kubernetes for offline use, plus a small starter set kept for existing documents and agent integrations. The source SVG geometry and colors are preserved. Editor metadata and unsupported XML attributes are removed so the files can pass the application’s strict, script-free SVG parser. The icon files remain subject to their publishers’ terms and trademarks; the project’s PolyForm Noncommercial license does not replace those terms.
 
 Retrieved on 2026-10-18.
 
@@ -31,6 +31,19 @@ Retrieved on 2026-10-18.
 - Included resources: Pod, Deployment, Service, Ingress, ConfigMap, Secret, Persistent Volume, and Node
 - License: [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) or [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/), as stated by the icon directory README
 - Trademark: The Kubernetes name and logo are governed by the [CNCF trademark guidelines](https://www.linuxfoundation.org/legal/trademark-usage).
+
+## Full libraries (since 2026-10-18, #92)
+
+The library panel offers the complete packages, reduced and validated by `scripts/import-official-icons.mjs` (run with `npm run icons:import -- --aws <dir> --azure <dir> --gcp <dir> --gcp-core <dir> --kubernetes <dir>`):
+
+| Provider | Package | Icons |
+| --- | --- | --- |
+| AWS | `Icon-package_07312026` (service icons 64 px, resource icons 48 px light, group icons 32 px) | 784 |
+| Microsoft Azure | `Azure_Public_Service_Icons_V24` | 713 |
+| Google Cloud | `google-cloud-legacy-icons` (product icons) and `core-products-icons` (512 px color) | 235 |
+| Kubernetes | `kubernetes/community` `icons/svg/*/labeled` | 39 |
+
+The import keeps geometry and colors. It only removes what the strict parser rejects and does not draw anyway (titles, metadata, editor namespaces, clip paths, `<defs>` children other than gradients), converts CSS classes, inline styles, named and `rgb()` colors and `px` units into equivalent attributes, prefixes gradient ids that start with a digit, and applies SVG defaults for missing gradient stop attributes. Icons that would still fail validation are skipped and reported. The generated data lives in `src/catalog/official/*.json`, one component set per provider category, loaded on demand by the renderer.
 
 ## Implementation
 

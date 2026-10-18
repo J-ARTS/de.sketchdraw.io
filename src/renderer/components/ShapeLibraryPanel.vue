@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { RESOURCE_CARD_COMPONENT_TYPE, builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
-import type { ComponentDefinition, ShapeVariant } from '@/domain';
+import type { ComponentDefinition, ComponentSet, ShapeVariant } from '@/domain';
+import { loadAllOfficialLibraries, loadOfficialLibrary, officialIconCount, searchOfficial, type OfficialProvider } from '@/renderer/lib/official-library';
 import { matchesShape, SHAPE_CATALOG, type ShapeEntry } from '@/renderer/lib/shapes';
 import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
 import AppIcon from './AppIcon.vue';
@@ -40,11 +41,45 @@ const sets = computed(() => [
   ...s.document.componentSets,
   ...builtInComponentSets.filter((set) => !s.document.componentSets.some((existing) => existing.id === set.id)),
 ]);
-const allComponents = computed(() => searchCatalogComponents(sets.value, query.value, 'all'));
+
+// Full official libraries (#92) load on demand; the 8-icon starter sets only fill the gap while loading.
+const SEARCH_LIMIT = 120;
+const OFFICIAL_SET = /^sketchdraw\.(aws|azure|gcp|kubernetes)(\.|$)/;
+const officialSets = shallowRef<Partial<Record<OfficialProvider, ComponentSet[]>>>({});
+const officialAll = shallowRef<ComponentSet[] | null>(null);
+const libraryLoading = ref(false);
+const libraryError = ref(false);
+const expandedCategories = reactive<Record<string, boolean>>({});
+const scroller = ref<HTMLElement | null>(null);
+watch(activeLibrary, async (provider) => {
+  libraryError.value = false;
+  if (scroller.value) scroller.value.scrollTop = 0;
+  if (!provider || provider === 'generic' || provider === 'custom' || officialSets.value[provider]) return;
+  libraryLoading.value = true;
+  try { officialSets.value = { ...officialSets.value, [provider]: await loadOfficialLibrary(provider) }; }
+  catch { libraryError.value = true; }
+  finally { libraryLoading.value = false; }
+});
+const searching = computed(() => query.value.trim().length > 0);
+watch(searching, async (active) => {
+  if (!active || officialAll.value) return;
+  try { officialAll.value = await loadAllOfficialLibraries(); } catch { /* starter sets stay searchable */ }
+});
+const allComponents = computed(() => {
+  const official = officialAll.value;
+  const base = searchCatalogComponents(official ? sets.value.filter((set) => !OFFICIAL_SET.test(set.id)) : sets.value, query.value, 'all');
+  return official ? [...base, ...searchOfficial(official, query.value, SEARCH_LIMIT)] : base;
+});
+const allComponentsCapped = computed(() => Boolean(officialAll.value) && allComponents.value.length >= SEARCH_LIMIT);
 const genericComponents = computed(() => searchCatalogComponents(sets.value, query.value, 'generic'));
-const libraryComponents = computed(() => activeLibrary.value
-  ? searchCatalogComponents(sets.value, query.value, activeLibrary.value)
-  : []);
+const libraryComponents = computed(() => {
+  const provider = activeLibrary.value;
+  if (!provider) return [];
+  const loaded = officialSets.value[provider as OfficialProvider];
+  if (!loaded) return searchCatalogComponents(sets.value, query.value, provider);
+  const own = s.document.componentSets.filter((set) => !OFFICIAL_SET.test(set.id));
+  return [...searchOfficial(loaded, query.value), ...searchCatalogComponents(own, query.value, provider)];
+});
 const filteredShapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, query.value)));
 const annotationMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
@@ -54,7 +89,6 @@ const tableMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
   return !needle || ['tabelle', 'table', 'grid', 'zellen', 'zeilen', 'spalten'].some((term) => term.includes(needle));
 });
-const searching = computed(() => query.value.trim().length > 0);
 const libraryLabel = computed(() => providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
 const groupedLibraryComponents = computed(() => {
   const groups = new Map<string, CatalogSearchResult[]>();
@@ -65,6 +99,16 @@ const groupedLibraryComponents = computed(() => {
   }
   return [...groups.entries()].map(([category, items]) => ({ category, items }));
 });
+/** Categories start collapsed except the first; a search opens every matching category. */
+function categoryOpen(category: string, index: number): boolean {
+  return searching.value || (expandedCategories[category] ?? index === 0);
+}
+function toggleCategory(category: string, index: number): void {
+  expandedCategories[category] = !categoryOpen(category, index);
+}
+function providerCount(provider: ComponentDefinition['provider']): number {
+  return officialIconCount(provider as OfficialProvider) || providerItems(provider).length;
+}
 
 function entriesFor(group: (typeof shapeGroups)[number]): ShapeEntry[] {
   const allowed = new Set(group.variants);
@@ -157,11 +201,13 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <div class="library-scroll">
+    <div ref="scroller" class="library-scroll">
       <template v-if="activeLibrary">
-        <section v-for="group in groupedLibraryComponents" :key="group.category" class="component-group">
-          <h3>{{ group.category }}</h3>
-          <div class="component-grid">
+        <p v-if="libraryLoading" class="empty-state" role="status">Bibliothek wird geladen …</p>
+        <p v-if="libraryError" class="empty-state" role="alert">Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.</p>
+        <section v-for="(group, index) in groupedLibraryComponents" :key="group.category" class="component-group">
+          <h3><button type="button" class="category-toggle" :aria-expanded="categoryOpen(group.category, index)" @click="toggleCategory(group.category, index)"><span>{{ group.category }}</span><span class="category-count">{{ group.items.length }}</span><span class="category-chevron" aria-hidden="true">⌄</span></button></h3>
+          <div v-if="categoryOpen(group.category, index)" class="component-grid">
             <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" @click="activateComponent(item)">
               <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span>
               <SafeIcon v-else :source="item.component.iconSvg" :size="42" />
@@ -170,13 +216,13 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </section>
-        <p v-if="!libraryComponents.length" class="empty-state">Keine passenden Symbole gefunden.</p>
+        <p v-if="!libraryComponents.length && !libraryLoading" class="empty-state">Keine passenden Symbole gefunden.</p>
         <p class="source-note">Offizielle Architektur-Symbole. Quellen und Nutzungsbedingungen stehen in THIRD_PARTY_ICONS.md.</p>
       </template>
 
       <template v-else-if="searching">
         <section class="search-results">
-          <h3>Formen</h3>
+          <h3 v-if="annotationMatches || tableMatches || filteredShapes.length">Formen</h3>
           <div class="shape-grid">
             <button v-if="annotationMatches" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Annotation" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>Annotation</span></button>
             <button v-if="tableMatches" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Tabelle" @click="activateTable"><AppIcon name="table" :size="30" /><span>Tabelle</span></button>
@@ -192,6 +238,7 @@ onBeforeUnmount(() => {
               <SafeIcon v-else :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
+          <p v-if="allComponentsCapped" class="empty-state">Die ersten {{ SEARCH_LIMIT }} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.</p>
           <p v-if="!annotationMatches && !tableMatches && !filteredShapes.length && !allComponents.length" class="empty-state">Keine Form oder Komponente gefunden.</p>
         </section>
       </template>
@@ -225,7 +272,7 @@ onBeforeUnmount(() => {
           <h3 id="other-libraries-heading">Weitere Bibliotheken</h3>
           <button v-for="providerItem in providers" :key="providerItem.id" type="button" class="provider-row" @click="activeLibrary = providerItem.id">
             <span class="provider-logo"><SafeIcon :source="providerPreview(providerItem.id)" :size="48" /></span>
-            <span><strong>{{ providerItem.label }}</strong><small>{{ providerItems(providerItem.id).length }} Symbole</small></span>
+            <span><strong>{{ providerItem.label }}</strong><small>{{ providerCount(providerItem.id) }} Symbole</small></span>
             <span aria-hidden="true">›</span>
           </button>
         </section>
@@ -247,7 +294,7 @@ onBeforeUnmount(() => {
 .customize-row{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--text-muted);font-size:11px}.customize-row p,.customize-row span{flex:1;margin:0}.customize-row button,.reset-button{flex:none;min-height:34px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-raised);color:var(--text-primary);cursor:pointer}.customize-row button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .library-scroll{flex:1;min-height:0;overflow:auto;background:var(--surface-panel)}.accordion-section{border-bottom:1px solid var(--border-subtle)}.accordion-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:66px;padding:0 24px;border:0;background:transparent;color:var(--text-primary);font-size:17px;font-weight:650;text-align:left;cursor:pointer}.accordion-trigger:hover{background:var(--surface-raised)}.accordion-trigger>span:last-child{font-size:24px;transition:transform .16s ease}.accordion-trigger[aria-expanded=true]>span:last-child{transform:rotate(180deg)}
 .shape-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 20px 18px}.shape-tile{position:relative;display:flex;min-width:0;min-height:78px;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px 4px;border:1px solid transparent;border-radius:11px;background:transparent;color:var(--text-primary);font-size:10px;text-align:center;cursor:pointer}.shape-tile:hover,.shape-tile:focus-visible{border-color:var(--border-subtle);background:var(--surface-raised)}.shape-tile.favorite{color:var(--accent)}.shape-tile svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.favorite-mark{position:absolute;top:4px;right:7px;font-weight:700}
-.component-group,.search-results{padding:20px 20px 4px}.component-group h3,.search-results h3{margin:0 4px 12px;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}.component-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px 18px}.component-group .component-grid,.search-results .component-grid{padding:0}.component-tile{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 7px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);color:var(--text-primary);text-align:center;cursor:pointer}.component-tile:hover,.component-tile:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.component-tile span{width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:650}.component-tile small{font-size:9px;color:var(--text-muted)}.search-components{margin-bottom:16px}
+.component-group,.search-results{padding:20px 20px 4px}.component-group h3,.search-results h3{margin:0 4px 12px;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}.component-group{padding-top:8px;padding-bottom:0;border-bottom:1px solid var(--border-subtle)}.component-group h3{margin:0}.category-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;text-transform:inherit;cursor:pointer}.category-toggle:hover{color:var(--text-primary)}.category-toggle>span:first-child{flex:1}.category-count{min-width:24px;padding:1px 7px;border-radius:999px;background:var(--surface-raised);font-size:11px;text-align:center}.category-chevron{font-size:18px;transition:transform .16s ease}.category-toggle[aria-expanded=true] .category-chevron{transform:rotate(180deg)}.component-group .component-grid{padding-bottom:16px}.component-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px 18px}.component-group .component-grid,.search-results .component-grid{padding:0}.component-tile{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 7px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);color:var(--text-primary);text-align:center;cursor:pointer}.component-tile:hover,.component-tile:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.component-tile span{width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:650}.component-tile small{font-size:9px;color:var(--text-muted)}.search-components{margin-bottom:16px}
 .component-grid .resource-card-tile{grid-column:1/-1;min-height:126px;padding:10px}.resource-card-preview{display:grid!important;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;width:100%!important;min-height:62px;padding:10px 10px 18px;box-sizing:border-box;border:1px solid var(--border-default);border-radius:7px;background:var(--surface-panel);box-shadow:inset 0 -10px var(--accent-soft);text-align:left}.resource-card-preview>span{display:grid;gap:3px;font-size:12px!important}.resource-card-preview b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-card-preview small{text-transform:uppercase}
 .other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-raised)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}.provider-row>span:last-child{font-size:25px;color:var(--text-muted)}
 .source-note,.empty-state{padding:18px 24px;color:var(--text-muted);font-size:11px;line-height:1.5}.library-footer{flex:none;display:grid;gap:10px;padding:12px 20px;border-top:1px solid var(--border-subtle);background:var(--surface-panel)}.reset-button{justify-self:start}.import-set{font-size:11px;font-weight:600;color:var(--text-muted)}.import-set input{display:block;width:100%;margin-top:7px;font-size:11px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

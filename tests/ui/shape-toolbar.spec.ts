@@ -44,10 +44,11 @@ test('the sidebar searches and inserts official AWS and Kubernetes components', 
   await expect(page.locator('[data-kind=component]')).toHaveCount(1);
 
   await search.fill('');
-  await sidebar.getByRole('button', { name: /^Kubernetes 8 Symbole/ }).click();
+  await sidebar.getByRole('button', { name: /^Kubernetes 39 Symbole/ }).click();
   await expect(sidebar.getByRole('heading', { name: 'Kubernetes' })).toBeVisible();
-  await expect(sidebar.getByRole('button', { name: /Pod/ })).toBeVisible();
-  await sidebar.getByRole('button', { name: /Pod/ }).click();
+  const pod = sidebar.getByRole('button', { name: /^Pod KUBERNETES/i });
+  await expect(pod).toBeVisible();
+  await pod.click();
   await expect(page.locator('[data-kind=component]')).toHaveCount(2);
 });
 

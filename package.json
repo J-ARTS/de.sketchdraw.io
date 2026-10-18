@@ -24,6 +24,7 @@
     "package": "npm run build && electron-builder --config electron-builder.json --dir",
     "package:dist": "npm run build && electron-builder --config electron-builder.json",
     "build:mcp": "node scripts/build-mcp.mjs",
+    "icons:import": "node scripts/import-official-icons.mjs",
     "mcp": "node dist-mcp/server.cjs"
   },
   "dependencies": {

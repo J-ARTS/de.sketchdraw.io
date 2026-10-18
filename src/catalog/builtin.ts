@@ -218,7 +218,7 @@ const GENERIC_COMPONENTS: ComponentDefinition[] = [
   },
 ];
 
-const PROVIDER_META = {
+export const PROVIDER_META = {
   aws: {
     stroke: '#b45309', fill: '#fffbeb',
     source: 'https://aws.amazon.com/architecture/icons/',

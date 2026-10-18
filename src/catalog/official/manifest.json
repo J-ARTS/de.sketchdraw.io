@@ -1,0 +1,477 @@
+{
+  "retrieved": "2026-10-18",
+  "providers": {
+    "aws": {
+      "label": "AWS",
+      "package": "Icon-package_07312026",
+      "count": 784,
+      "categories": [
+        {
+          "id": "sketchdraw.aws.analytics",
+          "name": "Analytics",
+          "count": 20
+        },
+        {
+          "id": "sketchdraw.aws.analytics-ressourcen",
+          "name": "Analytics · Ressourcen",
+          "count": 31
+        },
+        {
+          "id": "sketchdraw.aws.application-integration",
+          "name": "Application Integration",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.aws.application-integration-ressourcen",
+          "name": "Application Integration · Ressourcen",
+          "count": 15
+        },
+        {
+          "id": "sketchdraw.aws.artificial-intelligence",
+          "name": "Artificial Intelligence",
+          "count": 41
+        },
+        {
+          "id": "sketchdraw.aws.artificial-intelligence-ressourcen",
+          "name": "Artificial Intelligence · Ressourcen",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.aws.blockchain",
+          "name": "Blockchain",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.blockchain-ressourcen",
+          "name": "Blockchain · Ressourcen",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.business-applications",
+          "name": "Business Applications",
+          "count": 14
+        },
+        {
+          "id": "sketchdraw.aws.business-applications-ressourcen",
+          "name": "Business Applications · Ressourcen",
+          "count": 2
+        },
+        {
+          "id": "sketchdraw.aws.cloud-financial-management",
+          "name": "Cloud Financial Management",
+          "count": 7
+        },
+        {
+          "id": "sketchdraw.aws.compute",
+          "name": "Compute",
+          "count": 24
+        },
+        {
+          "id": "sketchdraw.aws.compute-ressourcen",
+          "name": "Compute · Ressourcen",
+          "count": 13
+        },
+        {
+          "id": "sketchdraw.aws.containers",
+          "name": "Containers",
+          "count": 8
+        },
+        {
+          "id": "sketchdraw.aws.containers-ressourcen",
+          "name": "Containers · Ressourcen",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.aws.customer-enablement",
+          "name": "Customer Enablement",
+          "count": 8
+        },
+        {
+          "id": "sketchdraw.aws.databases",
+          "name": "Databases",
+          "count": 11
+        },
+        {
+          "id": "sketchdraw.aws.databases-ressourcen",
+          "name": "Databases · Ressourcen",
+          "count": 39
+        },
+        {
+          "id": "sketchdraw.aws.developer-tools",
+          "name": "Developer Tools",
+          "count": 16
+        },
+        {
+          "id": "sketchdraw.aws.developer-tools-ressourcen",
+          "name": "Developer Tools · Ressourcen",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.end-user-computing",
+          "name": "End User Computing",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.front-end-web-and-mobile",
+          "name": "Front-End Web & Mobile",
+          "count": 3
+        },
+        {
+          "id": "sketchdraw.aws.front-end-web-and-mobile-ressourcen",
+          "name": "Front-End Web & Mobile · Ressourcen",
+          "count": 6
+        },
+        {
+          "id": "sketchdraw.aws.games",
+          "name": "Games",
+          "count": 3
+        },
+        {
+          "id": "sketchdraw.aws.general-icons",
+          "name": "General Icons",
+          "count": 2
+        },
+        {
+          "id": "sketchdraw.aws.general-icons-ressourcen",
+          "name": "General Icons · Ressourcen",
+          "count": 47
+        },
+        {
+          "id": "sketchdraw.aws.gruppen",
+          "name": "Gruppen",
+          "count": 13
+        },
+        {
+          "id": "sketchdraw.aws.internet-of-things",
+          "name": "Internet of Things",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.aws.iot-ressourcen",
+          "name": "IoT · Ressourcen",
+          "count": 75
+        },
+        {
+          "id": "sketchdraw.aws.management-governance-ressourcen",
+          "name": "Management Governance · Ressourcen",
+          "count": 41
+        },
+        {
+          "id": "sketchdraw.aws.management-tools",
+          "name": "Management Tools",
+          "count": 33
+        },
+        {
+          "id": "sketchdraw.aws.media-services",
+          "name": "Media Services",
+          "count": 20
+        },
+        {
+          "id": "sketchdraw.aws.media-services-ressourcen",
+          "name": "Media Services · Ressourcen",
+          "count": 2
+        },
+        {
+          "id": "sketchdraw.aws.migration-and-modernization",
+          "name": "Migration & Modernization",
+          "count": 8
+        },
+        {
+          "id": "sketchdraw.aws.migration-and-modernization-ressourcen",
+          "name": "Migration & Modernization · Ressourcen",
+          "count": 14
+        },
+        {
+          "id": "sketchdraw.aws.networking-and-content-delivery",
+          "name": "Networking & Content Delivery",
+          "count": 19
+        },
+        {
+          "id": "sketchdraw.aws.networking-and-content-delivery-ressourcen",
+          "name": "Networking & Content Delivery · Ressourcen",
+          "count": 46
+        },
+        {
+          "id": "sketchdraw.aws.quantum-technologies",
+          "name": "Quantum Technologies",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.quantum-technologies-ressourcen",
+          "name": "Quantum Technologies · Ressourcen",
+          "count": 13
+        },
+        {
+          "id": "sketchdraw.aws.satellite",
+          "name": "Satellite",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.aws.security-identity-and-compliance",
+          "name": "Security, Identity & Compliance",
+          "count": 28
+        },
+        {
+          "id": "sketchdraw.aws.security-identity-and-compliance-ressourcen",
+          "name": "Security, Identity & Compliance · Ressourcen",
+          "count": 28
+        },
+        {
+          "id": "sketchdraw.aws.storage",
+          "name": "Storage",
+          "count": 16
+        },
+        {
+          "id": "sketchdraw.aws.storage-ressourcen",
+          "name": "Storage · Ressourcen",
+          "count": 72
+        }
+      ],
+      "bytes": 2384440
+    },
+    "azure": {
+      "label": "Azure",
+      "package": "Azure_Public_Service_Icons_V24",
+      "count": 713,
+      "categories": [
+        {
+          "id": "sketchdraw.azure.ai-machine-learning",
+          "name": "AI + Machine Learning",
+          "count": 45
+        },
+        {
+          "id": "sketchdraw.azure.analytics",
+          "name": "Analytics",
+          "count": 17
+        },
+        {
+          "id": "sketchdraw.azure.app-services",
+          "name": "App Services",
+          "count": 8
+        },
+        {
+          "id": "sketchdraw.azure.azure-ecosystem",
+          "name": "Azure Ecosystem",
+          "count": 3
+        },
+        {
+          "id": "sketchdraw.azure.blockchain",
+          "name": "Blockchain",
+          "count": 6
+        },
+        {
+          "id": "sketchdraw.azure.compute",
+          "name": "Compute",
+          "count": 43
+        },
+        {
+          "id": "sketchdraw.azure.containers",
+          "name": "Containers",
+          "count": 11
+        },
+        {
+          "id": "sketchdraw.azure.databases",
+          "name": "Databases",
+          "count": 29
+        },
+        {
+          "id": "sketchdraw.azure.developer-tools",
+          "name": "Developer Tools",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.azure.devops",
+          "name": "Devops",
+          "count": 14
+        },
+        {
+          "id": "sketchdraw.azure.general",
+          "name": "General",
+          "count": 96
+        },
+        {
+          "id": "sketchdraw.azure.hybrid-multicloud",
+          "name": "Hybrid + Multicloud",
+          "count": 11
+        },
+        {
+          "id": "sketchdraw.azure.identity",
+          "name": "Identity",
+          "count": 36
+        },
+        {
+          "id": "sketchdraw.azure.integration",
+          "name": "Integration",
+          "count": 30
+        },
+        {
+          "id": "sketchdraw.azure.intune",
+          "name": "Intune",
+          "count": 19
+        },
+        {
+          "id": "sketchdraw.azure.iot",
+          "name": "IOT",
+          "count": 29
+        },
+        {
+          "id": "sketchdraw.azure.management-governance",
+          "name": "Management + Governance",
+          "count": 34
+        },
+        {
+          "id": "sketchdraw.azure.menu",
+          "name": "Menu",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.azure.migrate",
+          "name": "Migrate",
+          "count": 5
+        },
+        {
+          "id": "sketchdraw.azure.migration",
+          "name": "Migration",
+          "count": 1
+        },
+        {
+          "id": "sketchdraw.azure.mixed-reality",
+          "name": "Mixed Reality",
+          "count": 2
+        },
+        {
+          "id": "sketchdraw.azure.mobile",
+          "name": "Mobile",
+          "count": 3
+        },
+        {
+          "id": "sketchdraw.azure.monitor",
+          "name": "Monitor",
+          "count": 11
+        },
+        {
+          "id": "sketchdraw.azure.networking",
+          "name": "Networking",
+          "count": 57
+        },
+        {
+          "id": "sketchdraw.azure.new-icons",
+          "name": "New Icons",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.azure.other",
+          "name": "Other",
+          "count": 137
+        },
+        {
+          "id": "sketchdraw.azure.security",
+          "name": "Security",
+          "count": 15
+        },
+        {
+          "id": "sketchdraw.azure.storage",
+          "name": "Storage",
+          "count": 20
+        },
+        {
+          "id": "sketchdraw.azure.web",
+          "name": "Web",
+          "count": 19
+        }
+      ],
+      "bytes": 1827511
+    },
+    "gcp": {
+      "label": "Google Cloud",
+      "package": "google-cloud-legacy-icons + core-products-icons",
+      "count": 235,
+      "categories": [
+        {
+          "id": "sketchdraw.gcp.ai-and-machine-learning",
+          "name": "AI & Machine Learning",
+          "count": 32
+        },
+        {
+          "id": "sketchdraw.gcp.compute",
+          "name": "Compute",
+          "count": 10
+        },
+        {
+          "id": "sketchdraw.gcp.containers-and-serverless",
+          "name": "Containers & Serverless",
+          "count": 20
+        },
+        {
+          "id": "sketchdraw.gcp.data-analytics",
+          "name": "Data Analytics",
+          "count": 17
+        },
+        {
+          "id": "sketchdraw.gcp.databases",
+          "name": "Databases",
+          "count": 7
+        },
+        {
+          "id": "sketchdraw.gcp.iot-and-media",
+          "name": "IoT & Media",
+          "count": 6
+        },
+        {
+          "id": "sketchdraw.gcp.kernprodukte",
+          "name": "Kernprodukte",
+          "count": 19
+        },
+        {
+          "id": "sketchdraw.gcp.networking",
+          "name": "Networking",
+          "count": 20
+        },
+        {
+          "id": "sketchdraw.gcp.operations-and-management",
+          "name": "Operations & Management",
+          "count": 19
+        },
+        {
+          "id": "sketchdraw.gcp.security-and-identity",
+          "name": "Security & Identity",
+          "count": 23
+        },
+        {
+          "id": "sketchdraw.gcp.storage",
+          "name": "Storage",
+          "count": 6
+        },
+        {
+          "id": "sketchdraw.gcp.weitere-produkte",
+          "name": "Weitere Produkte",
+          "count": 56
+        }
+      ],
+      "bytes": 327853
+    },
+    "kubernetes": {
+      "label": "Kubernetes",
+      "package": "kubernetes/community icons/svg (labeled)",
+      "count": 39,
+      "categories": [
+        {
+          "id": "sketchdraw.kubernetes.control-plane",
+          "name": "Control Plane",
+          "count": 6
+        },
+        {
+          "id": "sketchdraw.kubernetes.infrastruktur",
+          "name": "Infrastruktur",
+          "count": 3
+        },
+        {
+          "id": "sketchdraw.kubernetes.ressourcen",
+          "name": "Ressourcen",
+          "count": 30
+        }
+      ],
+      "bytes": 176439
+    }
+  }
+}
