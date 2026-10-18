@@ -1017,4 +1017,5 @@ export const EN: Readonly<Record<string, string>> = {
   'Alle': 'All',
   '{label}, in der Leiste': '{label}, in the bar',
   '{label}, Position {index}': '{label}, position {index}',
+  'Schriftfarbe': 'Font color',
 };

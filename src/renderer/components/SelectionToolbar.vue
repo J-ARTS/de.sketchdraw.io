@@ -371,7 +371,11 @@ function setLineMode(mode: LineMode): void {
   else style({ strokeDash: mode, ...(info.value.values.stroke === NO_COLOR ? { stroke: lastStroke.value } : {}) });
 }
 function pickStroke(hex: string): void { lastStroke.value = hex; style({ stroke: hex }); }
-function pickTextColor(hex: string): void { style({ textColor: hex }); }
+/** While typing in a shape the caret returns to the text after picking a color, so writing can continue. */
+function pickTextColor(hex: string): void {
+  style({ textColor: hex });
+  if (s.textEdit && s.textEdit.kind !== 'annotation') void nextTick(() => document.querySelector<HTMLTextAreaElement>('[data-testid="canvas-text-editor"]')?.focus());
+}
 function relayout(): void { void nextTick(placePopover); }
 function formatAnnotation(command: AnnotationFormatCommand, value?: string): void {
   if (!editing.value || s.textEdit?.kind !== 'annotation') return;

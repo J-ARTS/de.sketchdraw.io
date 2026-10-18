@@ -306,3 +306,23 @@ test('shape text is edited in place without a box or buttons and commits like th
   await editor.press('ControlOrMeta+Enter');
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle] tspan')).toHaveText(['Hallo', 'Welt']);
 });
+
+test('the font color can be chosen while typing in a shape and typing continues', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('r');
+  await page.mouse.move(300, 300); await page.mouse.down(); await page.mouse.move(540, 420, { steps: 6 }); await page.mouse.up();
+  await page.mouse.dblclick(420, 360);
+  await page.keyboard.type('Hallo');
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: 'Schriftfarbe' }).click();
+  await page.getByRole('group', { name: 'Schriftfarbe' }).getByRole('button').nth(2).click();
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toBeFocused();
+  await expect.poll(() => editor.evaluate((element) => getComputedStyle(element).color)).toBe('rgb(229, 83, 58)');
+  await page.keyboard.type(' Welt');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  const text = page.locator('[data-kind="rectangle"] text').first();
+  await expect(text).toHaveText('Hallo Welt');
+  expect(await text.evaluate((element) => getComputedStyle(element).fill)).toBe('rgb(229, 83, 58)');
+});
