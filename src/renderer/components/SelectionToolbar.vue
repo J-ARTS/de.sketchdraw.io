@@ -118,7 +118,7 @@ const position = computed(() => {
   const top = docToScreen(s.viewport, { x: frame.cx, y: frame.cy - extentY });
   const bottom = docToScreen(s.viewport, { x: frame.cx, y: frame.cy + extentY });
   const { width, height } = barSize.value;
-  const toolOptionsOpen = s.tool === 'path' || s.tool === 'eraser';
+  const toolOptionsOpen = s.tool === 'path' || s.tool === 'eraser' || s.tool === 'connector';
   const minTop = s.viewportSize.width <= 1040 ? (toolOptionsOpen ? 216 : 144) : (toolOptionsOpen ? 148 : 80);
   const gap = 48;
   let y = top.y - gap - height;

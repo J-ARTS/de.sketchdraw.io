@@ -50,6 +50,7 @@ import {
 } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
+import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 type Gesture = {
   kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'connector-point' | 'pan' | 'marquee';
@@ -151,6 +152,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get canWrite() { return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
+    connectorDefaults: loadConnectorDefaults(),
     pencilPreset: 'fine' as PencilPreset, pencilColor: DEFAULT_STYLE.stroke,
     pencilSize: PENCIL_SIZE_DEFAULT, pencilOpacity: PENCIL_OPACITY_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
@@ -507,6 +509,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (g.tool === 'sticky-note') value.author = authorName;
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
+      value.connectorRouting = state.connectorDefaults.routing; value.endMarker = state.connectorDefaults.endMarker;
       const from = state.document.elements.find((element) => element.id === g.connectorFromId);
       const to = hit(end);
       const validTo = to && to.kind !== 'connector' && to.id !== from?.id ? to : null;
@@ -745,6 +748,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.shapeVariant = variant;
       state.tool = shapeBaseKind(variant);
       state.liveMessage = `Formwerkzeug: ${variant}`;
+    },
+    setConnectorDefaults(patch) {
+      const routing = patch.routing && CONNECTOR_ROUTING_OPTIONS.some((option) => option.value === patch.routing) ? patch.routing : state.connectorDefaults.routing;
+      const endMarker = patch.endMarker && CONNECTOR_END_MARKER_OPTIONS.some((option) => option.value === patch.endMarker) ? patch.endMarker : state.connectorDefaults.endMarker;
+      if (routing === state.connectorDefaults.routing && endMarker === state.connectorDefaults.endMarker) return;
+      state.connectorDefaults = { routing, endMarker };
+      saveConnectorDefaults(state.connectorDefaults);
     },
     setPencilPreset(preset) {
       if (!state.canWrite || state.transitioning || !(['fine', 'pencil', 'marker'] as PencilPreset[]).includes(preset)) return;
@@ -1128,7 +1138,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const start = rotatePoint({ x: a.x + a.width, y: a.y + a.height / 2 }, center(a), a.rotation);
       const end = rotatePoint({ x: b.x, y: b.y + b.height / 2 }, center(b), b.rotation);
       const rect = normalizedRect(start, end);
-      const e = createElement('connector', { ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: a.id, anchor: { x: 1, y: .5 } }, to: { elementId: b.id, anchor: { x: 0, y: .5 } }, style: { ...DEFAULT_STYLE } });
+      const e = createElement('connector', { ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: a.id, anchor: { x: 1, y: .5 } }, to: { elementId: b.id, anchor: { x: 0, y: .5 } }, connectorRouting: state.connectorDefaults.routing, endMarker: state.connectorDefaults.endMarker, style: { ...DEFAULT_STYLE } });
       void dispatch({ type: 'add', elements: [e] }).then((ok) => { if (ok) setSelection([e.id]); });
     },
     replaceShape(variant) {
@@ -1148,7 +1158,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const end = anchorPoint(target, toAnchor);
       try {
         const rect = normalizedRect(start, end);
-        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: fromAnchor }, to: { elementId: target.id, anchor: toAnchor }, style: { ...DEFAULT_STYLE } });
+        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: fromAnchor }, to: { elementId: target.id, anchor: toAnchor }, connectorRouting: state.connectorDefaults.routing, endMarker: state.connectorDefaults.endMarker, style: { ...DEFAULT_STYLE } });
         void dispatch({ type: 'add', elements: [arrow] }).then((ok) => { if (ok) state.liveMessage = 'Verbindung erstellt.'; });
       } catch (error) { fail(error); }
     },
@@ -1160,7 +1170,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       try {
         const shape = createElement(source.kind, { id: uid(source.kind), ...quickConnectCopy(source, plan.shape) });
         const rect = normalizedRect(plan.start, plan.end);
-        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [plan.start, plan.end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: plan.fromAnchor }, to: { elementId: shape.id, anchor: plan.toAnchor }, style: { ...DEFAULT_STYLE } });
+        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [plan.start, plan.end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: plan.fromAnchor }, to: { elementId: shape.id, anchor: plan.toAnchor }, connectorRouting: state.connectorDefaults.routing, endMarker: state.connectorDefaults.endMarker, style: { ...DEFAULT_STYLE } });
         void dispatch({ type: 'add', elements: [shape, arrow] }).then((ok) => { if (ok) setSelection([shape.id]); });
       } catch (error) { fail(error); }
     },
@@ -1183,6 +1193,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     discardPropertyDraft() { if (!state.transitioning && !unknownWrite) { state.propertyDraft = null; changedDraft(); } },
     applyPatch(value) {
       if (state.transitioning) return;
+      // Changing the line type or arrowhead of a connector also sets it for connectors drawn from now on.
+      if (selected().some((element) => element.kind === 'connector') && (value.connectorRouting || value.endMarker)) {
+        store.setConnectorDefaults({ ...(value.connectorRouting ? { routing: value.connectorRouting } : {}), ...(value.endMarker ? { endMarker: value.endMarker } : {}) });
+      }
       patch(selected().map((element) => {
         if (element.kind !== 'connector' || !value.connectorRouting || value.connectorRouting === connectorRouting(element)) {
           return { id: element.id, patch: value };

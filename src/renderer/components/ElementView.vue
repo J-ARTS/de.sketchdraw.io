@@ -26,6 +26,11 @@ const cloudProvider = computed(() => {
 });
 const cloudCard = computed(() => Boolean(cloudProvider.value) && e.value.width >= 120 && e.value.height >= 120);
 const cloudProviderLabel = computed(() => cloudProvider.value === 'gcp' ? 'GCP' : cloudProvider.value?.toUpperCase() ?? '');
+/** Components are created with these style defaults; as long as they are untouched the card keeps its themed surface. */
+const COMPONENT_DEFAULT_FILL = '#ffffff';
+const COMPONENT_DEFAULT_STROKE = '#1e293b';
+const cloudFill = computed(() => [COMPONENT_DEFAULT_FILL, definition.value?.style?.fill].includes(e.value.style.fill) ? 'var(--surface-raised)' : fill.value);
+const cloudStroke = computed(() => [COMPONENT_DEFAULT_STROKE, definition.value?.style?.stroke].includes(e.value.style.stroke) ? 'var(--border-subtle)' : stroke.value);
 const cloudIconSize = computed(() => Math.max(40, Math.min(64, e.value.width * .38, e.value.height * .38)));
 const definitions = computed(() => [...props.document.componentSets, ...builtInComponentSets].flatMap((set) => set.components));
 const resourceIcon = computed(() => definitions.value.find((candidate) => candidate.type === resourceCardIconType(e.value)) ?? definition.value);
@@ -136,7 +141,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
         <rect data-testid="resource-card-surface" :width="e.width" :height="e.height" rx="8" />
         <path :d="`M0 ${e.height - cardFooterHeight} H${e.width} V${e.height - 8} Q${e.width} ${e.height} ${e.width - 8} ${e.height} H8 Q0 ${e.height} 0 ${e.height - 8} Z`" fill="var(--accent-soft)" stroke="none" />
       </template>
-      <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" fill="var(--surface-raised)" stroke="var(--border-subtle)" :stroke-width="Math.max(1, e.style.strokeWidth)" />
+      <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" :fill="cloudFill" :stroke="cloudStroke" :stroke-width="Math.max(1, e.style.strokeWidth)" />
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
@@ -146,8 +151,8 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
-    <svg v-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" /></svg>
-    <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" /></svg>
+    <svg v-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
+    <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
       <text :x="e.width / 2" :y="cloudTitleY" fill="var(--text-primary)" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">

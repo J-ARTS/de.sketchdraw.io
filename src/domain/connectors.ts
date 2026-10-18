@@ -33,6 +33,44 @@ function anchorDirection(anchor: Point | undefined, fallback: Point): Point {
   return distances.sort((a, b) => a.value - b.value)[0]!.direction;
 }
 
+const ELBOW_STUB = 24;
+
+/**
+ * Orthogonal route that leaves the start edge and arrives at the target edge perpendicularly: the first
+ * segment runs along the start edge's outward normal and the last one along the target edge's normal, so an
+ * arrowhead always meets the border at a right angle. `fromDirection`/`toDirection` are outward unit normals.
+ */
+function elbowRoute(start: Point, end: Point, fromDirection: Point, toDirection: Point): Point[] {
+  const fromHorizontal = fromDirection.x !== 0;
+  const toHorizontal = toDirection.x !== 0;
+  const exit = { x: start.x + fromDirection.x * ELBOW_STUB, y: start.y + fromDirection.y * ELBOW_STUB };
+  const entry = { x: end.x + toDirection.x * ELBOW_STUB, y: end.y + toDirection.y * ELBOW_STUB };
+  if (fromHorizontal === toHorizontal) {
+    // Both ends use the same axis: Z-shape when the target lies ahead, otherwise a detour around via exit/entry.
+    const a = fromHorizontal ? 'x' : 'y';
+    const b = fromHorizontal ? 'y' : 'x';
+    const sign = fromDirection[a];
+    const point = (along: number, across: number): Point => (fromHorizontal ? { x: along, y: across } : { x: across, y: along });
+    if (fromDirection[a] === toDirection[a]) {
+      const along = sign > 0 ? Math.max(exit[a], entry[a]) : Math.min(exit[a], entry[a]);
+      return [start, point(along, start[b]), point(along, end[b]), end];
+    }
+    if ((entry[a] - exit[a]) * sign >= 0) {
+      const middle = (start[a] + end[a]) / 2;
+      return [start, point(middle, start[b]), point(middle, end[b]), end];
+    }
+    const lane = (start[b] + end[b]) / 2 + (Math.abs(start[b] - end[b]) < 1 ? ELBOW_STUB * 2 : 0);
+    return [start, exit, point(exit[a], lane), point(entry[a], lane), entry, end];
+  }
+  // Perpendicular axes: a single bend when both edges face the corner, otherwise route around via exit/entry.
+  const corner = fromHorizontal ? { x: end.x, y: start.y } : { x: start.x, y: end.y };
+  const aheadOfStart = fromHorizontal ? (end.x - start.x) * fromDirection.x > 0 : (end.y - start.y) * fromDirection.y > 0;
+  const outsideTarget = toHorizontal ? (start.x - end.x) * toDirection.x > 0 : (start.y - end.y) * toDirection.y > 0;
+  if (aheadOfStart && outsideTarget) return [start, corner, end];
+  const bend = fromHorizontal ? { x: exit.x, y: entry.y } : { x: entry.x, y: exit.y };
+  return [start, exit, bend, entry, end];
+}
+
 function roundedPolyline(points: readonly Point[], radius: number): string {
   if (points.length < 3 || radius <= 0) return `M ${point(points[0]!)} ${points.slice(1).map((p) => `L ${point(p)}`).join(' ')}`;
   let path = `M ${point(points[0]!)}`;
@@ -214,13 +252,16 @@ export function connectorRoutePoints(element: Pick<SketchElement, 'points' | 'co
   if (routing === 'elbowed' && points.length > 2) return orthogonalElbowedRoute(points);
   if (routing === 'curved' && points.length >= 4) return [start, points[1]!, points.at(-2)!, end];
   if (routing === 'elbowed') {
-    if (Math.abs(end.x - start.x) < 0.001 || Math.abs(end.y - start.y) < 0.001) return [start, end];
-    const fromDirection = anchorDirection(element.from?.anchor, { x: Math.sign(end.x - start.x) || 1, y: 0 });
-    const horizontalFirst = fromDirection.x !== 0;
-    const middle = horizontalFirst ? (start.x + end.x) / 2 : (start.y + end.y) / 2;
-    return horizontalFirst
-      ? [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end]
-      : [start, { x: start.x, y: middle }, { x: end.x, y: middle }, end];
+    const fallback = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y)
+      ? { x: Math.sign(end.x - start.x) || 1, y: 0 }
+      : { x: 0, y: Math.sign(end.y - start.y) || 1 };
+    const fromDirection = anchorDirection(element.from?.anchor, fallback);
+    const toDirection = anchorDirection(element.to?.anchor, { x: -fromDirection.x, y: -fromDirection.y });
+    // Perfectly aligned ends stay a straight line only when that line already meets both borders at a right angle.
+    const alignedX = Math.abs(end.y - start.y) < 0.001 && fromDirection.y === 0 && toDirection.y === 0 && (end.x - start.x) * fromDirection.x > 0 && (start.x - end.x) * toDirection.x > 0;
+    const alignedY = Math.abs(end.x - start.x) < 0.001 && fromDirection.x === 0 && toDirection.x === 0 && (end.y - start.y) * fromDirection.y > 0 && (start.y - end.y) * toDirection.y > 0;
+    if (alignedX || alignedY) return [start, end];
+    return simplifyElbowedRoute(elbowRoute(start, end, fromDirection, toDirection));
   }
   const distance = Math.max(32, Math.min(160, Math.hypot(end.x - start.x, end.y - start.y) * 0.4));
   const fallback = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y)

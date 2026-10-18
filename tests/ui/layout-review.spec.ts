@@ -387,3 +387,31 @@ test('first and last controls sit at the same inset as top and bottom in every b
   const workspace = await inset(page.getByRole('group', { name: 'Ansicht und Hilfe' }), page.getByTestId('objects-toggle'));
   expect(workspace.left).toBe(workspace.top);
 });
+
+test('cloud cards center their icon and take fill and border colors from the properties bar', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  await sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('Amazon Athena');
+  await sidebar.getByRole('button', { name: /^Amazon Athena AWS$/ }).click();
+  await sidebar.getByRole('button', { name: 'Formen schließen' }).click();
+
+  const card = page.locator('[data-cloud-provider="aws"]');
+  await expect(card).toHaveCount(1);
+  const surface = card.getByTestId('cloud-component-surface');
+  const centerOffset = await card.evaluate((element) => {
+    const area = element.querySelector('[data-testid=cloud-component-surface]')!.getBoundingClientRect();
+    const glyph = element.querySelector('svg svg')!.getBoundingClientRect();
+    return Math.abs((glyph.left + glyph.width / 2) - (area.left + area.width / 2));
+  });
+  expect(centerOffset).toBeLessThan(1);
+
+  // Untouched cards keep the themed surface; edited colors win.
+  expect(await surface.getAttribute('fill')).toBe('var(--surface-raised)');
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await page.getByRole('button', { name: /^Füllung Rot/ }).click();
+  await expect.poll(() => surface.getAttribute('fill')).not.toBe('var(--surface-raised)');
+  await bar.getByRole('button', { name: 'Linie' }).click();
+  await page.getByRole('button', { name: /^Kontur Rot/ }).click();
+  await expect.poll(() => surface.getAttribute('stroke')).not.toBe('var(--border-subtle)');
+});

@@ -211,6 +211,8 @@ export interface WhiteboardState {
   focusedId: string | null;
   tool: Tool;
   shapeVariant: ShapeVariant;
+  /** Line type and arrowhead for new connectors; also follows edits made to a selected connector. */
+  connectorDefaults: { routing: ConnectorRouting; endMarker: ConnectorMarker };
   pencilPreset: PencilPreset;
   pencilColor: string;
   /** Pencil stroke width in CSS screen pixels while drawing; independent from the canvas zoom. */
@@ -291,6 +293,7 @@ export interface WhiteboardStore {
 
   setTool(tool: Tool): void;
   setShapeTool(variant: ShapeVariant): void;
+  setConnectorDefaults(patch: Partial<{ routing: ConnectorRouting; endMarker: ConnectorMarker }>): void;
   setPencilPreset(preset: PencilPreset): void;
   setPencilColor(color: string): void;
   setPencilSize(size: number): void;

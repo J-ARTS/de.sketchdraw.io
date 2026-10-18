@@ -9,6 +9,7 @@ import type { Tool } from '@/renderer/state/contract';
 import AppIcon from './AppIcon.vue';
 import ImageFileInput from './ImageFileInput.vue';
 import ToolOptionsBar from './ToolOptionsBar.vue';
+import ConnectorOptionsBar from './ConnectorOptionsBar.vue';
 import WebEmbedDialog from './WebEmbedDialog.vue';
 import { isMacPlatform } from './platform';
 import { useHorizontalOverflow } from './use-horizontal-overflow';
@@ -175,6 +176,7 @@ onBeforeUnmount(cancelLongPress);
       <button v-show="overflowEnd" type="button" class="overflow-btn end" data-testid="toolbar-scroll-end" tabindex="-1" aria-hidden="true" @pointerdown.stop.prevent @click="pageTools(1)"><AppIcon name="chevron-right" :size="18" /></button>
     </div>
     <ToolOptionsBar v-if="store.state.tool === 'path' || store.state.tool === 'eraser'" />
+    <ConnectorOptionsBar v-else-if="store.state.tool === 'connector'" />
     <span class="sr-only" aria-live="polite">{{ announcement }}</span>
   </div>
 </template>

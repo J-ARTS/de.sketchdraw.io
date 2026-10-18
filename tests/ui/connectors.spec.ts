@@ -170,3 +170,39 @@ test('free and self connections are rejected without adding an element', async (
   await expect(connectors).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Meldungen' }).getByText(/anderes Element/)).toBeVisible();
 });
+
+test('connectors default to right-angled lines and remember the chosen type and arrowhead', async ({ page }) => {
+  await rectangle(page, 220); await rectangle(page, 700, 460);
+  const connect = async () => {
+    await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+    await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 }); await page.mouse.up();
+  };
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+
+  // The tool offers its line types; right-angled is the default.
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  const options = page.getByTestId('connector-options');
+  await expect(options).toBeVisible();
+  await expect(options.getByRole('button', { name: 'Linienform Rechtwinklig' })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await connect();
+  await expect(bar.getByRole('button', { name: 'Linienform: Rechtwinklig' })).toBeVisible();
+
+  // Picking another type in the tool applies to the next connector...
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await options.getByRole('button', { name: 'Linienform Gebogen' }).click();
+  await options.getByRole('button', { name: 'Pfeilspitze Dreieck' }).click();
+  await expect(options.getByRole('button', { name: 'Linienform Gebogen' })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+  await page.mouse.click(900, 200);
+  await connect();
+  await expect(bar.getByRole('button', { name: 'Linienform: Gebogen' })).toBeVisible();
+  await expect(page.locator('.whiteboard-canvas [data-kind=connector]').last().locator('path').last()).toHaveAttribute('marker-end', /triangle/);
+
+  // ...and changing a selected connector's type becomes the new default as well, also after a reload.
+  await bar.getByRole('button', { name: 'Linienform: Gebogen' }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Gerade' }).click();
+  await page.reload(); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await expect(page.getByTestId('connector-options').getByRole('button', { name: 'Linienform Gerade' })).toHaveAttribute('aria-pressed', 'true');
+});
