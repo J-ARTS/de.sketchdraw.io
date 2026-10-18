@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792287517.8468065,
-    "ast_hash": "52e07265500b8d9714613fff6aad2711",
+    "mtime": 1792288032.6226995,
+    "ast_hash": "cac22ecf4983abd472da324a6fb2696c",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
