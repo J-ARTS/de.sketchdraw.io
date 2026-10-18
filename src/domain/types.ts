@@ -92,6 +92,8 @@ export interface ElementStyle {
   fontWeight?: 'normal' | 'bold';
   textDecoration?: 'none' | 'line-through';
   listStyle?: 'none' | 'bullet';
+  /** Corner radius in document units for rounded rectangles; missing keeps the default (one sixth of the shorter side). */
+  cornerRadius?: number;
 }
 
 export interface Endpoint {

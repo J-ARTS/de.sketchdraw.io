@@ -103,7 +103,7 @@ test('side panels open below the top chrome with reachable headers (#84)', async
     expect(await reachable(page.getByRole('button', { name: 'Formen schließen' }))).toBe(true);
     await page.keyboard.press('Escape');
 
-    await page.getByRole('button', { name: 'Folienleiste öffnen' }).click();
+    await openWorkspaceItem(page, 'Folien');
     expect(await reachable(page.getByRole('button', { name: 'Folienleiste schließen' }))).toBe(true);
     await page.getByRole('button', { name: 'Folienleiste schließen' }).click();
   }
@@ -126,20 +126,10 @@ test('the shape library header stays compact on desktop and compact screens (#89
   }
 });
 
-test('the slides button stays right-aligned below the user menu (#85)', async ({ page }) => {
-  for (const viewport of [{ width: 1280, height: 800 }, { width: 480, height: 720 }]) {
-    await page.setViewportSize(viewport);
-    const slidesButton = page.getByRole('button', { name: 'Folienleiste öffnen' });
-    const slides = await box(slidesButton);
-    const workspace = await box(page.getByRole('group', { name: 'Ansicht und Hilfe' }));
-    const toolbar = await box(page.getByRole('toolbar', { name: 'Werkzeuge' }));
-    expect(Math.abs(slides.x + slides.width - (workspace.x + workspace.width))).toBeLessThanOrEqual(1);
-    expect(slides.y).toBeGreaterThanOrEqual(workspace.y + workspace.height);
-    expect(overlaps(slides, workspace)).toBe(false);
-    expect(overlaps(slides, toolbar)).toBe(false);
-    expect(await reachable(slidesButton)).toBe(true);
-    if (viewport.width > 760) expect(overlaps(slides, await box(page.getByTestId('minimap')))).toBe(false);
-  }
+test('the slides button is gone; slides open from the workspace menu (#85)', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Folienleiste öffnen' })).toHaveCount(0);
+  await openWorkspaceItem(page, 'Folien');
+  await expect(page.getByTestId('frame-sidebar')).toBeVisible();
 });
 
 test('the shape library stays above the properties bar on compact screens (#77)', async ({ page }) => {
@@ -288,4 +278,112 @@ test('comment actions, task dialog and search fields follow keyboard and theme r
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(card).toBeFocused();
+});
+
+test('comment composer and thread stay above notices near the bottom edge (#88)', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  // A connector started on empty canvas leaves a notice standing at the bottom.
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await page.mouse.click(700, 400);
+  const notice = page.getByRole('region', { name: 'Meldungen' }).locator('.notice');
+  await expect(notice).toHaveCount(1);
+
+  await drawRectangle(page, [380, 560], [620, 670]);
+  await page.getByRole('button', { name: 'Kommentar', exact: true }).click();
+  await page.mouse.click(500, 640);
+  const composer = page.locator('.comment-composer');
+  await page.getByRole('textbox', { name: 'Kommentar' }).fill('Randfall unten');
+  const noticeBox = await box(notice);
+  await expect.poll(async () => { const value = await box(composer); return value.y + value.height; }).toBeLessThanOrEqual(noticeBox.y);
+  const send = page.getByRole('button', { name: 'Senden' });
+  expect(await reachable(send)).toBe(true);
+  await send.click();
+
+  const thread = page.getByTestId('comment-thread');
+  await expect(thread).toBeVisible();
+  await expect.poll(async () => { const value = await box(thread); return value.y + value.height; }).toBeLessThanOrEqual(noticeBox.y);
+  expect(await reachable(thread.getByRole('textbox', { name: 'Auf Kommentar antworten' }))).toBe(true);
+});
+
+test('slides menu entry, table text without outline and a round reply button', async ({ page }) => {
+  // The workspace menu lists "Folien" right below "Code".
+  await page.getByTestId('workspace-menu-button').click();
+  const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
+  const labels = await menu.getByRole('menuitemcheckbox').allTextContents();
+  expect(labels.map((label) => label.trim()).indexOf('Folien')).toBe(labels.map((label) => label.trim()).indexOf('Code') + 1);
+  await menu.getByRole('menuitemcheckbox', { name: 'Folien' }).click();
+  await expect(page.getByTestId('frame-sidebar')).toBeVisible();
+  await page.getByRole('button', { name: 'Folienleiste schließen' }).click();
+
+  // Table cell text must not inherit the element's stroke.
+  await page.getByRole('button', { name: 'Tabelle', exact: true }).click(); await page.mouse.click(380, 280);
+  const cellText = page.getByTestId('table-surface').locator('text').first();
+  expect(await cellText.evaluate((element) => getComputedStyle(element).stroke)).toBe('none');
+
+  // The reply send button stays a circle.
+  await page.keyboard.press('Escape');
+  await createComment(page);
+  const send = page.getByRole('button', { name: 'Antwort senden' });
+  const sendBox = await box(send);
+  expect(Math.abs(sendBox.width - sendBox.height)).toBeLessThan(1);
+});
+
+test('rounded rectangles get a live corner radius slider with undo', async ({ page }) => {
+  await page.getByRole('button', { name: 'Abgerundetes Rechteck', exact: true }).click();
+  await page.mouse.move(300, 300); await page.mouse.down(); await page.mouse.move(540, 420, { steps: 8 }); await page.mouse.up();
+  const surface = page.getByTestId('rounded-surface');
+  await expect(surface).toHaveCount(1);
+  const radius = () => surface.evaluate((element) => Number(element.getAttribute('rx')));
+  const initial = await radius();
+  expect(initial).toBeGreaterThan(0);
+
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: /Eckenradius/ }).click();
+  const slider = page.getByRole('slider', { name: 'Eckenradius' });
+  await expect(slider).toBeFocused();
+  // Keyboard changes reflect on the canvas immediately and commit with the change event.
+  await slider.press('End');
+  await expect.poll(radius).toBe(60);
+  await slider.press('Home');
+  await expect.poll(radius).toBe(0);
+  await page.getByRole('group', { name: 'Eckenradius-Vorgaben' }).getByRole('button', { name: '16 px' }).click();
+  await expect.poll(radius).toBe(16);
+
+  // The change is one undoable step.
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(radius).not.toBe(16);
+
+  // Other shapes do not offer the control.
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(600, 300); await page.mouse.down(); await page.mouse.move(700, 380, { steps: 6 }); await page.mouse.up();
+  await expect(bar.getByRole('button', { name: /Eckenradius/ })).toHaveCount(0);
+});
+
+for (const width of [1440, 1920]) {
+  test(`task board edges align with the top bars at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
+    const columns = page.locator('.task-board .columns');
+    await expect(columns).toBeVisible();
+    const card = await box(page.locator('header.doc-card'));
+    const bar = await box(page.getByRole('group', { name: 'Ansicht und Hilfe' }));
+    const grid = await box(columns);
+    expect(Math.abs(grid.x - card.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(grid.x + grid.width - (bar.x + bar.width))).toBeLessThanOrEqual(1);
+  });
+}
+
+test('first and last controls sit at the same inset as top and bottom in every bar', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  const inset = async (bar: Locator, control: Locator) => {
+    const outer = await box(bar); const inner = await box(control);
+    return { left: inner.x - outer.x, top: inner.y - outer.y, bottom: outer.y + outer.height - (inner.y + inner.height) };
+  };
+  const tools = await inset(page.locator('.toolbar-frame'), page.getByRole('button', { name: 'Auswahl', exact: true }));
+  expect(tools.left).toBe(tools.top);
+  expect(tools.top).toBe(tools.bottom);
+  const card = await inset(page.locator('header.doc-card'), page.locator('.doc-icon'));
+  expect(card.left).toBe(card.top);
+  const workspace = await inset(page.getByRole('group', { name: 'Ansicht und Hilfe' }), page.getByTestId('objects-toggle'));
+  expect(workspace.left).toBe(workspace.top);
 });

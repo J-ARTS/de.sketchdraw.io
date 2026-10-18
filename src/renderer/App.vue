@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
-import { useEventListener } from '@vueuse/core';
+import { useElementSize, useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '../agent-access/renderer-session';
 import type { DocumentAuthority } from '../session';
 import type { CrdtDocumentController } from '../crdt';
@@ -26,6 +26,9 @@ import PluginSettings from './components/PluginSettings.vue';
 const store = createWhiteboardStore(); const s = store.state;
 provide(WHITEBOARD_KEY, store);
 const collaborationOpen = ref(false);
+/** Notices grow upward from the bottom; floating comment UI keeps clear of them via --feedback-height (#88). */
+const feedbackStack = ref<HTMLElement | null>(null);
+const { height: feedbackHeight } = useElementSize(feedbackStack, undefined, { box: 'border-box' });
 const pluginsOpen = ref(false);
 const authority = shallowRef(store.getAuthority());
 const crdtController = shallowRef<CrdtDocumentController | null>(store.getCrdtController());
@@ -63,14 +66,14 @@ onBeforeUnmount(() => { agentSession?.dispose(); offAuthority(); store.dispose()
 
 <template>
   <main class="workspace" aria-label="Sketchdraw Arbeitsbereich">
-    <div class="workspace-content" :inert="s.transitioning || s.presenterOpen || undefined">
-      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" /><Toolbar v-if="s.workspaceView === 'canvas'" /><button v-if="s.workspaceView === 'canvas' && !(s.frameSidebarOpen || s.codeOpen || s.catalogOpen || s.objectsOpen || s.commentSidebarOpen || collaborationOpen || interopOpen)" class="slides-toggle sd-btn" aria-label="Folienleiste öffnen" @click="store.toggleFrameSidebar(true)"><AppIcon name="pages" /> Folien <span v-if="s.frameSlides.length">{{ s.frameSlides.length }}</span></button></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :crdt-controller="crdtController" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" />
+    <div class="workspace-content" :inert="s.transitioning || s.presenterOpen || undefined" :style="{ '--feedback-height': `${Math.ceil(feedbackHeight)}px` }">
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :crdt-controller="crdtController" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" />
       <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" aria-label="Ansicht und Verlauf">
         <button class="sd-icon-btn zoom-btn" aria-label="Verkleinern" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" aria-label="Zoom auf 100 Prozent" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" aria-label="Vergrößern" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Alles anzeigen" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Rückgängig" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" aria-label="Wiederholen" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>
       <Minimap v-if="s.workspaceView === 'canvas' && !(s.codeOpen || s.catalogOpen || s.objectsOpen || s.commentSidebarOpen || s.frameSidebarOpen || collaborationOpen || interopOpen)" />
       <button v-if="s.offscreenChanges" class="external-changes sd-btn" @click="store.revealOffscreenChanges()">{{ s.offscreenChanges }} externe Änderungen anzeigen</button>
-      <div class="feedback-stack">
+      <div ref="feedbackStack" class="feedback-stack">
         <div class="notices" role="region" aria-label="Meldungen"><div v-for="notice in s.notices" :key="notice.id" class="notice sd-panel" :class="{ error: notice.kind === 'error' }"><span>{{ notice.text }}</span><button class="sd-icon-btn" aria-label="Meldung schließen" @click="store.dismissNotice(notice.id)">×</button></div></div>
         <div v-if="s.pendingPeerWrite" class="property-draft sd-panel" role="alert"><span>Peer-Änderung noch nicht bestätigt. Dein Entwurf bleibt erhalten.</span><button class="sd-btn" @click="store.resolvePendingWrite()">Ausgang prüfen</button></div>
         <div v-if="s.propertyDraft && !s.pendingPeerWrite" class="property-draft sd-panel" role="status"><span>Eigenschaftenentwurf {{ s.propertyDraft.baseRevision !== s.revision ? '– das Dokument hat sich geändert.' : 'noch nicht übernommen.' }}</span><button class="sd-btn" @click="store.commitPropertyDraft()">Übernehmen</button><button class="sd-btn" @click="store.discardPropertyDraft()">Verwerfen</button></div>
@@ -85,11 +88,12 @@ onBeforeUnmount(() => { agentSession?.dispose(); offAuthority(); store.dispose()
 
 <style scoped>
 .workspace,.workspace-content{position:absolute;inset:0;overflow:hidden}
+/* Re-resolved here so the measured --feedback-height (set on this element) takes effect. */
+.workspace-content{--panel-bottom:calc(var(--panel-bottom-base) + var(--feedback-height, 0px) + var(--space-2))}
 /* Document card, tools and workspace bar share one grid so they can never overlap: the tools take the free
    middle (centered while the side columns allow it) and wrap into a second row up to 1040 px. */
-.top-chrome{position:absolute;top:var(--chrome-inset);left:var(--chrome-inset);right:var(--chrome-inset);z-index:40;display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr);grid-template-areas:'doc tools ws' '. . slides';align-items:start;column-gap:var(--space-3);row-gap:var(--space-2);pointer-events:none}
-@media(max-width:1040px){.top-chrome{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'doc ws' 'tools tools' '. slides';row-gap:var(--space-4)}}
+.top-chrome{position:absolute;top:var(--chrome-inset);left:var(--chrome-inset);right:var(--chrome-inset);z-index:40;display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr);grid-template-areas:'doc tools ws';align-items:start;column-gap:var(--space-3);row-gap:var(--space-2);pointer-events:none}
+@media(max-width:1040px){.top-chrome{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'doc ws' 'tools tools';row-gap:var(--space-4)}}
 .bottom-tools{position:absolute;bottom:16px;left:16px;display:flex;align-items:center;gap:2px;height:var(--chrome-height);padding:0 6px;z-index:9}.zoom-btn{width:var(--chrome-control);height:var(--chrome-control);border-radius:10px}.zoom-value{min-width:60px;min-height:var(--chrome-control);padding:0 6px;border:0;border-radius:10px;background:none;font-size:var(--font-size-m);font-weight:500;font-variant-numeric:tabular-nums;cursor:pointer}.zoom-value:hover{background:var(--surface-raised)}.separator{height:24px;width:1px;background:var(--border-subtle);margin:0 6px}.feedback-stack{position:absolute;bottom:76px;left:16px;right:16px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}.notices{width:min(480px,100%);display:grid;gap:6px;pointer-events:none}.notice{display:flex;gap:12px;align-items:center;padding:4px 4px 4px 12px;font-size:12px;pointer-events:auto}.notice span{flex:1}.notice.error{border-color:var(--status-error)}.gesture-conflict{width:min(640px,100%);padding:14px;pointer-events:auto}.gesture-conflict p{margin-bottom:10px}.external-changes{position:absolute;bottom:84px;left:16px}@media(max-width:760px){.bottom-tools{bottom:12px;left:12px}}@media(max-width:360px){.bottom-tools .separator{margin:0 2px}.zoom-value{min-width:52px}}
 .property-draft{padding:8px;display:flex;gap:8px;align-items:center;font-size:12px;max-width:100%;flex-wrap:wrap;pointer-events:auto}@media(max-width:860px){.feedback-stack{left:12px;right:12px}}
-.slides-toggle{grid-area:slides;justify-self:end;display:flex;align-items:center;gap:7px;pointer-events:auto}.slides-toggle :deep(svg){width:17px}.slides-toggle span{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:750}
 </style>

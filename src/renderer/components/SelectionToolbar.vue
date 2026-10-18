@@ -16,7 +16,7 @@ import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'shape' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -69,6 +69,16 @@ const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard
 const annotationOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'annotation');
 const tableOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'table');
 const webEmbedOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'web-embed');
+/** Corner radius applies when every selected element is a rounded rectangle. */
+const selectedElements = computed(() => s.document.elements.filter((element) => s.selection.includes(element.id)));
+const roundedOnly = computed(() => selectedElements.value.length > 0 && selectedElements.value.every((element) => effectiveShapeVariant(element) === 'rounded'));
+const radiusMax = computed(() => Math.max(1, Math.floor(Math.min(...selectedElements.value.map((element) => Math.min(element.width, element.height))) / 2)));
+const defaultRadius = computed(() => Math.round(Math.min(...selectedElements.value.map((element) => Math.min(element.width, element.height))) / 6));
+const radiusValue = computed(() => Math.min(radiusMax.value, Math.round(info.value.values.cornerRadius ?? defaultRadius.value)));
+const radiusMixed = computed(() => info.value.mixed.includes('cornerRadius'));
+/** Live preview through the property draft; committed once on release (same flow as the font size). */
+function setRadius(value: number): void { if (Number.isFinite(value)) store.setPropertyDraft({ style: { cornerRadius: Math.max(0, Math.min(radiusMax.value, Math.round(value))) } }); }
+function commitRadius(): void { void store.commitPropertyDraft(); }
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
@@ -139,12 +149,12 @@ async function toggle(segment: Segment): Promise<void> {
 }
 
 /**
- * Always anchored 8 px above the selection, so the popover never covers the selected shape.
- * The anchor is the higher (smaller y) of the context bar's top and the rotated selection frame's
- * top edge: when the bar sits above the selection the bar is the higher edge; when the bar is pushed
- * below the selection for lack of room, the shape's top edge governs instead. Clamped to the viewport;
- * when the space above is tight it scrolls internally. Reads live rects, so every recompute reflects
- * the current viewport (zoom/pan/scroll).
+ * Opens on the same side as the context bar, so the popover never covers the selected shape: above the
+ * selection (8 px above the higher of bar and selection top) while the bar sits above it, and 8 px below
+ * the bar once the bar is pushed below the selection for lack of room. When the preferred side cannot show
+ * even one row, it opens on the side of the bar with more room instead of off-screen (#86). Clamped to the
+ * viewport and scrolls internally when tight. Reads live rects, so every recompute reflects the current
+ * viewport (zoom/pan/scroll).
  */
 function placePopover(): void {
   const trigger = openSegment.value ? triggers.value[openSegment.value] : null;
@@ -157,19 +167,20 @@ function placePopover(): void {
   const selTopLocal = selectionTopLocal();
   const windowOffset = barBox.top - position.value.top;
   const selectionTop = selTopLocal === null ? barBox.top : selTopLocal + windowOffset;
-  const anchorTop = Math.min(barBox.top, selectionTop); // the higher of bar and selection governs
-  const spaceAbove = Math.max(0, anchorTop - 16); // room above the anchor (8 px gap + 8 px top margin)
   const natural = (popover.value?.scrollHeight ?? box.height) + 2; // unclamped height, even after an earlier max-height
-  if (spaceAbove >= Math.min(natural, MIN_POPOVER_SPACE)) {
-    const height = Math.min(natural, spaceAbove);
-    popoverAt.value = { left, top: anchorTop - 8 - height, maxHeight: spaceAbove };
-    return;
+  const fits = (space: number) => space >= Math.min(natural, MIN_POPOVER_SPACE);
+  const belowBar = Math.max(0, window.innerHeight - barBox.bottom - 16); // 8 px gap + 8 px bottom margin
+  const placeBelow = () => { popoverAt.value = { left, top: barBox.bottom + 8, maxHeight: belowBar }; };
+  if (barBox.top > selectionTop) {
+    // The bar was pushed below the selection: follow it downwards.
+    if (fits(belowBar)) { placeBelow(); return; }
+  } else {
+    const anchorTop = Math.min(barBox.top, selectionTop);
+    const spaceAbove = Math.max(0, anchorTop - 16);
+    if (fits(spaceAbove)) { popoverAt.value = { left, top: anchorTop - 8 - Math.min(natural, spaceAbove), maxHeight: spaceAbove }; return; }
   }
-  // #86: the selection reaches above the viewport, so nothing fits above it. The bar is then clamped onto or
-  // below the selection; open on whichever side of the bar has more room instead of off-screen.
   const aboveBar = Math.max(0, barBox.top - 16);
-  const belowBar = Math.max(0, window.innerHeight - barBox.bottom - 16);
-  if (belowBar >= aboveBar) popoverAt.value = { left, top: barBox.bottom + 8, maxHeight: belowBar };
+  if (belowBar >= aboveBar) placeBelow();
   else popoverAt.value = { left, top: barBox.top - 8 - Math.min(natural, aboveBar), maxHeight: aboveBar };
 }
 
@@ -241,7 +252,7 @@ function commitFontSize(value: number): void { if (tableOnly.value) style({ font
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
-watch(editing, (value) => { if (value && openSegment.value && ['shape', 'link', 'resource', 'author', 'more', 'actions'].includes(openSegment.value)) close(false); });
+watch(editing, (value) => { if (value && openSegment.value && ['shape', 'radius', 'link', 'resource', 'author', 'more', 'actions'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -386,7 +397,10 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         </button>
         <span class="sep" aria-hidden="true" />
       </template>
-      <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
+      <button v-if="roundedOnly" :ref="(el) => setTrigger('radius', el)" type="button" class="segment" :aria-label="`Eckenradius: ${radiusMixed ? 'Gemischt' : radiusValue + ' px'}`" :disabled="editing" :aria-expanded="openSegment === 'radius'" :aria-controls="panelId('radius')" :title="unavailable('Eckenradius')" @click="toggle('radius')">
+          <svg class="shape-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V12a7 7 0 0 1 7-7h7" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+        </button>
+        <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
         <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <button v-if="tableOnly" :ref="(el) => setTrigger('text-color', el)" type="button" class="segment table-text-color" aria-label="Textfarbe" :aria-expanded="openSegment === 'text-color'" :aria-controls="panelId('text-color')" title="Textfarbe" @click="toggle('text-color')">
@@ -487,7 +501,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'text-color' ? 'Textfarbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'radius' ? 'Eckenradius' : openSegment === 'color' ? 'Farbe' : openSegment === 'text-color' ? 'Textfarbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -512,6 +526,15 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
           <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg>
         </button>
         <p v-if="!shapes.length" class="shape-empty">Keine Form gefunden</p>
+      </div>
+    </template>
+
+    <template v-else-if="openSegment === 'radius'">
+      <label class="field radius-field">Eckenradius
+        <span class="radius-row"><input class="radius-range" type="range" min="0" :max="radiusMax" step="1" :value="radiusValue" aria-label="Eckenradius" :aria-valuetext="`${radiusValue} px`" @input="setRadius(($event.target as HTMLInputElement).valueAsNumber)" @change="commitRadius" /><output class="radius-output">{{ radiusMixed ? '–' : radiusValue }} px</output></span>
+      </label>
+      <div class="choices" role="group" aria-label="Eckenradius-Vorgaben">
+        <button v-for="preset in [0, 8, 16, 32]" :key="preset" type="button" class="choice" :aria-pressed="!radiusMixed && radiusValue === Math.min(preset, radiusMax)" @click="setRadius(preset); commitRadius()">{{ preset === 0 ? 'Eckig' : `${preset} px` }}</button>
       </div>
     </template>
 
@@ -636,7 +659,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
   align-items: center;
   gap: 2px;
   min-width: 0;
-  padding: 0 6px;
+  padding: 0 7px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -1061,6 +1084,12 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
   width: 40px;
   padding: 0;
 }
+
+.radius-field { min-width: 260px; }
+.radius-row { display: flex; align-items: center; gap: 12px; }
+.radius-range { flex: 1; min-width: 0; height: 28px; accent-color: var(--menu-focus); cursor: pointer; }
+.radius-range:focus-visible { outline: 2px solid var(--menu-focus); outline-offset: 2px; }
+.radius-output { min-width: 48px; color: var(--menu-text); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
 
 .font-sample {
   width: 28px;

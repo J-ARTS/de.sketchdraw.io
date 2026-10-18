@@ -189,7 +189,7 @@ export interface SelectionInfo {
     stroke?: string; fill?: string; strokeWidth?: number; opacity?: number; fontSize?: number;
     textAlign?: ElementStyle['textAlign']; strokeDash?: ElementStyle['strokeDash'];
     fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled'; label?: string; description?: string; text?: string;
-    fontWeight?: ElementStyle['fontWeight']; textDecoration?: ElementStyle['textDecoration']; listStyle?: ElementStyle['listStyle']; author?: string;
+    fontWeight?: ElementStyle['fontWeight']; textDecoration?: ElementStyle['textDecoration']; listStyle?: ElementStyle['listStyle']; cornerRadius?: number; author?: string;
     connectorFrom?: string; connectorTo?: string; connectorRouting?: ConnectorRouting;
     startMarker?: ConnectorMarker; endMarker?: ConnectorMarker; parentName?: string;
   };

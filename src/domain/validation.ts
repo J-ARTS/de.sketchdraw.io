@@ -163,6 +163,7 @@ export const STYLE_KEYS: ReadonlySet<string> = new Set([
   'fontWeight',
   'textDecoration',
   'listStyle',
+  'cornerRadius',
 ]);
 
 const POINT_KEYS: ReadonlySet<string> = new Set(['x', 'y']);
@@ -798,6 +799,12 @@ export function validateStyle(
   if (Object.prototype.hasOwnProperty.call(value, 'textDecoration') && value.textDecoration !== undefined) {
     if (typeof value.textDecoration !== 'string' || !TEXT_DECORATIONS.has(value.textDecoration as NonNullable<ElementStyle['textDecoration']>)) {
       issues.push({ path: joinPath(path, 'textDecoration'), code: 'INVALID_STYLE_FIELD', message: 'Style textDecoration must be "none" or "line-through".' });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'cornerRadius') && value.cornerRadius !== undefined) {
+    if (typeof value.cornerRadius !== 'number' || !Number.isFinite(value.cornerRadius) || value.cornerRadius < 0 || value.cornerRadius > 10000) {
+      issues.push({ path: joinPath(path, 'cornerRadius'), code: 'INVALID_STYLE_FIELD', message: 'Style cornerRadius must be a finite number between 0 and 10000.' });
     }
   }
 

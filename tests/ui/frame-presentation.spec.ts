@@ -32,5 +32,5 @@ test('frames appear as ordered slides and can be presented with keyboard navigat
   await expect(presenter).toHaveCount(0);
 
   await sidebar.getByRole('button', { name: 'Folienleiste schließen' }).click();
-  await expect(page.getByRole('button', { name: 'Folienleiste öffnen' })).toContainText('1');
+  await expect(sidebar).toHaveCount(0);
 });

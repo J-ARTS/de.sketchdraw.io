@@ -83,6 +83,11 @@ const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMark
 const markerUrl = (marker: ConnectorMarker) => marker === 'none' ? undefined : `url(#${uid}-${marker})`;
 const connectorLabelWidth = computed(() => Math.max(36, text.value.length * fontSize.value * .62 + 16));
 const shape = computed(() => shapeEntryForElement(e.value));
+/** Rounded rectangles: the radius is capped to half the shorter side; the default matches the former icon-based corner. */
+const cornerRadius = computed(() => {
+  const half = Math.min(e.value.width, e.value.height) / 2;
+  return Math.max(0, Math.min(e.value.style.cornerRadius ?? Math.min(e.value.width, e.value.height) / 6, half));
+});
 const embedHost = computed(() => {
   try { return new URL(e.value.embedUrl ?? '').hostname; }
   catch { return 'Webseite'; }
@@ -121,6 +126,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     <g :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
       <rect v-if="e.kind === 'frame'" data-testid="frame-surface" :width="e.width" :height="e.height" fill="transparent" :stroke="stroke" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash ?? '10 7'" />
       <rect v-else-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
+      <rect v-else-if="shape?.id === 'rounded'" data-testid="rounded-surface" :width="e.width" :height="e.height" :rx="cornerRadius" :ry="cornerRadius" />
       <ellipse v-else-if="shape?.id === 'circle'" :cx="e.width / 2" :cy="e.height / 2" :rx="e.width / 2" :ry="e.height / 2" />
       <polygon v-else-if="shape?.id === 'diamond'" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
       <svg v-else-if="shape" :width="e.width" :height="e.height" viewBox="3 3 18 18" preserveAspectRatio="none" overflow="visible">

@@ -190,6 +190,9 @@ export function createElement(
         ...(overrides.style.listStyle !== undefined
           ? { listStyle: overrides.style.listStyle }
           : baseStyle.listStyle !== undefined ? { listStyle: baseStyle.listStyle } : {}),
+        ...(overrides.style.cornerRadius !== undefined
+          ? { cornerRadius: overrides.style.cornerRadius }
+          : baseStyle.cornerRadius !== undefined ? { cornerRadius: baseStyle.cornerRadius } : {}),
       }
     : baseStyle;
 

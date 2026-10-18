@@ -225,6 +225,7 @@ export function cloneStyle(style: ElementStyle): ElementStyle {
   if (style.fontWeight !== undefined) cloned.fontWeight = style.fontWeight;
   if (style.textDecoration !== undefined) cloned.textDecoration = style.textDecoration;
   if (style.listStyle !== undefined) cloned.listStyle = style.listStyle;
+  if (style.cornerRadius !== undefined) cloned.cornerRadius = normalizeZero(style.cornerRadius);
   return cloned;
 }
 
@@ -241,6 +242,7 @@ export function clonePartialStyle(style: Partial<ElementStyle>): Partial<Element
   if (style.fontWeight !== undefined) cloned.fontWeight = style.fontWeight;
   if (style.textDecoration !== undefined) cloned.textDecoration = style.textDecoration;
   if (style.listStyle !== undefined) cloned.listStyle = style.listStyle;
+  if (style.cornerRadius !== undefined) cloned.cornerRadius = normalizeZero(style.cornerRadius);
   return cloned;
 }
 
@@ -439,7 +441,8 @@ export function areStylesEqual(a: Partial<ElementStyle>, b: Partial<ElementStyle
     a.fontFamily === b.fontFamily &&
     a.fontWeight === b.fontWeight &&
     a.textDecoration === b.textDecoration &&
-    a.listStyle === b.listStyle
+    a.listStyle === b.listStyle &&
+    a.cornerRadius === b.cornerRadius
   );
 }
 

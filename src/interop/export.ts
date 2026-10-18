@@ -244,7 +244,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push(`sketchdrawShapeVariant=${shapeVariant}`);
       const native: Partial<Record<typeof shapeVariant, readonly string[]>> = {
         circle: ['ellipse'], diamond: ['rhombus'], triangle: ['shape=triangle'], 'triangle-down': ['shape=triangle', 'direction=south'],
-        rounded: ['rounded=1', 'arcSize=30'], chevron: ['shape=mxgraph.basic.chevron'], process: ['shape=process'],
+        rounded: ['rounded=1', `arcSize=${el.style.cornerRadius === undefined ? 30 : Math.round(Math.min(50, (el.style.cornerRadius / Math.max(1, Math.min(el.width, el.height))) * 100))}`], chevron: ['shape=mxgraph.basic.chevron'], process: ['shape=process'],
         document: ['shape=document'], documents: ['shape=multipleDocuments'], 'manual-input': ['shape=manualInput'],
         hexagon: ['shape=hexagon'], parallelogram: ['shape=parallelogram'], 'parallelogram-reverse': ['shape=parallelogram', 'direction=west'],
         cylinder: ['shape=cylinder3'], tube: ['shape=cylinder', 'direction=east'], 'internal-storage': ['shape=internalStorage'],

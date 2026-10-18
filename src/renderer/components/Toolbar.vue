@@ -184,7 +184,7 @@ onBeforeUnmount(cancelLongPress);
 /* The edge buttons take their own room beside the scroller, so they never cover a tool (#78). */
 .toolbar-frame{display:flex;align-items:stretch;max-width:100%;min-height:var(--chrome-height);overflow:hidden}
 .toolbar-frame.editing{outline:2px dashed var(--accent);outline-offset:3px}
-.toolbar{display:flex;flex:1 1 auto;align-items:center;gap:4px;min-width:0;padding:0 6px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.toolbar{display:flex;flex:1 1 auto;align-items:center;gap:4px;min-width:0;padding:0 7px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .overflow-btn{display:grid;flex:none;place-items:center;width:32px;padding:0;border:0;background:transparent;color:var(--text-muted);cursor:pointer}
 .overflow-btn.start{border-right:1px solid var(--border-subtle)}
 .overflow-btn.end{border-left:1px solid var(--border-subtle)}

@@ -9,7 +9,7 @@ import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'plugins';
+type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'plugins';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
@@ -87,6 +87,7 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen, separator: compact.value },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
+  { id: 'slides', label: 'Folien', icon: 'pages', checked: s.frameSidebarOpen },
   { id: 'plugins', label: 'Plugin-Einstellungen', icon: 'component', checked: props.pluginsOpen, separator: true },
 ]);
 
@@ -185,6 +186,7 @@ function runView(id: ViewItemId): void {
     case 'collaboration': emit('collaboration'); break;
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
+    case 'slides': store.toggleFrameSidebar(!s.frameSidebarOpen); break;
     case 'plugins': emit('plugins'); break;
   }
 }
@@ -369,7 +371,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   min-width: 0;
   max-width: 100%;
   height: var(--chrome-height);
-  padding: 0 var(--space-3) 0 var(--space-2);
+  padding: 0 var(--space-3) 0 7px;
   pointer-events: auto;
 }
 
@@ -495,7 +497,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   align-items: center;
   gap: 2px;
   height: var(--chrome-height);
-  padding: 0 6px;
+  padding: 0 7px;
   pointer-events: auto;
 }
 

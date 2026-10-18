@@ -41,6 +41,9 @@
   /* Side panels start below the top chrome: one row on wide screens, two rows (tools wrap below) up to 1040 px. */
   --panel-top-base: calc(var(--chrome-inset) + var(--chrome-height) + var(--space-2));
   --panel-top: var(--panel-top-base);
+  /* Floating comment UI ends above the zoom bar and the notice stack (bottom 76 px); App adds the stack height (#88). */
+  --panel-bottom-base: calc(var(--space-4) + var(--chrome-height) + var(--space-1));
+  --panel-bottom: calc(var(--panel-bottom-base) + var(--feedback-height, 0px) + var(--space-2));
   --control-size: 36px;
   --control-size-compact: 32px;
   --panel-width: 288px;

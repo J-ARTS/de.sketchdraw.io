@@ -228,7 +228,7 @@ test('the shape picker swaps shapes, keeps connections, filters by search and un
   await expect(page.locator('.whiteboard-canvas [data-shape-variant=square]')).toHaveCount(2);
 });
 
-test('an open popover stays above the shape even when the bar is pushed below the selection', async ({ page }) => {
+test('an open popover opens on the side of the bar and never covers the shape', async ({ page }) => {
   // A selection near the top edge leaves no room above, so the bar flips below the shape (#38).
   await drawRectangle(page, [350, 110], [550, 210]);
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
@@ -237,17 +237,22 @@ test('an open popover stays above the shape even when the bar is pushed below th
   const color = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(color).toBeVisible();
 
-  // The popover's bottom edge sits 8 px above the higher of the bar and the shape's top edge, so it
-  // can never overlap the selected rectangle — regardless of whether the bar is above or below it.
-  const anchored = async (expectBarBelow: boolean) => {
+  // Bar above the shape: the popover ends 8 px above the higher anchor. Bar pushed below the shape:
+  // the popover follows it and starts 8 px below the bar. Either way it never overlaps the rectangle.
+  const anchored = async (expectBarBelow?: boolean) => {
     const barBox = (await bar.boundingBox())!;
     const shapeBox = (await shape.boundingBox())!;
     const popoverBox = (await color.boundingBox())!;
-    if (expectBarBelow) expect(barBox.y).toBeGreaterThan(shapeBox.y + shapeBox.height);
-    const anchorTop = Math.min(barBox.y, shapeBox.y); // the upper of the two anchors governs
-    const popoverBottom = popoverBox.y + popoverBox.height;
-    expect(popoverBottom).toBeLessThanOrEqual(shapeBox.y + 1); // never covers the shape
-    expect(Math.abs(popoverBottom - (anchorTop - 8))).toBeLessThan(3);
+    const barBelow = barBox.y > shapeBox.y + shapeBox.height;
+    if (expectBarBelow !== undefined) expect(barBelow).toBe(expectBarBelow);
+    if (barBelow) {
+      expect(popoverBox.y).toBeGreaterThanOrEqual(shapeBox.y + shapeBox.height - 1);
+      expect(Math.abs(popoverBox.y - (barBox.y + barBox.height + 8))).toBeLessThan(3);
+    } else {
+      const popoverBottom = popoverBox.y + popoverBox.height;
+      expect(popoverBottom).toBeLessThanOrEqual(shapeBox.y + 1);
+      expect(Math.abs(popoverBottom - (Math.min(barBox.y, shapeBox.y) - 8))).toBeLessThan(3);
+    }
     return barBox.y;
   };
   const initialBarY = await anchored(true);
@@ -259,13 +264,13 @@ test('an open popover stays above the shape even when the bar is pushed below th
   await page.keyboard.up('Control');
   await expect.poll(async () => (await bar.boundingBox())!.y).not.toBe(initialBarY);
   await expect(color).toBeVisible();
-  const zoomedBarY = await anchored(false);
+  const zoomedBarY = await anchored();
 
-  // Pan the viewport: the popover re-computes and stays above whichever anchor is now higher.
+  // Pan the viewport: the popover re-computes and follows the bar's side.
   await page.mouse.wheel(0, -80);
   await expect.poll(async () => (await bar.boundingBox())!.y).not.toBe(zoomedBarY);
   await expect(color).toBeVisible();
-  await anchored(false);
+  await anchored();
 
   // Focus and keyboard dismissal remain intact after the viewport changes.
   await page.keyboard.press('Escape');
