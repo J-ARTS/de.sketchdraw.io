@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { PALETTE } from '@/renderer/lib/constants';
-import { ERASER_OPTIONS, PENCIL_OPTIONS } from '@/renderer/lib/drawing-tools';
+import { ERASER_RADIUS_MAX, ERASER_RADIUS_MIN, PENCIL_OPTIONS } from '@/renderer/lib/drawing-tools';
 import { useWhiteboard } from './use-whiteboard';
 
 const store = useWhiteboard();
@@ -14,8 +14,8 @@ const colors = PALETTE.slice(0, 11);
 const pencilVisible = computed(() => s.tool === 'path');
 const optionIds = computed(() => pencilVisible.value
   ? [...PENCIL_OPTIONS.map((option) => `pencil-${option.value}`), ...colors.map((color) => `color-${color.value}`), 'color-custom']
-  : ERASER_OPTIONS.map((option) => `eraser-${option.value}`));
-const activeOption = computed(() => pencilVisible.value ? `pencil-${s.pencilPreset}` : `eraser-${s.eraserSize}`);
+  : []);
+const activeOption = computed(() => pencilVisible.value ? `pencil-${s.pencilPreset}` : null);
 const tabStop = computed(() => focusedOption.value && optionIds.value.includes(focusedOption.value) ? focusedOption.value : activeOption.value);
 const customColorSelected = computed(() => !colors.some((color) => color.value === s.pencilColor));
 
@@ -39,6 +39,22 @@ function onKeydown(event: KeyboardEvent): void {
 }
 function pickCustomColor(event: Event): void {
   store.setPencilColor((event.target as HTMLInputElement).value);
+}
+function setEraserRadius(event: Event): void {
+  store.setEraserRadius(Number((event.target as HTMLInputElement).value));
+}
+function onEraserRadiusKeydown(event: KeyboardEvent): void {
+  let radius: number | null = null;
+  if (event.key === 'ArrowRight' || event.key === 'ArrowUp') radius = s.eraserRadius + 1;
+  else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') radius = s.eraserRadius - 1;
+  else if (event.key === 'PageUp') radius = s.eraserRadius + 10;
+  else if (event.key === 'PageDown') radius = s.eraserRadius - 10;
+  else if (event.key === 'Home') radius = ERASER_RADIUS_MIN;
+  else if (event.key === 'End') radius = ERASER_RADIUS_MAX;
+  if (radius === null) return;
+  event.preventDefault();
+  event.stopPropagation();
+  store.setEraserRadius(radius);
 }
 </script>
 
@@ -111,22 +127,25 @@ function pickCustomColor(event: Event): void {
     </template>
 
     <div v-else class="option-group eraser-group" role="group" aria-label="Radierergröße">
-      <button
-        v-for="option in ERASER_OPTIONS"
-        :key="option.value"
-        type="button"
-        class="eraser-option"
-        :data-option-id="`eraser-${option.value}`"
-        :tabindex="tabStop === `eraser-${option.value}` ? 0 : -1"
-        :aria-label="`Radierer ${option.label}`"
-        :aria-pressed="s.eraserSize === option.value"
-        :title="option.label"
-        :disabled="!s.canWrite || s.transitioning"
-        @click="store.setEraserSize(option.value)"
-      >
-        <span class="eraser-preview" :style="{ width: `${option.previewSize}px`, height: `${option.previewSize}px` }" aria-hidden="true" />
-        <span>{{ option.label }}</span>
-      </button>
+      <label class="eraser-radius-control" for="eraser-radius">
+        <span>Radius</span>
+        <input
+          id="eraser-radius"
+          data-testid="eraser-radius-slider"
+          type="range"
+          :min="ERASER_RADIUS_MIN"
+          :max="ERASER_RADIUS_MAX"
+          step="1"
+          :value="s.eraserRadius"
+          aria-label="Radierer-Radius"
+          :aria-valuetext="`${s.eraserRadius} Pixel Radius`"
+          title="Radierer-Radius von 1 bis 500 Pixel"
+          :disabled="!s.canWrite || s.transitioning"
+          @input="setEraserRadius"
+          @keydown="onEraserRadiusKeydown"
+        />
+        <output for="eraser-radius" aria-live="polite">{{ s.eraserRadius }} px</output>
+      </label>
     </div>
   </div>
 </template>
@@ -149,9 +168,12 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .custom-color{border:0;background:radial-gradient(circle,#fff 0 18%,transparent 62%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .custom-color:hover,.custom-color[aria-pressed='true']{background:radial-gradient(circle,#fff 0 18%,transparent 62%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .native-color{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.eraser-group{gap:6px}
-.eraser-option{display:flex;align-items:center;gap:8px;height:40px;padding:0 10px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
-.eraser-preview{display:block;border:2px solid currentColor;border-radius:50%;background:color-mix(in srgb,var(--surface-panel) 75%,transparent)}
-@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.color-group{gap:6px}.color-option{width:26px;height:26px}.eraser-option span:last-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.eraser-option{width:48px;justify-content:center;padding:0}}
+.eraser-group{padding:0 7px}
+.eraser-radius-control{display:grid;grid-template-columns:auto minmax(120px,220px) 54px;align-items:center;gap:12px;font-size:12px;font-weight:650;white-space:nowrap}
+.eraser-radius-control input{width:220px;max-width:36vw;accent-color:var(--accent);cursor:pointer}
+.eraser-radius-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-muted)}
+.eraser-radius-control input:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:999px}
+.eraser-radius-control input:disabled{cursor:not-allowed;opacity:.45}
+@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.color-group{gap:6px}.color-option{width:26px;height:26px}.eraser-radius-control{grid-template-columns:auto minmax(100px,1fr) 50px;gap:8px}.eraser-radius-control input{width:min(180px,42vw);max-width:none}}
 @media(forced-colors:active){button[aria-pressed='true']{outline:2px solid Highlight;box-shadow:none}.color-option{forced-color-adjust:none}}
 </style>

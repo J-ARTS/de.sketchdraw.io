@@ -17,9 +17,11 @@ const s = store.state;
 const canvas = ref<SVGSVGElement>();
 const editor = ref<HTMLTextAreaElement>();
 const laser = ref<InstanceType<typeof LaserPointerOverlay>>();
+const eraserPointer = ref<{ x: number; y: number } | null>(null);
 let activePointer: number | null = null;
 let laserGesture = false;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
+const eraserCursorVisible = computed(() => s.tool === 'eraser' && s.canWrite && !s.transitioning && eraserPointer.value !== null);
 const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
 const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
@@ -72,15 +74,22 @@ function down(event: PointerEvent) {
   event.preventDefault(); activePointer = event.pointerId;
   canvas.value?.setPointerCapture(event.pointerId);
   const value = input(event);
+  eraserPointer.value = { x: value.x, y: value.y };
   laserGesture = s.tool === 'laser' && event.button === 0;
   if (laserGesture) laser.value?.start(value);
   else store.pointerDown(value);
 }
 function move(event: PointerEvent) {
   const value = input(event);
+  eraserPointer.value = { x: value.x, y: value.y };
   if (laserGesture && activePointer === event.pointerId) laser.value?.add(value);
   else store.pointerMove(value);
 }
+function enter(event: PointerEvent) {
+  const value = input(event);
+  eraserPointer.value = { x: value.x, y: value.y };
+}
+function leave() { eraserPointer.value = null; }
 function up(event: PointerEvent) {
   if (activePointer !== event.pointerId) return;
   const value = input(event);
@@ -103,7 +112,7 @@ onMounted(() => canvas.value?.focus());
 
 <template>
   <div class="canvas-wrap">
-    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
+    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">
@@ -120,6 +129,10 @@ onMounted(() => canvas.value?.focus());
           <circle v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-add-handle-${handle.id.split(':')[1]}`" :cx="handle.x" :cy="handle.y" r="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" opacity=".8" />
           <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
         </template>
+      </g>
+      <g v-if="eraserCursorVisible && eraserPointer" class="eraser-cursor" data-testid="eraser-cursor" :data-radius="s.eraserRadius" pointer-events="none" aria-hidden="true">
+        <circle :cx="eraserPointer.x" :cy="eraserPointer.y" :r="s.eraserRadius" fill="none" stroke="var(--text-primary)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".82" />
+        <circle :cx="eraserPointer.x" :cy="eraserPointer.y" r="2.5" fill="var(--text-primary)" />
       </g>
       <LaserPointerOverlay ref="laser" />
     </svg>

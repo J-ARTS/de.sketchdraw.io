@@ -33,7 +33,6 @@ export type Tool =
   | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type PencilPreset = 'fine' | 'pencil' | 'marker';
-export type EraserSize = 'small' | 'medium' | 'large';
 
 export interface TableSelection {
   elementId: string;
@@ -200,7 +199,8 @@ export interface WhiteboardState {
   shapeVariant: ShapeVariant;
   pencilPreset: PencilPreset;
   pencilColor: string;
-  eraserSize: EraserSize;
+  /** Eraser hit radius in CSS screen pixels; independent from the canvas zoom. */
+  eraserRadius: number;
   viewport: Viewport;
   viewportSize: Size;
   marquee: Rect | null;
@@ -271,7 +271,7 @@ export interface WhiteboardStore {
   setShapeTool(variant: ShapeVariant): void;
   setPencilPreset(preset: PencilPreset): void;
   setPencilColor(color: string): void;
-  setEraserSize(size: EraserSize): void;
+  setEraserRadius(radius: number): void;
   addWebEmbed(url: string): Promise<boolean>;
   setViewportSize(width: number, height: number): void;
 

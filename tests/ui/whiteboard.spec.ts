@@ -81,13 +81,24 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
   await draw(page, 'Rechteck', [350, 300], [450, 380]);
   await page.getByRole('button', { name: 'Radierer', exact: true }).click();
   const eraserOptions = page.getByTestId('eraser-options'); await expect(eraserOptions).toBeVisible(); await expect(options).toHaveCount(0);
-  await eraserOptions.getByRole('button', { name: 'Radierer Klein', exact: true }).click();
+  const radius = eraserOptions.getByRole('slider', { name: 'Radierer-Radius' });
+  await expect(radius).toHaveAttribute('min', '1'); await expect(radius).toHaveAttribute('max', '500'); await expect(radius).toHaveValue('18');
+  await radius.focus(); await page.keyboard.press('ArrowRight'); await expect(radius).toHaveValue('19'); await expect(eraserOptions).toContainText('19 px');
+  await radius.evaluate((element) => { const input = element as HTMLInputElement; input.value = '1'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  await expect(radius).toHaveValue('1'); await expect(eraserOptions).toContainText('1 px');
+  await page.mouse.move(470, 340);
+  const cursor = page.getByTestId('eraser-cursor'); await expect(cursor).toBeVisible(); await expect(cursor).toHaveAttribute('data-radius', '1');
+  await expect(page.getByTestId('whiteboard-canvas')).toHaveCSS('cursor', 'none');
   await page.mouse.click(470, 340); await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
-  await eraserOptions.getByRole('button', { name: 'Radierer Groß', exact: true }).click();
+  await radius.evaluate((element) => { const input = element as HTMLInputElement; input.value = '32'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  await expect(radius).toHaveValue('32'); await expect(eraserOptions).toContainText('32 px');
+  await page.mouse.move(470, 340); await expect(cursor).toHaveAttribute('data-radius', '32');
   await page.mouse.click(470, 340); await expect(page.locator('[data-kind=rectangle]')).toHaveCount(0);
   await expect(path).toHaveCount(1);
-
+  await radius.evaluate((element) => { const input = element as HTMLInputElement; input.value = '500'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  await expect(radius).toHaveValue('500'); await expect(eraserOptions).toContainText('500 px');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.getByRole('button', { name: 'Auswahl', exact: true }).click(); await expect(cursor).toHaveCount(0);
   await page.setViewportSize({ width: 480, height: 720 });
   await page.getByRole('button', { name: 'Freihand', exact: true }).click(); await expect(options).toBeVisible();
   const compact = await options.boundingBox(); expect(compact!.x).toBeGreaterThanOrEqual(0); expect(compact!.x + compact!.width).toBeLessThanOrEqual(480);
