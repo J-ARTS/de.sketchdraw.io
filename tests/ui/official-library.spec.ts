@@ -16,6 +16,7 @@ test('provider pages load the full official libraries in collapsible categories'
   }
 
   await sidebar.getByRole('button', { name: /^AWS 784 Symbole/ }).click();
+  await expect(sidebar.getByText('Offizielle Architektur-Symbole.', { exact: false })).toHaveCount(0);
   const categories = sidebar.locator('.category-toggle');
   await expect(categories.first()).toHaveAttribute('aria-expanded', 'true');
   await expect.poll(() => categories.count()).toBeGreaterThan(30); // full library replaced the starter set
