@@ -49,7 +49,7 @@ export const CODEC_LIMITS = Object.freeze({
   MAX_DIAGNOSTICS: 100,
 });
 
-const DOCUMENT_DECL_ALLOWED_KEYS: ReadonlySet<string> = new Set(['id', 'title', 'metadata']);
+const DOCUMENT_DECL_ALLOWED_KEYS: ReadonlySet<string> = new Set(['id', 'title', 'metadata', 'commentThreads', 'tasks']);
 
 interface ParsedElementEntry {
   id: string;
@@ -399,6 +399,10 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
   let docId: unknown = undefined;
   let docTitle: unknown = undefined;
   let docMetadata: unknown = {};
+  let docCommentThreads: unknown = [];
+  let docTasks: unknown = [];
+  let includeCommentThreads = false;
+  let includeTasks = false;
   let hasResourceResolutionError = false;
 
   const seenElementIds = new Set<string>();
@@ -613,6 +617,10 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
       } else {
         docMetadata = {};
       }
+      includeCommentThreads = Object.prototype.hasOwnProperty.call(docObj, 'commentThreads') || Boolean(validatedContext?.commentThreads?.length);
+      includeTasks = Object.prototype.hasOwnProperty.call(docObj, 'tasks') || Boolean(validatedContext?.tasks?.length);
+      docCommentThreads = Object.prototype.hasOwnProperty.call(docObj, 'commentThreads') ? docObj.commentThreads : (validatedContext?.commentThreads ?? []);
+      docTasks = Object.prototype.hasOwnProperty.call(docObj, 'tasks') ? docObj.tasks : (validatedContext?.tasks ?? []);
       continue;
     }
 
@@ -1367,6 +1375,8 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
       componentSets: setEntries.map((s) => s.set),
       metadata: docMetadata,
     };
+    if (includeCommentThreads) candidateDoc.commentThreads = docCommentThreads;
+    if (includeTasks) candidateDoc.tasks = docTasks;
 
     try {
       const validated = validateDocument(candidateDoc);
@@ -1460,13 +1470,16 @@ export function formatDiagram(document: SketchDocument): string {
   // Enforce canonical document JSON size limit as well
   serializeDocument(validated);
 
+  const documentDeclaration: Record<string, unknown> = {
+    id: validated.id,
+    metadata: validated.metadata,
+    title: validated.title,
+  };
+  if (validated.commentThreads !== undefined) documentDeclaration.commentThreads = validated.commentThreads;
+  if (validated.tasks !== undefined) documentDeclaration.tasks = validated.tasks;
   const headerAndDocGroup = [
     'sketchdraw 1',
-    `document ${formatCompactJson({
-      id: validated.id,
-      metadata: validated.metadata,
-      title: validated.title,
-    })}`,
+    `document ${formatCompactJson(documentDeclaration)}`,
   ].join('\n');
 
   const groups: string[] = [headerAndDocGroup];

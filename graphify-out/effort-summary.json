@@ -1948,6 +1948,40 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "59": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "runCount": 3,
+        "runIds": [
+          "antigravity-comments-059",
+          "claude-comments-review-059",
+          "codex-comments-tasks-059"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "6": {
       "exclusiveRuns": {
         "costUsd": {
@@ -2113,15 +2147,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 28
+        "unknownRuns": 29
       },
       "observedSeconds": {
         "knownRuns": 16,
         "knownSubtotal": 9941.981845207978,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
-      "runCount": 28,
+      "runCount": 29,
       "runIds": [
         "antigravity-annotation-attempt-056",
         "antigravity-architecture-001",
@@ -2130,6 +2164,7 @@
         "antigravity-claude-text-edit-toolbar-044",
         "antigravity-codec-catalog-001",
         "antigravity-codec-fixes-001",
+        "antigravity-comments-059",
         "antigravity-connector-attempt-046",
         "antigravity-desktop-001",
         "antigravity-desktop-fixes-001",
@@ -2156,7 +2191,7 @@
         "knownRuns": 4,
         "knownSubtotal": 391342,
         "total": null,
-        "unknownRuns": 24
+        "unknownRuns": 25
       }
     },
     "chrome": {
@@ -2188,15 +2223,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 16
+        "unknownRuns": 17
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
-      "runCount": 16,
+      "runCount": 17,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
@@ -2209,6 +2244,7 @@
         "claude-code-shape-toolbar-review-052",
         "claude-code-sticky-ui-review-050",
         "claude-code-text-edit-toolbar-attempt-044",
+        "claude-comments-review-059",
         "claude-page-rename-ui-035",
         "claude-page-ui-cleanup-035",
         "claude-selection-popover-anchor-038",
@@ -2219,7 +2255,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 16
+        "unknownRuns": 17
       }
     },
     "codex": {
@@ -2227,18 +2263,19 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 28
+        "unknownRuns": 29
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 28
+        "unknownRuns": 29
       },
-      "runCount": 28,
+      "runCount": 29,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
+        "codex-comments-tasks-059",
         "codex-connector-implementation-045",
         "codex-default-keychain-profile-027",
         "codex-draft-recovery-028",
@@ -2270,7 +2307,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 28
+        "unknownRuns": 29
       }
     },
     "codex-subagent": {
@@ -2372,15 +2409,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 120
+      "unknownRuns": 123
     },
     "observedSeconds": {
       "knownRuns": 37,
       "knownSubtotal": 19108.322263248963,
       "total": null,
-      "unknownRuns": 83
+      "unknownRuns": 86
     },
-    "runCount": 120,
+    "runCount": 123,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2389,6 +2426,7 @@
       "antigravity-claude-text-edit-toolbar-044",
       "antigravity-codec-catalog-001",
       "antigravity-codec-fixes-001",
+      "antigravity-comments-059",
       "antigravity-connector-attempt-046",
       "antigravity-desktop-001",
       "antigravity-desktop-fixes-001",
@@ -2422,6 +2460,7 @@
       "claude-code-shape-toolbar-review-052",
       "claude-code-sticky-ui-review-050",
       "claude-code-text-edit-toolbar-attempt-044",
+      "claude-comments-review-059",
       "claude-page-rename-ui-035",
       "claude-page-ui-cleanup-035",
       "claude-selection-popover-anchor-038",
@@ -2431,6 +2470,7 @@
       "codex-auto-agent-access-030",
       "codex-ci-signing-env-026",
       "codex-codec-catalog-tests-001",
+      "codex-comments-tasks-059",
       "codex-connector-implementation-045",
       "codex-default-keychain-profile-027",
       "codex-dependency-review-001",
@@ -2507,7 +2547,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 116
+      "unknownRuns": 119
     }
   },
   "officialScoreClaimReady": false,
@@ -2517,9 +2557,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 46
+    "unknownIssues": 47
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T02:30:51Z"
+  "updatedAt": "2026-10-18T02:50:31Z"
 }

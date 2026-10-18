@@ -11,3 +11,4 @@ export { createController } from './controller';
 export * from './connectors';
 export * from './annotation';
 export * from './table';
+export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';

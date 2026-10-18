@@ -168,6 +168,49 @@ export interface ComponentSet {
   components: ComponentDefinition[];
 }
 
+/** A collaboration marker anchored to an element, a table cell, or a retained canvas point. */
+export interface CommentTarget {
+  elementId?: string;
+  tableCellId?: string;
+  /** Normalized element coordinates while elementId is present. */
+  anchor: Point;
+  /** Absolute document point retained when the original target is removed. */
+  fallback: Point;
+}
+
+export interface CommentMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  /** ISO 8601 timestamp supplied by the caller; domain commands never read the clock. */
+  createdAt: string;
+  editedAt?: string;
+}
+
+export interface CommentThread {
+  id: string;
+  target: CommentTarget;
+  messages: CommentMessage[];
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TaskStatus = 'todo' | 'doing' | 'review' | 'done';
+
+export interface SketchTask {
+  id: string;
+  sourceThreadId: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  /** Deterministic ordering inside a board column. */
+  rank: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SketchDocument {
   schemaVersion: 1;
   id: string;
@@ -177,6 +220,10 @@ export interface SketchDocument {
   assets: Record<string, SketchAsset>;
   componentSets: ComponentSet[];
   metadata: Record<string, string>;
+  /** Optional on legacy v1 input; validation normalizes the field to an empty array. */
+  commentThreads?: CommentThread[];
+  /** Optional on legacy v1 input; validation normalizes the field to an empty array. */
+  tasks?: SketchTask[];
 }
 
 /** null removes an optional field; undefined is never a wire-level deletion. */
@@ -210,6 +257,8 @@ export type DocumentCommand =
   | { type: 'rename'; title: string }
   | { type: 'set-component-sets'; sets: ComponentSet[] }
   | { type: 'set-metadata'; patch: Record<string, string | null> }
+  | { type: 'set-comments'; threads: CommentThread[] }
+  | { type: 'set-tasks'; tasks: SketchTask[] }
   | { type: 'batch'; commands: DocumentCommand[] }
   | { type: 'replace'; document: SketchDocument };
 

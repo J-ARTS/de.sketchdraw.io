@@ -11,6 +11,9 @@ export interface DomainLimits {
   readonly MAX_DIMENSION: number;
   readonly MAX_BATCH_COMMANDS: number;
   readonly MAX_BATCH_DEPTH: number;
+  readonly MAX_COMMENT_THREADS: number;
+  readonly MAX_COMMENTS_PER_THREAD: number;
+  readonly MAX_TASKS: number;
   readonly [key: string]: number;
 }
 
@@ -27,4 +30,7 @@ export const DOMAIN_LIMITS: DomainLimits = Object.freeze({
   MAX_DIMENSION: 1_000_000,
   MAX_BATCH_COMMANDS: 1_000,
   MAX_BATCH_DEPTH: 4,
+  MAX_COMMENT_THREADS: 5_000,
+  MAX_COMMENTS_PER_THREAD: 1_000,
+  MAX_TASKS: 5_000,
 });

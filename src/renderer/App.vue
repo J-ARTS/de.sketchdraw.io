@@ -14,6 +14,9 @@ import InteropPanel from './components/InteropPanel.vue';
 import CollaborationPanel from './components/CollaborationPanel.vue';
 import Minimap from './components/Minimap.vue';
 import AppIcon from './components/AppIcon.vue';
+import CommentsLayer from './components/CommentsLayer.vue';
+import CommentSidebar from './components/CommentSidebar.vue';
+import TaskBoard from './components/TaskBoard.vue';
 
 const store = createWhiteboardStore(); const s = store.state;
 provide(WHITEBOARD_KEY, store);
@@ -51,11 +54,11 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', keydown); window.r
 <template>
   <main class="workspace" aria-label="Sketchdraw Arbeitsbereich">
     <div class="workspace-content" :inert="s.transitioning || undefined">
-      <WhiteboardCanvas /><MainMenu :collaboration-open="collaborationOpen" @interop="openInterop" @collaboration="toggleCollaboration" /><Toolbar /><SelectionToolbar /><WorkspacePanels /><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" />
-      <div class="bottom-tools sd-panel" role="group" aria-label="Ansicht und Verlauf">
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><MainMenu :collaboration-open="collaborationOpen" @interop="openInterop" @collaboration="toggleCollaboration" /><template v-if="s.workspaceView === 'canvas'"><Toolbar /><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" />
+      <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" aria-label="Ansicht und Verlauf">
         <button class="sd-icon-btn zoom-btn" aria-label="Verkleinern" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" aria-label="Zoom auf 100 Prozent" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" aria-label="Vergrößern" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Alles anzeigen" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Rückgängig" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" aria-label="Wiederholen" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>
-      <Minimap v-if="!(s.codeOpen || s.catalogOpen || s.objectsOpen || collaborationOpen || interopOpen)" />
+      <Minimap v-if="s.workspaceView === 'canvas' && !(s.codeOpen || s.catalogOpen || s.objectsOpen || s.commentSidebarOpen || collaborationOpen || interopOpen)" />
       <button v-if="s.offscreenChanges" class="external-changes sd-btn" @click="store.revealOffscreenChanges()">{{ s.offscreenChanges }} externe Änderungen anzeigen</button>
       <div class="feedback-stack">
         <div class="notices" role="region" aria-label="Meldungen"><div v-for="notice in s.notices" :key="notice.id" class="notice sd-panel" :class="{ error: notice.kind === 'error' }"><span>{{ notice.text }}</span><button class="sd-icon-btn" aria-label="Meldung schließen" @click="store.dismissNotice(notice.id)">×</button></div></div>

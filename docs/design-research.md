@@ -80,6 +80,7 @@ Es ist kein separates Theme-System mit drei eigenständigen Oberflächen erforde
 | UI-R10 | In kleineren Fenstern wechseln optionale Panels zu einem aktiven Bereich; Inhalte und Fehler bleiben erreichbar. Verkleinern schließt keinen Codeentwurf stillschweigend. | Platzbedarf der Referenzen L; konkrete Anpassung noch zu prüfen |
 | UI-R11 | Import/Export zeigt Format, unterstützte Bearbeitbarkeit und konkrete Informationsverluste. Warnungen unterscheiden Vorschau/Bild von semantisch bearbeitbaren Elementen. | Produktvision + draw.io D; erforderlich |
 | UI-R12 | Tabellen lassen sich über Werkzeugleiste oder Umschalt+T einfügen. Zelltext ist direkt editierbar; Tab/Umschalt+Tab navigiert. Zeilen und Spalten sind über benannte Randgriffe und ein Strukturmenü einfügbar, duplizierbar, verschiebbar und löschbar. | [Offizielle FigJam-Tabellenhilfe](https://help.figma.com/hc/en-us/articles/12583849250199-Tables-in-FigJam) + Nutzervorgabe; in #58 begrenzt umgesetzt |
+| UI-R13 | Kommentare erscheinen als feste Bildschirm-Pins am Element bzw. an der Tabellenzelle. Hover und Fokus zeigen eine Vorschau; Klick öffnet Thread und rechte Übersicht. Auflösen, ungelesen, Link, Antworten, eigene Bearbeitung und eine verknüpfte Aufgabe bleiben erreichbar. | [Offizielle Figma-Kommentarhilfe](https://help.figma.com/hc/en-us/articles/360041547593-View-and-manage-comments) + Nutzervorgabe; in #59 umgesetzt und zu prüfen |
 
 ### Typografie, Tokens und Bewegung
 

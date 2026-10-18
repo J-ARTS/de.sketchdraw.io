@@ -133,6 +133,19 @@ describe('P2P production protocol with paired unit-test RTC transport', () => {
     expect(guest.source.getSnapshot()).toEqual(authority.source.getSnapshot());
   });
 
+  it('replicates anchored comment threads and linked tasks through the same signed command path', async () => {
+    const { guest, authority } = await setup();
+    const now = '2026-10-18T12:00:00.000Z';
+    const thread = { id: 'thread:p2p', target: { anchor: { x: .5, y: .5 }, fallback: { x: 40, y: 60 } }, messages: [{ id: 'comment:p2p', authorId: 'peer:editor', authorName: 'Peer', body: 'Bitte prüfen', createdAt: now }], resolved: false, createdAt: now, updatedAt: now };
+    expect(await guest.gateway.submit({ requestId: guest.gateway.nextRequestId()!, expectedRevision: 7, action: { kind: 'dispatch', command: { type: 'set-comments', threads: [thread] } } })).toMatchObject({ status: 'committed', revision: 8 });
+    await until(() => guest.source.getSnapshot().revision === 8);
+    const task = { id: 'task:p2p', sourceThreadId: thread.id, title: 'Bitte prüfen', description: 'Peer-Aufgabe', status: 'todo' as const, rank: 0, createdAt: now, updatedAt: now };
+    expect(await guest.gateway.submit({ requestId: guest.gateway.nextRequestId()!, expectedRevision: 8, action: { kind: 'dispatch', command: { type: 'set-tasks', tasks: [task] } } })).toMatchObject({ status: 'committed', revision: 9 });
+    await until(() => guest.source.getSnapshot().revision === 9);
+    expect(guest.source.getSnapshot().document).toMatchObject({ commentThreads: [thread], tasks: [task] });
+    expect(guest.source.getSnapshot()).toEqual(authority.source.getSnapshot());
+  });
+
   it('handles no-op, explicit CAS conflicts and viewer denial without imaginary revisions', async () => {
     const { guest, authority } = await setup();
     expect(await write(guest, 'Original')).toMatchObject({ status: 'no-op', revision: 7 });

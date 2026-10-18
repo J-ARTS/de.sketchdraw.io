@@ -38,6 +38,8 @@ const REORDER_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'ids']);
 const RENAME_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'title']);
 const SET_COMPONENT_SETS_KEYS: ReadonlySet<string> = new Set(['type', 'sets']);
 const SET_METADATA_KEYS: ReadonlySet<string> = new Set(['type', 'patch']);
+const SET_COMMENTS_KEYS: ReadonlySet<string> = new Set(['type', 'threads']);
+const SET_TASKS_KEYS: ReadonlySet<string> = new Set(['type', 'tasks']);
 const BATCH_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'commands']);
 const REPLACE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'document']);
 
@@ -552,9 +554,17 @@ function applyCommandInternal(
         survivingElements.push(el);
       }
 
+      const nextThreads = (baseDoc.commentThreads ?? []).map((thread) => {
+        if (thread.target.elementId === undefined || !deletedSet.has(thread.target.elementId)) return thread;
+        const target = { ...thread.target };
+        delete target.elementId;
+        delete target.tableCellId;
+        return { ...thread, target };
+      });
       return validateDocument({
         ...baseDoc,
         elements: survivingElements,
+        commentThreads: nextThreads,
       });
     }
 
@@ -679,6 +689,26 @@ function applyCommandInternal(
         ...baseDoc,
         metadata: nextMetadata,
       });
+    }
+
+    case 'set-comments': {
+      checkObjectKeys(command, commandPath, SET_COMMENTS_KEYS, issues);
+      if (!Array.isArray(command.threads)) {
+        issues.push({ path: joinPath(commandPath, 'threads'), code: 'INVALID_COMMENT_THREADS', message: 'set-comments threads must be an array.' });
+      }
+      if (issues.length > 0) throw new DomainValidationError(issues);
+      const nextIds = new Set((command.threads as unknown[]).filter(isPlainRecord).map((thread) => thread.id).filter((id): id is string => typeof id === 'string'));
+      const tasks = (baseDoc.tasks ?? []).filter((task) => nextIds.has(task.sourceThreadId));
+      return validateDocument({ ...baseDoc, commentThreads: command.threads, tasks });
+    }
+
+    case 'set-tasks': {
+      checkObjectKeys(command, commandPath, SET_TASKS_KEYS, issues);
+      if (!Array.isArray(command.tasks)) {
+        issues.push({ path: joinPath(commandPath, 'tasks'), code: 'INVALID_TASKS', message: 'set-tasks tasks must be an array.' });
+      }
+      if (issues.length > 0) throw new DomainValidationError(issues);
+      return validateDocument({ ...baseDoc, tasks: command.tasks });
     }
 
     case 'batch': {

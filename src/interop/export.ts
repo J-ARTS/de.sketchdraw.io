@@ -290,7 +290,7 @@ export function prepareExport(document: SketchDocument, format: InteropFormat, o
   const doc = validateDocument(document);
   serializeDocument(doc);
   const d = new DiagnosticCollector(), embed = options.embedDocument !== false;
-  if (doc.componentSets.length || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author || e.annotation || e.table))
+  if (doc.componentSets.length || (doc.commentThreads?.length ?? 0) || (doc.tasks?.length ?? 0) || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author || e.annotation || e.table))
     diagnostic(d, undefined, embed ? 'SEMANTICS_IN_METADATA' : 'SEMANTICS_OMITTED', embed ? 'Additional document semantics and resources are embedded as data, including information not visible on the canvas.' : 'Portable projection omits native document identity, catalog, binding and metadata semantics.', !embed);
   const contents = format === 'svg' ? nativeSvg(doc, d, embed) : nativeDrawio(doc, d, embed);
   // Do not produce an output whose native projection exceeds our import limits.

@@ -6,9 +6,10 @@ import {
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
   tablePlainText,
   connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
+  resolveAnchorWorldPoint, worldToElementLocalPoint,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
-  type ShapeVariant, effectiveShapeVariant, shapeBaseKind,
+  type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
@@ -180,6 +181,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     get pages() { return pageSummaries(this.document); },
     activePageId: SINGLE_PAGE_ID,
+    workspaceView: 'canvas' as const,
+    commentSidebarOpen: false,
+    activeCommentId: null as string | null,
+    commentComposerTarget: null as CommentTarget | null,
+    unreadCommentIds: [] as string[],
+    currentActorId: actorId,
     pagesEditable: false,
     get objectList(): WhiteboardState['objectList'] {
       const index = new Map(this.document.elements.map((e) => [e.id, e]));
@@ -260,6 +267,29 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function patch(patches: Array<{ id: string; patch: ElementPatch }>) { if (patches.length) void dispatch({ type: 'update', changes: patches }); }
   function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
   function currentCenter() { return screenToDoc(state.viewport, { x: state.viewportSize.width / 2, y: state.viewportSize.height / 2 }); }
+  function commentTargetFor(element: SketchElement, tableCellId?: string, point?: Point): CommentTarget {
+    let anchorPoint = point;
+    if (tableCellId && element.kind === 'table' && element.table) {
+      const cell = element.table.cells.find((entry) => entry.id === tableCellId);
+      const rowIndex = cell ? element.table.rows.findIndex((row) => row.id === cell.rowId) : -1;
+      const columnIndex = cell ? element.table.columns.findIndex((column) => column.id === cell.columnId) : -1;
+      if (rowIndex >= 0 && columnIndex >= 0) {
+        const totalWidth = element.table.columns.reduce((sum, column) => sum + column.width, 0);
+        const totalHeight = element.table.rows.reduce((sum, row) => sum + row.height, 0);
+        const x = (element.table.columns.slice(0, columnIndex).reduce((sum, column) => sum + column.width, 0) + element.table.columns[columnIndex]!.width / 2) / totalWidth;
+        const y = (element.table.rows.slice(0, rowIndex).reduce((sum, row) => sum + row.height, 0) + element.table.rows[rowIndex]!.height / 2) / totalHeight;
+        const anchor = { x, y };
+        return { elementId: element.id, tableCellId, anchor, fallback: resolveAnchorWorldPoint(element, anchor) };
+      }
+    }
+    anchorPoint ??= { x: element.x + element.width / 2, y: element.y + element.height / 2 };
+    const local = worldToElementLocalPoint(element, anchorPoint);
+    const anchor = {
+      x: Math.max(0, Math.min(1, element.width ? local.x / element.width : 0.5)),
+      y: Math.max(0, Math.min(1, element.height ? local.y / element.height : 0.5)),
+    };
+    return { elementId: element.id, ...(tableCellId ? { tableCellId } : {}), anchor, fallback: resolveAnchorWorldPoint(element, anchor) };
+  }
   function setSelection(ids: string[], additive = false) {
     state.selection = [...new Set(additive ? [...state.selection, ...ids] : ids)].filter((id) => state.document.elements.some((e) => e.id === id));
     state.focusedId = state.selection.at(-1) ?? null;
@@ -292,7 +322,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   function createDraw(g: Gesture, point: Point, shift: boolean): SketchElement | null {
-    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'text' || g.tool === 'image') return null;
+    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment') return null;
     let end = point;
     if (shift && !['path', 'connector'].includes(g.tool)) {
       const side = Math.max(Math.abs(point.x - g.start.x), Math.abs(point.y - g.start.y));
@@ -524,6 +554,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if ((!state.canWrite && !['select', 'hand'].includes(tool)) || state.transitioning) return;
       if (state.textEdit) void applyText();
       state.tool = tool;
+      state.workspaceView = 'canvas';
       if (tool === 'rectangle') state.shapeVariant = 'square';
       if (tool === 'ellipse') state.shapeVariant = 'circle';
       if (tool === 'diamond') state.shapeVariant = 'diamond';
@@ -543,6 +574,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.textEdit) { void applyText(); return; }
       const point = screenToDoc(state.viewport, input);
       const target = hit(point);
+      if (state.tool === 'comment') {
+        if (input.button !== 0) return;
+        if (!target) { notice('Wähle ein Element oder eine Tabellenzelle für den Kommentar.', 'error'); return; }
+        store.startComment(target.id, undefined, point);
+        return;
+      }
       const handle = state.tool === 'select' ? state.handles.find((h) => Math.hypot(h.x - input.x, h.y - input.y) <= 12) : undefined;
       let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
       if (!state.canWrite && kind !== 'pan' && kind !== 'marquee') { if (target) setSelection([target.id], input.shiftKey); return; }
@@ -880,6 +917,111 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       else if (action === 'column-right') table = moveTableColumn(table, column, 1);
       commitTable(element, table, 'Tabellenstruktur aktualisiert.', true);
     },
+    startComment(elementId, tableCellId, at) {
+      if (!state.canWrite || state.transitioning) return;
+      const element = state.document.elements.find((entry) => entry.id === elementId);
+      if (!element) return;
+      if (tableCellId && (element.kind !== 'table' || !element.table?.cells.some((cell) => cell.id === tableCellId))) return;
+      state.commentComposerTarget = commentTargetFor(element, tableCellId, at);
+      state.commentSidebarOpen = true;
+      state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.activeCommentId = null;
+      state.workspaceView = 'canvas';
+      state.liveMessage = 'Kommentar schreiben.';
+    },
+    cancelComment() { state.commentComposerTarget = null; },
+    async createComment(body) {
+      const text = body.trim(); const target = state.commentComposerTarget;
+      if (!target || !text || !state.canWrite || state.transitioning) return false;
+      const now = new Date().toISOString();
+      const message: CommentMessage = { id: uid('comment'), authorId: actorId, authorName, body: text, createdAt: now };
+      const thread: CommentThread = { id: uid('thread'), target: clone(target), messages: [message], resolved: false, createdAt: now, updatedAt: now };
+      const ok = await dispatch({ type: 'set-comments', threads: [...(state.document.commentThreads ?? []), thread] });
+      if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.tool = 'select'; state.liveMessage = 'Kommentar erstellt.'; }
+      return ok;
+    },
+    openComment(threadId) {
+      const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId);
+      if (!thread) return;
+      state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true;
+      state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId);
+      const element = thread.target.elementId ? state.document.elements.find((entry) => entry.id === thread.target.elementId) : undefined;
+      if (element) {
+        setSelection([element.id]);
+        if (thread.target.tableCellId && element.kind === 'table' && element.table) {
+          const cell = element.table.cells.find((entry) => entry.id === thread.target.tableCellId);
+          if (cell) {
+            const rowIndex = element.table.rows.findIndex((row) => row.id === cell.rowId);
+            const columnIndex = element.table.columns.findIndex((column) => column.id === cell.columnId);
+            store.selectTableCells(element.id, [cell.id], 'cell', rowIndex, columnIndex);
+          }
+        }
+        store.fitSelection();
+      } else {
+        state.viewport = { ...state.viewport, panX: state.viewportSize.width / 2 - thread.target.fallback.x * state.viewport.zoom, panY: state.viewportSize.height / 2 - thread.target.fallback.y * state.viewport.zoom };
+      }
+      state.liveMessage = 'Kommentar geöffnet und Ziel hervorgehoben.';
+    },
+    closeCommentThread() { state.activeCommentId = null; },
+    closeCommentSidebar() { state.commentSidebarOpen = false; state.activeCommentId = null; state.commentComposerTarget = null; },
+    async addCommentReply(threadId, body) {
+      const text = body.trim(); if (!text || !state.canWrite || state.transitioning) return false;
+      const now = new Date().toISOString();
+      const threads = clone(state.document.commentThreads ?? []);
+      const thread = threads.find((entry) => entry.id === threadId); if (!thread) return false;
+      thread.messages.push({ id: uid('comment'), authorId: actorId, authorName, body: text, createdAt: now }); thread.updatedAt = now;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Antwort hinzugefügt.'; return ok;
+    },
+    async editCommentMessage(threadId, messageId, body) {
+      const text = body.trim(); if (!text || !state.canWrite || state.transitioning) return false;
+      const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); const message = thread?.messages.find((entry) => entry.id === messageId);
+      if (!thread || !message || message.authorId !== actorId) return false;
+      const now = new Date().toISOString(); message.body = text; message.editedAt = now; thread.updatedAt = now;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Kommentar bearbeitet.'; return ok;
+    },
+    async setCommentResolved(threadId, resolved) {
+      const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); if (!thread || !state.canWrite || state.transitioning) return false;
+      thread.resolved = resolved; thread.updatedAt = new Date().toISOString();
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = resolved ? 'Kommentar erledigt.' : 'Kommentar wieder geöffnet.'; return ok;
+    },
+    markCommentUnread(threadId) { if ((state.document.commentThreads ?? []).some((entry) => entry.id === threadId) && !state.unreadCommentIds.includes(threadId)) state.unreadCommentIds = [...state.unreadCommentIds, threadId]; },
+    async copyCommentLink(threadId) {
+      if (!(state.document.commentThreads ?? []).some((entry) => entry.id === threadId)) return;
+      const base = typeof window === 'undefined' ? 'sketchdraw' : window.location.href.split('#')[0];
+      try { await clipboard.writeText(`${base}#comment=${encodeURIComponent(threadId)}`); notice('Kommentarlink kopiert.'); } catch (error) { fail(error); }
+    },
+    async deleteCommentThread(threadId) {
+      if (!state.canWrite || state.transitioning) return false;
+      const threads = (state.document.commentThreads ?? []).filter((entry) => entry.id !== threadId);
+      if (threads.length === (state.document.commentThreads ?? []).length) return false;
+      const ok = await dispatch({ type: 'set-comments', threads });
+      if (ok) { state.activeCommentId = null; state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId); state.liveMessage = 'Kommentar-Thread gelöscht.'; }
+      return ok;
+    },
+    async createTaskFromComment(threadId) {
+      if (!state.canWrite || state.transitioning || (state.document.tasks ?? []).some((task) => task.sourceThreadId === threadId)) return false;
+      const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId); const first = thread?.messages[0]; if (!thread || !first) return false;
+      const now = new Date().toISOString(); const title = first.body.split(/\r?\n/)[0]!.slice(0, 120);
+      const task: SketchTask = { id: uid('task'), sourceThreadId: threadId, title, description: first.body, status: 'todo', rank: (state.document.tasks ?? []).filter((entry) => entry.status === 'todo').length, createdAt: now, updatedAt: now };
+      const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] }); if (ok) { state.liveMessage = 'Aufgabe aus Kommentar erstellt.'; } return ok;
+    },
+    async updateTask(taskId, value) {
+      if (!state.canWrite || state.transitioning) return false;
+      const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
+      if (value.title !== undefined && value.title.trim()) task.title = value.title.trim();
+      if (value.description !== undefined) task.description = value.description;
+      if (value.status !== undefined) { task.status = value.status; task.rank = tasks.filter((entry) => entry.status === value.status).length; }
+      task.updatedAt = new Date().toISOString();
+      const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) state.liveMessage = 'Aufgabe aktualisiert.'; return ok;
+    },
+    async deleteTask(taskId) {
+      if (!state.canWrite || state.transitioning) return false;
+      const tasks = (state.document.tasks ?? []).filter((entry) => entry.id !== taskId); if (tasks.length === (state.document.tasks ?? []).length) return false;
+      return dispatch({ type: 'set-tasks', tasks });
+    },
+    openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = 'Aufgabenboard geöffnet.'; },
+    showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = 'Zeichenfläche geöffnet.'; },
     async insertImageFile(file, at) {
       if (state.transitioning) return;
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice('Erlaubt sind PNG, JPEG und WebP.', 'error'); return; }

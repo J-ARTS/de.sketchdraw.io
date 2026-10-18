@@ -123,6 +123,23 @@ Quelle: echter lokaler Claude-Code-Lauf für Issue #58; Antigravity zeigte am 18
 | TB-05 | Zusätzliche Tabellenaktionen können die kontextbezogene Leiste überfüllen. | Angenommen. Häufige Textformatierung bleibt direkt sichtbar; Strukturaktionen sind in einem eigenen Popover gebündelt, Randgriffe bieten die häufigsten Einfügeaktionen. |
 | TB-06 | Tabellen können Diagram-as-Code, SVG/draw.io, Kopieren, Undo und P2P umgehen. | Angenommen. Ein versioniertes Domainmodell mit abgeleitetem TSV wird von Validierung, Clone/Equality, Commands, Code-Syntax und eingebetteten Exporten getragen; Unit- und UI-Tests bilden die Regression ab. |
 
+## Kommentar- und Aufgabenreview (#59)
+
+Quelle: echter lokaler Claude-Code-Lauf in `docs/reviews/claude-comments-059.md`. Antigravity konnte wegen des dokumentierten Kontingentlimits keinen Auftrag annehmen (`docs/reviews/antigravity-comments-059.md`). Codex implementiert vorübergehend im ausdrücklich freigegebenen Vertretungsmodus.
+
+| ID | Entscheidung / aktueller Stand | Pflichtnachweis |
+| --- | --- | --- |
+| CL-CMT-01, 07, 13 | Kommentare und Aufgaben sind strukturierte v1-Dokumentdaten und werden in JSON sowie Diagram-as-Code erhalten. Version 1 repliziert beide Sammlungen atomar mit CAS; keine unbelegte CRDT-Konvergenz. | JSON-/Code-Roundtrip, History und P2P-Regression. |
+| CL-CMT-02, 03, 04 | Autoren-ID und Anzeigename sind getrennt. Eigene Bearbeitung und Viewer-Sperre gelten in UI und gemeinsamer Authority; daraus wird kein kryptografischer IAM-Nachweis abgeleitet. | Negativer Fremdautor-/Viewer-Test und echter Peerpfad. |
+| CL-CMT-05 | Gelöschte Elemente lösen die Bindung und behalten den absoluten Rückfallpunkt. Fehlende Zellen fallen auf das Tabellenelement zurück. | Move/Resize/Delete-/Zellstrukturtests. |
+| CL-CMT-06 | Abgeschlossene Thread- und Taskwrites sind reguläre History-Transaktionen. | Undo/Redo-Regression. |
+| CL-CMT-08 | Kollaborationspins erscheinen nicht in der sichtbaren SVG-/draw.io-Projektion; der exakte Sketchdraw-Envelope erhält sie. Ein Datenschutzhinweis für Exporte bleibt gesonderte Produktarbeit. | Interop-Roundtrip und sichtbarer Exportvergleich. |
+| CL-CMT-09 | Elementkopien duplizieren keine Kommentar-Threads oder Aufgaben. | Clipboard-Regression. |
+| CL-CMT-10 | Linkkopie nutzt die bestehende Zwischenablage-Abstraktion und meldet Fehler. | Browser-/Electron-Test. |
+| CL-CMT-11, 12 | Feste Mengen-, Text- und Dokumentlimits; ausschließlich Klartext. | Grenz- und XSS-Darstellungstest. |
+| CL-CMT-14 | Pins liegen als Bildschirm-Overlay außerhalb SVG und Minimap. Sichtbarkeitsfilterung wird erst bei gemessenem Bedarf ergänzt. | UI-Performanceprofil bei großem Dokument. |
+| CL-CMT-15 | Aufgaben sind eine appweite Workspace-Ansicht neben Seiten. Das Mehrseitenmodell #33–#35 bleibt unberührt. | Navigationstest und Schema-Roundtrip. |
+
 ## Native Integration und Fremdprogramm-Abnahme
 
 - **P2P-Netzwerk, #14:** Der lokale macOS-Host erreicht keine ICE-Verbindung. Derselbe Stand f8c55fb besteht auf dem unveränderten Ubuntu-Runner beide echten Chromium-/Electron-Transporttests (Run 39041998555, Job 117423198082). Kein STUN/TURN/Relay und keine Abschwächung der Sandbox hinzugefügt. Der dritte Produkt-UI-Test fand eine Mehrdeutigkeit zwischen bestätigtem Element und beibehaltenem Entwurf; getrennte semantische Ebenen und explizite Ergebnisprüfung sind erforderlich.

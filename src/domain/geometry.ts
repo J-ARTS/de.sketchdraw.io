@@ -1,12 +1,16 @@
 import type {
   ComponentDefinition,
   ComponentSet,
+  CommentMessage,
+  CommentTarget,
+  CommentThread,
   ElementStyle,
   Endpoint,
   Point,
   SketchAsset,
   SketchDocument,
   SketchElement,
+  SketchTask,
 } from './types';
 import { areAnnotationDocumentsEqual, cloneAnnotationDocument } from './annotation';
 import { areTableDocumentsEqual, cloneTableDocument } from './table';
@@ -330,6 +334,37 @@ export function cloneComponentSet(set: ComponentSet): ComponentSet {
   };
 }
 
+export function cloneCommentTarget(target: CommentTarget): CommentTarget {
+  const cloned: CommentTarget = { anchor: clonePoint(target.anchor), fallback: clonePoint(target.fallback) };
+  if (target.elementId !== undefined) cloned.elementId = target.elementId;
+  if (target.tableCellId !== undefined) cloned.tableCellId = target.tableCellId;
+  return cloned;
+}
+
+export function cloneCommentMessage(message: CommentMessage): CommentMessage {
+  const cloned: CommentMessage = {
+    id: message.id, authorId: message.authorId, authorName: message.authorName,
+    body: message.body, createdAt: message.createdAt,
+  };
+  if (message.editedAt !== undefined) cloned.editedAt = message.editedAt;
+  return cloned;
+}
+
+export function cloneCommentThread(thread: CommentThread): CommentThread {
+  return {
+    id: thread.id,
+    target: cloneCommentTarget(thread.target),
+    messages: thread.messages.map(cloneCommentMessage),
+    resolved: thread.resolved,
+    createdAt: thread.createdAt,
+    updatedAt: thread.updatedAt,
+  };
+}
+
+export function cloneTask(task: SketchTask): SketchTask {
+  return { ...task, rank: normalizeZero(task.rank) };
+}
+
 export function cloneDocument(doc: SketchDocument): SketchDocument {
   const assets: Record<string, SketchAsset> = {};
   for (const key of Object.keys(doc.assets)) {
@@ -338,7 +373,7 @@ export function cloneDocument(doc: SketchDocument): SketchDocument {
       assets[key] = cloneAsset(asset);
     }
   }
-  return {
+  const cloned: SketchDocument = {
     schemaVersion: 1,
     id: doc.id,
     title: doc.title,
@@ -347,6 +382,21 @@ export function cloneDocument(doc: SketchDocument): SketchDocument {
     componentSets: doc.componentSets.map(cloneComponentSet),
     metadata: cloneStringRecord(doc.metadata),
   };
+  if (doc.commentThreads !== undefined) cloned.commentThreads = doc.commentThreads.map(cloneCommentThread);
+  if (doc.tasks !== undefined) cloned.tasks = doc.tasks.map(cloneTask);
+  return cloned;
+}
+
+export function areCommentThreadsEqual(a: readonly CommentThread[], b: readonly CommentThread[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function areTasksEqual(a: readonly SketchTask[], b: readonly SketchTask[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 export function arePointsEqual(a: readonly Point[] | undefined, b: readonly Point[] | undefined): boolean {
@@ -517,7 +567,9 @@ export function areDocumentsEqual(a: SketchDocument, b: SketchDocument): boolean
     a.title !== b.title ||
     a.elements.length !== b.elements.length ||
     !areStringRecordsEqual(a.metadata, b.metadata) ||
-    !areComponentSetsEqual(a.componentSets, b.componentSets)
+    !areComponentSetsEqual(a.componentSets, b.componentSets) ||
+    !areCommentThreadsEqual(a.commentThreads ?? [], b.commentThreads ?? []) ||
+    !areTasksEqual(a.tasks ?? [], b.tasks ?? [])
   ) {
     return false;
   }

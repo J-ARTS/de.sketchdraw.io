@@ -61,6 +61,8 @@ export function createDocument(title = 'Untitled'): SketchDocument {
     assets: {},
     componentSets: [],
     metadata: {},
+    commentThreads: [],
+    tasks: [],
   };
   return validateDocument(doc);
 }

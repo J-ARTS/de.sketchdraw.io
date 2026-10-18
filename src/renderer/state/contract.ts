@@ -21,11 +21,14 @@ import type {
   ConnectorRouting,
   AnnotationDocument,
   TableCellStyle,
+  CommentTarget,
+  TaskStatus,
 } from '@/domain/types';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container';
+  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
+  | 'comment';
 
 export interface TableSelection {
   elementId: string;
@@ -217,6 +220,12 @@ export interface WhiteboardState {
   objectList: readonly ObjectListItem[];
   pages: readonly PageSummary[];
   activePageId: string;
+  workspaceView: 'canvas' | 'tasks';
+  commentSidebarOpen: boolean;
+  activeCommentId: string | null;
+  commentComposerTarget: CommentTarget | null;
+  unreadCommentIds: readonly string[];
+  currentActorId: string;
   /** False while the document schema knows a single page only (#34); page mutations are unavailable then. */
   pagesEditable: boolean;
   objectsOpen: boolean;
@@ -305,6 +314,24 @@ export interface WhiteboardStore {
   setTableCellText(elementId: string, cellId: string, text: string): void;
   formatTableSelection(patch: Partial<TableCellStyle>): void;
   changeTableStructure(action: 'row-before' | 'row-after' | 'column-before' | 'column-after' | 'row-duplicate' | 'column-duplicate' | 'row-delete' | 'column-delete' | 'row-up' | 'row-down' | 'column-left' | 'column-right'): void;
+
+  startComment(elementId: string, tableCellId?: string, at?: Point): void;
+  cancelComment(): void;
+  createComment(body: string): Promise<boolean>;
+  openComment(threadId: string): void;
+  closeCommentThread(): void;
+  closeCommentSidebar(): void;
+  addCommentReply(threadId: string, body: string): Promise<boolean>;
+  editCommentMessage(threadId: string, messageId: string, body: string): Promise<boolean>;
+  setCommentResolved(threadId: string, resolved: boolean): Promise<boolean>;
+  markCommentUnread(threadId: string): void;
+  copyCommentLink(threadId: string): Promise<void>;
+  deleteCommentThread(threadId: string): Promise<boolean>;
+  createTaskFromComment(threadId: string): Promise<boolean>;
+  updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus }): Promise<boolean>;
+  deleteTask(taskId: string): Promise<boolean>;
+  openTaskBoard(): void;
+  showCanvas(): void;
 
   insertImageFile(file: File, at?: Point): Promise<void>;
 

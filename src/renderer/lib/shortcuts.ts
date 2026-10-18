@@ -16,6 +16,7 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'annotation', label: 'Annotation', key: 'a', description: 'Formatierbaren Textblock einfügen' },
   { tool: 'image', label: 'Bild', key: 'b', description: 'Bild einfügen' },
   { tool: 'container', label: 'Container', key: 'c', description: 'Container zum Gruppieren von Elementen aufziehen' },
+  { tool: 'comment', label: 'Kommentar', key: 'k', description: 'Kommentar an ein Element oder eine Tabellenzelle heften' },
 ];
 
 export interface ShortcutDef {

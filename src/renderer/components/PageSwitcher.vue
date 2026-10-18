@@ -18,6 +18,7 @@ const MENU_WIDTH = 224;
 
 const pages = computed(() => s.pages);
 const activePage = computed(() => pages.value.find((page) => page.id === s.activePageId) ?? pages.value[0]);
+const currentName = computed(() => s.workspaceView === 'tasks' ? 'Aufgaben' : activePage.value?.name ?? '');
 const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
@@ -52,8 +53,10 @@ function rowButton(id: string): HTMLButtonElement | null {
 
 /** The panel stays open like a page sidebar, so a second click can start a rename. */
 function selectPage(id: string): void {
+  store.showCanvas();
   store.selectPage(id);
 }
+function selectTasks(): void { store.openTaskBoard(); closePanel(true); }
 
 // --- Rename (double click / F2) ----------------------------------------------
 const editingId = ref<string | null>(null);
@@ -263,14 +266,14 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
       aria-haspopup="dialog"
       :aria-expanded="open"
       :aria-controls="panelId"
-      :aria-label="t('pages.open', { count: pages.length, name: activePage?.name ?? '' })"
+      :aria-label="t('pages.open', { count: pages.length, name: currentName })"
       @click="togglePanel"
     >
       <span class="pages-icon" aria-hidden="true">
         <AppIcon name="pages" :size="24" />
         <span class="pages-count">{{ pages.length }}</span>
       </span>
-      <span class="segment-name">{{ activePage?.name }}</span>
+      <span class="segment-name">{{ currentName }}</span>
     </button>
 
     <div
@@ -357,6 +360,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
           </button>
         </li>
       </ul>
+
+      <div class="workspace-views">
+        <button type="button" class="task-board-entry" :aria-current="s.workspaceView === 'tasks' ? 'page' : undefined" data-testid="task-board-entry" @click="selectTasks"><AppIcon name="check" :size="18" /><span><strong>Aufgaben</strong><small>{{ (s.document.tasks ?? []).filter((task) => task.status !== 'done').length }} offen</small></span></button>
+      </div>
 
       <div class="panel-foot">
         <button
@@ -635,6 +642,10 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPoin
   color: var(--text-primary);
 }
 
+.workspace-views{margin-top:6px;padding:6px 2px;border-top:1px solid var(--border-subtle)}
+.task-board-entry{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:6px 10px;border:0;border-radius:10px;background:transparent;color:var(--text-primary);text-align:left}
+.task-board-entry:hover,.task-board-entry[aria-current='page']{background:var(--accent-soft);color:var(--accent-ink)}
+.task-board-entry>span{display:grid;gap:2px}.task-board-entry small{color:var(--text-muted);font-size:11px}
 .panel-foot {
   display: grid;
   gap: 2px;

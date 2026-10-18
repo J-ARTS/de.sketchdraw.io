@@ -5,6 +5,9 @@ import type {
   ComponentDefinition,
   AnnotationBlockType,
   ComponentSet,
+  CommentMessage,
+  CommentTarget,
+  CommentThread,
   ConnectorMarker,
   ConnectorRouting,
   ElementKind,
@@ -15,6 +18,7 @@ import type {
   SketchAsset,
   SketchDocument,
   SketchElement,
+  SketchTask,
   TableCellStyle,
   TableDocument,
   ValidationIssue,
@@ -107,6 +111,8 @@ const DOCUMENT_KEYS: ReadonlySet<string> = new Set([
   'assets',
   'componentSets',
   'metadata',
+  'commentThreads',
+  'tasks',
 ]);
 
 export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
@@ -183,6 +189,12 @@ const TABLE_ROW_KEYS: ReadonlySet<string> = new Set(['id', 'height']);
 const TABLE_COLUMN_KEYS: ReadonlySet<string> = new Set(['id', 'width']);
 const TABLE_CELL_KEYS: ReadonlySet<string> = new Set(['id', 'rowId', 'columnId', 'text', 'style']);
 const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textDecoration', 'listStyle', 'textAlign']);
+const COMMENT_THREAD_KEYS: ReadonlySet<string> = new Set(['id', 'target', 'messages', 'resolved', 'createdAt', 'updatedAt']);
+const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['elementId', 'tableCellId', 'anchor', 'fallback']);
+const COMMENT_MESSAGE_KEYS: ReadonlySet<string> = new Set(['id', 'authorId', 'authorName', 'body', 'createdAt', 'editedAt']);
+const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt']);
+const TASK_STATUSES: ReadonlySet<SketchTask['status']> = new Set(['todo', 'doing', 'review', 'done']);
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 const textEncoder = new TextEncoder();
 
@@ -1664,6 +1676,143 @@ function formatCanonicalDocument(validated: SketchDocument): string {
   return serialized;
 }
 
+function validateTimestamp(value: unknown, path: string, issues: ValidationIssue[]): value is string {
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_PATTERN.test(value) || !Number.isFinite(Date.parse(value))) {
+    issues.push({ path, code: 'INVALID_TIMESTAMP', message: 'Timestamp must be an ISO 8601 UTC string.' });
+    return false;
+  }
+  return true;
+}
+
+function validateCommentText(value: unknown, path: string, issues: ValidationIssue[], allowEmpty = false): value is string {
+  if (typeof value !== 'string' || (!allowEmpty && value.trim().length === 0)) {
+    issues.push({ path, code: 'INVALID_COMMENT_TEXT', message: 'Text must be a non-empty string.' });
+    return false;
+  }
+  if (value.length > DOMAIN_LIMITS.MAX_TEXT_LENGTH) {
+    issues.push({ path, code: 'TEXT_TOO_LONG', message: `Text exceeds maximum length of ${DOMAIN_LIMITS.MAX_TEXT_LENGTH} characters.` });
+    return false;
+  }
+  return true;
+}
+
+function validateCommentTarget(value: unknown, path: string, issues: ValidationIssue[]): value is CommentTarget {
+  if (!isPlainRecord(value)) {
+    issues.push({ path, code: 'INVALID_COMMENT_TARGET', message: 'Comment target must be a plain object.' });
+    return false;
+  }
+  checkObjectKeys(value, path, COMMENT_TARGET_KEYS, issues);
+  if (value.elementId !== undefined) validateIdField(value.elementId, joinPath(path, 'elementId'), issues);
+  if (value.tableCellId !== undefined) {
+    validateIdField(value.tableCellId, joinPath(path, 'tableCellId'), issues);
+    if (value.elementId === undefined) issues.push({ path: joinPath(path, 'tableCellId'), code: 'COMMENT_CELL_WITHOUT_ELEMENT', message: 'A table cell target requires an elementId.' });
+  }
+  for (const [key, normalized] of [['anchor', true], ['fallback', false]] as const) {
+    const pointPath = joinPath(path, key);
+    const point = value[key];
+    if (!isPlainRecord(point)) {
+      issues.push({ path: pointPath, code: 'INVALID_POINT', message: 'Comment target point must be a plain object.' });
+      continue;
+    }
+    checkObjectKeys(point, pointPath, POINT_KEYS, issues);
+    for (const axis of ['x', 'y'] as const) {
+      const coordinate = point[axis];
+      if (typeof coordinate !== 'number' || !Number.isFinite(coordinate) || (normalized ? coordinate < 0 || coordinate > 1 : Math.abs(coordinate) > DOMAIN_LIMITS.MAX_COORDINATE_ABS)) {
+        issues.push({ path: joinPath(pointPath, axis), code: 'INVALID_COMMENT_ANCHOR', message: normalized ? 'Anchor coordinates must be between 0 and 1.' : `Fallback coordinates must be within ±${DOMAIN_LIMITS.MAX_COORDINATE_ABS}.` });
+      }
+    }
+  }
+  return true;
+}
+
+function validateCommentMessage(value: unknown, path: string, issues: ValidationIssue[]): value is CommentMessage {
+  if (!isPlainRecord(value)) {
+    issues.push({ path, code: 'INVALID_COMMENT_MESSAGE', message: 'Comment message must be a plain object.' });
+    return false;
+  }
+  checkObjectKeys(value, path, COMMENT_MESSAGE_KEYS, issues);
+  validateIdField(value.id, joinPath(path, 'id'), issues);
+  validateIdField(value.authorId, joinPath(path, 'authorId'), issues);
+  validateCommentText(value.authorName, joinPath(path, 'authorName'), issues);
+  validateCommentText(value.body, joinPath(path, 'body'), issues);
+  validateTimestamp(value.createdAt, joinPath(path, 'createdAt'), issues);
+  if (value.editedAt !== undefined) validateTimestamp(value.editedAt, joinPath(path, 'editedAt'), issues);
+  return true;
+}
+
+function validateComments(input: unknown, issues: ValidationIssue[]): CommentThread[] {
+  if (input === undefined) return [];
+  if (!Array.isArray(input)) {
+    issues.push({ path: 'commentThreads', code: 'INVALID_COMMENT_THREADS', message: 'Document commentThreads must be an array.' });
+    return [];
+  }
+  if (input.length > DOMAIN_LIMITS.MAX_COMMENT_THREADS) issues.push({ path: 'commentThreads', code: 'TOO_MANY_COMMENT_THREADS', message: `Comment thread count exceeds ${DOMAIN_LIMITS.MAX_COMMENT_THREADS}.` });
+  const threadIds = new Set<string>();
+  const result: CommentThread[] = [];
+  for (let i = 0; i < Math.min(input.length, DOMAIN_LIMITS.MAX_COMMENT_THREADS); i += 1) {
+    const value = input[i];
+    const path = joinPath('commentThreads', i);
+    if (!isPlainRecord(value)) { issues.push({ path, code: 'INVALID_COMMENT_THREAD', message: 'Comment thread must be a plain object.' }); continue; }
+    checkObjectKeys(value, path, COMMENT_THREAD_KEYS, issues);
+    if (validateIdField(value.id, joinPath(path, 'id'), issues) && typeof value.id === 'string') {
+      if (threadIds.has(value.id)) issues.push({ path: joinPath(path, 'id'), code: 'DUPLICATE_COMMENT_THREAD_ID', message: `Duplicate comment thread id "${value.id}".` });
+      threadIds.add(value.id);
+    }
+    validateCommentTarget(value.target, joinPath(path, 'target'), issues);
+    if (!Array.isArray(value.messages) || value.messages.length < 1 || value.messages.length > DOMAIN_LIMITS.MAX_COMMENTS_PER_THREAD) {
+      issues.push({ path: joinPath(path, 'messages'), code: 'INVALID_COMMENT_MESSAGES', message: `A thread must contain between 1 and ${DOMAIN_LIMITS.MAX_COMMENTS_PER_THREAD} messages.` });
+    } else {
+      const messageIds = new Set<string>();
+      for (let j = 0; j < value.messages.length; j += 1) {
+        const message = value.messages[j];
+        const messagePath = joinPath(joinPath(path, 'messages'), j);
+        validateCommentMessage(message, messagePath, issues);
+        if (isPlainRecord(message) && typeof message.id === 'string') {
+          if (messageIds.has(message.id)) issues.push({ path: joinPath(messagePath, 'id'), code: 'DUPLICATE_COMMENT_MESSAGE_ID', message: `Duplicate comment message id "${message.id}".` });
+          messageIds.add(message.id);
+        }
+      }
+    }
+    if (typeof value.resolved !== 'boolean') issues.push({ path: joinPath(path, 'resolved'), code: 'INVALID_COMMENT_RESOLVED', message: 'Comment resolved must be a boolean.' });
+    validateTimestamp(value.createdAt, joinPath(path, 'createdAt'), issues);
+    validateTimestamp(value.updatedAt, joinPath(path, 'updatedAt'), issues);
+    result.push(value as unknown as CommentThread);
+  }
+  return result;
+}
+
+function validateTasks(input: unknown, threadIds: ReadonlySet<string>, issues: ValidationIssue[]): SketchTask[] {
+  if (input === undefined) return [];
+  if (!Array.isArray(input)) { issues.push({ path: 'tasks', code: 'INVALID_TASKS', message: 'Document tasks must be an array.' }); return []; }
+  if (input.length > DOMAIN_LIMITS.MAX_TASKS) issues.push({ path: 'tasks', code: 'TOO_MANY_TASKS', message: `Task count exceeds ${DOMAIN_LIMITS.MAX_TASKS}.` });
+  const ids = new Set<string>();
+  const sources = new Set<string>();
+  const result: SketchTask[] = [];
+  for (let i = 0; i < Math.min(input.length, DOMAIN_LIMITS.MAX_TASKS); i += 1) {
+    const value = input[i];
+    const path = joinPath('tasks', i);
+    if (!isPlainRecord(value)) { issues.push({ path, code: 'INVALID_TASK', message: 'Task must be a plain object.' }); continue; }
+    checkObjectKeys(value, path, TASK_KEYS, issues);
+    if (validateIdField(value.id, joinPath(path, 'id'), issues) && typeof value.id === 'string') {
+      if (ids.has(value.id)) issues.push({ path: joinPath(path, 'id'), code: 'DUPLICATE_TASK_ID', message: `Duplicate task id "${value.id}".` });
+      ids.add(value.id);
+    }
+    if (validateIdField(value.sourceThreadId, joinPath(path, 'sourceThreadId'), issues) && typeof value.sourceThreadId === 'string') {
+      if (!threadIds.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'MISSING_COMMENT_THREAD', message: `Task references missing comment thread "${value.sourceThreadId}".` });
+      if (sources.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'DUPLICATE_THREAD_TASK', message: 'Each comment thread can have only one task.' });
+      sources.add(value.sourceThreadId);
+    }
+    validateCommentText(value.title, joinPath(path, 'title'), issues);
+    validateCommentText(value.description, joinPath(path, 'description'), issues, true);
+    if (typeof value.status !== 'string' || !TASK_STATUSES.has(value.status as SketchTask['status'])) issues.push({ path: joinPath(path, 'status'), code: 'INVALID_TASK_STATUS', message: 'Task status must be todo, doing, review, or done.' });
+    if (typeof value.rank !== 'number' || !Number.isSafeInteger(value.rank) || value.rank < 0) issues.push({ path: joinPath(path, 'rank'), code: 'INVALID_TASK_RANK', message: 'Task rank must be a non-negative safe integer.' });
+    validateTimestamp(value.createdAt, joinPath(path, 'createdAt'), issues);
+    validateTimestamp(value.updatedAt, joinPath(path, 'updatedAt'), issues);
+    result.push(value as unknown as SketchTask);
+  }
+  return result;
+}
+
 export function validateAndSerializeDocument(input: unknown): {
   document: SketchDocument;
   serialized: string;
@@ -1705,6 +1854,15 @@ export function validateAndSerializeDocument(input: unknown): {
   }
 
   validateStringMetadata(input.metadata, 'metadata', ancestors, issues);
+
+  // Collaboration records were added without bumping the file schema. Missing arrays from
+  // older v1 documents are normalized to empty collections.
+  const normalizedThreads = validateComments(input.commentThreads, issues);
+  const normalizedTasks = validateTasks(
+    input.tasks,
+    new Set(normalizedThreads.map((thread) => thread.id)),
+    issues,
+  );
 
   // Validate assets
   const assetIds = new Set<string>();
@@ -1917,7 +2075,10 @@ export function validateAndSerializeDocument(input: unknown): {
     throw new DomainValidationError(issues);
   }
 
-  const cloned = cloneDocument(input as unknown as SketchDocument);
+  const normalizedInput = { ...(input as unknown as SketchDocument) };
+  if (input.commentThreads !== undefined) normalizedInput.commentThreads = normalizedThreads;
+  if (input.tasks !== undefined) normalizedInput.tasks = normalizedTasks;
+  const cloned = cloneDocument(normalizedInput);
   const serialized = formatCanonicalDocument(cloned);
   return { document: cloned, serialized };
 }

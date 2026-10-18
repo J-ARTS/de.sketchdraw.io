@@ -5,18 +5,22 @@ import { DomainConflictError, DomainValidationError } from './errors';
 import {
   areAssetsEqual,
   areComponentSetsEqual,
+  areCommentThreadsEqual,
   areDocumentsEqual,
   areElementsEqual,
   areEndpointsEqual,
   arePointsEqual,
   areStringRecordsEqual,
+  areTasksEqual,
   cloneAsset,
   cloneComponentSet,
+  cloneCommentThread,
   cloneDocument,
   cloneElement,
   cloneEndpoint,
   clonePoint,
   cloneStringRecord,
+  cloneTask,
   normalizeZero,
 } from './geometry';
 import type {
@@ -601,6 +605,22 @@ function evaluateTransition(
   }
 
   const nextElements = orderedIds.map((id) => nextElementMap.get(id)!);
+
+  let nextCommentThreads = currentDoc.commentThreads?.map(cloneCommentThread);
+  if (!areCommentThreadsEqual(expectedDoc.commentThreads ?? [], targetDoc.commentThreads ?? [])) {
+    if (!areCommentThreadsEqual(currentDoc.commentThreads ?? [], expectedDoc.commentThreads ?? [])) {
+      return { ok: false, reason: 'Document comments were modified by another operation.' };
+    }
+    nextCommentThreads = targetDoc.commentThreads?.map(cloneCommentThread);
+  }
+
+  let nextTasks = currentDoc.tasks?.map(cloneTask);
+  if (!areTasksEqual(expectedDoc.tasks ?? [], targetDoc.tasks ?? [])) {
+    if (!areTasksEqual(currentDoc.tasks ?? [], expectedDoc.tasks ?? [])) {
+      return { ok: false, reason: 'Document tasks were modified by another operation.' };
+    }
+    nextTasks = targetDoc.tasks?.map(cloneTask);
+  }
   const candidateDoc: SketchDocument = {
     schemaVersion: 1,
     id: currentDoc.id,
@@ -610,6 +630,8 @@ function evaluateTransition(
     componentSets: nextComponentSets,
     metadata: nextMetadata,
   };
+  if (nextCommentThreads !== undefined) candidateDoc.commentThreads = nextCommentThreads;
+  if (nextTasks !== undefined) candidateDoc.tasks = nextTasks;
 
   try {
     const validated = validateDocument(candidateDoc);
