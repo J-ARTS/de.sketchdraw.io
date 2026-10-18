@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T18:47:09.309446Z",
+  "updatedAt": "2026-10-18T21:14:39+02:00",
   "issues": [
     {
       "number": 1,
@@ -1805,6 +1805,38 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 119,
+      "title": "Dialogtitel und Close-Icons an Objekt-Panel angleichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/119",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 120,
+      "title": "P2P-Produkt-UI-Pairing läuft in CI reproduzierbar ins 100-s-Timeout",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/120",
+      "owner": "Google Antigravity (logic/devops), OpenAI Codex (testing)",
+      "currentImplementer": null,
+      "phase": "Testing",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        72
+      ]
     }
   ],
   "runs": [
@@ -7404,6 +7436,64 @@
       ],
       "authorization": "GitHub Actions verification was triggered by the authorized Issue 116 integration into main.",
       "measurementSource": "GitHub Actions timestamps report 470 seconds from creation to cancellation. The run was superseded rather than failed; the completed exact-commit branch run 39154779600 provides the cross-platform evidence."
+    },
+    {
+      "id": "codex-dialog-header-sizes-119",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        119
+      ],
+      "status": "integrated_and_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:3e70a21900d93a47a8aa6284f56c7b3399a35837",
+        "src/renderer/styles/base.css",
+        "src/renderer/components",
+        "tests/ui/layout-review.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/119",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/120"
+      ],
+      "concerns": [
+        "The post-change Graphify source refresh was guarded: the new extraction had 4,818 nodes versus 5,025 in the existing graph, so graphify refused to overwrite without --force. The existing graph is preserved and deterministic ticket, run and artifact links are refreshed separately.",
+        "The branch CI workflow completed the Governance and Graphify job plus full Ubuntu, macOS and Windows build/verification jobs successfully. Its separate Direct P2P job timed out in the third product-UI pairing scenario twice; the same timeout already existed on main commit 5f91bbf and is tracked independently in Issue 120."
+      ],
+      "authorization": "The user explicitly requested that all comparable dialogs reuse the Objects panel title and close-icon scale. Codex remains authorized to implement temporarily while recording regular Claude Code ownership separately.",
+      "measurementSource": "Local macOS evidence at product commit 3e70a21: typecheck, 56 unit-test files with 441 tests, 36 affected UI tests against isolated Vite port 5188, and the complete renderer/Electron/MCP production build passed. GitHub Actions run 39156615793 verified Governance and Graphify plus complete Ubuntu 24.04, macOS 15 and Windows 2025 jobs for the exact product commit. The separate P2P job passed two lower-level scenarios and timed out twice in the pre-existing full UI-pairing scenario tracked by Issue 120. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-dialog-header-sizes-39156615793",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        119,
+        120
+      ],
+      "status": "platform_jobs_passed_p2p_timeout_confirmed",
+      "startedAt": "2026-10-18T18:58:38Z",
+      "endedAt": "2026-10-18T19:13:22Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:3e70a21900d93a47a8aa6284f56c7b3399a35837",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793/job/117761054484",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793/job/117761091160",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793/job/117761091207",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793/job/117761091133",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39156615793/job/117763846266"
+      ],
+      "concerns": [
+        "The separate Direct P2P job timed out in tests/p2p/native.spec.ts:92 after 100000 ms on both attempts. The two lower-level direct-connection scenarios passed. The same third-scenario timeout is present on preceding main commit 5f91bbf and is tracked in Issue 120."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized Issue 119 branch push. The failed P2P rerun was explicitly used to distinguish a pre-existing independent CI defect now tracked in Issue 120.",
+      "measurementSource": "GitHub reports first-attempt timestamps from 18:58:38Z to 19:10:14Z and rerun timestamps from 19:10:48Z to 19:13:22Z. Because the workflow has multiple attempts, no aggregate observedSeconds value was derived; it remains null. Governance/Graphify and complete Ubuntu, macOS and Windows jobs passed on the exact product commit. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
