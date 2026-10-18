@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T07:09:17Z",
+  "updatedAt": "2026-10-18T07:29:31Z",
   "issues": [
     {
       "number": 1,
@@ -1183,6 +1183,150 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 74,
+      "title": "VueUse gezielt im Renderer einführen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/74",
+      "owner": "Claude Code (UI), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary user-authorized takeover)",
+      "phase": "Renderer lifecycle composables",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        73
+      ]
+    },
+    {
+      "number": 75,
+      "title": "UI/UX- und Accessibility-Audit der aktuellen App",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/75",
+      "owner": "Claude Code (UI/UX), OpenAI Codex (coordination/testing)",
+      "currentImplementer": "OpenAI Codex (temporary user-authorized audit)",
+      "phase": "UI/UX and accessibility audit",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 76,
+      "title": "Kopfbedienung wird bei 320 px überlagert und ist nicht anklickbar",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/76",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 77,
+      "title": "Auswahlleiste verdeckt den Kopf der Formen-Seitenleiste",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/77",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 78,
+      "title": "Horizontale Werkzeugleisten verstecken Aktionen ohne Überlaufhinweis",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/78",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 79,
+      "title": "Plugin-Dialog lässt Fokus in den Hintergrund entkommen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/79",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 80,
+      "title": "Aufgaben-Dialog hat kein modales Fokus- und Escape-Verhalten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/80",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 81,
+      "title": "Aufgaben-Dialog schneidet Aktionen bei Reflow ab",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/81",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
+    },
+    {
+      "number": 82,
+      "title": "Kommentaraktionen-Menü ist nicht per ARIA-Tastaturmuster bedienbar",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/82",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     }
   ],
   "runs": [
@@ -4929,6 +5073,53 @@
       ],
       "authorization": "The user explicitly asked Codex to evaluate whether Sketchdraw should use Sucrase, Vite and VueUse.",
       "measurementSource": "Local macOS arm64 measurements at git 46c43d7 on Node.js 22.16.0 and npm 10.9.2: five isolated-process runs each produced medians of 1.147 s for the renderer build, 0.169 s for the Electron build and 0.181 s for the MCP build; three typecheck runs produced a median of 8.266 s. A temporary external bundle of @vueuse/core@15.0.0 with useEventListener, useResizeObserver and useStorage measured 6,410 bytes minified and 2,880 bytes gzip. Exact work duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-vueuse-uiux-audit-74-82",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82
+      ],
+      "status": "integrated_and_locally_verified_findings_planned",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:4d00f39",
+        "docs/decisions/0005-vite-sucrase-vueuse.md",
+        "docs/reviews/ui-ux-audit-2026-10-18.md",
+        "THIRD_PARTY_NOTICES.md",
+        "package.json",
+        "package-lock.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/74",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/75",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/76",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/77",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/78",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/79",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/80",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/81",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/82"
+      ],
+      "concerns": [
+        "Seven UI/UX findings remain open as issues #76-#82; completing the audit does not claim those product bugs are fixed.",
+        "The expert review and automated Axe checks do not replace a human usability study or real VoiceOver, NVDA and JAWS sessions.",
+        "Manual cross-platform visual review on Windows and Linux remains outside this audit evidence.",
+        "The source-code Graphify refresh guard preserved the existing graph because the pre-ledger rebuild contained 3,868 nodes versus 4,017 in the existing graph."
+      ],
+      "authorization": "The user explicitly asked to introduce VueUse and perform a complete UI/UX check with every confirmed bug listed; the user previously authorized Codex to temporarily perform UI implementation while retaining nominal ownership attribution.",
+      "measurementSource": "Integrated commit 4d00f39 on main. Local macOS arm64 evidence: npm run typecheck passed; 375/375 Vitest tests, 61/61 browser UI tests including existing Axe checks, 6/6 Electron integration tests and 59/59 Node build/lifecycle tests passed; npm run build passed; npm audit --omit=dev reported zero known production vulnerabilities. Manual browser review covered 1440x900, 720x450, 480x720, 320x568 and 480x320. Duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
