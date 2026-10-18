@@ -55,6 +55,32 @@ test('hovering previews and clicking creates a same-sized copy with an arrow in 
   await expect(page.locator(shapes)).toHaveCount(1); await expect(page.locator(arrows)).toHaveCount(0);
 });
 
+test('a quick-connected cloud icon keeps its icon, label and editable properties (#113)', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  await sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('Azure Machine Learning');
+  await sidebar.getByRole('button', { name: /^Azure Machine Learning AZURE$/ }).click();
+  await sidebar.getByRole('button', { name: 'Formen schließen' }).click();
+
+  const cards = page.locator('[data-cloud-provider="azure"]');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first().getByTestId('cloud-component-content').locator('tspan')).toHaveText(['Azure Machine', 'Learning']);
+  const sourceId = await cards.first().getAttribute('data-element-id');
+
+  await page.getByTestId('quick-connect-right').click();
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(1).getByTestId('cloud-component-content').locator('tspan')).toHaveText(['Azure Machine', 'Learning']);
+  await expect(cards.nth(1).getByTestId('cloud-component-content')).toContainText('AZURE');
+
+  const ids = await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-element-id')));
+  expect(ids[0]).toBe(sourceId);
+  expect(ids[1]).not.toBe(sourceId);
+  const code = await documentCode(page);
+  expect(code.match(/"componentType":"azure\.ai-machine-learning\.azure-machine-learning"/g)).toHaveLength(2);
+  expect(code.match(/"text":"Azure Machine Learning"/g)).toHaveLength(2);
+  expect(code.match(/"label":"Azure Machine Learning"/g)).toHaveLength(2);
+});
+
 test('repeated quick connects fan out instead of overlapping and work from the keyboard', async ({ page }) => {
   await drawRectangle(page);
   await page.getByTestId('quick-connect-right').click();

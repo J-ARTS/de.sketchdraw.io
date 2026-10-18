@@ -1,4 +1,4 @@
-import type { Point, SketchElement } from '@/domain/types';
+import { cloneAnnotationDocument, type Point, type SketchElement } from '@/domain';
 import type { QuickDirection, Rect } from '@/renderer/state/contract';
 import { bounds, center, rotatePoint } from './geometry';
 
@@ -74,19 +74,17 @@ export function nearestSideAnchor(target: SketchElement, from: Point): Point {
   return best;
 }
 
-/** Same kind, size and style; text, names and descriptions stay with the original. */
+/** Same editable content, size and style; identity, position and bindings are created by the caller. */
 export function quickConnectCopy(source: SketchElement, shape: Rect): Partial<SketchElement> {
   const copy: Partial<SketchElement> = { ...shape, rotation: 0, style: { ...source.style } };
   if (source.shapeVariant) copy.shapeVariant = source.shapeVariant;
-  if (source.kind === 'component') {
-    if (source.componentType) copy.componentType = source.componentType;
-    if (source.metadata) copy.metadata = { ...source.metadata };
-    if (source.documentationUrl) copy.documentationUrl = source.documentationUrl;
-  }
-  if (source.kind === 'sticky-note') {
-    copy.text = '';
-    copy.author = source.author;
-    if (source.documentationUrl) copy.documentationUrl = source.documentationUrl;
-  }
+  if (source.label !== undefined) copy.label = source.label;
+  if (source.description !== undefined) copy.description = source.description;
+  if (source.text !== undefined) copy.text = source.text;
+  if (source.annotation !== undefined) copy.annotation = cloneAnnotationDocument(source.annotation);
+  if (source.author !== undefined) copy.author = source.author;
+  if (source.componentType !== undefined) copy.componentType = source.componentType;
+  if (source.metadata !== undefined) copy.metadata = { ...source.metadata };
+  if (source.documentationUrl !== undefined) copy.documentationUrl = source.documentationUrl;
   return copy;
 }
