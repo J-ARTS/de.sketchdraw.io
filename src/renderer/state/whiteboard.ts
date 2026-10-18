@@ -54,6 +54,7 @@ import { COMMENT_CURSOR } from '../lib/comment-cursor';
 import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
+import { setLocale, t, tm, tn } from '@/renderer/i18n';
 type Gesture = {
   kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'connector-point' | 'pan' | 'marquee';
   start: Point; last: Point; screenStart: Point; base: DocumentSession;
@@ -102,6 +103,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     ? { load: () => loadPreferences(), save: (value: Preferences) => { savePreferences(value); } }
     : options.preferences;
   const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de' };
+  setLocale(savedPreferences.language);
   function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language }); }
   const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
   let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
@@ -117,7 +119,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
   const actorId = options.actorId ?? ACTOR_ID;
-  const authorName = options.authorName?.trim() || 'Lokaler Benutzer';
+  const authorNameOption = options.authorName?.trim();
+  const localAuthor = (): string => authorNameOption || t('Lokaler Benutzer');
   let bindings: Record<'human' | 'code' | 'import', ActorBinding>;
   let unsubscribe = () => {};
   let disposed = false;
@@ -189,7 +192,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get title() { return this.document.title; },
     get empty() { return this.document.elements.length === 0; },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },
-    get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
+    get saveStatusText() { return this.hasDraft && !this.file.saving ? t('Offener Entwurf') : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
     get cursor() {
@@ -316,7 +319,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.liveMessage = text;
     state.notices = [...state.notices.slice(-3), { id: ++noticeId, kind, text }];
   }
-  function fail(error: unknown) { notice(error instanceof Error ? error.message : 'Die Aktion konnte nicht ausgeführt werden.', 'error'); }
+  function fail(error: unknown) { notice(error instanceof Error ? tm(error.message) : t('Die Aktion konnte nicht ausgeführt werden.'), 'error'); }
   function sync(snapshot: DocumentSession) {
     const before = state.document;
     state.document = Object.freeze(snapshot.document); state.revision = snapshot.revision;
@@ -325,7 +328,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (state.focusedId && !snapshot.document.elements.some((e) => e.id === state.focusedId)) state.focusedId = snapshot.document.elements[0]?.id ?? null;
     if (state.textEdit?.elementId) {
       const current = snapshot.document.elements.find((e) => e.id === state.textEdit!.elementId);
-      if (!same(current, textBase)) state.textEdit.conflict = current ? 'Das Element wurde zwischenzeitlich geändert. Dein Text bleibt erhalten.' : 'Das Element wurde gelöscht. Dein Text bleibt erhalten.';
+      if (!same(current, textBase)) state.textEdit.conflict = current ? t('Das Element wurde zwischenzeitlich geändert. Dein Text bleibt erhalten.') : t('Das Element wurde gelöscht. Dein Text bleibt erhalten.');
     }
     if (!state.code.dirty) { state.code.text = formatDiagram(snapshot.document); state.code.baseRevision = snapshot.revision; codeBase = snapshot.document; }
     if (titleDraft === before.title) titleDraft = snapshot.document.title;
@@ -347,14 +350,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   bind();
 
   function write(action: WriteAction, revision = state.revision, source: 'human' | 'code' | 'import' = 'human', recover: () => void = () => {}): Promise<boolean> {
-    if (!state.canWrite) { notice('Die gemeinsame Sitzung ist gerade schreibgeschützt. Offene Entwürfe bleiben erhalten.', 'error'); return Promise.resolve(false); }
+    if (!state.canWrite) { notice(t('Die gemeinsame Sitzung ist gerade schreibgeschützt. Offene Entwürfe bleiben erhalten.'), 'error'); return Promise.resolve(false); }
     const owner = activeSession();
     const gateway = guest?.gateway ?? bindings[source].gateway;
     pendingWrites++;
     const result = lastWrite.then(async () => {
       if (disposed || activeSession() !== owner || !state.canWrite) return false;
       const requestId = gateway.nextRequestId();
-      if (!requestId) { notice('Eine vorherige Änderung ist noch nicht geklärt.', 'error'); return false; }
+      if (!requestId) { notice(t('Eine vorherige Änderung ist noch nicht geklärt.'), 'error'); return false; }
       localCommit = true;
       try {
         const intent = { requestId, expectedRevision: revision, action };
@@ -362,9 +365,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         if (activeSession() !== owner) return false;
         const waitingForMirror = guest === owner && (outcome.status === 'committed' || outcome.status === 'no-op') && state.revision < outcome.revision;
         if ((outcome.status === 'outcome-unknown' || waitingForMirror) && guest === owner) { unknownWrite = { guest, intent, recover }; state.pendingPeerWrite = { requestId }; }
-        if (waitingForMirror) { notice('Der Gastgeber hat bestätigt. Die lokale Ansicht wird noch synchronisiert; dein Entwurf bleibt bis zur Prüfung erhalten.'); return false; }
+        if (waitingForMirror) { notice(t('Der Gastgeber hat bestätigt. Die lokale Ansicht wird noch synchronisiert; dein Entwurf bleibt bis zur Prüfung erhalten.')); return false; }
         if (outcome.status === 'committed' || outcome.status === 'no-op') return true;
-        notice(outcome.status === 'outcome-unknown' ? 'Die Änderung ist noch nicht bestätigt. Bitte vor dem Fortfahren klären.' : outcome.code === 'REVISION_CONFLICT' ? 'Das Dokument wurde währenddessen geändert. Deine Aktion wurde nicht übernommen.' : `Die Änderung wurde abgewiesen (${outcome.code}).`, 'error');
+        notice(outcome.status === 'outcome-unknown' ? t('Die Änderung ist noch nicht bestätigt. Bitte vor dem Fortfahren klären.') : outcome.code === 'REVISION_CONFLICT' ? t('Das Dokument wurde währenddessen geändert. Deine Aktion wurde nicht übernommen.') : t('Die Änderung wurde abgewiesen ({code}).', { code: outcome.code }), 'error');
         return false;
       } catch (error) { fail(error); return false; }
       finally { localCommit = false; }
@@ -481,7 +484,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const unchanged = g.targets.every((e) => same(e, state.document.elements.find((current) => current.id === e.id)));
     if (!unchanged) {
       failedGesture = g;
-      state.gestureConflict = { message: 'Ein betroffenes Element wurde während der Geste geändert. Die Vorschau bleibt erhalten.', canRetry: g.targets.every((e) => state.document.elements.some((current) => current.id === e.id)) };
+      state.gestureConflict = { message: t('Ein betroffenes Element wurde während der Geste geändert. Die Vorschau bleibt erhalten.'), canRetry: g.targets.every((e) => state.document.elements.some((current) => current.id === e.id)) };
       return false;
     }
     const recover = () => { if (gesture === g || failedGesture === g) { if (g.element) { setSelection([g.element.id]); state.tool = 'select'; if (g.element.kind === 'frame') state.frameSidebarOpen = true; } resetGesture(); failedGesture = null; state.gestureConflict = null; } };
@@ -492,7 +495,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const editTextId = g.element && ['sticky-note', 'annotation'].includes(g.element.kind) ? g.element.id : null;
       resetGesture(); failedGesture = null; state.gestureConflict = null;
       if (editTextId) store.startTextEdit(editTextId);
-    } else { failedGesture = g; state.gestureConflict = { message: 'Die Geste wurde nicht übernommen. Deine Vorschau bleibt erhalten.', canRetry: unchanged }; }
+    } else { failedGesture = g; state.gestureConflict = { message: t('Die Geste wurde nicht übernommen. Deine Vorschau bleibt erhalten.'), canRetry: unchanged }; }
     return ok;
   }
   function createDraw(g: Gesture, point: Point, shift: boolean): SketchElement | null {
@@ -511,8 +514,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       style.opacity = (g.pencilOpacity ?? state.pencilOpacity) / 100;
     }
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool), ...(SWAPPABLE_KINDS.has(g.tool as SketchElement['kind']) ? { shapeVariant: state.shapeVariant } : {}) };
-    if (g.tool === 'frame') value.label = g.element?.label ?? nextFrameLabel(state.document);
-    if (g.tool === 'sticky-note') value.author = authorName;
+    if (g.tool === 'frame') value.label = g.element?.label ?? nextFrameLabel(state.document, t('Folie'));
+    if (g.tool === 'sticky-note') value.author = localAuthor();
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
       value.connectorRouting = state.connectorDefaults.routing; value.endMarker = state.connectorDefaults.endMarker;
@@ -533,7 +536,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   async function applyText(): Promise<boolean> {
     const edit = state.textEdit;
     if (!edit) return true;
-    if (edit.composing) { notice('Bitte die laufende Texteingabe zuerst abschließen.', 'error'); return false; }
+    if (edit.composing) { notice(t('Bitte die laufende Texteingabe zuerst abschließen.'), 'error'); return false; }
     if (edit.conflict) { notice(edit.conflict, 'error'); return false; }
     const styleChanges = textStyleChanges(edit);
     const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
@@ -547,7 +550,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}) } }] }
       : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style } })] };
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
-    if (edit.elementId && !same(now, textBase)) { edit.conflict = 'Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'; return false; }
+    if (edit.elementId && !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
     const recover = () => { if (state.textEdit === edit) { state.textEdit = null; setSelection([id]); changedDraft(); } };
     const ok = await dispatch(command, state.revision === textRevision ? textRevision : state.revision, 'human', recover);
     if (ok) recover();
@@ -558,7 +561,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const source = state.code.text;
     const result = parseDiagram(source, codeBase);
     state.code.diagnostics = result.diagnostics;
-    if (!result.ok) { notice('Der Code enthält Fehler. Der Entwurf bleibt erhalten.', 'error'); return false; }
+    if (!result.ok) { notice(t('Der Code enthält Fehler. Der Entwurf bleibt erhalten.'), 'error'); return false; }
     const recover = () => { if (state.code.text === source) { state.code.dirty = false; state.code.text = formatDiagram(state.document); state.code.baseRevision = state.revision; codeBase = state.document; changedDraft(); } };
     const ok = await dispatch({ type: 'replace', document: result.document }, state.code.baseRevision, 'code', recover);
     if (ok) recover();
@@ -579,19 +582,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   async function prepareDrafts(): Promise<boolean> {
-    if (unknownWrite || guest?.getStatus().hasUnresolvedOutcome) { notice('Die ausstehende Peer-Änderung ist noch nicht bestätigt. Bitte ihren Ausgang prüfen oder nur den bestätigten Stand behalten.', 'error'); return false; }
-    if (inputComposing) { notice('Bitte die laufende Texteingabe zuerst abschließen.', 'error'); return false; }
+    if (unknownWrite || guest?.getStatus().hasUnresolvedOutcome) { notice(t('Die ausstehende Peer-Änderung ist noch nicht bestätigt. Bitte ihren Ausgang prüfen oder nur den bestätigten Stand behalten.'), 'error'); return false; }
+    if (inputComposing) { notice(t('Bitte die laufende Texteingabe zuerst abschließen.'), 'error'); return false; }
     if (nudge) store.endNudge();
     await lastWrite;
     if (titleDraft !== state.title) {
       const title = titleDraft.trim();
-      if (!title) { notice('Bitte einen Dokumenttitel eingeben oder die Titeländerung verwerfen.', 'error'); return false; }
+      if (!title) { notice(t('Bitte einen Dokumenttitel eingeben oder die Titeländerung verwerfen.'), 'error'); return false; }
       if (!await dispatch({ type: 'rename', title })) return false;
       titleDraft = title;
     }
     if (!await applyText()) return false;
     if (!await applyPropertyDraft()) return false;
-    if (failedGesture) { notice('Bitte die ausstehende Zeichenänderung zuerst bestätigen oder verwerfen.', 'error'); return false; }
+    if (failedGesture) { notice(t('Bitte die ausstehende Zeichenänderung zuerst bestätigen oder verwerfen.'), 'error'); return false; }
     if (gesture && !await finishGesture(gesture)) return false;
     return applyCode();
   }
@@ -608,16 +611,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         ? { ...base, mode: 'save', handleId: handle.handleId, expectedVersionToken: handle.versionToken }
         : { ...base, mode: 'save-as' });
       if (activeSession() !== session) return false;
-      if (result.status === 'saved') { state.file.handle = result.file; state.file.savedRevision = snapshot.revision; if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(`Gespeichert: ${result.file.name}`); return true; }
-      if (result.status === 'download-initiated') { state.file.handedOffRevision = snapshot.revision; notice(`Als Download übergeben: ${result.name}`); return true; }
+      if (result.status === 'saved') { state.file.handle = result.file; state.file.savedRevision = snapshot.revision; if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(t('Gespeichert: {name}', { name: result.file.name })); return true; }
+      if (result.status === 'download-initiated') { state.file.handedOffRevision = snapshot.revision; notice(t('Als Download übergeben: {name}', { name: result.name })); return true; }
       if (result.status === 'conflict') {
         state.file.conflict = true;
-        if (!state.transitioning) state.dialog = { kind: 'save-conflict', message: 'Die Datei wurde außerhalb von Sketchdraw geändert. Deine Änderungen bleiben erhalten.' };
+        if (!state.transitioning) state.dialog = { kind: 'save-conflict', message: t('Die Datei wurde außerhalb von Sketchdraw geändert. Deine Änderungen bleiben erhalten.') };
         return false;
       }
-      if (result.status === 'error') { state.file.lastError = result.message; notice(`Speichern fehlgeschlagen: ${result.message}`, 'error'); }
+      if (result.status === 'error') { state.file.lastError = result.message; notice(t('Speichern fehlgeschlagen: {message}', { message: tm(result.message) }), 'error'); }
       return false;
-    } catch (error) { state.file.lastError = error instanceof Error ? error.message : 'Speichern fehlgeschlagen'; fail(error); return false; }
+    } catch (error) { state.file.lastError = error instanceof Error ? error.message : t('Speichern fehlgeschlagen'); fail(error); return false; }
     finally { if (activeSession() === session) state.file.saving = false; }
   }
   function settleTransition(success: boolean) { const resolve = transitionResult; transitionResult = null; pendingGuest = null; if (!success && pendingRoom) { pendingRoom.destroy(); } pendingRoom = null; resolve?.(success); }
@@ -647,33 +650,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   async function continueTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave' | 'room', requestId?: string) {
     const active = barrier;
-    if (!active || !lifecycle().isCurrent(active, draftGeneration)) { releaseTransition(); state.dialog = null; notice('Der Stand hat sich geändert. Bitte die Aktion erneut starten.', 'error'); if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(fail); return; }
+    if (!active || !lifecycle().isCurrent(active, draftGeneration)) { releaseTransition(); state.dialog = null; notice(t('Der Stand hat sich geändert. Bitte die Aktion erneut starten.'), 'error'); if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(fail); return; }
     try {
       if (reason === 'join') {
-        if (!pendingGuest || pendingGuest.getStatus().state !== 'ready') throw new Error('Die Peer-Sitzung ist nicht mehr bereit.');
+        if (!pendingGuest || pendingGuest.getStatus().state !== 'ready') throw new Error(t('Die Peer-Sitzung ist nicht mehr bereit.'));
         const next = pendingGuest; install(next.source.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, next); return;
       }
       if (reason === 'room') {
         const room = pendingRoom;
-        if (!room) throw new Error('Das Dokument der Session ist nicht mehr verfügbar.');
-        install(room.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, null, room); notice('Session beigetreten. Das Dokument kommt vom Gastgeber; speichere eine Kopie, um es zu behalten.'); return;
+        if (!room) throw new Error(t('Das Dokument der Session ist nicht mehr verfügbar.'));
+        install(room.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, null, room); notice(t('Session beigetreten. Das Dokument kommt vom Gastgeber; speichere eine Kopie, um es zu behalten.')); return;
       }
-      if (reason === 'leave') { install(active.snapshot.document, { ...freshFile(), requiresInitialSave: true }); notice('Sitzung verlassen. Die lokale Kopie enthält nur den zuletzt bestätigten Stand.'); return; }
+      if (reason === 'leave') { install(active.snapshot.document, { ...freshFile(), requiresInitialSave: true }); notice(t('Sitzung verlassen. Die lokale Kopie enthält nur den zuletzt bestätigten Stand.')); return; }
       if (reason === 'import') {
-        if (!pendingImport) throw new Error('Die Importvorschau ist nicht mehr verfügbar.');
-        install(pendingImport, { ...freshFile(), requiresInitialSave: true }); notice('Importiert. Bitte als Sketchdraw-Datei speichern.'); return;
+        if (!pendingImport) throw new Error(t('Die Importvorschau ist nicht mehr verfügbar.'));
+        install(pendingImport, { ...freshFile(), requiresInitialSave: true }); notice(t('Importiert. Bitte als Sketchdraw-Datei speichern.')); return;
       }
       if (reason === 'new') { install(createDocument('Unbenannt')); return; }
       if (reason === 'open') {
         const result = await bridge.openDocument();
-        if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error('Der Stand hat sich während des Öffnens geändert.');
-        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(`Geöffnet: ${result.file.name}`); return; }
+        if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error(t('Der Stand hat sich während des Öffnens geändert.'));
+        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(t('Geöffnet: {name}', { name: result.file.name })); return; }
         if (result.status === 'error') throw new Error(result.message);
         releaseTransition(); state.dialog = null; return;
       }
-      if (!requestId) throw new Error('Die Schließanfrage fehlt.');
+      if (!requestId) throw new Error(t('Die Schließanfrage fehlt.'));
       await bridge.respondToClose(requestId, 'close');
-      if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error('Die Schließanfrage ist nicht mehr aktuell.');
+      if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error(t('Die Schließanfrage ist nicht mehr aktuell.'));
       lifecycle().completeTransition(active.token); state.dialog = null;
     } catch (error) {
       releaseTransition(); state.dialog = null; fail(error);
@@ -739,12 +742,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const outcome = await pending.guest.gateway.queryOutcome(pending.intent.requestId);
         if (unknownWrite !== pending || guest !== pending.guest) return;
         if (outcome.status === 'committed' || outcome.status === 'no-op') {
-          if (state.revision < outcome.revision) { notice('Die bestätigte Änderung ist noch nicht in der lokalen Ansicht angekommen. Bitte nach der Synchronisation erneut prüfen.'); return; }
+          if (state.revision < outcome.revision) { notice(t('Die bestätigte Änderung ist noch nicht in der lokalen Ansicht angekommen. Bitte nach der Synchronisation erneut prüfen.')); return; }
           // A receipt clears only its own retained draft; unrelated drafts survive.
           pending.recover();
-          unknownWrite = null; state.pendingPeerWrite = null; notice('Die Änderung wurde beim Gastgeber bestätigt.');
-        } else if (outcome.status === 'rejected') { unknownWrite = null; state.pendingPeerWrite = null; notice(`Die Änderung wurde abgewiesen (${outcome.code}). Der Entwurf bleibt erhalten.`, 'error'); }
-        else notice('Der Ausgang ist weiterhin unbekannt. Kein neuer Schreibversuch wurde gesendet.', 'error');
+          unknownWrite = null; state.pendingPeerWrite = null; notice(t('Die Änderung wurde beim Gastgeber bestätigt.'));
+        } else if (outcome.status === 'rejected') { unknownWrite = null; state.pendingPeerWrite = null; notice(t('Die Änderung wurde abgewiesen ({code}). Der Entwurf bleibt erhalten.', { code: outcome.code }), 'error'); }
+        else notice(t('Der Ausgang ist weiterhin unbekannt. Kein neuer Schreibversuch wurde gesendet.'), 'error');
       } catch (error) { fail(error); }
     },
     subscribeAuthority(listener) { authorityListeners.add(listener); return () => authorityListeners.delete(listener); },
@@ -760,14 +763,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (tool === 'ellipse') state.shapeVariant = 'circle';
       if (tool === 'diamond') state.shapeVariant = 'diamond';
       if (tool === 'frame') state.frameSidebarOpen = true;
-      state.liveMessage = `Werkzeug: ${tool}`;
+      state.liveMessage = t('Werkzeug: {tool}', { tool });
     },
     setShapeTool(variant) {
       if (!state.canWrite || state.transitioning) return;
       if (state.textEdit) void applyText();
       state.shapeVariant = variant;
       state.tool = shapeBaseKind(variant);
-      state.liveMessage = `Formwerkzeug: ${variant}`;
+      state.liveMessage = t('Formwerkzeug: {variant}', { variant });
     },
     setConnectorDefaults(patch) {
       const routing = patch.routing && CONNECTOR_ROUTING_OPTIONS.some((option) => option.value === patch.routing) ? patch.routing : state.connectorDefaults.routing;
@@ -781,34 +784,34 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.pencilPreset = preset;
       state.pencilSize = pencilOption(preset).strokeWidth;
       state.pencilOpacity = Math.round(pencilOption(preset).opacity * 100);
-      state.liveMessage = `Stifttyp: ${pencilOption(preset).label}`;
+      state.liveMessage = t('Stifttyp: {label}', { label: pencilOption(preset).label });
     },
     setPencilColor(color) {
       if (!state.canWrite || state.transitioning) return;
       const normalized = normalizeHex(color);
       if (!normalized) return;
       state.pencilColor = normalized;
-      state.liveMessage = `Stiftfarbe: ${normalized}`;
+      state.liveMessage = t('Stiftfarbe: {normalized}', { normalized });
     },
     setPencilSize(size) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(size)) return;
       state.pencilSize = clampPencilSize(size);
-      state.liveMessage = `Pinselgröße: ${state.pencilSize} Pixel`;
+      state.liveMessage = t('Pinselgröße: {pencilSize} Pixel', { pencilSize: state.pencilSize });
     },
     setPencilOpacity(opacity) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(opacity)) return;
       state.pencilOpacity = clampPencilOpacity(opacity);
-      state.liveMessage = `Stift-Deckkraft: ${state.pencilOpacity} Prozent`;
+      state.liveMessage = t('Stift-Deckkraft: {pencilOpacity} Prozent', { pencilOpacity: state.pencilOpacity });
     },
     setEraserRadius(radius) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(radius)) return;
       state.eraserRadius = clampEraserRadius(radius);
-      state.liveMessage = `Radierer-Radius: ${state.eraserRadius} Pixel`;
+      state.liveMessage = t('Radierer-Radius: {eraserRadius} Pixel', { eraserRadius: state.eraserRadius });
     },
     async addWebEmbed(rawUrl) {
       if (!state.canWrite || state.transitioning) return false;
       const parsed = parseWebEmbedUrl(rawUrl);
-      if (!parsed.ok) { notice(parsed.message, 'error'); return false; }
+      if (!parsed.ok) { notice(tm(parsed.message), 'error'); return false; }
       const width = Math.min(640, Math.max(320, state.viewportSize.width / state.viewport.zoom - 96));
       const height = Math.min(400, Math.max(220, state.viewportSize.height / state.viewport.zoom - 160));
       const centre = screenToDoc(state.viewport, { x: state.viewportSize.width / 2, y: state.viewportSize.height / 2 });
@@ -825,7 +828,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (ok) {
         setSelection([element.id]);
         state.tool = 'select';
-        state.liveMessage = `Web-Embed ${element.label} hinzugefügt.`;
+        state.liveMessage = t('Web-Embed {label} hinzugefügt.', { label: element.label ?? '' });
       }
       return ok;
     },
@@ -1017,7 +1020,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     doubleClick(input) {
       if (!state.canWrite || state.transitioning) return;
       const e = hit(screenToDoc(state.viewport, input));
-      if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = 'Frame in der Folienleiste zum Umbenennen ausgewählt.'; return; }
+      if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = t('Frame in der Folienleiste zum Umbenennen ausgewählt.'); return; }
       if (e && e.kind !== 'table' && !isResourceCard(e)) store.startTextEdit(e.id);
     },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
@@ -1073,7 +1076,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       clipboardWrite = clipboard.writeText(text).then(() => true, () => false);
       const written = await clipboardWrite;
       if (written) internalClipboardFallbackPending = false;
-      notice(written ? `${payload.elements.length} Element${payload.elements.length === 1 ? '' : 'e'} kopiert.` : `${payload.elements.length} Element${payload.elements.length === 1 ? '' : 'e'} intern kopiert.`);
+      notice(written ? tn(payload.elements.length, '{count} Element kopiert.', '{count} Elemente kopiert.') : tn(payload.elements.length, '{count} Element intern kopiert.', '{count} Elemente intern kopiert.'));
     },
     async pasteSelection() {
       if (!state.canWrite || state.transitioning) return;
@@ -1091,14 +1094,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       if (owner !== activeSession() || state.transitioning || !state.canWrite) return;
       const payload = text ? parseElementClipboard(text) : null;
-      if (!payload) { notice('Die Zwischenablage enthält keine Sketchdraw-Elemente.', 'error'); return; }
+      if (!payload) { notice(t('Die Zwischenablage enthält keine Sketchdraw-Elemente.'), 'error'); return; }
       try {
         const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
         const plan = planElementPaste(payload, state.document, at, uid);
         if (await dispatch(plan.command, revision)) {
           setSelection(plan.selection);
           state.tool = 'select';
-          state.liveMessage = `${plan.selection.length} Element${plan.selection.length === 1 ? '' : 'e'} eingefügt.`;
+          state.liveMessage = tn(plan.selection.length, '{count} Element eingefügt.', '{count} Elemente eingefügt.');
         }
       } catch (error) { fail(error); }
     },
@@ -1205,7 +1208,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       if (!state.canWrite || state.transitioning || !state.selection.length) return;
       const previous = state.propertyDraft;
-      if (previous && !same(previous.ids, state.selection)) { notice('Bitte den offenen Eigenschaftenentwurf zuerst übernehmen oder verwerfen.', 'error'); return; }
+      if (previous && !same(previous.ids, state.selection)) { notice(t('Bitte den offenen Eigenschaftenentwurf zuerst übernehmen oder verwerfen.'), 'error'); return; }
       state.propertyDraft = { baseRevision: previous?.baseRevision ?? state.revision, ids: [...state.selection], patch: { ...previous?.patch, ...value, ...((previous?.patch.style || value.style) ? { style: { ...previous?.patch.style, ...value.style } } : {}) } };
       changedDraft();
     },
@@ -1270,7 +1273,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!element?.table) return;
       setSelection([elementId]);
       state.tableSelection = { elementId, cellIds: cellIds.filter((id) => element.table!.cells.some((cell) => cell.id === id)), mode, rowIndex, columnIndex };
-      state.liveMessage = mode === 'table' ? 'Gesamte Tabelle ausgewählt.' : `${cellIds.length} Tabellenzelle${cellIds.length === 1 ? '' : 'n'} ausgewählt.`;
+      state.liveMessage = mode === 'table' ? t('Gesamte Tabelle ausgewählt.') : tn(cellIds.length, '{count} Tabellenzelle ausgewählt.', '{count} Tabellenzellen ausgewählt.');
     },
     setTableCellText(elementId, cellId, text) {
       if (!state.canWrite || state.transitioning) return;
@@ -1321,17 +1324,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.activeCommentId = null;
       state.workspaceView = 'canvas';
-      state.liveMessage = element ? 'Kommentar an Element schreiben.' : 'Kommentar auf Zeichenfläche schreiben.';
+      state.liveMessage = element ? t('Kommentar an Element schreiben.') : t('Kommentar auf Zeichenfläche schreiben.');
     },
     cancelComment() { state.commentComposerTarget = null; },
     async createComment(body) {
       const text = body.trim(); const target = state.commentComposerTarget;
       if (!target || !text || !state.canWrite || state.transitioning) return false;
       const now = new Date().toISOString();
-      const message: CommentMessage = { id: uid('comment'), authorId: actorId, authorName, body: text, createdAt: now };
+      const message: CommentMessage = { id: uid('comment'), authorId: actorId, authorName: localAuthor(), body: text, createdAt: now };
       const thread: CommentThread = { id: uid('thread'), target: clone(target), messages: [message], resolved: false, createdAt: now, updatedAt: now };
       const ok = await dispatch({ type: 'set-comments', threads: [...(state.document.commentThreads ?? []), thread] });
-      if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.frameSidebarOpen = false; state.tool = 'select'; state.liveMessage = 'Kommentar erstellt.'; }
+      if (ok) { state.commentComposerTarget = null; state.activeCommentId = thread.id; state.commentSidebarOpen = true; state.frameSidebarOpen = false; state.tool = 'select'; state.liveMessage = t('Kommentar erstellt.'); }
       return ok;
     },
     openComment(threadId, options) {
@@ -1355,7 +1358,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (options?.reveal !== false) {
         state.viewport = { ...state.viewport, panX: state.viewportSize.width / 2 - thread.target.fallback.x * state.viewport.zoom, panY: state.viewportSize.height / 2 - thread.target.fallback.y * state.viewport.zoom };
       }
-      state.liveMessage = 'Kommentar geöffnet und Ziel hervorgehoben.';
+      state.liveMessage = t('Kommentar geöffnet und Ziel hervorgehoben.');
     },
     closeCommentThread() { state.activeCommentId = null; },
     closeCommentSidebar() { state.commentSidebarOpen = false; state.activeCommentId = null; state.commentComposerTarget = null; },
@@ -1364,15 +1367,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const now = new Date().toISOString();
       const threads = clone(state.document.commentThreads ?? []);
       const thread = threads.find((entry) => entry.id === threadId); if (!thread) return false;
-      thread.messages.push({ id: uid('comment'), authorId: actorId, authorName, body: text, createdAt: now }); thread.updatedAt = now;
-      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Antwort hinzugefügt.'; return ok;
+      thread.messages.push({ id: uid('comment'), authorId: actorId, authorName: localAuthor(), body: text, createdAt: now }); thread.updatedAt = now;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = t('Antwort hinzugefügt.'); return ok;
     },
     async editCommentMessage(threadId, messageId, body) {
       const text = body.trim(); if (!text || !state.canWrite || state.transitioning) return false;
       const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); const message = thread?.messages.find((entry) => entry.id === messageId);
       if (!thread || !message || message.authorId !== actorId) return false;
       const now = new Date().toISOString(); message.body = text; message.editedAt = now; thread.updatedAt = now;
-      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Kommentar bearbeitet.'; return ok;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = t('Kommentar bearbeitet.'); return ok;
     },
     async deleteCommentMessage(threadId, messageId) {
       if (!state.canWrite || state.transitioning) return false;
@@ -1380,25 +1383,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!thread || !message || message.authorId !== actorId) return false;
       if (thread.messages.length === 1) return store.deleteCommentThread(threadId);
       thread.messages = thread.messages.filter((entry) => entry.id !== messageId); thread.updatedAt = new Date().toISOString();
-      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Kommentar gelöscht.'; return ok;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = t('Kommentar gelöscht.'); return ok;
     },
     async setCommentResolved(threadId, resolved) {
       const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); if (!thread || !state.canWrite || state.transitioning) return false;
       thread.resolved = resolved; thread.updatedAt = new Date().toISOString();
-      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = resolved ? 'Kommentar erledigt.' : 'Kommentar wieder geöffnet.'; return ok;
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = resolved ? t('Kommentar erledigt.') : t('Kommentar wieder geöffnet.'); return ok;
     },
     markCommentUnread(threadId) { if ((state.document.commentThreads ?? []).some((entry) => entry.id === threadId) && !state.unreadCommentIds.includes(threadId)) state.unreadCommentIds = [...state.unreadCommentIds, threadId]; },
     async copyCommentLink(threadId) {
       if (!(state.document.commentThreads ?? []).some((entry) => entry.id === threadId)) return;
       const base = typeof window === 'undefined' ? 'sketchdraw' : window.location.href.split('#')[0];
-      try { await clipboard.writeText(`${base}#comment=${encodeURIComponent(threadId)}`); notice('Kommentarlink kopiert.'); } catch (error) { fail(error); }
+      try { await clipboard.writeText(`${base}#comment=${encodeURIComponent(threadId)}`); notice(t('Kommentarlink kopiert.')); } catch (error) { fail(error); }
     },
     async deleteCommentThread(threadId) {
       if (!state.canWrite || state.transitioning) return false;
       const threads = (state.document.commentThreads ?? []).filter((entry) => entry.id !== threadId);
       if (threads.length === (state.document.commentThreads ?? []).length) return false;
       const ok = await dispatch({ type: 'set-comments', threads });
-      if (ok) { state.activeCommentId = null; state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId); state.liveMessage = 'Kommentar-Thread gelöscht.'; }
+      if (ok) { state.activeCommentId = null; state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId); state.liveMessage = t('Kommentar-Thread gelöscht.'); }
       return ok;
     },
     async createTask(input) {
@@ -1417,13 +1420,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
-      state.liveMessage = 'Aufgabe erstellt.';
+      state.liveMessage = t('Aufgabe erstellt.');
       if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(`Jira-Ticket ${issue.key} erstellt.`); }
-        } catch (error) { notice(`Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -1434,13 +1437,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const task: SketchTask = { id: uid('task'), sourceThreadId: threadId, title, description: first.body, status: 'todo', rank: (state.document.tasks ?? []).filter((entry) => entry.status === 'todo').length, createdAt: now, updatedAt: now };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
-      state.liveMessage = 'Aufgabe aus Kommentar erstellt.';
+      state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
       if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(`Jira-Ticket ${issue.key} erstellt.`); }
-        } catch (error) { notice(`Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -1450,7 +1453,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!note) return false;
       const description = (note.text ?? '').trim();
       const firstLine = description.split(/\r?\n/).find((line) => line.trim())?.trim();
-      const fallback = note.author?.trim() ? `Notiz von ${note.author.trim()}` : 'Notiz';
+      const fallback = note.author?.trim() ? t('Notiz von {name}', { name: note.author.trim() }) : t('Notiz');
       const now = new Date().toISOString();
       const task: SketchTask = {
         id: uid('task'), sourceElementId: elementId, title: (firstLine || fallback).slice(0, 120), description,
@@ -1459,13 +1462,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
-      state.liveMessage = 'Aufgabe aus Notiz erstellt.';
+      state.liveMessage = t('Aufgabe aus Notiz erstellt.');
       if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(`Jira-Ticket ${issue.key} erstellt.`); }
-        } catch (error) { notice(`Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -1482,13 +1485,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       task.updatedAt = new Date().toISOString();
       const ok = await dispatch({ type: 'set-tasks', tasks });
       if (!ok) return false;
-      state.liveMessage = 'Aufgabe verschoben.';
+      state.liveMessage = t('Aufgabe verschoben.');
       if (previous !== status && task.external?.provider === 'jira' && bridge.plugins) {
         try {
           const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
           const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
           if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
-        } catch (error) { notice(`Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+        } catch (error) { notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -1504,13 +1507,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       task.updatedAt = new Date().toISOString();
       const ok = await dispatch({ type: 'set-tasks', tasks });
       if (ok) {
-        state.liveMessage = 'Aufgabe aktualisiert.';
+        state.liveMessage = t('Aufgabe aktualisiert.');
         if (value.status !== undefined && task.external?.provider === 'jira' && bridge.plugins) {
           try {
             const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
             const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
             if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { notice(`Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+          } catch (error) { notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -1520,8 +1523,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const tasks = (state.document.tasks ?? []).filter((entry) => entry.id !== taskId); if (tasks.length === (state.document.tasks ?? []).length) return false;
       return dispatch({ type: 'set-tasks', tasks });
     },
-    openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = 'Aufgabenboard geöffnet.'; },
-    showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = 'Zeichenfläche geöffnet.'; },
+    openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = t('Aufgabenboard geöffnet.'); },
+    showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = t('Zeichenfläche geöffnet.'); },
     async refreshPluginSettings() {
       if (!bridge.plugins) { state.pluginSettings = { available: false, git: { enabled: false, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
       try { state.pluginSettings = await bridge.plugins.getSettings(); if (state.file.handle && state.pluginSettings.git.enabled) void bridge.plugins.watchDocument(state.file.handle.handleId); }
@@ -1529,28 +1532,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
       if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { state.pluginSettings = await bridge.plugins.configureGit(input); if (input.enabled && state.file.handle) await bridge.plugins.watchDocument(state.file.handle.handleId); notice('Git-Plugin gespeichert.'); return true; }
+      try { state.pluginSettings = await bridge.plugins.configureGit(input); if (input.enabled && state.file.handle) await bridge.plugins.watchDocument(state.file.handle.handleId); notice(t('Git-Plugin gespeichert.')); return true; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async configureAtlassianPlugin(input: ConfigureAtlassianPluginInput) {
       if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { state.pluginSettings = await bridge.plugins.configureAtlassian(input); notice('Atlassian-Plugin gespeichert.'); return true; }
+      try { state.pluginSettings = await bridge.plugins.configureAtlassian(input); notice(t('Atlassian-Plugin gespeichert.')); return true; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
       if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { const result = await bridge.plugins.testAtlassian(); await store.refreshPluginSettings(); notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      try { const result = await bridge.plugins.testAtlassian(); await store.refreshPluginSettings(); notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async refreshGitStatus() {
-      if (!bridge.plugins || !state.file.handle) { notice('Speichere das Dokument zuerst in einem Git-Repository.', 'error'); return false; }
-      state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      if (!bridge.plugins || !state.file.handle) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async syncGit() {
-      if (!bridge.plugins || !state.file.handle) { notice('Speichere das Dokument zuerst in einem Git-Repository.', 'error'); return false; }
-      if (state.saveStatus === 'dirty') { notice('Speichere lokale Änderungen vor der Git-Synchronisation.', 'error'); return false; }
-      state.pluginBusy = true; try { const result = await bridge.plugins.gitSync(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      if (!bridge.plugins || !state.file.handle) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
+      if (state.saveStatus === 'dirty') { notice(t('Speichere lokale Änderungen vor der Git-Synchronisation.'), 'error'); return false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitSync(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async searchConfluencePages(query) {
@@ -1563,19 +1566,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       try {
         const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const p = currentCenter();
         const element = createElement('annotation', { x: p.x - 260, y: p.y - 180, width: 520, height: 360, label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageId': page.id, 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } });
-        const ok = await dispatch({ type: 'add', elements: [element] }, state.revision, 'import'); if (ok) { setSelection([element.id]); state.workspaceView = 'canvas'; notice(`Confluence-Seite „${page.title}“ eingebunden.`); } return ok;
+        const ok = await dispatch({ type: 'add', elements: [element] }, state.revision, 'import'); if (ok) { setSelection([element.id]); state.workspaceView = 'canvas'; notice(t('Confluence-Seite „{title}“ eingebunden.', { title: page.title })); } return ok;
       } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async syncConfluenceElement(elementId) {
       if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
-      if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice('Das Element ist nicht mit einer Confluence-Seite verknüpft.', 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice('Confluence-Seite aktualisiert.'); return ok; }
+      if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async refreshConfluenceElement(elementId) {
       if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
-      if (!element || !pageId) { notice('Das Element ist nicht mit einer Confluence-Seite verknüpft.', 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice('Confluence-Seite neu geladen.'); return ok; }
+      if (!element || !pageId) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async syncJiraTasks() {
@@ -1583,19 +1586,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       try {
         const issues = await bridge.plugins.listJiraIssues(); const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
         for (const issue of issues) { const existing = byKey.get(issue.key); if (existing) { existing.title = issue.title; existing.description = issue.description; existing.status = issue.status; existing.updatedAt = issue.updatedAt; existing.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; } else tasks.push({ id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((task) => task.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } }); }
-        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) notice(`${issues.length} Jira-Vorgänge synchronisiert.`); return ok;
+        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
       } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async acceptExternalDocument() {
       const event = pendingExternalEvent; if (!event) return false;
-      try { const document = deserializeDocument(event.text); install(document, { ...freshFile(), handle: event.file, savedRevision: 0 }); pendingExternalEvent = null; state.pendingExternalDocument = false; notice(`Extern geändert und neu geladen: ${event.file.name}`); return true; }
+      try { const document = deserializeDocument(event.text); install(document, { ...freshFile(), handle: event.file, savedRevision: 0 }); pendingExternalEvent = null; state.pendingExternalDocument = false; notice(t('Extern geändert und neu geladen: {name}', { name: event.file.name })); return true; }
       catch (error) { fail(error); return false; }
     },
     toggleFrameSidebar(open) {
       state.frameSidebarOpen = open ?? !state.frameSidebarOpen;
       if (state.frameSidebarOpen) {
         state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
-        state.liveMessage = 'Folienleiste geöffnet.';
+        state.liveMessage = t('Folienleiste geöffnet.');
       }
     },
     focusFrame(id) {
@@ -1603,7 +1606,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!frame) return;
       setSelection([id]);
       state.viewport = fitRect(state.viewportSize, frame, 72, 2);
-      state.liveMessage = `${frame.label || 'Folie'} ausgewählt.`;
+      state.liveMessage = t('{label} ausgewählt.', { label: frame.label || t('Folie') });
     },
     renameFrame(id, name) {
       if (!state.canWrite || state.transitioning) return;
@@ -1625,14 +1628,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     startPresentation(frameId) {
       const slides = state.frameSlides;
-      if (!slides.length) { notice('Lege zuerst mindestens einen Frame an.', 'error'); return; }
+      if (!slides.length) { notice(t('Lege zuerst mindestens einen Frame an.'), 'error'); return; }
       const selectedFrame = frameId ?? state.selection.find((id) => slides.some((frame) => frame.id === id));
       const index = selectedFrame ? slides.findIndex((frame) => frame.id === selectedFrame) : 0;
       state.presenterIndex = Math.max(0, index);
       state.presenterOpen = true;
-      state.liveMessage = `Präsentation gestartet: ${slides[state.presenterIndex]?.label || `Folie ${state.presenterIndex + 1}`}.`;
+      state.liveMessage = t('Präsentation gestartet: {name}.', { name: slides[state.presenterIndex]?.label || t('Folie {index}', { index: state.presenterIndex + 1 }) });
     },
-    stopPresentation() { state.presenterOpen = false; state.liveMessage = 'Präsentation beendet.'; },
+    stopPresentation() { state.presenterOpen = false; state.liveMessage = t('Präsentation beendet.'); },
     goToPresentation(index) {
       if (!state.presenterOpen || !state.frameSlides.length) return;
       state.presenterIndex = Math.max(0, Math.min(state.frameSlides.length - 1, index));
@@ -1640,13 +1643,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     async insertImageFile(file, at) {
       if (state.transitioning) return;
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice('Erlaubt sind PNG, JPEG und WebP.', 'error'); return; }
-      if (file.size > DOMAIN_LIMITS.MAX_ASSET_BYTES) { notice('Das Bild ist zu groß (maximal 8 MB).', 'error'); return; }
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice(t('Erlaubt sind PNG, JPEG und WebP.'), 'error'); return; }
+      if (file.size > DOMAIN_LIMITS.MAX_ASSET_BYTES) { notice(t('Das Bild ist zu groß (maximal 8 MB).'), 'error'); return; }
       const owner = activeSession(); const revision = state.revision;
       try {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
         const image = new Image(); image.src = dataUrl; await image.decode();
-        if (activeSession() !== owner || state.transitioning) { notice('Das Bild wurde nicht eingefügt, weil das Dokument gewechselt hat.'); return; }
+        if (activeSession() !== owner || state.transitioning) { notice(t('Das Bild wurde nicht eingefügt, weil das Dokument gewechselt hat.')); return; }
         const scale = Math.min(1, 640 / Math.max(image.naturalWidth, image.naturalHeight));
         const p = at ?? currentCenter(); const width = Math.max(1, image.naturalWidth * scale); const height = Math.max(1, image.naturalHeight * scale);
         const asset = { id: uid('asset'), mimeType: file.type as 'image/png' | 'image/jpeg' | 'image/webp', dataUrl, name: file.name };
@@ -1671,12 +1674,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async save() { if (!state.transitioning) await saveFile(false); }, async saveAs() { if (!state.transitioning) await saveFile(true); },
     async exportDocument(format) {
       if (state.transitioning) return;
-      if (format !== 'sketchdraw') { notice('Dieses Austauschformat ist noch nicht angebunden.', 'error'); return; }
+      if (format !== 'sketchdraw') { notice(t('Dieses Austauschformat ist noch nicht angebunden.'), 'error'); return; }
       try {
         if (!await prepareDrafts()) return;
         const result = await bridge.exportFile(serializeDocument(state.document), suggestFileName(state.title), format);
         if (result.status === 'error') fail(new Error(result.message));
-        else if (result.status !== 'cancelled') notice(result.status === 'exported' ? `Exportiert: ${result.name}` : `Als Download übergeben: ${result.name}`);
+        else if (result.status !== 'cancelled') notice(result.status === 'exported' ? t('Exportiert: {name}', { name: result.name }) : t('Als Download übergeben: {name}', { name: result.name }));
       } catch (error) { fail(error); }
     },
     async resolveDialog(choice: DialogChoice) {
@@ -1693,7 +1696,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         barrier = null;
         const prepared = await prepareDrafts();
         barrier = await lifecycle().beginTransition(dialog.reason === 'close' ? 'close' : 'replace', draftGeneration);
-        if (!prepared || !await saveFile(false, barrier.snapshot)) { dialog.busy = false; dialog.error = state.file.conflict ? 'Speicherkonflikt. Abbrechen und über „Speichern unter“ eine Kopie anlegen.' : 'Nicht gespeichert. Entwürfe und Dokument bleiben erhalten.'; return; }
+        if (!prepared || !await saveFile(false, barrier.snapshot)) { dialog.busy = false; dialog.error = state.file.conflict ? t('Speicherkonflikt. Abbrechen und über „Speichern unter“ eine Kopie anlegen.') : t('Nicht gespeichert. Entwürfe und Dokument bleiben erhalten.'); return; }
       }
       await continueTransition(dialog.reason, dialog.requestId);
       } catch (error) { releaseTransition(); state.dialog = null; fail(error); if (dialog.reason === 'close' && dialog.requestId) await bridge.respondToClose(dialog.requestId, 'cancel').catch(fail); }
@@ -1710,7 +1713,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     addPage() {
       if (!state.canWrite || state.transitioning) return;
       const model = pageState(state.document);
-      if (model.pages.length >= MAX_PAGES) { notice(`Ein Dokument kann höchstens ${MAX_PAGES} Seiten enthalten.`, 'error'); return; }
+      if (model.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
       const page = { id: uid('page'), name: nextPageName(model.pages), elements: [] };
       const pages = [...model.pages, page];
       void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, page.id) });
@@ -1727,7 +1730,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     duplicatePage(id) {
       if (!state.canWrite || state.transitioning) return;
       const model = pageState(state.document);
-      if (model.pages.length >= MAX_PAGES) { notice(`Ein Dokument kann höchstens ${MAX_PAGES} Seiten enthalten.`, 'error'); return; }
+      if (model.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
       const index = model.pages.findIndex((page) => page.id === id);
       if (index < 0) return;
       const duplicate = clonePage(model.pages[index]!, uid);
@@ -1757,8 +1760,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!page) return;
       try {
         await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, page.elements, state.document.assets)));
-        notice(`Inhalt von „${page.name}“ kopiert.`);
-      } catch { notice('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.', 'error'); }
+        notice(t('Inhalt von „{name}“ kopiert.', { name: page.name }));
+      } catch { notice(t('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.'), 'error'); }
     },
     async pastePage() {},
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
@@ -1770,7 +1773,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setLanguage(language) {
       if (language === state.language || !LANGUAGES.some((entry) => entry.code === language && entry.available)) return;
-      state.language = language; persistPreferences();
+      state.language = language; setLocale(language); persistPreferences();
     },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
@@ -1796,7 +1799,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async importComponentSet(file) {
       if (state.transitioning) return;
       const owner = activeSession(); const revision = state.revision;
-      try { if (file.size > 2 * 1024 * 1024) throw new Error('Das Komponentenset ist zu groß (maximal 2 MB).'); const set = parseComponentSet(await file.text()); if (owner !== activeSession() || state.transitioning) return; const command = prepareComponentSetImport(state.document, set); if (command) await dispatch(command, revision, 'import'); }
+      try { if (file.size > 2 * 1024 * 1024) throw new Error(t('Das Komponentenset ist zu groß (maximal 2 MB).')); const set = parseComponentSet(await file.text()); if (owner !== activeSession() || state.transitioning) return; const command = prepareComponentSetImport(state.document, set); if (command) await dispatch(command, revision, 'import'); }
       catch (error) { fail(error); }
     },
     whenIdle() { return lastWrite; },
@@ -1814,7 +1817,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pendingExternalEvent = event;
     state.pendingExternalDocument = true;
     if (state.saveStatus === 'saved' && !state.hasDraft && !state.transitioning) void store.acceptExternalDocument();
-    else notice('Die Datei wurde extern geändert. Lokale Entwürfe bleiben erhalten; neu laden ist in den Plugin-Einstellungen möglich.', 'error');
+    else notice(t('Die Datei wurde extern geändert. Lokale Entwürfe bleiben erhalten; neu laden ist in den Plugin-Einstellungen möglich.'), 'error');
   }) ?? (() => {});
   void store.refreshPluginSettings();
   return store;

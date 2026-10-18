@@ -1,6 +1,7 @@
 import type { ElementKind, ElementStyle } from '@/domain/types';
 import type { Size, Tool } from '@/renderer/state/contract';
 
+import { L } from '@/renderer/i18n';
 export const ZOOM_MIN = 0.1;
 export const ZOOM_MAX = 4;
 
@@ -84,27 +85,27 @@ export interface NamedColor { name: string; value: string }
 
 /** Shared stroke and fill palette (#38): strong colors, then their light tints. */
 export const PALETTE: readonly NamedColor[] = [
-  { name: 'Schwarz', value: '#1e1e1e' },
-  { name: 'Grau', value: '#757575' },
-  { name: 'Rot', value: '#e5533a' },
-  { name: 'Orange', value: '#f2a65a' },
-  { name: 'Gelb', value: '#f9cc5f' },
-  { name: 'Grün', value: '#82d283' },
-  { name: 'Türkis', value: '#7fd8cc' },
-  { name: 'Blau', value: '#5aabf7' },
-  { name: 'Violett', value: '#8558f0' },
-  { name: 'Pink', value: '#e05cbf' },
-  { name: 'Weiß', value: '#ffffff' },
-  { name: 'Hellgrau', value: '#b4b4b4' },
-  { name: 'Silber', value: '#dcdcdc' },
-  { name: 'Hellrot', value: '#f6c9c4' },
-  { name: 'Pfirsich', value: '#fcdfc3' },
-  { name: 'Hellgelb', value: '#fdefc6' },
-  { name: 'Hellgrün', value: '#d6f2d6' },
-  { name: 'Helltürkis', value: '#d2f5f2' },
-  { name: 'Hellblau', value: '#cfe3fb' },
-  { name: 'Hellviolett', value: '#ddd3fa' },
-  { name: 'Hellpink', value: '#f6cde8' },
+  { name: L('Schwarz'), value: '#1e1e1e' },
+  { name: L('Grau'), value: '#757575' },
+  { name: L('Rot'), value: '#e5533a' },
+  { name: L('Orange'), value: '#f2a65a' },
+  { name: L('Gelb'), value: '#f9cc5f' },
+  { name: L('Grün'), value: '#82d283' },
+  { name: L('Türkis'), value: '#7fd8cc' },
+  { name: L('Blau'), value: '#5aabf7' },
+  { name: L('Violett'), value: '#8558f0' },
+  { name: L('Pink'), value: '#e05cbf' },
+  { name: L('Weiß'), value: '#ffffff' },
+  { name: L('Hellgrau'), value: '#b4b4b4' },
+  { name: L('Silber'), value: '#dcdcdc' },
+  { name: L('Hellrot'), value: '#f6c9c4' },
+  { name: L('Pfirsich'), value: '#fcdfc3' },
+  { name: L('Hellgelb'), value: '#fdefc6' },
+  { name: L('Hellgrün'), value: '#d6f2d6' },
+  { name: L('Helltürkis'), value: '#d2f5f2' },
+  { name: L('Hellblau'), value: '#cfe3fb' },
+  { name: L('Hellviolett'), value: '#ddd3fa' },
+  { name: L('Hellpink'), value: '#f6cde8' },
 ];
 
 /** Single source of truth for rendering an element's fontFamily (canvas text and inline editor). */

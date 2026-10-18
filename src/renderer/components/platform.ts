@@ -1,3 +1,5 @@
+import { t } from '@/renderer/i18n';
+
 export function isMacPlatform(): boolean {
   return typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
 }
@@ -5,7 +7,7 @@ export function isMacPlatform(): boolean {
 /** Display text for a Ctrl/Cmd shortcut, for example modHint(false, 'S', true) is "Strg+Umschalt+S". */
 export function modHint(isMac: boolean, key: string, shift = false): string {
   if (isMac) return `${shift ? '⇧' : ''}⌘${key}`;
-  return `Strg+${shift ? 'Umschalt+' : ''}${key}`;
+  return `${t('Strg')}+${shift ? `${t('Umschalt')}+` : ''}${key}`;
 }
 
 const FOCUSABLE_SELECTOR = [

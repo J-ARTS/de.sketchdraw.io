@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { ref } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
 import AppIcon from './AppIcon.vue';
@@ -12,19 +13,19 @@ function diagnostic(line: number, column: number) {
 </script>
 
 <template>
-  <aside v-if="s.codeOpen" class="workspace-panel code-panel sd-panel" aria-label="Diagramm als Code">
-    <div class="heading"><h2 class="sd-panel-title">Diagramm als Code <span v-if="s.code.dirty" aria-label="Ungespeicherter Codeentwurf">●</span></h2><button class="sd-icon-btn sd-panel-close" aria-label="Codeansicht schließen" @click="store.toggleCode()"><AppIcon name="close" /></button></div>
-    <p class="panel-intro">Canvas und Code, ein Diagramm. Änderungen werden mit „Übernehmen“ geprüft.</p>
-    <p v-if="s.code.dirty && s.code.baseRevision !== s.revision" class="conflict" role="status">Das Canvas hat sich geändert. Dein Code bleibt erhalten. Kopiere deine Änderungen vor dem bewussten Neuladen.</p>
-    <textarea ref="codeEditor" class="code-editor sd-textarea" aria-label="Diagrammcode" data-testid="diagram-code" @compositionstart="store.setInputComposing(true)" @compositionend="store.setInputComposing(false)" spellcheck="false" autocapitalize="off" :disabled="s.transitioning || !s.canWrite" :value="s.code.text" @input="store.setCodeDraft(($event.target as HTMLTextAreaElement).value)" />
-    <ul v-if="s.code.diagnostics.length" class="diagnostics" aria-label="Codefehler"><li v-for="(item, i) in s.code.diagnostics" :key="i"><button @click="diagnostic(item.line, item.column)">Zeile {{ item.line }}, Spalte {{ item.column }}: {{ item.message }}</button></li></ul>
-    <div v-if="resetConfirm" class="reset-confirm"><p>Deinen Codeentwurf verwerfen und den aktuellen Canvas-Code laden?</p><button class="sd-btn sd-btn--danger" @click="store.resetCodeDraft(); resetConfirm = false">Entwurf verwerfen</button><button class="sd-btn" @click="resetConfirm = false">Behalten</button></div>
-    <div class="panel-footer"><button class="sd-btn" :disabled="s.transitioning || !s.canWrite" @click="s.code.dirty ? resetConfirm = true : store.resetCodeDraft()">Vom Canvas laden</button><button class="sd-btn sd-btn--primary" :disabled="!s.code.dirty || s.transitioning || !s.canWrite" @click="store.applyCode()">Übernehmen</button></div>
+  <aside v-if="s.codeOpen" class="workspace-panel code-panel sd-panel" :aria-label="t('Diagramm als Code')">
+    <div class="heading"><h2 class="sd-panel-title">{{ t('Diagramm als Code') }} <span v-if="s.code.dirty" :aria-label="t('Ungespeicherter Codeentwurf')">●</span></h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Codeansicht schließen')" @click="store.toggleCode()"><AppIcon name="close" /></button></div>
+    <p class="panel-intro">{{ t('Canvas und Code, ein Diagramm. Änderungen werden mit „Übernehmen“ geprüft.') }}</p>
+    <p v-if="s.code.dirty && s.code.baseRevision !== s.revision" class="conflict" role="status">{{ t('Das Canvas hat sich geändert. Dein Code bleibt erhalten. Kopiere deine Änderungen vor dem bewussten Neuladen.') }}</p>
+    <textarea ref="codeEditor" class="code-editor sd-textarea" :aria-label="t('Diagrammcode')" data-testid="diagram-code" @compositionstart="store.setInputComposing(true)" @compositionend="store.setInputComposing(false)" spellcheck="false" autocapitalize="off" :disabled="s.transitioning || !s.canWrite" :value="s.code.text" @input="store.setCodeDraft(($event.target as HTMLTextAreaElement).value)" />
+    <ul v-if="s.code.diagnostics.length" class="diagnostics" :aria-label="t('Codefehler')"><li v-for="(item, i) in s.code.diagnostics" :key="i"><button @click="diagnostic(item.line, item.column)">{{ t('Zeile {line}, Spalte {column}: {message}', { line: item.line, column: item.column, message: item.message }) }}</button></li></ul>
+    <div v-if="resetConfirm" class="reset-confirm"><p>{{ t('Deinen Codeentwurf verwerfen und den aktuellen Canvas-Code laden?') }}</p><button class="sd-btn sd-btn--danger" @click="store.resetCodeDraft(); resetConfirm = false">{{ t('Entwurf verwerfen') }}</button><button class="sd-btn" @click="resetConfirm = false">{{ t('Behalten') }}</button></div>
+    <div class="panel-footer"><button class="sd-btn" :disabled="s.transitioning || !s.canWrite" @click="s.code.dirty ? resetConfirm = true : store.resetCodeDraft()">{{ t('Vom Canvas laden') }}</button><button class="sd-btn sd-btn--primary" :disabled="!s.code.dirty || s.transitioning || !s.canWrite" @click="store.applyCode()">{{ t('Übernehmen') }}</button></div>
   </aside>
   <ShapeLibraryPanel v-if="s.catalogOpen" />
-  <aside v-if="s.objectsOpen && !s.codeOpen && !s.catalogOpen" id="objects-drawer" class="workspace-panel sd-panel" aria-label="Objekte">
-    <div class="heading"><h2 class="sd-panel-title">Objekte <span>{{ s.objectList.length }}</span></h2><button class="sd-icon-btn sd-panel-close" aria-label="Objekte schließen" @click="store.toggleObjects(false)"><AppIcon name="close" /></button></div>
-    <p v-if="!s.objectList.length" class="panel-intro">Deine Elemente erscheinen hier. Mit einem Klick wählst du sie aus.</p>
+  <aside v-if="s.objectsOpen && !s.codeOpen && !s.catalogOpen" id="objects-drawer" class="workspace-panel sd-panel" :aria-label="t('Objekte')">
+    <div class="heading"><h2 class="sd-panel-title">{{ t('Objekte') }} <span>{{ s.objectList.length }}</span></h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Objekte schließen')" @click="store.toggleObjects(false)"><AppIcon name="close" /></button></div>
+    <p v-if="!s.objectList.length" class="panel-intro">{{ t('Deine Elemente erscheinen hier. Mit einem Klick wählst du sie aus.') }}</p>
     <ul class="object-list"><li v-for="item in s.objectList" :key="item.id"><button :aria-pressed="item.selected" :style="{ paddingLeft: `${12 + Math.min(item.depth, 8) * 12}px` }" @click="store.select([item.id], $event.shiftKey)" @dblclick="store.focusElement(item.id)"><span class="object-dot" aria-hidden="true">{{ item.kind === 'container' ? '▣' : '◇' }}</span>{{ item.name }}</button></li></ul>
   </aside>
 </template>

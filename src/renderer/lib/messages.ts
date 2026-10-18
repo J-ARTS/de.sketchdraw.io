@@ -3,19 +3,20 @@ import type { SaveStatus } from '@/renderer/state/contract';
 import { KIND_LABELS, elementCountLabel } from './describe';
 import { zoomLabel } from './viewport';
 
-/** Status line text per SaveStatus. Only a confirmed `saved` result may read "Gespeichert". */
+import { L, t, tn } from '@/renderer/i18n';
+/** Status line text per SaveStatus. Only a confirmed `saved` result may read "Gespeichert". Getters translate at read time. */
 export const SAVE_STATUS_TEXT: Readonly<Record<SaveStatus, string>> = {
-  'unsaved-new': 'Nicht gespeichert',
-  dirty: 'Ungespeicherte Änderungen',
-  saving: 'Speichert …',
-  saved: 'Gespeichert',
-  'handed-off': 'Als Download übergeben',
-  error: 'Speichern fehlgeschlagen',
-  conflict: 'Speicherkonflikt',
+  get 'unsaved-new'() { return t('Nicht gespeichert'); },
+  get dirty() { return t('Ungespeicherte Änderungen'); },
+  get saving() { return t('Speichert …'); },
+  get saved() { return t('Gespeichert'); },
+  get 'handed-off'() { return t('Als Download übergeben'); },
+  get error() { return t('Speichern fehlgeschlagen'); },
+  get conflict() { return t('Speicherkonflikt'); },
 };
 
 /** Shown for an untouched new document (revision 0, no file). */
-export const PRISTINE_DOCUMENT_TEXT = 'Neues Dokument';
+export const PRISTINE_DOCUMENT_TEXT = L('Neues Dokument');
 
 function withDetail(base: string, detail: string | undefined): string {
   const text = detail?.trim();
@@ -29,70 +30,70 @@ function megabytes(bytes: number): string {
 
 /** Store notices and live announcements. Components receive the finished string and never build German text themselves. */
 export const messages = {
-  selectionCleared: (): string => 'Auswahl aufgehoben',
+  selectionCleared: (): string => t('Auswahl aufgehoben'),
   selectionCount: (count: number): string =>
-    count <= 0 ? 'Nichts ausgewählt' : `${elementCountLabel(count)} ausgewählt`,
-  toolChanged: (toolLabel: string): string => `Werkzeug ${toolLabel}`,
+    count <= 0 ? t('Nichts ausgewählt') : t('{elements} ausgewählt', { elements: elementCountLabel(count) }),
+  toolChanged: (toolLabel: string): string => t('Werkzeug {toolLabel}', { toolLabel }),
 
-  created: (kind: ElementKind): string => `${KIND_LABELS[kind]} erstellt`,
-  deleted: (count: number): string => `${elementCountLabel(count)} gelöscht`,
-  duplicated: (count: number): string => `${elementCountLabel(count)} dupliziert`,
+  created: (kind: ElementKind): string => t('{kind} erstellt', { kind: t(KIND_LABELS[kind]) }),
+  deleted: (count: number): string => t('{elements} gelöscht', { elements: elementCountLabel(count) }),
+  duplicated: (count: number): string => t('{elements} dupliziert', { elements: elementCountLabel(count) }),
   moved: (count: number, x: number, y: number): string =>
-    `${elementCountLabel(count)} verschoben nach ${Math.round(x)}, ${Math.round(y)}`,
-  grouped: (count: number): string => `${elementCountLabel(count)} in Container gruppiert`,
-  ungrouped: (containerCount: number): string => `${containerCount} Container aufgelöst`,
-  nothingToGroup: (): string => 'Zum Gruppieren zuerst Elemente auswählen',
-  nothingToUngroup: (): string => 'Die Auswahl enthält keinen Container',
-  connected: (from: string, to: string): string => `Verbunden: ${from} mit ${to}`,
-  connectNeedsTwo: (): string => 'Zum Verbinden genau zwei Elemente auswählen',
+    t('{elements} verschoben nach {x}, {y}', { elements: elementCountLabel(count), x: Math.round(x), y: Math.round(y) }),
+  grouped: (count: number): string => t('{elements} in Container gruppiert', { elements: elementCountLabel(count) }),
+  ungrouped: (containerCount: number): string => tn(containerCount, '{count} Container aufgelöst', '{count} Container aufgelöst'),
+  nothingToGroup: (): string => t('Zum Gruppieren zuerst Elemente auswählen'),
+  nothingToUngroup: (): string => t('Die Auswahl enthält keinen Container'),
+  connected: (from: string, to: string): string => t('Verbunden: {from} mit {to}', { from, to }),
+  connectNeedsTwo: (): string => t('Zum Verbinden genau zwei Elemente auswählen'),
 
-  undone: (): string => 'Rückgängig gemacht',
-  redone: (): string => 'Wiederholt',
-  nothingToUndo: (): string => 'Nichts zum Rückgängigmachen',
-  nothingToRedo: (): string => 'Nichts zum Wiederholen',
+  undone: (): string => t('Rückgängig gemacht'),
+  redone: (): string => t('Wiederholt'),
+  nothingToUndo: (): string => t('Nichts zum Rückgängigmachen'),
+  nothingToRedo: (): string => t('Nichts zum Wiederholen'),
   historyConflict: (operation: 'undo' | 'redo'): string =>
-    `${operation === 'undo' ? 'Rückgängig' : 'Wiederholen'} nicht möglich: Betroffene Elemente wurden inzwischen anderweitig geändert. Nichts wurde geändert.`,
+    operation === 'undo' ? t('Rückgängig nicht möglich: Betroffene Elemente wurden inzwischen anderweitig geändert. Nichts wurde geändert.') : t('Wiederholen nicht möglich: Betroffene Elemente wurden inzwischen anderweitig geändert. Nichts wurde geändert.'),
   revisionConflict: (): string =>
-    'Das Dokument wurde währenddessen geändert. Die Aktion wurde nicht ausgeführt, bitte erneut versuchen.',
-  actionRejected: (detail?: string): string => withDetail('Die Aktion wurde abgelehnt.', detail),
+    t('Das Dokument wurde währenddessen geändert. Die Aktion wurde nicht ausgeführt, bitte erneut versuchen.'),
+  actionRejected: (detail?: string): string => withDetail(t('Die Aktion wurde abgelehnt.'), detail),
 
-  saved: (name: string): string => `Gespeichert: ${name}`,
-  downloadInitiated: (name: string): string => `Als Download übergeben: ${name}`,
+  saved: (name: string): string => t('Gespeichert: {name}', { name }),
+  downloadInitiated: (name: string): string => t('Als Download übergeben: {name}', { name }),
   saveFailed: (detail?: string): string =>
-    withDetail('Speichern fehlgeschlagen. Das Dokument bleibt unverändert im Editor.', detail),
+    withDetail(t('Speichern fehlgeschlagen. Das Dokument bleibt unverändert im Editor.'), detail),
   saveConflict: (): string =>
-    'Speichern abgebrochen: Die Datei wurde außerhalb von sketchdraw geändert und nicht überschrieben. Dokument und Änderungen bleiben erhalten.',
-  saveCancelled: (): string => 'Speichern abgebrochen',
+    t('Speichern abgebrochen: Die Datei wurde außerhalb von sketchdraw geändert und nicht überschrieben. Dokument und Änderungen bleiben erhalten.'),
+  saveCancelled: (): string => t('Speichern abgebrochen'),
 
-  opened: (name: string): string => `Geöffnet: ${name}`,
-  openFailed: (detail?: string): string => withDetail('Die Datei konnte nicht geöffnet werden.', detail),
+  opened: (name: string): string => t('Geöffnet: {name}', { name }),
+  openFailed: (detail?: string): string => withDetail(t('Die Datei konnte nicht geöffnet werden.'), detail),
   openInvalid: (detail?: string): string =>
-    withDetail('Ungültige Datei: Das Dokument konnte nicht gelesen werden. Das aktuelle Dokument bleibt unverändert.', detail),
+    withDetail(t('Ungültige Datei: Das Dokument konnte nicht gelesen werden. Das aktuelle Dokument bleibt unverändert.'), detail),
 
-  imageTooLarge: (maxBytes: number): string => `Das Bild ist zu groß (maximal ${megabytes(maxBytes)} MB).`,
-  imageTotalTooLarge: (): string => 'Die eingebetteten Bilder überschreiten die maximale Gesamtgröße des Dokuments.',
-  imageWrongFormat: (): string => 'Dieses Bildformat wird nicht unterstützt. Erlaubt sind PNG, JPEG und WebP.',
-  imageReadFailed: (): string => 'Das Bild konnte nicht gelesen werden.',
+  imageTooLarge: (maxBytes: number): string => t('Das Bild ist zu groß (maximal {maxBytes} MB).', { maxBytes: megabytes(maxBytes) }),
+  imageTotalTooLarge: (): string => t('Die eingebetteten Bilder überschreiten die maximale Gesamtgröße des Dokuments.'),
+  imageWrongFormat: (): string => t('Dieses Bildformat wird nicht unterstützt. Erlaubt sind PNG, JPEG und WebP.'),
+  imageReadFailed: (): string => t('Das Bild konnte nicht gelesen werden.'),
 
   offscreenChanges: (count: number): string =>
-    `${count} ${count === 1 ? 'Änderung' : 'Änderungen'} außerhalb des sichtbaren Bereichs`,
+    tn(count, '{count} Änderung außerhalb des sichtbaren Bereichs', '{count} Änderungen außerhalb des sichtbaren Bereichs'),
   focusAfterRemoteDelete: (nextName?: string): string =>
     nextName
-      ? `Das fokussierte Element wurde gelöscht. Fokus auf ${nextName}.`
-      : 'Das fokussierte Element wurde gelöscht. Fokus liegt auf der Zeichenfläche.',
+      ? t('Das fokussierte Element wurde gelöscht. Fokus auf {nextName}.', { nextName })
+      : t('Das fokussierte Element wurde gelöscht. Fokus liegt auf der Zeichenfläche.'),
 
-  zoomLevel: (zoom: number): string => `Zoom ${zoomLabel(zoom)}`,
-  fitAll: (): string => 'Alle Elemente werden angezeigt',
-  fitSelection: (): string => 'Auswahl wird angezeigt',
-  nothingToFit: (): string => 'Es gibt nichts anzuzeigen',
+  zoomLevel: (zoom: number): string => t('Zoom {zoom}', { zoom: zoomLabel(zoom) }),
+  fitAll: (): string => t('Alle Elemente werden angezeigt'),
+  fitSelection: (): string => t('Auswahl wird angezeigt'),
+  nothingToFit: (): string => t('Es gibt nichts anzuzeigen'),
 
-  emptyTextDiscarded: (): string => 'Leerer Text verworfen',
-  textConflictChanged: (): string => 'Das Element wurde während der Bearbeitung geändert. Dein Entwurf bleibt erhalten.',
-  textConflictDeleted: (): string => 'Das Element wurde während der Bearbeitung gelöscht. Dein Entwurf bleibt erhalten.',
+  emptyTextDiscarded: (): string => t('Leerer Text verworfen'),
+  textConflictChanged: (): string => t('Das Element wurde während der Bearbeitung geändert. Dein Entwurf bleibt erhalten.'),
+  textConflictDeleted: (): string => t('Das Element wurde während der Bearbeitung gelöscht. Dein Entwurf bleibt erhalten.'),
   gestureConflict: (canRetry: boolean): string =>
     canRetry
-      ? 'Die Änderung wurde nicht übernommen, weil das Dokument inzwischen geändert wurde. Sie kann erneut angewendet oder verworfen werden.'
-      : 'Die Änderung wurde nicht übernommen, weil betroffene Elemente inzwischen geändert wurden. Sie kann nicht automatisch erneut angewendet werden.',
-  gestureRetried: (): string => 'Änderung erneut angewendet',
-  gestureDiscarded: (): string => 'Änderung verworfen',
+      ? t('Die Änderung wurde nicht übernommen, weil das Dokument inzwischen geändert wurde. Sie kann erneut angewendet oder verworfen werden.')
+      : t('Die Änderung wurde nicht übernommen, weil betroffene Elemente inzwischen geändert wurden. Sie kann nicht automatisch erneut angewendet werden.'),
+  gestureRetried: (): string => t('Änderung erneut angewendet'),
+  gestureDiscarded: (): string => t('Änderung verworfen'),
 } as const;

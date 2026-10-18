@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, tm } from '@/renderer/i18n';
 import { computed, ref, watch } from 'vue';
 import {
   MAX_RESOURCE_CARD_LINKS,
@@ -53,7 +54,7 @@ function removeLink(index: number): void {
 }
 function save(): void {
   const nextTitle = title.value.trim();
-  if (!nextTitle) { error.value = 'Bitte einen Namen eingeben.'; return; }
+  if (!nextTitle) { error.value = t('Bitte einen Namen eingeben.'); return; }
   try {
     const metadata = resourceCardMetadataPatch(props.element.metadata, iconType.value, links.value);
     store.applyPatch({
@@ -65,7 +66,7 @@ function save(): void {
     error.value = '';
     emit('saved');
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : 'Die Ressourcenkarte konnte nicht gespeichert werden.';
+    error.value = cause instanceof Error ? tm(cause.message) : t('Die Ressourcenkarte konnte nicht gespeichert werden.');
   }
 }
 </script>
@@ -73,22 +74,22 @@ function save(): void {
 <template>
   <form class="resource-editor" data-testid="resource-card-editor" @submit.prevent="save">
     <header>
-      <div><strong>Ressourcenkarte</strong><span>Inhalt und Verweise bearbeiten</span></div>
+      <div><strong>{{ t('Ressourcenkarte') }}</strong><span>{{ t('Inhalt und Verweise bearbeiten') }}</span></div>
     </header>
 
-    <label class="field"><span>Name</span><input v-model="title" type="text" maxlength="200" autocomplete="off" /></label>
-    <label class="field"><span>Beschreibung</span><textarea v-model="description" rows="2" maxlength="500" /></label>
+    <label class="field"><span>{{ t('Name') }}</span><input v-model="title" type="text" maxlength="200" autocomplete="off" /></label>
+    <label class="field"><span>{{ t('Beschreibung') }}</span><textarea v-model="description" rows="2" maxlength="500" /></label>
 
     <fieldset>
-      <legend>Icon</legend>
-      <input v-model="iconQuery" class="icon-search" type="search" aria-label="Icons durchsuchen" placeholder="Icon suchen" autocomplete="off" />
-      <div class="icon-grid" role="group" aria-label="Icon auswählen">
+      <legend>{{ t('Icon') }}</legend>
+      <input v-model="iconQuery" class="icon-search" type="search" :aria-label="t('Icons durchsuchen')" :placeholder="t('Icon suchen')" autocomplete="off" />
+      <div class="icon-grid" role="group" :aria-label="t('Icon auswählen')">
         <button
           v-for="item in icons"
           :key="`${item.set.id}:${item.component.type}`"
           type="button"
           :class="{ selected: iconType === item.component.type }"
-          :aria-label="`Icon ${item.component.name}`"
+          :aria-label="t('Icon {name}', { name: item.component.name })"
           :aria-pressed="iconType === item.component.type"
           :title="item.component.name"
           @click="iconType = item.component.type"
@@ -97,19 +98,19 @@ function save(): void {
     </fieldset>
 
     <fieldset class="links-fieldset">
-      <legend class="visually-hidden">Links</legend>
-      <div class="legend-row"><strong>Links</strong><button type="button" class="add-link" :disabled="links.length >= MAX_RESOURCE_CARD_LINKS" @click="addLink">+ Link hinzufügen</button></div>
-      <p v-if="!links.length" class="empty-links">Noch keine Links. Du kannst bis zu {{ MAX_RESOURCE_CARD_LINKS }} hinzufügen.</p>
+      <legend class="visually-hidden">{{ t('Links') }}</legend>
+      <div class="legend-row"><strong>{{ t('Links') }}</strong><button type="button" class="add-link" :disabled="links.length >= MAX_RESOURCE_CARD_LINKS" @click="addLink">{{ t('+ Link hinzufügen') }}</button></div>
+      <p v-if="!links.length" class="empty-links">{{ t('Noch keine Links. Du kannst bis zu {max} hinzufügen.', { max: MAX_RESOURCE_CARD_LINKS }) }}</p>
       <div v-for="(link, index) in links" :key="link.id" class="link-row" :data-testid="`resource-link-row-${index}`">
-        <label><span>Bezeichnung</span><input v-model="link.label" type="text" maxlength="80" :aria-label="`Link ${index + 1} Bezeichnung`" placeholder="Dokumentation" /></label>
-        <label><span>Adresse</span><input v-model="link.url" type="url" maxlength="2000" :aria-label="`Link ${index + 1} Adresse`" placeholder="https://…" /></label>
-        <button v-if="isSafeResourceLinkUrl(link.url)" type="button" class="row-action" :aria-label="`Link ${index + 1} öffnen`" @click="store.openDocumentationLink(link.url)">↗</button>
-        <button type="button" class="row-action remove" :aria-label="`Link ${index + 1} entfernen`" @click="removeLink(index)">×</button>
+        <label><span>{{ t('Bezeichnung') }}</span><input v-model="link.label" type="text" maxlength="80" :aria-label="t('Link {index} Bezeichnung', { index: index + 1 })" :placeholder="t('Dokumentation')" /></label>
+        <label><span>{{ t('Adresse') }}</span><input v-model="link.url" type="url" maxlength="2000" :aria-label="t('Link {index} Adresse', { index: index + 1 })" placeholder="https://…" /></label>
+        <button v-if="isSafeResourceLinkUrl(link.url)" type="button" class="row-action" :aria-label="t('Link {index} öffnen', { index: index + 1 })" @click="store.openDocumentationLink(link.url)">↗</button>
+        <button type="button" class="row-action remove" :aria-label="t('Link {index} entfernen', { index: index + 1 })" @click="removeLink(index)">×</button>
       </div>
     </fieldset>
 
     <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-    <footer><button type="button" class="sd-btn" @click="emit('cancel')">Abbrechen</button><button type="submit" class="sd-btn primary">Speichern</button></footer>
+    <footer><button type="button" class="sd-btn" @click="emit('cancel')">{{ t('Abbrechen') }}</button><button type="submit" class="sd-btn primary">{{ t('Speichern') }}</button></footer>
   </form>
 </template>
 

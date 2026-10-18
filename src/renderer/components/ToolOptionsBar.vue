@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';
 import { PALETTE } from '@/renderer/lib/constants';
 import {
@@ -90,7 +91,7 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
     class="tool-options sd-panel"
     role="toolbar"
     aria-orientation="horizontal"
-    :aria-label="pencilVisible ? 'Stiftoptionen' : 'Radiereroptionen'"
+    :aria-label="pencilVisible ? t('Stiftoptionen') : t('Radiereroptionen')"
     :class="pencilVisible ? 'pencil-layout' : 'eraser-layout'"
     :data-testid="pencilVisible ? 'pencil-options' : 'eraser-options'"
     @pointerdown.stop
@@ -103,7 +104,7 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
   >
     <template v-if="pencilVisible">
       <div class="options-row choice-row" data-testid="pencil-choice-row">
-        <div class="option-group" role="group" aria-label="Stifttyp und Strichstärke">
+        <div class="option-group" role="group" :aria-label="t('Stifttyp und Strichstärke')">
           <button
             v-for="option in PENCIL_OPTIONS"
             :key="option.value"
@@ -111,9 +112,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
             class="stroke-option"
             :data-option-id="`pencil-${option.value}`"
             :tabindex="tabStop === `pencil-${option.value}` ? 0 : -1"
-            :aria-label="`${option.label}, ${option.strokeWidth} Pixel`"
+            :aria-label="t('{label}, {strokeWidth} Pixel', { label: t(option.label), strokeWidth: option.strokeWidth })"
             :aria-pressed="s.pencilPreset === option.value"
-            :title="option.label"
+            :title="t(option.label)"
             :disabled="!s.canWrite || s.transitioning"
             @click="store.setPencilPreset(option.value)"
           >
@@ -123,7 +124,7 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
           </button>
         </div>
         <span class="separator" aria-hidden="true" />
-        <div class="option-group color-group" role="group" aria-label="Stiftfarbe">
+        <div class="option-group color-group" role="group" :aria-label="t('Stiftfarbe')">
           <button
             v-for="color in colors"
             :key="color.value"
@@ -132,9 +133,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
             :style="{ '--option-color': color.value }"
             :data-option-id="`color-${color.value}`"
             :tabindex="tabStop === `color-${color.value}` ? 0 : -1"
-            :aria-label="`Stiftfarbe ${color.name}`"
+            :aria-label="t('Stiftfarbe {name}', { name: t(color.name) })"
             :aria-pressed="s.pencilColor === color.value"
-            :title="color.name"
+            :title="t(color.name)"
             :disabled="!s.canWrite || s.transitioning"
             @click="store.setPencilColor(color.value)"
           />
@@ -144,9 +145,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
             :class="{ selected: customColorSelected }"
             data-option-id="color-custom"
             :tabindex="tabStop === 'color-custom' ? 0 : -1"
-            aria-label="Eigene Stiftfarbe wählen"
+            :aria-label="t('Eigene Stiftfarbe wählen')"
             :aria-pressed="customColorSelected"
-            title="Eigene Farbe"
+            :title="t('Eigene Farbe')"
             :disabled="!s.canWrite || s.transitioning"
             @click="customInput?.click()"
           />
@@ -154,9 +155,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
         </div>
       </div>
       <div class="options-row controls-row" data-testid="pencil-controls-row">
-        <div class="option-group size-group" role="group" aria-label="Pinselgröße">
+        <div class="option-group size-group" role="group" :aria-label="t('Pinselgröße')">
           <label class="size-control" for="pencil-size">
-            <span>Größe</span>
+            <span>{{ t('Größe') }}</span>
             <input
               id="pencil-size"
               data-testid="pencil-size-slider"
@@ -165,9 +166,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
               :max="PENCIL_SIZE_MAX"
               step="1"
               :value="s.pencilSize"
-              aria-label="Pinselgröße"
-              :aria-valuetext="`${s.pencilSize} Pixel Strichbreite`"
-              title="Pinselgröße von 1 bis 500 Pixel"
+              :aria-label="t('Pinselgröße')"
+              :aria-valuetext="t('{pencilSize} Pixel Strichbreite', { pencilSize: s.pencilSize })"
+              :title="t('Pinselgröße von 1 bis 500 Pixel')"
               :disabled="!s.canWrite || s.transitioning"
               @input="setPencilSize"
               @keydown="onPencilSizeKeydown"
@@ -176,9 +177,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
           </label>
         </div>
         <span class="separator" aria-hidden="true" />
-        <div class="option-group size-group" role="group" aria-label="Stift-Deckkraft">
+        <div class="option-group size-group" role="group" :aria-label="t('Stift-Deckkraft')">
           <label class="size-control opacity-control" for="pencil-opacity">
-            <span>Deckkraft</span>
+            <span>{{ t('Deckkraft') }}</span>
             <input
               id="pencil-opacity"
               data-testid="pencil-opacity-slider"
@@ -187,9 +188,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
               :max="PENCIL_OPACITY_MAX"
               step="1"
               :value="s.pencilOpacity"
-              aria-label="Stift-Deckkraft"
-              :aria-valuetext="`${s.pencilOpacity} Prozent Deckkraft`"
-              title="Stift-Deckkraft von 0 bis 100 Prozent"
+              :aria-label="t('Stift-Deckkraft')"
+              :aria-valuetext="t('{pencilOpacity} Prozent Deckkraft', { pencilOpacity: s.pencilOpacity })"
+              :title="t('Stift-Deckkraft von 0 bis 100 Prozent')"
               :disabled="!s.canWrite || s.transitioning"
               @input="setPencilOpacity"
               @keydown="onPencilOpacityKeydown"
@@ -200,9 +201,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
       </div>
     </template>
 
-    <div v-else class="option-group size-group" role="group" aria-label="Radierergröße">
+    <div v-else class="option-group size-group" role="group" :aria-label="t('Radierergröße')">
       <label class="size-control" for="eraser-radius">
-        <span>Radius</span>
+        <span>{{ t('Radius') }}</span>
         <input
           id="eraser-radius"
           data-testid="eraser-radius-slider"
@@ -211,9 +212,9 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
           :max="ERASER_RADIUS_MAX"
           step="1"
           :value="s.eraserRadius"
-          aria-label="Radierer-Radius"
-          :aria-valuetext="`${s.eraserRadius} Pixel Radius`"
-          title="Radierer-Radius von 1 bis 500 Pixel"
+          :aria-label="t('Radierer-Radius')"
+          :aria-valuetext="t('{eraserRadius} Pixel Radius', { eraserRadius: s.eraserRadius })"
+          :title="t('Radierer-Radius von 1 bis 500 Pixel')"
           :disabled="!s.canWrite || s.transitioning"
           @input="setEraserRadius"
           @keydown="onEraserRadiusKeydown"

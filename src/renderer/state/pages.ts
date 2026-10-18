@@ -1,8 +1,9 @@
 import { validateDocument, type SketchAsset, type SketchDocument, type SketchElement } from '@/domain';
 import type { PageSummary } from './contract';
 
+import { L, t } from '@/renderer/i18n';
 export const SINGLE_PAGE_ID = 'page:1';
-export const SINGLE_PAGE_NAME = 'Seite 1';
+export const SINGLE_PAGE_NAME = L('Seite 1');
 export const SINGLE_PAGE_NAME_METADATA_KEY = 'sketchdraw.page.v1.name';
 /** Compatibility store used while the public schema-v2 contract is completed in #33/#34. */
 export const PAGE_STATE_METADATA_KEY = 'sketchdraw.pages.compat.v1';
@@ -22,7 +23,7 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 export function singlePageName(document: SketchDocument): string {
   const persisted = document.metadata[SINGLE_PAGE_NAME_METADATA_KEY]?.trim();
-  return persisted && persisted.length <= MAX_PAGE_NAME_LENGTH ? persisted : SINGLE_PAGE_NAME;
+  return persisted && persisted.length <= MAX_PAGE_NAME_LENGTH ? persisted : t(SINGLE_PAGE_NAME);
 }
 
 function validName(value: unknown): value is string {
@@ -84,8 +85,8 @@ export function documentWithPages(document: SketchDocument, pages: readonly Page
 export function nextPageName(pages: readonly PageSnapshot[]): string {
   let number = pages.length + 1;
   const names = new Set(pages.map((page) => page.name));
-  while (names.has(`Seite ${number}`)) number += 1;
-  return `Seite ${number}`;
+  while (names.has(t('Seite {number}', { number }))) number += 1;
+  return t('Seite {number}', { number });
 }
 
 export function clonePage(page: PageSnapshot, idFactory: (prefix: string) => string): PageSnapshot {
@@ -98,7 +99,7 @@ export function clonePage(page: PageSnapshot, idFactory: (prefix: string) => str
     if (copied.to) copied.to.elementId = ids.get(copied.to.elementId) ?? copied.to.elementId;
     return copied;
   });
-  return { id: idFactory('page'), name: `${page.name} Kopie`.slice(0, MAX_PAGE_NAME_LENGTH), elements };
+  return { id: idFactory('page'), name: t('{name} Kopie', { name: page.name }).slice(0, MAX_PAGE_NAME_LENGTH), elements };
 }
 
 /** Clipboard envelope for "Inhalt kopieren". Pasting treats it as untrusted input. */

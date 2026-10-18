@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
 import { hexToHsv, hsvToHex, normalizeHex, type Hsv } from '@/renderer/lib/color';
@@ -83,7 +84,7 @@ async function pickFromScreen(): Promise<void> {
 <template>
   <div class="picker" role="group" :aria-label="label">
     <div class="picker-head">
-      <button v-if="eyedropper" type="button" class="eyedropper" aria-label="Farbe vom Bildschirm aufnehmen" title="Farbe vom Bildschirm aufnehmen" @click="pickFromScreen">
+      <button v-if="eyedropper" type="button" class="eyedropper" :aria-label="t('Farbe vom Bildschirm aufnehmen')" :title="t('Farbe vom Bildschirm aufnehmen')" @click="pickFromScreen">
         <AppIcon name="eyedropper" :size="18" />
       </button>
       <span class="preview" :style="{ background: current }" aria-hidden="true" />
@@ -94,7 +95,7 @@ async function pickFromScreen(): Promise<void> {
         spellcheck="false"
         autocomplete="off"
         maxlength="9"
-        aria-label="Hex-Farbwert"
+        :aria-label="t('Hex-Farbwert')"
         @change="commitHex"
         @keydown.enter.prevent="commitHex"
       />
@@ -105,7 +106,7 @@ async function pickFromScreen(): Promise<void> {
       min="0"
       max="359"
       step="1"
-      aria-label="Farbton"
+      :aria-label="t('Farbton')"
       :value="Math.round(hsv.h)"
       :style="{ '--thumb': hueColor }"
       @input="update({ h: ($event.target as HTMLInputElement).valueAsNumber })"
@@ -116,11 +117,11 @@ async function pickFromScreen(): Promise<void> {
       class="area"
       role="slider"
       tabindex="0"
-      aria-label="Sättigung und Helligkeit"
+      :aria-label="t('Sättigung und Helligkeit')"
       aria-valuemin="0"
       aria-valuemax="100"
       :aria-valuenow="Math.round(hsv.s * 100)"
-      :aria-valuetext="`Sättigung ${Math.round(hsv.s * 100)} %, Helligkeit ${Math.round(hsv.v * 100)} %`"
+      :aria-valuetext="t('Sättigung {s} %, Helligkeit {v} %', { s: Math.round(hsv.s * 100), v: Math.round(hsv.v * 100) })"
       :style="{ '--hue': hueColor }"
       @pointerdown="onAreaDown"
       @pointermove="onAreaMove"

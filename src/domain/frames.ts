@@ -32,9 +32,9 @@ export function frameOrderMetadata(ids: readonly string[]): string | null {
   return ids.length ? JSON.stringify([...new Set(ids)]) : null;
 }
 
-export function nextFrameLabel(document: SketchDocument): string {
+export function nextFrameLabel(document: SketchDocument, base = 'Folie'): string {
   const labels = new Set(orderedFrames(document).map((frame) => frame.label?.trim().toLocaleLowerCase('de') ?? ''));
   let index = 1;
-  while (labels.has(`folie ${index}`)) index += 1;
-  return `Folie ${index}`;
+  while (labels.has(`folie ${index}`) || labels.has(`${base.toLocaleLowerCase('de')} ${index}`)) index += 1;
+  return `${base} ${index}`;
 }

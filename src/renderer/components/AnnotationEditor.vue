@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { nextTick, onMounted, ref } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import { annotationPlainText } from '@/domain';
@@ -89,7 +90,7 @@ onMounted(async () => {
     data-testid="annotation-editor"
     :contenteditable="s.transitioning || !s.canWrite ? 'false' : 'true'"
     role="textbox"
-    aria-label="Annotation bearbeiten"
+    :aria-label="t('Annotation bearbeiten')"
     aria-multiline="true"
     :aria-disabled="s.transitioning || !s.canWrite"
     aria-keyshortcuts="Escape Control+Enter Meta+Enter"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { L, t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';
 import { commentTargetLabel } from '../lib/comments';
 import { useWhiteboard } from './use-whiteboard';
@@ -16,14 +17,14 @@ function initials(name: string): string { return name.trim().split(/\s+/).map((p
 </script>
 
 <template>
-  <aside v-if="s.commentSidebarOpen && s.workspaceView === 'canvas'" class="comment-sidebar sd-panel" data-testid="comment-sidebar" aria-label="Alle Kommentare">
-    <header><h2 class="sd-panel-title">Kommentare</h2><button class="sd-icon-btn sd-panel-close" aria-label="Kommentarleiste schließen" @click="store.closeCommentSidebar()"><AppIcon name="close" /></button></header>
-    <div class="search"><AppIcon name="search" :size="18" /><input v-model="query" type="search" placeholder="Kommentare suchen" aria-label="Kommentare suchen" /></div>
-    <div class="filters" role="group" aria-label="Kommentare filtern"><button v-for="entry in ([['open','Offen'],['resolved','Erledigt'],['all','Alle']] as const)" :key="entry[0]" :aria-pressed="filter === entry[0]" @click="filter = entry[0]">{{ entry[1] }}</button></div>
+  <aside v-if="s.commentSidebarOpen && s.workspaceView === 'canvas'" class="comment-sidebar sd-panel" data-testid="comment-sidebar" :aria-label="t('Alle Kommentare')">
+    <header><h2 class="sd-panel-title">{{ t('Kommentare') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Kommentarleiste schließen')" @click="store.closeCommentSidebar()"><AppIcon name="close" /></button></header>
+    <div class="search"><AppIcon name="search" :size="18" /><input v-model="query" type="search" :placeholder="t('Kommentare suchen')" :aria-label="t('Kommentare suchen')" /></div>
+    <div class="filters" role="group" :aria-label="t('Kommentare filtern')"><button v-for="entry in ([['open', L('Offen')],['resolved', L('Erledigt')],['all', L('Alle')]] as const)" :key="entry[0]" :aria-pressed="filter === entry[0]" @click="filter = entry[0]">{{ t(entry[1]) }}</button></div>
     <ol class="comment-list">
-      <li v-for="thread in threads" :key="thread.id"><button :class="{ active: thread.id === s.activeCommentId, unread: s.unreadCommentIds.includes(thread.id) }" @click="store.openComment(thread.id)"><span class="avatar">{{ initials(thread.messages.at(-1)?.authorName ?? '') }}</span><span class="summary"><span class="target">{{ commentTargetLabel(thread.target, s.document) }}</span><strong>{{ thread.messages.at(-1)?.authorName }}</strong><span class="body">{{ thread.messages.at(-1)?.body }}</span><small>{{ thread.resolved ? 'Erledigt' : `${thread.messages.length} Beitrag${thread.messages.length === 1 ? '' : 'e'}` }}</small></span></button></li>
+      <li v-for="thread in threads" :key="thread.id"><button :class="{ active: thread.id === s.activeCommentId, unread: s.unreadCommentIds.includes(thread.id) }" @click="store.openComment(thread.id)"><span class="avatar">{{ initials(t(thread.messages.at(-1)?.authorName ?? '')) }}</span><span class="summary"><span class="target">{{ commentTargetLabel(thread.target, s.document) }}</span><strong>{{ t(thread.messages.at(-1)?.authorName ?? '') }}</strong><span class="body">{{ thread.messages.at(-1)?.body }}</span><small>{{ thread.resolved ? t('Erledigt') : (thread.messages.length === 1 ? t('1 Beitrag') : t('{count} Beiträge', { count: thread.messages.length })) }}</small></span></button></li>
     </ol>
-    <p v-if="!threads.length" class="empty">Keine passenden Kommentare.</p>
+    <p v-if="!threads.length" class="empty">{{ t('Keine passenden Kommentare.') }}</p>
   </aside>
 </template>
 

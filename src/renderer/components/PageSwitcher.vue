@@ -3,7 +3,7 @@ import { computed, nextTick, ref, useId } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n/de';
+import { t } from '@/renderer/i18n';
 import type { PageSummary } from '@/renderer/state/contract';
 
 type MenuAction = 'copy' | 'rename' | 'duplicate' | 'moveUp' | 'moveDown' | 'delete';
@@ -19,7 +19,7 @@ const MENU_WIDTH = 224;
 
 const pages = computed(() => s.pages);
 const activePage = computed(() => pages.value.find((page) => page.id === s.activePageId) ?? pages.value[0]);
-const currentName = computed(() => s.workspaceView === 'tasks' ? 'Aufgaben' : activePage.value?.name ?? '');
+const currentName = computed(() => s.workspaceView === 'tasks' ? t('Aufgaben') : activePage.value?.name ?? '');
 const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
@@ -362,7 +362,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       </ul>
 
       <div class="workspace-views">
-        <button type="button" class="task-board-entry" :aria-current="s.workspaceView === 'tasks' ? 'page' : undefined" data-testid="task-board-entry" @click="selectTasks"><AppIcon name="check" :size="18" /><span><strong>Aufgaben</strong><small>{{ (s.document.tasks ?? []).filter((task) => task.status !== 'done').length }} offen</small></span></button>
+        <button type="button" class="task-board-entry" :aria-current="s.workspaceView === 'tasks' ? 'page' : undefined" data-testid="task-board-entry" @click="selectTasks"><AppIcon name="check" :size="18" /><span><strong>{{ t('Aufgaben') }}</strong><small>{{ (s.document.tasks ?? []).filter((task) => task.status !== 'done').length }} offen</small></span></button>
       </div>
 
       <div
@@ -386,7 +386,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             :aria-disabled="entry.blocked ? true : undefined"
             @click="runMenu(entry)"
           >
-            {{ entry.label }}
+            {{ t(entry.label) }}
           </button>
         </template>
       </div>

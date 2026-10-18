@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import { RESOURCE_CARD_COMPONENT_TYPE, builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
 import type { ComponentDefinition, ComponentSet, ShapeVariant } from '@/domain';
@@ -26,9 +27,9 @@ const expanded = reactive<Record<string, boolean>>({
 });
 
 const shapeGroups: ReadonlyArray<{ id: string; label: string; variants: readonly ShapeVariant[] }> = [
-  { id: 'basic', label: 'Grundformen', variants: ['square', 'circle', 'diamond', 'triangle', 'triangle-down', 'rounded'] },
-  { id: 'flowchart', label: 'Flussdiagramm', variants: ['chevron', 'process', 'document', 'documents', 'manual-input', 'parallelogram', 'parallelogram-reverse', 'off-page', 'loop-limit'] },
-  { id: 'advanced', label: 'Erweitert', variants: ['hexagon', 'cylinder', 'tube', 'internal-storage', 'trapezoid', 'summing', 'or', 'folder', 'note', 'pentagon'] },
+  { id: 'basic', label: L('Grundformen'), variants: ['square', 'circle', 'diamond', 'triangle', 'triangle-down', 'rounded'] },
+  { id: 'flowchart', label: L('Flussdiagramm'), variants: ['chevron', 'process', 'document', 'documents', 'manual-input', 'parallelogram', 'parallelogram-reverse', 'off-page', 'loop-limit'] },
+  { id: 'advanced', label: L('Erweitert'), variants: ['hexagon', 'cylinder', 'tube', 'internal-storage', 'trapezoid', 'summing', 'or', 'folder', 'note', 'pentagon'] },
 ];
 
 const providers: ReadonlyArray<{ id: ComponentDefinition['provider']; label: string }> = [
@@ -84,7 +85,7 @@ const libraryComponents = computed(() => {
 const filteredShapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, query.value)));
 const annotationMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
-  return !needle || ['annotation', 'textblock', 'dokumentation', 'kommentar', 'rich text'].some((term) => term.includes(needle));
+  return !needle || ['annotation', 'textblock', 'dokumentation', t('kommentar'), 'rich text'].some((term) => term.includes(needle));
 });
 const tableMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
@@ -183,96 +184,96 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <aside id="shape-library-panel" class="shape-library sd-panel" aria-label="Formen und Komponenten" data-testid="shape-library-sidebar" @keydown="onKeydown">
+  <aside id="shape-library-panel" class="shape-library sd-panel" :aria-label="t('Formen und Komponenten')" data-testid="shape-library-sidebar" @keydown="onKeydown">
     <header class="library-header">
       <div class="library-title-row">
-        <button v-if="activeLibrary" type="button" class="header-action" aria-label="Zurück zu allen Formen" @click="activeLibrary = null"><span aria-hidden="true">←</span></button>
-        <h2 class="sd-panel-title">{{ activeLibrary ? libraryLabel : 'Formen' }}</h2>
-        <button type="button" class="header-action close-button sd-panel-close" aria-label="Formen schließen" @click="close"><AppIcon name="close" /></button>
+        <button v-if="activeLibrary" type="button" class="header-action" :aria-label="t('Zurück zu allen Formen')" @click="activeLibrary = null"><span aria-hidden="true">←</span></button>
+        <h2 class="sd-panel-title">{{ activeLibrary ? libraryLabel : t('Formen') }}</h2>
+        <button type="button" class="header-action close-button sd-panel-close" :aria-label="t('Formen schließen')" @click="close"><AppIcon name="close" /></button>
       </div>
       <label class="library-search">
         <AppIcon name="search" :size="20" />
-        <span class="visually-hidden">Formen durchsuchen</span>
-        <input ref="searchInput" v-model="query" type="search" aria-label="Formen durchsuchen" placeholder="Formen durchsuchen" autocomplete="off" spellcheck="false" />
+        <span class="visually-hidden">{{ t('Formen durchsuchen') }}</span>
+        <input ref="searchInput" v-model="query" type="search" :aria-label="t('Formen durchsuchen')" :placeholder="t('Formen durchsuchen')" autocomplete="off" spellcheck="false" />
       </label>
       <div class="customize-row">
-        <p v-if="toolbarState.editing.value">Form anklicken oder in die obere Leiste ziehen.</p>
-        <span v-else>Lieblingsformen direkt in der oberen Leiste ablegen.</span>
-        <button type="button" :aria-pressed="toolbarState.editing.value" @click="toggleEditing">{{ toolbarState.editing.value ? 'Fertig' : 'Leiste anpassen' }}</button>
+        <p v-if="toolbarState.editing.value">{{ t('Form anklicken oder in die obere Leiste ziehen.') }}</p>
+        <span v-else>{{ t('Lieblingsformen direkt in der oberen Leiste ablegen.') }}</span>
+        <button type="button" :aria-pressed="toolbarState.editing.value" @click="toggleEditing">{{ toolbarState.editing.value ? t('Fertig') : t('Leiste anpassen') }}</button>
       </div>
     </header>
 
     <div ref="scroller" class="library-scroll">
       <template v-if="activeLibrary">
-        <p v-if="libraryLoading" class="empty-state" role="status">Bibliothek wird geladen …</p>
-        <p v-if="libraryError" class="empty-state" role="alert">Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.</p>
+        <p v-if="libraryLoading" class="empty-state" role="status">{{ t('Bibliothek wird geladen …') }}</p>
+        <p v-if="libraryError" class="empty-state" role="alert">{{ t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
         <section v-for="(group, index) in groupedLibraryComponents" :key="group.category" class="component-group">
           <h3><button type="button" class="category-toggle" :aria-expanded="categoryOpen(group.category, index)" @click="toggleCategory(group.category, index)"><span>{{ group.category }}</span><span class="category-count">{{ group.items.length }}</span><span class="category-chevron" aria-hidden="true">⌄</span></button></h3>
           <div v-if="categoryOpen(group.category, index)" class="component-grid">
             <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag">
-              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span>
+              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span>
               <SafeIcon v-else :source="item.component.iconSvg" :size="42" />
               <span>{{ item.component.name }}</span>
               <small>{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
         </section>
-        <p v-if="!libraryComponents.length && !libraryLoading" class="empty-state">Keine passenden Symbole gefunden.</p>
+        <p v-if="!libraryComponents.length && !libraryLoading" class="empty-state">{{ t('Keine passenden Symbole gefunden.') }}</p>
       </template>
 
       <template v-else-if="searching">
         <section class="search-results">
-          <h3 v-if="annotationMatches || tableMatches || filteredShapes.length">Formen</h3>
+          <h3 v-if="annotationMatches || tableMatches || filteredShapes.length">{{ t('Formen') }}</h3>
           <div class="shape-grid">
-            <button v-if="annotationMatches" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Annotation" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>Annotation</span></button>
-            <button v-if="tableMatches" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Tabelle" @click="activateTable"><AppIcon name="table" :size="30" /><span>Tabelle</span></button>
-            <button v-for="entry in filteredShapes" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="`${entry.label}${toolbarState.favorites.value.includes(entry.id) ? ', in der Leiste' : ''}`" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
+            <button v-if="annotationMatches" type="button" class="shape-tile" :disabled="!s.canWrite" :aria-label="t('Annotation')" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>{{ t('Annotation') }}</span></button>
+            <button v-if="tableMatches" type="button" class="shape-tile" :disabled="!s.canWrite" :aria-label="t('Tabelle')" @click="activateTable"><AppIcon name="table" :size="30" /><span>{{ t('Tabelle') }}</span></button>
+            <button v-for="entry in filteredShapes" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="toolbarState.favorites.value.includes(entry.id) ? t('{label}, in der Leiste', { label: t(entry.label) }) : t(entry.label)" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="path in entry.icon" :key="path" :d="path" /></svg>
-              <span>{{ entry.label }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>
+              <span>{{ t(entry.label) }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>
             </button>
           </div>
-          <h3>Architektur</h3>
+          <h3>{{ t('Architektur') }}</h3>
           <div class="component-grid search-components">
             <button v-for="item in allComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag">
-              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span>
+              <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span>
               <SafeIcon v-else :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
-          <p v-if="allComponentsCapped" class="empty-state">Die ersten {{ SEARCH_LIMIT }} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.</p>
-          <p v-if="!annotationMatches && !tableMatches && !filteredShapes.length && !allComponents.length" class="empty-state">Keine Form oder Komponente gefunden.</p>
+          <p v-if="allComponentsCapped" class="empty-state">{{ t('Die ersten {count} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.', { count: SEARCH_LIMIT }) }}</p>
+          <p v-if="!annotationMatches && !tableMatches && !filteredShapes.length && !allComponents.length" class="empty-state">{{ t('Keine Form oder Komponente gefunden.') }}</p>
         </section>
       </template>
 
       <template v-else>
         <section class="accordion-section">
-          <button type="button" class="accordion-trigger" :aria-expanded="expanded.connectors" aria-controls="shape-section-connectors" @click="toggleSection('connectors')"><span>Verbinder</span><span aria-hidden="true">⌄</span></button>
+          <button type="button" class="accordion-trigger" :aria-expanded="expanded.connectors" aria-controls="shape-section-connectors" @click="toggleSection('connectors')"><span>{{ t('Verbinder') }}</span><span aria-hidden="true">⌄</span></button>
           <div v-if="expanded.connectors" id="shape-section-connectors" class="shape-grid">
-            <button type="button" class="shape-tile" :disabled="!s.canWrite" @click="activateConnector"><AppIcon name="connector" :size="28" /><span>Verbinder</span></button>
+            <button type="button" class="shape-tile" :disabled="!s.canWrite" @click="activateConnector"><AppIcon name="connector" :size="28" /><span>{{ t('Verbinder') }}</span></button>
           </div>
         </section>
         <section v-for="group in shapeGroups" :key="group.id" class="accordion-section">
-          <button type="button" class="accordion-trigger" :aria-expanded="expanded[group.id]" :aria-controls="`shape-section-${group.id}`" @click="toggleSection(group.id)"><span>{{ group.label }}</span><span aria-hidden="true">⌄</span></button>
+          <button type="button" class="accordion-trigger" :aria-expanded="expanded[group.id]" :aria-controls="`shape-section-${group.id}`" @click="toggleSection(group.id)"><span>{{ t(group.label) }}</span><span aria-hidden="true">⌄</span></button>
           <div v-if="expanded[group.id]" :id="`shape-section-${group.id}`" class="shape-grid">
-            <button v-if="group.id === 'basic'" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Annotation" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>Annotation</span></button>
-            <button v-if="group.id === 'basic'" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Tabelle" @click="activateTable"><AppIcon name="table" :size="30" /><span>Tabelle</span></button>
-            <button v-for="entry in entriesFor(group)" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="`${entry.label}${toolbarState.favorites.value.includes(entry.id) ? ', in der Leiste' : ''}`" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
+            <button v-if="group.id === 'basic'" type="button" class="shape-tile" :disabled="!s.canWrite" :aria-label="t('Annotation')" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>{{ t('Annotation') }}</span></button>
+            <button v-if="group.id === 'basic'" type="button" class="shape-tile" :disabled="!s.canWrite" :aria-label="t('Tabelle')" @click="activateTable"><AppIcon name="table" :size="30" /><span>{{ t('Tabelle') }}</span></button>
+            <button v-for="entry in entriesFor(group)" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="toolbarState.favorites.value.includes(entry.id) ? t('{label}, in der Leiste', { label: t(entry.label) }) : t(entry.label)" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="path in entry.icon" :key="path" :d="path" /></svg>
-              <span>{{ entry.label }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>
+              <span>{{ t(entry.label) }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>
             </button>
           </div>
         </section>
         <section class="accordion-section">
-          <button type="button" class="accordion-trigger" :aria-expanded="expanded.architecture" aria-controls="shape-section-architecture" @click="toggleSection('architecture')"><span>Architektur</span><span aria-hidden="true">⌄</span></button>
+          <button type="button" class="accordion-trigger" :aria-expanded="expanded.architecture" aria-controls="shape-section-architecture" @click="toggleSection('architecture')"><span>{{ t('Architektur') }}</span><span aria-hidden="true">⌄</span></button>
           <div v-if="expanded.architecture" id="shape-section-architecture" class="component-grid">
-            <button v-for="item in genericComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag"><span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>Resource Name</b><small>Description</small></span></span><SafeIcon v-else :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
+            <button v-for="item in genericComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag"><span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span><SafeIcon v-else :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
           </div>
         </section>
 
         <section class="other-libraries" aria-labelledby="other-libraries-heading">
-          <h3 id="other-libraries-heading">Weitere Bibliotheken</h3>
+          <h3 id="other-libraries-heading">{{ t('Weitere Bibliotheken') }}</h3>
           <button v-for="providerItem in providers" :key="providerItem.id" type="button" class="provider-row" @click="activeLibrary = providerItem.id">
             <span class="provider-logo"><SafeIcon :source="providerPreview(providerItem.id)" :size="48" /></span>
-            <span><strong>{{ providerItem.label }}</strong><small>{{ providerCount(providerItem.id) }} Symbole</small></span>
+            <span><strong>{{ t(providerItem.label) }}</strong><small>{{ t('{count} Symbole', { count: providerCount(providerItem.id) }) }}</small></span>
             <span aria-hidden="true">›</span>
           </button>
         </section>
@@ -280,7 +281,7 @@ onBeforeUnmount(() => {
     </div>
 
     <footer v-if="toolbarState.editing.value" class="library-footer">
-      <button type="button" class="reset-button" @click="toolbarState.resetFavorites">Standard wiederherstellen</button>
+      <button type="button" class="reset-button" @click="toolbarState.resetFavorites">{{ t('Standard wiederherstellen') }}</button>
     </footer>
   </aside>
 </template>

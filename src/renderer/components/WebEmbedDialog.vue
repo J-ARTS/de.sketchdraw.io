@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, tm } from '@/renderer/i18n';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { parseWebEmbedUrl } from '@/domain';
 import { useWhiteboard } from './use-whiteboard';
@@ -30,7 +31,7 @@ function close(): void {
 async function submit(): Promise<void> {
   const parsed = parseWebEmbedUrl(url.value);
   if (!parsed.ok) {
-    error.value = parsed.message;
+    error.value = tm(parsed.message);
     input.value?.focus();
     return;
   }
@@ -38,7 +39,7 @@ async function submit(): Promise<void> {
   error.value = '';
   try {
     if (await store.addWebEmbed(parsed.url)) dialog.value?.close();
-    else error.value = 'Das Web-Embed konnte nicht hinzugefügt werden.';
+    else error.value = t('Das Web-Embed konnte nicht hinzugefügt werden.');
   } finally {
     busy.value = false;
   }
@@ -55,17 +56,17 @@ watch(() => store.state.tool, (tool) => {
   <dialog ref="dialog" class="web-embed-dialog sd-panel" aria-labelledby="web-embed-title" @cancel.prevent="close">
     <form method="dialog" @submit.prevent="submit">
       <div class="heading">
-        <h2 id="web-embed-title" class="sd-panel-title">Webseite einbetten</h2>
-        <button type="button" class="sd-icon-btn sd-panel-close" aria-label="Dialog schließen" :disabled="busy" @click="close"><AppIcon name="close" /></button>
+        <h2 id="web-embed-title" class="sd-panel-title">{{ t('Webseite einbetten') }}</h2>
+        <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Dialog schließen')" :disabled="busy" @click="close"><AppIcon name="close" /></button>
       </div>
-      <p>Füge eine vollständige Webadresse ein. Manche Seiten verhindern die Anzeige in eingebetteten Frames.</p>
-      <label for="web-embed-url">Webadresse</label>
+      <p>{{ t('Füge eine vollständige Webadresse ein. Manche Seiten verhindern die Anzeige in eingebetteten Frames.') }}</p>
+      <label for="web-embed-url">{{ t('Webadresse') }}</label>
       <input id="web-embed-url" ref="input" v-model="url" data-testid="web-embed-url" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" :disabled="busy" :aria-invalid="Boolean(error)" :aria-describedby="error ? 'web-embed-error' : 'web-embed-help'" />
-      <span id="web-embed-help" class="hint">Erlaubt sind HTTP und HTTPS ohne eingebettete Zugangsdaten.</span>
+      <span id="web-embed-help" class="hint">{{ t('Erlaubt sind HTTP und HTTPS ohne eingebettete Zugangsdaten.') }}</span>
       <p v-if="error" id="web-embed-error" class="error" role="alert">{{ error }}</p>
       <div class="actions">
-        <button type="button" class="sd-btn" :disabled="busy" @click="close">Abbrechen</button>
-        <button type="submit" class="sd-btn sd-btn--primary" :disabled="busy">{{ busy ? 'Wird hinzugefügt …' : 'Einbetten' }}</button>
+        <button type="button" class="sd-btn" :disabled="busy" @click="close">{{ t('Abbrechen') }}</button>
+        <button type="submit" class="sd-btn sd-btn--primary" :disabled="busy">{{ busy ? t('Wird hinzugefügt …') : t('Einbetten') }}</button>
       </div>
     </form>
   </dialog>

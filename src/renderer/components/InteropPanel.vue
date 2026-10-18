@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { importDrawio, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
 import { getDesktopBridge } from '@/platform';
@@ -28,7 +29,7 @@ const previewBounds = computed(() => {
 });
 function clear() { serial++; source.value = ''; fileName.value = ''; pages.value = []; pageIndex.value = null; imported.value = null; exported.value = null; accepted.value = false; busy.value = false; error.value = ''; status.value = ''; failures.value = []; }
 function failure(value: unknown) {
-  error.value = value instanceof InteropError ? `Die Datei konnte nicht verarbeitet werden (${value.code}). Das aktuelle Dokument bleibt erhalten.` : 'Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.';
+  error.value = value instanceof InteropError ? t('Die Datei konnte nicht verarbeitet werden ({code}). Das aktuelle Dokument bleibt erhalten.', { code: value.code }) : t('Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.');
   failures.value = value instanceof InteropError ? value.diagnostics : [];
 }
 function inspect() {
@@ -50,7 +51,7 @@ async function readFile(event: Event) {
   if (!file) return;
   clear(); const own = serial; const authority = store.getAuthority(); busy.value = true;
   try {
-    if (file.size > INTEROP_LIMITS.MAX_INPUT_BYTES) { error.value = 'Die Datei ist zu groß (maximal 96 MiB).'; return; }
+    if (file.size > INTEROP_LIMITS.MAX_INPUT_BYTES) { error.value = t('Die Datei ist zu groß (maximal 96 MiB).'); return; }
     const contents = await file.text();
     if (own !== serial || authority !== store.getAuthority()) return;
     fileName.value = file.name; source.value = contents; format.value = /\.svg$/i.test(file.name) ? 'svg' : 'drawio';
@@ -76,17 +77,17 @@ async function prepareExport() {
 async function writeExport() {
   const preview = exported.value;
   if (!preview || busy.value || requiresConfirmation.value && !accepted.value) return;
-  if (preview.authority !== store.getAuthority() || preview.revision !== store.state.revision || store.state.hasDraft) { error.value = 'Bitte die Exportvorschau für den aktuellen Stand neu erstellen.'; return; }
+  if (preview.authority !== store.getAuthority() || preview.revision !== store.state.revision || store.state.hasDraft) { error.value = t('Bitte die Exportvorschau für den aktuellen Stand neu erstellen.'); return; }
   const own = serial; busy.value = true; error.value = '';
   try {
     const name = suggestFileName(preview.title).replace(/\.sketchdraw\.json$/, preview.result.suggestedExtension);
     const result = await bridge.exportFile(preview.result.contents, name, preview.result.format);
     if (own !== serial || preview.authority !== store.getAuthority()) return;
-    if (result.status === 'error') error.value = `Export fehlgeschlagen: ${result.message}`;
-    else if (result.status === 'exported') status.value = `Exportiert: ${result.name}`;
-    else if (result.status === 'download-initiated') status.value = `Als Download übergeben: ${result.name}`;
-    else status.value = 'Export abgebrochen. Das Dokument bleibt erhalten.';
-  } catch { if (own === serial) error.value = 'Der Export konnte nicht ausgegeben werden. Das Dokument bleibt erhalten.'; }
+    if (result.status === 'error') error.value = t('Export fehlgeschlagen: {message}', { message: result.message });
+    else if (result.status === 'exported') status.value = t('Exportiert: {name}', { name: result.name });
+    else if (result.status === 'download-initiated') status.value = t('Als Download übergeben: {name}', { name: result.name });
+    else status.value = t('Export abgebrochen. Das Dokument bleibt erhalten.');
+  } catch { if (own === serial) error.value = t('Der Export konnte nicht ausgegeben werden. Das Dokument bleibt erhalten.'); }
   finally { if (own === serial) busy.value = false; }
 }
 watch(() => props.mode, clear);
@@ -97,30 +98,30 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
 </script>
 
 <template>
-  <aside v-if="open" class="interop-panel sd-panel" :aria-label="mode === 'import' ? 'Diagramm importieren' : 'Diagramm exportieren'" data-testid="interop-panel">
-    <div class="heading"><h2 class="sd-panel-title">{{ mode === 'import' ? 'Diagramm importieren' : 'Diagramm exportieren' }}</h2><button class="sd-icon-btn sd-panel-close" aria-label="Austauschansicht schließen" @click="emit('close')"><AppIcon name="close" /></button></div>
+  <aside v-if="open" class="interop-panel sd-panel" :aria-label="mode === 'import' ? t('Diagramm importieren') : t('Diagramm exportieren')" data-testid="interop-panel">
+    <div class="heading"><h2 class="sd-panel-title">{{ mode === 'import' ? t('Diagramm importieren') : t('Diagramm exportieren') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Austauschansicht schließen')" @click="emit('close')"><AppIcon name="close" /></button></div>
     <div class="panel-body">
-      <p class="intro">{{ mode === 'import' ? 'Prüfe die Vorschau und mögliche Änderungen. Dein aktuelles Dokument bleibt bis zur Übernahme erhalten.' : 'Erstelle eine Austauschdatei aus dem aktuellen Dokument. Vor der Ausgabe zeigen wir mögliche Verluste.' }}</p>
+      <p class="intro">{{ mode === 'import' ? t('Prüfe die Vorschau und mögliche Änderungen. Dein aktuelles Dokument bleibt bis zur Übernahme erhalten.') : t('Erstelle eine Austauschdatei aus dem aktuellen Dokument. Vor der Ausgabe zeigen wir mögliche Verluste.') }}</p>
       <template v-if="mode === 'import'">
-        <label class="file-picker">SVG- oder draw.io-Datei auswählen<input type="file" accept=".svg,.drawio,.xml,image/svg+xml,application/xml,text/xml" aria-label="Austauschdatei auswählen" :disabled="busy || store.state.transitioning" @change="readFile" /></label>
+        <label class="file-picker">{{ t('SVG- oder draw.io-Datei auswählen') }}<input type="file" accept=".svg,.drawio,.xml,image/svg+xml,application/xml,text/xml" :aria-label="t('Austauschdatei auswählen')" :disabled="busy || store.state.transitioning" @change="readFile" /></label>
         <p v-if="fileName" class="file-name">{{ fileName }}</p>
       </template>
-      <label class="sd-field-label" for="interop-format">Format<select id="interop-format" v-model="format" class="sd-select" :disabled="busy"><option value="drawio">draw.io</option><option value="svg">SVG</option></select></label>
+      <label class="sd-field-label" for="interop-format">{{ t('Format') }}<select id="interop-format" v-model="format" class="sd-select" :disabled="busy"><option value="drawio">{{ t('draw.io') }}</option><option value="svg">SVG</option></select></label>
       <template v-if="mode === 'import'">
-        <label v-if="pages.length > 1" class="sd-field-label" for="interop-page">Seite auswählen<select id="interop-page" v-model="pageIndex" class="sd-select" @change="convert"><option :value="null" disabled>Bitte eine der {{ pages.length }} Seiten auswählen</option><option v-for="item in pages" :key="item.index" :value="item.index">{{ item.index + 1 }} · {{ item.name }}</option></select></label>
-        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p>{{ imported.document.elements.length }} Elemente · {{ imported.fidelity === 'own-roundtrip' ? 'Eigener unveränderter Roundtrip' : imported.fidelity === 'supported-subset' ? 'Unterstützte Formatteilmenge' : 'Mit Annäherungen konvertiert' }}</p><svg class="preview" :viewBox="previewBounds" role="img" aria-label="Sichere Vorschau des konvertierten Diagramms"><ElementView v-for="element in imported.document.elements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
+        <label v-if="pages.length > 1" class="sd-field-label" for="interop-page">{{ t('Seite auswählen') }}<select id="interop-page" v-model="pageIndex" class="sd-select" @change="convert"><option :value="null" disabled>{{ t('Bitte eine der {count} Seiten auswählen', { count: pages.length }) }}</option><option v-for="item in pages" :key="item.index" :value="item.index">{{ item.index + 1 }} · {{ item.name }}</option></select></label>
+        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in imported.document.elements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
       </template>
       <template v-else>
-        <label class="embed-option"><input v-model="embedDocument" type="checkbox" :disabled="busy" /><span>Vollständiges Sketchdraw-Modell einbetten</span></label><p class="metadata-note">{{ embedDocument ? 'Enthält auch nicht sichtbare Metadaten und ungenutzte Ressourcen. Damit kann ein unveränderter eigener Export vollständig zurückgelesen werden.' : 'Nur die sichtbare native Formatprojektion. Zusätzliche Sketchdraw-Informationen können verloren gehen.' }}</p>
-        <button class="sd-btn full" :disabled="busy || store.state.transitioning" @click="prepareExport">Exportvorschau erstellen</button>
-        <p v-if="exported" class="summary">{{ format === 'svg' ? 'SVG' : 'draw.io' }} vorbereitet · {{ exported.result.embedsDocument ? 'mit' : 'ohne' }} eingebettetes Dokument.</p>
-        <p v-if="staleExport" class="error" role="status">Das Dokument oder ein Entwurf wurde geändert. Bitte die Exportvorschau neu erstellen.</p>
+        <label class="embed-option"><input v-model="embedDocument" type="checkbox" :disabled="busy" /><span>{{ t('Vollständiges Sketchdraw-Modell einbetten') }}</span></label><p class="metadata-note">{{ embedDocument ? t('Enthält auch nicht sichtbare Metadaten und ungenutzte Ressourcen. Damit kann ein unveränderter eigener Export vollständig zurückgelesen werden.') : t('Nur die sichtbare native Formatprojektion. Zusätzliche Sketchdraw-Informationen können verloren gehen.') }}</p>
+        <button class="sd-btn full" :disabled="busy || store.state.transitioning" @click="prepareExport">{{ t('Exportvorschau erstellen') }}</button>
+        <p v-if="exported" class="summary">{{ exported.result.embedsDocument ? t('{format} vorbereitet · mit eingebettetem Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) : t('{format} vorbereitet · ohne eingebettetes Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) }}</p>
+        <p v-if="staleExport" class="error" role="status">{{ t('Das Dokument oder ein Entwurf wurde geändert. Bitte die Exportvorschau neu erstellen.') }}</p>
       </template>
-      <section v-if="diagnostics.length" class="diagnostics" aria-label="Konvertierungsbericht"><h3>{{ warnings.length ? `${warnings.length} Hinweise auf Verluste oder Annäherungen` : 'Hinweise zur Konvertierung' }}</h3><ul><li v-for="(item, index) in diagnostics" :key="index" :class="item.severity"><strong>{{ item.sourceId || item.elementId || item.property || item.code }}</strong><span>{{ item.message }}</span><small v-if="item.sourcePath">{{ item.sourcePath }}</small></li></ul></section>
-      <label v-if="requiresConfirmation" class="loss-confirmation"><input v-model="accepted" type="checkbox" /><span>Ich habe die beschriebenen Verluste und Annäherungen geprüft und akzeptiere sie für diese Konvertierung.</span></label>
-      <button v-if="mode === 'import' && imported" class="sd-btn sd-btn--primary full" :disabled="busy || store.state.transitioning || requiresConfirmation && !accepted" @click="applyImport">Als neues Dokument öffnen</button>
-      <button v-if="mode === 'export' && exported" class="sd-btn sd-btn--primary full" :disabled="busy || staleExport || store.state.transitioning || requiresConfirmation && !accepted" @click="writeExport">Datei exportieren</button>
-      <p v-if="busy" role="status" class="summary">Wird geprüft …</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="status" role="status" class="summary">{{ status }}</p>
+      <section v-if="diagnostics.length" class="diagnostics" :aria-label="t('Konvertierungsbericht')"><h3>{{ warnings.length ? t('{count} Hinweise auf Verluste oder Annäherungen', { count: warnings.length }) : t('Hinweise zur Konvertierung') }}</h3><ul><li v-for="(item, index) in diagnostics" :key="index" :class="item.severity"><strong>{{ item.sourceId || item.elementId || item.property || item.code }}</strong><span>{{ item.message }}</span><small v-if="item.sourcePath">{{ item.sourcePath }}</small></li></ul></section>
+      <label v-if="requiresConfirmation" class="loss-confirmation"><input v-model="accepted" type="checkbox" /><span>{{ t('Ich habe die beschriebenen Verluste und Annäherungen geprüft und akzeptiere sie für diese Konvertierung.') }}</span></label>
+      <button v-if="mode === 'import' && imported" class="sd-btn sd-btn--primary full" :disabled="busy || store.state.transitioning || requiresConfirmation && !accepted" @click="applyImport">{{ t('Als neues Dokument öffnen') }}</button>
+      <button v-if="mode === 'export' && exported" class="sd-btn sd-btn--primary full" :disabled="busy || staleExport || store.state.transitioning || requiresConfirmation && !accepted" @click="writeExport">{{ t('Datei exportieren') }}</button>
+      <p v-if="busy" role="status" class="summary">{{ t('Wird geprüft …') }}</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="status" role="status" class="summary">{{ status }}</p>
     </div>
   </aside>
 </template>

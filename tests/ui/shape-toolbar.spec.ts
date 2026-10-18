@@ -119,3 +119,41 @@ test('a long press opens the same edit mode and compact screens keep the sidebar
   expect(sidebarBox.x).toBeGreaterThanOrEqual(0);
   expect(sidebarBox.x + sidebarBox.width).toBeLessThanOrEqual(480);
 });
+
+test('an active shape tool shows a translucent silhouette at the pointer, like the eraser ring', async ({ page }) => {
+  await page.goto('/');
+  const canvas = page.getByTestId('whiteboard-canvas');
+  await expect(canvas).toBeVisible();
+  const box = (await canvas.boundingBox())!;
+  const silhouette = page.getByTestId('shape-silhouette');
+
+  await page.mouse.move(box.x + 300, box.y + 300);
+  await expect(silhouette).toHaveCount(0);
+
+  await page.keyboard.press('r');
+  await page.mouse.move(box.x + 320, box.y + 320);
+  await expect(silhouette).toHaveCount(1);
+  await expect(silhouette).toHaveAttribute('data-shape', 'square');
+  const first = await silhouette.boundingBox();
+  await page.mouse.move(box.x + 520, box.y + 420);
+  const second = await silhouette.boundingBox();
+  expect(second!.x).toBeGreaterThan(first!.x + 150);
+
+  await page.mouse.down();
+  await page.mouse.move(box.x + 600, box.y + 480, { steps: 4 });
+  await expect(silhouette).toHaveCount(0);
+  await page.mouse.up();
+
+  await page.keyboard.press('v');
+  await page.mouse.move(box.x + 700, box.y + 300);
+  await expect(silhouette).toHaveCount(0);
+
+  await page.getByTestId('main-toolbar').locator('[data-toolbar-item="ellipse"], [data-shape="circle"]').first().click();
+  await page.mouse.move(box.x + 820, box.y + 560);
+  await expect(silhouette).toHaveAttribute('data-shape', 'circle');
+  await page.mouse.move(box.x + 840, box.y + 580);
+  await page.getByTestId('main-toolbar').locator('[data-toolbar-item="eraser"]').click();
+  await page.mouse.move(box.x + 860, box.y + 600);
+  await expect(silhouette).toHaveCount(0);
+  await expect(page.getByTestId('eraser-cursor')).toBeVisible();
+});

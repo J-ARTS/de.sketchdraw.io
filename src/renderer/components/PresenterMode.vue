@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, onMounted, ref } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
@@ -37,12 +38,12 @@ onMounted(() => root.value?.focus());
 </script>
 
 <template>
-  <section ref="root" class="presenter" role="dialog" aria-modal="true" aria-label="Presenter Mode" tabindex="-1" @pointerdown="pointerDown" @pointerup="pointerUp">
-    <header><div><span>{{ frame?.label || `Folie ${s.presenterIndex + 1}` }}</span><small>{{ s.presenterIndex + 1 }} / {{ s.frameSlides.length }}</small></div><nav aria-label="Präsentationsaktionen"><button class="presenter-btn" aria-label="Vollbild umschalten" @click="fullscreen"><AppIcon name="maximize" /></button><button class="presenter-btn" aria-label="Präsentation beenden" @click="stop"><AppIcon name="close" /></button></nav></header>
-    <div v-if="frame" class="stage"><FramePreview :frame="frame" :document="s.document" :theme="s.theme" :title="frame.label || `Folie ${s.presenterIndex + 1}`" /></div>
-    <button class="nav previous" :disabled="s.presenterIndex === 0" aria-label="Vorherige Folie" @click="store.goToPresentation(s.presenterIndex - 1)"><AppIcon name="chevron-left" /></button>
-    <button class="nav next" :disabled="s.presenterIndex >= s.frameSlides.length - 1" aria-label="Nächste Folie" @click="store.goToPresentation(s.presenterIndex + 1)"><AppIcon name="chevron-right" /></button>
-    <footer><button v-for="(slide, index) in s.frameSlides" :key="slide.id" :class="{ active: index === s.presenterIndex }" :aria-label="`Zu ${slide.label || `Folie ${index + 1}`} wechseln`" :aria-current="index === s.presenterIndex ? 'step' : undefined" @click="store.goToPresentation(index)">{{ index + 1 }}</button></footer>
+  <section ref="root" class="presenter" role="dialog" aria-modal="true" :aria-label="t('Presenter Mode')" tabindex="-1" @pointerdown="pointerDown" @pointerup="pointerUp">
+    <header><div><span>{{ frame?.label || t('Folie {presenterIndex}', { presenterIndex: s.presenterIndex + 1 }) }}</span><small>{{ s.presenterIndex + 1 }} / {{ s.frameSlides.length }}</small></div><nav :aria-label="t('Präsentationsaktionen')"><button class="presenter-btn" :aria-label="t('Vollbild umschalten')" @click="fullscreen"><AppIcon name="maximize" /></button><button class="presenter-btn" :aria-label="t('Präsentation beenden')" @click="stop"><AppIcon name="close" /></button></nav></header>
+    <div v-if="frame" class="stage"><FramePreview :frame="frame" :document="s.document" :theme="s.theme" :title="frame.label || t('Folie {presenterIndex}', { presenterIndex: s.presenterIndex + 1 })" /></div>
+    <button class="nav previous" :disabled="s.presenterIndex === 0" :aria-label="t('Vorherige Folie')" @click="store.goToPresentation(s.presenterIndex - 1)"><AppIcon name="chevron-left" /></button>
+    <button class="nav next" :disabled="s.presenterIndex >= s.frameSlides.length - 1" :aria-label="t('Nächste Folie')" @click="store.goToPresentation(s.presenterIndex + 1)"><AppIcon name="chevron-right" /></button>
+    <footer><button v-for="(slide, index) in s.frameSlides" :key="slide.id" :class="{ active: index === s.presenterIndex }" :aria-label="t('Zu {name} wechseln', { name: slide.label || t('Folie {index}', { index: index + 1 }) })" :aria-current="index === s.presenterIndex ? 'step' : undefined" @click="store.goToPresentation(index)">{{ index + 1 }}</button></footer>
   </section>
 </template>
 

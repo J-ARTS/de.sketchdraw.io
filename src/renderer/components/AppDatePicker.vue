@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
@@ -21,7 +22,7 @@ const today = computed(() => todayIso());
 const selected = computed(() => parseIsoDate(props.modelValue)?.iso ?? '');
 const grid = computed(() => monthGrid(focusDay.value));
 const month = computed(() => parseIsoDate(focusDay.value)!.month);
-const weekdays = weekdayLabels();
+const weekdays = computed(() => weekdayLabels());
 const display = computed(() => formatDate(props.modelValue));
 
 watch(() => props.modelValue, () => { if (!open.value && selected.value) focusDay.value = selected.value; });
@@ -83,14 +84,14 @@ useEventListener(document, 'pointerdown', (event: PointerEvent) => {
       @click="open ? closePanel() : openPanel()"
       @keydown="onTriggerKeydown"
     >
-      <span :id="`${uid}-value`" class="app-date-value" :class="{ empty: !display }">{{ display || 'Datum wählen' }}</span>
+      <span :id="`${uid}-value`" class="app-date-value" :class="{ empty: !display }">{{ display || t('Datum wählen') }}</span>
       <AppIcon name="calendar" :size="18" class="app-date-icon" />
     </button>
     <div v-if="open" :id="panelId" ref="panel" class="app-popover app-calendar" role="dialog" :aria-labelledby="titleId" :style="style" @keydown="onPanelKeydown">
       <div class="calendar-head">
-        <button type="button" class="calendar-nav" aria-label="Vorheriger Monat" @click="goTo(addMonths(focusDay, -1))"><AppIcon name="chevron-left" :size="18" /></button>
+        <button type="button" class="calendar-nav" :aria-label="t('Vorheriger Monat')" @click="goTo(addMonths(focusDay, -1))"><AppIcon name="chevron-left" :size="18" /></button>
         <h3 :id="titleId" class="calendar-title" aria-live="polite">{{ formatMonth(focusDay) }}</h3>
-        <button type="button" class="calendar-nav" aria-label="Nächster Monat" @click="goTo(addMonths(focusDay, 1))"><AppIcon name="chevron-right" :size="18" /></button>
+        <button type="button" class="calendar-nav" :aria-label="t('Nächster Monat')" @click="goTo(addMonths(focusDay, 1))"><AppIcon name="chevron-right" :size="18" /></button>
       </div>
       <div class="calendar-grid" role="grid" :aria-labelledby="titleId">
         <div class="calendar-row" role="row"><span v-for="weekday in weekdays" :key="weekday.long" class="calendar-weekday" role="columnheader" :abbr="weekday.long">{{ weekday.short }}</span></div>
@@ -111,8 +112,8 @@ useEventListener(document, 'pointerdown', (event: PointerEvent) => {
         </div>
       </div>
       <div class="calendar-foot">
-        <button type="button" class="calendar-link" @click="pick(todayIso())">Heute</button>
-        <button type="button" class="calendar-link" :disabled="!selected" @click="clear">Datum entfernen</button>
+        <button type="button" class="calendar-link" @click="pick(todayIso())">{{ t('Heute') }}</button>
+        <button type="button" class="calendar-link" :disabled="!selected" @click="clear">{{ t('Datum entfernen') }}</button>
       </div>
     </div>
   </div>

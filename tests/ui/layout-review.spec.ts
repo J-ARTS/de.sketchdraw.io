@@ -402,6 +402,35 @@ test('rounded rectangles get a live corner radius slider with undo', async ({ pa
   await expect(bar.getByRole('button', { name: /Eckenradius/ })).toHaveCount(0);
 });
 
+test('diamonds and triangles can be rounded with the same corner radius control', async ({ page }) => {
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  // A diamond starts sharp (polygon) and becomes a rounded path once a radius is set.
+  await page.getByRole('button', { name: 'Raute', exact: true }).click();
+  await page.mouse.move(300, 300); await page.mouse.down(); await page.mouse.move(540, 440, { steps: 8 }); await page.mouse.up();
+  await expect(page.locator('[data-shape-variant="diamond"] polygon')).toHaveCount(1);
+  await bar.getByRole('button', { name: /Eckenradius/ }).click();
+  const slider = page.getByRole('slider', { name: 'Eckenradius' });
+  await expect(slider).toHaveValue('0');
+  await page.getByRole('group', { name: 'Eckenradius-Vorgaben' }).getByRole('button', { name: '16 px' }).click();
+  const diamond = page.getByTestId('diamond-rounded-surface');
+  await expect(diamond).toHaveCount(1);
+  const sharp = await diamond.getAttribute('d');
+  await slider.press('End');
+  await expect.poll(async () => await diamond.getAttribute('d')).not.toBe(sharp);
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect.poll(async () => await diamond.getAttribute('d')).toBe(sharp);
+
+  // Triangles offer the control too.
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Dreieck', exact: true }).first().click();
+  await page.mouse.move(640, 300); await page.mouse.down(); await page.mouse.move(820, 440, { steps: 8 }); await page.mouse.up();
+  const triangle = page.getByTestId('triangle-rounded-surface');
+  await expect(triangle).toHaveCount(1);
+  await bar.getByRole('button', { name: /Eckenradius/ }).click();
+  await page.getByRole('group', { name: 'Eckenradius-Vorgaben' }).getByRole('button', { name: '16 px' }).click();
+  expect(await triangle.getAttribute('d')).toContain('Q');
+});
+
 for (const width of [1440, 1920]) {
   test(`task board edges align with the top bars at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

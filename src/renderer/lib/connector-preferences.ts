@@ -1,5 +1,6 @@
 import type { ConnectorMarker, ConnectorRouting } from '@/domain';
 
+import { L } from '@/renderer/i18n';
 export const CONNECTOR_PREFERENCES_KEY = 'sketchdraw.connector-defaults.v1';
 
 /** Line type and arrowhead used for every newly drawn connector until the user changes them. */
@@ -12,13 +13,13 @@ export interface ConnectorDefaults {
 export const DEFAULT_CONNECTOR_DEFAULTS: Readonly<ConnectorDefaults> = { routing: 'elbowed', endMarker: 'line-arrow' };
 
 export const CONNECTOR_ROUTING_OPTIONS: ReadonlyArray<{ value: ConnectorRouting; label: string }> = [
-  { value: 'elbowed', label: 'Rechtwinklig' }, { value: 'curved', label: 'Gebogen' }, { value: 'straight', label: 'Gerade' },
+  { value: 'elbowed', label: L('Rechtwinklig') }, { value: 'curved', label: L('Gebogen') }, { value: 'straight', label: L('Gerade') },
 ];
 export const CONNECTOR_END_MARKER_OPTIONS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
-  { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
-  { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
-  { value: 'solid-triangle', label: 'Gefülltes Dreieck' }, { value: 'circle', label: 'Kreis' },
-  { value: 'solid-circle', label: 'Gefüllter Kreis' }, { value: 'diamond', label: 'Raute' },
+  { value: 'none', label: L('Keine') }, { value: 'line-arrow', label: L('Linienpfeil') },
+  { value: 'solid-arrow', label: L('Gefüllter Pfeil') }, { value: 'triangle', label: L('Dreieck') },
+  { value: 'solid-triangle', label: L('Gefülltes Dreieck') }, { value: 'circle', label: L('Kreis') },
+  { value: 'solid-circle', label: L('Gefüllter Kreis') }, { value: 'diamond', label: L('Raute') },
 ];
 
 interface StorageLike {

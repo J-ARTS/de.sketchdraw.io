@@ -11,6 +11,7 @@ import {
   session,
   shell,
 } from 'electron';
+import { nativeText } from './i18n';
 import type {
   ExportFileResult,
   OpenDocumentResult,
@@ -132,23 +133,23 @@ function buildApplicationMenu(): Menu {
 
   template.push(
     {
-      label: 'Datei',
+      label: nativeText('Datei'),
       submenu: [
         {
           id: 'file-open',
-          label: 'Öffnen…',
+          label: nativeText('Öffnen…'),
           accelerator: 'CmdOrCtrl+O',
           click: () => dispatchMenuCommand('open'),
         },
         {
           id: 'file-save',
-          label: 'Speichern',
+          label: nativeText('Speichern'),
           accelerator: 'CmdOrCtrl+S',
           click: () => dispatchMenuCommand('save'),
         },
         {
           id: 'file-save-as',
-          label: 'Speichern unter…',
+          label: nativeText('Speichern unter…'),
           accelerator: 'CmdOrCtrl+Shift+S',
           click: () => dispatchMenuCommand('save-as'),
         },
@@ -157,17 +158,17 @@ function buildApplicationMenu(): Menu {
       ],
     },
     {
-      label: 'Bearbeiten',
+      label: nativeText('Bearbeiten'),
       submenu: [
         {
           id: 'edit-undo',
-          label: 'Rückgängig',
+          label: nativeText('Rückgängig'),
           accelerator: 'CmdOrCtrl+Z',
           click: () => dispatchMenuCommand('undo'),
         },
         {
           id: 'edit-redo',
-          label: 'Wiederholen',
+          label: nativeText('Wiederholen'),
           accelerator: isMac ? 'Cmd+Shift+Z' : 'Ctrl+Y',
           click: () => dispatchMenuCommand('redo'),
         },

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS } from '@/renderer/lib/connector-preferences';
 import { useWhiteboard } from './use-whiteboard';
@@ -37,7 +38,7 @@ function onKeydown(event: KeyboardEvent): void {
     class="tool-options connector-options sd-panel"
     role="toolbar"
     aria-orientation="horizontal"
-    aria-label="Verbindungsoptionen"
+    :aria-label="t('Verbindungsoptionen')"
     data-testid="connector-options"
     @pointerdown.stop
     @pointermove.stop
@@ -47,7 +48,7 @@ function onKeydown(event: KeyboardEvent): void {
     @focusin="onFocusIn"
     @focusout="onFocusOut"
   >
-    <div class="option-group" role="group" aria-label="Linienform">
+    <div class="option-group" role="group" :aria-label="t('Linienform')">
       <button
         v-for="option in CONNECTOR_ROUTING_OPTIONS"
         :key="option.value"
@@ -55,9 +56,9 @@ function onKeydown(event: KeyboardEvent): void {
         class="option"
         :data-option-id="`route-${option.value}`"
         :tabindex="tabStop === `route-${option.value}` ? 0 : -1"
-        :aria-label="`Linienform ${option.label}`"
+        :aria-label="t('Linienform {label}', { label: t(option.label) })"
         :aria-pressed="s.connectorDefaults.routing === option.value"
-        :title="option.label"
+        :title="t(option.label)"
         :disabled="!s.canWrite || s.transitioning"
         @click="store.setConnectorDefaults({ routing: option.value })"
       >
@@ -65,7 +66,7 @@ function onKeydown(event: KeyboardEvent): void {
       </button>
     </div>
     <span class="separator" aria-hidden="true" />
-    <div class="option-group" role="group" aria-label="Pfeilspitze am Ende">
+    <div class="option-group" role="group" :aria-label="t('Pfeilspitze am Ende')">
       <button
         v-for="option in CONNECTOR_END_MARKER_OPTIONS"
         :key="option.value"
@@ -73,9 +74,9 @@ function onKeydown(event: KeyboardEvent): void {
         class="option"
         :data-option-id="`marker-${option.value}`"
         :tabindex="tabStop === `marker-${option.value}` ? 0 : -1"
-        :aria-label="`Pfeilspitze ${option.label}`"
+        :aria-label="t('Pfeilspitze {label}', { label: t(option.label) })"
         :aria-pressed="s.connectorDefaults.endMarker === option.value"
-        :title="option.label"
+        :title="t(option.label)"
         :disabled="!s.canWrite || s.transitioning"
         @click="store.setConnectorDefaults({ endMarker: option.value })"
       >

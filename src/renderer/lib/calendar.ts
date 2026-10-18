@@ -1,3 +1,4 @@
+import { intlLocale } from '@/renderer/i18n';
 /** Calendar-day arithmetic on ISO dates (YYYY-MM-DD) without time zones, for the date picker. */
 export interface CalendarDay { iso: string; year: number; month: number; day: number }
 
@@ -46,22 +47,22 @@ export function todayIso(now = new Date()): string {
   return toIsoDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
 }
 
-export function formatDate(iso: string | undefined | null, locale = 'de-DE'): string {
+export function formatDate(iso: string | undefined | null, locale = intlLocale()): string {
   const day = parseIsoDate(iso);
   return day ? new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(day.year, day.month - 1, day.day))) : '';
 }
 
-export function formatLongDate(iso: string, locale = 'de-DE'): string {
+export function formatLongDate(iso: string, locale = intlLocale()): string {
   const day = parseIsoDate(iso)!;
   return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(day.year, day.month - 1, day.day)));
 }
 
-export function formatMonth(iso: string, locale = 'de-DE'): string {
+export function formatMonth(iso: string, locale = intlLocale()): string {
   const day = parseIsoDate(iso)!;
   return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(day.year, day.month - 1, 1)));
 }
 
-export function weekdayLabels(locale = 'de-DE'): Array<{ short: string; long: string }> {
+export function weekdayLabels(locale = intlLocale()): Array<{ short: string; long: string }> {
   // 2024-01-01 was a Monday.
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(Date.UTC(2024, 0, 1 + index));

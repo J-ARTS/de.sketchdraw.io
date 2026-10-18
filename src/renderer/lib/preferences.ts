@@ -1,22 +1,23 @@
 import type { ThemeName } from './theme';
 
+import { L } from '@/renderer/i18n';
 export const PREFERENCES_KEY = 'sketchdraw.preferences.v1';
 
 export type LanguageCode = 'de' | 'en';
 /** `available: false` entries are listed but cannot be chosen until their translation exists. */
 export const LANGUAGES: ReadonlyArray<{ code: LanguageCode; label: string; available: boolean }> = [
   { code: 'de', label: 'Deutsch', available: true },
-  { code: 'en', label: 'English', available: false },
+  { code: 'en', label: 'English', available: true },
 ];
 
 /** Canvas background presets; each has a tuned variant per theme. `default` keeps the theme's own canvas color. */
 export const CANVAS_BACKGROUNDS: ReadonlyArray<{ id: string; label: string; light: string | null; dark: string | null }> = [
-  { id: 'default', label: 'Standard', light: null, dark: null },
-  { id: 'white', label: 'Weiß', light: '#ffffff', dark: '#121212' },
-  { id: 'gray', label: 'Hellgrau', light: '#f1f3f5', dark: '#1a1c1f' },
-  { id: 'blue', label: 'Hellblau', light: '#eef5ff', dark: '#111a26' },
-  { id: 'yellow', label: 'Hellgelb', light: '#fffbe6', dark: '#211e0f' },
-  { id: 'warm', label: 'Warm', light: '#fbf4f0', dark: '#221a16' },
+  { id: 'default', label: L('Standard'), light: null, dark: null },
+  { id: 'white', label: L('Weiß'), light: '#ffffff', dark: '#121212' },
+  { id: 'gray', label: L('Hellgrau'), light: '#f1f3f5', dark: '#1a1c1f' },
+  { id: 'blue', label: L('Hellblau'), light: '#eef5ff', dark: '#111a26' },
+  { id: 'yellow', label: L('Hellgelb'), light: '#fffbe6', dark: '#211e0f' },
+  { id: 'warm', label: L('Warm'), light: '#fbf4f0', dark: '#221a16' },
 ];
 
 export interface Preferences {

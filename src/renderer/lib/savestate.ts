@@ -1,10 +1,11 @@
 import type { FileState, SaveStatus } from '@/renderer/state/contract';
+import { t } from '@/renderer/i18n';
 import { PRISTINE_DOCUMENT_TEXT, SAVE_STATUS_TEXT } from './messages';
 
 export interface SaveStatusView { status: SaveStatus; text: string }
 
 const FILE_EXTENSION = '.sketchdraw.json';
-const FALLBACK_BASE_NAME = 'Unbenanntes Diagramm';
+const FALLBACK_BASE_NAME = 'Unbenanntes Diagramm'; // file names stay language-independent
 const MAX_BASE_NAME_LENGTH = 100;
 const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 
@@ -32,7 +33,7 @@ export function deriveSaveStatus(file: FileState, revision: number): SaveStatusV
   if (isDirty(file, revision)) {
     return view(file.savedRevision !== null || file.handle !== null ? 'dirty' : 'unsaved-new');
   }
-  return { status: 'unsaved-new', text: PRISTINE_DOCUMENT_TEXT };
+  return { status: 'unsaved-new', text: t(PRISTINE_DOCUMENT_TEXT) };
 }
 
 /** A download hand-off of the current revision does not trigger the prompt, but a later edit does. */
