@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T05:49:23Z",
+  "updatedAt": "2026-10-18T06:10:00Z",
   "issues": [
     {
       "number": 1,
@@ -1122,9 +1122,9 @@
       "title": "Architekturentscheidung: Trystero und Proxy-Fallback für P2P",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/70",
       "owner": "OpenAI Codex (architecture/testing), Google Antigravity (future logic/interface/IAM/devops), Claude Code (future UI)",
-      "currentImplementer": "Codex (architecture research)",
-      "phase": "Architecture review and product decision",
-      "status": "review_pending",
+      "currentImplementer": "Codex (architecture research and decision documentation)",
+      "phase": "Accepted architecture decision",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1132,6 +1132,39 @@
       },
       "dependencies": [
         14
+      ]
+    },
+    {
+      "number": 71,
+      "title": "Yjs als CRDT-Datenschicht mit lokaler Persistenz",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/71",
+      "owner": "Google Antigravity (logic/interface/IAM), OpenAI Codex (architecture/testing), Claude Code (future UI)",
+      "phase": "CRDT architecture and implementation",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        70
+      ]
+    },
+    {
+      "number": 72,
+      "title": "Trystero-Transportadapter und proxyfreundlicher Automatic-P2P-Modus",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/72",
+      "owner": "Google Antigravity (logic/interface/IAM/devops), OpenAI Codex (architecture/testing), Claude Code (future UI)",
+      "phase": "P2P transport and connectivity prototype",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        70,
+        71
       ]
     }
   ],
@@ -4732,7 +4765,7 @@
       "issues": [
         70
       ],
-      "status": "research_complete_decision_pending",
+      "status": "architecture_decision_superseded_by_deeper_review",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -4746,7 +4779,8 @@
         "https://trystero.dev/docs/signaling-strategies/",
         "https://github.com/dmotz/trystero",
         "https://www.electronjs.org/docs/latest/api/session",
-        "https://webrtc.org/getting-started/turn-server"
+        "https://webrtc.org/getting-started/turn-server",
+        "docs/decisions/0004-yjs-crdt-data-layer.md"
       ],
       "concerns": [
         "The binding product vision forbids signaling and relay services, while Trystero discovery and TURN require such infrastructure.",
@@ -4757,6 +4791,51 @@
       ],
       "authorization": "The user asked Codex to assess Gemini Argon’s Trystero, Electron proxy and multi-transport proposal and whether the project should use the library.",
       "measurementSource": "Source review against Trystero 0.26.0 package metadata, current Trystero documentation, Electron proxy/authentication documentation, WebRTC TURN guidance, Yjs documentation and the repository’s implemented direct owner/guest WebRTC contract. Duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-yjs-openpencil-architecture-70-72",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        70,
+        71,
+        72
+      ],
+      "status": "architecture_accepted_followups_planned",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/decisions/0003-trystero-proxy-assisted-collaboration.md",
+        "docs/decisions/0004-yjs-crdt-data-layer.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/70",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/71",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/72",
+        "https://openpencil.dev/development/tech-stack",
+        "https://openpencil.dev/development/architecture",
+        "https://openpencil.dev/programmable/collaboration",
+        "https://github.com/open-pencil/open-pencil/commit/1c1986b20d15f2556c563d6c59d14a006269a40a",
+        "https://trystero.dev/docs/signaling-strategies/",
+        "https://trystero.dev/docs/connections/",
+        "https://docs.yjs.dev/getting-started/working-with-shared-types",
+        "https://docs.yjs.dev/getting-started/adding-awareness",
+        "https://docs.yjs.dev/api/undo-manager",
+        "https://docs.yjs.dev/ecosystem/database-provider/y-indexeddb",
+        "https://github.com/open-pencil/open-pencil/blob/1c1986b20d15f2556c563d6c59d14a006269a40a/packages/scene-graph/src/events.ts",
+        "https://github.com/open-pencil/open-pencil/blob/1c1986b20d15f2556c563d6c59d14a006269a40a/packages/scene-graph/src/buffered-events.ts"
+      ],
+      "concerns": [
+        "OpenPencil is an architectural reference, but its anyone-with-link access model, direct application of remote updates and hard-coded public STUN/TURN configuration do not satisfy Sketchdraw IAM and infrastructure requirements.",
+        "The current global expectedRevision contract cannot remain the conflict clock for true offline multi-writer convergence; the migration must use Yjs state vectors while preserving local projection revisions and request idempotency.",
+        "Remote Yjs updates require size, signature, grant and schema validation before the active document is mutated; the initial shadow-document validation approach must be profiled.",
+        "A Trystero full mesh has no verified 100-participant guarantee; topology and product limits remain implementation acceptance work.",
+        "No production dependency was added in this architecture-only run. The temporary browser bundle and audit ran outside the repository.",
+        "The source-code Graphify update was guarded because the rebuilt graph had 3,678 nodes versus 3,748 in the preserved graph; deterministic ticket/run/artifact traceability is refreshed without forcing a destructive overwrite."
+      ],
+      "authorization": "The user explicitly decided that Sketchdraw should use Yjs as its CRDT data layer and asked Codex to use OpenPencil as a reference while deepening the Trystero analysis.",
+      "measurementSource": "Primary-source review of Trystero 0.26, Yjs documentation, OpenPencil 0.16 documentation and collaboration source at commit 1c1986b20d15f2556c563d6c59d14a006269a40a, compared with Sketchdraw session, domain and P2P contracts. A temporary browser bundle outside the repository succeeded at approximately 158 KiB gzip for Yjs, y-indexeddb, awareness and Trystero MQTT together; npm audit reported zero known production vulnerabilities for the pinned spike packages. Duration, token usage and cost were not measured and remain null. nanoevents@9.1.0 was also bundled outside the repository at 236 bytes minified and 179 bytes gzip; the package is MIT-licensed, dependency-free, and the combined temporary production audit remained at zero known vulnerabilities."
     }
   ],
   "evidencePolicy": {
