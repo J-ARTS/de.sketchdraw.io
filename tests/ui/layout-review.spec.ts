@@ -69,8 +69,19 @@ for (const [width, height] of [[320, 568], [480, 720], [1024, 768], [1280, 800],
       expect(current.x + current.width).toBeLessThanOrEqual(width);
       for (const other of boxes.slice(index + 1)) expect(overlaps(current, other)).toBe(false);
     }
-    for (const control of [page.getByTestId('document-title'), page.getByTestId('file-menu-button'), page.getByTestId('page-switcher'), page.getByTestId('workspace-menu-button'), page.getByRole('button', { name: 'Auswahl', exact: true })]) {
-      expect(await reachable(control)).toBe(true);
+    for (const [name, control] of [
+      ['document title', page.getByTestId('document-title')],
+      ['file menu', page.getByTestId('file-menu-button')],
+      ['page switcher', page.getByTestId('page-switcher')],
+      ['workspace menu', page.getByTestId('workspace-menu-button')],
+      ['selection tool', page.getByRole('button', { name: 'Auswahl', exact: true })],
+    ] as const) {
+      // Compact-mode controls move through a short CSS transition after resizing.
+      // Assert the stable hit target rather than sampling one animation frame.
+      await expect.poll(() => reachable(control), {
+        message: `${name} must be reachable after the compact layout settles`,
+        timeout: 3_000,
+      }).toBe(true);
     }
     const zoomBar = await box(page.getByRole('group', { name: 'Ansicht und Verlauf' }));
     expect(zoomBar.x + zoomBar.width).toBeLessThanOrEqual(width);

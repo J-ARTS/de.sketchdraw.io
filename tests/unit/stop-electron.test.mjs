@@ -60,8 +60,32 @@ test('simulated Windows: process-not-found race succeeds only after confirmed na
     callback(Object.assign(new Error('Process no longer found'), { code: 128 }), '', '');
     setTimeout(fixture.exit, 20);
   });
-  assert.deepEqual((await stop(fixture.app)).steps, ['taskkill-parent-already-exited', 'automation-closed']);
+  assert.deepEqual((await stop(fixture.app)).steps, ['taskkill-missing-process-confirmed', 'automation-closed']);
   assert.equal(fixture.closeCalls(), 1);
+});
+
+test('simulated Windows: a disappearing tree child succeeds only after confirmed root exit', async t => {
+  const fixture = application();
+  const stop = await windowsBoundary(t, (_file, _args, _options, callback) => {
+    callback(Object.assign(new Error('taskkill partially completed'), {
+      code: 1,
+      stderr: 'ERROR: The process with PID 1234 could not be terminated.\r\nReason: There is no running instance of the task.\r\n',
+    }), '', '');
+    setTimeout(fixture.exit, 20);
+  });
+  assert.deepEqual((await stop(fixture.app)).steps, ['taskkill-missing-process-confirmed', 'automation-closed']);
+  assert.equal(fixture.closeCalls(), 1);
+});
+
+test('simulated Windows: a disappearing tree child with a live root stays a failure', async t => {
+  const fixture = application();
+  const failure = Object.assign(new Error('taskkill partially completed'), {
+    code: 1,
+    stderr: 'ERROR: The process with PID 1234 could not be terminated.\r\nReason: There is no running instance of the task.\r\n',
+  });
+  const stop = await windowsBoundary(t, (_file, _args, _options, callback) => callback(failure, '', ''));
+  await assert.rejects(stop(fixture.app), error => error === failure);
+  assert.equal(fixture.closeCalls(), 0);
 });
 
 test('simulated Windows: process-not-found with a live parent stays a failure', async t => {

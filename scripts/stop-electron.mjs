@@ -40,6 +40,13 @@ async function waitForExit(child, milliseconds) {
   }
 }
 
+function isTaskkillMissingProcessRace(error) {
+  if (!error || typeof error !== 'object') return false;
+  if (error.code === 128) return true;
+  const details = `${error.message ?? ''}\n${error.stderr ?? ''}`;
+  return /there is no running instance of the task/i.test(details);
+}
+
 /** Test cleanup only. Call before deleting the owned profile or fixture directory. */
 export async function stopElectron(app) {
   const child = app.process();
@@ -63,10 +70,13 @@ export async function stopElectron(app) {
         steps.push('taskkill-owned-tree');
       } catch (error) {
         // A natural exit can win the race with taskkill's process lookup (128).
+        // Windows can also return exit code 1 when a Chromium descendant exits
+        // while /T is walking the exclusively owned tree. Accept that narrow
+        // diagnostic only after the root process has actually exited.
         // Never suppress missing executables, access denied, command timeouts,
         // or other failures merely because the parent happened to exit as well.
-        if (error.code !== 128 || !await waitForExit(child, 3_000)) throw error;
-        steps.push('taskkill-parent-already-exited');
+        if (!isTaskkillMissingProcessRace(error) || !await waitForExit(child, 3_000)) throw error;
+        steps.push('taskkill-missing-process-confirmed');
       }
       if (!await waitForExit(child, 3_000)) {
         throw new Error(`Owned Electron process ${pid} did not exit after taskkill /T /F.`);
