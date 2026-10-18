@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:01:40Z",
+  "updatedAt": "2026-10-18T09:09:00.580051Z",
   "issues": [
     {
       "number": 1,
@@ -1342,8 +1342,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 84,
@@ -1352,8 +1358,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 85,
@@ -1362,8 +1374,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 86,
@@ -1372,8 +1390,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 87,
@@ -1382,8 +1406,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 88,
@@ -1392,8 +1422,14 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
       "status": "planned",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [75]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        75
+      ]
     },
     {
       "number": 89,
@@ -1402,9 +1438,16 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI",
-      "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [77, 78]
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        77,
+        78
+      ]
     },
     {
       "number": 90,
@@ -1414,8 +1457,14 @@
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI and logic",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [58]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        58
+      ]
     },
     {
       "number": 91,
@@ -1425,8 +1474,16 @@
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI, logic and interfaces",
       "status": "completed",
-      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
-      "dependencies": [45, 46, 47]
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        45,
+        46,
+        47
+      ]
     }
   ],
   "runs": [
@@ -5225,7 +5282,20 @@
       "id": "claude-ui-audit-fixes-76-87",
       "tool": "claude-code",
       "model": null,
-      "issues": [76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
+      "issues": [
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87
+      ],
       "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
@@ -5263,7 +5333,12 @@
       "id": "codex-live-ui-page-table-connectors-35-89-91",
       "tool": "openai-codex",
       "model": "gpt-6",
-      "issues": [35, 89, 90, 91],
+      "issues": [
+        35,
+        89,
+        90,
+        91
+      ],
       "status": "integrated_and_cross_platform_verified_with_schema_v2_follow_up",
       "startedAt": null,
       "endedAt": null,
@@ -5302,7 +5377,24 @@
       "id": "github-actions-ui-canvas-39112934986",
       "tool": "github-actions",
       "model": null,
-      "issues": [35, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 90, 91],
+      "issues": [
+        35,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        89,
+        90,
+        91
+      ],
       "status": "completed",
       "startedAt": "2026-10-18T08:49:29Z",
       "endedAt": "2026-10-18T08:58:45Z",
@@ -5323,6 +5415,31 @@
         "Issue #88 remains a separate open UI bug for lower-viewport comment-editor overlap."
       ],
       "measurementSource": "Fresh GitHub read confirmed overall success for run 39112934986 at commit 37488a1: Governance & Graphify Tests, Direct P2P with Chromium and sandboxed Electron, and Build & Verify on ubuntu-24.04, macos-15 and windows-2025 all completed successfully. Duration, token usage and cost were not copied or inferred and remain null."
+    },
+    {
+      "id": "codex-shape-header-regression-89",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        89
+      ],
+      "status": "integrated_locally_pending_cross_platform_ci",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:6eefe390ed194d58e947969a862d40774856c360",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "tests/ui/layout-review.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/89"
+      ],
+      "concerns": [
+        "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 4,008 nodes versus 4,135 in the existing graph; deterministic ticket/run/artifact traceability is refreshed separately."
+      ],
+      "authorization": "The user supplied a follow-up screenshot for the shape-library header after previously requesting removal of the excessive top padding; issue #89 was reopened as a regression and Codex was already authorized to implement temporarily.",
+      "measurementSource": "Local macOS Electron visual inspection confirmed the reduced 8 px top inset. npm run typecheck and 19/19 targeted Playwright UI tests passed. Cross-platform GitHub Actions evidence is pending. Exact duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
