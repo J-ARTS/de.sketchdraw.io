@@ -69,7 +69,9 @@ test('an annotation provides structured rich-text editing and remains searchable
     document.dispatchEvent(new Event('selectionchange'));
   });
   await bar.getByRole('button', { name: 'Aufzählung' }).click();
-  await expect(editor.locator('ul li')).toContainText('Safe structured content');
+  const bulletList = editor.locator('ul');
+  await expect(bulletList.locator('li')).toContainText('Safe structured content');
+  await expect.poll(() => bulletList.evaluate((element) => getComputedStyle(element).listStyleType)).toBe('disc');
 
   await editor.evaluate((element) => {
     const paragraph = Array.from(element.querySelectorAll('p')).find((candidate) => candidate.textContent?.includes('Editable by humans and agents'))!;
@@ -79,7 +81,9 @@ test('an annotation provides structured rich-text editing and remains searchable
     document.dispatchEvent(new Event('selectionchange'));
   });
   await bar.getByRole('button', { name: 'Nummerierte Liste' }).click();
-  await expect(editor.locator('ol li')).toContainText('Editable by humans and agents');
+  const numberedList = editor.locator('ol');
+  await expect(numberedList.locator('li')).toContainText('Editable by humans and agents');
+  await expect.poll(() => numberedList.evaluate((element) => getComputedStyle(element).listStyleType)).toBe('decimal');
 
   await editor.evaluate((element) => {
     const paragraph = Array.from(element.querySelectorAll('p')).find((candidate) => candidate.textContent?.includes('Everything remains understandable.'))!;
