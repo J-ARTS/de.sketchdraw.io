@@ -1119,7 +1119,9 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-shape-variants-toolbar-039-052",
-        "codex-shape-variants-toolbar-039-040-052"
+        "codex-shape-variants-toolbar-039-040-052",
+        "github-actions-shape-toolbar-855f4d0",
+        "github-actions-shape-toolbar-b66448f"
       ]
     },
     "4": {
@@ -1193,7 +1195,9 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-code-shape-toolbar-review-052",
-        "codex-shape-variants-toolbar-039-040-052"
+        "codex-shape-variants-toolbar-039-040-052",
+        "github-actions-shape-toolbar-855f4d0",
+        "github-actions-shape-toolbar-b66448f"
       ]
     },
     "43": {
@@ -1576,7 +1580,9 @@
       "sharedUnallocatedRunIds": [
         "antigravity-shape-variants-toolbar-039-052",
         "claude-code-shape-toolbar-review-052",
-        "codex-shape-variants-toolbar-039-040-052"
+        "codex-shape-variants-toolbar-039-040-052",
+        "github-actions-shape-toolbar-855f4d0",
+        "github-actions-shape-toolbar-b66448f"
       ]
     },
     "6": {
@@ -1939,15 +1945,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 17
       },
       "observedSeconds": {
-        "knownRuns": 10,
-        "knownSubtotal": 3920,
+        "knownRuns": 12,
+        "knownSubtotal": 4417,
         "total": null,
         "unknownRuns": 5
       },
-      "runCount": 15,
+      "runCount": 17,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -1961,6 +1967,8 @@
         "github-actions-popover-anchor-39070996817",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226",
+        "github-actions-shape-toolbar-855f4d0",
+        "github-actions-shape-toolbar-b66448f",
         "github-actions-shutdown-cleanup-39055418909",
         "github-actions-sticky-notes-39077766935",
         "github-actions-text-edit-toolbar-39073704784"
@@ -1969,7 +1977,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 17
       }
     }
   },
@@ -1978,15 +1986,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 99
+      "unknownRuns": 101
     },
     "observedSeconds": {
-      "knownRuns": 30,
-      "knownSubtotal": 16542.322263248963,
+      "knownRuns": 32,
+      "knownSubtotal": 17039.322263248963,
       "total": null,
       "unknownRuns": 69
     },
-    "runCount": 99,
+    "runCount": 101,
     "runIds": [
       "antigravity-architecture-001",
       "antigravity-architecture-002",
@@ -2084,6 +2092,8 @@
       "github-actions-popover-anchor-39070996817",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226",
+      "github-actions-shape-toolbar-855f4d0",
+      "github-actions-shape-toolbar-b66448f",
       "github-actions-shutdown-cleanup-39055418909",
       "github-actions-sticky-notes-39077766935",
       "github-actions-text-edit-toolbar-39073704784"
@@ -2092,7 +2102,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 95
+      "unknownRuns": 97
     }
   },
   "officialScoreClaimReady": false,
@@ -2106,5 +2116,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T23:59:36Z"
+  "updatedAt": "2026-10-18T00:11:39Z"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T23:59:36Z",
+  "updatedAt": "2026-10-18T00:11:39Z",
   "issues": [
     {
       "number": 1,
@@ -610,7 +610,7 @@
       "owner": "Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
       "currentImplementer": "Codex temporary user-authorized takeover; Antigravity quota unavailable",
       "phase": "Architecture, logic, interface and testing",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -625,7 +625,7 @@
       "owner": "Claude Code",
       "currentImplementer": "Codex temporary implementation; Claude Code UI review",
       "phase": "UI and testing",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -790,7 +790,7 @@
       "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
       "currentImplementer": "Codex temporary user-authorized takeover; Claude Code review completed; Antigravity quota unavailable",
       "phase": "Architecture, UI, logic, interface and testing",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -3209,9 +3209,9 @@
         40,
         52
       ],
-      "status": "verified_locally",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-17T23:59:36Z",
-      "endedAt": "2026-10-17T23:59:36Z",
+      "endedAt": "2026-10-18T00:11:39Z",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
@@ -3225,11 +3225,62 @@
         "tests/ui/shape-toolbar.spec.ts",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/39",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/40",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/52"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/52",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/855f4d0797235cfcac705a678ad56bff81fd9d8d",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b66448f30358c30c524cda153f374aa82fb7e53c",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39081392508"
       ],
       "concerns": [],
       "authorization": "The user requested the feature and explicitly authorized Codex to temporarily implement work assigned to quota-limited agents with actual-tool attribution.",
-      "measurementSource": "Local validation: typecheck passed; 319 unit tests passed; 42 browser UI tests passed; 6 Electron tests passed; production build passed; Graphify rebuilt to 2752 nodes and 5674 edges. Timestamp fields record the coordinator checkpoint; no elapsed duration is inferred."
+      "measurementSource": "Local validation passed: typecheck; 319 unit tests; 42 browser UI tests; 6 Electron tests; production build; Graphify rebuilt to 2752 code nodes and 5674 edges before traceability projection. GitHub Actions run 39081392508 passed Governance & Graphify, Direct P2P, and Build & Verify on macOS 15, Windows 2025 and Ubuntu 24.04. Timestamp fields are coordinator checkpoints; no elapsed implementation duration is inferred."
+    },
+    {
+      "id": "github-actions-shape-toolbar-855f4d0",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        39,
+        40,
+        52
+      ],
+      "status": "cancelled_after_governance_failure",
+      "startedAt": "2026-10-18T00:03:24Z",
+      "endedAt": "2026-10-18T00:04:12Z",
+      "observedSeconds": 48,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39081341152",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/855f4d0797235cfcac705a678ad56bff81fd9d8d"
+      ],
+      "concerns": [
+        "Graphify traceability rejected completed agent runs with null startedAt; the ledger timestamps were corrected without inferring elapsed agent duration."
+      ],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions run metadata. Observed duration is the difference between recorded run start and update timestamps; it is CI elapsed time, not human work effort."
+    },
+    {
+      "id": "github-actions-shape-toolbar-b66448f",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        39,
+        40,
+        52
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T00:04:10Z",
+      "endedAt": "2026-10-18T00:11:39Z",
+      "observedSeconds": 449,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39081392508",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/b66448f30358c30c524cda153f374aa82fb7e53c"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions run metadata. Governance & Graphify, Direct P2P, macOS 15, Windows 2025 and Ubuntu 24.04 all completed successfully. Observed duration is the difference between recorded run start and completion timestamps."
     }
   ],
   "evidencePolicy": {
