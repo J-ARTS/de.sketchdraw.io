@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:06:24Z",
+  "updatedAt": "2026-10-18T12:28:26Z",
   "issues": [
     {
       "number": 1,
@@ -1636,6 +1636,23 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 104,
+      "title": "Tabelle: Ausgewählte Zeile oder Spalte mit Entf löschen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/104",
+      "owner": "Google Antigravity (logic), Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        58
+      ]
     }
   ],
   "runs": [
@@ -6159,6 +6176,61 @@
       "concerns": [],
       "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 103 product change to main.",
       "measurementSource": "GitHub Actions run 39125202089 timestamps and conclusions. All five jobs completed successfully; observedSeconds is the run wall-clock interval from startedAt to updatedAt. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-delete-table-row-column-104",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        104
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:328caa5f545cca5ba462a98d938c39b8bbfffe51",
+        "src/renderer/components/TableOverlay.vue",
+        "tests/ui/table.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/104",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884"
+      ],
+      "concerns": [
+        "The table controls are rendered in an HTML overlay outside the SVG canvas, so row and column deletion must handle the focused overlay event before the canvas-scoped shortcut resolver."
+      ],
+      "authorization": "The user requested Delete/Entf behavior for selected table rows and columns; Codex remains authorized to implement logic and UI work temporarily with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit 328caa5: typecheck and production build passed, table domain tests passed 5/5, and the complete table UI suite passed 3/3 including Delete, Backspace, undo, and unchanged whole-table deletion. GitHub Actions run 39126131884 passed on attempt 2 across Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-delete-table-row-column-39126131884",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        104
+      ],
+      "status": "completed_after_rerun",
+      "startedAt": "2026-10-18T12:09:38Z",
+      "endedAt": "2026-10-18T12:28:26Z",
+      "observedSeconds": 1128,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:328caa5f545cca5ba462a98d938c39b8bbfffe51",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884/job/117673479162",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884/job/117673479766",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884/job/117673480298",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884/job/117673480552",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39126131884/job/117673506266"
+      ],
+      "concerns": [
+        "The first Windows Electron attempt failed while starting and cleaning up unrelated Electron fixtures; the complete Windows rerun passed without code changes.",
+        "GitHub Actions reports that actions/checkout@v4 and actions/setup-python@v5 still target the deprecated Node.js 20 action runtime and are currently forced onto Node.js 24."
+      ],
+      "authorization": "GitHub Actions verification and the failed-job rerun were triggered by the authorized push of the Issue 104 product change to main.",
+      "measurementSource": "GitHub Actions run 39126131884 creation and final completion timestamps cover the initial attempt plus the Windows rerun. Attempt 2 concluded successfully for all five jobs; observedSeconds is the wall-clock interval from createdAt to final updatedAt. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
