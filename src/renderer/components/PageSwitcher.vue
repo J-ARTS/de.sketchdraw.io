@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue';
+import { computed, nextTick, ref, useId } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
@@ -251,8 +252,7 @@ function onDocumentPointerDown(event: PointerEvent): void {
   else if (menu.value && !menuEl.value?.contains(event.target)) closeMenu(false);
 }
 
-onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown, true));
-onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPointerDown, true));
+useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 </script>
 

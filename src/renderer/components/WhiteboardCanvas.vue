@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
 import { useWhiteboard } from './use-whiteboard';
 import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
@@ -16,7 +17,6 @@ const s = store.state;
 const canvas = ref<SVGSVGElement>();
 const editor = ref<HTMLTextAreaElement>();
 const laser = ref<InstanceType<typeof LaserPointerOverlay>>();
-let observer: ResizeObserver | undefined;
 let activePointer: number | null = null;
 let laserGesture = false;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
@@ -97,11 +97,8 @@ function wheel(event: WheelEvent) {
 }
 watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); if (value.kind !== 'annotation') { autosize(); editor.value?.focus(); editor.value?.select(); } } else canvas.value?.focus({ preventScroll: true }); });
 watch(() => [s.textEdit?.draft, s.viewport.zoom], () => { void nextTick(autosize); });
-onMounted(() => {
-  observer = new ResizeObserver(([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
-  if (canvas.value) { observer.observe(canvas.value); canvas.value.focus(); }
-});
-onBeforeUnmount(() => observer?.disconnect());
+useResizeObserver(canvas, ([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
+onMounted(() => canvas.value?.focus());
 </script>
 
 <template>

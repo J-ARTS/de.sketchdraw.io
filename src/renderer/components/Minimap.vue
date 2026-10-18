@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
@@ -88,8 +89,7 @@ function toggleFullscreen(): void {
   else void document.documentElement.requestFullscreen().catch(() => undefined);
 }
 
-onMounted(() => document.addEventListener('fullscreenchange', syncFullscreen));
-onBeforeUnmount(() => document.removeEventListener('fullscreenchange', syncFullscreen));
+useEventListener(document, 'fullscreenchange', syncFullscreen);
 </script>
 
 <template>

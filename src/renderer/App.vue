@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from 'vue';
+import { onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '../agent-access/renderer-session';
 import type { DocumentAuthority } from '../session';
 import type { CrdtDocumentController } from '../crdt';
@@ -54,8 +55,10 @@ function key(event: KeyboardEvent): KeyInput {
 function keydown(event: KeyboardEvent) { if (!event.defaultPrevented && store.handleKeyDown(key(event))) event.preventDefault(); }
 function keyup(event: KeyboardEvent) { store.handleKeyUp(key(event)); }
 function beforeUnload(event: BeforeUnloadEvent) { if (s.bridgePlatform === 'browser' && store.needsCloseWarning()) { event.preventDefault(); event.returnValue = ''; } }
-onMounted(() => { window.addEventListener('keydown', keydown); window.addEventListener('keyup', keyup); window.addEventListener('beforeunload', beforeUnload); });
-onBeforeUnmount(() => { window.removeEventListener('keydown', keydown); window.removeEventListener('keyup', keyup); window.removeEventListener('beforeunload', beforeUnload); agentSession?.dispose(); offAuthority(); store.dispose(); });
+useEventListener(window, 'keydown', keydown);
+useEventListener(window, 'keyup', keyup);
+useEventListener(window, 'beforeunload', beforeUnload);
+onBeforeUnmount(() => { agentSession?.dispose(); offAuthority(); store.dispose(); });
 </script>
 
 <template>

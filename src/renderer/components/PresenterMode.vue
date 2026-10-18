@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import FramePreview from './FramePreview.vue';
 import { useWhiteboard } from './use-whiteboard';
@@ -31,8 +32,8 @@ function pointerUp(event: PointerEvent): void {
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) store.goToPresentation(s.presenterIndex + (dx < 0 ? 1 : -1));
 }
 function fullscreen(): void { if (!document.fullscreenElement) void root.value?.requestFullscreen().catch(() => {}); else void document.exitFullscreen(); }
-onMounted(() => { window.addEventListener('keydown', keydown, true); root.value?.focus(); });
-onBeforeUnmount(() => window.removeEventListener('keydown', keydown, true));
+useEventListener(window, 'keydown', keydown, true);
+onMounted(() => root.value?.focus());
 </script>
 
 <template>

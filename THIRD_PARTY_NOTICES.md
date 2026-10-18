@@ -10,5 +10,8 @@ Sketchdraw is licensed under the PolyForm Noncommercial License 1.0.0. The follo
 | `nanoevents` | 9.1.0 | MIT | Typed post-commit events |
 | `@trystero-p2p/mqtt` | 0.26.0 | MIT | Automatic MQTT/WSS peer discovery and WebRTC transport |
 | `@trystero-p2p/core` | 0.26.0 | MIT | Trystero transport core (transitive dependency) |
+| `@vueuse/core` | 15.0.0 | MIT | Vue renderer lifecycle and browser composables |
+| `@vueuse/shared` | 15.0.0 | MIT | Shared VueUse composable utilities (transitive dependency) |
+| `@vueuse/metadata` | 15.0.0 | MIT | VueUse composable metadata (transitive dependency) |
 
 Complete dependency metadata and resolved transitive versions are recorded in `package-lock.json`. This notice does not replace the license files distributed by the packages.

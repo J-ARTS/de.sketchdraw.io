@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch, type Ref } from 'vue';
+import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import PageSwitcher from './PageSwitcher.vue';
 import type { IconName } from './icons';
@@ -177,8 +178,7 @@ function runView(id: ViewItemId): void {
   }
 }
 
-onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown, true));
-onBeforeUnmount(() => document.removeEventListener('pointerdown', onDocumentPointerDown, true));
+useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 </script>
 
 <template>

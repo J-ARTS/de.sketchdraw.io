@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
+import { computed, nextTick, ref, useId, watch } from 'vue';
+import { useEventListener, useResizeObserver } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
@@ -68,15 +69,17 @@ const bar = ref<HTMLElement | null>(null);
 const barSize = ref({ width: 0, height: 56 });
 /** The bar stays invisible until its width is known, so it never jumps sideways on first paint. */
 const measured = ref(false);
-let observer: ResizeObserver | undefined;
 watch(bar, (element) => {
-  observer?.disconnect();
   measured.value = false;
   if (!element) return;
   barSize.value = { width: element.offsetWidth, height: element.offsetHeight };
   measured.value = true;
-  observer = new ResizeObserver(() => { barSize.value = { width: element.offsetWidth, height: element.offsetHeight }; });
-  observer.observe(element);
+});
+useResizeObserver(bar, ([entry]) => {
+  const element = entry?.target;
+  if (!(element instanceof HTMLElement)) return;
+  barSize.value = { width: element.offsetWidth, height: element.offsetHeight };
+  measured.value = true;
 });
 
 /** Top edge of the rotated selection frame in canvas-local coordinates (same space as `position`). */
@@ -166,15 +169,8 @@ watch([position, barSize], () => { if (openSegment.value) void nextTick(placePop
 
 /** Document scroll and window resize can move the bar on screen without touching the viewport state. */
 function onViewportShift(): void { if (openSegment.value) placePopover(); }
-watch(openSegment, (segment) => {
-  if (segment) {
-    window.addEventListener('scroll', onViewportShift, true);
-    window.addEventListener('resize', onViewportShift);
-  } else {
-    window.removeEventListener('scroll', onViewportShift, true);
-    window.removeEventListener('resize', onViewportShift);
-  }
-});
+useEventListener(window, 'scroll', onViewportShift, true);
+useEventListener(window, 'resize', onViewportShift);
 
 /** Only the canvas dismisses a popover; notices and draft recovery stay usable next to it. */
 function onDocumentPointerDown(event: PointerEvent): void {
@@ -198,13 +194,7 @@ function onBarKeydown(event: KeyboardEvent): void {
   buttons[(index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
 }
 
-onMounted(() => document.addEventListener('pointerdown', onDocumentPointerDown, true));
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocumentPointerDown, true);
-  window.removeEventListener('scroll', onViewportShift, true);
-  window.removeEventListener('resize', onViewportShift);
-  observer?.disconnect();
-});
+useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 // --- Values --------------------------------------------------------------------------
 function style(patch: Partial<ElementStyle>): void {

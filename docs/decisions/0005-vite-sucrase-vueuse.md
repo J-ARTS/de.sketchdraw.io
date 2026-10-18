@@ -6,7 +6,7 @@ Status: angenommen. Die Evaluierung und ihre Nachweise werden in [#73](https://g
 
 1. **Vite bleibt der Renderer-Buildpfad.** Sketchdraw verwendet Vite 8 mit dem offiziellen Vue-Plugin für Entwicklung, Vue-SFC-Transformation und Produktionsbundles. Die vorhandene Trennung zwischen schneller Transformation und `vue-tsc`-Typprüfung bleibt bestehen.
 2. **Sucrase wird nicht eingeführt.** Für den Renderer würde es die vorhandene Oxc-/Rolldown-Pipeline duplizieren. Für Electron und MCP würde es esbuild nur als TypeScript-Stripper ersetzen, nicht aber dessen Bundling. Es ersetzt außerdem weder `vue-tsc` noch `tsc` und kann die gemessene Typprüfzeit deshalb nicht verkürzen.
-3. **VueUse ist für gezielte Renderer-Composables zugelassen, wird durch diese Entscheidung aber noch nicht installiert.** Bei neuen oder ohnehin geänderten Vue-Komponenten sollen direkte Imports aus `@vueuse/core` bevorzugt werden, wenn sie manuelle Lifecycle-Nebenwirkungen tatsächlich ersetzen. Eine reine Massenmigration funktionierender Komponenten ist nicht gerechtfertigt.
+3. **VueUse ist für gezielte Renderer-Composables zugelassen und seit [#74](https://github.com/J-ARTS/de.sketchdraw.io/issues/74) als direkte Produktionsabhängigkeit installiert.** Bei neuen oder ohnehin geänderten Vue-Komponenten sollen direkte Imports aus `@vueuse/core` bevorzugt werden, wenn sie manuelle Lifecycle-Nebenwirkungen tatsächlich ersetzen. Eine reine Massenmigration funktionierender Komponenten ist nicht gerechtfertigt.
 
 ## Aktueller Buildpfad
 
@@ -77,6 +77,14 @@ Die Messung zeigt einen kleinen Laufzeitpreis, ist aber keine Zusage für die en
 - Die bestehende `shape-toolbar-preferences`-Abstraktion bleibt bestehen. `useStorage` allein bildet deren Schema-Versionierung, Allowlist-Validierung, sichere Fallbacks und testbaren `StorageLike`-Vertrag nicht ab.
 - Eine Abhängigkeit wird erst mit der ersten konkreten Verwendung aufgenommen. Bei dieser Änderung werden Bundle-Differenz, Typprüfung und die betroffenen UI-Tests dokumentiert.
 
+### Umsetzung in #74
+
+`@vueuse/core` 15.0.0 ist exakt gepinnt. `useEventListener` verwaltet die langlebigen Renderer-Listener in `App.vue`, `AnnotationEditor.vue`, `MainMenu.vue`, `Minimap.vue`, `PageSwitcher.vue`, `PresenterMode.vue` und `SelectionToolbar.vue`. `useResizeObserver` ersetzt die beiden manuellen Observer in `SelectionToolbar.vue` und `WhiteboardCanvas.vue`. Die versionierte Toolbar-Persistenz und die dynamische Pointer-Geste in `TableOverlay.vue` bleiben bei ihren expliziten, fachlich begründeten Lebenszyklen.
+
+Direkt vor der Installation erzeugte Vite 398 Module und meldete für den normalen Renderer-Chunk 1.064,93 kB beziehungsweise 326,05 kB gzip. Nach der gezielten Einführung sind es 400 Module und 1.065,52 kB beziehungsweise 326,41 kB gzip. Die durch denselben Vite-Bericht beobachtete Differenz beträgt damit rund 0,59 kB unkomprimiert und 0,36 kB gzip. Das ist eine lokale Buildbeobachtung, keine plattformübergreifende Größen- oder Laufzeitzusage.
+
+Der integrierte Stand wurde mit Typprüfung, 375 Unit-Tests, 61 Browser-UI-Tests, 6 Electron-Integrationstests, 59 Build-/Lifecycle-Tests, vollständigem Produktionsbuild und einem Produktionsabhängigkeits-Audit ohne bekannte Schwachstellen geprüft. Die ausführlichen Befehle und der genaue Git-Stand werden in #74 dokumentiert.
+
 ## Folgen
 
-Der aktuelle Build bleibt einfach und schnell. Es entsteht kein zweiter TypeScript-Transformationspfad, und die statische Typprüfung bleibt vollständig. VueUse kann bei künftigen Renderer-Änderungen Lifecycle-Code standardisieren, ohne Kernlogik oder Datenverträge an Vue zu koppeln. Für eine allgemeine Einführung fehlen derzeit ein Fehlerbefund oder eine Produktfunktion, die den Refactor funktionierender Komponenten rechtfertigt.
+Der aktuelle Build bleibt einfach und schnell. Es entsteht kein zweiter TypeScript-Transformationspfad, und die statische Typprüfung bleibt vollständig. VueUse standardisiert die ausgewählten Renderer-Lebenszyklen, ohne Kernlogik oder Datenverträge an Vue zu koppeln. Für eine darüber hinausgehende Massenmigration funktionierender Komponenten fehlt weiterhin ein konkreter Nutzen.

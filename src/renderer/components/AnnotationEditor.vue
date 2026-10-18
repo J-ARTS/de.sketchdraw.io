@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import { annotationPlainText } from '@/domain';
 import { ANNOTATION_FORMAT_EVENT, annotationFromEditable, annotationToEditorHtml, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 import { useWhiteboard } from './use-whiteboard';
@@ -62,11 +63,12 @@ function onKeydown(event: KeyboardEvent): void {
   }
 }
 
+useEventListener(window, ANNOTATION_FORMAT_EVENT, format);
+useEventListener(document, 'selectionchange', rememberSelection);
+
 onMounted(async () => {
   const edit = store.state.textEdit;
   if (root.value && edit?.annotationDraft) root.value.innerHTML = annotationToEditorHtml(edit.annotationDraft);
-  window.addEventListener(ANNOTATION_FORMAT_EVENT, format);
-  document.addEventListener('selectionchange', rememberSelection);
   await nextTick();
   root.value?.focus({ preventScroll: true });
   const selection = window.getSelection();
@@ -77,10 +79,6 @@ onMounted(async () => {
     selection.addRange(range);
     savedRange = range.cloneRange();
   }
-});
-onBeforeUnmount(() => {
-  window.removeEventListener(ANNOTATION_FORMAT_EVENT, format);
-  document.removeEventListener('selectionchange', rememberSelection);
 });
 </script>
 
