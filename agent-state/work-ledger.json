@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T21:14:39+02:00",
+  "updatedAt": "2026-10-18T21:38:00+02:00",
   "issues": [
     {
       "number": 1,
@@ -1837,6 +1837,21 @@
       "dependencies": [
         72
       ]
+    },
+    {
+      "number": 121,
+      "title": "Schriftfarbe in der Eigenschaftenleiste separat einstellbar machen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/121",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -7494,6 +7509,70 @@
       ],
       "authorization": "GitHub Actions verification was triggered by the authorized Issue 119 branch push. The failed P2P rerun was explicitly used to distinguish a pre-existing independent CI defect now tracked in Issue 120.",
       "measurementSource": "GitHub reports first-attempt timestamps from 18:58:38Z to 19:10:14Z and rerun timestamps from 19:10:48Z to 19:13:22Z. Because the workflow has multiple attempts, no aggregate observedSeconds value was derived; it remains null. Governance/Graphify and complete Ubuntu, macOS and Windows jobs passed on the exact product commit. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-font-color-121",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        121
+      ],
+      "status": "integrated_and_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b5b00a2ae052cce02d6086c3f00a5fb91903abf5",
+        "src/domain/types.ts",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/interop/drawio.ts",
+        "src/interop/export.ts",
+        "tests/ui/selection-toolbar.spec.ts",
+        "tests/ui/table.spec.ts",
+        "tests/unit/interop/interop.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/121",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/120"
+      ],
+      "concerns": [
+        "The post-change Graphify source refresh was guarded: the new extraction had 4,843 nodes versus 5,051 in the existing graph, so graphify refused to overwrite without --force. The existing graph is preserved and deterministic ticket, run and artifact links are refreshed separately.",
+        "The branch CI workflow completed Governance and Graphify plus full Ubuntu, macOS and Windows build/verification jobs successfully. Its separate Direct P2P job again timed out after 100000 ms in the pre-existing complete product-UI pairing scenario; the two lower-level direct-connection scenarios passed and the timeout remains tracked independently in Issue 120."
+      ],
+      "authorization": "The user explicitly requested the missing font-color function. Codex remains authorized to implement temporarily while recording regular Claude Code UI ownership separately.",
+      "measurementSource": "Local macOS evidence at product commit b5b00a2: typecheck, 56 Vitest files with 442 tests, 59 Node build-lifecycle tests, 11 targeted Playwright tests, the complete browser UI suite after an exact-locator correction, and the production build passed. GitHub Actions run 39158787174 verified Governance and Graphify plus complete Ubuntu 24.04, macOS 15 and Windows 2025 jobs for the exact product commit. The separate P2P job passed two lower-level scenarios and timed out in the pre-existing full UI-pairing scenario tracked by Issue 120. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-font-color-39158787174",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        121,
+        120
+      ],
+      "status": "platform_jobs_passed_p2p_timeout_confirmed",
+      "startedAt": "2026-10-18T19:26:36Z",
+      "endedAt": "2026-10-18T19:37:24Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b5b00a2ae052cce02d6086c3f00a5fb91903abf5",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/job/117767469593",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/job/117767469765",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/job/117767505321",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/job/117767505360",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/job/117767505380",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39158787174/artifacts/12147987889"
+      ],
+      "concerns": [
+        "The separate Direct P2P job timed out in tests/p2p/native.spec.ts:92 after 100000 ms. The two lower-level direct-connection scenarios passed. The same third-scenario timeout is tracked in Issue 120 and is independent of the font-color change."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized Issue 121 branch push. The independent P2P failure was retained as evidence for Issue 120.",
+      "measurementSource": "GitHub reports the workflow from 19:26:36Z to 19:37:24Z. Governance/Graphify and complete Ubuntu, macOS and Windows jobs passed on the exact product commit. The separate Direct P2P job passed two scenarios and timed out in the known full UI-pairing scenario. No aggregate observedSeconds was derived from parallel jobs; tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
