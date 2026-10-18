@@ -167,7 +167,11 @@ test('all primitive shapes, freehand, connection, text and image render', async 
   await expect(page.locator('[data-kind=text]')).toContainText('Menschen & Agenten');
   const chooser = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Bild', exact: true }).click();
   await (await chooser).setFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aS9sAAAAASUVORK5CYII=', 'base64') });
-  await expect(page.locator('[data-kind=image]')).toHaveCount(1);
+  const image = page.locator('[data-kind=image]');
+  await expect(image).toHaveCount(1);
+  await expect(image.locator(':scope > g > image')).toHaveCount(1);
+  await expect(image.locator(':scope > text')).toHaveCount(0);
+  await expect(image.locator(':scope > title')).toContainText('pixel.png');
   for (const kind of ['rectangle', 'ellipse', 'diamond', 'container', 'path', 'connector', 'text', 'image']) await expect(page.locator(`[data-kind=${kind}]`)).toHaveCount(1);
 });
 
