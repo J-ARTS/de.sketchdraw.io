@@ -73,3 +73,31 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
   await expect(page.locator('.whiteboard-canvas [data-kind="sticky-note"]')).toHaveCount(2);
   await expect(page.locator('.whiteboard-canvas [data-kind="connector"]')).toHaveCount(1);
 });
+
+test('a sticky note creates one linked task and the task board returns to its source', async ({ page }) => {
+  await page.getByRole('button', { name: 'Notiz', exact: true }).click();
+  await page.mouse.click(430, 300);
+
+  const editor = page.getByTestId('canvas-text-editor');
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await editor.fill('Release planen\nInstaller prüfen');
+  await bar.getByRole('button', { name: 'Aufgabe erstellen' }).click();
+
+  await expect(editor).toHaveCount(0);
+  const duplicateGuard = bar.getByRole('button', { name: 'Aufgabe bereits erstellt' });
+  await expect(duplicateGuard).toBeVisible();
+  await expect(duplicateGuard).toBeDisabled();
+
+  await page.getByTestId('page-switcher').click();
+  await page.getByTestId('task-board-entry').click();
+  const board = page.getByTestId('task-board');
+  await expect(board).toBeVisible();
+  await expect(board).toContainText('Release planen');
+  await expect(board).toContainText('Installer prüfen');
+
+  await board.getByRole('button', { name: 'Notiz öffnen' }).click();
+  await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Eigenschaften' })).toBeVisible();
+  await expect(page.locator('.whiteboard-canvas [data-kind="sticky-note"]')).toHaveCount(1);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});

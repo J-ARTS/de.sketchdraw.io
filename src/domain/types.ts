@@ -220,6 +220,8 @@ export interface SketchTask {
   id: string;
   /** Present when the task originated from a Sketchdraw comment. */
   sourceThreadId?: string;
+  /** Present when the task originated from a canvas element such as a sticky note. */
+  sourceElementId?: string;
   title: string;
   description: string;
   status: TaskStatus;

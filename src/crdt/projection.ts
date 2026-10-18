@@ -437,6 +437,7 @@ function readCommentThread(value: unknown, id: string): CommentThread {
 function syncTask(target: Y.Map<unknown>, task: SketchTask): void {
   setValue(target, 'id', task.id);
   if (task.sourceThreadId === undefined) target.delete('sourceThreadId'); else setValue(target, 'sourceThreadId', task.sourceThreadId);
+  if (task.sourceElementId === undefined) target.delete('sourceElementId'); else setValue(target, 'sourceElementId', task.sourceElementId);
   setValue(target, 'title', task.title);
   syncText(target, 'description', task.description);
   setValue(target, 'status', task.status);
@@ -461,6 +462,8 @@ function readTask(value: unknown, id: string): SketchTask {
   };
   const sourceThreadId = optionalString(source, 'sourceThreadId', `tasks.${id}`);
   if (sourceThreadId !== undefined) task.sourceThreadId = sourceThreadId;
+  const sourceElementId = optionalString(source, 'sourceElementId', `tasks.${id}`);
+  if (sourceElementId !== undefined) task.sourceElementId = sourceElementId;
   const external = source.get('external');
   if (external !== undefined) {
     if (!external || typeof external !== 'object' || Array.isArray(external)) throw new Error(`CRDT_SCHEMA_INVALID:tasks.${id}.external`);
@@ -592,8 +595,20 @@ function repairConcurrentReferences(document: SketchDocument): void {
       if (!table?.cells.some(cell => cell.id === thread.target.tableCellId)) delete thread.target.tableCellId;
     }
   }
+  const taskThreadSources = new Set<string>();
+  const taskElementSources = new Set<string>();
   for (const task of document.tasks ?? []) {
     if (task.sourceThreadId !== undefined && !threadIds.has(task.sourceThreadId)) delete task.sourceThreadId;
+    if (task.sourceElementId !== undefined && elements.get(task.sourceElementId)?.kind !== 'sticky-note') delete task.sourceElementId;
+    if (task.sourceThreadId !== undefined && task.sourceElementId !== undefined) delete task.sourceElementId;
+    if (task.sourceThreadId !== undefined) {
+      if (taskThreadSources.has(task.sourceThreadId)) delete task.sourceThreadId;
+      else taskThreadSources.add(task.sourceThreadId);
+    }
+    if (task.sourceElementId !== undefined) {
+      if (taskElementSources.has(task.sourceElementId)) delete task.sourceElementId;
+      else taskElementSources.add(task.sourceElementId);
+    }
   }
 }
 

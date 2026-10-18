@@ -198,7 +198,7 @@ const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fo
 const COMMENT_THREAD_KEYS: ReadonlySet<string> = new Set(['id', 'target', 'messages', 'resolved', 'createdAt', 'updatedAt']);
 const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['elementId', 'tableCellId', 'anchor', 'fallback']);
 const COMMENT_MESSAGE_KEYS: ReadonlySet<string> = new Set(['id', 'authorId', 'authorName', 'body', 'createdAt', 'editedAt']);
-const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external']);
+const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'sourceElementId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external']);
 const EXTERNAL_TASK_KEYS: ReadonlySet<string> = new Set(['provider', 'remoteId', 'key', 'url', 'remoteStatus', 'updatedAt']);
 const TASK_STATUSES: ReadonlySet<SketchTask['status']> = new Set(['todo', 'doing', 'review', 'done']);
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -1809,12 +1809,18 @@ function validateComments(input: unknown, issues: ValidationIssue[]): CommentThr
   return result;
 }
 
-function validateTasks(input: unknown, threadIds: ReadonlySet<string>, issues: ValidationIssue[]): SketchTask[] {
+function validateTasks(
+  input: unknown,
+  threadIds: ReadonlySet<string>,
+  elementKinds: ReadonlyMap<string, ElementKind>,
+  issues: ValidationIssue[],
+): SketchTask[] {
   if (input === undefined) return [];
   if (!Array.isArray(input)) { issues.push({ path: 'tasks', code: 'INVALID_TASKS', message: 'Document tasks must be an array.' }); return []; }
   if (input.length > DOMAIN_LIMITS.MAX_TASKS) issues.push({ path: 'tasks', code: 'TOO_MANY_TASKS', message: `Task count exceeds ${DOMAIN_LIMITS.MAX_TASKS}.` });
   const ids = new Set<string>();
-  const sources = new Set<string>();
+  const threadSources = new Set<string>();
+  const elementSources = new Set<string>();
   const result: SketchTask[] = [];
   for (let i = 0; i < Math.min(input.length, DOMAIN_LIMITS.MAX_TASKS); i += 1) {
     const value = input[i];
@@ -1827,9 +1833,17 @@ function validateTasks(input: unknown, threadIds: ReadonlySet<string>, issues: V
     }
     if (value.sourceThreadId !== undefined && validateIdField(value.sourceThreadId, joinPath(path, 'sourceThreadId'), issues) && typeof value.sourceThreadId === 'string') {
       if (!threadIds.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'MISSING_COMMENT_THREAD', message: `Task references missing comment thread "${value.sourceThreadId}".` });
-      if (sources.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'DUPLICATE_THREAD_TASK', message: 'Each comment thread can have only one task.' });
-      sources.add(value.sourceThreadId);
+      if (threadSources.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'DUPLICATE_THREAD_TASK', message: 'Each comment thread can have only one task.' });
+      threadSources.add(value.sourceThreadId);
     }
+    if (value.sourceElementId !== undefined && validateIdField(value.sourceElementId, joinPath(path, 'sourceElementId'), issues) && typeof value.sourceElementId === 'string') {
+      const sourceKind = elementKinds.get(value.sourceElementId);
+      if (sourceKind === undefined) issues.push({ path: joinPath(path, 'sourceElementId'), code: 'MISSING_TASK_SOURCE_ELEMENT', message: `Task references missing element "${value.sourceElementId}".` });
+      else if (sourceKind !== 'sticky-note') issues.push({ path: joinPath(path, 'sourceElementId'), code: 'INVALID_TASK_SOURCE_ELEMENT', message: 'A canvas-sourced task must reference a sticky note.' });
+      if (elementSources.has(value.sourceElementId)) issues.push({ path: joinPath(path, 'sourceElementId'), code: 'DUPLICATE_ELEMENT_TASK', message: 'Each sticky note can have only one task.' });
+      elementSources.add(value.sourceElementId);
+    }
+    if (value.sourceThreadId !== undefined && value.sourceElementId !== undefined) issues.push({ path, code: 'MULTIPLE_TASK_SOURCES', message: 'A task can reference either a comment thread or a sticky note, not both.' });
     if (value.external !== undefined) {
       const externalPath = joinPath(path, 'external');
       if (!isPlainRecord(value.external)) {
@@ -1902,9 +1916,18 @@ export function validateAndSerializeDocument(input: unknown): {
   // Collaboration records were added without bumping the file schema. Missing arrays from
   // older v1 documents are normalized to empty collections.
   const normalizedThreads = validateComments(input.commentThreads, issues);
+  const taskSourceElementKinds = new Map<string, ElementKind>();
+  if (Array.isArray(input.elements)) {
+    for (const value of input.elements) {
+      if (isPlainRecord(value) && typeof value.id === 'string' && typeof value.kind === 'string' && ELEMENT_KINDS.has(value.kind as ElementKind)) {
+        taskSourceElementKinds.set(value.id, value.kind as ElementKind);
+      }
+    }
+  }
   const normalizedTasks = validateTasks(
     input.tasks,
     new Set(normalizedThreads.map((thread) => thread.id)),
+    taskSourceElementKinds,
     issues,
   );
 

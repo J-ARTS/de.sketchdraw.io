@@ -19,7 +19,18 @@ function open(task: SketchTask): void { selectedId.value = task.id; title.value 
 async function save(): Promise<void> { if (!selected.value) return; if (await store.updateTask(selected.value.id, { title: title.value, description: description.value })) selectedId.value = null; }
 function move(task: SketchTask, delta: number): void { const index = columns.findIndex((entry) => entry.status === task.status); const next = columns[index + delta]; if (next) void store.updateTask(task.id, { status: next.status }); }
 function drop(status: TaskStatus): void { const id = dragId.value; dragId.value = null; if (id) void store.updateTask(id, { status }); }
-function openSource(task: SketchTask): void { selectedId.value = null; if (task.sourceThreadId) store.openComment(task.sourceThreadId); else if (task.external) void store.openDocumentationLink(task.external.url); }
+function sourceLabel(task: SketchTask): string | null {
+  if (task.sourceThreadId) return 'Kommentar öffnen';
+  if (task.sourceElementId) return 'Notiz öffnen';
+  if (task.external) return 'In Jira öffnen';
+  return null;
+}
+function openSource(task: SketchTask): void {
+  selectedId.value = null;
+  if (task.sourceThreadId) store.openComment(task.sourceThreadId);
+  else if (task.sourceElementId) { store.showCanvas(); store.focusElement(task.sourceElementId); }
+  else if (task.external) void store.openDocumentationLink(task.external.url);
+}
 watch(selected, (task) => { if (!task) selectedId.value = null; });
 
 // #80/#81: a native modal dialog takes focus, keeps it inside, closes on Escape and sits above all chrome.
@@ -51,12 +62,12 @@ onBeforeUnmount(() => taskDialog.value?.close());
     <div class="columns" aria-label="Kanban-Board">
       <section v-for="column in columns" :key="column.status" class="task-column" :data-status="column.status" @dragover.prevent @drop="drop(column.status)">
         <header><h2><span class="status-dot" aria-hidden="true" />{{ column.label }}</h2><span>{{ tasksFor(column.status).length }}</span></header>
-        <ol><li v-for="task in tasksFor(column.status)" :key="task.id"><article class="task-card" draggable="true" :aria-label="`${task.title}, Status ${column.label}`" @dragstart="dragId = task.id" @dragend="dragId = null"><button class="card-open" :data-task-id="task.id" @click="open(task)"><span v-if="task.external" class="external-badge">{{ task.external.key }} · {{ task.external.remoteStatus }}</span><strong>{{ task.title }}</strong><p>{{ task.description }}</p></button><div class="card-foot"><button :disabled="column.status === 'todo'" :aria-label="`${task.title} zurück verschieben`" @click="move(task,-1)">←</button><button @click="openSource(task)">{{ task.sourceThreadId ? 'Kommentar öffnen' : 'In Jira öffnen' }}</button><button :disabled="column.status === 'done'" :aria-label="`${task.title} weiter verschieben`" @click="move(task,1)">→</button></div></article></li></ol>
+        <ol><li v-for="task in tasksFor(column.status)" :key="task.id"><article class="task-card" draggable="true" :aria-label="`${task.title}, Status ${column.label}`" @dragstart="dragId = task.id" @dragend="dragId = null"><button class="card-open" :data-task-id="task.id" @click="open(task)"><span v-if="task.external" class="external-badge">{{ task.external.key }} · {{ task.external.remoteStatus }}</span><strong>{{ task.title }}</strong><p>{{ task.description }}</p></button><div class="card-foot"><button :disabled="column.status === 'todo'" :aria-label="`${task.title} zurück verschieben`" @click="move(task,-1)">←</button><button v-if="sourceLabel(task)" @click="openSource(task)">{{ sourceLabel(task) }}</button><span v-else aria-hidden="true" /><button :disabled="column.status === 'done'" :aria-label="`${task.title} weiter verschieben`" @click="move(task,1)">→</button></div></article></li></ol>
         <p v-if="!tasksFor(column.status).length" class="column-empty">Keine Aufgaben</p>
       </section>
     </div>
     <dialog ref="taskDialog" class="task-dialog" aria-labelledby="task-edit-title" @cancel.prevent="selectedId = null" @pointerdown.self="selectedId = null" @keydown.stop="taskDialog && wrapTabFocus($event, taskDialog)">
-      <form v-if="selected" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-edit-title">Aufgabe bearbeiten</h2><span v-if="selected.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn" aria-label="Schließen" @click="selectedId = null"><AppIcon name="close" /></button></header><div class="task-fields"><label>Titel<input ref="titleInput" v-model="title" maxlength="50000" required /></label><label>Beschreibung<textarea v-model="description" maxlength="50000" /></label><label>Status<select :value="selected.status" @change="store.updateTask(selected.id, { status: ($event.target as HTMLSelectElement).value as TaskStatus })"><option v-for="column in columns" :key="column.status" :value="column.status">{{ column.label }}</option></select></label></div><div class="dialog-actions"><button type="button" class="sd-btn danger" @click="store.deleteTask(selected.id); selectedId = null">Löschen</button><button type="button" class="sd-btn" @click="openSource(selected)">{{ selected.sourceThreadId ? 'Kommentar öffnen' : 'In Jira öffnen' }}</button><button class="sd-btn sd-btn--primary" type="submit">Speichern</button></div></form>
+      <form v-if="selected" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-edit-title">Aufgabe bearbeiten</h2><span v-if="selected.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn" aria-label="Schließen" @click="selectedId = null"><AppIcon name="close" /></button></header><div class="task-fields"><label>Titel<input ref="titleInput" v-model="title" maxlength="50000" required /></label><label>Beschreibung<textarea v-model="description" maxlength="50000" /></label><label>Status<select :value="selected.status" @change="store.updateTask(selected.id, { status: ($event.target as HTMLSelectElement).value as TaskStatus })"><option v-for="column in columns" :key="column.status" :value="column.status">{{ column.label }}</option></select></label></div><div class="dialog-actions"><button type="button" class="sd-btn danger" @click="store.deleteTask(selected.id); selectedId = null">Löschen</button><button v-if="sourceLabel(selected)" type="button" class="sd-btn" @click="openSource(selected)">{{ sourceLabel(selected) }}</button><button class="sd-btn sd-btn--primary" type="submit">Speichern</button></div></form>
     </dialog>
   </section>
 </template>

@@ -62,6 +62,34 @@ describe('sticky-note domain and store', () => {
     expect(connector.from?.elementId).toBe(notes[0]!.id);
     expect(connector.to?.elementId).toBe(notes[1]!.id);
   });
+
+  it('creates one linked task from a note, persists it and detaches it when the note is deleted', async () => {
+    const store = setup();
+    store.setTool('sticky-note'); store.pointerDown(point(300, 200)); store.pointerUp(point(300, 200));
+    await store.whenIdle();
+    const note = store.state.document.elements[0]!;
+    store.setTextDraft('Release planen\nInstaller prüfen');
+    expect(store.commitTextEdit()).toBe(true); await store.whenIdle();
+
+    expect(await store.createTaskFromStickyNote(note.id)).toBe(true);
+    expect(await store.createTaskFromStickyNote(note.id)).toBe(false);
+    expect(store.state.document.tasks).toEqual([expect.objectContaining({
+      sourceElementId: note.id,
+      title: 'Release planen',
+      description: 'Release planen\nInstaller prüfen',
+      status: 'todo',
+    })]);
+    expect(deserializeDocument(serializeDocument(store.state.document)).tasks).toEqual(store.state.document.tasks);
+
+    store.undo(); await store.whenIdle();
+    expect(store.state.document.tasks).toEqual([]);
+    store.redo(); await store.whenIdle();
+    expect(store.state.document.tasks).toHaveLength(1);
+
+    store.deleteSelection(); await store.whenIdle();
+    expect(store.state.document.elements).toHaveLength(0);
+    expect(store.state.document.tasks).toEqual([expect.not.objectContaining({ sourceElementId: expect.anything() })]);
+  });
 });
 
 describe('sticky-note interoperability', () => {

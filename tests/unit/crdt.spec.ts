@@ -39,6 +39,38 @@ function sync(source: ReturnType<typeof createCrdtController>, target: ReturnTyp
 }
 
 describe('Yjs document data layer', () => {
+  it('round-trips a task linked to its sticky-note source', () => {
+    const document = createDocument('Sticky task');
+    document.elements = [createElement('sticky-note', { id: 'note:source', text: 'Release planen' })];
+    document.tasks = [{
+      id: 'task:note', sourceElementId: 'note:source', title: 'Release planen', description: 'Release planen',
+      status: 'todo', rank: 0, createdAt: NOW, updatedAt: NOW,
+    }];
+    const first = createCrdtController(document);
+    const second = createCrdtControllerFromUpdate(first.encodeUpdate());
+    expect(second.getSnapshot().document.tasks).toEqual(document.tasks);
+    first.destroy(); second.destroy();
+  });
+
+  it('converges concurrent task creation from the same sticky note without duplicate links', () => {
+    const document = createDocument('Sticky task race');
+    document.elements = [createElement('sticky-note', { id: 'note:source', text: 'Release planen' })];
+    const owner = createCrdtController(document);
+    const left = createCrdtControllerFromUpdate(owner.encodeUpdate());
+    const right = createCrdtControllerFromUpdate(owner.encodeUpdate());
+    const task = (id: string): SketchTask => ({
+      id, sourceElementId: 'note:source', title: id, description: '', status: 'todo', rank: 0, createdAt: NOW, updatedAt: NOW,
+    });
+    left.dispatch({ type: 'set-tasks', tasks: [task('task:left')] }, context(0, 'actor:left'));
+    right.dispatch({ type: 'set-tasks', tasks: [task('task:right')] }, context(0, 'actor:right'));
+    owner.applyRemoteUpdate(left.encodeUpdate(owner.encodeStateVector()), { actorId: 'actor:left', role: 'editor', source: 'peer', peerId: 'peer:left' });
+    owner.applyRemoteUpdate(right.encodeUpdate(owner.encodeStateVector()), { actorId: 'actor:right', role: 'editor', source: 'peer', peerId: 'peer:right' });
+    const tasks = owner.getSnapshot().document.tasks ?? [];
+    expect(tasks).toHaveLength(2);
+    expect(tasks.filter(entry => entry.sourceElementId === 'note:source')).toHaveLength(1);
+    owner.destroy(); left.destroy(); right.destroy();
+  });
+
   it('projects a valid document bidirectionally and emits compact post-commit events', async () => {
     const controller = createCrdtController(baseDocument());
     const committed = vi.fn();

@@ -562,10 +562,17 @@ function applyCommandInternal(
         delete target.tableCellId;
         return { ...thread, target };
       });
+      const nextTasks = (baseDoc.tasks ?? []).map((task) => {
+        if (task.sourceElementId === undefined || !deletedSet.has(task.sourceElementId)) return task;
+        const detached = { ...task };
+        delete detached.sourceElementId;
+        return detached;
+      });
       return validateDocument({
         ...baseDoc,
         elements: survivingElements,
         commentThreads: nextThreads,
+        tasks: nextTasks,
       });
     }
 

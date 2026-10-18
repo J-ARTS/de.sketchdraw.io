@@ -64,6 +64,7 @@ const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !=
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
 const stickyOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'sticky-note');
+const stickyTaskExists = computed(() => Boolean(single.value && (s.document.tasks ?? []).some((task) => task.sourceElementId === single.value?.id)));
 const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard(single.value));
 const annotationOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'annotation');
 const tableOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'table');
@@ -308,6 +309,15 @@ function runSelectionAction(action: 'back' | 'backward' | 'forward' | 'front' | 
   if (action === 'clone') store.duplicateSelection();
   else store.reorder(action);
 }
+async function createStickyTask(): Promise<void> {
+  const elementId = info.value.singleId;
+  if (!elementId || stickyTaskExists.value) return;
+  if (editing.value) {
+    if (!store.commitTextEdit()) return;
+    await store.whenIdle();
+  }
+  await store.createTaskFromStickyNote(elementId);
+}
 
 // --- Shape swap (#40) ------------------------------------------------------------------
 const shapeQuery = ref('');
@@ -449,6 +459,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       </button>
       <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
       <button v-if="stickyOnly" :ref="(el) => setTrigger('author', el)" type="button" class="tool-btn author-button" :disabled="editing" aria-label="Autor bearbeiten" :aria-expanded="openSegment === 'author'" :aria-controls="panelId('author')" :title="unavailable('Autor bearbeiten')" @click="toggle('author')"><AppIcon name="user" /></button>
+      <button v-if="stickyOnly" type="button" class="tool-btn" :disabled="stickyTaskExists || s.transitioning" :aria-label="stickyTaskExists ? 'Aufgabe bereits erstellt' : 'Aufgabe erstellen'" :title="stickyTaskExists ? 'Aufgabe bereits erstellt' : 'Aufgabe erstellen'" @click="createStickyTask"><AppIcon name="file-plus" /></button>
       <template v-if="textCapable && !stickyOnly">
         <span class="sep" aria-hidden="true" />
         <button :ref="(el) => setTrigger('align', el)" type="button" class="segment" aria-label="Textausrichtung" :aria-expanded="openSegment === 'align'" :aria-controls="panelId('align')" title="Textausrichtung" @click="toggle('align')">
