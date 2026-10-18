@@ -24,6 +24,7 @@ import type {
   CommentTarget,
   TaskStatus,
 } from '@/domain/types';
+import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginSettingsSnapshot } from '@/domain/plugins';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
@@ -252,6 +253,10 @@ export interface WhiteboardState {
   collaboration: CollaborationStatus | null;
   canWrite: boolean;
   pendingPeerWrite: { requestId: string } | null;
+  pluginSettings: PluginSettingsSnapshot | null;
+  pluginBusy: boolean;
+  confluencePages: readonly ConfluencePageSummary[];
+  pendingExternalDocument: boolean;
 }
 
 export interface WhiteboardStore {
@@ -346,6 +351,18 @@ export interface WhiteboardStore {
   deleteTask(taskId: string): Promise<boolean>;
   openTaskBoard(): void;
   showCanvas(): void;
+  refreshPluginSettings(): Promise<void>;
+  configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
+  configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;
+  testAtlassianPlugin(): Promise<boolean>;
+  refreshGitStatus(): Promise<boolean>;
+  syncGit(): Promise<boolean>;
+  searchConfluencePages(query: string): Promise<void>;
+  insertConfluencePage(pageId: string): Promise<boolean>;
+  syncConfluenceElement(elementId: string): Promise<boolean>;
+  refreshConfluenceElement(elementId: string): Promise<boolean>;
+  syncJiraTasks(): Promise<boolean>;
+  acceptExternalDocument(): Promise<boolean>;
 
   toggleFrameSidebar(open?: boolean): void;
   focusFrame(id: string): void;

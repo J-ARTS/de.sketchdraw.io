@@ -197,7 +197,8 @@ const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fo
 const COMMENT_THREAD_KEYS: ReadonlySet<string> = new Set(['id', 'target', 'messages', 'resolved', 'createdAt', 'updatedAt']);
 const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['elementId', 'tableCellId', 'anchor', 'fallback']);
 const COMMENT_MESSAGE_KEYS: ReadonlySet<string> = new Set(['id', 'authorId', 'authorName', 'body', 'createdAt', 'editedAt']);
-const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt']);
+const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external']);
+const EXTERNAL_TASK_KEYS: ReadonlySet<string> = new Set(['provider', 'remoteId', 'key', 'url', 'remoteStatus', 'updatedAt']);
 const TASK_STATUSES: ReadonlySet<SketchTask['status']> = new Set(['todo', 'doing', 'review', 'done']);
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
@@ -1823,10 +1824,26 @@ function validateTasks(input: unknown, threadIds: ReadonlySet<string>, issues: V
       if (ids.has(value.id)) issues.push({ path: joinPath(path, 'id'), code: 'DUPLICATE_TASK_ID', message: `Duplicate task id "${value.id}".` });
       ids.add(value.id);
     }
-    if (validateIdField(value.sourceThreadId, joinPath(path, 'sourceThreadId'), issues) && typeof value.sourceThreadId === 'string') {
+    if (value.sourceThreadId !== undefined && validateIdField(value.sourceThreadId, joinPath(path, 'sourceThreadId'), issues) && typeof value.sourceThreadId === 'string') {
       if (!threadIds.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'MISSING_COMMENT_THREAD', message: `Task references missing comment thread "${value.sourceThreadId}".` });
       if (sources.has(value.sourceThreadId)) issues.push({ path: joinPath(path, 'sourceThreadId'), code: 'DUPLICATE_THREAD_TASK', message: 'Each comment thread can have only one task.' });
       sources.add(value.sourceThreadId);
+    }
+    if (value.external !== undefined) {
+      const externalPath = joinPath(path, 'external');
+      if (!isPlainRecord(value.external)) {
+        issues.push({ path: externalPath, code: 'INVALID_EXTERNAL_TASK', message: 'External task reference must be a plain object.' });
+      } else {
+        checkObjectKeys(value.external, externalPath, EXTERNAL_TASK_KEYS, issues);
+        if (value.external.provider !== 'jira') issues.push({ path: joinPath(externalPath, 'provider'), code: 'INVALID_EXTERNAL_PROVIDER', message: 'External task provider must be jira.' });
+        for (const key of ['remoteId', 'key', 'remoteStatus'] as const) validateCommentText(value.external[key], joinPath(externalPath, key), issues);
+        if (typeof value.external.url !== 'string' || value.external.url.length > 2048) issues.push({ path: joinPath(externalPath, 'url'), code: 'INVALID_EXTERNAL_URL', message: 'External task URL must be a bounded string.' });
+        else {
+          try { const parsed = new URL(value.external.url); if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username || parsed.password || !parsed.hostname) throw new Error(); }
+          catch { issues.push({ path: joinPath(externalPath, 'url'), code: 'INVALID_EXTERNAL_URL', message: 'External task URL must be an absolute HTTP(S) URL.' }); }
+        }
+        validateTimestamp(value.external.updatedAt, joinPath(externalPath, 'updatedAt'), issues);
+      }
     }
     validateCommentText(value.title, joinPath(path, 'title'), issues);
     validateCommentText(value.description, joinPath(path, 'description'), issues, true);

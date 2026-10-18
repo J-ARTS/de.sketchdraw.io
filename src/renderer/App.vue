@@ -19,10 +19,12 @@ import CommentSidebar from './components/CommentSidebar.vue';
 import TaskBoard from './components/TaskBoard.vue';
 import FrameSidebar from './components/FrameSidebar.vue';
 import PresenterMode from './components/PresenterMode.vue';
+import PluginSettings from './components/PluginSettings.vue';
 
 const store = createWhiteboardStore(); const s = store.state;
 provide(WHITEBOARD_KEY, store);
 const collaborationOpen = ref(false);
+const pluginsOpen = ref(false);
 const authority = shallowRef(store.getAuthority());
 let agentSession: RendererAgentSession | undefined;
 function attachAgentAccess(value: DocumentAuthority | null) {
@@ -40,7 +42,8 @@ const offAuthority = store.subscribeAuthority(value => { authority.value = value
 const interopOpen = ref(false); const interopMode = ref<'import' | 'export'>('import');
 function openInterop(mode: 'import' | 'export') { collaborationOpen.value = false; if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); interopMode.value = mode; interopOpen.value = true; }
 function toggleCollaboration() { interopOpen.value = false; if (!collaborationOpen.value) { if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); } collaborationOpen.value = !collaborationOpen.value; }
-watch(() => [s.codeOpen, s.catalogOpen, s.objectsOpen], values => { if (values.some(Boolean)) { collaborationOpen.value = false; interopOpen.value = false; } });
+function togglePlugins() { collaborationOpen.value = false; interopOpen.value = false; pluginsOpen.value = !pluginsOpen.value; }
+watch(() => [s.codeOpen, s.catalogOpen, s.objectsOpen], values => { if (values.some(Boolean)) { collaborationOpen.value = false; interopOpen.value = false; pluginsOpen.value = false; } });
 watch(() => s.theme, value => { document.documentElement.dataset.theme = value; }, { immediate: true });
 function key(event: KeyboardEvent): KeyInput {
   const target = event.target as Element;
@@ -56,7 +59,7 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', keydown); window.r
 <template>
   <main class="workspace" aria-label="Sketchdraw Arbeitsbereich">
     <div class="workspace-content" :inert="s.transitioning || s.presenterOpen || undefined">
-      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><MainMenu :collaboration-open="collaborationOpen" @interop="openInterop" @collaboration="toggleCollaboration" /><template v-if="s.workspaceView === 'canvas'"><Toolbar /><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" />
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" /><template v-if="s.workspaceView === 'canvas'"><Toolbar /><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" />
       <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" aria-label="Ansicht und Verlauf">
         <button class="sd-icon-btn zoom-btn" aria-label="Verkleinern" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" aria-label="Zoom auf 100 Prozent" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" aria-label="Vergrößern" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Alles anzeigen" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" aria-label="Rückgängig" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" aria-label="Wiederholen" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>

@@ -11,6 +11,8 @@ export const IPC_CHANNELS = Object.freeze({
   CLOSE_REQUESTED: 'sketchdraw:window:close-requested',
   RESPOND_TO_CLOSE: 'sketchdraw:window:respond-to-close',
   MENU_COMMAND: 'sketchdraw:menu:command',
+  PLUGIN_INVOKE: 'sketchdraw:plugins:invoke',
+  PLUGIN_EVENT: 'sketchdraw:plugins:event',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';

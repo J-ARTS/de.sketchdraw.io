@@ -1,4 +1,5 @@
 export * from './types';
+export * from './plugins';
 export { DOMAIN_LIMITS } from './limits';
 export type { DomainLimits } from './limits';
 export { DomainConflictError, DomainValidationError } from './errors';
@@ -13,4 +14,5 @@ export * from './annotation';
 export * from './table';
 export * from './web-embed';
 export * from './frames';
+export * from './atlassian';
 export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';

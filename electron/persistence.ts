@@ -279,6 +279,31 @@ export class DocumentPersistenceService {
     this.onBeforePreRenameCheck = options.onBeforePreRenameCheck;
   }
 
+  /** Main-process-only lookup for trusted integrations. Raw paths never cross IPC. */
+  public getHandleLocation(handleId: string): { selectedPath: string; canonicalPath: string; versionToken: string } | null {
+    const record = this.handlesById.get(handleId);
+    return record ? { selectedPath: record.selectedPath, canonicalPath: record.canonicalPath, versionToken: record.versionToken } : null;
+  }
+
+  /** Reloads an existing capability after a file watcher observes an external write. */
+  public async reloadDocument(handleId: string): Promise<OpenDocumentResult> {
+    const record = this.handlesById.get(handleId);
+    if (!record) return { status: 'error', code: 'UNKNOWN_HANDLE', message: 'Unknown or expired file handle.' };
+    return this.runWithFileLock(record.canonicalPath, async () => {
+      try {
+        const rawBuffer = await this.fsAdapter.readFile(record.canonicalPath);
+        if (rawBuffer.byteLength > this.maxDocumentBytes) return { status: 'error', code: 'DOCUMENT_TOO_LARGE', message: `Document exceeds the maximum allowed size of ${this.maxDocumentBytes} bytes.` };
+        const text = rawBuffer.toString('utf8');
+        const validationError = this.validateDocumentString(text);
+        if (validationError) return validationError;
+        const file = this.registerOrUpdateHandle(record.selectedPath, record.canonicalPath, computeVersionToken(rawBuffer), record.handleId);
+        return { status: 'opened', text, file };
+      } catch (error) {
+        return mapFsErrorToSafeFileError(error, 'Failed to reload the document file.');
+      }
+    });
+  }
+
   public async openDocument(): Promise<OpenDocumentResult> {
     let selection: OpenDialogSelection;
     try {

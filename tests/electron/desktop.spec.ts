@@ -70,7 +70,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
             invalidHandle: await window.sketchdraw!.saveDocument({ mode: 'save', handleId: '/etc/passwd', expectedVersionToken: `sha256:${'0'.repeat(64)}`, text: '{}', suggestedName: 'test.sketchdraw.json' }) };
         });
         expect(surface.globals).toEqual([]); expect(surface.platform).toBe('electron'); expect(surface.frozen).toBe(true); expect(surface.popupBlocked).toBe(true);
-        expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'respondToClose', 'saveDocument']);
+        expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument']);
         expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
       });

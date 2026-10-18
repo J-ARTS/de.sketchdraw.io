@@ -8,12 +8,12 @@ import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'collaboration' | 'catalog' | 'code';
+type ViewItemId = 'collaboration' | 'catalog' | 'code' | 'plugins';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked: boolean; separator?: boolean }
 
-const props = defineProps<{ collaborationOpen: boolean }>();
-const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: [] }>();
+const props = defineProps<{ collaborationOpen: boolean; pluginsOpen: boolean }>();
+const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: []; plugins: [] }>();
 
 const store = useWhiteboard();
 const s = store.state;
@@ -78,6 +78,7 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
+  { id: 'plugins', label: 'Plugin-Einstellungen', icon: 'component', checked: props.pluginsOpen, separator: true },
 ]);
 
 type MenuName = 'file' | 'view';
@@ -172,6 +173,7 @@ function runView(id: ViewItemId): void {
     case 'collaboration': emit('collaboration'); break;
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
+    case 'plugins': emit('plugins'); break;
   }
 }
 

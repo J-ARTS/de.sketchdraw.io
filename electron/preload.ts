@@ -11,6 +11,17 @@ import type {
   SaveDocumentRequest,
   SaveDocumentResult,
 } from '../src/domain/types';
+import type {
+  ConfigureAtlassianPluginInput,
+  ConfigureGitPluginInput,
+  ConfluencePage,
+  ConfluencePageSummary,
+  GitSyncResult,
+  JiraIssueSummary,
+  PluginExternalEvent,
+  PluginOperationResult,
+  PluginSettingsSnapshot,
+} from '../src/domain/plugins';
 import {
   type CloseDecision,
   type ExportFormat,
@@ -90,6 +101,7 @@ export function createPreloadDesktopBridge(
   const ipc: IpcRendererAdapter = options.ipc ?? ipcRenderer;
   const checkUserActivation =
     options.isUserActivationActive ?? (() => hasRecentTrustedUserGesture());
+  const pluginInvoke = <T>(action: string, payload?: unknown): Promise<T> => ipc.invoke(IPC_CHANNELS.PLUGIN_INVOKE, { action, payload }) as Promise<T>;
 
   const bridge: DesktopBridge = {
     platform: 'electron',
@@ -188,6 +200,30 @@ export function createPreloadDesktopBridge(
         ipc.removeListener(IPC_CHANNELS.MENU_COMMAND, wrapped);
       };
     },
+
+    plugins: Object.freeze({
+      getSettings: () => pluginInvoke<PluginSettingsSnapshot>('get-settings'),
+      configureGit: (input: ConfigureGitPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-git', input),
+      configureAtlassian: (input: ConfigureAtlassianPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-atlassian', input),
+      testAtlassian: () => pluginInvoke<PluginOperationResult>('test-atlassian'),
+      gitStatus: (handleId: string) => pluginInvoke<GitSyncResult>('git-status', handleId),
+      gitSync: (handleId: string) => pluginInvoke<GitSyncResult>('git-sync', handleId),
+      listConfluencePages: (query: string) => pluginInvoke<ConfluencePageSummary[]>('list-confluence-pages', query),
+      getConfluencePage: (pageId: string) => pluginInvoke<ConfluencePage>('get-confluence-page', pageId),
+      updateConfluencePage: (input: { pageId: string; title: string; storageBody: string; version: number }) => pluginInvoke<ConfluencePage>('update-confluence-page', input),
+      createJiraIssue: (input: { title: string; description: string }) => pluginInvoke<JiraIssueSummary>('create-jira-issue', input),
+      listJiraIssues: () => pluginInvoke<JiraIssueSummary[]>('list-jira-issues'),
+      transitionJiraIssue: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<JiraIssueSummary>('transition-jira-issue', input),
+      watchDocument: (handleId: string) => pluginInvoke<PluginOperationResult>('watch-document', handleId),
+      onEvent(listener: (event: PluginExternalEvent) => void): () => void {
+        if (typeof listener !== 'function') throw new Error('onEvent requires a listener function.');
+        const wrapped = (_event: IpcRendererEvent, value: unknown): void => {
+          if (value && typeof value === 'object' && (value as { type?: unknown }).type === 'document-changed') listener(value as PluginExternalEvent);
+        };
+        ipc.on(IPC_CHANNELS.PLUGIN_EVENT, wrapped);
+        return () => ipc.removeListener(IPC_CHANNELS.PLUGIN_EVENT, wrapped);
+      },
+    }),
   };
 
   return Object.freeze(bridge);

@@ -699,7 +699,7 @@ function applyCommandInternal(
       }
       if (issues.length > 0) throw new DomainValidationError(issues);
       const nextIds = new Set((command.threads as unknown[]).filter(isPlainRecord).map((thread) => thread.id).filter((id): id is string => typeof id === 'string'));
-      const tasks = (baseDoc.tasks ?? []).filter((task) => nextIds.has(task.sourceThreadId));
+      const tasks = (baseDoc.tasks ?? []).filter((task) => task.sourceThreadId === undefined || nextIds.has(task.sourceThreadId));
       return validateDocument({ ...baseDoc, commentThreads: command.threads, tasks });
     }
 

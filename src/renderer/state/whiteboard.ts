@@ -12,6 +12,8 @@ import {
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
   parseWebEmbedUrl, webEmbedLabel,
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
+  annotationToConfluenceStorage, confluenceStorageToAnnotation,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type PluginExternalEvent,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
@@ -65,6 +67,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let pendingGuest: GuestSession | null = null;
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
+  let pendingExternalEvent: PluginExternalEvent | null = null;
   const actorId = options.actorId ?? ACTOR_ID;
   const authorName = options.authorName?.trim() || 'Lokaler Benutzer';
   let bindings: Record<'human' | 'code' | 'import', ActorBinding>;
@@ -118,6 +121,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
     theme: options.initialTheme ?? 'light', bridgePlatform: bridge.platform,
+    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false,
+    confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -480,7 +485,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         ? { ...base, mode: 'save', handleId: handle.handleId, expectedVersionToken: handle.versionToken }
         : { ...base, mode: 'save-as' });
       if (activeSession() !== session) return false;
-      if (result.status === 'saved') { state.file.handle = result.file; state.file.savedRevision = snapshot.revision; notice(`Gespeichert: ${result.file.name}`); return true; }
+      if (result.status === 'saved') { state.file.handle = result.file; state.file.savedRevision = snapshot.revision; if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(`Gespeichert: ${result.file.name}`); return true; }
       if (result.status === 'download-initiated') { state.file.handedOffRevision = snapshot.revision; notice(`Als Download übergeben: ${result.name}`); return true; }
       if (result.status === 'conflict') {
         state.file.conflict = true;
@@ -532,7 +537,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (reason === 'open') {
         const result = await bridge.openDocument();
         if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error('Der Stand hat sich während des Öffnens geändert.');
-        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); notice(`Geöffnet: ${result.file.name}`); return; }
+        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(`Geöffnet: ${result.file.name}`); return; }
         if (result.status === 'error') throw new Error(result.message);
         releaseTransition(); state.dialog = null; return;
       }
@@ -1119,7 +1124,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId); const first = thread?.messages[0]; if (!thread || !first) return false;
       const now = new Date().toISOString(); const title = first.body.split(/\r?\n/)[0]!.slice(0, 120);
       const task: SketchTask = { id: uid('task'), sourceThreadId: threadId, title, description: first.body, status: 'todo', rank: (state.document.tasks ?? []).filter((entry) => entry.status === 'todo').length, createdAt: now, updatedAt: now };
-      const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] }); if (ok) { state.liveMessage = 'Aufgabe aus Kommentar erstellt.'; } return ok;
+      const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
+      if (!ok) return false;
+      state.liveMessage = 'Aufgabe aus Kommentar erstellt.';
+      if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+        try {
+          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
+          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(`Jira-Ticket ${issue.key} erstellt.`); }
+        } catch (error) { notice(`Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+      }
+      return true;
     },
     async updateTask(taskId, value) {
       if (!state.canWrite || state.transitioning) return false;
@@ -1128,7 +1143,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (value.description !== undefined) task.description = value.description;
       if (value.status !== undefined) { task.status = value.status; task.rank = tasks.filter((entry) => entry.status === value.status).length; }
       task.updatedAt = new Date().toISOString();
-      const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) state.liveMessage = 'Aufgabe aktualisiert.'; return ok;
+      const ok = await dispatch({ type: 'set-tasks', tasks });
+      if (ok) {
+        state.liveMessage = 'Aufgabe aktualisiert.';
+        if (value.status !== undefined && task.external?.provider === 'jira' && bridge.plugins) {
+          try {
+            const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
+            const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
+            if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
+          } catch (error) { notice(`Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+        }
+      }
+      return ok;
     },
     async deleteTask(taskId) {
       if (!state.canWrite || state.transitioning) return false;
@@ -1137,6 +1163,75 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = 'Aufgabenboard geöffnet.'; },
     showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = 'Zeichenfläche geöffnet.'; },
+    async refreshPluginSettings() {
+      if (!bridge.plugins) { state.pluginSettings = { available: false, git: { enabled: false, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
+      try { state.pluginSettings = await bridge.plugins.getSettings(); if (state.file.handle && state.pluginSettings.git.enabled) void bridge.plugins.watchDocument(state.file.handle.handleId); }
+      catch (error) { fail(error); }
+    },
+    async configureGitPlugin(input: ConfigureGitPluginInput) {
+      if (!bridge.plugins) return false; state.pluginBusy = true;
+      try { state.pluginSettings = await bridge.plugins.configureGit(input); if (input.enabled && state.file.handle) await bridge.plugins.watchDocument(state.file.handle.handleId); notice('Git-Plugin gespeichert.'); return true; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async configureAtlassianPlugin(input: ConfigureAtlassianPluginInput) {
+      if (!bridge.plugins) return false; state.pluginBusy = true;
+      try { state.pluginSettings = await bridge.plugins.configureAtlassian(input); notice('Atlassian-Plugin gespeichert.'); return true; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async testAtlassianPlugin() {
+      if (!bridge.plugins) return false; state.pluginBusy = true;
+      try { const result = await bridge.plugins.testAtlassian(); await store.refreshPluginSettings(); notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async refreshGitStatus() {
+      if (!bridge.plugins || !state.file.handle) { notice('Speichere das Dokument zuerst in einem Git-Repository.', 'error'); return false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async syncGit() {
+      if (!bridge.plugins || !state.file.handle) { notice('Speichere das Dokument zuerst in einem Git-Repository.', 'error'); return false; }
+      if (state.saveStatus === 'dirty') { notice('Speichere lokale Änderungen vor der Git-Synchronisation.', 'error'); return false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitSync(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(result.message, result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async searchConfluencePages(query) {
+      if (!bridge.plugins) return; state.pluginBusy = true;
+      try { state.confluencePages = await bridge.plugins.listConfluencePages(query); }
+      catch (error) { fail(error); } finally { state.pluginBusy = false; }
+    },
+    async insertConfluencePage(pageId) {
+      if (!bridge.plugins || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
+      try {
+        const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const p = currentCenter();
+        const element = createElement('annotation', { x: p.x - 260, y: p.y - 180, width: 520, height: 360, label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageId': page.id, 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } });
+        const ok = await dispatch({ type: 'add', elements: [element] }, state.revision, 'import'); if (ok) { setSelection([element.id]); state.workspaceView = 'canvas'; notice(`Confluence-Seite „${page.title}“ eingebunden.`); } return ok;
+      } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async syncConfluenceElement(elementId) {
+      if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
+      if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice('Das Element ist nicht mit einer Confluence-Seite verknüpft.', 'error'); return false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice('Confluence-Seite aktualisiert.'); return ok; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async refreshConfluenceElement(elementId) {
+      if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
+      if (!element || !pageId) { notice('Das Element ist nicht mit einer Confluence-Seite verknüpft.', 'error'); return false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice('Confluence-Seite neu geladen.'); return ok; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async syncJiraTasks() {
+      if (!bridge.plugins || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
+      try {
+        const issues = await bridge.plugins.listJiraIssues(); const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
+        for (const issue of issues) { const existing = byKey.get(issue.key); if (existing) { existing.title = issue.title; existing.description = issue.description; existing.status = issue.status; existing.updatedAt = issue.updatedAt; existing.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; } else tasks.push({ id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((task) => task.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } }); }
+        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) notice(`${issues.length} Jira-Vorgänge synchronisiert.`); return ok;
+      } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+    },
+    async acceptExternalDocument() {
+      const event = pendingExternalEvent; if (!event) return false;
+      try { const document = deserializeDocument(event.text); install(document, { ...freshFile(), handle: event.file, savedRevision: 0 }); pendingExternalEvent = null; state.pendingExternalDocument = false; notice(`Extern geändert und neu geladen: ${event.file.name}`); return true; }
+      catch (error) { fail(error); return false; }
+    },
     toggleFrameSidebar(open) {
       state.frameSidebarOpen = open ?? !state.frameSidebarOpen;
       if (state.frameSidebarOpen) {
@@ -1295,7 +1390,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     whenIdle() { return lastWrite; },
     needsCloseWarning() { return needsClosePrompt(state.file, state.revision, state.hasDraft) || pendingWrites > 0 || Boolean(unknownWrite) || guest?.getStatus().hasUnresolvedOutcome === true; },
-    dispose() { disposed = true; settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } },
+    dispose() { disposed = true; settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } },
   };
   const unsubscribeClose = bridge.onCloseRequested((requestId) => { void requestTransition('close', requestId); });
   const unsubscribeMenu = bridge.onMenuCommand((command) => {
@@ -1303,5 +1398,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if ((command === 'undo' || command === 'redo') && active?.matches('input, textarea, [contenteditable="true"]')) { document.execCommand(command); return; }
     if (command === 'save') void store.save(); else if (command === 'save-as') void store.saveAs(); else if (command === 'open') void store.openDocument(); else if (command === 'undo') store.undo(); else if (command === 'redo') store.redo();
   });
+  const unsubscribePluginEvents = bridge.plugins?.onEvent((event) => {
+    if (event.type !== 'document-changed' || event.file.handleId !== state.file.handle?.handleId) return;
+    pendingExternalEvent = event;
+    state.pendingExternalDocument = true;
+    if (state.saveStatus === 'saved' && !state.hasDraft && !state.transitioning) void store.acceptExternalDocument();
+    else notice('Die Datei wurde extern geändert. Lokale Entwürfe bleiben erhalten; neu laden ist in den Plugin-Einstellungen möglich.', 'error');
+  }) ?? (() => {});
+  void store.refreshPluginSettings();
   return store;
 }

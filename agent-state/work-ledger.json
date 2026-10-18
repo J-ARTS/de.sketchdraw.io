@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T04:47:43Z",
+  "updatedAt": "2026-10-18T05:05:18Z",
   "issues": [
     {
       "number": 1,
@@ -1048,6 +1048,74 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 66,
+      "title": "Plugin-Plattform für Git und Atlassian",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/66",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Plugin architecture, coordination and testing",
+      "status": "integration_pending",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 67,
+      "title": "Plugin-Einstellungen und sichere Desktop-Verträge",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/67",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Desktop settings, UI, interface, IAM and testing",
+      "status": "integration_pending",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        66
+      ]
+    },
+    {
+      "number": 68,
+      "title": "Git-Plugin mit Auto-Sync und sicherem Reload",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/68",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Git logic, interface, DevOps and testing",
+      "status": "integration_pending",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        66,
+        67
+      ]
+    },
+    {
+      "number": 69,
+      "title": "Atlassian-Plugin für Confluence Live Docs und Jira-Tasks",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/69",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (UI), Google Antigravity (logic/interface/IAM/devops)",
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "phase": "Atlassian UI, logic, interface, IAM and testing",
+      "status": "integration_pending",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        66,
+        67
+      ]
     }
   ],
   "runs": [
@@ -4567,6 +4635,46 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact feature commit 8aea627316e38b0d2bfc0a0efb2a239cb5321e32. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production builds, 59 browser UI tests including frame presentation, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-plugin-platform-local-66-69",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        66,
+        67,
+        68,
+        69
+      ],
+      "status": "local_verified_integration_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "electron/plugin-service.ts",
+        "electron/persistence.ts",
+        "src/domain/plugins.ts",
+        "src/domain/atlassian.ts",
+        "src/renderer/components/PluginSettings.vue",
+        "src/renderer/components/TaskBoard.vue",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/plugin-service.spec.ts",
+        "tests/unit/renderer/plugin-store.spec.ts",
+        "tests/ui/plugins.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/66",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/67",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/68",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/69"
+      ],
+      "concerns": [
+        "A live Atlassian acceptance run requires user-owned credentials and permissions; automated REST-contract tests use deterministic mock responses.",
+        "Cross-platform GitHub Actions verification is pending until the local change is committed and pushed.",
+        "The source-code Graphify refresh was guarded because the rebuilt graph contained fewer nodes than the merged existing graph; the existing graph is preserved and the deterministic traceability projection is refreshed."
+      ],
+      "authorization": "The user explicitly requested configurable Git and Atlassian plugins and previously authorized Codex to temporarily implement responsibilities assigned to Claude Code and Antigravity with actual-tool attribution.",
+      "measurementSource": "Codex implemented the local desktop plugin capability and recorded only observed verification. Exact local evidence: typecheck passed; 359/359 Vitest tests, 60/60 browser UI tests and 6/6 Electron integration tests passed; renderer, Electron and MCP production builds passed. No duration, token or cost estimate is inferred."
     }
   ],
   "evidencePolicy": {

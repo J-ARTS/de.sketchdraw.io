@@ -201,9 +201,19 @@ export interface CommentThread {
 
 export type TaskStatus = 'todo' | 'doing' | 'review' | 'done';
 
+export interface ExternalTaskReference {
+  provider: 'jira';
+  remoteId: string;
+  key: string;
+  url: string;
+  remoteStatus: string;
+  updatedAt: string;
+}
+
 export interface SketchTask {
   id: string;
-  sourceThreadId: string;
+  /** Present when the task originated from a Sketchdraw comment. */
+  sourceThreadId?: string;
   title: string;
   description: string;
   status: TaskStatus;
@@ -211,6 +221,8 @@ export interface SketchTask {
   rank: number;
   createdAt: string;
   updatedAt: string;
+  /** Optional, safe remote reference. Credentials are never part of the document. */
+  external?: ExternalTaskReference;
 }
 
 export interface SketchDocument {
@@ -370,4 +382,6 @@ export interface DesktopBridge {
   onCloseRequested(listener: (requestId: string) => void): () => void;
   respondToClose(requestId: string, decision: 'close' | 'cancel'): Promise<void>;
   onMenuCommand(listener: (command: 'open' | 'save' | 'save-as' | 'undo' | 'redo') => void): () => void;
+  /** Optional desktop-only capability. Browser builds intentionally omit it. */
+  readonly plugins?: import('./plugins').PluginBridge;
 }

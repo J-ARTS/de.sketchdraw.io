@@ -7,6 +7,7 @@ import {
   Menu,
   type MenuItemConstructorOptions,
   protocol,
+  safeStorage,
   session,
   shell,
 } from 'electron';
@@ -23,6 +24,7 @@ import {
   validateOpenExternalRequest,
 } from './ipc-contract';
 import { DocumentPersistenceService } from './persistence';
+import { PluginService } from './plugin-service';
 import {
   APP_SCHEME,
   buildContentSecurityPolicy,
@@ -213,7 +215,7 @@ function configureDefaultSessionSecurity(target: RendererTarget): void {
   });
 }
 
-function registerIpcHandlers(persistence: DocumentPersistenceService): void {
+function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: PluginService): void {
   ipcMain.handle(
     IPC_CHANNELS.OPEN_DOCUMENT,
     async (event): Promise<OpenDocumentResult> => {
@@ -246,7 +248,9 @@ function registerIpcHandlers(persistence: DocumentPersistenceService): void {
           message: check.reason,
         };
       }
-      return persistence.saveDocument(rawPayload);
+      const result = await persistence.saveDocument(rawPayload);
+      if (result.status === 'saved') void plugins.afterDocumentSaved(result.file.handleId);
+      return result;
     },
   );
 
@@ -307,6 +311,30 @@ function registerIpcHandlers(persistence: DocumentPersistenceService): void {
       closeCoordinator.handleRendererResponse(rawPayload);
     },
   );
+
+  ipcMain.handle(IPC_CHANNELS.PLUGIN_INVOKE, async (event, rawPayload: unknown): Promise<unknown> => {
+    const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
+    if (!check.ok) throw new Error(check.reason);
+    if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) throw new Error('Ungültige Plugin-Anfrage.');
+    const request = rawPayload as { action?: unknown; payload?: unknown };
+    const payload = request.payload as never;
+    switch (request.action) {
+      case 'get-settings': return plugins.getSettings();
+      case 'configure-git': return plugins.configureGit(payload);
+      case 'configure-atlassian': return plugins.configureAtlassian(payload);
+      case 'test-atlassian': return plugins.testAtlassian();
+      case 'git-status': return plugins.gitStatus(String(request.payload ?? ''));
+      case 'git-sync': return plugins.gitSync(String(request.payload ?? ''));
+      case 'watch-document': return plugins.watchDocument(String(request.payload ?? ''));
+      case 'list-confluence-pages': return plugins.listConfluencePages(String(request.payload ?? ''));
+      case 'get-confluence-page': return plugins.getConfluencePage(String(request.payload ?? ''));
+      case 'update-confluence-page': return plugins.updateConfluencePage(payload);
+      case 'create-jira-issue': return plugins.createJiraIssue(payload);
+      case 'list-jira-issues': return plugins.listJiraIssues();
+      case 'transition-jira-issue': return plugins.transitionJiraIssue(payload);
+      default: throw new Error('Unbekannte Plugin-Aktion.');
+    }
+  });
 }
 
 async function createMainWindow(target: RendererTarget): Promise<BrowserWindow> {
@@ -439,7 +467,20 @@ void app
       },
     });
 
-    registerIpcHandlers(persistence);
+    const plugins = new PluginService({
+      configPath: path.join(app.getPath('userData'), 'plugins.json'),
+      persistence,
+      credentials: {
+        available: () => safeStorage.isEncryptionAvailable(),
+        encrypt: (value) => safeStorage.encryptString(value).toString('base64'),
+        decrypt: (value) => safeStorage.decryptString(Buffer.from(value, 'base64')),
+      },
+      emitEvent: (event) => {
+        if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.PLUGIN_EVENT, event);
+      },
+    });
+    app.once('before-quit', () => plugins.dispose());
+    registerIpcHandlers(persistence, plugins);
     Menu.setApplicationMenu(buildApplicationMenu());
 
     await createMainWindow(target);
