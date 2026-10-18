@@ -85,7 +85,8 @@ const TEXT_DECORATIONS: ReadonlySet<NonNullable<ElementStyle['textDecoration']>>
 const LIST_STYLES: ReadonlySet<NonNullable<ElementStyle['listStyle']>> = new Set(['none', 'bullet']);
 const CONNECTOR_ROUTINGS: ReadonlySet<ConnectorRouting> = new Set(['straight', 'elbowed', 'curved']);
 const CONNECTOR_MARKERS: ReadonlySet<ConnectorMarker> = new Set([
-  'none', 'line-arrow', 'solid-arrow', 'triangle', 'circle', 'diamond',
+  'none', 'line-arrow', 'solid-arrow', 'triangle', 'reverse-triangle', 'circle', 'diamond',
+  'exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many',
 ]);
 const VALID_SHAPE_VARIANTS: ReadonlySet<ShapeVariant> = new Set(SHAPE_VARIANTS);
 const ASSET_MIME_TYPES: ReadonlySet<SketchAsset['mimeType']> = new Set([

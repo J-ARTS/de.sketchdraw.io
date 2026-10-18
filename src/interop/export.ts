@@ -104,16 +104,31 @@ function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): stri
   }).join('');
   return `<text${attrs({ x: textX, y: bodyHeight / 2 - Math.max(5, titleSize * .25), 'font-size': titleSize, 'font-family': fontFamily, 'font-weight': 600, 'dominant-baseline': 'central', fill: safeColor(el.style.stroke, d, el) })}>${title}</text><text${attrs({ x: textX, y: bodyHeight / 2 + Math.max(16, titleSize * .85), 'font-size': descriptionSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill: safeColor(el.style.stroke, d, el), 'fill-opacity': .55 })}>${description}</text>${linkMarkup}`;
 }
-const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = { none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block', circle: 'oval', diamond: 'diamond' };
+const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = {
+  none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block',
+  // diagrams.net has no distinct reversed-triangle end marker. The embedded
+  // Sketchdraw model retains it; an unembedded projection uses the closest cap.
+  'reverse-triangle': 'block', circle: 'oval', diamond: 'diamond',
+  'exactly-one': 'ERmandOne', many: 'ERmany', 'zero-or-one': 'ERzeroToOne',
+  'zero-or-many': 'ERzeroToMany', 'one-or-many': 'ERoneToMany',
+};
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
   if (marker === 'none') return '';
-  const common = `id="${id}" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"`;
+  const er = ['exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many'].includes(marker);
+  const refX = marker === 'exactly-one' || marker === 'zero-or-one' ? 14 : er ? 17 : 11;
+  const common = `id="${id}" markerWidth="${er ? 20 : 14}" markerHeight="14" refX="${refX}" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"`;
   const paint = `stroke="${escapeXmlAttr(stroke)}" stroke-width="${n(Math.max(1, width))}" stroke-linejoin="round"`;
   if (marker === 'line-arrow') return `<marker ${common}><path d="M2 2L11 7L2 12" fill="none" ${paint}/></marker>`;
   if (marker === 'solid-arrow') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="${escapeXmlAttr(stroke)}" ${paint}/></marker>`;
   if (marker === 'triangle') return `<marker ${common}><path d="M1 1L12 7L1 13Z" fill="white" ${paint}/></marker>`;
+  if (marker === 'reverse-triangle') return `<marker ${common}><path d="M11 1L1 7L11 13Z" fill="white" ${paint}/></marker>`;
   if (marker === 'circle') return `<marker ${common}><circle cx="7" cy="7" r="5" fill="white" ${paint}/></marker>`;
-  return `<marker ${common}><path d="M1 7L7 1L13 7L7 13Z" fill="white" ${paint}/></marker>`;
+  if (marker === 'diamond') return `<marker ${common}><path d="M1 7L7 1L13 7L7 13Z" fill="white" ${paint}/></marker>`;
+  if (marker === 'exactly-one') return `<marker ${common}><path d="M7 2V12M14 2V12" fill="none" ${paint}/></marker>`;
+  if (marker === 'many') return `<marker ${common}><path d="M5 7H9M9 7L17 1M9 7L17 7M9 7L17 13" fill="none" ${paint}/></marker>`;
+  if (marker === 'zero-or-one') return `<marker ${common}><circle cx="5" cy="7" r="3.5" fill="white" ${paint}/><path d="M14 2V12" fill="none" ${paint}/></marker>`;
+  if (marker === 'zero-or-many') return `<marker ${common}><circle cx="4.5" cy="7" r="3.5" fill="white" ${paint}/><path d="M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" ${paint}/></marker>`;
+  return `<marker ${common}><path d="M5 2V12M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" ${paint}/></marker>`;
 }
 function safeIcon(node: SafeSvgElementNode): string {
   return `<${node.tag}${attrs(node.attributes)}>${node.children.map(safeIcon).join('')}</${node.tag}>`;

@@ -57,12 +57,14 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await expect(routeHandles).toHaveCount(4);
 
   await bar.getByRole('button', { name: /^Startpunkt:/ }).click();
-  await page.getByRole('group', { name: 'Startpunkt' }).getByRole('button', { name: 'Kreis' }).click();
-  await expect(path).toHaveAttribute('marker-start', /circle/);
+  const startChoices = page.getByRole('group', { name: 'Startpunkt' });
+  await expect(startChoices.getByRole('button')).toHaveCount(12);
+  await startChoices.getByRole('button', { name: 'Null oder eins' }).click();
+  await expect(path).toHaveAttribute('marker-start', /zero-or-one/);
 
   await bar.getByRole('button', { name: /^Endpunkt:/ }).click();
-  await page.getByRole('group', { name: 'Endpunkt' }).getByRole('button', { name: 'Raute' }).click();
-  await expect(path).toHaveAttribute('marker-end', /diamond/);
+  await page.getByRole('group', { name: 'Endpunkt' }).getByRole('button', { name: 'Eins oder viele' }).click();
+  await expect(path).toHaveAttribute('marker-end', /one-or-many/);
 
   await bar.getByRole('button', { name: 'Linie', exact: true }).click();
   await page.getByRole('group', { name: 'Linie', exact: true }).getByRole('button', { name: 'Gestrichelt' }).click();
@@ -81,8 +83,8 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Code', exact: true }).click();
   const code = await page.getByTestId('diagram-code').inputValue();
   expect(code).toContain('"connectorRouting":"elbowed"');
-  expect(code).toContain('"startMarker":"circle"');
-  expect(code).toContain('"endMarker":"diamond"');
+  expect(code).toContain('"startMarker":"zero-or-one"');
+  expect(code).toContain('"endMarker":"one-or-many"');
   expect(code).toContain('"from"'); expect(code).toContain('"to"');
 });
 

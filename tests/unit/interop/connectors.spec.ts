@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { createDocument, createElement } from '@/domain';
+import { createDocument, createElement, type ConnectorMarker } from '@/domain';
 import { importDrawio, prepareDrawioExport, prepareSvgExport } from '@/interop';
 
-function connectorDocument() {
+function connectorDocument(startMarker: ConnectorMarker = 'circle', endMarker: ConnectorMarker = 'diamond') {
   const document = createDocument('Connector export');
   document.elements = [
     createElement('rectangle', { id: 'source', x: 0, y: 0, width: 120, height: 80 }),
@@ -12,7 +12,7 @@ function connectorDocument() {
       points: [{ x: 0, y: 0 }, { x: 240, y: 120 }],
       from: { elementId: 'source', anchor: { x: 1, y: .5 } },
       to: { elementId: 'target', anchor: { x: 0, y: .5 } },
-      connectorRouting: 'curved', startMarker: 'circle', endMarker: 'diamond', text: 'HTTPS',
+      connectorRouting: 'curved', startMarker, endMarker, text: 'HTTPS',
     }),
   ];
   return document;
@@ -36,6 +36,16 @@ describe('connector interoperability', () => {
     const imported = importDrawio(result.contents);
     expect(imported.document.elements.find((element) => element.kind === 'connector')).toMatchObject({
       connectorRouting: 'curved', startMarker: 'circle', endMarker: 'diamond',
+    });
+  });
+
+  test('draw.io projection round-trips entity relationship endpoint styles', () => {
+    const result = prepareDrawioExport(connectorDocument('zero-or-one', 'one-or-many'), { embedDocument: false });
+    expect(result.contents).toContain('startArrow=ERzeroToOne');
+    expect(result.contents).toContain('endArrow=ERoneToMany');
+    const imported = importDrawio(result.contents);
+    expect(imported.document.elements.find((element) => element.kind === 'connector')).toMatchObject({
+      startMarker: 'zero-or-one', endMarker: 'one-or-many',
     });
   });
 });

@@ -73,7 +73,12 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
 }
 const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
-const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = { none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow', block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond' };
+const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = {
+  none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow',
+  block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond',
+  ERmandOne: 'exactly-one', ERone: 'exactly-one', ERmany: 'many', ERzeroToOne: 'zero-or-one',
+  ERzeroToMany: 'zero-or-many', ERoneToMany: 'one-or-many',
+};
 function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
   s.fill = color(v['fillColor'], cell.edge ? 'transparent' : '#ffffff', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'fillColor', 'Unsupported fill replaced.'));

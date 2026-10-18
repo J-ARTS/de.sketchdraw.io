@@ -7,6 +7,7 @@ import {
   createElement,
   deserializeDocument,
   serializeDocument,
+  type ConnectorMarker,
 } from '@/domain';
 
 describe('connector contract', () => {
@@ -18,6 +19,18 @@ describe('connector contract', () => {
     expect(deserializeDocument(serializeDocument(document)).elements[0]).toMatchObject({
       connectorRouting: 'straight', startMarker: 'none', endMarker: 'line-arrow',
     });
+  });
+
+  test('preserves the complete endpoint marker palette through JSON', () => {
+    const markers: ConnectorMarker[] = [
+      'none', 'line-arrow', 'solid-arrow', 'triangle', 'reverse-triangle', 'circle', 'diamond',
+      'exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many',
+    ];
+    for (const [index, marker] of markers.entries()) {
+      const document = createDocument(`Marker ${marker}`);
+      document.elements = [createElement('connector', { id: `edge-${index}`, startMarker: marker, endMarker: marker })];
+      expect(deserializeDocument(serializeDocument(document)).elements[0]).toMatchObject({ startMarker: marker, endMarker: marker });
+    }
   });
 
   test('projects straight, elbowed and curved routes to distinct deterministic SVG paths', () => {

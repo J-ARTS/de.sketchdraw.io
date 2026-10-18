@@ -71,8 +71,14 @@ export type ConnectorMarker =
   | 'line-arrow'
   | 'solid-arrow'
   | 'triangle'
+  | 'reverse-triangle'
   | 'circle'
-  | 'diamond';
+  | 'diamond'
+  | 'exactly-one'
+  | 'many'
+  | 'zero-or-one'
+  | 'zero-or-many'
+  | 'one-or-many';
 
 export interface ElementStyle {
   stroke: string;

@@ -13,6 +13,7 @@ import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
 import ResourceCardEditor from './ResourceCardEditor.vue';
+import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
 type Segment = 'shape' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
@@ -50,7 +51,10 @@ const ROUTES: ReadonlyArray<{ value: ConnectorRouting; label: string }> = [
 const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
   { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
   { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
-  { value: 'circle', label: 'Kreis' }, { value: 'diamond', label: 'Raute' },
+  { value: 'reverse-triangle', label: 'Umgekehrtes Dreieck' }, { value: 'circle', label: 'Kreis' },
+  { value: 'diamond', label: 'Raute' }, { value: 'zero-or-one', label: 'Null oder eins' },
+  { value: 'exactly-one', label: 'Genau eins' }, { value: 'zero-or-many', label: 'Null oder viele' },
+  { value: 'one-or-many', label: 'Eins oder viele' }, { value: 'many', label: 'Viele' },
 ];
 
 // --- Visibility and placement ----------------------------------------------------
@@ -390,10 +394,10 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         </button>
         <span class="sep" aria-hidden="true" />
         <button :ref="(el) => setTrigger('start', el)" type="button" class="segment" :aria-label="`Startpunkt: ${markerLabel(info.values.startMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'start'" :aria-controls="panelId('start')" :title="unavailable('Startpunkt')" @click="toggle('start')">
-          <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M10 7l-5 5 5 5" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+          <ConnectorMarkerIcon class="toolbar-marker-icon start-marker-preview" :marker="info.values.startMarker ?? 'none'" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
         <button :ref="(el) => setTrigger('end', el)" type="button" class="segment" :aria-label="`Endpunkt: ${markerLabel(info.values.endMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'end'" :aria-controls="panelId('end')" :title="unavailable('Endpunkt')" @click="toggle('end')">
-          <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
+          <ConnectorMarkerIcon class="toolbar-marker-icon" :marker="info.values.endMarker ?? 'none'" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
       </template>
       <template v-if="annotationOnly">
@@ -533,9 +537,9 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       </button>
     </div>
 
-    <div v-else-if="openSegment === 'start' || openSegment === 'end'" class="choices column" role="group" :aria-label="openSegment === 'start' ? 'Startpunkt' : 'Endpunkt'">
-      <button v-for="marker in MARKERS" :key="marker.value" type="button" class="choice connector-choice" :aria-pressed="(openSegment === 'start' ? info.values.startMarker : info.values.endMarker) === marker.value" @click="connectorPatch(openSegment === 'start' ? { startMarker: marker.value } : { endMarker: marker.value }); close(true)">
-        <svg class="connector-choice-icon" viewBox="0 0 48 24" aria-hidden="true"><line x1="5" y1="12" x2="40" y2="12" /><path v-if="marker.value === 'line-arrow'" d="M32 5l8 7-8 7" /><path v-else-if="marker.value === 'solid-arrow'" d="M30 4l11 8-11 8z" class="filled" /><path v-else-if="marker.value === 'triangle'" d="M29 4l12 8-12 8z" /><circle v-else-if="marker.value === 'circle'" cx="37" cy="12" r="6" /><path v-else-if="marker.value === 'diamond'" d="M29 12l6-7 7 7-7 7z" /></svg>{{ marker.label }}
+    <div v-else-if="openSegment === 'start' || openSegment === 'end'" class="choices marker-grid" role="group" :aria-label="openSegment === 'start' ? 'Startpunkt' : 'Endpunkt'">
+      <button v-for="marker in MARKERS" :key="marker.value" type="button" class="choice marker-choice" :aria-label="marker.label" :title="marker.label" :aria-pressed="(openSegment === 'start' ? info.values.startMarker : info.values.endMarker) === marker.value" @click="connectorPatch(openSegment === 'start' ? { startMarker: marker.value } : { endMarker: marker.value }); close(true)">
+        <ConnectorMarkerIcon :marker="marker.value" />
       </button>
     </div>
 
@@ -781,6 +785,10 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
 
 .connector-choice-icon .filled { fill: currentColor; }
 .connector-choice { min-width: 190px; }
+.choices.marker-grid { display: grid; grid-template-columns: repeat(6, 64px); gap: 6px; }
+.marker-choice { justify-content: center; width: 64px; min-height: 44px; padding: 0; }
+.toolbar-marker-icon { width: 34px; height: 22px; }
+.start-marker-preview { transform: rotate(180deg); }
 
 .shape-search {
   display: flex;
