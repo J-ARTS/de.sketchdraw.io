@@ -1056,7 +1056,8 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-github-ticket-audit-057",
-        "codex-live-ui-page-table-connectors-35-89-91"
+        "codex-live-ui-page-table-connectors-35-89-91",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "36": {
@@ -2620,7 +2621,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "77": {
@@ -2653,7 +2655,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "78": {
@@ -2686,7 +2689,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "79": {
@@ -2719,7 +2723,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "8": {
@@ -2794,7 +2799,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "81": {
@@ -2827,7 +2833,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "82": {
@@ -2860,7 +2867,8 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-ui-audit-fixes-76-87",
-        "codex-vueuse-uiux-audit-74-82"
+        "codex-vueuse-uiux-audit-74-82",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "83": {
@@ -2892,7 +2900,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "claude-ui-audit-fixes-76-87"
+        "claude-ui-audit-fixes-76-87",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "84": {
@@ -2924,7 +2933,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "claude-ui-audit-fixes-76-87"
+        "claude-ui-audit-fixes-76-87",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "85": {
@@ -2956,7 +2966,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "claude-ui-audit-fixes-76-87"
+        "claude-ui-audit-fixes-76-87",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "86": {
@@ -2988,7 +2999,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "claude-ui-audit-fixes-76-87"
+        "claude-ui-audit-fixes-76-87",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "87": {
@@ -3020,7 +3032,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "claude-ui-audit-fixes-76-87"
+        "claude-ui-audit-fixes-76-87",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "88": {
@@ -3082,7 +3095,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-live-ui-page-table-connectors-35-89-91"
+        "codex-live-ui-page-table-connectors-35-89-91",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "9": {
@@ -3152,7 +3166,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-live-ui-page-table-connectors-35-89-91"
+        "codex-live-ui-page-table-connectors-35-89-91",
+        "github-actions-ui-canvas-39112934986"
       ]
     },
     "91": {
@@ -3184,7 +3199,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-live-ui-page-table-connectors-35-89-91"
+        "codex-live-ui-page-table-connectors-35-89-91",
+        "github-actions-ui-canvas-39112934986"
       ]
     }
   },
@@ -3417,15 +3433,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 29
+        "unknownRuns": 30
       },
       "observedSeconds": {
         "knownRuns": 24,
         "knownSubtotal": 9700,
         "total": null,
-        "unknownRuns": 5
+        "unknownRuns": 6
       },
-      "runCount": 29,
+      "runCount": 30,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -3455,13 +3471,14 @@
         "github-actions-sticky-notes-39077766935",
         "github-actions-table-39089888688",
         "github-actions-text-edit-toolbar-39073704784",
+        "github-actions-ui-canvas-39112934986",
         "github-actions-web-embed-39096206588"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 29
+        "unknownRuns": 30
       }
     },
     "openai-codex": {
@@ -3500,15 +3517,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 144
+      "unknownRuns": 145
     },
     "observedSeconds": {
       "knownRuns": 44,
       "knownSubtotal": 22322.322263248963,
       "total": null,
-      "unknownRuns": 100
+      "unknownRuns": 101
     },
-    "runCount": 144,
+    "runCount": 145,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3653,13 +3670,14 @@
       "github-actions-sticky-notes-39077766935",
       "github-actions-table-39089888688",
       "github-actions-text-edit-toolbar-39073704784",
+      "github-actions-ui-canvas-39112934986",
       "github-actions-web-embed-39096206588"
     ],
     "tokens": {
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 140
+      "unknownRuns": 141
     }
   },
   "officialScoreClaimReady": false,
@@ -3673,5 +3691,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T08:48:53Z"
+  "updatedAt": "2026-10-18T09:01:40Z"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T08:48:53Z",
+  "updatedAt": "2026-10-18T09:01:40Z",
   "issues": [
     {
       "number": 1,
@@ -562,7 +562,7 @@
       "owner": "Claude Code",
       "currentImplementer": "Claude Code (UI) and Codex (temporary logic)",
       "phase": "UI",
-      "status": "review_pending",
+      "status": "blocked",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1223,7 +1223,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1240,7 +1240,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1257,7 +1257,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1274,7 +1274,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1291,7 +1291,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1308,7 +1308,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1325,7 +1325,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1341,7 +1341,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/83",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [75]
     },
@@ -1351,7 +1351,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/84",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [75]
     },
@@ -1361,7 +1361,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/85",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [75]
     },
@@ -1371,7 +1371,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/86",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [75]
     },
@@ -1381,7 +1381,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/87",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "phase": "UI/UX audit follow-up",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [75]
     },
@@ -1402,7 +1402,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [77, 78]
     },
@@ -1413,7 +1413,7 @@
       "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI and logic",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [58]
     },
@@ -1424,7 +1424,7 @@
       "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI, logic and interfaces",
-      "status": "review_pending",
+      "status": "completed",
       "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
       "dependencies": [45, 46, 47]
     }
@@ -5226,7 +5226,7 @@
       "tool": "claude-code",
       "model": null,
       "issues": [76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
-      "status": "fully_verified_pending_integration",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5257,14 +5257,14 @@
         "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 3,947 nodes versus 4,059 in the existing graph; deterministic ticket/run/artifact traceability was refreshed and validated."
       ],
       "authorization": "The user explicitly requested the UI/UX fixes and asked that Claude Code be used; Codex retains overall testing responsibility.",
-      "measurementSource": "Claude Code produced the bounded UI fixes. OpenAI Codex reviewed the working tree. Final local macOS arm64 evidence on the combined working tree: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. Exact duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Claude Code produced the bounded UI fixes; OpenAI Codex reviewed and integrated them in commit 37488a1. Final local macOS arm64 evidence on the combined working tree: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. GitHub Actions run 39112934986 passed Governance/Graphify, strict direct P2P and all product jobs on Windows, macOS and Linux. Issues #76-#87 were closed completed. Exact duration, token usage and cost were not measured and remain null."
     },
     {
       "id": "codex-live-ui-page-table-connectors-35-89-91",
       "tool": "openai-codex",
       "model": "gpt-6",
       "issues": [35, 89, 90, 91],
-      "status": "fully_verified_pending_integration",
+      "status": "integrated_and_cross_platform_verified_with_schema_v2_follow_up",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5296,7 +5296,33 @@
         "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 3,947 nodes versus 4,059 in the existing graph; deterministic ticket/run/artifact traceability was refreshed and validated."
       ],
       "authorization": "The user explicitly requested these page, shape-panel, table and connector changes and authorized Codex to temporarily implement work assigned to quota-limited agents while retaining nominal ownership.",
-      "measurementSource": "Final local macOS arm64 evidence on the combined working tree: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. Connector tests independently verify dynamic route handles and selectable start/end markers. Exact duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Integrated in commit 37488a1. Final local macOS arm64 evidence: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. GitHub Actions run 39112934986 passed Governance/Graphify, strict direct P2P and all product jobs on Windows, macOS and Linux. Connector tests independently verify dynamic route handles and selectable start/end markers. Issues #89-#91 were closed completed; #35 remains blocked by the public schema-v2 work in #33/#34. Exact duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-ui-canvas-39112934986",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [35, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 89, 90, 91],
+      "status": "completed",
+      "startedAt": "2026-10-18T08:49:29Z",
+      "endedAt": "2026-10-18T08:58:45Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:37488a1addae76a86d6de92f187859b4082d2a09",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986/job/117632706464",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986/job/117632706557",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986/job/117632731074",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986/job/117632731077",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39112934986/job/117632731123"
+      ],
+      "concerns": [
+        "Issue #35 remains blocked until #33/#34 provide the public document schema-v2 migration across Diagram-as-Code, MCP, P2P and interoperability.",
+        "Issue #88 remains a separate open UI bug for lower-viewport comment-editor overlap."
+      ],
+      "measurementSource": "Fresh GitHub read confirmed overall success for run 39112934986 at commit 37488a1: Governance & Graphify Tests, Direct P2P with Chromium and sandboxed Electron, and Build & Verify on ubuntu-24.04, macos-15 and windows-2025 all completed successfully. Duration, token usage and cost were not copied or inferred and remain null."
     }
   ],
   "evidencePolicy": {
