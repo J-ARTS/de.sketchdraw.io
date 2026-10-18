@@ -29,6 +29,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -64,6 +65,7 @@
         "value": 8
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
       ]
@@ -101,6 +103,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-codec-catalog-tests-001",
+        "codex-github-ticket-audit-057",
         "codex-s2-contract-001",
         "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
@@ -139,6 +142,7 @@
         "value": 5
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-interop-contract-001",
         "codex-native-integration-002",
         "codex-ticket-closure-004",
@@ -178,6 +182,7 @@
         "value": 5
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-mcp-contract-review-001",
         "codex-mcp-independent-review-001",
         "codex-native-integration-002",
@@ -218,6 +223,7 @@
         "value": 13
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-native-integration-002",
         "codex-p2p-contract-001",
         "codex-p2p-contract-review-001",
@@ -264,6 +270,7 @@
         "codex-domain-tests-001",
         "codex-electron-backend-tests-001",
         "codex-final-release-closure-029",
+        "codex-github-ticket-audit-057",
         "codex-mcp-independent-review-001",
         "codex-native-integration-002",
         "codex-orchestration-001",
@@ -305,6 +312,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-dependency-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -338,6 +346,7 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-desktop-fixes-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -372,6 +381,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -406,6 +416,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -438,6 +449,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -472,6 +484,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -506,6 +519,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -540,6 +554,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-desktop-fixes-001",
         "codex-desktop-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -574,6 +589,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-desktop-fixes-001",
         "codex-desktop-review-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -613,6 +629,7 @@
         "codex-ci-signing-env-026",
         "codex-draft-recovery-028",
         "codex-final-release-closure-029",
+        "codex-github-ticket-audit-057",
         "codex-native-integration-002",
         "codex-owned-process-cleanup-003",
         "github-actions-final-39049794209",
@@ -651,6 +668,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -684,6 +702,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-ci-signing-env-026",
+        "codex-github-ticket-audit-057",
         "github-actions-release-39046419226"
       ]
     },
@@ -719,7 +738,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-ci-signing-env-026"
+        "codex-ci-signing-env-026",
+        "codex-github-ticket-audit-057"
       ]
     },
     "28": {
@@ -753,6 +773,7 @@
       "sharedUnallocatedRunIds": [
         "codex-draft-recovery-028",
         "codex-final-release-closure-029",
+        "codex-github-ticket-audit-057",
         "github-actions-final-39049794209"
       ]
     },
@@ -788,6 +809,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-final-release-closure-029",
+        "codex-github-ticket-audit-057",
         "github-actions-final-39049794209"
       ]
     },
@@ -820,6 +842,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -855,6 +878,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682"
       ]
@@ -890,6 +914,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682"
       ]
@@ -925,7 +950,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "33": {
       "exclusiveRuns": {
@@ -955,7 +982,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "34": {
       "exclusiveRuns": {
@@ -985,7 +1014,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "35": {
       "exclusiveRuns": {
@@ -1023,7 +1054,41 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
+    },
+    "36": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "37": {
       "exclusiveRuns": {
@@ -1053,7 +1118,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "38": {
       "exclusiveRuns": {
@@ -1087,7 +1154,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "39": {
       "exclusiveRuns": {
@@ -1119,6 +1188,7 @@
       },
       "sharedUnallocatedRunIds": [
         "antigravity-shape-variants-toolbar-039-052",
+        "codex-github-ticket-audit-057",
         "codex-shape-variants-toolbar-039-040-052",
         "github-actions-shape-toolbar-855f4d0",
         "github-actions-shape-toolbar-b66448f"
@@ -1158,6 +1228,7 @@
         "claude-architecture-001",
         "claude-architecture-002",
         "codex-final-release-closure-029",
+        "codex-github-ticket-audit-057",
         "codex-native-integration-002",
         "codex-orchestration-001",
         "github-actions-final-39049794209",
@@ -1195,9 +1266,74 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-code-shape-toolbar-review-052",
+        "codex-github-ticket-audit-057",
         "codex-shape-variants-toolbar-039-040-052",
         "github-actions-shape-toolbar-855f4d0",
         "github-actions-shape-toolbar-b66448f"
+      ]
+    },
+    "41": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
+    },
+    "42": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
       ]
     },
     "43": {
@@ -1234,7 +1370,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "44": {
       "exclusiveRuns": {
@@ -1270,7 +1408,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "45": {
       "exclusiveRuns": {
@@ -1303,6 +1443,7 @@
       "sharedUnallocatedRunIds": [
         "chrome-figjam-connector-research-045",
         "codex-connector-implementation-045",
+        "codex-github-ticket-audit-057",
         "github-actions-connectors-39075881787"
       ]
     },
@@ -1338,6 +1479,7 @@
       },
       "sharedUnallocatedRunIds": [
         "codex-connector-implementation-045",
+        "codex-github-ticket-audit-057",
         "github-actions-connectors-39075881787"
       ]
     },
@@ -1374,6 +1516,7 @@
       "sharedUnallocatedRunIds": [
         "chrome-figjam-connector-research-045",
         "codex-connector-implementation-045",
+        "codex-github-ticket-audit-057",
         "github-actions-connectors-39075881787"
       ]
     },
@@ -1406,6 +1549,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-sticky-implementation-048",
         "github-actions-sticky-notes-39077766935"
       ]
@@ -1441,6 +1585,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-sticky-implementation-048",
         "github-actions-sticky-notes-39077766935"
       ]
@@ -1478,6 +1623,7 @@
       "sharedUnallocatedRunIds": [
         "claude-architecture-001",
         "claude-architecture-002",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -1512,6 +1658,7 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-sticky-implementation-048",
         "github-actions-sticky-notes-39077766935"
       ]
@@ -1547,7 +1694,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "52": {
       "exclusiveRuns": {
@@ -1580,6 +1729,7 @@
       "sharedUnallocatedRunIds": [
         "antigravity-shape-variants-toolbar-039-052",
         "claude-code-shape-toolbar-review-052",
+        "codex-github-ticket-audit-057",
         "codex-shape-variants-toolbar-039-040-052",
         "github-actions-shape-toolbar-855f4d0",
         "github-actions-shape-toolbar-b66448f"
@@ -1618,7 +1768,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "54": {
       "exclusiveRuns": {
@@ -1653,7 +1805,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "55": {
       "exclusiveRuns": {
@@ -1688,7 +1842,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "56": {
       "exclusiveRuns": {
@@ -1723,7 +1879,41 @@
         "unit": "story_points",
         "value": 5
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
+    },
+    "57": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057"
+      ]
     },
     "6": {
       "exclusiveRuns": {
@@ -1758,6 +1948,7 @@
         "antigravity-architecture-002",
         "claude-architecture-001",
         "claude-architecture-002",
+        "codex-github-ticket-audit-057",
         "codex-interop-contract-001",
         "codex-mcp-contract-review-001",
         "codex-orchestration-001",
@@ -1798,6 +1989,7 @@
         "value": 3
       },
       "sharedUnallocatedRunIds": [
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     },
@@ -1838,6 +2030,7 @@
         "codex-dependency-review-001",
         "codex-desktop-review-001",
         "codex-electron-backend-tests-001",
+        "codex-github-ticket-audit-057",
         "codex-setup-integration-001",
         "codex-ticket-closure-004"
       ]
@@ -1876,6 +2069,7 @@
         "antigravity-domain-fixes-001",
         "codex-domain-review-001",
         "codex-domain-tests-001",
+        "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
       ]
     }
@@ -2000,15 +2194,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 26
+        "unknownRuns": 27
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 26
+        "unknownRuns": 27
       },
-      "runCount": 26,
+      "runCount": 27,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
@@ -2020,6 +2214,7 @@
         "codex-fallback-page-rename-logic-035",
         "codex-final-release-closure-029",
         "codex-font-integration-review-043",
+        "codex-github-ticket-audit-057",
         "codex-mcp-takeover-001",
         "codex-native-integration-002",
         "codex-noncommercial-license-029",
@@ -2041,7 +2236,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 26
+        "unknownRuns": 27
       }
     },
     "codex-subagent": {
@@ -2142,15 +2337,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 117
+      "unknownRuns": 118
     },
     "observedSeconds": {
       "knownRuns": 36,
       "knownSubtotal": 18642.322263248963,
       "total": null,
-      "unknownRuns": 81
+      "unknownRuns": 82
     },
-    "runCount": 117,
+    "runCount": 118,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2214,6 +2409,7 @@
       "codex-fallback-page-rename-logic-035",
       "codex-final-release-closure-029",
       "codex-font-integration-review-043",
+      "codex-github-ticket-audit-057",
       "codex-graph-001",
       "codex-interop-001",
       "codex-interop-contract-001",
@@ -2274,7 +2470,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 113
+      "unknownRuns": 114
     }
   },
   "officialScoreClaimReady": false,
@@ -2284,9 +2480,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 41
+    "unknownIssues": 45
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T01:46:52Z"
+  "updatedAt": "2026-10-18T02:01:05Z"
 }

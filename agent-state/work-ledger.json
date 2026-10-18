@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T01:46:52Z",
+  "updatedAt": "2026-10-18T02:01:05Z",
   "issues": [
     {
       "number": 1,
@@ -545,7 +545,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/34",
       "owner": "Antigravity",
       "phase": "Domain and interfaces",
-      "status": "planned",
+      "status": "blocked",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -562,7 +562,7 @@
       "owner": "Claude Code",
       "currentImplementer": "Claude Code (UI) and Codex (temporary logic)",
       "phase": "UI",
-      "status": "in_progress",
+      "status": "blocked",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -571,6 +571,20 @@
       "dependencies": [
         34
       ]
+    },
+    {
+      "number": 36,
+      "title": "Formen: kein Drehgriff, Schnellverbinder zu gleicher Form",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/36",
+      "owner": "Claude Code",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     },
     {
       "number": 37,
@@ -634,6 +648,34 @@
       "dependencies": [
         39
       ]
+    },
+    {
+      "number": 41,
+      "title": "Text direkt in der Form bearbeiten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/41",
+      "owner": "Claude Code",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 42,
+      "title": "Instabiler Test: P2P-Übertragung nahe 32-MiB-Limit läuft auf macOS-CI in Timeout",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/42",
+      "owner": "Antigravity + Codex",
+      "phase": "Testing",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     },
     {
       "number": 43,
@@ -869,6 +911,20 @@
         55
       ],
       "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 57,
+      "title": "GitHub-Ticketbestand vollständig validieren und Status abgleichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/57",
+      "owner": "Codex",
+      "phase": "Governance and testing",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -3778,6 +3834,95 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for exact commit 77f47039eb74a59414b001cc7aaf1bf7a7bfaa0d. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between recorded run creation and final update timestamps."
+    },
+    {
+      "id": "codex-github-ticket-audit-057",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T01:57:44Z",
+      "endedAt": "2026-10-18T02:01:05Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/57",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/36#issuecomment-6244505054",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/37#issuecomment-6244505220",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/41#issuecomment-6244505409",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/42#issuecomment-6244505676",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39062349418",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39087754787",
+        "tests/ui/quick-connect.spec.ts",
+        "tests/ui/selection-toolbar.spec.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "tests/unit/collaboration/session.spec.ts"
+      ],
+      "concerns": [
+        "Issues #33, #34 and #35 remain open because the multi-page schema v2 architecture, domain implementation and end-to-end UI integration are incomplete.",
+        "Issue #42 remains open because repeated green runs do not prove removal of the fixed-timeout flake cause."
+      ],
+      "authorization": "The user explicitly requested validation of all GitHub tickets; the project workflow assigns Codex overall ticket coordination and testing.",
+      "measurementSource": "GitHub issue and label audit covered issues #1 through #57. Closed issues were checked for active status labels, unchecked acceptance items, missing current-state sections and required domain labels. Open issues were reconciled with repository ancestry, linked comments and CI. Current focused validation passed 18/18 browser UI tests and five complete collaboration-test repetitions totaling 100/100 tests. Elapsed effort, token use and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
