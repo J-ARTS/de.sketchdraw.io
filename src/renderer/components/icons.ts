@@ -28,7 +28,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   rectangle: ['M4 6h16v12H4z'],
   ellipse: ['M12 5c4.4 0 8 3.1 8 7s-3.6 7-8 7-8-3.1-8-7 3.6-7 8-7z'],
   diamond: ['M12 3l9 9-9 9-9-9z'],
-  connector: ['M6.5 17.5L17 7', 'M10 7h7v7', 'M4.5 16.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0'],
+  connector: ['M5 12h14', 'M13 6l6 6-6 6'],
   path: ['M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19z', 'M14 7l3 3'],
   eraser: ['M4.5 14.5l8.8-8.8a2.4 2.4 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4L9 20H5.5L3 17.5z', 'M9 20h11', 'M8 11l5 5'],
   text: ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
