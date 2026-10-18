@@ -139,24 +139,26 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         },
         "observedSeconds": {
-          "knownRuns": 1,
-          "knownSubtotal": 557,
+          "knownRuns": 2,
+          "knownSubtotal": 1199,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
-        "runCount": 2,
+        "runCount": 4,
         "runIds": [
+          "codex-task-board-controls-102",
           "codex-task-board-create-102",
+          "github-actions-task-board-controls-39124354701",
           "github-actions-task-board-create-39123411193"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         }
       },
       "planning": {
@@ -3699,15 +3701,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 38
+        "unknownRuns": 39
       },
       "observedSeconds": {
-        "knownRuns": 32,
-        "knownSubtotal": 13670,
+        "knownRuns": 33,
+        "knownSubtotal": 14312,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 38,
+      "runCount": 39,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -3742,6 +3744,7 @@
         "github-actions-sticky-note-task-39122199160",
         "github-actions-sticky-notes-39077766935",
         "github-actions-table-39089888688",
+        "github-actions-task-board-controls-39124354701",
         "github-actions-task-board-create-39123411193",
         "github-actions-text-edit-toolbar-39073704784",
         "github-actions-ui-canvas-39112934986",
@@ -3752,7 +3755,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 38
+        "unknownRuns": 39
       }
     },
     "openai-codex": {
@@ -3760,15 +3763,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 16
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 16
       },
-      "runCount": 15,
+      "runCount": 16,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-build-composable-evaluation-73",
@@ -3779,6 +3782,7 @@
         "codex-plugin-platform-local-66-69",
         "codex-shape-header-regression-89",
         "codex-sticky-note-task-101",
+        "codex-task-board-controls-102",
         "codex-task-board-create-102",
         "codex-trystero-architecture-70",
         "codex-vueuse-uiux-audit-74-82",
@@ -3790,7 +3794,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 15
+        "unknownRuns": 16
       }
     }
   },
@@ -3799,15 +3803,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 162
+      "unknownRuns": 164
     },
     "observedSeconds": {
-      "knownRuns": 52,
-      "knownSubtotal": 26292.322263248963,
+      "knownRuns": 53,
+      "knownSubtotal": 26934.322263248963,
       "total": null,
-      "unknownRuns": 110
+      "unknownRuns": 111
     },
-    "runCount": 162,
+    "runCount": 164,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3921,6 +3925,7 @@
       "codex-sticky-implementation-048",
       "codex-sticky-note-task-101",
       "codex-table-058",
+      "codex-task-board-controls-102",
       "codex-task-board-create-102",
       "codex-text-edit-toolbar-review-044",
       "codex-ticket-closure-004",
@@ -3966,6 +3971,7 @@
       "github-actions-sticky-note-task-39122199160",
       "github-actions-sticky-notes-39077766935",
       "github-actions-table-39089888688",
+      "github-actions-task-board-controls-39124354701",
       "github-actions-task-board-create-39123411193",
       "github-actions-text-edit-toolbar-39073704784",
       "github-actions-ui-canvas-39112934986",
@@ -3976,7 +3982,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 158
+      "unknownRuns": 160
     }
   },
   "officialScoreClaimReady": false,
@@ -3990,5 +3996,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T11:38:42Z"
+  "updatedAt": "2026-10-18T11:53:53.009660Z"
 }

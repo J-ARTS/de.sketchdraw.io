@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T11:38:42Z",
+  "updatedAt": "2026-10-18T11:53:53.009660Z",
   "issues": [
     {
       "number": 1,
@@ -6039,6 +6039,60 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 557 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-task-board-controls-102",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        102
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:f777f1eee986306e06862ebd0d14461e86737537",
+        "src/renderer/components/TaskBoard.vue",
+        "tests/ui/comments-tasks.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/102",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701"
+      ],
+      "concerns": [
+        "The floating create action must remain reachable above safe-area insets and preserve focus return after closing the dialog."
+      ],
+      "authorization": "The user requested a close icon or no text button and suggested a plus icon at the bottom; Codex remains authorized to implement UI work temporarily with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit f777f1e: typecheck passed; 49/49 Vitest files and 387/387 tests passed; two targeted Playwright UI regression tests passed including Axe; production build passed; live Electron verification confirmed the close icon returns to the canvas and the bottom-right plus button opens the create-task dialog. GitHub Actions run 39124354701 then passed Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-task-board-controls-39124354701",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        102
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T11:42:57Z",
+      "endedAt": "2026-10-18T11:53:39Z",
+      "observedSeconds": 642,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:f777f1eee986306e06862ebd0d14461e86737537",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701/job/117666511302",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701/job/117666511589",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701/job/117666534383",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701/job/117666534393",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39124354701/job/117666534400"
+      ],
+      "concerns": [
+        "GitHub Actions emitted an informational Node.js 20 action-runtime deprecation notice while forcing checkout, setup-node and upload-artifact actions onto Node.js 24; all required jobs passed."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 642 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
