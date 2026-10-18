@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T05:12:07Z",
+  "updatedAt": "2026-10-18T05:49:23Z",
   "issues": [
     {
       "number": 1,
@@ -1115,6 +1115,23 @@
       "dependencies": [
         66,
         67
+      ]
+    },
+    {
+      "number": 70,
+      "title": "Architekturentscheidung: Trystero und Proxy-Fallback für P2P",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/70",
+      "owner": "OpenAI Codex (architecture/testing), Google Antigravity (future logic/interface/IAM/devops), Claude Code (future UI)",
+      "currentImplementer": "Codex (architecture research)",
+      "phase": "Architecture review and product decision",
+      "status": "review_pending",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        14
       ]
     }
   ],
@@ -4707,6 +4724,39 @@
       ],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact feature commit c4b3782c8d31c41e185f65a7aa89dd7c73760b42. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each desktop platform passed typechecks, Node/Vitest suites, production builds, 60 browser UI tests including plugin settings and accessibility, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-trystero-architecture-70",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        70
+      ],
+      "status": "research_complete_decision_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/decisions/0003-trystero-proxy-assisted-collaboration.md",
+        "src/collaboration/link.ts",
+        "docs/contracts-p2p.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/70",
+        "https://trystero.dev/docs/signaling-strategies/",
+        "https://github.com/dmotz/trystero",
+        "https://www.electronjs.org/docs/latest/api/session",
+        "https://webrtc.org/getting-started/turn-server"
+      ],
+      "concerns": [
+        "The binding product vision forbids signaling and relay services, while Trystero discovery and TURN require such infrastructure.",
+        "Trystero signaling strategies do not carry application data; a WSS data fallback would be a separate relay adapter.",
+        "A full mesh is unsuitable as an unverified architecture claim for 100 participants.",
+        "No dependency was installed and no runtime connectivity claim was made before the product decision.",
+        "The source-code Graphify update was guarded because the rebuilt graph had 3,614 nodes versus 3,699 in the preserved graph; deterministic ticket/run/artifact traceability is refreshed without forcing a destructive overwrite."
+      ],
+      "authorization": "The user asked Codex to assess Gemini Argon’s Trystero, Electron proxy and multi-transport proposal and whether the project should use the library.",
+      "measurementSource": "Source review against Trystero 0.26.0 package metadata, current Trystero documentation, Electron proxy/authentication documentation, WebRTC TURN guidance, Yjs documentation and the repository’s implemented direct owner/guest WebRTC contract. Duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

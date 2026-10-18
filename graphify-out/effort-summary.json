@@ -2393,6 +2393,38 @@
         "codex-ticket-closure-004"
       ]
     },
+    "70": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-trystero-architecture-70"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "8": {
       "exclusiveRuns": {
         "costUsd": {
@@ -2754,23 +2786,24 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 1
+        "unknownRuns": 2
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 1
+        "unknownRuns": 2
       },
-      "runCount": 1,
+      "runCount": 2,
       "runIds": [
-        "codex-plugin-platform-local-66-69"
+        "codex-plugin-platform-local-66-69",
+        "codex-trystero-architecture-70"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 1
+        "unknownRuns": 2
       }
     }
   },
@@ -2779,15 +2812,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 137
+      "unknownRuns": 138
     },
     "observedSeconds": {
       "knownRuns": 44,
       "knownSubtotal": 22322.322263248963,
       "total": null,
-      "unknownRuns": 93
+      "unknownRuns": 94
     },
-    "runCount": 137,
+    "runCount": 138,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2894,6 +2927,7 @@
       "codex-text-edit-toolbar-review-044",
       "codex-ticket-closure-004",
       "codex-ticket-closure-015",
+      "codex-trystero-architecture-70",
       "codex-ui-review-031",
       "codex-web-embed-063",
       "codex-whiteboard-takeover-001",
@@ -2931,7 +2965,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 133
+      "unknownRuns": 134
     }
   },
   "officialScoreClaimReady": false,
@@ -2941,9 +2975,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 57
+    "unknownIssues": 58
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T05:12:07Z"
+  "updatedAt": "2026-10-18T05:49:23Z"
 }
