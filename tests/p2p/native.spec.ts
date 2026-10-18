@@ -17,7 +17,7 @@ test('two native Chromium contexts exchange confirmed edits with no configured I
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]);
   const pages = await Promise.all(contexts.map(context => context.newPage())); const [owner, guest] = pages;
   const externalRequests: string[] = [];
-  for (const page of pages) page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:5184/')) externalRequests.push(new URL(request.url()).origin); });
+  for (const page of pages) page.on('request', request => { const url = new URL(request.url()); if (url.origin !== 'http://127.0.0.1:5184') externalRequests.push(url.origin); });
   try {
     for (const page of pages) { await page.goto('/tests/p2p/fixture.html'); await page.waitForFunction(() => !!window.p2p); }
     await owner!.evaluate(() => window.p2p.init());
@@ -96,64 +96,50 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
   const errors: string[] = []; const externalRequests: string[] = [];
   for (const page of [owner!, guest!]) {
     page.on('pageerror', error => errors.push(error.message));
-    page.on('request', request => { if (!request.url().startsWith('http://127.0.0.1:5184/')) externalRequests.push(new URL(request.url()).origin); });
+    page.on('request', request => { const url = new URL(request.url()); if (url.origin !== 'http://127.0.0.1:5184') externalRequests.push(url.origin); });
   }
   const draw = async (page: typeof owner, tool: string, y: number) => {
     await page!.getByRole('button', { name: tool, exact: true }).click();
     await page!.mouse.move(380, y); await page!.mouse.down();
     await page!.mouse.move(540, y + 100, { steps: 8 }); await page!.mouse.up();
   };
-  let failed = false;
+  let failed = false, stage = 'open both application pages';
   try {
     for (const page of [owner!, guest!]) { await page.goto('/'); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible(); }
+    stage = 'draw the owner rectangle';
     await draw(owner, 'Rechteck', 220);
     await expect(owner!.locator('[data-kind=rectangle]')).toHaveCount(1);
+    stage = 'open collaboration panels';
     for (const page of [owner!, guest!]) { await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click(); }
     const ownerPanel = owner!.getByTestId('collaboration-panel'); const guestPanel = guest!.getByTestId('collaboration-panel');
-    await ownerPanel.getByRole('combobox', { name: 'Zugriff' }).selectOption('editor');
-    await ownerPanel.getByRole('button', { name: 'Einladung erstellen', exact: true }).click();
-    const invitation = ownerPanel.getByRole('textbox', { name: 'Einladung zum Kopieren' });
-    await expect(invitation).not.toHaveValue('', { timeout: 25000 });
-    await guestPanel.getByRole('button', { name: 'Beitreten', exact: true }).click();
-    await guestPanel.getByRole('textbox', { name: 'Einladung einfügen' }).fill(await invitation.inputValue());
-    await guestPanel.getByRole('button', { name: 'Einladung prüfen', exact: true }).click();
-    const answer = guestPanel.getByRole('textbox', { name: 'Antwort zum Kopieren' });
-    await expect(answer).not.toHaveValue('', { timeout: 25000 });
-    await ownerPanel.getByRole('textbox', { name: 'Antwort einfügen' }).fill(await answer.inputValue());
-    await ownerPanel.getByRole('button', { name: 'Antwort prüfen', exact: true }).click();
-    const ownerCode = ownerPanel.getByLabel('Vergleichscode'); const guestCode = guestPanel.getByLabel('Vergleichscode');
-    await expect(ownerCode).toHaveText(/^(?:[a-f0-9]{4}-){7}[a-f0-9]{4}$/);
-    await expect(guestCode).toHaveText((await ownerCode.textContent())!);
-    // A reviewed packet alone must not release the owner's drawing.
-    await expect(guest!.locator('[data-element-id]')).toHaveCount(0);
-    for (const panel of [ownerPanel, guestPanel]) await panel.getByRole('checkbox').check();
-    await ownerPanel.getByRole('button', { name: 'Identität bestätigen', exact: true }).click();
-    await guestPanel.getByRole('button', { name: 'Identität bestätigen', exact: true }).click();
+    stage = 'start an editor session and obtain its share link';
+    await ownerPanel.getByRole('combobox', { name: /Zugriff/ }).selectOption('editor');
+    await ownerPanel.getByTestId('session-start').click();
+    const sessionLink = ownerPanel.getByTestId('session-link');
+    await expect(sessionLink).toHaveValue(/^https?:\/\/.+#sketchdraw-session=.{80,}/, { timeout: 25000 });
+    stage = 'join the session through the current product UI';
+    await guestPanel.getByRole('textbox', { name: 'Session-Link einfügen' }).fill(await sessionLink.inputValue());
+    await guestPanel.getByRole('button', { name: 'Session beitreten', exact: true }).click();
     await expect(guestPanel.getByText(/^Verbunden ·/)).toBeVisible({ timeout: 40000 });
     await expect(ownerPanel.getByText(/^Verbunden ·/)).toBeVisible({ timeout: 40000 });
+    stage = 'bootstrap the owner document on the guest';
     await expect(guest!.locator('[data-kind=rectangle]')).toHaveCount(1);
     await guestPanel.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+    stage = 'replicate a guest edit to the owner';
     await draw(guest, 'Ellipse', 450);
     const confirmedEllipse = '[data-render-state=document][data-kind=ellipse]';
     await expect(owner!.locator(confirmedEllipse)).toHaveCount(1);
     await expect(guest!.locator(confirmedEllipse)).toHaveCount(1);
-    // A reply can precede mirror installation. Clear that exact retained draft
-    // only through the product's outcome query after the confirmed mirror exists.
-    await expect.poll(async () => {
-      const query = guest!.getByRole('button', { name: 'Ausgang prüfen', exact: true });
-      if (await query.isVisible()) await query.click();
-      return await guest!.locator('[data-render-state=draft]').count() === 0 && !await query.isVisible();
-    }).toBe(true);
     expect(await guest!.locator(confirmedEllipse).getAttribute('data-element-id'))
       .toBe(await owner!.locator(confirmedEllipse).getAttribute('data-element-id'));
+    stage = 'leave the automatic session and retain the local document';
     await guest!.getByTestId('workspace-menu-button').click(); await guest!.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
-    await guestPanel.getByRole('button', { name: 'Sitzung verlassen und Kopie behalten' }).click();
-    await expect(guest!.getByRole('dialog')).toBeVisible();
-    await guest!.getByRole('dialog').getByRole('button', { name: 'Verwerfen', exact: true }).click();
-    await expect(guest!.getByRole('dialog')).not.toBeVisible();
+    await guestPanel.getByTestId('session-stop').click();
+    await expect(guestPanel.getByTestId('session-start')).toBeEnabled();
     await expect(guest!.locator('[data-kind=ellipse]')).toHaveCount(1);
-    await expect(ownerPanel.getByRole('list', { name: 'Verbundene Personen' }).getByText('Verbindung unterbrochen')).toBeVisible();
+    await expect(ownerPanel.getByText('Wartet auf Teilnehmende', { exact: true })).toBeVisible({ timeout: 15000 });
     await guestPanel.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+    stage = 'confirm the retained guest copy is independent';
     await draw(guest, 'Rechteck', 620);
     await expect(guest!.locator('[data-kind=rectangle]')).toHaveCount(2);
     await expect(owner!.locator('[data-kind=rectangle]')).toHaveCount(1);
@@ -164,29 +150,21 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
   } finally {
     if (failed) {
       const path = testInfo.outputPath('product-ui-observations.json');
-      const ui = await Promise.all([owner!, guest!].map(async page => ({
-        elements: await page.locator('[data-render-state]').evaluateAll(elements => elements.map(element => ({
-          state: element.getAttribute('data-render-state'), kind: element.getAttribute('data-kind'), id: element.getAttribute('data-element-id'),
-        }))),
-        outcomeCheckVisible: await page.getByRole('button', { name: 'Ausgang prüfen', exact: true }).isVisible(),
-        outcomeCheckHitTarget: await page.getByRole('button', { name: 'Ausgang prüfen', exact: true }).evaluateAll(buttons => buttons.map(button => {
-          const rect = button.getBoundingClientRect();
-          const target = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-          const notice = target?.closest('.notices');
-          return {
-            buttonRect: rect.toJSON(),
-            targetTag: target?.tagName ?? null,
-            targetClass: target?.getAttribute('class') ?? null,
-            hitsButton: target === button || (target !== null && button.contains(target)),
-            coveringNoticeRect: notice?.getBoundingClientRect().toJSON() ?? null,
-          };
-        })),
-        pendingNotice: await page.locator('.property-draft').allTextContents(),
-        gestureConflict: await page.locator('.gesture-conflict').allTextContents(),
-        notices: await page.locator('.notices').allTextContents(),
-        connection: await page.locator('.connection-state').allTextContents(),
-      })));
-      await writeFile(path, JSON.stringify({ errors, externalRequests, ui }, null, 2));
+      const ui = await Promise.all([owner!, guest!].map(async page => {
+        if (page.isClosed()) return { closed: true };
+        return {
+          closed: false,
+          url: page.url(),
+          elements: await page.locator('[data-render-state]').evaluateAll(elements => elements.map(element => ({
+            state: element.getAttribute('data-render-state'), kind: element.getAttribute('data-kind'), id: element.getAttribute('data-element-id'),
+          }))).catch(error => [{ diagnosticError: String(error) }]),
+          pendingNotice: await page.locator('.property-draft').allTextContents().catch(error => [String(error)]),
+          gestureConflict: await page.locator('.gesture-conflict').allTextContents().catch(error => [String(error)]),
+          notices: await page.locator('.notices').allTextContents().catch(error => [String(error)]),
+          connection: await page.locator('.connection-state').allTextContents().catch(error => [String(error)]),
+        };
+      }));
+      await writeFile(path, JSON.stringify({ stage, errors, externalRequests, ui }, null, 2));
       await testInfo.attach('product-ui-observations', { path, contentType: 'application/json' });
     }
     for (const context of contexts) await context.close();
