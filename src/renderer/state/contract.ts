@@ -350,6 +350,7 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
+  createTask(input: { title: string; description?: string; status?: TaskStatus }): Promise<boolean>;
   updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus }): Promise<boolean>;
   deleteTask(taskId: string): Promise<boolean>;
   openTaskBoard(): void;

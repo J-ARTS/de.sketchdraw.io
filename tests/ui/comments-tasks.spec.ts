@@ -7,6 +7,50 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
 });
 
+test('the task board creates, edits, moves and deletes a standalone task', async ({ page }) => {
+  await page.getByTestId('page-switcher').click();
+  await page.getByTestId('task-board-entry').click();
+  const board = page.getByTestId('task-board');
+  const createButton = board.getByRole('button', { name: 'Neue Aufgabe' });
+
+  await createButton.click();
+  let dialog = page.getByRole('dialog', { name: 'Neue Aufgabe' });
+  await expect(dialog.getByRole('textbox', { name: 'Titel' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(createButton).toBeFocused();
+
+  await createButton.click();
+  dialog = page.getByRole('dialog', { name: 'Neue Aufgabe' });
+  await dialog.getByRole('textbox', { name: 'Titel' }).fill('   ');
+  await dialog.getByRole('button', { name: 'Aufgabe erstellen' }).click();
+  await expect(dialog).toContainText('Bitte gib einen Titel ein.');
+  await dialog.getByRole('textbox', { name: 'Titel' }).fill('Release vorbereiten');
+  await dialog.getByRole('textbox', { name: 'Beschreibung' }).fill('Installer und Hinweise prüfen');
+  await dialog.getByRole('button', { name: 'Aufgabe erstellen' }).click();
+
+  await expect(dialog).toHaveCount(0);
+  await expect(createButton).toBeFocused();
+  const todo = board.locator('[data-status="todo"]');
+  await expect(todo).toContainText('Release vorbereiten');
+  await expect(todo).toContainText('Installer und Hinweise prüfen');
+
+  await todo.locator('.card-open').filter({ hasText: 'Release vorbereiten' }).click();
+  dialog = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  await dialog.getByRole('textbox', { name: 'Titel' }).fill('Release veröffentlichen');
+  await dialog.getByRole('button', { name: 'Speichern' }).click();
+  await expect(todo).toContainText('Release veröffentlichen');
+
+  const card = todo.locator('.task-card').filter({ hasText: 'Release veröffentlichen' });
+  await card.getByRole('button', { name: /weiter verschieben/ }).click();
+  const doing = board.locator('[data-status="doing"]');
+  await expect(doing).toContainText('Release veröffentlichen');
+  await doing.locator('.card-open').filter({ hasText: 'Release veröffentlichen' }).click();
+  await page.getByRole('dialog', { name: 'Aufgabe bearbeiten' }).getByRole('button', { name: 'Löschen' }).click();
+  await expect(board).not.toContainText('Release veröffentlichen');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
 test('comments support pins, replies, editing, sidebar focus and a linked task board', async ({ page }) => {
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
   await page.mouse.move(300, 210); await page.mouse.down(); await page.mouse.move(520, 350); await page.mouse.up();

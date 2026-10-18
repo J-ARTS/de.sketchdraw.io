@@ -1235,6 +1235,29 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (ok) { state.activeCommentId = null; state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId); state.liveMessage = 'Kommentar-Thread gelöscht.'; }
       return ok;
     },
+    async createTask(input) {
+      if (!state.canWrite || state.transitioning) return false;
+      const title = input.title.trim();
+      if (!title) return false;
+      const status = input.status ?? 'todo';
+      const now = new Date().toISOString();
+      const task: SketchTask = {
+        id: uid('task'), title, description: input.description?.trim() ?? '', status,
+        rank: (state.document.tasks ?? []).filter((entry) => entry.status === status).length,
+        createdAt: now, updatedAt: now,
+      };
+      const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
+      if (!ok) return false;
+      state.liveMessage = 'Aufgabe erstellt.';
+      if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+        try {
+          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
+          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(`Jira-Ticket ${issue.key} erstellt.`); }
+        } catch (error) { notice(`Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+      }
+      return true;
+    },
     async createTaskFromComment(threadId) {
       if (!state.canWrite || state.transitioning || (state.document.tasks ?? []).some((task) => task.sourceThreadId === threadId)) return false;
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId); const first = thread?.messages[0]; if (!thread || !first) return false;
