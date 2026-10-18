@@ -59,6 +59,7 @@ export function planQuickConnect(source: SketchElement, direction: QuickDirectio
 /** Same kind, size and style; text, names and descriptions stay with the original. */
 export function quickConnectCopy(source: SketchElement, shape: Rect): Partial<SketchElement> {
   const copy: Partial<SketchElement> = { ...shape, rotation: 0, style: { ...source.style } };
+  if (source.shapeVariant) copy.shapeVariant = source.shapeVariant;
   if (source.kind === 'component') {
     if (source.componentType) copy.componentType = source.componentType;
     if (source.metadata) copy.metadata = { ...source.metadata };

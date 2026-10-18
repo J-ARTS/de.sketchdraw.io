@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } fro
 import AppIcon from './AppIcon.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
-import type { ConnectorMarker, ConnectorRouting, ElementPatch, ElementStyle } from '@/domain';
+import { effectiveShapeVariant, type ConnectorMarker, type ConnectorRouting, type ElementPatch, type ElementStyle } from '@/domain';
 import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
@@ -252,12 +252,11 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 // --- Shape swap (#40) ------------------------------------------------------------------
 const shapeQuery = ref('');
 const swappable = computed(() => info.value.kinds.length > 0 && info.value.kinds.every((kind) => SWAPPABLE_KINDS.has(kind)));
-const currentShape = computed(() => (info.value.kinds.length === 1 ? SHAPE_CATALOG.find((entry) => entry.kind === info.value.kinds[0]) : undefined) ?? SHAPE_CATALOG[1]);
+const currentShape = computed(() => SHAPE_CATALOG.find((entry) => entry.id === (single.value ? effectiveShapeVariant(single.value) : null)) ?? SHAPE_CATALOG[1]);
 const shapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, shapeQuery.value)));
 watch(openSegment, () => { shapeQuery.value = ''; });
 function pickShape(entry: ShapeEntry): void {
-  if (!entry.kind) return;
-  store.replaceShape(entry.kind);
+  store.replaceShape(entry.id);
   close(true);
 }
 
@@ -391,16 +390,14 @@ function relayout(): void { void nextTick(placePopover); }
           type="button"
           class="shape-btn"
           :aria-label="entry.label"
-          :title="entry.kind ? entry.label : `${entry.label} – folgt mit Formvarianten`"
-          :aria-pressed="Boolean(entry.kind) && entry === currentShape"
-          :aria-disabled="!entry.kind || undefined"
+          :title="entry.label"
+          :aria-pressed="entry === currentShape"
           @click="pickShape(entry)"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg>
         </button>
         <p v-if="!shapes.length" class="shape-empty">Keine Form gefunden</p>
       </div>
-      <p class="shape-note">Weitere Formen folgen mit dem nächsten Dokumentformat.</p>
     </template>
 
     <template v-else-if="openSegment === 'color'">

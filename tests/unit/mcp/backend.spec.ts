@@ -42,11 +42,11 @@ describe('Real local agent host and renderer authority', () => {
   });
   it('commits into the same authority and permits a subsequent human edit', async () => {
     const f = await fixture();
-    const element = createElement('rectangle', { id: 'shape:agent', label: 'Agent box' });
+    const element = createElement('rectangle', { id: 'shape:agent', label: 'Agent box', shapeVariant: 'hexagon' });
     expect(await f.client.request('sketchdraw_apply_commands', { ...rename('add'), command: { type: 'add', elements: [element] } })).toMatchObject({ revision: 1, changed: true, saved: false });
     const human = f.authority.bindActor({ actorId: 'human', source: 'human', grantId: 'human', grantGeneration: 1, guard: () => ({ allowed: true }) });
     await human.gateway.submit({ requestId: human.gateway.nextRequestId()!, expectedRevision: 1, action: { kind: 'dispatch', command: { type: 'update', changes: [{ id: element.id, patch: { x: 70 } }] } } });
-    expect(await f.client.request('sketchdraw_find_elements', { documentId: f.document.id, query: 'Agent box' })).toMatchObject({ revision: 2, matches: [expect.objectContaining({ id: element.id, x: 70 })] });
+    expect(await f.client.request('sketchdraw_find_elements', { documentId: f.document.id, query: 'Agent box' })).toMatchObject({ revision: 2, matches: [expect.objectContaining({ id: element.id, x: 70, shapeVariant: 'hexagon' })] });
     expect(f.controller.getSnapshot().revision).toBe(2);
   });
   it('denies read-only writes, wrong capabilities and actor spoofing', async () => {

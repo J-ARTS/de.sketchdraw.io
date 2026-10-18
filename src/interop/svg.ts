@@ -1,5 +1,5 @@
-import { createElement, DOMAIN_LIMITS } from '../domain';
-import type { ElementStyle, Point } from '../domain';
+import { createElement, DOMAIN_LIMITS, shapeBaseKind, SHAPE_VARIANTS } from '../domain';
+import type { ElementStyle, Point, ShapeVariant } from '../domain';
 import { context, importBoundary, add, baseStyle, color, decodeEnvelope, fail, findOwnSvgEnvelope, finish, imageAsset, length, number, placeholder, pointsElement, SVG_NS, textOf, warn } from './common';
 import { flattenPath, IDENTITY, multiply, parseNumbers, parseTransform, rectangleTransform, transformPoint, type Matrix } from './geometry';
 import { INTEROP_LIMITS as L } from './limits';
@@ -7,6 +7,7 @@ import { prepareSvgExport } from './export';
 import { areXmlTreesEquivalent, stripSvgEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type ImportOptions, type InteropImportResult } from './types';
 const presentation = new Set(['fill', 'stroke', 'stroke-width', 'opacity', 'font-size', 'font-family', 'text-anchor', 'stroke-dasharray', 'display', 'visibility', 'color', 'fill-opacity', 'stroke-opacity', 'fill-rule', 'stroke-linecap', 'stroke-linejoin', 'clip-path', 'filter', 'mask', 'marker-start', 'marker-mid', 'marker-end', 'mix-blend-mode', 'font-weight', 'font-style', 'text-decoration', 'writing-mode', 'direction']);
+const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
 function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResult {
   const root = parseXmlDocument(xml);
   if (root.uri !== SVG_NS || root.local !== 'svg')
@@ -147,6 +148,14 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
       if (node !== root) {
         const box = attrs['viewBox'] ? parseNumbers(attrs['viewBox']) : undefined;
         const width = length(attrs['width'], box?.[2] ?? view.width ?? 160, view.width), height = length(attrs['height'], box?.[3] ?? view.height ?? 80, view.height);
+        const shapeVariant = attrs['data-sketchdraw-shape'];
+        if (shapeVariant && shapeVariants.has(shapeVariant as ShapeVariant)) {
+          const positioned = multiply(matrix, [1, 0, 0, 1, length(attrs['x'], 0, view.width), length(attrs['y'], 0, view.height)]);
+          const shape = rectangleTransform(positioned, 0, 0, width, height);
+          if (!shape) fail('INVALID_GEOMETRY', 'Sketchdraw shape uses an unsupported transform.');
+          add(ctx, createElement(shapeBaseKind(shapeVariant as ShapeVariant), { id: id(node, instance), ...shape, style: painted.style, shapeVariant: shapeVariant as ShapeVariant }), node);
+          return;
+        }
         matrix = multiply(matrix, [1, 0, 0, 1, length(attrs['x'], 0, view.width), length(attrs['y'], 0, view.height)]);
         if (box) {
           if (box.length !== 4 || box[2]! <= 0 || box[3]! <= 0 || width <= 0 || height <= 0)
@@ -173,6 +182,14 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
       }
       for (const child of children(node))
         visit(child, matrix, painted.values, painted.opacity, instance, useChain, view);
+      return;
+    }
+    if (node.local === 'g' && attrs['data-sketchdraw-shape'] && shapeVariants.has(attrs['data-sketchdraw-shape'] as ShapeVariant)) {
+      const shapeVariant = attrs['data-sketchdraw-shape'] as ShapeVariant;
+      const width = length(attrs['width'], 120, view.width), height = length(attrs['height'], 80, view.height);
+      const shape = rectangleTransform(matrix, 0, 0, width, height);
+      if (!shape) fail('INVALID_GEOMETRY', 'Sketchdraw shape uses an unsupported transform.');
+      add(ctx, createElement(shapeBaseKind(shapeVariant), { id: id(node, instance), ...shape, style: painted.style, shapeVariant }), node);
       return;
     }
     if (node.local === 'g' || node.local === 'a') {

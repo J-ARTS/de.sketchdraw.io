@@ -1,4 +1,4 @@
-import type { Point, SketchElement } from '@/domain';
+import { effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
 import type { Rect } from '@/renderer/state/contract';
 
 export function rotatePoint(point: Point, center: Point, degrees: number): Point {
@@ -40,6 +40,30 @@ function segmentDistance(p: Point, a: Point, b: Point): number {
   return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
 }
 
+const POLYGON_SHAPES: Partial<Record<ShapeVariant, readonly Point[]>> = {
+  diamond: [{ x: .5, y: 0 }, { x: 1, y: .5 }, { x: .5, y: 1 }, { x: 0, y: .5 }],
+  triangle: [{ x: .5, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }],
+  'triangle-down': [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: .5, y: 1 }],
+  chevron: [{ x: 0, y: 0 }, { x: .75, y: 0 }, { x: 1, y: .5 }, { x: .75, y: 1 }, { x: 0, y: 1 }, { x: .2, y: .5 }],
+  'manual-input': [{ x: 0, y: .25 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }],
+  hexagon: [{ x: .2, y: 0 }, { x: .8, y: 0 }, { x: 1, y: .5 }, { x: .8, y: 1 }, { x: .2, y: 1 }, { x: 0, y: .5 }],
+  parallelogram: [{ x: .2, y: 0 }, { x: 1, y: 0 }, { x: .8, y: 1 }, { x: 0, y: 1 }],
+  'parallelogram-reverse': [{ x: 0, y: 0 }, { x: .8, y: 0 }, { x: 1, y: 1 }, { x: .2, y: 1 }],
+  trapezoid: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: .8, y: 1 }, { x: .2, y: 1 }],
+  'off-page': [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: .65 }, { x: .5, y: 1 }, { x: 0, y: .65 }],
+  pentagon: [{ x: .5, y: 0 }, { x: 1, y: .38 }, { x: .82, y: 1 }, { x: .18, y: 1 }, { x: 0, y: .38 }],
+  'loop-limit': [{ x: .25, y: 0 }, { x: .75, y: 0 }, { x: 1, y: .25 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: .25 }],
+};
+
+function insidePolygon(point: Point, polygon: readonly Point[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i]!; const b = polygon[j]!;
+    if ((a.y > point.y) !== (b.y > point.y) && point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
 export function hitElement(element: SketchElement, point: Point, tolerance: number): boolean {
   const p = rotatePoint(point, center(element), -element.rotation);
   const x = p.x - element.x;
@@ -48,12 +72,12 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
     return (element.points ?? []).some((b, i, points) => i > 0 && segmentDistance({ x, y }, points[i - 1]!, b) <= tolerance + element.style.strokeWidth / 2);
   }
   if (x < -tolerance || y < -tolerance || x > element.width + tolerance || y > element.height + tolerance) return false;
-  if (element.kind === 'ellipse') {
+  const variant = effectiveShapeVariant(element);
+  if (variant === 'circle' || variant === 'summing' || variant === 'or') {
     return ((x - element.width / 2) / (element.width / 2 + tolerance)) ** 2 + ((y - element.height / 2) / (element.height / 2 + tolerance)) ** 2 <= 1;
   }
-  if (element.kind === 'diamond') {
-    return Math.abs(x - element.width / 2) / (element.width / 2 + tolerance) + Math.abs(y - element.height / 2) / (element.height / 2 + tolerance) <= 1;
-  }
+  const polygon = variant ? POLYGON_SHAPES[variant] : undefined;
+  if (polygon) return insidePolygon({ x: x / element.width, y: y / element.height }, polygon);
   return true;
 }
 

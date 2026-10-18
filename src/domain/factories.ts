@@ -184,6 +184,7 @@ export function createElement(
   const candidate: Record<string, unknown> = {
     id: overrides?.id !== undefined ? overrides.id : generateUniqueId(kind),
     kind,
+    ...(overrides?.shapeVariant !== undefined ? { shapeVariant: overrides.shapeVariant } : {}),
     x: overrides?.x !== undefined ? overrides.x : 0,
     y: overrides?.y !== undefined ? overrides.y : 0,
     width,

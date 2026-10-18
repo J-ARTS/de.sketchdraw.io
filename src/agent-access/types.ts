@@ -4,6 +4,7 @@ import type {
   ParseDiagnostic,
   SketchAsset,
   SketchDocument,
+  ShapeVariant,
   ValidationIssue,
 } from '../domain/types';
 
@@ -144,6 +145,7 @@ export interface FindElementsInput {
 export interface ElementMatchSummary {
   id: string;
   kind: ElementKind;
+  shapeVariant?: ShapeVariant;
   label?: string;
   description?: string;
   text?: string;

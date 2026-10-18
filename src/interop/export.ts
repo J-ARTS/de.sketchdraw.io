@@ -1,4 +1,4 @@
-import { connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, serializeDocument, validateDocument } from '../domain';
+import { connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
@@ -90,6 +90,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     if (el.description !== undefined)
       out.append(`<desc>${escapeXmlText(xmlText(el.description, d, el))}</desc>`);
     const paint = svgPaint(el, d);
+    const shapeVariant = effectiveShapeVariant(el);
     const markerStart = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
     const markerEnd = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
     if (el.kind === 'connector' && (markerStart !== 'none' || markerEnd !== 'none')) {
@@ -100,12 +101,17 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       out.append(`<defs><filter id="sd-${index}-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#18251d" flood-opacity=".18"/></filter></defs>`);
       out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, fill: safeColor(el.style.fill, d, el), opacity: el.style.opacity, stroke: 'none', filter: `url(#sd-${index}-shadow)` })}/>`);
     }
-    else if (['rectangle', 'container', 'component'].includes(el.kind))
+    else if (shapeVariant) {
+      if (shapeVariant === 'square') out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" data-sketchdraw-shape="square"${paint}/>`);
+      else if (shapeVariant === 'circle') out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}" data-sketchdraw-shape="circle"${paint}/>`);
+      else if (shapeVariant === 'diamond') out.append(`<polygon points="${n(el.width / 2)},0 ${n(el.width)},${n(el.height / 2)} ${n(el.width / 2)},${n(el.height)} 0,${n(el.height / 2)}" data-sketchdraw-shape="diamond"${paint}/>`);
+      else {
+        const paths = SHAPE_PATHS[shapeVariant];
+        out.append(`<g${attrs({ width: el.width, height: el.height, 'data-sketchdraw-shape': shapeVariant })}${paint}>${paths.map((path, pathIndex) => `<path d="${escapeXmlAttr(path)}" transform="translate(${-el.width / 6} ${-el.height / 6}) scale(${n(el.width / 18)} ${n(el.height / 18)})" fill="${pathIndex === 0 ? 'inherit' : 'none'}" vector-effect="non-scaling-stroke"/>`).join('')}</g>`);
+      }
+    }
+    else if (['container', 'component'].includes(el.kind))
       out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}"${paint}/>`);
-    else if (el.kind === 'ellipse')
-      out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}"${paint}/>`);
-    else if (el.kind === 'diamond')
-      out.append(`<polygon points="${n(el.width / 2)},0 ${n(el.width)},${n(el.height / 2)} ${n(el.width / 2)},${n(el.height)} 0,${n(el.height / 2)}"${paint}/>`);
     else if (el.kind === 'connector')
       out.append(`<path d="${escapeXmlAttr(connectorPathData(el))}"${paint}${attrs({ 'marker-start': markerStart === 'none' ? undefined : `url(#sd-${index}-start)`, 'marker-end': markerEnd === 'none' ? undefined : `url(#sd-${index}-end)` })}/>`);
     else if (el.kind === 'path')
@@ -140,11 +146,21 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const sourceText = el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
     const text = xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
+    const shapeVariant = effectiveShapeVariant(el);
     const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeColor(el.style.stroke,d,el)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorStartMarker(el)] : 'none'}`, `endArrow=${el.kind === 'connector' ? DRAWIO_MARKER[connectorEndMarker(el)] : 'none'}`];
-    if (el.kind === 'ellipse')
-      style.push('ellipse');
-    else if (el.kind === 'diamond')
-      style.push('rhombus');
+    if (shapeVariant) {
+      style.push(`sketchdrawShapeVariant=${shapeVariant}`);
+      const native: Partial<Record<typeof shapeVariant, readonly string[]>> = {
+        circle: ['ellipse'], diamond: ['rhombus'], triangle: ['shape=triangle'], 'triangle-down': ['shape=triangle', 'direction=south'],
+        rounded: ['rounded=1', 'arcSize=30'], chevron: ['shape=mxgraph.basic.chevron'], process: ['shape=process'],
+        document: ['shape=document'], documents: ['shape=multipleDocuments'], 'manual-input': ['shape=manualInput'],
+        hexagon: ['shape=hexagon'], parallelogram: ['shape=parallelogram'], 'parallelogram-reverse': ['shape=parallelogram', 'direction=west'],
+        cylinder: ['shape=cylinder3'], tube: ['shape=cylinder', 'direction=east'], 'internal-storage': ['shape=internalStorage'],
+        trapezoid: ['shape=trapezoid'], summing: ['ellipse'], or: ['ellipse'], 'off-page': ['shape=offPageConnector'],
+        folder: ['shape=folder'], note: ['shape=note'], pentagon: ['shape=pentagon'], 'loop-limit': ['shape=loopLimit'],
+      };
+      style.push(...(native[shapeVariant] ?? []));
+    }
     else if (el.kind === 'text')
       style.push('text', 'strokeColor=none', 'fillColor=none');
     else if (el.kind === 'container')

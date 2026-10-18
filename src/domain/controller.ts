@@ -42,6 +42,7 @@ const COMMAND_SOURCES: ReadonlySet<CommandContext['source']> = new Set([
 
 const SCALAR_ELEMENT_FIELDS = [
   'kind',
+  'shapeVariant',
   'x',
   'y',
   'width',

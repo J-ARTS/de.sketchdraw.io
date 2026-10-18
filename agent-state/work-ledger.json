@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-17T23:39:03.000Z",
+  "updatedAt": "2026-10-17T23:59:36Z",
   "issues": [
     {
       "number": 1,
@@ -604,6 +604,38 @@
       ]
     },
     {
+      "number": 39,
+      "title": "Formvarianten: weitere Formarten und Formwechsel unter Erhalt der ID",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/39",
+      "owner": "Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Codex temporary user-authorized takeover; Antigravity quota unavailable",
+      "phase": "Architecture, logic, interface and testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 40,
+      "title": "Kontextleiste: Formauswahl statt Koordinaten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/40",
+      "owner": "Claude Code",
+      "currentImplementer": "Codex temporary implementation; Claude Code UI review",
+      "phase": "UI and testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        39
+      ]
+    },
+    {
       "number": 43,
       "title": "Schriftarten: Roboto und Scribbled ergänzen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/43",
@@ -750,6 +782,24 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 52,
+      "title": "Anpassbare Shape-Leiste mit Mehr-Auswahl und Drag-and-drop",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/52",
+      "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Codex temporary user-authorized takeover; Claude Code review completed; Antigravity quota unavailable",
+      "phase": "Architecture, UI, logic, interface and testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        39,
+        40
+      ]
     }
   ],
   "runs": [
@@ -3097,6 +3147,89 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for commit c0becf6843b2ee0209e4aae08a44c8e0e8f8ed7a. Governance & Graphify Tests, Direct P2P, Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Observed duration is the difference between the recorded run start and completion timestamps."
+    },
+    {
+      "id": "antigravity-shape-variants-toolbar-039-052",
+      "tool": "antigravity",
+      "model": null,
+      "issues": [
+        39,
+        52
+      ],
+      "status": "quota_limited_no_work_product",
+      "startedAt": null,
+      "endedAt": "2026-10-17T23:59:36Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/39",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/52"
+      ],
+      "concerns": [
+        "Local Antigravity UI reported exhausted baseline and Claude individual model quotas; no implementation or review was produced."
+      ],
+      "authorization": "The user explicitly requested Antigravity participation and authorized Codex temporary takeover with attribution when quotas block work.",
+      "measurementSource": "Direct observation in the locally open Antigravity UI."
+    },
+    {
+      "id": "claude-code-shape-toolbar-review-052",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        40,
+        52
+      ],
+      "status": "review_completed",
+      "startedAt": null,
+      "endedAt": "2026-10-17T23:59:36Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/lib/shapes.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/52"
+      ],
+      "concerns": [
+        "Keep normal activation separate from edit mode.",
+        "Provide explicit and long-press entry, keyboard alternatives, live announcements, validated local persistence, minimum favorites and reset.",
+        "Prevent toolbar gestures from reaching the canvas and keep touch targets usable."
+      ],
+      "authorization": "The user explicitly asked to use Claude Code for the UI work.",
+      "measurementSource": "Bounded read-only local Claude Code CLI UI/UX review; no files were changed by Claude Code."
+    },
+    {
+      "id": "codex-shape-variants-toolbar-039-040-052",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        39,
+        40,
+        52
+      ],
+      "status": "verified_locally",
+      "startedAt": null,
+      "endedAt": "2026-10-17T23:59:36Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/domain/shapes.ts",
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/lib/shape-toolbar-preferences.ts",
+        "tests/unit/shape-variants.spec.ts",
+        "tests/ui/shape-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/39",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/40",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/52"
+      ],
+      "concerns": [],
+      "authorization": "The user requested the feature and explicitly authorized Codex to temporarily implement work assigned to quota-limited agents with actual-tool attribution.",
+      "measurementSource": "Local validation: typecheck passed; 319 unit tests passed; 42 browser UI tests passed; 6 Electron tests passed; production build passed; Graphify rebuilt to 2752 nodes and 5674 edges."
     }
   ],
   "evidencePolicy": {
@@ -3110,14 +3243,14 @@
       "requestedModel": "Sonnet 5.5 or Opus 5.5",
       "requestedMode": "ultracode",
       "status": "review_completed",
-      "evidence": "Claude Code Sonnet completed a bounded final UI review for issue #47 after an earlier long-running attempt was interrupted. It made no file edits; adopted concerns are recorded in run claude-code-connector-ui-review-047."
+      "evidence": "Local Claude Code completed a bounded read-only UI/UX review for issue #52. Adopted findings cover edit-mode separation, long press plus explicit entry, drag and keyboard operations, live announcements, validated persistence, minimum favorites and reset."
     },
     {
       "tool": "antigravity",
       "requestedModel": "Gemini 4 Argon",
       "observedModel": "gemini-4-argon-high available via agy models",
       "status": "quota_limited",
-      "evidence": "The local Antigravity UI showed exhausted baseline quota and an unavailable Claude Sonnet individual quota for issue #46. It produced no work product; Codex used the user-authorized temporary takeover."
+      "evidence": "The local Antigravity UI showed exhausted baseline and Claude individual model quotas for issues #39/#52. It produced no work product; Codex used the user-authorized temporary takeover."
     }
   ]
 }

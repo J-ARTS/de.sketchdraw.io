@@ -10,11 +10,13 @@ import type {
   ElementStyle,
   Endpoint,
   Point,
+  ShapeVariant,
   SketchAsset,
   SketchDocument,
   SketchElement,
   ValidationIssue,
 } from './types';
+import { SHAPE_KINDS, SHAPE_VARIANTS } from './shapes';
 
 export const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
   '__proto__',
@@ -68,6 +70,7 @@ const CONNECTOR_ROUTINGS: ReadonlySet<ConnectorRouting> = new Set(['straight', '
 const CONNECTOR_MARKERS: ReadonlySet<ConnectorMarker> = new Set([
   'none', 'line-arrow', 'solid-arrow', 'triangle', 'circle', 'diamond',
 ]);
+const VALID_SHAPE_VARIANTS: ReadonlySet<ShapeVariant> = new Set(SHAPE_VARIANTS);
 const ASSET_MIME_TYPES: ReadonlySet<SketchAsset['mimeType']> = new Set([
   'image/png',
   'image/jpeg',
@@ -99,6 +102,7 @@ const DOCUMENT_KEYS: ReadonlySet<string> = new Set([
 export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'id',
   'kind',
+  'shapeVariant',
   'x',
   'y',
   'width',
@@ -815,6 +819,14 @@ export function validateElementIntrinsic(
     });
   }
   const typedKind = kindValid ? (kind as ElementKind) : null;
+
+  if (Object.prototype.hasOwnProperty.call(value, 'shapeVariant') && value.shapeVariant !== undefined) {
+    if (typedKind !== null && !SHAPE_KINDS.has(typedKind)) {
+      issues.push({ path: joinPath(path, 'shapeVariant'), code: 'FORBIDDEN_ELEMENT_FIELD', message: 'Property "shapeVariant" is only allowed on geometric shape elements.' });
+    } else if (typeof value.shapeVariant !== 'string' || !VALID_SHAPE_VARIANTS.has(value.shapeVariant as ShapeVariant)) {
+      issues.push({ path: joinPath(path, 'shapeVariant'), code: 'INVALID_SHAPE_VARIANT', message: 'Element shapeVariant is not supported.' });
+    }
+  }
 
   for (const coordKey of ['x', 'y'] as const) {
     const coord = value[coordKey];

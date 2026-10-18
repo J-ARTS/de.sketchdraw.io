@@ -1,5 +1,5 @@
-import { createElement } from '../domain';
-import type { ConnectorMarker, Endpoint, Point, SketchElement } from '../domain';
+import { createElement, shapeBaseKind, SHAPE_VARIANTS } from '../domain';
+import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
@@ -71,7 +71,8 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'shadow', 'swimlane', 'sketchdrawAuthor', 'sketchdrawListStyle']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant']);
+const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
 const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = { none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow', block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond' };
 function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
@@ -227,8 +228,9 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
       childCounts.set(c.parent, (childCounts.get(c.parent) ?? 0) + 1);
   for (const cell of cells.filter(c => c.vertex && !byId.get(c.parent ?? '')?.edge)) {
     const s = cell.style, hasChildren = (childCounts.get(cell.id) ?? 0) > 0;
-    let kind: SketchElement['kind'] = s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
-    if (s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note'].includes(s['shape']))
+    const shapeVariant = typeof s['sketchdrawShapeVariant'] === 'string' && shapeVariants.has(s['sketchdrawShapeVariant'] as ShapeVariant) ? s['sketchdrawShapeVariant'] as ShapeVariant : undefined;
+    let kind: SketchElement['kind'] = shapeVariant ? shapeBaseKind(shapeVariant) : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    if (!shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
     if (kind === 'container' && (rotation !== 0 || cell.node.attributes['collapsed'] === '1'))
@@ -248,7 +250,7 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
     const importedText = kind === 'sticky-note' && s['sketchdrawListStyle'] === 'bullet'
       ? importedLabel.split('\n').map(line => line.replace(/^•\s?/, '')).join('\n')
       : importedLabel;
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: styleOf(cell, ctx), text: importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}) });
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: styleOf(cell, ctx), text: importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }

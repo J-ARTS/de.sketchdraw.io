@@ -3,6 +3,13 @@ export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
   | 'image' | 'connector' | 'container' | 'component' | 'sticky-note';
 
+export type ShapeVariant =
+  | 'circle' | 'square' | 'diamond' | 'triangle' | 'triangle-down' | 'rounded'
+  | 'chevron' | 'process' | 'document' | 'documents' | 'manual-input' | 'hexagon'
+  | 'parallelogram' | 'parallelogram-reverse' | 'cylinder' | 'tube'
+  | 'internal-storage' | 'trapezoid' | 'summing' | 'or' | 'off-page'
+  | 'folder' | 'note' | 'pentagon' | 'loop-limit';
+
 export interface Point { x: number; y: number }
 
 export type ConnectorRouting = 'straight' | 'elbowed' | 'curved';
@@ -37,6 +44,8 @@ export interface Endpoint {
 export interface SketchElement {
   id: string;
   kind: ElementKind;
+  /** Concrete visual form for geometric elements. Missing values retain the legacy kind shape. */
+  shapeVariant?: ShapeVariant;
   /** Absolute document coordinates, including children of containers. */
   x: number;
   y: number;
@@ -131,6 +140,7 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   componentType?: string | null;
   metadata?: Record<string, string | null> | null;
   documentationUrl?: string | null;
+  shapeVariant?: ShapeVariant | null;
 };
 
 export type DocumentCommand =

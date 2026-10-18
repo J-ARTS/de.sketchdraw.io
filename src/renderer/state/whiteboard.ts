@@ -4,6 +4,7 @@ import {
   connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle,
+  type ShapeVariant, effectiveShapeVariant, shapeBaseKind,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
@@ -97,7 +98,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     draftVersion: 0, collaboration: null as CollaborationStatus | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
     get canWrite() { return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
-    selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool,
+    selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
@@ -285,7 +286,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const points = g.tool === 'path' ? g.points : [g.start, end];
     const rect = g.tool === 'path' ? normalizedRect({ x: Math.min(...points.map((p) => p.x)), y: Math.min(...points.map((p) => p.y)) }, { x: Math.max(...points.map((p) => p.x)), y: Math.max(...points.map((p) => p.y)) }) : normalizedRect(g.start, end);
     const style = { ...DEFAULT_STYLE, ...STYLE_BY_KIND[g.tool] };
-    const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool) };
+    const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool), ...(SWAPPABLE_KINDS.has(g.tool as SketchElement['kind']) ? { shapeVariant: state.shapeVariant } : {}) };
     if (g.tool === 'sticky-note') value.author = authorName;
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
@@ -490,7 +491,22 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } catch (error) { fail(error); }
     },
     subscribeAuthority(listener) { authorityListeners.add(listener); return () => authorityListeners.delete(listener); },
-    setTool(tool) { if ((!state.canWrite && !['select', 'hand'].includes(tool)) || state.transitioning) return; if (state.textEdit) void applyText(); state.tool = tool; state.liveMessage = `Werkzeug: ${tool}`; },
+    setTool(tool) {
+      if ((!state.canWrite && !['select', 'hand'].includes(tool)) || state.transitioning) return;
+      if (state.textEdit) void applyText();
+      state.tool = tool;
+      if (tool === 'rectangle') state.shapeVariant = 'square';
+      if (tool === 'ellipse') state.shapeVariant = 'circle';
+      if (tool === 'diamond') state.shapeVariant = 'diamond';
+      state.liveMessage = `Werkzeug: ${tool}`;
+    },
+    setShapeTool(variant) {
+      if (!state.canWrite || state.transitioning) return;
+      if (state.textEdit) void applyText();
+      state.shapeVariant = variant;
+      state.tool = shapeBaseKind(variant);
+      state.liveMessage = `Formwerkzeug: ${variant}`;
+    },
     setViewportSize(width, height) { state.viewportSize = { width, height }; },
     pointerDown(input) {
       lastPointerScreen = { x: input.x, y: input.y };
@@ -717,28 +733,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const e = createElement('connector', { ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: a.id, anchor: { x: 1, y: .5 } }, to: { elementId: b.id, anchor: { x: 0, y: .5 } }, style: { ...DEFAULT_STYLE } });
       void dispatch({ type: 'add', elements: [e] }).then((ok) => { if (ok) setSelection([e.id]); });
     },
-    replaceShape(kind) {
+    replaceShape(variant) {
       if (!state.canWrite || state.transitioning) return;
-      const targets = selected().filter((e) => SWAPPABLE_KINDS.has(e.kind) && e.kind !== kind);
+      const targets = selected().filter((e) => SWAPPABLE_KINDS.has(e.kind) && effectiveShapeVariant(e) !== variant);
       if (!targets.length) return;
-      // The domain keeps kind immutable (#39): add a replacement, re-point connectors, delete the original, keep z-order.
-      const ids = new Map<string, string>();
-      try {
-        const added = targets.map((element) => {
-          const { id, kind: _kind, ...rest } = element;
-          const next = createElement(kind, { ...rest, id: uid(kind) });
-          ids.set(id, next.id);
-          return next;
-        });
-        const repoint = (endpoint: SketchElement['from']) => (endpoint && ids.has(endpoint.elementId) ? { ...endpoint, elementId: ids.get(endpoint.elementId)! } : undefined);
-        const changes = state.document.elements
-          .filter((e) => e.kind === 'connector' && (repoint(e.from) || repoint(e.to)))
-          .map((e) => ({ id: e.id, patch: { ...(repoint(e.from) ? { from: repoint(e.from) } : {}), ...(repoint(e.to) ? { to: repoint(e.to) } : {}) } }));
-        const order = state.document.elements.map((e) => ids.get(e.id) ?? e.id);
-        const selection = state.selection.map((id) => ids.get(id) ?? id);
-        const commands: DocumentCommand[] = [{ type: 'add', elements: added }, ...(changes.length ? [{ type: 'update' as const, changes }] : []), { type: 'delete', ids: [...ids.keys()] }, { type: 'reorder', ids: order }];
-        void dispatch({ type: 'batch', commands }).then((ok) => { if (ok) setSelection(selection); });
-      } catch (error) { fail(error); }
+      void dispatch({ type: 'update', changes: targets.map((element) => ({ id: element.id, patch: { shapeVariant: variant } })) });
     },
     quickConnect(direction) {
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;

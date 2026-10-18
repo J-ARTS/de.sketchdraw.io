@@ -255,6 +255,7 @@ export function cloneElement(element: SketchElement): SketchElement {
     style: cloneStyle(element.style),
   };
   if (element.label !== undefined) cloned.label = element.label;
+  if (element.shapeVariant !== undefined) cloned.shapeVariant = element.shapeVariant;
   if (element.description !== undefined) cloned.description = element.description;
   if (element.text !== undefined) cloned.text = element.text;
   if (element.author !== undefined) cloned.author = element.author;
@@ -403,6 +404,7 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
   return (
     a.id === b.id &&
     a.kind === b.kind &&
+    a.shapeVariant === b.shapeVariant &&
     a.x === b.x &&
     a.y === b.y &&
     a.width === b.width &&

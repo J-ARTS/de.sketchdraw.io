@@ -146,20 +146,20 @@ test('the shape picker swaps shapes, keeps connections, filters by search and un
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   await page.keyboard.type('zylinder');
   await expect(picker.getByRole('group', { name: 'Formen' }).getByRole('button')).toHaveText(['', '']);
-  await expect(picker.getByRole('button', { name: 'Zylinder', exact: true })).toHaveAttribute('aria-disabled', 'true');
+  await expect(picker.getByRole('button', { name: 'Zylinder', exact: true })).not.toHaveAttribute('aria-disabled');
   await picker.getByRole('searchbox', { name: 'Form suchen' }).fill('');
   await picker.getByRole('button', { name: 'Kreis' }).click();
 
-  await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
-  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(1);
+  await expect(page.locator('.whiteboard-canvas [data-shape-variant=circle]')).toHaveCount(1);
+  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(2);
   await expect(page.locator('.whiteboard-canvas [data-kind=connector]')).toHaveCount(1);
-  const ellipseId = await page.locator('.whiteboard-canvas [data-kind=ellipse]').getAttribute('data-element-id');
+  const ellipseId = await page.locator('.whiteboard-canvas [data-shape-variant=circle]').getAttribute('data-element-id');
   await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Code', exact: true }).click();
   expect(await page.getByTestId('diagram-code').inputValue()).toContain(`"elementId":"${ellipseId}"`);
   await page.getByRole('button', { name: 'Codeansicht schließen' }).click();
   await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
-  await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(0);
-  await expect(page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(2);
+  await expect(page.locator('.whiteboard-canvas [data-shape-variant=circle]')).toHaveCount(0);
+  await expect(page.locator('.whiteboard-canvas [data-shape-variant=square]')).toHaveCount(2);
 });
 
 test('an open popover stays above the shape even when the bar is pushed below the selection', async ({ page }) => {

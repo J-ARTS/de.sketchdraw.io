@@ -5,6 +5,7 @@ import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
+import { shapeEntryForElement } from '../lib/shapes';
 
 const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean }>();
 const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
@@ -34,10 +35,11 @@ const startMarker = computed(() => e.value.kind === 'connector' ? connectorStart
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');
 const markerUrl = (marker: ConnectorMarker) => marker === 'none' ? undefined : `url(#${uid}-${marker})`;
 const connectorLabelWidth = computed(() => Math.max(36, text.value.length * fontSize.value * .62 + 16));
+const shape = computed(() => shapeEntryForElement(e.value));
 </script>
 
 <template>
-  <g :data-element-id="e.id" :data-kind="e.kind" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
+  <g :data-element-id="e.id" :data-kind="e.kind" :data-shape-variant="shape?.id" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
     <title>{{ describeElement(e, document) }}</title>
     <defs>
       <clipPath :id="`${uid}-clip`"><rect :width="e.width" :height="e.height" /></clipPath>
@@ -49,10 +51,14 @@ const connectorLabelWidth = computed(() => Math.max(36, text.value.length * font
       <marker :id="`${uid}-diamond`" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 7 L7 1 L13 7 L7 13 Z" :fill="fill === 'transparent' ? 'var(--surface-canvas)' : fill" :stroke="stroke" :stroke-width="Math.max(1, e.style.strokeWidth * .75)" /></marker>
     </defs>
     <g :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
-      <rect v-if="['rectangle', 'container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
+      <rect v-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
+      <ellipse v-else-if="shape?.id === 'circle'" :cx="e.width / 2" :cy="e.height / 2" :rx="e.width / 2" :ry="e.height / 2" />
+      <polygon v-else-if="shape?.id === 'diamond'" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
+      <svg v-else-if="shape" :width="e.width" :height="e.height" viewBox="3 3 18 18" preserveAspectRatio="none" overflow="visible">
+        <path v-for="(d, index) in shape.icon" :key="d" :d="d" :fill="index === 0 ? fill : 'none'" vector-effect="non-scaling-stroke" />
+      </svg>
+      <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
-      <ellipse v-else-if="e.kind === 'ellipse'" :cx="e.width / 2" :cy="e.height / 2" :rx="e.width / 2" :ry="e.height / 2" />
-      <polygon v-else-if="e.kind === 'diamond'" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
       <polyline v-else-if="e.kind === 'path'" :points="e.points?.map(p => `${p.x},${p.y}`).join(' ')" fill="none" />
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />

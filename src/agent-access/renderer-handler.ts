@@ -92,9 +92,9 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
     if (request.operation === 'sketchdraw_find_elements' && 'query' in input) {
       const query = input.query.toLocaleLowerCase();
       const matches = document.elements.flatMap(element => {
-        const fields: Record<string, string> = { id: element.id, kind: element.kind, label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', author: element.author ?? '', componentType: element.componentType ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
+        const fields: Record<string, string> = { id: element.id, kind: element.kind, shapeVariant: element.shapeVariant ?? '', label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', author: element.author ?? '', componentType: element.componentType ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
         const matchedFields = Object.keys(fields).filter(key => fields[key]!.toLocaleLowerCase().includes(query));
-        return matchedFields.length ? [{ id: element.id, kind: element.kind, x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
+        return matchedFields.length ? [{ id: element.id, kind: element.kind, ...(element.shapeVariant ? { shapeVariant: element.shapeVariant } : {}), x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
       });
       const limit = input.limit ?? L.DEFAULT_FIND_LIMIT;
       return { ...base, query: input.query, totalMatches: matches.length, truncated: matches.length > limit, matches: matches.slice(0, limit) };

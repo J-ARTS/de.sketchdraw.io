@@ -14,6 +14,7 @@ import type {
   Point,
   SketchDocument,
   SketchElement,
+  ShapeVariant,
   CodeDraft,
   ComponentSet,
   ConnectorMarker,
@@ -175,6 +176,7 @@ export interface WhiteboardState {
   /** Element that owns keyboard focus inside the canvas (roving focus). */
   focusedId: string | null;
   tool: Tool;
+  shapeVariant: ShapeVariant;
   viewport: Viewport;
   viewportSize: Size;
   marquee: Rect | null;
@@ -226,6 +228,7 @@ export interface WhiteboardStore {
   readonly state: WhiteboardState;
 
   setTool(tool: Tool): void;
+  setShapeTool(variant: ShapeVariant): void;
   setViewportSize(width: number, height: number): void;
 
   pointerDown(input: PointerInput): void;
@@ -263,8 +266,8 @@ export interface WhiteboardStore {
   connectSelection(): void;
   /** Creates a same-shaped copy next to the single selected shape and an arrow to it (#36). */
   quickConnect(direction: QuickDirection): void;
-  /** Swaps selected rectangles, ellipses and diamonds to another of these kinds; connectors follow (#40). */
-  replaceShape(kind: 'ellipse' | 'rectangle' | 'diamond'): void;
+  /** Changes selected geometric elements in place; IDs and connector references stay stable (#39/#40). */
+  replaceShape(variant: ShapeVariant): void;
   applyPatch(patch: ElementPatch): void;
   setPropertyDraft(patch: ElementPatch): void;
   setInputComposing(value: boolean): void;
