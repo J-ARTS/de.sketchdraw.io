@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T21:38:00+02:00",
+  "updatedAt": "2026-10-18T21:56:00+02:00",
   "issues": [
     {
       "number": 1,
@@ -1826,9 +1826,9 @@
       "title": "P2P-Produkt-UI-Pairing läuft in CI reproduzierbar ins 100-s-Timeout",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/120",
       "owner": "Google Antigravity (logic/devops), OpenAI Codex (testing)",
-      "currentImplementer": null,
+      "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "Testing",
-      "status": "planned",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1852,6 +1852,23 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 122,
+      "title": "Release v0.1.2 bauen, prüfen und veröffentlichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/122",
+      "owner": "Google Antigravity (devops), OpenAI Codex (testing/scrum)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "Release",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        120
+      ]
     }
   ],
   "runs": [
@@ -7573,6 +7590,63 @@
       ],
       "authorization": "GitHub Actions verification was triggered by the authorized Issue 121 branch push. The independent P2P failure was retained as evidence for Issue 120.",
       "measurementSource": "GitHub reports the workflow from 19:26:36Z to 19:37:24Z. Governance/Graphify and complete Ubuntu, macOS and Windows jobs passed on the exact product commit. The separate Direct P2P job passed two scenarios and timed out in the known full UI-pairing scenario. No aggregate observedSeconds was derived from parallel jobs; tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-p2p-session-link-ui-120",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        120,
+        122
+      ],
+      "status": "integrated_and_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bdcc4f0e3b8a040180405d28a10895ffc552f14b",
+        "tests/p2p/native.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/120",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/122",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940"
+      ],
+      "concerns": [
+        "The product UI had moved from the manual offer/answer handshake to automatic session links while the full P2P test still targeted removed controls. The test now exercises the current session-link product flow and keeps timeout diagnostics safe when a page has already closed.",
+        "The post-change Graphify source refresh was guarded: the new extraction had 4,869 nodes versus 5,080 in the existing graph, so graphify refused to overwrite without --force. The existing graph is preserved and deterministic ticket, run and artifact links are refreshed separately."
+      ],
+      "authorization": "The user asked Codex to finish the current implementation and build a new release. Codex temporarily executed the test correction while preserving Google Antigravity logic/devops ownership and Codex testing responsibility.",
+      "measurementSource": "Local macOS evidence at bdcc4f0: typecheck and nine P2P scenarios passed, including three consecutive runs of the complete product UI flow. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-p2p-session-link-ui-39160057940",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        120,
+        122
+      ],
+      "status": "passed",
+      "startedAt": "2026-10-18T19:43:21Z",
+      "endedAt": "2026-10-18T19:54:10Z",
+      "observedSeconds": 649,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bdcc4f0e3b8a040180405d28a10895ffc552f14b",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940/job/117771286316",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940/job/117771286545",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940/job/117771322189",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940/job/117771322244",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39160057940/job/117771322258"
+      ],
+      "concerns": [
+        "GitHub reported Node.js 20 deprecation annotations for action internals forced onto Node.js 24; all project jobs nevertheless completed successfully. This is a maintenance warning rather than a failed project check."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized Issue 120 branch push and is used as the release blocker check for Issue 122.",
+      "measurementSource": "GitHub reports the workflow from 2026-10-18T19:43:21Z to 2026-10-18T19:54:10Z. Governance/Graphify, direct P2P and complete Ubuntu 24.04, macOS 15 and Windows 2025 jobs passed on exact commit bdcc4f0. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
