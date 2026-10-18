@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T18:17:08.993280+00:00",
+  "updatedAt": "2026-10-18T18:47:09.309446Z",
   "issues": [
     {
       "number": 1,
@@ -1790,6 +1790,21 @@
       "dependencies": [
         92
       ]
+    },
+    {
+      "number": 116,
+      "title": "Pinsel- und Radierer-Einstellungen in zwei Zeilen anzeigen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/116",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -7310,6 +7325,85 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
       "measurementSource": "GitHub Actions timestamps report 110 seconds from creation to final cancellation. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-two-row-tool-settings-116",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        116
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:3f89449e99199747d32b5de4a54d0c2b09940103",
+        "src/renderer/components/ToolOptionsBar.vue",
+        "src/renderer/styles/tokens.css",
+        "tests/ui/whiteboard.spec.ts",
+        "/tmp/issue116-pencil-options.png",
+        "/tmp/issue116-pencil-options-480.png",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/116",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600"
+      ],
+      "concerns": [
+        "The direct main-branch run 39154781472 was automatically superseded after a later collaboration commit reached main. The exact product-commit branch run 39154779600 completed successfully across every required job and the product commit is an ancestor of current main.",
+        "The post-integration Graphify source refresh was guarded: the new extraction had 4,779 nodes versus 5,009 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested a two-line settings layout so all pencil controls remain visible at a glance. Codex remains authorized to implement temporarily while recording regular Claude Code ownership separately.",
+      "measurementSource": "Local macOS evidence at product commit 3f89449: typecheck, 53 unit-test files with 431 tests, all 12 whiteboard UI tests against isolated Vite port 5186, and the complete renderer/Electron/MCP production build passed. The responsive pencil layout was visually inspected at 1280 x 800 and 480 x 720. GitHub Actions run 39154779600 verified the exact product commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-two-row-tool-settings-39154779600",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        116
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T18:34:34Z",
+      "endedAt": "2026-10-18T18:43:20Z",
+      "observedSeconds": 526,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:3f89449e99199747d32b5de4a54d0c2b09940103",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600/job/117755633819",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600/job/117755634210",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600/job/117755675551",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600/job/117755675566",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154779600/job/117755675632"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized Issue 116 branch push for the exact integrated product commit.",
+      "measurementSource": "GitHub Actions timestamps report 526 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-two-row-tool-settings-main-39154781472",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        116
+      ],
+      "status": "cancelled_superseded",
+      "startedAt": "2026-10-18T18:34:35Z",
+      "endedAt": "2026-10-18T18:42:25Z",
+      "observedSeconds": 470,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:3f89449e99199747d32b5de4a54d0c2b09940103",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39154781472"
+      ],
+      "concerns": [
+        "The main-branch run was automatically superseded after commit 0bb1290 reached main. Ubuntu and macOS had completed successfully and Windows was cancelled during browser UI tests; this run is not used as the final completion evidence."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized Issue 116 integration into main.",
+      "measurementSource": "GitHub Actions timestamps report 470 seconds from creation to cancellation. The run was superseded rather than failed; the completed exact-commit branch run 39154779600 provides the cross-platform evidence."
     }
   ],
   "evidencePolicy": {
