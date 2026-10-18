@@ -8,6 +8,7 @@ import { TOOL_DEFS, formatCombo } from '@/renderer/lib/shortcuts';
 import type { Tool } from '@/renderer/state/contract';
 import AppIcon from './AppIcon.vue';
 import ImageFileInput from './ImageFileInput.vue';
+import ToolOptionsBar from './ToolOptionsBar.vue';
 import { isMacPlatform } from './platform';
 import { useWhiteboard } from './use-whiteboard';
 
@@ -143,7 +144,7 @@ onBeforeUnmount(cancelLongPress);
 
 <template>
   <div ref="root" class="toolbar-wrap" @pointerdown.stop="startLongPress" @pointermove="trackLongPress" @pointerup="cancelLongPress" @pointercancel="cancelLongPress" @keydown="onKeydown" @focusin="onFocusIn" @focusout="onFocusOut">
-    <div class="toolbar sd-panel" :class="{ editing }" role="toolbar" aria-orientation="horizontal" :aria-label="t('toolbar.label')">
+    <div class="toolbar sd-panel" :class="{ editing }" data-testid="main-toolbar" role="toolbar" aria-orientation="horizontal" :aria-label="t('toolbar.label')">
       <button v-for="def in beforeShapes" :key="def.tool" type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && !['select', 'hand'].includes(def.tool)" :aria-label="def.label" :aria-pressed="def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
       <span class="sep" aria-hidden="true" />
       <div class="shape-strip" data-testid="shape-favorites" @dragover.prevent @drop="dropAt($event, favorites.length)">
@@ -157,14 +158,13 @@ onBeforeUnmount(cancelLongPress);
       </template>
       <ImageFileInput ref="imageInput" />
     </div>
-
-
+    <ToolOptionsBar v-if="store.state.tool === 'path' || store.state.tool === 'eraser'" />
     <span class="sr-only" aria-live="polite">{{ announcement }}</span>
   </div>
 </template>
 
 <style scoped>
-.toolbar-wrap{position:absolute;top:var(--space-3);left:50%;z-index:10;width:max-content;max-width:calc(100vw - 600px);transform:translateX(-50%)}
+.toolbar-wrap{position:absolute;top:var(--space-3);left:50%;z-index:10;display:flex;width:max-content;max-width:calc(100vw - 24px);align-items:center;flex-direction:column;gap:8px;transform:translateX(-50%)}
 .toolbar{display:flex;align-items:center;gap:4px;max-width:100%;min-height:var(--chrome-height);padding:0 6px;overflow-x:auto;overflow-y:hidden}
 .toolbar.editing{outline:2px dashed var(--accent);outline-offset:3px}
 .sep{flex:none;width:1px;height:24px;margin:0 4px;background:var(--border-subtle)}
@@ -178,7 +178,8 @@ onBeforeUnmount(cancelLongPress);
 .more-shapes:hover,.more-shapes[aria-expanded='true']{background:var(--surface-hover)}
 .more-shapes>span:first-child{font-weight:700;letter-spacing:2px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media (max-width:1040px){.toolbar-wrap{top:84px;max-width:calc(100vw - 24px)}}
+@media (min-width:1041px) and (max-width:1560px){.toolbar-wrap{left:330px;right:230px;width:auto;max-width:none;transform:none}.toolbar{width:100%}}
+@media (max-width:1040px){.toolbar-wrap{top:84px}}
 @media (max-width:860px){.more-label{display:none}.tool,.more-shapes{min-width:44px;min-height:44px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 @media (forced-colors:active){.toolbar.editing{outline:2px dashed Highlight}.shape-tool[aria-pressed='true']{outline:2px solid Highlight}}

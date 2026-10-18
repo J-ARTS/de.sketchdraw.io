@@ -49,7 +49,7 @@ test('join cancellation keeps local drafts; accepted guest writes, code and undo
 
 test('viewer and disconnected sessions suppress writes while retaining draft and allowing a confirmed local copy', async () => {
   const { store, factory } = setup(); const peer = guestFixture('viewer'); await store.joinGuestSession(peer.guest);
-  expect(store.state.canWrite).toBe(false); await draw(store); store.setTool('eraser'); expect(store.state.tool).toBe('select'); store.setTitle('Denied'); store.renamePage('page:1', 'Denied page'); store.deleteSelection(); await store.whenIdle(); expect(peer.submit).not.toHaveBeenCalled();
+  expect(store.state.canWrite).toBe(false); await draw(store); store.setTool('eraser'); store.setPencilPreset('marker'); store.setPencilColor('#e5533a'); store.setEraserSize('large'); expect(store.state.tool).toBe('select'); expect(store.state.pencilPreset).toBe('fine'); expect(store.state.pencilColor).toBe('#1e1e1e'); expect(store.state.eraserSize).toBe('medium'); store.setTitle('Denied'); store.renamePage('page:1', 'Denied page'); store.deleteSelection(); await store.whenIdle(); expect(peer.submit).not.toHaveBeenCalled();
   peer.update({ role: 'editor', state: 'disconnected' }); expect(store.state.canWrite).toBe(false); store.setCodeDraft('blocked'); expect(store.state.code.dirty).toBe(false);
   const leave = store.leaveGuestSession(); await tick(); await store.resolveDialog('discard'); expect(await leave).toBe(true);
   expect(peer.leave).toHaveBeenCalledTimes(1); expect(store.getAuthority()).not.toBeNull(); expect(factory).toHaveBeenCalledTimes(2); expect(store.state.title).toBe('Peer-Dokument'); expect(store.needsCloseWarning()).toBe(true);

@@ -110,6 +110,24 @@ describe('Whiteboard uses the real session gateway', () => {
     store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(2);
     store.redo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(0);
   });
+  test('pencil options style only new paths and eraser sizes use screen-pixel hit radii', async () => {
+    const { store } = setup();
+    store.setPencilPreset('marker'); store.setPencilColor('#e5533a'); store.setTool('path');
+    store.pointerDown(point(200, 120)); store.pointerMove(point(300, 180)); store.pointerUp(point(300, 180)); await store.whenIdle();
+    const path = store.state.document.elements[0]!;
+    expect(path).toMatchObject({ kind: 'path', style: { stroke: '#e5533a', strokeWidth: 10, opacity: 0.55 } });
+    store.setPencilPreset('fine'); store.setPencilColor('#5aabf7');
+    expect(store.state.document.elements[0]).toEqual(path);
+
+    await draw(store, 'rectangle', 300);
+    store.setTool('eraser'); store.setEraserSize('small');
+    store.pointerDown(point(420, 240)); store.pointerUp(point(420, 240)); await store.whenIdle();
+    expect(store.state.document.elements.some((element) => element.kind === 'rectangle')).toBe(true);
+    store.setEraserSize('large');
+    store.pointerDown(point(420, 240)); store.pointerUp(point(420, 240)); await store.whenIdle();
+    expect(store.state.document.elements.some((element) => element.kind === 'rectangle')).toBe(false);
+    expect(store.state.document.elements).toEqual([path]);
+  });
   test('a click creates the tool default size and group movement moves children once', async () => {
     const { store } = setup(); store.setTool('rectangle'); store.pointerDown(point(300, 200)); store.pointerUp(point(300, 200)); await store.whenIdle();
     expect(store.state.document.elements[0]!.width).toBe(160);

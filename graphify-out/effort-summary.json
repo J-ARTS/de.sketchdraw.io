@@ -2059,6 +2059,38 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "61": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-pencil-eraser-options-061"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "7": {
       "exclusiveRuns": {
         "costUsd": {
@@ -2297,15 +2329,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 30
+        "unknownRuns": 31
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 30
+        "unknownRuns": 31
       },
-      "runCount": 30,
+      "runCount": 31,
       "runIds": [
         "codex-annotation-056",
         "codex-auto-agent-access-030",
@@ -2325,6 +2357,7 @@
         "codex-noncommercial-license-029",
         "codex-orchestration-001",
         "codex-page-ui-cleanup-review-035",
+        "codex-pencil-eraser-options-061",
         "codex-resource-card-054",
         "codex-runtime-path-fix-030",
         "codex-selection-popover-review-038",
@@ -2342,7 +2375,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 30
+        "unknownRuns": 31
       }
     },
     "codex-subagent": {
@@ -2446,15 +2479,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 126
+      "unknownRuns": 127
     },
     "observedSeconds": {
       "knownRuns": 39,
       "knownSubtotal": 19965.322263248963,
       "total": null,
-      "unknownRuns": 87
+      "unknownRuns": 88
     },
-    "runCount": 126,
+    "runCount": 127,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2538,6 +2571,7 @@
       "codex-p2p-contract-review-001",
       "codex-p2p-feedback-003",
       "codex-page-ui-cleanup-review-035",
+      "codex-pencil-eraser-options-061",
       "codex-property-draft-025",
       "codex-release-fixes-001",
       "codex-release-review-001",
@@ -2587,7 +2621,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 122
+      "unknownRuns": 123
     }
   },
   "officialScoreClaimReady": false,
@@ -2597,9 +2631,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 48
+    "unknownIssues": 49
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:14:15Z"
+  "updatedAt": "2026-10-18T03:24:49Z"
 }

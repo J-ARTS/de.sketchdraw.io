@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:14:15Z",
+  "updatedAt": "2026-10-18T03:24:49Z",
   "issues": [
     {
       "number": 1,
@@ -968,6 +968,23 @@
         "kind": "planning_estimate"
       },
       "dependencies": [],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 61,
+      "title": "Optionsleiste für Freihandstift und Radierer",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
+      "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
+      "phase": "Canvas drawing interaction and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        60
+      ],
       "currentImplementer": "Codex (temporary user-authorized takeover)"
     }
   ],
@@ -4208,6 +4225,39 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact feature commit 44dcb77d0a911fdc3fc08561837c97ae320f6f23. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production build, 53 browser UI tests including the eraser and accessibility regression, Electron integration and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-pencil-eraser-options-061",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        61
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T03:16:22Z",
+      "endedAt": "2026-10-18T03:24:49Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/61#issuecomment-6245136041",
+        "src/renderer/components/ToolOptionsBar.vue",
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/lib/drawing-tools.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "tests/unit/renderer/guest-store.spec.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "agent-state/work-ledger.json",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json"
+      ],
+      "concerns": [],
+      "authorization": "The user explicitly requested contextual pencil and eraser controls and previously authorized temporary Codex implementation with actual-tool attribution.",
+      "measurementSource": "Codex implemented the contextual drawing controls through the existing local UI preference and authority boundaries. Local evidence on the uncommitted issue #61 worktree state: typecheck and production build passed; 339/339 Vitest tests, 59/59 Node lifecycle/release tests after one isolated rerun, 54/54 browser UI tests after resolving two toolbar-layout regressions, 6/6 Electron tests and 22/22 Graphify tooling tests passed. The two first-run failures and their resolved causes are recorded in issue comments. No measured implementation duration, token or cost metric is claimed."
     }
   ],
   "evidencePolicy": {

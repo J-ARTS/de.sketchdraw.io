@@ -61,6 +61,38 @@ test('eraser sits beside the pencil and removes a drag path in one undo step', a
   await expect(eraser).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('pencil and eraser open a responsive accessible options bar with real drawing behavior', async ({ page }) => {
+  await page.getByRole('button', { name: 'Freihand', exact: true }).click();
+  const main = page.getByTestId('main-toolbar'); const options = page.getByTestId('pencil-options');
+  await expect(options).toBeVisible(); await expect(options.locator('img')).toHaveCount(0);
+  const mainBox = await main.boundingBox(); const optionsBox = await options.boundingBox();
+  expect(optionsBox!.y).toBeGreaterThanOrEqual(mainBox!.y + mainBox!.height);
+
+  const fine = options.getByRole('button', { name: 'Fein, 2 Pixel', exact: true });
+  const pencil = options.getByRole('button', { name: 'Stift, 4 Pixel', exact: true });
+  await fine.focus(); await page.keyboard.press('ArrowRight'); await expect(pencil).toBeFocused();
+  await options.getByRole('button', { name: 'Marker, 10 Pixel', exact: true }).click();
+  await options.getByRole('button', { name: 'Stiftfarbe Rot', exact: true }).click();
+  await page.mouse.move(650, 300); await page.mouse.down(); await page.mouse.move(760, 360, { steps: 12 }); await page.mouse.up();
+  const path = page.locator('[data-kind=path]'); const pathStyle = path.locator('g').first();
+  await expect(path).toHaveAttribute('opacity', '0.55');
+  await expect(pathStyle).toHaveAttribute('stroke', '#e5533a'); await expect(pathStyle).toHaveAttribute('stroke-width', '10');
+
+  await draw(page, 'Rechteck', [350, 300], [450, 380]);
+  await page.getByRole('button', { name: 'Radierer', exact: true }).click();
+  const eraserOptions = page.getByTestId('eraser-options'); await expect(eraserOptions).toBeVisible(); await expect(options).toHaveCount(0);
+  await eraserOptions.getByRole('button', { name: 'Radierer Klein', exact: true }).click();
+  await page.mouse.click(470, 340); await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
+  await eraserOptions.getByRole('button', { name: 'Radierer Groß', exact: true }).click();
+  await page.mouse.click(470, 340); await expect(page.locator('[data-kind=rectangle]')).toHaveCount(0);
+  await expect(path).toHaveCount(1);
+
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.setViewportSize({ width: 480, height: 720 });
+  await page.getByRole('button', { name: 'Freihand', exact: true }).click(); await expect(options).toBeVisible();
+  const compact = await options.boundingBox(); expect(compact!.x).toBeGreaterThanOrEqual(0); expect(compact!.x + compact!.width).toBeLessThanOrEqual(480);
+});
+
 test('all primitive shapes, freehand, connection, text and image render', async ({ page }) => {
   await draw(page, 'Rechteck', [300, 180], [440, 270]);
   await draw(page, 'Ellipse', [520, 180], [660, 270]);

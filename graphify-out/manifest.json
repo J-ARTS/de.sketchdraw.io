@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792292813.626065,
-    "ast_hash": "7c41e30f80285730ccaa107a9150494e",
+    "mtime": 1792293889.268903,
+    "ast_hash": "d681f3dfd57f4ffbc7ebdc731629e8fa",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/Toolbar.vue": {
-    "mtime": 1792289462.3732998,
-    "ast_hash": "cac6a2d57ca936ec12ee72421c96a0a0",
+    "mtime": 1792293779.834516,
+    "ast_hash": "c89c30897631d88e80ab79027660ec26",
     "semantic_hash": ""
   },
   "src/renderer/components/icons.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792292611.4127152,
-    "ast_hash": "2bc06bf261606701c8334270e31a1a82",
+    "mtime": 1792293446.5688806,
+    "ast_hash": "51ab926e06a42820f4e20c06f0631e90",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792292623.3801458,
-    "ast_hash": "e904673a07c2f36f20fcae90ea32ca78",
+    "mtime": 1792293459.1940024,
+    "ast_hash": "d635f4c3f4e2271c8807074f6acc26c7",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "tests/ui/whiteboard.spec.ts": {
-    "mtime": 1792292656.5957637,
-    "ast_hash": "de6ede7bacad43ffe6cc1d957072223e",
+    "mtime": 1792293541.1199646,
+    "ast_hash": "e382f37163664c62d12d10fd2e5a061a",
     "semantic_hash": ""
   },
   "tests/unit/collaboration/protocol.spec.ts": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "tests/unit/renderer/guest-store.spec.ts": {
-    "mtime": 1792292676.6198785,
-    "ast_hash": "4e3bd0223a06c58f72f02dfa90907fa3",
+    "mtime": 1792293527.9687452,
+    "ast_hash": "1db2772eb4a80cc2c5d458fe9b1bc0cb",
     "semantic_hash": ""
   },
   "tests/unit/renderer/whiteboard.spec.ts": {
-    "mtime": 1792292640.7610068,
-    "ast_hash": "cb9127d3f64247c7e3b071bee5da50fb",
+    "mtime": 1792293527.9676714,
+    "ast_hash": "f690d756dbc9bb44394d39d7878aee4e",
     "semantic_hash": ""
   },
   "tests/unit/session/authority.spec.ts": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/SelectionToolbar.vue": {
-    "mtime": 1792289937.386821,
-    "ast_hash": "7d59edd2c768b6a87a47ed26f6a6b3d7",
+    "mtime": 1792293779.8360486,
+    "ast_hash": "2a91d84abd9c6f298b3b901c7984fe2e",
     "semantic_hash": ""
   },
   "src/renderer/lib/color.ts": {
@@ -1502,6 +1502,16 @@
   "docs/reviews/claude-comments-059.md": {
     "mtime": 1792291491.0192888,
     "ast_hash": "a97f54e8f8befcc8f1d29a530c9d9311",
+    "semantic_hash": ""
+  },
+  "src/renderer/components/ToolOptionsBar.vue": {
+    "mtime": 1792293643.878413,
+    "ast_hash": "f9fdf5405f69a9c05d0823f4dace152a",
+    "semantic_hash": ""
+  },
+  "src/renderer/lib/drawing-tools.ts": {
+    "mtime": 1792293446.5692046,
+    "ast_hash": "f5486e7a1485fc0a03ac5023cceedf84",
     "semantic_hash": ""
   }
 }

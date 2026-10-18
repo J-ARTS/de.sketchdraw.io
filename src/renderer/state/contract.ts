@@ -30,6 +30,9 @@ export type Tool =
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
   | 'comment';
 
+export type PencilPreset = 'fine' | 'pencil' | 'marker';
+export type EraserSize = 'small' | 'medium' | 'large';
+
 export interface TableSelection {
   elementId: string;
   cellIds: string[];
@@ -193,6 +196,9 @@ export interface WhiteboardState {
   focusedId: string | null;
   tool: Tool;
   shapeVariant: ShapeVariant;
+  pencilPreset: PencilPreset;
+  pencilColor: string;
+  eraserSize: EraserSize;
   viewport: Viewport;
   viewportSize: Size;
   marquee: Rect | null;
@@ -252,6 +258,9 @@ export interface WhiteboardStore {
 
   setTool(tool: Tool): void;
   setShapeTool(variant: ShapeVariant): void;
+  setPencilPreset(preset: PencilPreset): void;
+  setPencilColor(color: string): void;
+  setEraserSize(size: EraserSize): void;
   setViewportSize(width: number, height: number): void;
 
   pointerDown(input: PointerInput): void;
