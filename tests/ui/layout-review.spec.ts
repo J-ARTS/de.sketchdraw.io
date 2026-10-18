@@ -126,11 +126,20 @@ test('the shape library header stays compact on desktop and compact screens (#89
   }
 });
 
-test('the slides button sits above the minimap (#85)', async ({ page }) => {
-  const slides = await box(page.getByRole('button', { name: 'Folienleiste öffnen' }));
-  const minimap = await box(page.getByTestId('minimap'));
-  expect(overlaps(slides, minimap)).toBe(false);
-  expect(slides.y + slides.height).toBeLessThanOrEqual(minimap.y);
+test('the slides button stays right-aligned below the user menu (#85)', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 480, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    const slidesButton = page.getByRole('button', { name: 'Folienleiste öffnen' });
+    const slides = await box(slidesButton);
+    const workspace = await box(page.getByRole('group', { name: 'Ansicht und Hilfe' }));
+    const toolbar = await box(page.getByRole('toolbar', { name: 'Werkzeuge' }));
+    expect(Math.abs(slides.x + slides.width - (workspace.x + workspace.width))).toBeLessThanOrEqual(1);
+    expect(slides.y).toBeGreaterThanOrEqual(workspace.y + workspace.height);
+    expect(overlaps(slides, workspace)).toBe(false);
+    expect(overlaps(slides, toolbar)).toBe(false);
+    expect(await reachable(slidesButton)).toBe(true);
+    if (viewport.width > 760) expect(overlaps(slides, await box(page.getByTestId('minimap')))).toBe(false);
+  }
 });
 
 test('the shape library stays above the properties bar on compact screens (#77)', async ({ page }) => {
