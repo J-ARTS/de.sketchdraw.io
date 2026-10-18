@@ -225,6 +225,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           for (let index = 0; index < route.length - 1; index += 1) {
             const start = route[index]!; const end = route[index + 1]!;
             const orientation = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y) ? 'horizontal' : 'vertical';
+            // Stubs next to an endpoint are too short to grab separately; their handle would sit on top of the endpoint's.
+            const from = screenPoint(start); const to = screenPoint(end);
+            if (Math.hypot(to.x - from.x, to.y - from.y) < MIN_SEGMENT_HANDLE_LENGTH) continue;
             handles.push({ id: `connector-segment:${index}`, elementId: element.id, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment', orientation });
           }
         } else if (routing === 'curved') {
@@ -376,16 +379,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     ] };
   }
   function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
+  /** Segment handles are only shown on screen-space segments at least this long (px). */
+  const MIN_SEGMENT_HANDLE_LENGTH = 48;
   function handleAt(point: Point): HandleView | undefined {
     if (state.tool !== 'select') return undefined;
-    return [...state.handles].reverse().find((handle) => {
+    const hits = (handle: HandleView): boolean => {
       const dx = Math.abs(handle.x - point.x);
       const dy = Math.abs(handle.y - point.y);
       if (handle.kind === 'connector-segment') {
         return handle.orientation === 'horizontal' ? dx <= 24 && dy <= 14 : dx <= 14 && dy <= 24;
       }
       return Math.hypot(dx, dy) <= 14;
-    });
+    };
+    // Endpoints win over every other handle so a connector can always be re-attached.
+    return state.handles.find((handle) => handle.kind === 'connector-endpoint' && hits(handle)) ?? [...state.handles].reverse().find(hits);
   }
   function extendEraseGesture(g: Gesture, point: Point): void {
     const ids = g.preview?.type === 'delete' ? [...g.preview.ids] : [];
@@ -445,17 +452,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(base.document.elements, ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
   }
-  function connectorAnchor(element: SketchElement, point: Point): Point {
-    const local = worldToElementLocalPoint(element, point);
-    const x = Math.max(0, Math.min(1, element.width ? local.x / element.width : 0.5));
-    const y = Math.max(0, Math.min(1, element.height ? local.y / element.height : 0.5));
-    const distances = [{ edge: 'left', value: x }, { edge: 'right', value: 1 - x }, { edge: 'top', value: y }, { edge: 'bottom', value: 1 - y }] as const;
-    const edge = distances.reduce((best, entry) => entry.value < best.value ? entry : best).edge;
-    if (edge === 'left') return { x: 0, y };
-    if (edge === 'right') return { x: 1, y };
-    if (edge === 'top') return { x, y: 0 };
-    return { x, y: 1 };
-  }
+  function connectorAnchor(element: SketchElement, point: Point): Point { return endpointAt(element, point); }
   function connectorGeometryPatch(element: SketchElement, points: readonly Point[]): ElementPatch {
     const minX = Math.min(...points.map((point) => point.x));
     const minY = Math.min(...points.map((point) => point.y));
@@ -844,16 +841,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (input.button !== 0 && input.button !== 1) return;
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
       if (state.tool === 'image') return;
-      if (state.tool === 'connector' && kind === 'draw' && (!target || target.kind === 'connector')) {
-        notice('Beginne den Pfeil auf einem Element. Pfeile verbinden immer zwei Elemente.', 'error');
-        return;
-      }
       if (kind === 'move' && target) {
         if (input.shiftKey && state.selection.includes(target.id)) { setSelection(state.selection.filter((id) => id !== target.id)); return; }
         if (!state.selection.includes(target.id)) setSelection([target.id], input.shiftKey);
       }
       if (kind === 'marquee' && !input.shiftKey) setSelection([]);
-      const targets = state.tool === 'connector' && target ? [clone(target)] : selected().map(clone);
+      // A connector may start anywhere: on an element it docks there, on empty canvas (or on another connector) it is free.
+      const dockStart = state.tool === 'connector' && target && target.kind !== 'connector' ? target : null;
+      const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : selected().map(clone);
       let connectorPoints: Point[] | undefined;
       let connectorPointIndex: number | undefined;
       let connectorSegmentIndex: number | undefined;
@@ -870,9 +865,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           pencilOpacity: state.pencilOpacity,
         } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
-        ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
-      if (state.tool === 'connector' && target) {
-        state.connectorTargets = { fromId: target.id, toId: null };
+        ...(dockStart ? { connectorFromId: dockStart.id } : {}) };
+      if (dockStart) {
+        state.connectorTargets = { fromId: dockStart.id, toId: null };
         state.connectorHoverTargetId = null;
       }
       changedDraft();
@@ -923,7 +918,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
             const candidate = [...g.base.document.elements].reverse().find((entry) =>
               entry.id !== element.id && entry.kind !== 'connector' && entry.id !== opposite?.elementId
               && hitElement(entry, point, 10 / state.viewport.zoom));
-            const bound = candidate ?? (endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined);
+            // Dropped on a shape: dock at its nearest of twelve points. Dropped on empty canvas: the end is free.
+            // Over the opposite end's own shape (a self-connection) the end keeps its previous binding instead of detaching.
+            const oppositeShape = opposite ? g.base.document.elements.find((entry) => entry.id === opposite.elementId) : undefined;
+            const overOpposite = Boolean(oppositeShape && !candidate && hitElement(oppositeShape, point, 10 / state.viewport.zoom));
+            const bound = candidate ?? (overOpposite && endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined);
             const anchor = bound ? connectorAnchor(bound, point) : undefined;
             const world = bound && anchor ? resolveAnchorWorldPoint(bound, anchor) : point;
             route[index] = worldToElementLocalPoint(element, world);
@@ -934,6 +933,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
               if (movingStart) { nextFrom = binding; patch.from = binding; }
               else { nextTo = binding; patch.to = binding; }
               if (!g.targets.some((target) => target.id === bound.id)) g.targets.push(clone(bound));
+            } else if (endpoint) {
+              if (movingStart) { nextFrom = undefined; patch.from = null; }
+              else { nextTo = undefined; patch.to = null; }
             }
             const otherBound = opposite ? g.base.document.elements.find((entry) => entry.id === opposite.elementId) : undefined;
             if (otherBound && !g.targets.some((target) => target.id === otherBound.id)) g.targets.push(clone(otherBound));
@@ -984,11 +986,6 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (g.kind === 'draw' && !g.element && !['path', 'connector'].includes(g.tool)) {
         const size = DEFAULT_SIZES[g.tool];
         if (size) { g.element = createDraw(g, { x: g.start.x + size.width, y: g.start.y + size.height }, false); state.drawing = g.element; }
-      }
-      if (g.kind === 'draw' && g.tool === 'connector' && (!g.element?.from || !g.element.to)) {
-        notice('Ziehe den Pfeil auf ein anderes Element, um die Verbindung abzuschließen.', 'error');
-        resetGesture();
-        return;
       }
       if (g.kind === 'pan' || g.kind === 'marquee' || (!g.preview && !g.element)) { resetGesture(); return; }
       if (g.kind === 'draw' && g.element && g.element.width + g.element.height < 4) { resetGesture(); return; }

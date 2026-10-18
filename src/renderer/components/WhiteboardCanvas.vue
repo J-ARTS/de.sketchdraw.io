@@ -9,6 +9,7 @@ import TableOverlay from './TableOverlay.vue';
 import LaserPointerOverlay from './LaserPointerOverlay.vue';
 import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
+import { DOCK_POINTS } from '../lib/geometry';
 import { fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
@@ -36,12 +37,7 @@ const connectorDockElements = computed(() => {
     return element && element.kind !== 'connector' ? [element] : [];
   });
 });
-const connectorDockSides = [
-  { side: 'top', x: .5, y: 0 },
-  { side: 'right', x: 1, y: .5 },
-  { side: 'bottom', x: .5, y: 1 },
-  { side: 'left', x: 0, y: .5 },
-] as const;
+const connectorDockSides = DOCK_POINTS;
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
 const editStyle = computed(() => {
   const edit = s.textEdit;
@@ -152,7 +148,7 @@ onMounted(() => canvas.value?.focus());
         <rect v-if="connectorFrom" data-testid="connector-source-highlight" :x="connectorFrom.x - 5 / s.viewport.zoom" :y="connectorFrom.y - 5 / s.viewport.zoom" :width="connectorFrom.width + 10 / s.viewport.zoom" :height="connectorFrom.height + 10 / s.viewport.zoom" :transform="`rotate(${connectorFrom.rotation} ${connectorFrom.x + connectorFrom.width / 2} ${connectorFrom.y + connectorFrom.height / 2})`" fill="none" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" stroke-dasharray="5 4" />
         <rect v-if="connectorTo" data-testid="connector-target-highlight" :x="connectorTo.x - 6 / s.viewport.zoom" :y="connectorTo.y - 6 / s.viewport.zoom" :width="connectorTo.width + 12 / s.viewport.zoom" :height="connectorTo.height + 12 / s.viewport.zoom" :transform="`rotate(${connectorTo.rotation} ${connectorTo.x + connectorTo.width / 2} ${connectorTo.y + connectorTo.height / 2})`" fill="none" stroke="var(--status-ok)" :stroke-width="3 / s.viewport.zoom" />
         <g v-for="element in connectorDockElements" :key="`connector-docks:${element.id}`" data-testid="connector-dock-points" :data-element-id="element.id" :transform="`rotate(${element.rotation} ${element.x + element.width / 2} ${element.y + element.height / 2})`">
-          <circle v-for="dock in connectorDockSides" :key="dock.side" data-testid="connector-dock-point" :data-side="dock.side" :data-target="s.connectorTargets?.toId === element.id ? 'true' : undefined" :cx="element.x + element.width * dock.x" :cy="element.y + element.height * dock.y" :r="6 / s.viewport.zoom" fill="var(--surface-panel)" stroke="#0d99ff" :stroke-width="2 / s.viewport.zoom" />
+          <circle v-for="dock in connectorDockSides" :key="`${dock.side}-${dock.slot}`" data-testid="connector-dock-point" :data-side="dock.side" :data-slot="dock.slot" :data-target="s.connectorTargets?.toId === element.id ? 'true' : undefined" :cx="element.x + element.width * dock.x" :cy="element.y + element.height * dock.y" :r="6 / s.viewport.zoom" fill="var(--surface-panel)" stroke="#0d99ff" :stroke-width="2 / s.viewport.zoom" />
         </g>
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
         <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />

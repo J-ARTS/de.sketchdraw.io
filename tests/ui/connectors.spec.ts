@@ -21,12 +21,12 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
   await page.mouse.move(300, 350);
   await expect(page.getByTestId('whiteboard-canvas')).toHaveAttribute('data-connector-dock-target', sourceId!);
-  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(12);
   await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 });
   await expect(page.getByTestId('connector-source-highlight')).toBeVisible();
   await expect(page.getByTestId('connector-target-highlight')).toBeVisible();
-  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
-  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${targetId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(12);
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${targetId}"] [data-testid="connector-dock-point"]`)).toHaveCount(12);
   await page.mouse.up();
 
   const connector = page.locator('.whiteboard-canvas [data-kind=connector]');
@@ -80,7 +80,8 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await page.mouse.down();
   await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2 - 42, { steps: 4 });
   await page.mouse.up();
-  await expect(segmentHandles).toHaveCount(5);
+  // Moving an outer segment adds short stubs at both ends; those get no handle of their own (#endpoint-grab).
+  await expect(segmentHandles).toHaveCount(3);
 
   await bar.getByRole('button', { name: /^Linienform:/ }).click();
   await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Gerade' }).click();
@@ -159,16 +160,33 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   expect(code).toContain(`"elementId":"${thirdId}"`);
 });
 
-test('free and self connections are rejected without adding an element', async ({ page }) => {
+test('arrows can be drawn freely, from or to a shape, and snap to twelve dock points', async ({ page }) => {
   await rectangle(page, 350);
   const connectors = page.locator('.whiteboard-canvas [data-kind=connector]');
-  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
-  await page.mouse.move(700, 600); await page.mouse.down(); await page.mouse.move(760, 640); await page.mouse.up();
-  await expect(connectors).toHaveCount(0);
+  const connect = async (from: [number, number], to: [number, number]) => {
+    await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+    await page.mouse.move(...from); await page.mouse.down(); await page.mouse.move(...to, { steps: 6 }); await page.mouse.up();
+  };
 
-  await page.mouse.move(390, 340); await page.mouse.down(); await page.mouse.move(450, 370, { steps: 4 }); await page.mouse.up();
-  await expect(connectors).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText(/anderes Element/)).toBeVisible();
+  // Completely free: neither end touches a shape.
+  await connect([700, 600], [900, 650]);
+  await expect(connectors).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Meldungen' }).locator('.notice')).toHaveCount(0);
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await expect(bar.getByRole('button', { name: /^Linienform:/ })).toBeVisible();
+
+  // Free end: docks at the start shape only; free start: docks at the end shape only.
+  await connect([420, 330], [650, 200]);
+  await expect(connectors).toHaveCount(2);
+  await connect([850, 250], [430, 350]);
+  await expect(connectors).toHaveCount(3);
+
+  // Twelve dock points per shape while connecting, three per side.
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await page.mouse.move(420, 340);
+  const docks = page.locator('[data-testid="connector-dock-points"] [data-testid="connector-dock-point"]');
+  await expect(docks).toHaveCount(12);
+  for (const side of ['top', 'right', 'bottom', 'left']) await expect(docks.and(page.locator(`[data-side=${side}]`))).toHaveCount(3);
 });
 
 test('connectors default to right-angled lines and remember the chosen type and arrowhead', async ({ page }) => {
@@ -205,4 +223,43 @@ test('connectors default to right-angled lines and remember the chosen type and 
   await page.reload(); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
   await expect(page.getByTestId('connector-options').getByRole('button', { name: 'Linienform Gerade' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+
+test('an endpoint stays grabbable next to its stub, can move to another dock point and can be detached', async ({ page }) => {
+  await rectangle(page, 220); await rectangle(page, 700, 460);
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 }); await page.mouse.up();
+  const connector = page.locator('.whiteboard-canvas [data-kind=connector]');
+  await expect(connector).toHaveCount(1);
+  await page.getByRole('button', { name: 'Auswahl', exact: true }).click();
+  await connector.locator('path').last().click({ force: true });
+
+  // The 24 px stub next to each endpoint gets no handle: only the endpoints (and long segments) are shown.
+  const endHandle = page.getByTestId('connector-endpoint-handle-end');
+  await expect(endHandle).toBeVisible();
+  const stubHandles = page.locator('[data-testid^="connector-segment-handle-"]');
+  const handleCount = await stubHandles.count();
+  for (let index = 0; index < handleCount; index += 1) {
+    const box = (await stubHandles.nth(index).boundingBox())!;
+    const end = (await endHandle.boundingBox())!;
+    expect(Math.hypot(box.x + box.width / 2 - (end.x + end.width / 2), box.y + box.height / 2 - (end.y + end.height / 2))).toBeGreaterThan(24);
+  }
+
+  // Re-placing: drag the end to another dock point of the same shape (right side, upper slot).
+  const shape = (await page.locator('.whiteboard-canvas [data-kind=rectangle]').nth(1).boundingBox())!;
+  const grab = (await endHandle.boundingBox())!;
+  await page.mouse.move(grab.x + grab.width / 2, grab.y + grab.height / 2); await page.mouse.down();
+  await page.mouse.move(shape.x + shape.width, shape.y + shape.height * 0.25, { steps: 8 }); await page.mouse.up();
+  const moved = (await endHandle.boundingBox())!;
+  expect(Math.abs(moved.x + moved.width / 2 - (shape.x + shape.width))).toBeLessThan(8);
+  expect(Math.abs(moved.y + moved.height / 2 - (shape.y + shape.height * 0.25))).toBeLessThan(8);
+
+  // Detaching: dropping the end on empty canvas leaves it free where it was dropped.
+  await page.mouse.move(moved.x + moved.width / 2, moved.y + moved.height / 2); await page.mouse.down();
+  await page.mouse.move(1000, 650, { steps: 8 }); await page.mouse.up();
+  const freed = (await endHandle.boundingBox())!;
+  expect(Math.abs(freed.x + freed.width / 2 - 1000)).toBeLessThan(8);
+  expect(Math.abs(freed.y + freed.height / 2 - 650)).toBeLessThan(8);
+  await expect(page.getByTestId('connector-target-highlight')).toBeHidden();
 });

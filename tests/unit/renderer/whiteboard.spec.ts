@@ -66,19 +66,19 @@ describe('Whiteboard uses the real session gateway', () => {
     store.setTool('connector');
     store.pointerMove(point(250, 240));
     expect(store.state.connectorHoverTargetId).toBe(store.state.document.elements[0]!.id);
-    store.pointerDown(point(350, 400));
-    expect(store.state.revision).toBe(before);
-    expect(store.state.notices.at(-1)?.text).toContain('Beginne den Pfeil');
-
-    store.pointerDown(point(240, 240)); store.pointerMove(point(260, 250)); store.pointerUp(point(260, 250));
+    // A click without dragging on empty canvas adds nothing; arrows may also start and end freely.
+    store.pointerDown(point(350, 400)); store.pointerUp(point(350, 400));
     await store.whenIdle();
-    expect(store.state.document.elements.filter((element) => element.kind === 'connector')).toHaveLength(0);
-    expect(store.state.notices.at(-1)?.text).toContain('anderes Element');
+    expect(store.state.revision).toBe(before);
+    store.pointerDown(point(350, 400)); store.pointerMove(point(420, 440)); store.pointerUp(point(420, 440));
+    await store.whenIdle();
+    const free = store.state.document.elements.find((element) => element.kind === 'connector')!;
+    expect(free.from).toBeUndefined(); expect(free.to).toBeUndefined();
 
     store.setTool('connector'); store.pointerDown(point(250, 240)); store.pointerMove(point(550, 240));
     expect(store.state.connectorTargets).toMatchObject({ fromId: store.state.document.elements[0]!.id, toId: store.state.document.elements[1]!.id });
     store.pointerUp(point(550, 240)); await store.whenIdle();
-    const connector = store.state.document.elements.find((element) => element.kind === 'connector')!;
+    const connector = store.state.document.elements.filter((element) => element.kind === 'connector').at(-1)!;
     expect(connector.from?.elementId).toBe(store.state.document.elements[0]!.id);
     expect(connector.to?.elementId).toBe(store.state.document.elements[1]!.id);
     expect(connector.from?.elementId).not.toBe(connector.to?.elementId);
@@ -87,6 +87,15 @@ describe('Whiteboard uses the real session gateway', () => {
     store.applyPatch({ connectorRouting: 'curved', startMarker: 'circle', endMarker: 'diamond' });
     await store.whenIdle();
     expect(store.state.document.elements.find((element) => element.id === connector.id)).toMatchObject({ connectorRouting: 'curved', startMarker: 'circle', endMarker: 'diamond' });
+
+    // Ending on the start shape never binds both ends to the same element: the end stays free.
+    store.setTool('connector');
+    store.pointerDown(point(215, 215)); store.pointerMove(point(240, 235)); store.pointerUp(point(240, 235));
+    await store.whenIdle();
+    const half = store.state.document.elements.filter((element) => element.kind === 'connector').at(-1)!;
+    expect(half.from?.elementId).toBe(store.state.document.elements[0]!.id);
+    expect(half.to).toBeUndefined();
+
   });
   test('single-page rename persists independently and participates in undo', async () => {
     const { store, bridge } = setup();

@@ -282,9 +282,11 @@ test('comment actions, task dialog and search fields follow keyboard and theme r
 
 test('comment composer and thread stay above notices near the bottom edge (#88)', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
-  // A connector started on empty canvas leaves a notice standing at the bottom.
-  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
-  await page.mouse.click(700, 400);
+  // Starting a presentation without frames leaves a notice standing at the bottom.
+  await page.evaluate(() => (document.querySelector('[data-testid=whiteboard-canvas]') as HTMLElement | null)?.focus());
+  await openWorkspaceItem(page, 'Folien');
+  await page.getByRole('button', { name: 'Präsentieren' }).evaluate((button: HTMLButtonElement) => { button.disabled = false; button.click(); });
+  await page.getByRole('button', { name: 'Folienleiste schließen' }).click();
   const notice = page.getByRole('region', { name: 'Meldungen' }).locator('.notice');
   await expect(notice).toHaveCount(1);
 

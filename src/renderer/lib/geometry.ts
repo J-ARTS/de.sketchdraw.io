@@ -103,14 +103,26 @@ export function topSelected(elements: readonly SketchElement[], ids: readonly st
   });
 }
 
+/** Relative positions of the dock points along each side: three per side, twelve per element. */
+export const DOCK_SLOTS = [0.25, 0.5, 0.75] as const;
+export type DockSide = 'top' | 'right' | 'bottom' | 'left';
+export const DOCK_POINTS: ReadonlyArray<{ side: DockSide; slot: number; x: number; y: number }> = DOCK_SLOTS.flatMap((slot) => [
+  { side: 'top' as const, slot, x: slot, y: 0 },
+  { side: 'right' as const, slot, x: 1, y: slot },
+  { side: 'bottom' as const, slot, x: slot, y: 1 },
+  { side: 'left' as const, slot, x: 0, y: slot },
+]);
+const nearestSlot = (value: number): number => DOCK_SLOTS.reduce((best, slot) => (Math.abs(slot - value) < Math.abs(best - value) ? slot : best), DOCK_SLOTS[1]);
+
+/** Snaps a pointer position to the nearest of the element's twelve dock points (three per side). */
 export function endpointAt(element: SketchElement, point: Point): Point {
   const p = rotatePoint(point, center(element), -element.rotation);
   const anchor = { x: Math.max(0, Math.min(1, (p.x - element.x) / Math.max(1, element.width))), y: Math.max(0, Math.min(1, (p.y - element.y) / Math.max(1, element.height))) };
   const distances = [anchor.x, 1 - anchor.x, anchor.y, 1 - anchor.y];
   const edge = distances.indexOf(Math.min(...distances));
-  if (edge === 0) anchor.x = 0;
-  if (edge === 1) anchor.x = 1;
-  if (edge === 2) anchor.y = 0;
-  if (edge === 3) anchor.y = 1;
+  if (edge === 0) { anchor.x = 0; anchor.y = nearestSlot(anchor.y); }
+  if (edge === 1) { anchor.x = 1; anchor.y = nearestSlot(anchor.y); }
+  if (edge === 2) { anchor.y = 0; anchor.x = nearestSlot(anchor.x); }
+  if (edge === 3) { anchor.y = 1; anchor.x = nearestSlot(anchor.x); }
   return anchor;
 }
