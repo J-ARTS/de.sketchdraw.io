@@ -4,6 +4,8 @@ import type { SketchTask, TaskStatus, TaskType } from '@/domain';
 import { useWhiteboard } from './use-whiteboard';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import AppIcon from './AppIcon.vue';
+import AppSelect from './AppSelect.vue';
+import AppDatePicker from './AppDatePicker.vue';
 import TaskCard from './TaskCard.vue';
 
 const store = useWhiteboard(); const s = store.state;
@@ -14,6 +16,7 @@ const columns: ReadonlyArray<{ status: TaskStatus; label: string }> = [
   { status: 'todo', label: 'Offen' }, { status: 'doing', label: 'In Arbeit' },
   { status: 'review', label: 'Prüfung' }, { status: 'done', label: 'Erledigt' },
 ];
+const statusOptions = columns.map((column) => ({ value: column.status, label: column.label }));
 const TYPE_OPTIONS: ReadonlyArray<{ value: TaskType | ''; label: string }> = [
   { value: '', label: 'Kein Typ' }, { value: 'feature', label: 'Funktion' }, { value: 'bug', label: 'Fehler' }, { value: 'design', label: 'Design' },
   { value: 'research', label: 'Recherche' }, { value: 'docs', label: 'Dokumentation' }, { value: 'ops', label: 'Betrieb' },
@@ -240,9 +243,9 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
 
     <dialog ref="taskDialog" class="task-dialog" aria-labelledby="task-dialog-title" @cancel.prevent="closeDialog" @pointerdown.self="closeDialog" @keydown.stop="taskDialog && wrapTabFocus($event, taskDialog)">
       <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title">{{ creating ? 'Neue Aufgabe' : 'Aufgabe bearbeiten' }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn" aria-label="Schließen" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>Titel<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">Bitte gib einen Titel ein.</span><label>Beschreibung<textarea v-model="description" maxlength="50000" /></label>
-        <div class="field-row"><label>Typ<select v-model="type"><option v-for="option in TYPE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label><label>Fällig am<input v-model="dueDate" type="date" /></label></div>
+        <div class="field-row"><AppSelect label="Typ" :model-value="type" :options="TYPE_OPTIONS" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" label="Fällig am" /></div>
         <label>Zugewiesen an<input v-model="assignee" list="task-assignees" maxlength="120" autocomplete="off" placeholder="Name" /></label><datalist id="task-assignees"><option v-for="name in knownAssignees" :key="name" :value="name" /></datalist>
-        <label v-if="selected">Status<select :value="selected.status" @change="store.updateTask(selected.id, { status: ($event.target as HTMLSelectElement).value as TaskStatus })"><option v-for="column in columns" :key="column.status" :value="column.status">{{ column.label }}</option></select></label></div><div class="dialog-actions"><button v-if="selected" type="button" class="sd-btn danger" @click="removeSelected">Löschen</button><button v-if="selected && sourceLabel(selected)" type="button" class="sd-btn" @click="openSource(selected)">{{ sourceLabel(selected) }}</button><button type="button" class="sd-btn" @click="closeDialog">Abbrechen</button><button class="sd-btn sd-btn--primary" type="submit">{{ creating ? 'Aufgabe erstellen' : 'Speichern' }}</button></div></form>
+        <AppSelect v-if="selected" label="Status" :model-value="selected.status" :options="statusOptions" @update:model-value="store.updateTask(selected.id, { status: $event as TaskStatus })" /></div><div class="dialog-actions"><button v-if="selected" type="button" class="sd-btn danger" @click="removeSelected">Löschen</button><button v-if="selected && sourceLabel(selected)" type="button" class="sd-btn" @click="openSource(selected)">{{ sourceLabel(selected) }}</button><button type="button" class="sd-btn" @click="closeDialog">Abbrechen</button><button class="sd-btn sd-btn--primary" type="submit">{{ creating ? 'Aufgabe erstellen' : 'Speichern' }}</button></div></form>
     </dialog>
   </section>
 </template>

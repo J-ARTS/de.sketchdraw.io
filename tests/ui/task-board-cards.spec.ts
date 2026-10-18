@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { addDays, formatDate, todayIso } from '../../src/renderer/lib/calendar';
 import AxeBuilder from '@axe-core/playwright';
 
 // #105 task cards with cover, menu, assignee and due date; #106 pointer drag with placeholder and tilted card.
@@ -7,13 +8,26 @@ async function openBoard(page: Page) {
   const board = page.getByTestId('task-board'); await expect(board).toBeVisible();
   return board;
 }
+/** Custom select: open the listbox and click the option. */
+async function pickOption(page: Page, combobox: Locator, label: string) {
+  await combobox.click();
+  await page.getByRole('option', { name: label, exact: true }).click();
+}
+/** Custom date picker: open the calendar, page to the month of `iso` and click the day. */
+async function pickDate(page: Page, trigger: Locator, iso: string) {
+  await trigger.click();
+  const calendar = page.getByRole('dialog', { name: /\d{4}/ });
+  for (let step = 0; step < 24 && (await calendar.locator(`[data-date="${iso}"]`).count()) === 0; step += 1) await calendar.getByRole('button', { name: 'Nächster Monat' }).click();
+  await calendar.locator(`[data-date="${iso}"]`).click();
+}
+const DUE = addDays(todayIso(), 3);
 async function createTask(page: Page, title: string, extra: { type?: string; due?: string; assignee?: string } = {}) {
   await page.getByRole('button', { name: 'Neue Aufgabe' }).click();
   const dialog = page.getByRole('dialog', { name: 'Neue Aufgabe' });
   await dialog.getByRole('textbox', { name: 'Titel' }).fill(title);
   await dialog.getByRole('textbox', { name: 'Beschreibung' }).fill(`${title} beschreiben`);
-  if (extra.type) await dialog.getByRole('combobox', { name: 'Typ' }).selectOption({ label: extra.type });
-  if (extra.due) await dialog.getByLabel('Fällig am').fill(extra.due);
+  if (extra.type) await pickOption(page, dialog.getByRole('combobox', { name: 'Typ' }), extra.type);
+  if (extra.due) await pickDate(page, dialog.getByRole('button', { name: /Fällig am/ }), extra.due);
   if (extra.assignee) await dialog.getByRole('combobox', { name: 'Zugewiesen an' }).fill(extra.assignee);
   await dialog.getByRole('button', { name: 'Aufgabe erstellen' }).click();
   await expect(dialog).toHaveCount(0);
@@ -26,12 +40,12 @@ test.beforeEach(async ({ page }) => {
 
 test('a task card shows its cover, bold title, menu, due date and assignee and edits them', async ({ page }) => {
   const board = await openBoard(page);
-  await createTask(page, 'Make a new Post', { type: 'Design', due: '2099-10-25', assignee: 'Jeremy Teichmann' });
+  await createTask(page, 'Make a new Post', { type: 'Design', due: DUE, assignee: 'Jeremy Teichmann' });
   const card = board.locator('.task-card').filter({ hasText: 'Make a new Post' });
   await expect(card).toHaveAttribute('data-type', 'design');
   await expect(card.locator('.cover-type')).toHaveText('Design');
   await expect(card.locator('.card-open strong')).toHaveCSS('font-weight', '700');
-  await expect(card.locator('time')).toHaveText('25.10.2099');
+  await expect(card.locator('time')).toHaveText(formatDate(DUE));
   await expect(card.locator('.avatar')).toContainText('JT');
   await expect(card).toContainText('Zugewiesen an Jeremy Teichmann');
   await expect(card.getByRole('button', { name: /verschieben$/ })).toHaveCount(0); // no ← / → arrows any more
@@ -42,8 +56,8 @@ test('a task card shows its cover, bold title, menu, due date and assignee and e
   await expect(menu.getByRole('menuitem').first()).toBeFocused();
   await menu.getByRole('menuitem', { name: 'Bearbeiten' }).click();
   const dialog = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
-  await expect(dialog.getByRole('combobox', { name: 'Typ' })).toHaveValue('design');
-  await expect(dialog.getByLabel('Fällig am')).toHaveValue('2099-10-25');
+  await expect(dialog.getByRole('combobox', { name: 'Typ' })).toContainText('Design');
+  await expect(dialog.getByRole('button', { name: /Fällig am/ })).toContainText(formatDate(DUE));
   await dialog.getByRole('combobox', { name: 'Zugewiesen an' }).fill('');
   await dialog.getByRole('button', { name: 'Speichern' }).click();
   await expect(card.locator('.avatar')).toHaveCount(0);
@@ -81,4 +95,43 @@ test('dragging a task leaves a dashed placeholder, tilts the card and drops it i
   await page.mouse.up();
   await expect(todo).toContainText('Zweite Aufgabe');
   await expect(board.locator('.drag-ghost')).toHaveCount(0);
+});
+
+test('type, status and due date use custom components with full keyboard support', async ({ page }) => {
+  await openBoard(page);
+  await page.getByRole('button', { name: 'Neue Aufgabe' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Neue Aufgabe' });
+  await expect(dialog.locator('select, input[type=date]')).toHaveCount(0);
+  await dialog.getByRole('textbox', { name: 'Titel' }).fill('Tastatur');
+
+  // Select: ArrowDown opens on the current value, arrows move, Enter chooses, Escape closes only the popup.
+  const type = dialog.getByRole('combobox', { name: 'Typ' });
+  await type.focus(); await page.keyboard.press('ArrowDown');
+  const list = page.getByRole('listbox', { name: 'Typ' });
+  await expect(list).toBeVisible();
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
+  await expect(list).toHaveCount(0);
+  await expect(type).toBeFocused();
+  await expect(type).toContainText('Fehler');
+  await type.press('ArrowDown'); await page.keyboard.press('Escape');
+  await expect(list).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+
+  // Date picker: opens on today, arrows move by day/week, Enter picks, "Datum entfernen" clears.
+  const due = dialog.getByRole('button', { name: /Fällig am/ });
+  await expect(due).toContainText('Datum wählen');
+  await due.focus(); await page.keyboard.press('ArrowDown');
+  const calendar = page.getByRole('dialog', { name: /\d{4}/ });
+  await expect(calendar.locator(`[data-date="${todayIso()}"]`)).toBeFocused();
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
+  await expect(calendar).toHaveCount(0);
+  await expect(due).toBeFocused();
+  await expect(due).toContainText(formatDate(addDays(todayIso(), 8)));
+  await due.press('ArrowDown'); await page.keyboard.press('Escape');
+  await expect(calendar).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await due.click(); await calendar.getByRole('button', { name: 'Datum entfernen' }).click();
+  await expect(due).toContainText('Datum wählen');
+  await due.click();
+  expect((await new AxeBuilder({ page }).include('[role=dialog]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
