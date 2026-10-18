@@ -8,6 +8,7 @@ export function commentTargetPoint(target: CommentTarget, document: SketchDocume
 }
 
 export function commentTargetLabel(target: CommentTarget, document: SketchDocument): string {
+  if (!target.elementId) return 'Zeichenfläche';
   const element = target.elementId
     ? document.elements.find((entry) => entry.id === target.elementId)
     : undefined;

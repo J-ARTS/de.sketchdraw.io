@@ -760,8 +760,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       if (state.tool === 'comment') {
         if (input.button !== 0) return;
-        if (!target) { notice('Wähle ein Element oder eine Tabellenzelle für den Kommentar.', 'error'); return; }
-        store.startComment(target.id, undefined, point);
+        store.startComment(target?.id, undefined, point);
         return;
       }
       const handle = state.tool === 'select' ? state.handles.find((h) => Math.hypot(h.x - input.x, h.y - input.y) <= 12) : undefined;
@@ -1152,15 +1151,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     startComment(elementId, tableCellId, at) {
       if (!state.canWrite || state.transitioning) return;
-      const element = state.document.elements.find((entry) => entry.id === elementId);
-      if (!element) return;
-      if (tableCellId && (element.kind !== 'table' || !element.table?.cells.some((cell) => cell.id === tableCellId))) return;
-      state.commentComposerTarget = commentTargetFor(element, tableCellId, at);
+      const element = elementId ? state.document.elements.find((entry) => entry.id === elementId) : undefined;
+      if (elementId && !element) return;
+      if (!element && !at) return;
+      if (tableCellId && (!element || element.kind !== 'table' || !element.table?.cells.some((cell) => cell.id === tableCellId))) return;
+      state.commentComposerTarget = element
+        ? commentTargetFor(element, tableCellId, at)
+        : { anchor: { x: 0.5, y: 0.5 }, fallback: { x: at!.x, y: at!.y } };
+      setSelection(element ? [element.id] : []);
       state.commentSidebarOpen = true; state.frameSidebarOpen = false;
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.activeCommentId = null;
       state.workspaceView = 'canvas';
-      state.liveMessage = 'Kommentar schreiben.';
+      state.liveMessage = element ? 'Kommentar an Element schreiben.' : 'Kommentar auf Zeichenfläche schreiben.';
     },
     cancelComment() { state.commentComposerTarget = null; },
     async createComment(body) {

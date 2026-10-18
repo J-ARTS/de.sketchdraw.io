@@ -336,7 +336,7 @@ export interface WhiteboardStore {
   formatTableSelection(patch: Partial<TableCellStyle>): void;
   changeTableStructure(action: 'row-before' | 'row-after' | 'column-before' | 'column-after' | 'row-duplicate' | 'column-duplicate' | 'row-delete' | 'column-delete' | 'row-up' | 'row-down' | 'column-left' | 'column-right'): void;
 
-  startComment(elementId: string, tableCellId?: string, at?: Point): void;
+  startComment(elementId?: string, tableCellId?: string, at?: Point): void;
   cancelComment(): void;
   createComment(body: string): Promise<boolean>;
   openComment(threadId: string): void;

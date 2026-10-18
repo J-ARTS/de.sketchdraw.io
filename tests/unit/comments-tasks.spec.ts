@@ -69,6 +69,16 @@ describe('comment threads and tasks', () => {
     expect(deleted.tasks![0]!.sourceThreadId).toBe('thread:one');
   });
 
+  it('keeps a free canvas comment at its absolute fallback position', () => {
+    const freeThread: CommentThread = {
+      ...thread(),
+      target: { anchor: { x: 0.5, y: 0.5 }, fallback: { x: 640, y: 420 } },
+    };
+    const document = applyCommand(createDocument(), { type: 'set-comments', threads: [freeThread] });
+    expect(document.commentThreads?.[0]?.target).toEqual(freeThread.target);
+    expect(JSON.parse(serializeDocument(document)).commentThreads[0].target).toEqual(freeThread.target);
+  });
+
   it('enforces one task per thread and integrates comment writes with history', () => {
     let document = applyCommand(createDocument(), { type: 'set-comments', threads: [thread('missing:allowed')] });
     expect(() => applyCommand(document, { type: 'set-tasks', tasks: [task(), { ...task(), id: 'task:two' }] })).toThrow(DomainValidationError);
