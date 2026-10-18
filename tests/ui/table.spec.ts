@@ -83,3 +83,33 @@ test('Shift+T activates the table tool', async ({ page }) => {
   await page.mouse.click(300, 220);
   await expect(page.locator('.whiteboard-canvas [data-kind="table"]')).toHaveCount(1);
 });
+
+test('Delete and Backspace remove selected table rows or columns before the table element', async ({ page }) => {
+  await page.getByRole('button', { name: 'Tabelle', exact: true }).click();
+  await page.mouse.click(280, 230);
+
+  const table = page.locator('.whiteboard-canvas [data-kind="table"]');
+  const overlay = page.getByTestId('table-overlay');
+  await expect(overlay.getByRole('gridcell')).toHaveCount(9);
+
+  await overlay.getByRole('button', { name: 'Zeile 2 auswählen' }).click();
+  await page.keyboard.press('Delete');
+  await expect(table).toHaveCount(1);
+  await expect(overlay.getByRole('gridcell')).toHaveCount(6);
+
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(overlay.getByRole('gridcell')).toHaveCount(9);
+
+  await overlay.getByRole('button', { name: 'Spalte 2 auswählen' }).click();
+  await page.keyboard.press('Backspace');
+  await expect(table).toHaveCount(1);
+  await expect(overlay.getByRole('gridcell')).toHaveCount(6);
+
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(overlay.getByRole('gridcell')).toHaveCount(9);
+
+  await overlay.getByRole('button', { name: 'Zelle 1, 1' }).click();
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('Delete');
+  await expect(table).toHaveCount(0);
+});

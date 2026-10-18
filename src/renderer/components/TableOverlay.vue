@@ -123,11 +123,19 @@ function insertColumnAt(index: number): void {
   selectColumn(Math.max(0, index - 1));
   store.changeTableStructure('column-after');
 }
+function deleteSelectedStructure(event: KeyboardEvent): void {
+  if (!['Delete', 'Backspace'].includes(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) return;
+  const selection = s.tableSelection;
+  if (!element.value || selection?.elementId !== element.value.id || !['row', 'column'].includes(selection.mode)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  store.changeTableStructure(selection.mode === 'row' ? 'row-delete' : 'column-delete');
+}
 onBeforeUnmount(cleanupGesture);
 </script>
 
 <template>
-  <div v-if="element && table" class="table-overlay" :style="style" data-testid="table-overlay" @pointerdown.stop>
+  <div v-if="element && table" class="table-overlay" :style="style" data-testid="table-overlay" @pointerdown.stop @keydown="deleteSelectedStructure">
     <button type="button" class="move-handle" aria-label="Tabelle verschieben" @pointerdown="startGesture($event, 'move')">≡</button>
     <button v-for="handle in (['nw', 'ne', 'se', 'sw'] as const)" :key="handle" type="button" class="resize-handle" :class="handle" :aria-label="`Tabelle an Ecke ${handle} skalieren`" @pointerdown="startGesture($event, 'resize', handle)" />
     <div class="column-handles" :style="{ gridTemplateColumns: gridStyle.gridTemplateColumns }">
