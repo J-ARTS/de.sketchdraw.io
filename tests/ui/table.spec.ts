@@ -21,7 +21,7 @@ test('a table supports cell editing, formatting, navigation and row or column co
   await expect(toolbar.getByRole('button', { name: 'Durchgestrichen' })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: 'Aufzählung' })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: 'Tabellenstruktur' })).toBeVisible();
-  await expect(toolbar.getByRole('button', { name: 'Textfarbe' })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: 'Schriftfarbe' })).toBeVisible();
   await expect(overlay.getByRole('gridcell').first()).toHaveCSS('border-top-style', 'solid');
   await expect(overlay.getByRole('gridcell').first()).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
 
@@ -44,8 +44,8 @@ test('a table supports cell editing, formatting, navigation and row or column co
   await overlay.getByRole('button', { name: 'Zelle 1, 1' }).click();
   await toolbar.getByRole('button', { name: 'Fett' }).click();
   await expect(overlay.getByRole('gridcell').first()).toHaveCSS('font-weight', '700');
-  await toolbar.getByRole('button', { name: 'Textfarbe' }).click();
-  await page.getByRole('group', { name: 'Textfarbe' }).getByRole('button', { name: 'Text Rot' }).click();
+  await toolbar.getByRole('button', { name: 'Schriftfarbe' }).click();
+  await page.getByRole('group', { name: 'Schriftfarbe' }).getByRole('button', { name: 'Schrift Rot' }).click();
   await expect(overlay.getByRole('gridcell').first()).toHaveCSS('color', 'rgb(229, 83, 58)');
   await page.keyboard.press('Escape');
 

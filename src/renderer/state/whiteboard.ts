@@ -262,7 +262,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const displayed = elements.map((element): SelectionInfo['values'] => {
         const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
         const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
-        return { ...e.style, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, author: e.author ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
+        return { ...e.style, textColor: e.style.textColor ?? e.style.stroke, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, author: e.author ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
           connectorRouting: e.kind === 'connector' ? connectorRouting({ connectorRouting: e.connectorRouting ?? undefined }) : undefined,
           startMarker: e.kind === 'connector' ? connectorStartMarker({ startMarker: e.startMarker ?? undefined }) : undefined,
           endMarker: e.kind === 'connector' ? connectorEndMarker({ endMarker: e.endMarker ?? undefined }) : undefined };
@@ -272,8 +272,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const cells = selectedCellIds.length ? first.table.cells.filter((cell) => selectedCellIds.includes(cell.id)) : first.table.cells;
         const cell = cells[0];
         if (cell) {
-          displayed[0] = { ...displayed[0], fill: cell.style.fill, stroke: cell.style.color, fontSize: cell.style.fontSize, fontFamily: cell.style.fontFamily, fontWeight: cell.style.fontWeight, textDecoration: cell.style.textDecoration, listStyle: cell.style.listStyle, textAlign: cell.style.textAlign };
-          tableMixed = (Object.keys(cell.style) as Array<keyof TableCellStyle>).filter((key) => cells.slice(1).some((candidate) => !same(candidate.style[key], cell.style[key]))).map((key) => key === 'color' ? 'stroke' : key);
+          displayed[0] = { ...displayed[0], fill: cell.style.fill, textColor: cell.style.color, fontSize: cell.style.fontSize, fontFamily: cell.style.fontFamily, fontWeight: cell.style.fontWeight, textDecoration: cell.style.textDecoration, listStyle: cell.style.listStyle, textAlign: cell.style.textAlign };
+          tableMixed = (Object.keys(cell.style) as Array<keyof TableCellStyle>).filter((key) => cells.slice(1).some((candidate) => !same(candidate.style[key], cell.style[key]))).map((key) => key === 'color' ? 'textColor' : key);
         }
       }
       const values = displayed[0] ?? { ...DEFAULT_STYLE, ...(edit && !edit.elementId ? edit.style : {}) };

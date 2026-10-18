@@ -31,14 +31,14 @@ test('the toolbar floats centered above the selection and edits style through po
   expect(box.y + box.height).toBeLessThan(300);
   expect(Math.abs(box.x + box.width / 2 - 450)).toBeLessThan(4);
 
-  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
   const color = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(color).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   await color.getByRole('button', { name: 'Füllung Hellrot' }).click();
   await expect(color.getByRole('button', { name: 'Füllung Hellrot' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
-  await expect(color).toHaveCount(0); await expect(bar.getByRole('button', { name: 'Farbe' })).toBeFocused();
+  await expect(color).toHaveCount(0); await expect(bar.getByRole('button', { name: 'Farbe', exact: true })).toBeFocused();
 
   await bar.getByRole('button', { name: /^Schriftgröße/ }).click();
   await page.getByRole('button', { name: /^Groß/ }).click();
@@ -76,7 +76,12 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   }
   await expect(bar.getByRole('button', { name: 'Text bearbeiten' })).toHaveAttribute('aria-pressed', 'true');
   await expect(bar.getByRole('button', { name: 'Form ändern' })).toHaveAttribute('title', /nicht verfügbar/);
-  for (const name of ['Farbe', 'Linie', 'Schriftart', 'Textausrichtung']) await expect(bar.getByRole('button', { name })).toBeEnabled();
+  for (const name of ['Farbe', 'Schriftfarbe', 'Linie', 'Schriftart', 'Textausrichtung']) await expect(bar.getByRole('button', { name, exact: true })).toBeEnabled();
+
+  // Text ink has its own persisted control and previews without changing the shape outline.
+  await bar.getByRole('button', { name: 'Schriftfarbe' }).click();
+  await page.getByRole('group', { name: 'Schriftfarbe' }).getByRole('button', { name: 'Schrift Rot' }).click();
+  await expect(editor).toHaveCSS('color', 'rgb(229, 83, 58)');
 
   // Font family updates the inline editor immediately without ending the draft.
   await bar.getByRole('button', { name: 'Schriftart' }).click();
@@ -98,6 +103,8 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   await expect(editor).toHaveCount(0);
   const text = page.locator('.whiteboard-canvas [data-kind=rectangle] text');
   await expect(text).toContainText('Entwurf mehr');
+  await expect(text).toHaveAttribute('fill', '#e5533a');
+  expect(await text.evaluate((node) => node.parentElement?.querySelector(':scope > g')?.getAttribute('stroke'))).toBe('#1e1e1e');
   await expect(text).toHaveCSS('font-family', /Caveat Variable/);
   await expect(text).toHaveAttribute('text-anchor', 'end');
   await expect(bar).toBeVisible();
@@ -169,7 +176,7 @@ test('line and color popovers set fill mode, stroke style, width and custom colo
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
   const shape = page.locator('.whiteboard-canvas [data-kind=rectangle] > g');
 
-  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
   const color = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(color.getByRole('button', { name: 'Keine Füllung' })).toHaveAttribute('aria-pressed', 'true');
   await color.getByRole('button', { name: 'Füllung Rot' }).click();
@@ -233,7 +240,7 @@ test('an open popover opens on the side of the bar and never covers the shape', 
   await drawRectangle(page, [350, 110], [550, 210]);
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
   const shape = page.locator('.whiteboard-canvas [data-kind=rectangle]');
-  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
   const color = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(color).toBeVisible();
 
@@ -275,7 +282,7 @@ test('an open popover opens on the side of the bar and never covers the shape', 
   // Focus and keyboard dismissal remain intact after the viewport changes.
   await page.keyboard.press('Escape');
   await expect(color).toHaveCount(0);
-  await expect(bar.getByRole('button', { name: 'Farbe' })).toBeFocused();
+  await expect(bar.getByRole('button', { name: 'Farbe', exact: true })).toBeFocused();
 });
 
 test('shape text is edited in place without a box or buttons and commits like the canvas', async ({ page }) => {

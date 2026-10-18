@@ -335,6 +335,7 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
       painted.style.fontSize *= Math.hypot(matrix[2], matrix[3]);
       if (painted.style.stroke !== 'transparent')
         warn(ctx, node, 'TEXT_FORMATTING_LOST', 'stroke', 'Text outline is not represented separately.');
+      painted.style.textColor = painted.style.fill;
       painted.style.stroke = painted.style.fill;
       painted.style.fill = 'transparent';
       add(ctx, createElement('text', { id: elementId, ...transformed, style: painted.style, text: value, ...accessible }), node);

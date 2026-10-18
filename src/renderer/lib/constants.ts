@@ -43,7 +43,8 @@ export const DEFAULT_STYLE: Readonly<ElementStyle> = {
 /** Overrides applied on top of DEFAULT_STYLE when a new element of that kind is created. */
 export const STYLE_BY_KIND: Readonly<Partial<Record<ElementKind, Readonly<Partial<ElementStyle>>>>> = {
   container: { stroke: '#868e96', strokeDash: 'dashed', strokeWidth: 1 },
-  // Text color is style.stroke; 1 instead of 0 because the domain's accepted lower bound for strokeWidth is unverified.
+  // Legacy text inherits style.stroke until the user chooses an independent style.textColor.
+  // 1 instead of 0 because the domain's accepted lower bound for strokeWidth is unverified.
   text: { strokeWidth: 1 },
   // Labels inside shapes start centered, matching the in-place editor (#41).
   rectangle: { textAlign: 'center' },

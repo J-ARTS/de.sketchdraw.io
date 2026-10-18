@@ -80,6 +80,7 @@ const radiusMixed = computed(() => info.value.mixed.includes('cornerRadius'));
 function setRadius(value: number): void { if (Number.isFinite(value)) store.setPropertyDraft({ style: { cornerRadius: Math.max(0, Math.min(radiusMax.value, Math.round(value))) } }); }
 function commitRadius(): void { void store.commitPropertyDraft(); }
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
+const textColorCapable = computed(() => !resourceCardOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'web-embed', 'frame'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
 const barTrack = ref<HTMLElement | null>(null);
@@ -231,6 +232,7 @@ function style(patch: Partial<ElementStyle>): void {
     store.formatTableSelection({
       ...(patch.fill !== undefined && patch.fill !== 'transparent' ? { fill: patch.fill } : {}),
       ...(patch.stroke !== undefined && patch.stroke !== 'transparent' ? { color: patch.stroke } : {}),
+      ...(patch.textColor !== undefined && patch.textColor !== 'transparent' ? { color: patch.textColor } : {}),
       ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
       ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
       ...(patch.fontWeight !== undefined ? { fontWeight: patch.fontWeight } : {}),
@@ -352,7 +354,7 @@ const lineMode = computed<LineMode | null>(() => {
   return info.value.values.strokeDash === 'solid' || info.value.values.strokeDash === 'dashed' ? info.value.values.strokeDash : null;
 });
 const strokeBase = computed(() => (lineMode.value === 'none' ? null : normalizeHex(info.value.values.stroke ?? '')));
-const tableTextColor = computed(() => normalizeHex(info.value.values.stroke ?? '') ?? '#242424');
+const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? info.value.values.stroke ?? '') ?? '#242424');
 watch(fillBase, (value) => { if (value) lastFill.value = value; }, { immediate: true });
 watch(strokeBase, (value) => { if (value) lastStroke.value = value; }, { immediate: true });
 
@@ -366,7 +368,7 @@ function setLineMode(mode: LineMode): void {
   else style({ strokeDash: mode, ...(info.value.values.stroke === NO_COLOR ? { stroke: lastStroke.value } : {}) });
 }
 function pickStroke(hex: string): void { lastStroke.value = hex; style({ stroke: hex }); }
-function pickTableTextColor(hex: string): void { style({ stroke: hex }); }
+function pickTextColor(hex: string): void { style({ textColor: hex }); }
 function relayout(): void { void nextTick(placePopover); }
 function formatAnnotation(command: AnnotationFormatCommand, value?: string): void {
   if (!editing.value || s.textEdit?.kind !== 'annotation') return;
@@ -403,8 +405,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
         <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
-      <button v-if="tableOnly" :ref="(el) => setTrigger('text-color', el)" type="button" class="segment table-text-color" aria-label="Textfarbe" :aria-expanded="openSegment === 'text-color'" :aria-controls="panelId('text-color')" title="Textfarbe" @click="toggle('text-color')">
-        <span class="text-color-glyph" :style="{ '--text-color': tableTextColor }" aria-hidden="true">A</span><AppIcon class="chev" name="chevron-down" :size="14" />
+      <button v-if="textColorCapable" :ref="(el) => setTrigger('text-color', el)" type="button" class="segment" aria-label="Schriftfarbe" :aria-expanded="openSegment === 'text-color'" :aria-controls="panelId('text-color')" title="Schriftfarbe" @click="toggle('text-color')">
+        <span class="text-color-glyph" :style="{ '--text-color': textColorBase }" aria-hidden="true">A</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <button v-if="!stickyOnly && !tableOnly" :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
         <AppIcon name="stroke" /><AppIcon class="chev" name="chevron-down" :size="14" />
@@ -501,7 +503,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'radius' ? 'Eckenradius' : openSegment === 'color' ? 'Farbe' : openSegment === 'text-color' ? 'Textfarbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'radius' ? 'Eckenradius' : openSegment === 'color' ? 'Farbe' : openSegment === 'text-color' ? 'Schriftfarbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -549,7 +551,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <ColorPalette v-else :value="fillBase" prefix="Füllung" group-label="Füllfarbe" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
     </template>
 
-    <ColorPalette v-else-if="openSegment === 'text-color'" :value="tableTextColor" prefix="Text" group-label="Textfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickTableTextColor" @layout="relayout" />
+    <ColorPalette v-else-if="openSegment === 'text-color'" :value="textColorBase" prefix="Schrift" group-label="Schriftfarbe" :mixed="info.mixed.includes('textColor')" @pick="pickTextColor" @layout="relayout" />
 
     <template v-else-if="openSegment === 'line'">
       <div class="modes" role="group" aria-label="Linienstil">

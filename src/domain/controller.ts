@@ -68,6 +68,7 @@ const SCALAR_ELEMENT_FIELDS = [
 const STYLE_FIELD_LIST: ReadonlyArray<keyof ElementStyle> = [
   'stroke',
   'fill',
+  'textColor',
   'strokeWidth',
   'opacity',
   'fontSize',

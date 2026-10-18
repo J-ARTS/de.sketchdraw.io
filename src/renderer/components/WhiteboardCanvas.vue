@@ -62,7 +62,7 @@ const editStyle = computed(() => {
     fontWeight: edit.style.fontWeight ?? 'normal',
     textDecoration: edit.style.textDecoration ?? 'none',
     textAlign: edit.style.textAlign,
-    '--edit-color': themeColor(edit.style.stroke, s.theme),
+    '--edit-color': themeColor(edit.style.textColor ?? edit.style.stroke, s.theme),
     '--annotation-zoom': zoom,
   };
 });

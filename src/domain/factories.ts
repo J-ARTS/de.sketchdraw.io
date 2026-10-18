@@ -160,6 +160,11 @@ export function createElement(
         stroke:
           overrides.style.stroke !== undefined ? overrides.style.stroke : baseStyle.stroke,
         fill: overrides.style.fill !== undefined ? overrides.style.fill : baseStyle.fill,
+        ...(overrides.style.textColor !== undefined
+          ? { textColor: overrides.style.textColor }
+          : baseStyle.textColor !== undefined
+            ? { textColor: baseStyle.textColor }
+            : {}),
         strokeWidth:
           overrides.style.strokeWidth !== undefined
             ? overrides.style.strokeWidth

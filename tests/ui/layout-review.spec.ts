@@ -222,7 +222,7 @@ test('a popover stays on screen when the selection reaches above the viewport (#
   await page.keyboard.up('Control');
   const shape = page.locator('.whiteboard-canvas [data-kind=rectangle]');
   await expect.poll(async () => (await box(shape)).y).toBeLessThan(0);
-  await page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Farbe' }).click();
+  await page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Farbe', exact: true }).click();
   const popover = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(popover).toBeVisible();
   const popoverBox = await box(popover);
@@ -440,7 +440,7 @@ test('cloud cards center their icon and take fill and border colors from the pro
   // Untouched cards keep the themed surface; edited colors win.
   expect(await surface.getAttribute('fill')).toBe('var(--surface-raised)');
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
-  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
   await page.getByRole('button', { name: /^Füllung Rot/ }).click();
   await expect.poll(() => surface.getAttribute('fill')).not.toBe('var(--surface-raised)');
   await bar.getByRole('button', { name: 'Linie' }).click();

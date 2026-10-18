@@ -219,6 +219,7 @@ export function cloneStyle(style: ElementStyle): ElementStyle {
     textAlign: style.textAlign,
     strokeDash: style.strokeDash,
   };
+  if (style.textColor !== undefined) cloned.textColor = style.textColor;
   if (style.fontFamily !== undefined) {
     cloned.fontFamily = style.fontFamily;
   }
@@ -233,6 +234,7 @@ export function clonePartialStyle(style: Partial<ElementStyle>): Partial<Element
   const cloned: Partial<ElementStyle> = {};
   if (style.stroke !== undefined) cloned.stroke = style.stroke;
   if (style.fill !== undefined) cloned.fill = style.fill;
+  if (style.textColor !== undefined) cloned.textColor = style.textColor;
   if (style.strokeWidth !== undefined) cloned.strokeWidth = normalizeZero(style.strokeWidth);
   if (style.opacity !== undefined) cloned.opacity = normalizeZero(style.opacity);
   if (style.fontSize !== undefined) cloned.fontSize = normalizeZero(style.fontSize);
@@ -433,6 +435,7 @@ export function areStylesEqual(a: Partial<ElementStyle>, b: Partial<ElementStyle
   return (
     a.stroke === b.stroke &&
     a.fill === b.fill &&
+    a.textColor === b.textColor &&
     a.strokeWidth === b.strokeWidth &&
     a.opacity === b.opacity &&
     a.fontSize === b.fontSize &&

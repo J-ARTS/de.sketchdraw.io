@@ -83,6 +83,8 @@ export type ConnectorMarker =
 export interface ElementStyle {
   stroke: string;
   fill: string;
+  /** Text ink. Legacy documents omit this field and inherit the stroke color. */
+  textColor?: string;
   strokeWidth: number;
   opacity: number;
   fontSize: number;

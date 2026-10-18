@@ -1151,6 +1151,7 @@ export function instantiateComponent(
   const mergedStyle: ElementStyle = {
     stroke: definition.style.stroke ?? SCRIPT_V1_DEFAULT_STYLE.stroke,
     fill: definition.style.fill ?? SCRIPT_V1_DEFAULT_STYLE.fill,
+    ...(definition.style.textColor !== undefined ? { textColor: definition.style.textColor } : {}),
     strokeWidth: normalizeZero(
       definition.style.strokeWidth ?? SCRIPT_V1_DEFAULT_STYLE.strokeWidth,
     ),

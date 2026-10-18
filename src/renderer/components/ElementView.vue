@@ -16,6 +16,7 @@ const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 const e = computed(() => props.element);
 const stroke = computed(() => themeColor(e.value.style.stroke, props.theme));
 const fill = computed(() => themeColor(e.value.style.fill, props.theme));
+const textColor = computed(() => themeColor(e.value.style.textColor ?? e.value.style.stroke, props.theme));
 const dash = computed(() => e.value.style.strokeDash === 'dashed' ? '8 6' : e.value.style.strokeDash === 'dotted' ? '2 5' : undefined);
 const asset = computed(() => props.document.assets[e.value.assetId ?? '']);
 const definition = computed(() => props.document.componentSets.flatMap((set) => set.components).find((c) => c.type === e.value.componentType));
@@ -161,14 +162,14 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
-      <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" fill="var(--text-primary)" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
+      <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" :fill="textColor" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
         <tspan v-for="(line, index) in cloudTitleLines" :key="`${index}:${line}`" :x="e.width / 2" :dy="index === 0 ? 0 : CLOUD_TITLE_LINE_HEIGHT">{{ line }}</tspan>
       </text>
       <text data-testid="cloud-component-provider" :x="e.width / 2" :y="cloudProviderY" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
     </g>
     <g v-if="resourceCard && !editing" data-testid="resource-card-content" pointer-events="none">
-      <text :x="cardTextX" :y="cardBodyHeight / 2 - Math.max(5, e.style.fontSize * .25)" :fill="stroke" :font-size="Math.max(14, e.style.fontSize)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
-      <text :x="cardTextX" :y="cardBodyHeight / 2 + Math.max(16, e.style.fontSize * .85)" :fill="stroke" fill-opacity=".55" :font-size="Math.max(10, e.style.fontSize * .65)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
+      <text :x="cardTextX" :y="cardBodyHeight / 2 - Math.max(5, e.style.fontSize * .25)" :fill="textColor" :font-size="Math.max(14, e.style.fontSize)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
+      <text :x="cardTextX" :y="cardBodyHeight / 2 + Math.max(16, e.style.fontSize * .85)" :fill="textColor" fill-opacity=".55" :font-size="Math.max(10, e.style.fontSize * .65)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
     </g>
     <template v-if="resourceCard && !editing">
       <g
@@ -196,10 +197,10 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     </g>
     <g v-else-if="e.kind === 'connector' && text && !editing" pointer-events="none">
       <rect :x="e.width / 2 - connectorLabelWidth / 2" :y="e.height / 2 - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
-      <text :x="e.width / 2" :y="e.height / 2" :fill="stroke" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
+      <text :x="e.width / 2" :y="e.height / 2" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
     </g>
     <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
-      <div class="annotation-body" :style="{ color: stroke, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>
+      <div class="annotation-body" :style="{ color: textColor, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>
     </foreignObject>
     <foreignObject v-else-if="e.kind === 'web-embed'" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" :pointer-events="interactive ? 'all' : 'none'">
       <div class="web-embed" data-testid="web-embed-frame">
@@ -227,10 +228,10 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
         </div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
-    <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
+    <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="textColor" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
   </g>
 </template>
 

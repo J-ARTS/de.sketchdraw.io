@@ -56,11 +56,11 @@ describe('text edit style draft (#44)', () => {
   test('text and style are saved together and undone together in one step', async () => {
     const { store } = setup(); const id = await drawRect(store);
     store.select([id]); const original = store.state.document.elements[0]!; const before = store.state.revision;
-    store.startTextEdit(id); store.setTextDraft('Hallo'); store.setPropertyDraft({ style: { textAlign: 'center', fontFamily: 'mono' } });
+    store.startTextEdit(id); store.setTextDraft('Hallo'); store.setPropertyDraft({ style: { textAlign: 'center', fontFamily: 'mono', textColor: '#e5533a' } });
     expect(store.state.document.elements[0]!.text).toBe(original.text);
     store.commitTextEdit(); await store.whenIdle();
     expect(store.state.revision).toBe(before + 1);
-    expect(store.state.document.elements[0]).toMatchObject({ text: 'Hallo', style: { textAlign: 'center', fontFamily: 'mono' } });
+    expect(store.state.document.elements[0]).toMatchObject({ text: 'Hallo', style: { textAlign: 'center', fontFamily: 'mono', textColor: '#e5533a' } });
     store.undo(); await store.whenIdle();
     expect(store.state.document.elements[0]!.text).toBe(original.text); expect(store.state.document.elements[0]!.style).toEqual(original.style);
   });

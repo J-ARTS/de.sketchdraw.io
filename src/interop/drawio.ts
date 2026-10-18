@@ -85,8 +85,8 @@ function styleOf(cell: Cell, ctx: ImportContext) {
   s.stroke = color(v['strokeColor'], '#1e293b', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'strokeColor', 'Unsupported stroke replaced.'));
   if(v['fontColor']) {
     const ink=color(v['fontColor'],s.stroke,()=>warn(ctx,node,'STYLE_APPROXIMATED','fontColor','Unsupported text ink replaced.'));
+    s.textColor=ink;
     if(v['text']==='1'||v['shape']==='text')s.stroke=ink;
-    else if(ink!==s.stroke)warn(ctx,node,'TEXT_FORMATTING_LOST','fontColor','Independent label color approximated by shape stroke color.');
   }
   s.strokeWidth = number(v['strokeWidth'], 2);
   s.opacity = number(v['opacity'], 100) / 100;

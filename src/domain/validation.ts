@@ -154,6 +154,7 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
 export const STYLE_KEYS: ReadonlySet<string> = new Set([
   'stroke',
   'fill',
+  'textColor',
   'strokeWidth',
   'opacity',
   'fontSize',
@@ -702,6 +703,20 @@ export function validateStyle(
         path: joinPath(path, 'fill'),
         code: 'INVALID_STYLE_FIELD',
         message: 'Style fill must be a non-empty string within length limits.',
+      });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'textColor')) {
+    if (
+      typeof value.textColor !== 'string' ||
+      value.textColor.length === 0 ||
+      value.textColor.length > DOMAIN_LIMITS.MAX_ID_LENGTH
+    ) {
+      issues.push({
+        path: joinPath(path, 'textColor'),
+        code: 'INVALID_STYLE_FIELD',
+        message: 'Style textColor must be a non-empty string within length limits.',
       });
     }
   }

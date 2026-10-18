@@ -26,8 +26,8 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
   const noteBox = (await note.boundingBox())!;
   const barBox = (await bar.boundingBox())!;
   expect(barBox.y + barBox.height).toBeLessThan(noteBox.y);
-  for (const name of ['Farbe', 'Schriftart', 'Fett', 'Durchgestrichen', 'Dokumentationslink', 'Aufzählung', 'Autor bearbeiten']) {
-    await expect(bar.getByRole('button', { name })).toBeVisible();
+  for (const name of ['Farbe', 'Schriftfarbe', 'Schriftart', 'Fett', 'Durchgestrichen', 'Dokumentationslink', 'Aufzählung', 'Autor bearbeiten']) {
+    await expect(bar.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await expect(bar.getByRole('button', { name: 'Linie' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Textausrichtung' })).toHaveCount(0);
@@ -60,7 +60,7 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
   await expect(page.getByRole('button', { name: 'Link öffnen ↗' })).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await bar.getByRole('button', { name: 'Farbe' }).click();
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
   const colors = page.getByRole('group', { name: 'Farbe', exact: true });
   await expect(colors.getByRole('button', { name: 'Keine Füllung' })).toHaveCount(0);
   await colors.getByRole('button', { name: 'Füllung Hellgrün' }).click();

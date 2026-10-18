@@ -51,6 +51,18 @@ describe('native SVG', () => {
   } expect(flattenPath('M0 0 h10 v10 l-10 0 z m30 0 q10 20 20 0 t20 0 a10 10 0 01 20 0').subpaths).toHaveLength(2); expect(transformPoint(parseTransform('translate(10 20) scale(2)'), { x: 3, y: 4 })).toEqual({ x: 16, y: 28 }); });
 });
 describe('native projection and validated own metadata', () => {
+  it('preserves an independent shape text color in SVG and draw.io projections', () => {
+    const doc = createDocument('Text color');
+    doc.elements = [createElement('rectangle', { id: 'colored', text: 'Independent', style: { ...createElement('rectangle').style, stroke: '#2563eb', textColor: '#e5533a' } })];
+    const svg = prepareSvgExport(doc, { embedDocument: false }).contents;
+    expect(svg).toContain('stroke="#2563eb"');
+    expect(svg).toContain('fill="#e5533a"');
+    const drawio = prepareDrawioExport(doc, { embedDocument: false }).contents;
+    expect(drawio).toContain('strokeColor=#2563eb');
+    expect(drawio).toContain('fontColor=#e5533a');
+    expect(importDrawio(drawio).document.elements[0]!.style).toMatchObject({ stroke: '#2563eb', textColor: '#e5533a' });
+  });
+
   it('exports visible label fallback as native text, including empty text and component labels', () => {
     const doc = allKinds();
     doc.elements = [
