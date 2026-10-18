@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:11:36.994642Z",
+  "updatedAt": "2026-10-18T10:20:04.909428Z",
   "issues": [
     {
       "number": 1,
@@ -1524,7 +1524,7 @@
       "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI, logic and interfaces",
-      "status": "local_verification_complete",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5665,25 +5665,55 @@
       "issues": [
         97
       ],
-      "status": "local_verification_complete",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
       "artifacts": [
-        "git:efe5aa0",
         "src/renderer/components/ElementView.vue",
         "tests/ui/web-embed.spec.ts",
         "tests/electron/desktop.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/97"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/97",
+        "git:efe5aa00b0c58771cb1a59b7b7e25c84f4ced976",
+        "git:a45ac006aacf3f55f074123157a4e60762da02ae",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420"
       ],
       "concerns": [
         "A provider can intentionally deny iframe embedding through Content-Security-Policy frame-ancestors or X-Frame-Options; Sketchdraw preserves that boundary and exposes a visible external-open fallback.",
         "The combination allow-scripts plus allow-same-origin is never granted to a URL matching the Sketchdraw application origin."
       ],
       "authorization": "The user reported the iframe defect and had already authorized Codex to temporarily implement work assigned to Claude Code or Antigravity when necessary, with actual tool attribution.",
-      "measurementSource": "Local macOS arm64 evidence at product commit efe5aa0: typecheck passed; 48/48 Vitest files and 382/382 tests passed; targeted web-embed Playwright tests passed 3/3; full UI regression passed 75/76 with only a symlinked-font test-environment failure, and that font test passed 1/1 after the temporary Vite allowlist was corrected; the built Electron product test passed 1/1 and production build passed. Exact Codex duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Local macOS arm64 evidence at product commit efe5aa0: typecheck passed; 48/48 Vitest files and 382/382 tests passed; targeted web-embed Playwright tests passed 3/3; full UI regression passed 75/76 with only a symlinked-font test-environment failure, and that font test passed 1/1 after the temporary Vite allowlist was corrected; the built Electron product test passed 1/1 and production build passed. Exact Codex duration, token usage and cost were not measured and remain null. Integrated commit a45ac00 passed GitHub Actions run 39118323420 across Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, macOS 15 and Ubuntu 24.04."
+    },
+    {
+      "id": "github-actions-web-embed-39118323420",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        97
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T10:12:17Z",
+      "endedAt": "2026-10-18T10:19:47Z",
+      "observedSeconds": 450,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:a45ac006aacf3f55f074123157a4e60762da02ae",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420/job/117648565720",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420/job/117648565945",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420/job/117648597940",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420/job/117648597952",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39118323420/job/117648598020"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 450 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, macOS 15 and Ubuntu 24.04 completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
