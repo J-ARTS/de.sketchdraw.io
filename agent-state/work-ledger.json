@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:30:11.613775Z",
+  "updatedAt": "2026-10-18T10:39:55Z",
   "issues": [
     {
       "number": 1,
@@ -1541,7 +1541,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI",
-      "status": "local_verification_complete",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5739,7 +5739,7 @@
       "issues": [
         98
       ],
-      "status": "local_verification_complete",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5749,13 +5749,43 @@
         "git:5992850",
         "src/renderer/components/AnnotationEditor.vue",
         "tests/ui/annotation.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/98"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/98",
+        "git:8c8e6fc8375a89a963dc06083368878991b4cc88",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401"
       ],
       "concerns": [
         "The global list reset intentionally removes markers for application navigation lists; marker styles therefore remain scoped to the annotation editor only."
       ],
       "authorization": "The user reported the annotation editing defect and had already authorized Codex to temporarily implement UI work assigned to Claude Code when necessary, with actual tool attribution.",
-      "measurementSource": "Local macOS arm64 evidence at product commit 5992850: the pre-fix Playwright regression reproduced list-style-type none; after the fix the annotation UI test passed 1/1 with disc and decimal markers, typecheck passed, and annotation Vitest tests passed 4/4. Exact Codex duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Local macOS arm64 evidence at product commit 5992850: the pre-fix Playwright regression reproduced list-style-type none; after the fix the annotation UI test passed 1/1 with disc and decimal markers, typecheck passed, and annotation Vitest tests passed 4/4. Exact Codex duration, token usage and cost were not measured and remain null. Integrated state 8c8e6fc then passed GitHub Actions run 39119528401: Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025."
+    },
+    {
+      "id": "github-actions-annotation-list-markers-39119528401",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        98
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T10:30:32Z",
+      "endedAt": "2026-10-18T10:39:55Z",
+      "observedSeconds": 563,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8c8e6fc8375a89a963dc06083368878991b4cc88",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401/job/117652098069",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401/job/117652098242",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401/job/117652141545",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401/job/117652141558",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39119528401/job/117652141812"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 563 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
