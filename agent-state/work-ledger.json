@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:19:14.557380Z",
+  "updatedAt": "2026-10-18T09:27:02.757162Z",
   "issues": [
     {
       "number": 1,
@@ -1484,6 +1484,21 @@
         46,
         47
       ]
+    },
+    {
+      "number": 95,
+      "title": "Laserpointer: Zauberstab-Symbol durch eindeutiges Zeiger-Icon ersetzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/95",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code 2.1.185 / OpenAI Codex verification",
+      "phase": "UI",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -5468,6 +5483,53 @@
         "GitHub emitted a non-blocking annotation that actions/checkout@v4 and actions/setup-python@v5 target deprecated Node.js 20 action runtimes and were forced to Node.js 24 by the runner."
       ],
       "measurementSource": "Fresh GitHub read confirmed overall success at head 5e97c77. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu, macOS and Windows all completed successfully. The observed duration is derived from GitHub run createdAt and updatedAt; tokens and cost are unavailable and remain null."
+    },
+    {
+      "id": "claude-laser-icon-95",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [
+        95
+      ],
+      "status": "implementation_completed_test_report_blocked_by_session_limit",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/icons.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/95"
+      ],
+      "concerns": [
+        "Claude Code completed the bounded icon implementation but reached its session limit before returning a final test report; no Claude-authored test result is claimed."
+      ],
+      "authorization": "The user explicitly stated that Claude Code can be used again for UI work.",
+      "measurementSource": "Claude Code 2.1.185 changed only the laser icon paths. The configured model was not reliably exposed in the command output; duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-laser-icon-verification-95",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        95
+      ],
+      "status": "integrated_and_locally_verified_ci_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0b0173d8f2c1a83bc4862416d85f6004f356210a",
+        "src/renderer/components/icons.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/95"
+      ],
+      "concerns": [
+        "Cross-platform GitHub Actions evidence remains pending; local evidence is macOS arm64 only."
+      ],
+      "authorization": "Codex retains testing responsibility and was authorized to integrate and verify the requested UI correction.",
+      "measurementSource": "On the isolated target-main worktree, npm run typecheck passed and 26/26 relevant Playwright UI tests passed. Active and inactive toolbar states were visually inspected in the running Electron app. Exact duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

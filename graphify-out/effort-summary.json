@@ -3205,6 +3205,39 @@
         "codex-live-ui-page-table-connectors-35-89-91",
         "github-actions-ui-canvas-39112934986"
       ]
+    },
+    "95": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        },
+        "runCount": 2,
+        "runIds": [
+          "claude-laser-icon-95",
+          "codex-laser-icon-verification-95"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 2
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
     }
   },
   "byTool": {
@@ -3289,15 +3322,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       },
       "observedSeconds": {
         "knownRuns": 4,
         "knownSubtotal": 2680.3404180409852,
         "total": null,
-        "unknownRuns": 14
+        "unknownRuns": 15
       },
-      "runCount": 18,
+      "runCount": 19,
       "runIds": [
         "claude-architecture-001",
         "claude-architecture-002",
@@ -3311,6 +3344,7 @@
         "claude-code-sticky-ui-review-050",
         "claude-code-text-edit-toolbar-attempt-044",
         "claude-comments-review-059",
+        "claude-laser-icon-95",
         "claude-page-rename-ui-035",
         "claude-page-ui-cleanup-035",
         "claude-selection-popover-anchor-038",
@@ -3322,7 +3356,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       }
     },
     "codex": {
@@ -3490,17 +3524,18 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       },
-      "runCount": 8,
+      "runCount": 9,
       "runIds": [
         "codex-build-composable-evaluation-73",
+        "codex-laser-icon-verification-95",
         "codex-live-ui-page-table-connectors-35-89-91",
         "codex-plugin-platform-local-66-69",
         "codex-shape-header-regression-89",
@@ -3513,7 +3548,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       }
     }
   },
@@ -3522,15 +3557,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 147
+      "unknownRuns": 149
     },
     "observedSeconds": {
       "knownRuns": 45,
       "knownSubtotal": 22769.322263248963,
       "total": null,
-      "unknownRuns": 102
+      "unknownRuns": 104
     },
-    "runCount": 147,
+    "runCount": 149,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3574,6 +3609,7 @@
       "claude-code-sticky-ui-review-050",
       "claude-code-text-edit-toolbar-attempt-044",
       "claude-comments-review-059",
+      "claude-laser-icon-95",
       "claude-page-rename-ui-035",
       "claude-page-ui-cleanup-035",
       "claude-selection-popover-anchor-038",
@@ -3605,6 +3641,7 @@
       "codex-graph-001",
       "codex-interop-001",
       "codex-interop-contract-001",
+      "codex-laser-icon-verification-95",
       "codex-laser-pointer-062",
       "codex-laser-pointer-ci-stability-064",
       "codex-live-ui-page-table-connectors-35-89-91",
@@ -3684,7 +3721,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 143
+      "unknownRuns": 145
     }
   },
   "officialScoreClaimReady": false,
@@ -3694,9 +3731,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 79
+    "unknownIssues": 80
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:19:14.557380Z"
+  "updatedAt": "2026-10-18T09:27:02.757162Z"
 }
