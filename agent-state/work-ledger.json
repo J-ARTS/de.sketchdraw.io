@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:55:40Z",
+  "updatedAt": "2026-10-18T11:05:10Z",
   "issues": [
     {
       "number": 1,
@@ -1558,7 +1558,7 @@
       "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI and logic",
-      "status": "local_verification_complete",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5829,7 +5829,7 @@
       "issues": [
         99
       ],
-      "status": "local_verification_complete",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5843,14 +5843,45 @@
         "tests/ui/comments-tasks.spec.ts",
         "tests/unit/comments-tasks.spec.ts",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/99",
-        "git:e64a71a"
+        "git:e64a71a",
+        "git:e64a71a02927609340ef1ccf6c02812fd358e51f",
+        "git:8ad1f9089e760cc0a9b048c7d3ba4ddba68c72e2",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548"
       ],
       "concerns": [
         "Free canvas comments reuse the existing absolute fallback coordinate and therefore require no document-schema migration.",
         "The full isolated UI run passed 76 of 77 tests; the only failure came from font files blocked by Vite because node_modules was symlinked outside the temporary worktree. Targeted comment tests passed and the environment-only finding was dismissed in issue #100."
       ],
       "authorization": "The user requested Figma-like freely placeable comment markers that can also select elements and had already authorized Codex to temporarily implement UI and logic work with actual tool attribution.",
-      "measurementSource": "Local macOS arm64 evidence: typecheck passed; 48/48 Vitest files and 383/383 tests passed; targeted comment UI tests passed 3/3 including Axe; production build passed; 59/59 build-lifecycle tests and 22/22 Graphify tests passed. Exact Codex duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Local macOS arm64 evidence at product commit e64a71a: typecheck passed; 48/48 Vitest files and 383/383 tests passed; targeted comment UI tests passed 3/3 including Axe; the regular project path passed the three comment tests plus the font control test 4/4; production build passed; 59/59 build-lifecycle tests and 22/22 Graphify tests passed. Integrated state 8ad1f90 passed GitHub Actions run 39121186548: Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-comment-marker-targets-39121186548",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        99
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T10:55:53Z",
+      "endedAt": "2026-10-18T11:05:10Z",
+      "observedSeconds": 557,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8ad1f9089e760cc0a9b048c7d3ba4ddba68c72e2",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548/job/117656955968",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548/job/117656956070",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548/job/117656985809",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548/job/117656985829",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39121186548/job/117656985868"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 557 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15 and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
