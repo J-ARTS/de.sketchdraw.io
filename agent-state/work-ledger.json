@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T13:20:58.304311Z",
+  "updatedAt": "2026-10-18T13:43:28.789149Z",
   "issues": [
     {
       "number": 1,
@@ -975,7 +975,7 @@
       "title": "Optionsleiste für Freihandstift und Radierer",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
       "owner": "Claude Code (UI), Google Antigravity (logic), OpenAI Codex (testing)",
-      "phase": "Canvas eraser interaction and cross-platform verification",
+      "phase": "Canvas pencil size interaction and cross-platform verification",
       "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
@@ -6397,6 +6397,87 @@
       "concerns": [],
       "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 61 eraser-radius enhancement into main.",
       "measurementSource": "GitHub Actions run 39130528111 timestamps report 486 seconds elapsed. Governance/Graphify, Direct P2P, and complete Build & Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all succeeded. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-pencil-size-preview-61",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        61
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bc2abed3dd50e6a4ebe481cbd61b79bc4edf4f03",
+        "src/renderer/components/ToolOptionsBar.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/drawing-tools.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "tests/unit/renderer/guest-store.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219"
+      ],
+      "concerns": [
+        "Graphify source refresh was guarded: the new extraction had 4,293 nodes versus 4,453 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket/run links were refreshed and validated instead."
+      ],
+      "authorization": "The user explicitly requested the eraser-style size control and pointer circle for the pencil. Codex remains authorized to implement temporarily with Claude Code UI and Antigravity logic ownership retained and actual-tool attribution recorded.",
+      "measurementSource": "Local macOS evidence at product commit bc2abed: typecheck passed; 388/388 Vitest tests, 81/81 browser UI tests, 6/6 Electron tests and the production build passed. Browser inspection at 320 px confirmed the responsive control and a 100 px pencil footprint shown as a 50 px radius circle. Exact Codex duration, token usage and cost were not measured and remain null. GitHub Actions run 39132326219 passed all five jobs on the exact product commit."
+    },
+    {
+      "id": "github-actions-pencil-size-preview-39132326219",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        61
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T13:37:01Z",
+      "endedAt": "2026-10-18T13:43:07Z",
+      "observedSeconds": 366,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bc2abed3dd50e6a4ebe481cbd61b79bc4edf4f03",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219/job/117689846613",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219/job/117689846861",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219/job/117689874980",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219/job/117689875003",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132326219/job/117689875014"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 61 product change to main.",
+      "measurementSource": "GitHub Actions run 39132326219 verified exact commit bc2abed3dd50e6a4ebe481cbd61b79bc4edf4f03. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between recorded run start and completion timestamps."
+    },
+    {
+      "id": "github-actions-pencil-size-preview-duplicate-39132341236",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        61
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T13:37:13Z",
+      "endedAt": "2026-10-18T13:42:28Z",
+      "observedSeconds": 315,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bc2abed3dd50e6a4ebe481cbd61b79bc4edf4f03",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39132341236"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled as a duplicate after the delayed main-branch run appeared. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered while the authorized main push had not yet appeared in the Actions run list, then cancelled once the authoritative main run became visible.",
+      "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39132341236. Duration reflects creation to final cancellation; no completed cross-platform claim is made from this run."
     }
   ],
   "evidencePolicy": {
