@@ -19,7 +19,8 @@ export type IconName = ToolIconName | ActionIconName;
 
 /** 24x24 grid, drawn as 1.75 px round-capped strokes in currentColor. */
 export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
-  select: ['M4.5 3.5l15 7.1-6.1 2.3 3 5.9-3.2 1.7-3-6-5.7 2.1z'],
+  // Classic mouse pointer with tail (#94).
+  select: ['M5.5 3v15.5l4.2-4 3 6.8 2.6-1.2-3-6.6h5.9z'],
   hand: [
     'M9 14V6.5a1.5 1.5 0 0 1 3 0V12',
     'M12 12V4.5a1.5 1.5 0 0 1 3 0V12',
