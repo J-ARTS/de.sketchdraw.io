@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T17:21:57.810003+00:00",
+  "updatedAt": "2026-10-18T18:17:08.993280+00:00",
   "issues": [
     {
       "number": 1,
@@ -1772,6 +1772,23 @@
       },
       "dependencies": [
         36
+      ]
+    },
+    {
+      "number": 115,
+      "title": "Cloud-Karten haben zu viel Abstand zwischen Name und Provider",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/115",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        92
       ]
     }
   ],
@@ -7192,6 +7209,107 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
       "measurementSource": "GitHub Actions timestamps report 104 seconds from creation to final cancellation. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-cloud-card-spacing-115",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        115
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:97a82d80a9eff2bb74715fa50d3f8e4979848553",
+        "src/renderer/components/ElementView.vue",
+        "tests/ui/official-library.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/115",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601"
+      ],
+      "concerns": [
+        "The first Playwright invocation reused an unrelated development server already listening on port 5173 and therefore loaded stale markup without the new test hooks. The complete specification passed against an isolated current-branch server on port 5185.",
+        "Graphify source refresh was guarded: the new extraction had 4,679 nodes versus 4,699 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately.",
+        "The CI run directly triggered by the product commit was automatically cancelled when later unrelated main-branch commits arrived. The successful current-main run 39152740601 contains product commit 97a82d8 as an ancestor and is used as the integration evidence."
+      ],
+      "authorization": "The user explicitly requested reducing the excessive vertical spacing between the cloud component name and provider label. Codex remains authorized to implement temporarily while recording the regular Claude Code ownership separately.",
+      "measurementSource": "Local macOS evidence at product commit 97a82d8: typecheck and all four official-library UI tests passed against isolated Vite port 5185, including AWS, Azure, GCP, Kubernetes and a two-line Azure title; a rendered Batch AI card was inspected visually. GitHub Actions run 39152740601 verified the integrated descendant a3e1aaf across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-cloud-card-spacing-direct-39151711616",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        115
+      ],
+      "status": "cancelled_superseded",
+      "startedAt": "2026-10-18T17:54:23Z",
+      "endedAt": "2026-10-18T18:03:17Z",
+      "observedSeconds": 534,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:97a82d80a9eff2bb74715fa50d3f8e4979848553",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39151711616"
+      ],
+      "concerns": [
+        "The direct main-branch run was automatically superseded by later unrelated main commits. It is not used as completion evidence."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 115 product change into main.",
+      "measurementSource": "GitHub Actions timestamps report 534 seconds from creation to cancellation. The run was superseded rather than failed; no completion claim is made from it."
+    },
+    {
+      "id": "github-actions-cloud-card-spacing-integrated-39152740601",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        115
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T18:07:52Z",
+      "endedAt": "2026-10-18T18:16:22Z",
+      "observedSeconds": 510,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:a3e1aafba2942c0dad6cc6ef622f81e369c8dd70",
+        "git:97a82d80a9eff2bb74715fa50d3f8e4979848553",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601/job/117749789061",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601/job/117749789254",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601/job/117749829122",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601/job/117749829158",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39152740601/job/117749829341"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification ran on the current integrated main descendant containing the authorized Issue 115 fix.",
+      "measurementSource": "GitHub Actions timestamps report 510 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-cloud-card-spacing-duplicate-39151711607",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        115
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T17:54:23Z",
+      "endedAt": "2026-10-18T17:56:13Z",
+      "observedSeconds": 110,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:97a82d80a9eff2bb74715fa50d3f8e4979848553",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39151711607"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
+      "measurementSource": "GitHub Actions timestamps report 110 seconds from creation to final cancellation. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {
