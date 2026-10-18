@@ -46,6 +46,7 @@ test('the sidebar searches and inserts official AWS and Kubernetes components', 
   await search.fill('');
   await sidebar.getByRole('button', { name: /^Kubernetes 39 Symbole/ }).click();
   await expect(sidebar.getByRole('heading', { name: 'Kubernetes' })).toBeVisible();
+  await search.fill('Pod');
   const pod = sidebar.getByRole('button', { name: /^Pod KUBERNETES/i });
   await expect(pod).toBeVisible();
   await pod.click();
