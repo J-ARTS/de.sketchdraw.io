@@ -3380,6 +3380,40 @@
         "github-actions-ui-canvas-39112934986"
       ]
     },
+    "92": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        },
+        "observedSeconds": {
+          "knownRuns": 2,
+          "knownSubtotal": 1011,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 3,
+        "runIds": [
+          "codex-official-cloud-library-cards-92",
+          "github-actions-official-cloud-library-39135038919",
+          "github-actions-official-cloud-library-initial-39134514893"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 3
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "95": {
       "exclusiveRuns": {
         "costUsd": {
@@ -3777,15 +3811,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 46
+        "unknownRuns": 48
       },
       "observedSeconds": {
-        "knownRuns": 40,
-        "knownSubtotal": 18265,
+        "knownRuns": 42,
+        "knownSubtotal": 19276,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 46,
+      "runCount": 48,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -3807,6 +3841,8 @@
         "github-actions-keychain-profile-39056131370",
         "github-actions-laser-icon-39115392968",
         "github-actions-laser-pointer-39094577826",
+        "github-actions-official-cloud-library-39135038919",
+        "github-actions-official-cloud-library-initial-39134514893",
         "github-actions-page-rename-39069887042",
         "github-actions-page-ui-cleanup-39068735903",
         "github-actions-pencil-eraser-options-39093583086",
@@ -3838,7 +3874,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 46
+        "unknownRuns": 48
       }
     },
     "openai-codex": {
@@ -3846,15 +3882,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 22
+        "unknownRuns": 23
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 22
+        "unknownRuns": 23
       },
-      "runCount": 22,
+      "runCount": 23,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -3865,6 +3901,7 @@
         "codex-eraser-radius-preview-61",
         "codex-laser-icon-verification-95",
         "codex-live-ui-page-table-connectors-35-89-91",
+        "codex-official-cloud-library-cards-92",
         "codex-pencil-size-preview-61",
         "codex-plugin-platform-local-66-69",
         "codex-shape-header-regression-89",
@@ -3883,7 +3920,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 22
+        "unknownRuns": 23
       }
     }
   },
@@ -3892,15 +3929,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 177
+      "unknownRuns": 180
     },
     "observedSeconds": {
-      "knownRuns": 60,
-      "knownSubtotal": 30887.322263248963,
+      "knownRuns": 62,
+      "knownSubtotal": 31898.322263248963,
       "total": null,
-      "unknownRuns": 117
+      "unknownRuns": 118
     },
-    "runCount": 177,
+    "runCount": 180,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3991,6 +4028,7 @@
       "codex-mcp-takeover-001",
       "codex-native-integration-002",
       "codex-noncommercial-license-029",
+      "codex-official-cloud-library-cards-92",
       "codex-orchestration-001",
       "codex-owned-process-cleanup-003",
       "codex-p2p-001",
@@ -4053,6 +4091,8 @@
       "github-actions-keychain-profile-39056131370",
       "github-actions-laser-icon-39115392968",
       "github-actions-laser-pointer-39094577826",
+      "github-actions-official-cloud-library-39135038919",
+      "github-actions-official-cloud-library-initial-39134514893",
       "github-actions-page-rename-39069887042",
       "github-actions-page-ui-cleanup-39068735903",
       "github-actions-pencil-eraser-options-39093583086",
@@ -4084,7 +4124,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 173
+      "unknownRuns": 176
     }
   },
   "officialScoreClaimReady": false,
@@ -4094,9 +4134,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 89
+    "unknownIssues": 90
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T13:43:28.789149Z"
+  "updatedAt": "2026-10-18T14:24:41.734167Z"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T13:43:28.789149Z",
+  "updatedAt": "2026-10-18T14:24:41.734167Z",
   "issues": [
     {
       "number": 1,
@@ -1484,6 +1484,23 @@
         45,
         46,
         47
+      ]
+    },
+    {
+      "number": 92,
+      "title": "Bibliothek: vollständige offizielle Icon-Sets für AWS, Azure, Google Cloud und Kubernetes",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/92",
+      "owner": "Claude Code (UI), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and architecture",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        48
       ]
     },
     {
@@ -6478,6 +6495,95 @@
       ],
       "authorization": "The duplicate branch verification was triggered while the authorized main push had not yet appeared in the Actions run list, then cancelled once the authoritative main run became visible.",
       "measurementSource": "GitHub Actions run metadata for cancelled duplicate run 39132341236. Duration reflects creation to final cancellation; no completed cross-platform claim is made from this run."
+    },
+    {
+      "id": "codex-official-cloud-library-cards-92",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        92
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:ffc5c063cc05d0d16760d34f7278f04921092b00",
+        "git:232a58d9b1fe10f0e0bff7c16b2f356cee00b20e",
+        "git:0c4bee129474b832fad85f9e8d112feeda76fd8b",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/lib/component-drag.ts",
+        "tests/ui/official-library.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/92",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919"
+      ],
+      "concerns": [
+        "Existing compact cloud components below 120 by 120 document units intentionally retain their prior renderer; new official components use the 168 by 168 card renderer.",
+        "The first Windows run exposed a timing-dependent legacy test that assumed Pod stayed in the first open category after asynchronous library loading. Commit 0c4bee1 made the test use the supported search flow; the exact corrected revision passed all platforms.",
+        "Graphify source refresh was guarded: the new extraction had 4,431 nodes versus 4,481 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested category padding and square visual cards for inserted AWS, Azure, Kubernetes and Google Cloud icons. Codex remains authorized to implement UI work temporarily with Claude Code UI ownership retained and actual-tool attribution recorded.",
+      "measurementSource": "Local macOS evidence at commit 232a58d plus test fix 0c4bee1: typecheck and production build passed; 401/401 Vitest unit tests, 84/84 browser UI and accessibility tests, 6/6 Electron tests, and 59/59 Node lifecycle tests passed. GitHub Actions run 39135038919 verified exact commit 0c4bee1 on Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-official-cloud-library-initial-39134514893",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        92
+      ],
+      "status": "failed_test_race_then_corrected",
+      "startedAt": "2026-10-18T14:06:43Z",
+      "endedAt": "2026-10-18T14:12:54Z",
+      "observedSeconds": 371,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:232a58d9b1fe10f0e0bff7c16b2f356cee00b20e",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893/job/117696196636",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893/job/117696196795",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893/job/117696234261",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893/job/117696234388",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39134514893/job/117696234479"
+      ],
+      "concerns": [
+        "Windows passed the new four-provider card test but the legacy AWS and Kubernetes search test failed because it assumed Pod remained in the first category while the full library loaded asynchronously; commit 0c4bee1 corrected the test flow."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 92 product commits into main.",
+      "measurementSource": "GitHub Actions run 39134514893 timestamps and conclusions. Governance, Direct P2P, Ubuntu and macOS passed; Windows reached the browser UI suite and failed only the timing-dependent legacy Kubernetes lookup. This run is retained as failure evidence and is not used as the completion claim."
+    },
+    {
+      "id": "github-actions-official-cloud-library-39135038919",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        92
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T14:13:39Z",
+      "endedAt": "2026-10-18T14:24:19Z",
+      "observedSeconds": 640,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0c4bee129474b832fad85f9e8d112feeda76fd8b",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919/job/117697720291",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919/job/117697720466",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919/job/117697753713",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919/job/117697753726",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39135038919/job/117697753825"
+      ],
+      "concerns": [
+        "The Windows Playwright browser download took about three and a half minutes but completed successfully; all product and package checks then passed."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 92 deterministic test correction to main.",
+      "measurementSource": "GitHub Actions run 39135038919 timestamps report 640 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
