@@ -11,6 +11,7 @@ import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
+import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -105,6 +106,18 @@ function wheel(event: WheelEvent) {
   const box = canvas.value!.getBoundingClientRect();
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
 }
+function dragOver(event: DragEvent): void {
+  if (!peekComponentDrag() && !event.dataTransfer?.types.includes(COMPONENT_DRAG_MIME)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+}
+function dropComponent(event: DragEvent): void {
+  const payload = takeComponentDrag();
+  if (!payload || !canvas.value) return;
+  event.preventDefault();
+  const box = canvas.value.getBoundingClientRect();
+  void store.insertComponent(payload.set, payload.type, { x: event.clientX - box.left, y: event.clientY - box.top });
+}
 watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); if (value.kind !== 'annotation') { autosize(); editor.value?.focus(); editor.value?.select(); } } else canvas.value?.focus({ preventScroll: true }); });
 watch(() => [s.textEdit?.draft, s.viewport.zoom], () => { void nextTick(autosize); });
 useResizeObserver(canvas, ([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
@@ -113,7 +126,7 @@ onMounted(() => canvas.value?.focus());
 
 <template>
   <div class="canvas-wrap">
-    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
+    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">

@@ -1584,9 +1584,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
     toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
     setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
-    async insertComponent(set: ComponentSet, type: string) {
+    async insertComponent(set: ComponentSet, type: string, screenAt?: Point) {
       if (state.transitioning) return;
-      try { const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at: currentCenter() }); if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; } }
+      try {
+        const definition = set.components.find((component) => component.type === type);
+        const centre = screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter();
+        const at = definition
+          ? { x: centre.x - definition.defaultWidth / 2, y: centre.y - definition.defaultHeight / 2 }
+          : centre;
+        const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at });
+        if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; }
+      }
       catch (error) { fail(error); }
     },
     async importComponentSet(file) {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { createController, createDocument, createElement, deserializeDocument, type DesktopBridge, type SaveDocumentResult } from '@/domain';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { PointerInput, WhiteboardStore } from '@/renderer/state/contract';
+import { builtInComponentSets } from '@/catalog';
 
 const stores: WhiteboardStore[] = [];
 afterEach(() => { for (const store of stores.splice(0)) store.dispose(); });
@@ -24,6 +25,25 @@ async function draw(store: WhiteboardStore, kind = 'rectangle' as 'rectangle' | 
 async function tick() { await new Promise(resolve => setTimeout(resolve, 0)); }
 
 describe('Whiteboard uses the real session gateway', () => {
+  test('component insertion centres click and drop positions on the requested point', async () => {
+    const { store } = setup();
+    store.setViewportSize(1000, 700);
+    const set = builtInComponentSets.find((candidate) => candidate.id === 'sketchdraw.aws')!;
+    const definition = set.components[0]!;
+
+    await store.insertComponent(set, definition.type);
+    await store.whenIdle();
+    expect(store.state.document.elements[0]).toMatchObject({
+      width: 168, height: 168, x: 500 - 84, y: 350 - 84,
+    });
+
+    await store.insertComponent(set, definition.type, { x: 260, y: 310 });
+    await store.whenIdle();
+    expect(store.state.document.elements[1]).toMatchObject({
+      width: 168, height: 168, x: 260 - 84, y: 310 - 84,
+    });
+  });
+
   test('laser input stays outside the document, drafts and undo history', async () => {
     const { store } = setup();
     const document = store.state.document;

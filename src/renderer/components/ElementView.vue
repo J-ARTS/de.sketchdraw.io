@@ -20,6 +20,13 @@ const dash = computed(() => e.value.style.strokeDash === 'dashed' ? '8 6' : e.va
 const asset = computed(() => props.document.assets[e.value.assetId ?? '']);
 const definition = computed(() => props.document.componentSets.flatMap((set) => set.components).find((c) => c.type === e.value.componentType));
 const resourceCard = computed(() => isResourceCard(e.value));
+const cloudProvider = computed(() => {
+  const provider = definition.value?.provider;
+  return provider === 'aws' || provider === 'azure' || provider === 'gcp' || provider === 'kubernetes' ? provider : null;
+});
+const cloudCard = computed(() => Boolean(cloudProvider.value) && e.value.width >= 120 && e.value.height >= 120);
+const cloudProviderLabel = computed(() => cloudProvider.value === 'gcp' ? 'GCP' : cloudProvider.value?.toUpperCase() ?? '');
+const cloudIconSize = computed(() => Math.max(40, Math.min(64, e.value.width * .38, e.value.height * .38)));
 const definitions = computed(() => [...props.document.componentSets, ...builtInComponentSets].flatMap((set) => set.components));
 const resourceIcon = computed(() => definitions.value.find((candidate) => candidate.type === resourceCardIconType(e.value)) ?? definition.value);
 const cardLinks = computed(() => resourceCardLinks(e.value));
@@ -41,6 +48,20 @@ function clampCardLinkLabel(value: string, count: number, size: number): string 
 const cardTitle = computed(() => clampCardText(e.value.text || e.value.label || 'Ressourcenkarte', Math.max(14, e.value.style.fontSize)));
 const cardDescription = computed(() => clampCardText((e.value.description || 'BESCHREIBUNG').toUpperCase(), Math.max(10, e.value.style.fontSize * .65)));
 const text = computed(() => e.value.text || e.value.label || '');
+function wrapCloudTitle(value: string): string[] {
+  const max = Math.max(8, Math.floor((e.value.width - 24) / 8));
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  for (const word of words) {
+    if (!lines.length) { lines.push(word); continue; }
+    const candidate = `${lines[lines.length - 1]} ${word}`;
+    if (candidate.length <= max || lines.length >= 2) lines[lines.length - 1] = candidate;
+    else lines.push(word);
+  }
+  return lines.slice(0, 2).map((line) => line.length > max ? `${line.slice(0, Math.max(1, max - 1))}…` : line);
+}
+const cloudTitleLines = computed(() => wrapCloudTitle(text.value || definition.value?.name || 'Komponente'));
+const cloudTitleY = computed(() => cloudTitleLines.value.length > 1 ? Math.max(94, 24 + cloudIconSize.value) : Math.max(104, 30 + cloudIconSize.value));
 const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? 'Schreib etwas, @erwähne jemanden' : text.value);
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
@@ -79,7 +100,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
 </script>
 
 <template>
-  <g :data-element-id="e.id" :data-kind="e.kind" :data-shape-variant="shape?.id" :data-resource-icon-type="resourceCard ? resourceCardIconType(e) : undefined" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
+  <g :data-element-id="e.id" :data-kind="e.kind" :data-shape-variant="shape?.id" :data-resource-icon-type="resourceCard ? resourceCardIconType(e) : undefined" :data-cloud-provider="cloudCard ? cloudProvider : undefined" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
     <title>{{ describeElement(e, document) }}</title>
     <defs>
       <clipPath :id="`${uid}-clip`"><rect :width="e.width" :height="e.height" /></clipPath>
@@ -109,6 +130,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
         <rect data-testid="resource-card-surface" :width="e.width" :height="e.height" rx="8" />
         <path :d="`M0 ${e.height - cardFooterHeight} H${e.width} V${e.height - 8} Q${e.width} ${e.height} ${e.width - 8} ${e.height} H8 Q0 ${e.height} 0 ${e.height - 8} Z`" fill="var(--accent-soft)" stroke="none" />
       </template>
+      <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" fill="var(--surface-raised)" stroke="var(--border-subtle)" :stroke-width="Math.max(1, e.style.strokeWidth)" />
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
@@ -119,7 +141,14 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
     <svg v-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" /></svg>
+    <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
+    <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
+      <text :x="e.width / 2" :y="cloudTitleY" fill="var(--text-primary)" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
+        <tspan v-for="(line, index) in cloudTitleLines" :key="`${index}:${line}`" :x="e.width / 2" :dy="index === 0 ? 0 : 18">{{ line }}</tspan>
+      </text>
+      <text :x="e.width / 2" :y="e.height - 16" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
+    </g>
     <g v-if="resourceCard && !editing" data-testid="resource-card-content" pointer-events="none">
       <text :x="cardTextX" :y="cardBodyHeight / 2 - Math.max(5, e.style.fontSize * .25)" :fill="stroke" :font-size="Math.max(14, e.style.fontSize)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
       <text :x="cardTextX" :y="cardBodyHeight / 2 + Math.max(16, e.style.fontSize * .85)" :fill="stroke" fill-opacity=".55" :font-size="Math.max(10, e.style.fontSize * .65)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
@@ -181,7 +210,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
         </div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table', 'web-embed', 'frame'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !['annotation', 'table', 'web-embed', 'frame'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>

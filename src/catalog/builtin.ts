@@ -257,8 +257,8 @@ function officialComponent(spec: OfficialComponentSpec): ComponentDefinition {
   return {
     ...spec,
     aliases: spec.aliases.map((alias) => alias.replaceAll(' ', '-')),
-    defaultWidth: 160,
-    defaultHeight: 80,
+    defaultWidth: 168,
+    defaultHeight: 168,
     style: { stroke: theme.stroke, fill: theme.fill },
     metadata: {
       provenance: 'official-architecture-icon',

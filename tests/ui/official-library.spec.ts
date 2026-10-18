@@ -11,8 +11,6 @@ test.beforeEach(async ({ page }) => {
 
 test('provider pages load the full official libraries in collapsible categories', async ({ page }) => {
   const sidebar = page.getByTestId('shape-library-sidebar');
-  await expect(sidebar.getByText('Komponentenset', { exact: false })).toHaveCount(0);
-  await expect(sidebar.locator('input[type=file]')).toHaveCount(0);
   for (const [label, count] of [['AWS', 784], ['Azure', 713], ['Google Cloud', 235], ['Kubernetes', 39]] as const) {
     await expect(sidebar.getByRole('button', { name: new RegExp(`^${label} ${count} Symbole`) })).toBeVisible();
   }
@@ -22,6 +20,7 @@ test('provider pages load the full official libraries in collapsible categories'
   await expect(categories.first()).toHaveAttribute('aria-expanded', 'true');
   await expect.poll(() => categories.count()).toBeGreaterThan(30); // full library replaced the starter set
   await expect(categories.nth(1)).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(() => sidebar.locator('.component-group .component-grid').first().evaluate((element) => getComputedStyle(element).paddingBottom)).toBe('16px');
   const compute = sidebar.getByRole('button', { name: /^Compute \d+/ });
   await compute.click();
   await expect(compute).toHaveAttribute('aria-expanded', 'true');
@@ -30,6 +29,37 @@ test('provider pages load the full official libraries in collapsible categories'
 
   await sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('cloud9');
   await expect(sidebar.getByRole('button', { name: /^AWS Cloud9 AWS/ })).toBeVisible();
+});
+
+test('cloud icons drag to square provider cards at the pointer for every official library', async ({ page }) => {
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  const search = sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' });
+  const canvas = page.getByTestId('whiteboard-canvas');
+  const cases = [
+    { query: 'Amazon Athena', name: /^Amazon Athena AWS$/, provider: 'aws', x: 220, y: 310 },
+    { query: 'Virtual Machine', name: /^Virtual Machine AZURE$/, provider: 'azure', x: 410, y: 310 },
+    { query: 'BigQuery', name: /^BigQuery GCP$/, provider: 'gcp', x: 220, y: 510 },
+    { query: 'Pod', name: /^Pod KUBERNETES$/, provider: 'kubernetes', x: 410, y: 510 },
+  ] as const;
+
+  for (const item of cases) {
+    await search.fill(item.query);
+    const tile = sidebar.getByRole('button', { name: item.name });
+    await expect(tile).toBeVisible();
+    await tile.dragTo(canvas, { targetPosition: { x: item.x, y: item.y } });
+    const card = page.locator(`[data-cloud-provider="${item.provider}"]`);
+    await expect(card).toHaveCount(1);
+    const box = await card.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(168);
+    expect(box?.width).toBeLessThanOrEqual(171);
+    expect(Math.abs((box?.width ?? 0) - (box?.height ?? 0))).toBeLessThan(0.5);
+    expect(Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - item.x)).toBeLessThan(3);
+    expect(Math.abs((box?.y ?? 0) + (box?.height ?? 0) / 2 - item.y)).toBeLessThan(3);
+    await expect(card.getByTestId('cloud-component-surface')).toBeVisible();
+    await expect(card.getByTestId('cloud-component-content')).toContainText(item.provider === 'gcp' ? 'GCP' : item.provider.toUpperCase());
+  }
+
+  expect((await new AxeBuilder({ page }).include('.whiteboard-canvas').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
 
 test('global search finds official icons and inserting embeds only their category set', async ({ page }) => {

@@ -401,7 +401,8 @@ export interface WhiteboardStore {
   resetCodeDraft(): void;
   toggleCatalog(): void;
   setCatalogOpen(open: boolean): void;
-  insertComponent(set: ComponentSet, type: string): Promise<void>;
+  /** Inserts a component at the canvas centre or, when supplied, centred on a screen-space point. */
+  insertComponent(set: ComponentSet, type: string, screenAt?: Point): Promise<void>;
   importComponentSet(file: File): Promise<void>;
   whenIdle(): Promise<void>;
   needsCloseWarning(): boolean;

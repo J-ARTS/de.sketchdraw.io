@@ -27,6 +27,8 @@ describe.each(OFFICIAL_PROVIDERS)('official %s library', (provider) => {
       for (const component of set.components) {
         expect(component.provider).toBe(provider);
         expect(component.metadata?.provenance).toBe('official-architecture-icon');
+        expect(component.defaultWidth).toBe(168);
+        expect(component.defaultHeight).toBe(168);
       }
     }
   });

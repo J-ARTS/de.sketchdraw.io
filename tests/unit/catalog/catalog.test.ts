@@ -157,8 +157,8 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(inst1.element.kind).toBe('component');
       expect(inst1.element.x).toBe(100);
       expect(inst1.element.y).toBe(150);
-      expect(inst1.element.width).toBe(160);
-      expect(inst1.element.height).toBe(80);
+      expect(inst1.element.width).toBe(168);
+      expect(inst1.element.height).toBe(168);
       expect(inst1.element.label).toBe('Checkout Handler');
       expect(inst1.element.text).toBe('Amazon EC2');
       expect(inst1.element.metadata).toEqual({
