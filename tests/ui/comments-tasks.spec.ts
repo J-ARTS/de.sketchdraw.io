@@ -49,7 +49,8 @@ test('the task board creates, edits, moves and deletes a standalone task', async
   await expect(todo).toContainText('Release veröffentlichen');
 
   const card = todo.locator('.task-card').filter({ hasText: 'Release veröffentlichen' });
-  await card.getByRole('button', { name: /weiter verschieben/ }).click();
+  await card.getByRole('button', { name: /^Aktionen für/ }).click(); // the card menu replaced the ← / → buttons (#105)
+  await page.getByRole('menuitem', { name: 'Nach „In Arbeit“ verschieben' }).click();
   const doing = board.locator('[data-status="doing"]');
   await expect(doing).toContainText('Release veröffentlichen');
   await doing.locator('.card-open').filter({ hasText: 'Release veröffentlichen' }).click();
@@ -89,10 +90,12 @@ test('comments support pins, replies, editing, sidebar focus and a linked task b
   await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
   const board = page.getByTestId('task-board'); await expect(board).toBeVisible();
   await expect(board).toContainText('API- und P2P-Vertrag bitte prüfen');
-  await board.getByRole('button', { name: /weiter verschieben/ }).click();
+  await board.getByRole('button', { name: /^Aktionen für/ }).click();
+  await page.getByRole('menuitem', { name: 'Nach „In Arbeit“ verschieben' }).click();
   await expect(board.locator('[data-status="doing"]')).toContainText('API- und P2P-Vertrag bitte prüfen');
 
-  await board.getByRole('button', { name: 'Kommentar öffnen' }).click();
+  await board.getByRole('button', { name: /^Aktionen für/ }).click();
+  await page.getByRole('menuitem', { name: 'Kommentar öffnen' }).click();
   await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
   await expect(page.getByTestId('comment-thread')).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);

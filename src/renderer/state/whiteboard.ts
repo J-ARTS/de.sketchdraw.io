@@ -1266,6 +1266,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         id: uid('task'), title, description: input.description?.trim() ?? '', status,
         rank: (state.document.tasks ?? []).filter((entry) => entry.status === status).length,
         createdAt: now, updatedAt: now,
+        ...(input.type ? { type: input.type } : {}),
+        ...(input.assignee?.trim() ? { assignee: input.assignee.trim().slice(0, 120) } : {}),
+        ...(input.dueDate ? { dueDate: input.dueDate } : {}),
       };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
@@ -1321,12 +1324,38 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       return true;
     },
+    async moveTask(taskId, status, index) {
+      if (!state.canWrite || state.transitioning) return false;
+      const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
+      const previous = task.status;
+      const ordered = (column: SketchTask['status']) => tasks.filter((entry) => entry.status === column && entry.id !== taskId).sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt));
+      const target = ordered(status);
+      target.splice(Math.max(0, Math.min(index, target.length)), 0, task);
+      task.status = status;
+      target.forEach((entry, rank) => { entry.rank = rank; });
+      if (previous !== status) ordered(previous).forEach((entry, rank) => { entry.rank = rank; });
+      task.updatedAt = new Date().toISOString();
+      const ok = await dispatch({ type: 'set-tasks', tasks });
+      if (!ok) return false;
+      state.liveMessage = 'Aufgabe verschoben.';
+      if (previous !== status && task.external?.provider === 'jira' && bridge.plugins) {
+        try {
+          const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
+          const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
+          if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
+        } catch (error) { notice(`Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: ${error instanceof Error ? error.message : 'unbekannter Fehler'}`, 'error'); }
+      }
+      return true;
+    },
     async updateTask(taskId, value) {
       if (!state.canWrite || state.transitioning) return false;
       const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
       if (value.title !== undefined && value.title.trim()) task.title = value.title.trim();
       if (value.description !== undefined) task.description = value.description;
       if (value.status !== undefined) { task.status = value.status; task.rank = tasks.filter((entry) => entry.status === value.status).length; }
+      if (value.type !== undefined) { if (value.type) task.type = value.type; else delete task.type; }
+      if (value.assignee !== undefined) { const name = value.assignee?.trim().slice(0, 120); if (name) task.assignee = name; else delete task.assignee; }
+      if (value.dueDate !== undefined) { if (value.dueDate) task.dueDate = value.dueDate; else delete task.dueDate; }
       task.updatedAt = new Date().toISOString();
       const ok = await dispatch({ type: 'set-tasks', tasks });
       if (ok) {

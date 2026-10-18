@@ -22,6 +22,7 @@ import type {
   TableCellStyle,
   TableDocument,
   ValidationIssue,
+  TaskType,
 } from './types';
 import { SHAPE_KINDS, SHAPE_VARIANTS } from './shapes';
 import { annotationPlainText } from './annotation';
@@ -198,7 +199,13 @@ const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fo
 const COMMENT_THREAD_KEYS: ReadonlySet<string> = new Set(['id', 'target', 'messages', 'resolved', 'createdAt', 'updatedAt']);
 const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['elementId', 'tableCellId', 'anchor', 'fallback']);
 const COMMENT_MESSAGE_KEYS: ReadonlySet<string> = new Set(['id', 'authorId', 'authorName', 'body', 'createdAt', 'editedAt']);
-const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'sourceElementId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external']);
+const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'sourceElementId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external', 'type', 'assignee', 'dueDate']);
+const TASK_TYPES: ReadonlySet<TaskType> = new Set<TaskType>(['feature', 'bug', 'design', 'research', 'docs', 'ops']);
+function isCalendarDate(value: unknown): boolean {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 const EXTERNAL_TASK_KEYS: ReadonlySet<string> = new Set(['provider', 'remoteId', 'key', 'url', 'remoteStatus', 'updatedAt']);
 const TASK_STATUSES: ReadonlySet<SketchTask['status']> = new Set(['todo', 'doing', 'review', 'done']);
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -1843,6 +1850,9 @@ function validateTasks(
       if (elementSources.has(value.sourceElementId)) issues.push({ path: joinPath(path, 'sourceElementId'), code: 'DUPLICATE_ELEMENT_TASK', message: 'Each sticky note can have only one task.' });
       elementSources.add(value.sourceElementId);
     }
+    if (value.type !== undefined && !TASK_TYPES.has(value.type as TaskType)) issues.push({ path: joinPath(path, 'type'), code: 'INVALID_TASK_TYPE', message: 'Task type must be feature, bug, design, research, docs, or ops.' });
+    if (value.assignee !== undefined && (typeof value.assignee !== 'string' || value.assignee.trim().length === 0 || value.assignee.length > 120)) issues.push({ path: joinPath(path, 'assignee'), code: 'INVALID_TASK_ASSIGNEE', message: 'Task assignee must be a non-empty name of at most 120 characters.' });
+    if (value.dueDate !== undefined && !isCalendarDate(value.dueDate)) issues.push({ path: joinPath(path, 'dueDate'), code: 'INVALID_TASK_DUE_DATE', message: 'Task due date must be a valid calendar date in YYYY-MM-DD.' });
     if (value.sourceThreadId !== undefined && value.sourceElementId !== undefined) issues.push({ path, code: 'MULTIPLE_TASK_SOURCES', message: 'A task can reference either a comment thread or a sticky note, not both.' });
     if (value.external !== undefined) {
       const externalPath = joinPath(path, 'external');

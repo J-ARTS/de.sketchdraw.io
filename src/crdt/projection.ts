@@ -445,6 +445,10 @@ function syncTask(target: Y.Map<unknown>, task: SketchTask): void {
   setValue(target, 'createdAt', task.createdAt);
   setValue(target, 'updatedAt', task.updatedAt);
   if (task.external === undefined) target.delete('external'); else setValue(target, 'external', cloneJson(task.external) as unknown as JsonValue);
+  for (const key of ['type', 'assignee', 'dueDate'] as const) {
+    const value = task[key];
+    if (value === undefined) target.delete(key); else setValue(target, key, value);
+  }
 }
 
 function readTask(value: unknown, id: string): SketchTask {
@@ -464,6 +468,12 @@ function readTask(value: unknown, id: string): SketchTask {
   if (sourceThreadId !== undefined) task.sourceThreadId = sourceThreadId;
   const sourceElementId = optionalString(source, 'sourceElementId', `tasks.${id}`);
   if (sourceElementId !== undefined) task.sourceElementId = sourceElementId;
+  const type = optionalString(source, 'type', `tasks.${id}`);
+  if (type !== undefined) task.type = type as SketchTask['type'];
+  const assignee = optionalString(source, 'assignee', `tasks.${id}`);
+  if (assignee !== undefined) task.assignee = assignee;
+  const dueDate = optionalString(source, 'dueDate', `tasks.${id}`);
+  if (dueDate !== undefined) task.dueDate = dueDate;
   const external = source.get('external');
   if (external !== undefined) {
     if (!external || typeof external !== 'object' || Array.isArray(external)) throw new Error(`CRDT_SCHEMA_INVALID:tasks.${id}.external`);

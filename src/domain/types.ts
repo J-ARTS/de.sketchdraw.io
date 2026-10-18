@@ -206,6 +206,8 @@ export interface CommentThread {
 }
 
 export type TaskStatus = 'todo' | 'doing' | 'review' | 'done';
+/** Kind of work; drives the card cover on the task board (#105). */
+export type TaskType = 'feature' | 'bug' | 'design' | 'research' | 'docs' | 'ops';
 
 export interface ExternalTaskReference {
   provider: 'jira';
@@ -231,6 +233,12 @@ export interface SketchTask {
   updatedAt: string;
   /** Optional, safe remote reference. Credentials are never part of the document. */
   external?: ExternalTaskReference;
+  /** Optional kind of work (#105). */
+  type?: TaskType;
+  /** Optional display name of the responsible person, 1–120 characters (#105). */
+  assignee?: string;
+  /** Optional calendar due date in YYYY-MM-DD (#105). */
+  dueDate?: string;
 }
 
 export interface SketchDocument {

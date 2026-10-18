@@ -56,6 +56,18 @@ describe('comment threads and tasks', () => {
     }
   });
 
+  it('validates task type, assignee and due date and roundtrips them through JSON and Diagram as Code (#105)', () => {
+    const base = createDocument('Task metadata');
+    const valid = applyCommand(base, { type: 'set-tasks', tasks: [{ id: 'task:meta', title: 'Release', description: '', status: 'todo', rank: 0, createdAt: NOW, updatedAt: NOW, type: 'bug', assignee: 'Anna Berg', dueDate: '2026-02-28' }] });
+    const parsed = parseDiagram(formatDiagram(valid));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.document.tasks).toEqual(valid.tasks);
+    expect(JSON.parse(serializeDocument(valid)).tasks[0]).toMatchObject({ type: 'bug', assignee: 'Anna Berg', dueDate: '2026-02-28' });
+    for (const invalid of [{ type: 'epic' }, { assignee: '   ' }, { assignee: 'x'.repeat(121) }, { dueDate: '2026-02-30' }, { dueDate: '28.02.2026' }]) {
+      expect(() => applyCommand(base, { type: 'set-tasks', tasks: [{ id: 'task:bad', title: 'Bad', description: '', status: 'todo', rank: 0, createdAt: NOW, updatedAt: NOW, ...invalid } as SketchTask] }), JSON.stringify(invalid)).toThrow();
+    }
+  });
+
   it('keeps pins attached during geometry changes and preserves an orphan at its fallback after deletion', () => {
     const shape = createElement('rectangle', { id: 'shape:one', x: 100, y: 100, width: 100, height: 100 });
     let document = applyCommand(createDocument(), { type: 'add', elements: [shape] });

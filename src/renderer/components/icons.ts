@@ -11,6 +11,7 @@ export type ActionIconName =
   | 'order-front' | 'order-forward' | 'order-backward' | 'order-back'
   | 'objects' | 'align-left' | 'align-center' | 'align-right' | 'eye'
   | 'menu' | 'users' | 'user' | 'code' | 'maximize'
+  | 'more-vertical' | 'calendar'
   | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow'
   | 'shapes' | 'stroke' | 'link'
   | 'eyedropper' | 'line-solid' | 'line-dashed' | 'none' | 'search';
@@ -95,6 +96,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   pages: ['M8 4h11a1 1 0 0 1 1 1v11', 'M5 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z'],
   grip: ['M9 6h.01', 'M15 6h.01', 'M9 12h.01', 'M15 12h.01', 'M9 18h.01', 'M15 18h.01'],
   more: ['M6 12h.01', 'M12 12h.01', 'M18 12h.01'],
+  'more-vertical': ['M12 6h.01', 'M12 12h.01', 'M12 18h.01'],
+  calendar: ['M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z', 'M4 10h16', 'M8 3v4', 'M16 3v4'],
   copy: ['M9 9h10a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1z', 'M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1'],
   paste: ['M9 4h6v3H9z', 'M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3', 'M9 13h6', 'M9 16h4'],
   rename: ['M4 20h4L19 9l-4-4L4 16z', 'M13 7l4 4'],

@@ -24,6 +24,7 @@ import type {
   TableCellStyle,
   CommentTarget,
   TaskStatus,
+  TaskType,
 } from '@/domain/types';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginSettingsSnapshot } from '@/domain/plugins';
 
@@ -356,8 +357,11 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
-  createTask(input: { title: string; description?: string; status?: TaskStatus }): Promise<boolean>;
-  updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus }): Promise<boolean>;
+  createTask(input: { title: string; description?: string; status?: TaskStatus; type?: TaskType; assignee?: string; dueDate?: string }): Promise<boolean>;
+  /** `null` removes type, assignee or due date (#105). */
+  updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus; type?: TaskType | null; assignee?: string | null; dueDate?: string | null }): Promise<boolean>;
+  /** Places a task at `index` of the `status` column and renumbers the affected columns (#106). */
+  moveTask(taskId: string, status: TaskStatus, index: number): Promise<boolean>;
   deleteTask(taskId: string): Promise<boolean>;
   openTaskBoard(): void;
   showCanvas(): void;

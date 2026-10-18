@@ -71,6 +71,22 @@ describe('Yjs document data layer', () => {
     owner.destroy(); left.destroy(); right.destroy();
   });
 
+  it('syncs task type, assignee and due date between peers and removes them again (#105)', () => {
+    const owner = createCrdtController(baseDocument());
+    const peer = createCrdtControllerFromUpdate(owner.encodeUpdate());
+    const task: SketchTask = { id: 'task:meta', title: 'Release', description: '', status: 'todo', rank: 0, createdAt: NOW, updatedAt: NOW, type: 'design', assignee: 'Jeremy Teichmann', dueDate: '2026-10-25' };
+    owner.dispatch({ type: 'set-tasks', tasks: [task] }, context(0, 'actor:owner'));
+    peer.applyRemoteUpdate(owner.encodeUpdate(peer.encodeStateVector()), { actorId: 'actor:owner', role: 'editor', source: 'peer', peerId: 'peer:owner' });
+    expect(peer.getSnapshot().document.tasks?.[0]).toMatchObject({ type: 'design', assignee: 'Jeremy Teichmann', dueDate: '2026-10-25' });
+    const { type: _type, assignee: _assignee, dueDate: _dueDate, ...plain } = task;
+    owner.dispatch({ type: 'set-tasks', tasks: [plain] }, context(1, 'actor:owner'));
+    peer.applyRemoteUpdate(owner.encodeUpdate(peer.encodeStateVector()), { actorId: 'actor:owner', role: 'editor', source: 'peer', peerId: 'peer:owner' });
+    const synced = peer.getSnapshot().document.tasks?.[0];
+    expect(synced).toBeDefined();
+    expect('type' in synced! || 'assignee' in synced! || 'dueDate' in synced!).toBe(false);
+    owner.destroy(); peer.destroy();
+  });
+
   it('projects a valid document bidirectionally and emits compact post-commit events', async () => {
     const controller = createCrdtController(baseDocument());
     const committed = vi.fn();

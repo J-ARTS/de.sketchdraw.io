@@ -95,7 +95,8 @@ test('a sticky note creates one linked task and the task board returns to its so
   await expect(board).toContainText('Release planen');
   await expect(board).toContainText('Installer prüfen');
 
-  await board.getByRole('button', { name: 'Notiz öffnen' }).click();
+  await board.locator('.task-card').filter({ hasText: 'Release planen' }).getByRole('button', { name: /^Aktionen für/ }).click();
+  await page.getByRole('menuitem', { name: 'Notiz öffnen' }).click();
   await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Eigenschaften' })).toBeVisible();
   await expect(page.locator('.whiteboard-canvas [data-kind="sticky-note"]')).toHaveCount(1);
