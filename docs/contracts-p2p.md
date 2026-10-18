@@ -488,3 +488,16 @@ Die automatische Einladung ist fünf Minuten gültig und signiert Raum-ID, Passw
 Ausstehende Ausgangsdaten sind insgesamt auf 16 MiB begrenzt. Abgewiesene Rollen, falsche Sitzungen, unbekannte Identitäten, wiederholte Sequenzen, falsche Hashes und übergroße Nachrichten erreichen den CRDT-Controller nicht. Der Controller prüft Remote-Updates zusätzlich in einer Schattenprojektion gegen Schema, Dokumentbindung und Domainregeln.
 
 Die Oberfläche verlangt mindestens einen credential-freien `wss://`-Endpunkt und eine explizite RTC-Konfiguration. Es gibt keine fest eingebauten öffentlichen STUN-/TURN-Adressen und keinen WSS-Datenfallback. WSS läuft im Renderer über Chromiums System-Netzwerkpfad; daraus folgt ohne reale Plattformprüfung keine Zusage für PAC, NTLM, Kerberos oder manuelle Proxy-Anmeldung. Der sichere Bootstrap eines noch nicht geöffneten fremden Dokuments sowie echte Broker-, Proxy-, TURN-, Ausfall- und 25/50/100-Teilnehmer-Tests bleiben die offenen Freigabegates in Issue #72.
+
+## Session starten und per Link beitreten (18.10.2026)
+
+Die Oberfläche kennt keinen Moduswechsel mehr: „Session starten“ erstellt einen Raum über den Automatic-P2P-Transport und zeigt einen Link. Der manuelle Strict-Direct-Weg bleibt unter „Manuell ohne Server verbinden“ erhalten.
+
+- **Link:** `<Web-App-Adresse>#sketchdraw-session=<signierte Einladung>`. Die Einladung steht im URL-Fragment, das Browser nie an einen Server senden. Beim Öffnen wertet die App das Fragment aus, entfernt es aus der Adresse und tritt automatisch bei. Die Web-App-Adresse ist änderbar (Standard: eigene Seitenadresse im Browser, sonst `DEFAULT_WEB_APP_URL`); die gehostete Web-Version muss unter dieser Adresse erreichbar sein.
+- **Standard-Endpunkte:** Zwei öffentliche MQTT-Broker (nur Peer-Suche) und ein öffentlicher STUN-Server, beide sichtbar und änderbar unter „Netzwerk und Link-Adresse“. Es sind weiterhin keine TURN-Zugangsdaten eingebaut und es gibt kein Datenrelay; hinter symmetrischem NAT kann die Verbindung scheitern.
+- **Lebensdauer:** Die Einladung gilt, solange die Session läuft, höchstens 12 Stunden (`MAX_INVITATION_TTL_MS`). Die Handshake-Zeitabweichung bleibt bei fünf Minuten.
+- **Dokumentbezug:** Wer beitritt, braucht keine Kopie. `bootstrapRoomDocument` fordert mit leerem State-Vector den vollständigen Stand an, sammelt Updates bis ein gültiges Dokument entsteht und prüft die Dokument-ID der Einladung. Danach ersetzt der Store das offene Dokument (Rückfrage bei ungespeicherter Arbeit) und bindet den Transport an dieses Dokument.
+- **Autorität:** Eingehende Yjs-Updates laufen über `DocumentAuthority.applyExternalUpdate`; direkte Controller-Änderungen führen weiter zu `AUTHORITY_DIVERGED`.
+- **CSP:** `connect-src` erlaubt `wss:` (Signaling), `worker-src` erlaubt `blob:` (Trystero). Der Adapter akzeptiert nur credential-freie `wss://`-Endpunkte.
+- **Empfangene Binärdaten:** Trystero liefert `Uint8Array`; der Transport akzeptiert `ArrayBuffer` und `ArrayBufferView`.
+- **Prüfung:** `tests/ui/session-network.spec.ts` (mit `SKETCHDRAW_NETWORK_E2E=1`) startet zwei Browser über die öffentlichen Broker und prüft Beitritt und Live-Sync in beide Richtungen. Nicht geprüft: Unternehmensproxys, TURN, Last, Viewer-Durchsetzung im Gast-Browser.

@@ -32,6 +32,8 @@ import type {
 const HANDSHAKE_LIMIT = 16 * 1024;
 const INVITATION_LIMIT = 64 * 1024;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+/** A room invitation stays valid while the host keeps the session open, but never longer than this. */
+export const MAX_INVITATION_TTL_MS = 12 * 60 * 60 * 1000;
 const OUTGOING_LIMIT = 16 * 1024 * 1024;
 const DEFAULT_MAX_RECEIVE = 8 * 1024 * 1024;
 const CHANNEL_LIMITS: Record<CollaborationTransportChannel, number> = {
@@ -142,6 +144,13 @@ function checkedConfig(config: AutomaticTransportConfig): AutomaticTransportConf
   };
 }
 
+/** A private copy of a received binary payload, or null when the value is no binary data. */
+function receivedBytes(value: unknown): Uint8Array | null {
+  if (value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
+  if (ArrayBuffer.isView(value)) return Uint8Array.from(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+  return null;
+}
+
 function notify<T>(listeners: ReadonlySet<(value: T) => void | Promise<void>>, value: T): void {
   for (const listener of Array.from(listeners)) {
     queueMicrotask(() => {
@@ -189,7 +198,7 @@ export async function createAutomaticInvitation(
   now = Date.now(),
 ): Promise<string> {
   const ttlMs = input.ttlMs ?? MAX_CLOCK_SKEW_MS;
-  if (!integer(ttlMs) || ttlMs < 30_000 || ttlMs > MAX_CLOCK_SKEW_MS) throw new TypeError('Invitation lifetime is invalid.');
+  if (!integer(ttlMs) || ttlMs < 30_000 || ttlMs > MAX_INVITATION_TTL_MS) throw new TypeError('Invitation lifetime is invalid.');
   const payload: AutomaticInvitation = {
     version: 1,
     type: 'automatic-invitation',
@@ -219,7 +228,7 @@ export async function parseAutomaticInvitation(text: string, now = Date.now()): 
   if (value.version !== 1 || value.type !== 'automatic-invitation' || !id(value.appId) || !hex(value.roomId, 32) || !hex(value.password, 32)
     || !hex(value.invitationId) || !Array.isArray(value.relayUrls) || !record(value.rtcConfig) || !['editor', 'viewer'].includes(String(value.role))
     || typeof value.ownerPublicKeyBase64Url !== 'string' || !integer(value.createdAt) || !integer(value.expiresAt)
-    || value.expiresAt <= value.createdAt || value.expiresAt - value.createdAt > MAX_CLOCK_SKEW_MS || now > value.expiresAt || value.createdAt > now + 60_000) fail('ACCESS_DENIED', 'INVITATION_EXPIRED');
+    || value.expiresAt <= value.createdAt || value.expiresAt - value.createdAt > MAX_INVITATION_TTL_MS || now > value.expiresAt || value.createdAt > now + 60_000) fail('ACCESS_DENIED', 'INVITATION_EXPIRED');
   sessionKey(value.session);
   checkedRelayUrls(value.relayUrls as string[]);
   checkedIceServers(value.rtcConfig as RTCConfiguration);
@@ -341,20 +350,22 @@ export async function createAutomaticTransport(
       const peer = peers.get(peerId);
       return !!peer && byteLength > 0 && byteLength <= CHANNEL_LIMITS[channel] && actionAllowed(channel, peer.role);
     };
-    action.onMessage = async (buffer, context) => {
-      if (closed || !(buffer instanceof ArrayBuffer)) return;
+    action.onMessage = async (received, context) => {
+      // Trystero hands binary payloads over as a Uint8Array view; other transports may pass the ArrayBuffer itself.
+      const bytes = receivedBytes(received);
+      if (closed || !bytes) return;
       const peer = peers.get(context.peerId);
-      if (!peer || !actionAllowed(channel, peer.role) || buffer.byteLength < 1 || buffer.byteLength > CHANNEL_LIMITS[channel]) fail('ACCESS_DENIED');
+      if (!peer || !actionAllowed(channel, peer.role) || bytes.byteLength < 1 || bytes.byteLength > CHANNEL_LIMITS[channel]) fail('ACCESS_DENIED');
       if (!record(context.metadata)) fail();
       const envelope = signedEnvelope(JSON.stringify(context.metadata), HANDSHAKE_LIMIT);
       const payload = parseAction(parse(envelope.payload, HANDSHAKE_LIMIT));
       if (!sameSession(payload.session, config.session) || payload.channel !== channel || payload.senderKeyHash !== peer.keyHash
         || payload.grantId !== peer.grantId || payload.grantGeneration !== peer.grantGeneration || payload.role !== peer.role
-        || payload.byteLength !== buffer.byteLength || payload.sequence <= peer.lastSequence[channel]) fail('ACCESS_DENIED');
+        || payload.byteLength !== bytes.byteLength || payload.sequence <= peer.lastSequence[channel]) fail('ACCESS_DENIED');
       await verify(envelope, peer.key);
-      if (await sha(new Uint8Array(buffer)) !== payload.hash) fail('ACCESS_DENIED', 'ACTION_HASH_MISMATCH');
+      if (await sha(bytes) !== payload.hash) fail('ACCESS_DENIED', 'ACTION_HASH_MISMATCH');
       peer.lastSequence[channel] = payload.sequence;
-      notify(messageListeners, { channel, data: new Uint8Array(buffer), peer: publicPeer(peer) });
+      notify(messageListeners, { channel, data: bytes, peer: publicPeer(peer) });
     };
     actions[channel] = action;
   }

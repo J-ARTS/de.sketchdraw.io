@@ -86,9 +86,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (persistence) void persistence.destroy().catch(() => undefined);
     controller?.destroy();
   }
-  function managedController(document: SketchDocument): CrdtDocumentController {
+  function managedController(document: SketchDocument, existing?: CrdtDocumentController): CrdtDocumentController {
     releaseLocalCrdt();
-    const controller = createCrdtController(document);
+    const controller = existing ?? createCrdtController(document);
     localCrdtController = controller;
     if (typeof indexedDB !== 'undefined') {
       const persistence = attachIndexedDbPersistence(controller, `document:${document.id}`);
@@ -105,6 +105,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const lifecycle = () => activeSession().lifecycleGate;
   let unsubscribeStatus = () => {};
   let pendingGuest: GuestSession | null = null;
+  /** A room's document, fetched from the host, waiting to replace the local one. */
+  let pendingRoom: CrdtDocumentController | null = null;
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
@@ -612,18 +614,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     } catch (error) { state.file.lastError = error instanceof Error ? error.message : 'Speichern fehlgeschlagen'; fail(error); return false; }
     finally { if (activeSession() === session) state.file.saving = false; }
   }
-  function settleTransition(success: boolean) { const resolve = transitionResult; transitionResult = null; pendingGuest = null; resolve?.(success); }
+  function settleTransition(success: boolean) { const resolve = transitionResult; transitionResult = null; pendingGuest = null; if (!success && pendingRoom) { pendingRoom.destroy(); } pendingRoom = null; resolve?.(success); }
   function releaseTransition() {
     if (barrier) lifecycle().cancelTransition(barrier.token);
     barrier = null; pendingImport = null; state.transitioning = false; settleTransition(false);
   }
-  function install(document: SketchDocument, file = freshFile(), nextGuest: GuestSession | null = null) {
+  function install(document: SketchDocument, file = freshFile(), nextGuest: GuestSession | null = null, room: CrdtDocumentController | null = null) {
     unsubscribe(); unsubscribeStatus();
     const nextSnapshot = nextGuest?.source.getSnapshot();
     if (barrier) lifecycle().completeTransition(barrier.token);
     barrier = null; pendingImport = null;
     if (nextGuest) releaseLocalCrdt();
-    guest = nextGuest; authority = nextGuest ? null : factory(managedController(document));
+    guest = nextGuest; authority = nextGuest ? null : factory(managedController(document, room ?? undefined));
+    if (room) pendingRoom = null;
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
@@ -636,13 +639,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     for (const listener of authorityListeners) listener(authority);
     store.fitAll(); settleTransition(true);
   }
-  async function continueTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave', requestId?: string) {
+  async function continueTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave' | 'room', requestId?: string) {
     const active = barrier;
     if (!active || !lifecycle().isCurrent(active, draftGeneration)) { releaseTransition(); state.dialog = null; notice('Der Stand hat sich geändert. Bitte die Aktion erneut starten.', 'error'); if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(fail); return; }
     try {
       if (reason === 'join') {
         if (!pendingGuest || pendingGuest.getStatus().state !== 'ready') throw new Error('Die Peer-Sitzung ist nicht mehr bereit.');
         const next = pendingGuest; install(next.source.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, next); return;
+      }
+      if (reason === 'room') {
+        const room = pendingRoom;
+        if (!room) throw new Error('Das Dokument der Session ist nicht mehr verfügbar.');
+        install(room.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, null, room); notice('Session beigetreten. Das Dokument kommt vom Gastgeber; speichere eine Kopie, um es zu behalten.'); return;
       }
       if (reason === 'leave') { install(active.snapshot.document, { ...freshFile(), requiresInitialSave: true }); notice('Sitzung verlassen. Die lokale Kopie enthält nur den zuletzt bestätigten Stand.'); return; }
       if (reason === 'import') {
@@ -666,7 +674,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(() => {});
     }
   }
-  async function requestTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave', requestId?: string) {
+  async function requestTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave' | 'room', requestId?: string) {
     if (state.transitioning) {
       if (reason === 'close' && requestId) {
         if (state.dialog?.kind === 'unsaved' && !state.dialog.busy) { state.dialog.reason = 'close'; pendingImport = null; settleTransition(false); state.dialog.requestId = requestId; }
@@ -705,6 +713,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       pendingGuest = next;
       const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
       void requestTransition('join'); return result;
+    },
+    async adoptRoomDocument(controller) {
+      if (state.transitioning) return false;
+      try { deserializeDocument(serializeDocument(controller.getSnapshot().document)); }
+      catch (error) { fail(error); return false; }
+      pendingRoom = controller;
+      const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
+      void requestTransition('room'); return result;
     },
     async leaveGuestSession() {
       if (!guest || state.transitioning) return false;

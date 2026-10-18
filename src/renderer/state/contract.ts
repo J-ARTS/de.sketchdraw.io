@@ -139,7 +139,7 @@ export interface FileState {
 }
 
 export type DialogState =
-  | { kind: 'unsaved'; reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave'; requestId?: string; busy: boolean; error: string | null }
+  | { kind: 'unsaved'; reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave' | 'room'; requestId?: string; busy: boolean; error: string | null }
   | { kind: 'save-conflict'; message: string }
   | { kind: 'help' };
 export type DialogChoice = 'save' | 'discard' | 'cancel' | 'save-copy';
@@ -419,6 +419,8 @@ export interface WhiteboardStore {
 
   joinGuestSession(guest: GuestSession): Promise<boolean>;
   leaveGuestSession(): Promise<boolean>;
+  /** Replaces the open document by one fetched from a room host (asks about unsaved work first). Takes ownership of the controller. */
+  adoptRoomDocument(controller: CrdtDocumentController): Promise<boolean>;
   getGuestSession(): GuestSession | null;
   resolvePendingWrite(): Promise<void>;
   newDocument(): Promise<void>;

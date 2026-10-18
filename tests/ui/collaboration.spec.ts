@@ -3,12 +3,17 @@ import { test, expect, type Page } from '@playwright/test';
 async function openCollaboration(page: Page) {
   await page.getByTestId('workspace-menu-button').click(); await page.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
 }
+/** The manual, server-free pairing lives in a collapsed section below the session controls. */
+async function openManual(page: Page) {
+  const details = page.getByTestId('manual-connection');
+  if (!(await details.evaluate((element: HTMLDetailsElement) => element.open))) await details.getByText('Manuell ohne Server verbinden', { exact: true }).click();
+}
 
 test('manual pairing presents matching identities and requires explicit confirmation', async ({ page, context }) => {
   const guest = await context.newPage();
   for (const target of [page, guest]) {
     await target.goto('/');
-    await openCollaboration(target);
+    await openCollaboration(target); await openManual(target);
   }
   const ownerPanel = page.getByTestId('collaboration-panel');
   const guestPanel = guest.getByTestId('collaboration-panel');
@@ -38,7 +43,7 @@ test('manual pairing presents matching identities and requires explicit confirma
 
 test('invalid invitation is rejected with a recoverable explanation', async ({ page }) => {
   await page.goto('/');
-  await openCollaboration(page);
+  await openCollaboration(page); await openManual(page);
   const panel = page.getByTestId('collaboration-panel');
   await panel.getByRole('button', { name: 'Beitreten', exact: true }).click();
   await panel.getByRole('textbox', { name: 'Einladung einfügen' }).fill('not a signed invitation');
@@ -48,16 +53,36 @@ test('invalid invitation is rejected with a recoverable explanation', async ({ p
   await expect(panel.getByRole('button', { name: 'Identität bestätigen' })).toHaveCount(0);
 });
 
-test('automatic P2P is clearly separated and requires explicit network endpoints', async ({ page }) => {
+test('one click starts a session with a shareable link and no mode choice', async ({ page }) => {
   await page.goto('/');
   await openCollaboration(page);
   const panel = page.getByTestId('collaboration-panel');
-  await panel.getByRole('button', { name: 'Automatic P2P', exact: true }).click();
-  await expect(panel).toContainText('externe Signaling-Endpunkte');
-  await expect(panel.getByRole('textbox', { name: 'MQTT WSS Endpunkte' })).toBeVisible();
-  await expect(panel.getByRole('textbox', { name: 'ICE und TURN Konfiguration' })).toHaveValue('{"iceServers":[]}');
-  await panel.getByRole('button', { name: 'Automatischen Raum erstellen' }).click();
-  await expect(panel.getByRole('alert')).toContainText('MQTT-Endpunkt');
-  await panel.getByRole('button', { name: 'Strict Direct', exact: true }).click();
-  await expect(panel).toContainText('keinen zentralen Speicher oder Vermittlungsserver');
+  await expect(panel.getByRole('button', { name: 'Automatic P2P' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Strict Direct' })).toHaveCount(0);
+  await panel.getByTestId('session-start').click();
+  const link = panel.getByTestId('session-link');
+  await expect(link).toHaveValue(/^https?:\/\/.+#sketchdraw-session=.{80,}/);
+  await expect(panel.getByRole('button', { name: 'Link kopieren' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Session läuft' })).toBeVisible();
+  await panel.getByText('Verwendete Endpunkte', { exact: true }).click();
+  await expect(panel.locator('.automatic-endpoints')).toContainText('wss://');
+  await panel.getByTestId('session-stop').click();
+  await expect(panel.getByTestId('session-start')).toBeEnabled();
+});
+
+test('an invalid session link is rejected with an explanation', async ({ page }) => {
+  await page.goto('/');
+  await openCollaboration(page);
+  const panel = page.getByTestId('collaboration-panel');
+  await panel.getByRole('textbox', { name: 'Session-Link einfügen' }).fill('hallo welt');
+  await panel.getByRole('button', { name: 'Session beitreten' }).click();
+  await expect(panel.getByRole('alert')).toContainText('kein gültiger Session-Link');
+});
+
+test('opening a session link starts the app, removes the fragment and tries to join', async ({ page }) => {
+  await page.goto('/#sketchdraw-session=' + encodeURIComponent('A'.repeat(120)));
+  const panel = page.getByTestId('collaboration-panel');
+  await expect(panel).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('');
+  await expect(panel.getByRole('alert')).toBeVisible();
 });

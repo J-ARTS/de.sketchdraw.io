@@ -103,6 +103,12 @@ export interface DocumentAuthority {
   revokeBinding(bindingId: string): void; // synchronous; queued writes lose permission
   finalizePeerSession(peerSessionId: string): void; // trusted irreversible session end
   subscribeCommits(listener: (commit: DocumentCommit) => void): () => void;
+  /**
+   * Trusted entry for changes the controller receives from a replication transport (a CRDT update from a peer):
+   * `apply` must perform exactly one controller change. The authority validates that change, adopts the new
+   * revision and notifies its subscribers. Returns whether the document changed. Not usable during a write.
+   */
+  applyExternalUpdate(apply: () => DocumentSession): boolean;
 }
 export interface DocumentAuthorityOptions {
   controller: DocumentController; // exclusive ownership transferred to this authority

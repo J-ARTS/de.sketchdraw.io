@@ -96,6 +96,7 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
   let journalBytes = 0;
   let pumping = false;
   let executing: Entry | undefined;
+  let externalApply = false;
   let observed: DocumentSession | undefined;
   let transition: Transition | undefined;
   let stopped: WriteErrorCode | undefined;
@@ -232,6 +233,21 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
     const set = binding ? binding.listeners : listeners;
     set.add(listener);
     return () => { notInGuard(); set.delete(listener); };
+  }
+  function notifySnapshot(next: DocumentSession): void {
+    for (const listener of Array.from(listeners)) {
+      if (stopped) return;
+      if (listeners.has(listener)) safeNotify(listener, clone(next));
+    }
+    for (const binding of Array.from(bindings.values())) {
+      for (const listener of Array.from(binding.listeners)) {
+        if (stopped) return;
+        if (!binding.listeners.has(listener)) continue;
+        try { readCheck(binding); }
+        catch { binding.listeners.clear(); break; }
+        safeNotify(listener, clone(next));
+      }
+    }
   }
   function notify(commit: DocumentCommit): void {
     for (const listener of Array.from(commitListeners)) {
@@ -462,6 +478,34 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
       subscribe(listener: (value: DocumentSession) => void) { return subscribe(undefined, listener); },
     }),
     lifecycleGate,
+    applyExternalUpdate(apply) {
+      running();
+      if (typeof apply !== 'function' || executing || externalApply) throw new SessionAccessError('ACCESS_DENIED');
+      consistency();
+      const previousRevision = snapshot.revision;
+      observed = undefined;
+      externalApply = true;
+      let result: DocumentSession;
+      try { result = apply(); }
+      catch (error) {
+        // The update was rejected before changing anything, or the controller changed unannounced.
+        if (observed !== undefined) { stop('AUTHORITY_DIVERGED'); throw new SessionAccessError('AUTHORITY_DIVERGED'); }
+        throw error;
+      } finally { externalApply = false; }
+      if (stopped) return false;
+      const notification = observed as DocumentSession | undefined;
+      if (result.document.id !== session.documentId
+        || (result.revision !== previousRevision && result.revision !== previousRevision + 1)
+        || (result.revision === previousRevision ? notification !== undefined
+          : !notification || notification.revision !== result.revision)) {
+        stop('AUTHORITY_DIVERGED'); return false;
+      }
+      snapshot = clone(result);
+      consistency();
+      if (result.revision === previousRevision) return false;
+      notifySnapshot(snapshot);
+      return true;
+    },
     bindActor(input) {
       consistency();
       if (transition) throw new SessionAccessError('TRANSITION_PENDING');
@@ -562,7 +606,7 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
   try {
     unsubscribeController = controller.subscribe(actual => {
       if (stopped) return;
-      if (!executing || observed || actual.revision !== snapshot.revision + 1
+      if (!(executing || externalApply) || observed || actual.revision !== snapshot.revision + 1
         || actual.document.id !== session.documentId) {
         stop('AUTHORITY_DIVERGED'); return;
       }

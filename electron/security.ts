@@ -91,10 +91,12 @@ const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/;
 const ENCODED_SLASH_OR_NULL_PATTERN = /%(?:2f|5c|00)/i;
 
 export function buildContentSecurityPolicy(mode: 'dev' | 'bundled'): string {
+  // `wss:` lets the session transport reach the MQTT signaling endpoints; the adapter only accepts credential-free
+  // wss:// URLs, and scripts stay restricted to the app itself.
   const connectSrc =
     mode === 'dev'
-      ? "'self' ws://127.0.0.1:5173 http://127.0.0.1:5173"
-      : "'self'";
+      ? "'self' wss: ws://127.0.0.1:5173 http://127.0.0.1:5173"
+      : "'self' wss:";
 
   return [
     "default-src 'self'",
@@ -103,6 +105,7 @@ export function buildContentSecurityPolicy(mode: 'dev' | 'bundled'): string {
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     `connect-src ${connectSrc}`,
+    "worker-src 'self' blob:",
     "frame-src https: http:",
     "object-src 'none'",
     "base-uri 'self'",
