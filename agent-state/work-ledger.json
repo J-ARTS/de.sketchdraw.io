@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T20:56:28Z",
+  "updatedAt": "2026-10-18T21:00:43Z",
   "issues": [
     {
       "number": 1,
@@ -1882,7 +1882,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1929,6 +1929,23 @@
       "title": "Windows-Electron-Cleanup scheitert bei verschwundenem taskkill-Kindprozess",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/129",
       "owner": "Google Antigravity (devops), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "Testing / DevOps",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        122
+      ]
+    },
+    {
+      "number": 130,
+      "title": "i18n-Prüftools erzeugen auf Windows einen doppelten Laufwerkspfad",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/130",
+      "owner": "OpenAI Codex (testing), Google Antigravity (devops)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "Testing / DevOps",
       "status": "in_progress",
@@ -7843,7 +7860,7 @@
         128,
         129
       ],
-      "status": "local_verified_awaiting_platform_ci",
+      "status": "platform_ci_failed_windows_i18n_path",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -7859,13 +7876,44 @@
         "src/domain/types.ts",
         "scripts/stop-electron.mjs",
         "tests/unit/collaboration/session.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/122"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/122",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/130"
       ],
       "concerns": [
-        "Concurrent main changes for complete English localization, shape silhouettes, rounded diamonds/triangles and the font-color caret fix were merged without discarding either side. The merged revision still needs exact cross-platform CI before integration and tagging."
+        "Concurrent main changes for complete English localization, shape silhouettes, rounded diamonds/triangles and the font-color caret fix were merged without discarding either side. The merged revision still needs exact cross-platform CI before integration and tagging.",
+        "GitHub Actions run 39165632342 found that the concurrently merged i18n scanner used URL.pathname as a native path, producing a duplicated Windows drive prefix. The defect is isolated in Issue 130 and blocks this revision from release."
       ],
       "authorization": "The user explicitly asked Codex to merge all completed tickets, audit closable issues and publish a new macOS, Windows and Linux release.",
       "measurementSource": "Local macOS evidence on the merged candidate: typecheck; 58 Vitest files with 452 tests; 61 Node build/release tests; production renderer/Electron/MCP build; complete browser UI suite with 116 passed and one intentional real-network skip; six Electron tests; and three direct P2P scenarios passed. Exact Codex duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-windows-i18n-path-130",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        122,
+        130
+      ],
+      "status": "local_verified_awaiting_platform_ci",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "tools/i18n-keys.mjs",
+        "tools/i18n-scan.mjs",
+        "tests/unit/renderer/i18n-coverage.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/130",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342"
+      ],
+      "concerns": [
+        "The complete release matrix must be rerun because local macOS cannot execute the Windows-native drive-letter path behavior.",
+        "The post-change Graphify source refresh remains guarded when extraction produces fewer nodes than the preserved graph; deterministic ledger links are refreshed without forcing a destructive overwrite."
+      ],
+      "authorization": "The user authorized completing and releasing all current changes; Issue 130 is a release-blocking cross-platform test defect discovered during that verification.",
+      "measurementSource": "Local macOS evidence: targeted i18n coverage 5/5, both i18n CLI entrypoints, full Vitest suite 452/452 and typecheck passed. Exact Codex duration, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

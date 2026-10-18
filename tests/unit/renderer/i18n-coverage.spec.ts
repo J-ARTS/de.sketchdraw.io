@@ -14,7 +14,7 @@ function sourceFiles(dir = join(ROOT, 'src'), out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) sourceFiles(path, out);
-    else if (/\.(vue|ts)$/.test(name) && !/i18n\/en\.ts$/.test(path)) out.push(path);
+    else if (/\.(vue|ts)$/.test(name) && !/i18n[\\/]en\.ts$/.test(path)) out.push(path);
   }
   return dir === join(ROOT, 'src') ? out.concat(sourceFiles(join(ROOT, 'electron'))) : out;
 }

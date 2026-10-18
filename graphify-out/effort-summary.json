@@ -722,6 +722,7 @@
       "sharedUnallocatedRunIds": [
         "codex-p2p-session-link-ui-120",
         "codex-v0.1.3-final-candidate-local",
+        "codex-windows-i18n-path-130",
         "github-actions-p2p-session-link-ui-39160057940",
         "github-actions-v0.1.3-first-candidate-39163132178",
         "github-actions-v0.1.3-premerge-39164282609",
@@ -908,6 +909,38 @@
         "codex-session-001",
         "codex-ticket-closure-004",
         "codex-whiteboard-takeover-001"
+      ]
+    },
+    "130": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-windows-i18n-path-130"
       ]
     },
     "14": {
@@ -4465,15 +4498,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       },
-      "runCount": 34,
+      "runCount": 35,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -4507,6 +4540,7 @@
         "codex-v0.1.3-final-candidate-local",
         "codex-vueuse-uiux-audit-74-82",
         "codex-web-embed-compatibility-97",
+        "codex-windows-i18n-path-130",
         "codex-yjs-openpencil-architecture-70-72",
         "codex-yjs-trystero-implementation-71-72"
       ],
@@ -4514,7 +4548,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 34
+        "unknownRuns": 35
       }
     }
   },
@@ -4523,15 +4557,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 217
+      "unknownRuns": 218
     },
     "observedSeconds": {
       "knownRuns": 86,
       "knownSubtotal": 41006.32226324896,
       "total": null,
-      "unknownRuns": 131
+      "unknownRuns": 132
     },
-    "runCount": 217,
+    "runCount": 218,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -4674,6 +4708,7 @@
       "codex-web-embed-063",
       "codex-web-embed-compatibility-97",
       "codex-whiteboard-takeover-001",
+      "codex-windows-i18n-path-130",
       "codex-yjs-openpencil-architecture-70-72",
       "codex-yjs-trystero-implementation-71-72",
       "github-actions-agent-access-39054281662",
@@ -4755,7 +4790,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 213
+      "unknownRuns": 214
     }
   },
   "officialScoreClaimReady": false,
@@ -4765,9 +4800,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 106
+    "unknownIssues": 107
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T20:56:28Z"
+  "updatedAt": "2026-10-18T21:00:43Z"
 }

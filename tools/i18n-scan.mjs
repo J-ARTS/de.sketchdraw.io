@@ -2,9 +2,10 @@
 // Lists user-visible German text that is not routed through t(): template text, text attributes and
 // string literals that look like German prose. Used as a worklist and by the i18n coverage test.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const GERMAN_WORDS = new Set(`abbrechen allen ansehen aufgabe ausrichtung auswahl bearbeiten beenden beitreten bitte datei diese diesem dieser dieses dokument dünn ebene eine einem einen einer eines einfügen einladung entwurf farbe fehler fläche formen füllung für gebogen gemeinsam gespeichert größe hinten hintergrund jeder kein keine keinen keiner kommentar kontur kopiert können leiste löschen neue neuen neuer neues nicht oder rechtwinklig rückgängig schließen seite sind spalte speichern starten suchen und ungespeichert verbinden verbunden verlassen verwerfen vom vorn werden werkzeug werkzeuge wiederholen wird wurde zeichenfläche zeichnen zeile zugriff zum zur zurück ändern änderung änderungen öffnen über übernehmen`.split(/\s+/));
 const CODEISH = /^(?:[.#:@\/\\\-_]|https?:|data:|rgb|var\(|calc\(|translate|rotate|scale|url\(|\d)/;
 
@@ -31,7 +32,7 @@ export function scan(files, { includeCatalog = false } = {}) {
   const found = [];
   for (const file of files) {
     const rel = relative(ROOT, file);
-    if (!includeCatalog && /\/i18n\//.test(rel)) continue;
+    if (!includeCatalog && /[\\/]i18n[\\/]/.test(rel)) continue;
     const source = readFileSync(file, 'utf8');
     const lines = source.split('\n');
     lines.forEach((line, index) => {
@@ -47,8 +48,8 @@ export function scan(files, { includeCatalog = false } = {}) {
   return found;
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
-  const skip = /\/(domain|interop|codec|crdt|mcp|session|collaboration|agent-access)\//;
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const skip = /[\\/](domain|interop|codec|crdt|mcp|session|collaboration|agent-access)[\\/]/;
   const results = scan(walk(join(ROOT, 'src')).concat(walk(join(ROOT, 'electron'))).filter((file) => !skip.test(file)));
   const unwrapped = results.filter((entry, i, all) => all.findIndex((other) => other.file === entry.file && other.line === entry.line && other.text === entry.text) === i);
   const byFile = new Map();
