@@ -3236,24 +3236,26 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         },
         "observedSeconds": {
-          "knownRuns": 1,
-          "knownSubtotal": 447,
+          "knownRuns": 2,
+          "knownSubtotal": 885,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
-        "runCount": 2,
+        "runCount": 4,
         "runIds": [
+          "codex-borderless-more-shapes-89",
           "codex-shape-header-regression-89",
+          "github-actions-borderless-more-shapes-39127648724",
           "github-actions-shape-header-39114208217"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 2
+          "unknownRuns": 4
         }
       },
       "planning": {
@@ -3767,20 +3769,21 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 41
+        "unknownRuns": 42
       },
       "observedSeconds": {
-        "knownRuns": 35,
-        "knownSubtotal": 16072,
+        "knownRuns": 36,
+        "knownSubtotal": 16510,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 41,
+      "runCount": 42,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
         "github-actions-annotation-39087268278",
         "github-actions-annotation-list-markers-39119528401",
+        "github-actions-borderless-more-shapes-39127648724",
         "github-actions-comment-marker-targets-39121186548",
         "github-actions-comments-39091555196",
         "github-actions-connector-marker-palette-39116445470",
@@ -3823,7 +3826,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 41
+        "unknownRuns": 42
       }
     },
     "openai-codex": {
@@ -3831,17 +3834,18 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       },
-      "runCount": 18,
+      "runCount": 19,
       "runIds": [
         "codex-annotation-list-markers-98",
+        "codex-borderless-more-shapes-89",
         "codex-build-composable-evaluation-73",
         "codex-comment-marker-targets-99",
         "codex-connector-marker-palette-96",
@@ -3864,7 +3868,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 18
+        "unknownRuns": 19
       }
     }
   },
@@ -3873,15 +3877,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 168
+      "unknownRuns": 170
     },
     "observedSeconds": {
-      "knownRuns": 55,
-      "knownSubtotal": 28694.322263248963,
+      "knownRuns": 56,
+      "knownSubtotal": 29132.322263248963,
       "total": null,
-      "unknownRuns": 113
+      "unknownRuns": 114
     },
-    "runCount": 168,
+    "runCount": 170,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3935,6 +3939,7 @@
       "codex-annotation-056",
       "codex-annotation-list-markers-98",
       "codex-auto-agent-access-030",
+      "codex-borderless-more-shapes-89",
       "codex-build-composable-evaluation-73",
       "codex-ci-signing-env-026",
       "codex-codec-catalog-tests-001",
@@ -4014,6 +4019,7 @@
       "github-actions-agent-access-39054540682",
       "github-actions-annotation-39087268278",
       "github-actions-annotation-list-markers-39119528401",
+      "github-actions-borderless-more-shapes-39127648724",
       "github-actions-comment-marker-targets-39121186548",
       "github-actions-comments-39091555196",
       "github-actions-connector-marker-palette-39116445470",
@@ -4056,7 +4062,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 164
+      "unknownRuns": 166
     }
   },
   "officialScoreClaimReady": false,
@@ -4070,5 +4076,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:28:26Z"
+  "updatedAt": "2026-10-18T12:39:04Z"
 }

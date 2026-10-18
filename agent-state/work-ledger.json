@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T12:28:26Z",
+  "updatedAt": "2026-10-18T12:39:04Z",
   "issues": [
     {
       "number": 1,
@@ -6231,6 +6231,59 @@
       ],
       "authorization": "GitHub Actions verification and the failed-job rerun were triggered by the authorized push of the Issue 104 product change to main.",
       "measurementSource": "GitHub Actions run 39126131884 creation and final completion timestamps cover the initial attempt plus the Windows rerun. Attempt 2 concluded successfully for all five jobs; observedSeconds is the wall-clock interval from createdAt to final updatedAt. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-borderless-more-shapes-89",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        89
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:d48c5d969139bae3925cb06f728ab5bb12280d8d",
+        "src/renderer/components/Toolbar.vue",
+        "tests/ui/shape-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/89",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724"
+      ],
+      "concerns": [
+        "The invisible button hit area and global keyboard focus ring are intentionally retained while the normal, hover and expanded surfaces remain transparent and borderless.",
+        "The Graphify source refresh guard preserved the existing graph because the rebuilt graph contained 4,238 nodes versus 4,392 in the existing graph; deterministic ticket/run/artifact traceability is refreshed separately."
+      ],
+      "authorization": "The user explicitly requested that the more-shapes control display only the ellipsis without a border; Codex remains authorized to implement UI work temporarily with actual tool attribution.",
+      "measurementSource": "Local macOS evidence at product commit d48c5d9: typecheck passed; 20/20 targeted Playwright UI tests passed; production build passed; live Electron inspection confirmed only the ellipsis is visible. GitHub Actions run 39127648724 then passed Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-borderless-more-shapes-39127648724",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        89
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T12:31:39Z",
+      "endedAt": "2026-10-18T12:38:57Z",
+      "observedSeconds": 438,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:d48c5d969139bae3925cb06f728ab5bb12280d8d",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724/job/117676218727",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724/job/117676218938",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724/job/117676253518",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724/job/117676253538",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39127648724/job/117676253562"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized push of the Issue 89 product change to main.",
+      "measurementSource": "GitHub Actions run 39127648724 timestamps report 438 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
