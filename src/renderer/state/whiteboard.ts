@@ -40,7 +40,7 @@ import {
   activePageId, clonePage, documentWithPages, MAX_PAGE_NAME_LENGTH, MAX_PAGES, nextPageName,
   pageClipboardPayload, pageState, pageSummaries,
 } from './pages';
-import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
+import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import {
@@ -1057,6 +1057,21 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const targets = selected().filter((e) => SWAPPABLE_KINDS.has(e.kind) && effectiveShapeVariant(e) !== variant);
       if (!targets.length) return;
       void dispatch({ type: 'update', changes: targets.map((element) => ({ id: element.id, patch: { shapeVariant: variant } })) });
+    },
+    quickConnectTo(direction, targetId) {
+      if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;
+      const source = selected()[0];
+      const target = state.document.elements.find((element) => element.id === targetId);
+      if (!source || !target || target.id === source.id || target.kind === 'connector' || !QUICK_CONNECT_KINDS.has(source.kind)) return;
+      const fromAnchor = QUICK_SIDES[direction].from;
+      const start = anchorPoint(source, fromAnchor);
+      const toAnchor = nearestSideAnchor(target, start);
+      const end = anchorPoint(target, toAnchor);
+      try {
+        const rect = normalizedRect(start, end);
+        const arrow = createElement('connector', { id: uid('connector'), ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })), from: { elementId: source.id, anchor: fromAnchor }, to: { elementId: target.id, anchor: toAnchor }, style: { ...DEFAULT_STYLE } });
+        void dispatch({ type: 'add', elements: [arrow] }).then((ok) => { if (ok) state.liveMessage = 'Verbindung erstellt.'; });
+      } catch (error) { fail(error); }
     },
     quickConnect(direction) {
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;

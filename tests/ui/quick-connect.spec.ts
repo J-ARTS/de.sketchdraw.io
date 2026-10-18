@@ -68,3 +68,35 @@ test('repeated quick connects fan out instead of overlapping and work from the k
   expect(second!.x).toBeCloseTo(first!.x, 0);
   expect(Math.abs(second!.y - first!.y)).toBeGreaterThanOrEqual(first!.h);
 });
+
+test('dragging the quick-connect arrow onto another shape connects both without a copy (#107)', async ({ page }) => {
+  await drawRectangle(page); // 350,220 → 550,360
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(800, 240); await page.mouse.down(); await page.mouse.move(960, 360, { steps: 8 }); await page.mouse.up();
+  await expect(page.locator(shapes)).toHaveCount(2);
+  const [sourceId, targetId] = await page.locator(shapes).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-element-id')));
+  await page.mouse.click(400, 260); // select the first rectangle again
+
+  const handle = (await page.getByTestId('quick-connect-right').boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2); await page.mouse.down();
+  await page.mouse.move(880, 300, { steps: 10 });
+  await expect(page.getByTestId('quick-connect-link')).toBeVisible();
+  await expect(page.getByTestId('quick-connect-link').locator('.link-target')).toHaveCount(1);
+  await expect(page.getByTestId('quick-connect-preview')).toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.locator(shapes)).toHaveCount(2);
+  await expect(page.locator(arrows)).toHaveCount(1);
+  const code = await documentCode(page);
+  expect(code).toContain(`"from":{"anchor":{"x":1,"y":0.5},"elementId":"${sourceId}"}`);
+  expect(code).toContain(`"to":{"anchor":{"x":0,"y":0.5},"elementId":"${targetId}"}`);
+
+  // Releasing on empty canvas or pressing Escape creates nothing.
+  await page.mouse.click(400, 260);
+  const again = (await page.getByTestId('quick-connect-bottom').boundingBox())!;
+  await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2); await page.mouse.down();
+  await page.mouse.move(450, 600, { steps: 6 }); await page.mouse.up();
+  await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2); await page.mouse.down();
+  await page.mouse.move(880, 300, { steps: 6 }); await page.keyboard.press('Escape'); await page.mouse.up();
+  await expect(page.locator(shapes)).toHaveCount(2);
+  await expect(page.locator(arrows)).toHaveCount(1);
+});

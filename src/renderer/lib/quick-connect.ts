@@ -56,6 +56,24 @@ export function planQuickConnect(source: SketchElement, direction: QuickDirectio
   return { shape, start, end, fromAnchor: side.from, toAnchor: side.to };
 }
 
+/** Point on the element edge for a normalized anchor, honouring rotation. */
+export function anchorPoint(element: SketchElement, anchor: Point): Point {
+  return rotatePoint({ x: element.x + anchor.x * element.width, y: element.y + anchor.y * element.height }, center(element), element.rotation);
+}
+
+/** Side midpoint of `target` closest to `from`, used when a quick-connect drag ends on an existing element (#107). */
+export function nearestSideAnchor(target: SketchElement, from: Point): Point {
+  let best = QUICK_SIDES.left.from;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const direction of QUICK_DIRECTIONS) {
+    const anchor = QUICK_SIDES[direction].from;
+    const point = anchorPoint(target, anchor);
+    const distance = Math.hypot(point.x - from.x, point.y - from.y);
+    if (distance < bestDistance) { best = anchor; bestDistance = distance; }
+  }
+  return best;
+}
+
 /** Same kind, size and style; text, names and descriptions stay with the original. */
 export function quickConnectCopy(source: SketchElement, shape: Rect): Partial<SketchElement> {
   const copy: Partial<SketchElement> = { ...shape, rotation: 0, style: { ...source.style } };
