@@ -201,6 +201,8 @@ export interface WhiteboardState {
   pencilColor: string;
   /** Pencil stroke width in CSS screen pixels while drawing; independent from the canvas zoom. */
   pencilSize: number;
+  /** Pencil opacity as an integer percentage from 0 through 100. */
+  pencilOpacity: number;
   /** Eraser hit radius in CSS screen pixels; independent from the canvas zoom. */
   eraserRadius: number;
   viewport: Viewport;
@@ -274,6 +276,7 @@ export interface WhiteboardStore {
   setPencilPreset(preset: PencilPreset): void;
   setPencilColor(color: string): void;
   setPencilSize(size: number): void;
+  setPencilOpacity(opacity: number): void;
   setEraserRadius(radius: number): void;
   addWebEmbed(url: string): Promise<boolean>;
   setViewportSize(width: number, height: number): void;

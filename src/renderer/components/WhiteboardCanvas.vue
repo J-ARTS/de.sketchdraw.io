@@ -144,8 +144,9 @@ onMounted(() => canvas.value?.focus());
           <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
         </template>
       </g>
-      <g v-if="pencilCursorVisible && toolPointer" class="pencil-cursor" data-testid="pencil-cursor" :data-size="s.pencilSize" pointer-events="none" aria-hidden="true">
-        <circle :cx="toolPointer.x" :cy="toolPointer.y" :r="s.pencilSize / 2" fill="none" :stroke="s.pencilColor" stroke-width="1.5" opacity=".9" />
+      <g v-if="pencilCursorVisible && toolPointer" class="pencil-cursor" data-testid="pencil-cursor" :data-size="s.pencilSize" :data-opacity="s.pencilOpacity" pointer-events="none" aria-hidden="true">
+        <circle v-if="s.pencilOpacity < 20" :cx="toolPointer.x" :cy="toolPointer.y" :r="s.pencilSize / 2" fill="none" stroke="var(--text-primary)" stroke-width="1" stroke-dasharray="3 3" opacity=".48" />
+        <circle :cx="toolPointer.x" :cy="toolPointer.y" :r="s.pencilSize / 2" fill="none" :stroke="s.pencilColor" stroke-width="1.5" :opacity="s.pencilOpacity / 100" />
       </g>
       <g v-if="eraserCursorVisible && toolPointer" class="eraser-cursor" data-testid="eraser-cursor" :data-radius="s.eraserRadius" pointer-events="none" aria-hidden="true">
         <circle :cx="toolPointer.x" :cy="toolPointer.y" :r="s.eraserRadius" fill="none" stroke="var(--text-primary)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".82" />

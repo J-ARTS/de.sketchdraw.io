@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { PALETTE } from '@/renderer/lib/constants';
-import { ERASER_RADIUS_MAX, ERASER_RADIUS_MIN, PENCIL_OPTIONS, PENCIL_SIZE_MAX, PENCIL_SIZE_MIN } from '@/renderer/lib/drawing-tools';
+import {
+  ERASER_RADIUS_MAX, ERASER_RADIUS_MIN, PENCIL_OPACITY_MAX, PENCIL_OPACITY_MIN,
+  PENCIL_OPTIONS, PENCIL_SIZE_MAX, PENCIL_SIZE_MIN,
+} from '@/renderer/lib/drawing-tools';
 import { useWhiteboard } from './use-whiteboard';
 
 const store = useWhiteboard();
@@ -43,6 +46,9 @@ function pickCustomColor(event: Event): void {
 function setPencilSize(event: Event): void {
   store.setPencilSize(Number((event.target as HTMLInputElement).value));
 }
+function setPencilOpacity(event: Event): void {
+  store.setPencilOpacity(Number((event.target as HTMLInputElement).value));
+}
 function setEraserRadius(event: Event): void {
   store.setEraserRadius(Number((event.target as HTMLInputElement).value));
 }
@@ -61,6 +67,13 @@ function onPencilSizeKeydown(event: KeyboardEvent): void {
   event.preventDefault();
   event.stopPropagation();
   store.setPencilSize(size);
+}
+function onPencilOpacityKeydown(event: KeyboardEvent): void {
+  const opacity = sliderKeyValue(event, s.pencilOpacity, PENCIL_OPACITY_MIN, PENCIL_OPACITY_MAX);
+  if (opacity === null) return;
+  event.preventDefault();
+  event.stopPropagation();
+  store.setPencilOpacity(opacity);
 }
 function onEraserRadiusKeydown(event: KeyboardEvent): void {
   const radius = sliderKeyValue(event, s.eraserRadius, ERASER_RADIUS_MIN, ERASER_RADIUS_MAX);
@@ -127,6 +140,28 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
             @keydown="onPencilSizeKeydown"
           />
           <output for="pencil-size" aria-live="polite">{{ s.pencilSize }} px</output>
+        </label>
+      </div>
+      <span class="separator" aria-hidden="true" />
+      <div class="option-group size-group" role="group" aria-label="Stift-Deckkraft">
+        <label class="size-control opacity-control" for="pencil-opacity">
+          <span>Deckkraft</span>
+          <input
+            id="pencil-opacity"
+            data-testid="pencil-opacity-slider"
+            type="range"
+            :min="PENCIL_OPACITY_MIN"
+            :max="PENCIL_OPACITY_MAX"
+            step="1"
+            :value="s.pencilOpacity"
+            aria-label="Stift-Deckkraft"
+            :aria-valuetext="`${s.pencilOpacity} Prozent Deckkraft`"
+            title="Stift-Deckkraft von 0 bis 100 Prozent"
+            :disabled="!s.canWrite || s.transitioning"
+            @input="setPencilOpacity"
+            @keydown="onPencilOpacityKeydown"
+          />
+          <output for="pencil-opacity" aria-live="polite">{{ s.pencilOpacity }} %</output>
         </label>
       </div>
       <span class="separator" aria-hidden="true" />
@@ -206,6 +241,8 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .size-group{padding:0 7px}
 .size-control{display:grid;grid-template-columns:auto minmax(120px,220px) 54px;align-items:center;gap:12px;font-size:12px;font-weight:650;white-space:nowrap}
 .size-control input{width:220px;max-width:36vw;accent-color:var(--accent);cursor:pointer}
+.opacity-control{grid-template-columns:auto minmax(100px,150px) 48px}
+.opacity-control input{width:150px}
 .size-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-muted)}
 .size-control input:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:999px}
 .size-control input:disabled{cursor:not-allowed;opacity:.45}

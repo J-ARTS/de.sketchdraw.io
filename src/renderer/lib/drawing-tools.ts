@@ -16,6 +16,9 @@ export const PENCIL_OPTIONS: readonly PencilOption[] = [
 export const PENCIL_SIZE_MIN = 1;
 export const PENCIL_SIZE_MAX = 500;
 export const PENCIL_SIZE_DEFAULT = PENCIL_OPTIONS[0]!.strokeWidth;
+export const PENCIL_OPACITY_MIN = 0;
+export const PENCIL_OPACITY_MAX = 100;
+export const PENCIL_OPACITY_DEFAULT = Math.round(PENCIL_OPTIONS[0]!.opacity * 100);
 export const ERASER_RADIUS_MIN = 1;
 export const ERASER_RADIUS_MAX = 500;
 export const ERASER_RADIUS_DEFAULT = 18;
@@ -26,6 +29,10 @@ export function pencilOption(value: PencilPreset): PencilOption {
 
 export function clampPencilSize(value: number): number {
   return Math.min(PENCIL_SIZE_MAX, Math.max(PENCIL_SIZE_MIN, Math.round(value)));
+}
+
+export function clampPencilOpacity(value: number): number {
+  return Math.min(PENCIL_OPACITY_MAX, Math.max(PENCIL_OPACITY_MIN, Math.round(value)));
 }
 
 export function clampEraserRadius(value: number): number {

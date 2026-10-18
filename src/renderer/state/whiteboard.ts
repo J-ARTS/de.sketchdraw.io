@@ -43,7 +43,10 @@ import {
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
-import { clampEraserRadius, clampPencilSize, ERASER_RADIUS_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption } from '../lib/drawing-tools';
+import {
+  clampEraserRadius, clampPencilOpacity, clampPencilSize,
+  ERASER_RADIUS_DEFAULT, PENCIL_OPACITY_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption,
+} from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
 
@@ -56,6 +59,7 @@ type Gesture = {
   connectorPoints?: Point[];
   connectorPointIndex?: number;
   pencilStrokeWidth?: number;
+  pencilOpacity?: number;
   eraserRadius?: number;
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -144,7 +148,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get canWrite() { return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
-    pencilPreset: 'fine' as PencilPreset, pencilColor: DEFAULT_STYLE.stroke, pencilSize: PENCIL_SIZE_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
+    pencilPreset: 'fine' as PencilPreset, pencilColor: DEFAULT_STYLE.stroke,
+    pencilSize: PENCIL_SIZE_DEFAULT, pencilOpacity: PENCIL_OPACITY_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
@@ -453,10 +458,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const rect = g.tool === 'path' ? normalizedRect({ x: Math.min(...points.map((p) => p.x)), y: Math.min(...points.map((p) => p.y)) }, { x: Math.max(...points.map((p) => p.x)), y: Math.max(...points.map((p) => p.y)) }) : normalizedRect(g.start, end);
     const style: ElementStyle = { ...DEFAULT_STYLE, ...STYLE_BY_KIND[g.tool] };
     if (g.tool === 'path') {
-      const pencil = pencilOption(state.pencilPreset);
       style.stroke = state.pencilColor;
       style.strokeWidth = g.pencilStrokeWidth ?? state.pencilSize / state.viewport.zoom;
-      style.opacity = pencil.opacity;
+      style.opacity = (g.pencilOpacity ?? state.pencilOpacity) / 100;
     }
     const value: Partial<SketchElement> = { ...rect, style, id: g.element?.id ?? uid(g.tool), ...(SWAPPABLE_KINDS.has(g.tool as SketchElement['kind']) ? { shapeVariant: state.shapeVariant } : {}) };
     if (g.tool === 'frame') value.label = g.element?.label ?? nextFrameLabel(state.document);
@@ -703,6 +707,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.canWrite || state.transitioning || !(['fine', 'pencil', 'marker'] as PencilPreset[]).includes(preset)) return;
       state.pencilPreset = preset;
       state.pencilSize = pencilOption(preset).strokeWidth;
+      state.pencilOpacity = Math.round(pencilOption(preset).opacity * 100);
       state.liveMessage = `Stifttyp: ${pencilOption(preset).label}`;
     },
     setPencilColor(color) {
@@ -716,6 +721,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.canWrite || state.transitioning || !Number.isFinite(size)) return;
       state.pencilSize = clampPencilSize(size);
       state.liveMessage = `Pinselgröße: ${state.pencilSize} Pixel`;
+    },
+    setPencilOpacity(opacity) {
+      if (!state.canWrite || state.transitioning || !Number.isFinite(opacity)) return;
+      state.pencilOpacity = clampPencilOpacity(opacity);
+      state.liveMessage = `Stift-Deckkraft: ${state.pencilOpacity} Prozent`;
     },
     setEraserRadius(radius) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(radius)) return;
@@ -798,7 +808,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         } else connectorPointIndex = Number(handle.id.slice('connector:'.length));
       }
       gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets, handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
-        ...(state.tool === 'path' ? { pencilStrokeWidth: state.pencilSize / state.viewport.zoom } : {}),
+        ...(state.tool === 'path' ? {
+          pencilStrokeWidth: state.pencilSize / state.viewport.zoom,
+          pencilOpacity: state.pencilOpacity,
+        } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex } : {}),
         ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
       if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };
