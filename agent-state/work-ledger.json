@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T03:24:49Z",
+  "updatedAt": "2026-10-18T03:34:01Z",
   "issues": [
     {
       "number": 1,
@@ -976,7 +976,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/61",
       "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
       "phase": "Canvas drawing interaction and testing",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4233,7 +4233,7 @@
       "issues": [
         61
       ],
-      "status": "verified_local",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-18T03:16:22Z",
       "endedAt": "2026-10-18T03:24:49Z",
       "observedSeconds": null,
@@ -4253,11 +4253,39 @@
         "tests/ui/whiteboard.spec.ts",
         "agent-state/work-ledger.json",
         "graphify-out/graph.json",
-        "graphify-out/traceability.json"
+        "graphify-out/traceability.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/e7db145229e97b1324989bbb9ab3ad842f9cd732",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086"
       ],
       "concerns": [],
       "authorization": "The user explicitly requested contextual pencil and eraser controls and previously authorized temporary Codex implementation with actual-tool attribution.",
-      "measurementSource": "Codex implemented the contextual drawing controls through the existing local UI preference and authority boundaries. Local evidence on the uncommitted issue #61 worktree state: typecheck and production build passed; 339/339 Vitest tests, 59/59 Node lifecycle/release tests after one isolated rerun, 54/54 browser UI tests after resolving two toolbar-layout regressions, 6/6 Electron tests and 22/22 Graphify tooling tests passed. The two first-run failures and their resolved causes are recorded in issue comments. No measured implementation duration, token or cost metric is claimed."
+      "measurementSource": "Codex implemented the contextual drawing controls through the existing local UI preference and authority boundaries. Local evidence on the uncommitted issue #61 worktree state: typecheck and production build passed; 339/339 Vitest tests, 59/59 Node lifecycle/release tests after one isolated rerun, 54/54 browser UI tests after resolving two toolbar-layout regressions, 6/6 Electron tests and 22/22 Graphify tooling tests passed. The two first-run failures and their resolved causes are recorded in issue comments. No measured implementation duration, token or cost metric is claimed. GitHub Actions run 39093583086 then verified the exact feature commit across Governance/Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04; all five jobs passed."
+    },
+    {
+      "id": "github-actions-pencil-eraser-options-39093583086",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        61
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T03:25:45Z",
+      "endedAt": "2026-10-18T03:33:36Z",
+      "observedSeconds": 471,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/e7db145229e97b1324989bbb9ab3ad842f9cd732",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254417",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575254565",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282804",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282815",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39093583086/job/117575282884"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions metadata for exact feature commit e7db145229e97b1324989bbb9ab3ad842f9cd732. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, 59 Node tests, 339 Vitest tests, production build, 54 browser UI tests including drawing options and accessibility, 6 Electron integration tests and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
     }
   ],
   "evidencePolicy": {
