@@ -4,6 +4,7 @@ import { useWhiteboard } from './use-whiteboard';
 import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
 import AnnotationEditor from './AnnotationEditor.vue';
+import TableOverlay from './TableOverlay.vue';
 import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
@@ -105,6 +106,7 @@ onBeforeUnmount(() => observer?.disconnect());
       </g>
     </svg>
     <QuickConnect />
+    <TableOverlay />
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
       <AnnotationEditor v-if="s.textEdit.kind === 'annotation'" />

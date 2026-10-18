@@ -1,5 +1,6 @@
 import { applyCommand } from './commands';
 import { areAnnotationDocumentsEqual, cloneAnnotationDocument } from './annotation';
+import { areTableDocumentsEqual, cloneTableDocument } from './table';
 import { DomainConflictError, DomainValidationError } from './errors';
 import {
   areAssetsEqual,
@@ -326,6 +327,14 @@ function evaluateTransition(
       }
       if (tgtEl.annotation === undefined) delete working.annotation;
       else working.annotation = cloneAnnotationDocument(tgtEl.annotation);
+    }
+
+    if (!areTableDocumentsEqual(expEl.table, tgtEl.table)) {
+      if (!areTableDocumentsEqual(curEl.table, expEl.table)) {
+        return { ok: false, reason: `Element "${id}" table content was modified by another operation.` };
+      }
+      if (tgtEl.table === undefined) delete working.table;
+      else working.table = cloneTableDocument(tgtEl.table);
     }
 
     for (const endKey of ['from', 'to'] as const) {

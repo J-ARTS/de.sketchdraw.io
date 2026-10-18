@@ -2,9 +2,12 @@ import { reactive } from 'vue';
 import {
   applyCommand, createController, createDocument, createElement, deserializeDocument,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
+  formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
+  duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
+  tablePlainText,
   connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
-  type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument,
+  type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
   type ShapeVariant, effectiveShapeVariant, shapeBaseKind,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
@@ -103,7 +106,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
-    textEdit: null as WhiteboardState['textEdit'], gestureConflict: null as WhiteboardState['gestureConflict'],
+    textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
     theme: options.initialTheme ?? 'light', bridgePlatform: bridge.platform,
@@ -150,6 +153,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       // overrides the same fields for all of them without changing the document.
       const edit = this.textEdit;
       const editStyle = edit ? textStyleChanges(edit) : null;
+      let tableMixed: string[] = [];
       const displayed = elements.map((element): SelectionInfo['values'] => {
         const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
         const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
@@ -158,9 +162,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           startMarker: e.kind === 'connector' ? connectorStartMarker({ startMarker: e.startMarker ?? undefined }) : undefined,
           endMarker: e.kind === 'connector' ? connectorEndMarker({ endMarker: e.endMarker ?? undefined }) : undefined };
       });
+      if (elements.length === 1 && first?.kind === 'table' && first.table) {
+        const selectedCellIds = this.tableSelection?.elementId === first.id ? this.tableSelection.cellIds : [];
+        const cells = selectedCellIds.length ? first.table.cells.filter((cell) => selectedCellIds.includes(cell.id)) : first.table.cells;
+        const cell = cells[0];
+        if (cell) {
+          displayed[0] = { ...displayed[0], fill: cell.style.fill, stroke: cell.style.color, fontSize: cell.style.fontSize, fontFamily: cell.style.fontFamily, fontWeight: cell.style.fontWeight, textDecoration: cell.style.textDecoration, listStyle: cell.style.listStyle, textAlign: cell.style.textAlign };
+          tableMixed = (Object.keys(cell.style) as Array<keyof TableCellStyle>).filter((key) => cells.slice(1).some((candidate) => !same(candidate.style[key], cell.style[key]))).map((key) => key === 'color' ? 'stroke' : key);
+        }
+      }
       const values = displayed[0] ?? { ...DEFAULT_STYLE, ...(edit && !edit.elementId ? edit.style : {}) };
       const others = displayed.slice(1);
-      const mixed = (Object.keys(values) as Array<keyof typeof values>).filter(key => others.some(value => !same(value[key], values[key])));
+      const mixed = [...new Set([...(Object.keys(values) as Array<keyof typeof values>).filter(key => others.some(value => !same(value[key], values[key]))), ...tableMixed])];
       return { count: elements.length, kinds: [...new Set(elements.map((e) => e.kind))], singleId: elements.length === 1 ? first!.id : null, values, mixed,
         canGroup: elements.length > 0, canUngroup: elements.some((e) => e.kind === 'container'), canConnect: elements.length === 2,
         canEditText: elements.length === 1, hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image'].includes(e.kind)), hasText: true };
@@ -250,6 +263,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function setSelection(ids: string[], additive = false) {
     state.selection = [...new Set(additive ? [...state.selection, ...ids] : ids)].filter((id) => state.document.elements.some((e) => e.id === id));
     state.focusedId = state.selection.at(-1) ?? null;
+    if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
   function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; changedDraft(); }
@@ -464,6 +478,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     } catch (error) { releaseTransition(); fail(error); if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(fail); }
   }
 
+  function commitTable(element: SketchElement, table: TableDocument, announcement: string, resizeToContent = false): void {
+    const oldColumnUnits = element.table?.columns.reduce((sum, column) => sum + column.width, 0) || element.width;
+    const oldRowUnits = element.table?.rows.reduce((sum, row) => sum + row.height, 0) || element.height;
+    const width = resizeToContent ? element.width * table.columns.reduce((sum, column) => sum + column.width, 0) / oldColumnUnits : element.width;
+    const height = resizeToContent ? element.height * table.rows.reduce((sum, row) => sum + row.height, 0) / oldRowUnits : element.height;
+    void dispatch({ type: 'update', changes: [{ id: element.id, patch: { table, text: tablePlainText(table), width, height } }] }).then((ok) => {
+      if (ok) { setSelection([element.id]); state.liveMessage = announcement; }
+    });
+  }
+
   const store: WhiteboardStore = {
     state,
     getAuthority() { return authority; },
@@ -596,7 +620,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       void finishGesture(g);
     },
     pointerCancel() { if (state.transitioning) return; resetGesture(); },
-    doubleClick(input) { if (!state.canWrite || state.transitioning) return; const e = hit(screenToDoc(state.viewport, input)); if (e && !isResourceCard(e)) store.startTextEdit(e.id); },
+    doubleClick(input) { if (!state.canWrite || state.transitioning) return; const e = hit(screenToDoc(state.viewport, input)); if (e && e.kind !== 'table' && !isResourceCard(e)) store.startTextEdit(e.id); },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
     handleKeyDown(input) {
       if (state.transitioning || state.dialog || input.isComposing) return false;
@@ -788,7 +812,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     startTextEdit(elementId) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
       const e = elementId ? state.document.elements.find((e) => e.id === elementId) : undefined;
-      if (isResourceCard(e)) return;
+      if (isResourceCard(e) || e?.kind === 'table') return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
@@ -813,6 +837,48 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         failedGesture.targets = failedGesture.targets.map((e) => clone(state.document.elements.find((current) => current.id === e.id)!));
         void finishGesture(failedGesture);
       }
+    },
+    selectTableCells(elementId, cellIds, mode, rowIndex, columnIndex) {
+      const element = state.document.elements.find((entry) => entry.id === elementId && entry.kind === 'table');
+      if (!element?.table) return;
+      setSelection([elementId]);
+      state.tableSelection = { elementId, cellIds: cellIds.filter((id) => element.table!.cells.some((cell) => cell.id === id)), mode, rowIndex, columnIndex };
+      state.liveMessage = mode === 'table' ? 'Gesamte Tabelle ausgewählt.' : `${cellIds.length} Tabellenzelle${cellIds.length === 1 ? '' : 'n'} ausgewählt.`;
+    },
+    setTableCellText(elementId, cellId, text) {
+      if (!state.canWrite || state.transitioning) return;
+      const element = state.document.elements.find((entry) => entry.id === elementId && entry.kind === 'table');
+      if (!element?.table || !element.table.cells.some((cell) => cell.id === cellId)) return;
+      commitTable(element, updateTableCellText(element.table, cellId, text), 'Tabellenzelle aktualisiert.');
+    },
+    formatTableSelection(value: Partial<TableCellStyle>) {
+      if (!state.canWrite || state.transitioning) return;
+      const selection = state.tableSelection;
+      const element = selection ? state.document.elements.find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
+      if (!element?.table || element.kind !== 'table') return;
+      const ids = selection?.elementId === element.id ? selection.cellIds : [];
+      commitTable(element, formatTableCells(element.table, ids, value), 'Tabellenformatierung aktualisiert.');
+    },
+    changeTableStructure(action) {
+      if (!state.canWrite || state.transitioning) return;
+      const selection = state.tableSelection;
+      const element = selection ? state.document.elements.find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
+      if (!element?.table || element.kind !== 'table') return;
+      const row = Math.max(0, selection?.rowIndex ?? 0); const column = Math.max(0, selection?.columnIndex ?? 0);
+      let table = element.table;
+      if (action === 'row-before') table = insertTableRow(table, row);
+      else if (action === 'row-after') table = insertTableRow(table, row + 1);
+      else if (action === 'column-before') table = insertTableColumn(table, column);
+      else if (action === 'column-after') table = insertTableColumn(table, column + 1);
+      else if (action === 'row-duplicate') table = duplicateTableRow(table, row);
+      else if (action === 'column-duplicate') table = duplicateTableColumn(table, column);
+      else if (action === 'row-delete') table = deleteTableRow(table, row);
+      else if (action === 'column-delete') table = deleteTableColumn(table, column);
+      else if (action === 'row-up') table = moveTableRow(table, row, -1);
+      else if (action === 'row-down') table = moveTableRow(table, row, 1);
+      else if (action === 'column-left') table = moveTableColumn(table, column, -1);
+      else if (action === 'column-right') table = moveTableColumn(table, column, 1);
+      commitTable(element, table, 'Tabellenstruktur aktualisiert.', true);
     },
     async insertImageFile(file, at) {
       if (state.transitioning) return;

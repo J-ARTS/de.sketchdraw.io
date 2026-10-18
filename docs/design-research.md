@@ -79,6 +79,7 @@ Es ist kein separates Theme-System mit drei eigenständigen Oberflächen erforde
 | UI-R09 | Agentenänderungen sind als normale editierbare Elemente sichtbar und über dieselbe Historie nachvollziehbar. Konflikte nennen betroffene Änderung und lassen menschliche Arbeit bestehen. | Produktvision/Architektur; erforderlich |
 | UI-R10 | In kleineren Fenstern wechseln optionale Panels zu einem aktiven Bereich; Inhalte und Fehler bleiben erreichbar. Verkleinern schließt keinen Codeentwurf stillschweigend. | Platzbedarf der Referenzen L; konkrete Anpassung noch zu prüfen |
 | UI-R11 | Import/Export zeigt Format, unterstützte Bearbeitbarkeit und konkrete Informationsverluste. Warnungen unterscheiden Vorschau/Bild von semantisch bearbeitbaren Elementen. | Produktvision + draw.io D; erforderlich |
+| UI-R12 | Tabellen lassen sich über Werkzeugleiste oder Umschalt+T einfügen. Zelltext ist direkt editierbar; Tab/Umschalt+Tab navigiert. Zeilen und Spalten sind über benannte Randgriffe und ein Strukturmenü einfügbar, duplizierbar, verschiebbar und löschbar. | [Offizielle FigJam-Tabellenhilfe](https://help.figma.com/hc/en-us/articles/12583849250199-Tables-in-FigJam) + Nutzervorgabe; in #58 begrenzt umgesetzt |
 
 ### Typografie, Tokens und Bewegung
 

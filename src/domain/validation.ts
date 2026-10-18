@@ -15,10 +15,13 @@ import type {
   SketchAsset,
   SketchDocument,
   SketchElement,
+  TableCellStyle,
+  TableDocument,
   ValidationIssue,
 } from './types';
 import { SHAPE_KINDS, SHAPE_VARIANTS } from './shapes';
 import { annotationPlainText } from './annotation';
+import { MAX_TABLE_CELLS, tablePlainText } from './table';
 
 export const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
   '__proto__',
@@ -41,6 +44,7 @@ export const ELEMENT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'component',
   'sticky-note',
   'annotation',
+  'table',
 ]);
 
 const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
@@ -53,6 +57,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'component',
   'sticky-note',
   'annotation',
+  'table',
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);
@@ -118,6 +123,7 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'description',
   'text',
   'annotation',
+  'table',
   'author',
   'points',
   'connectorRouting',
@@ -172,6 +178,11 @@ const ANNOTATION_BLOCK_TYPES: ReadonlySet<AnnotationBlockType> = new Set([
   'paragraph', 'heading-1', 'heading-2', 'heading-3', 'heading-4', 'bullet', 'numbered', 'quote',
 ]);
 const ANNOTATION_COLOR = /^#[0-9a-fA-F]{6}$/;
+const TABLE_KEYS: ReadonlySet<string> = new Set(['version', 'rows', 'columns', 'cells']);
+const TABLE_ROW_KEYS: ReadonlySet<string> = new Set(['id', 'height']);
+const TABLE_COLUMN_KEYS: ReadonlySet<string> = new Set(['id', 'width']);
+const TABLE_CELL_KEYS: ReadonlySet<string> = new Set(['id', 'rowId', 'columnId', 'text', 'style']);
+const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textDecoration', 'listStyle', 'textAlign']);
 
 const textEncoder = new TextEncoder();
 
@@ -359,6 +370,89 @@ function validateAnnotationDocument(
   ancestors.delete(value.blocks);
   ancestors.delete(value);
   return issues.length === initialIssueCount;
+}
+
+function validateTableDocument(value: unknown, path: string, ancestors: Set<object>, issues: ValidationIssue[]): value is TableDocument {
+  const before = issues.length;
+  if (!isPlainRecord(value)) {
+    issues.push({ path, code: 'INVALID_TABLE', message: 'Table content must be a plain object.' });
+    return false;
+  }
+  if (ancestors.has(value)) {
+    issues.push({ path, code: 'CYCLIC_OBJECT', message: 'Cyclic reference in table content.' });
+    return false;
+  }
+  ancestors.add(value);
+  checkObjectKeys(value, path, TABLE_KEYS, issues);
+  if (value.version !== 1) issues.push({ path: joinPath(path, 'version'), code: 'INVALID_TABLE_VERSION', message: 'Table version must be 1.' });
+  const rows = Array.isArray(value.rows) ? value.rows : null;
+  const columns = Array.isArray(value.columns) ? value.columns : null;
+  const cells = Array.isArray(value.cells) ? value.cells : null;
+  if (!rows) issues.push({ path: joinPath(path, 'rows'), code: 'INVALID_TABLE_ROWS', message: 'Table rows must be an array.' });
+  if (!columns) issues.push({ path: joinPath(path, 'columns'), code: 'INVALID_TABLE_COLUMNS', message: 'Table columns must be an array.' });
+  if (!cells) issues.push({ path: joinPath(path, 'cells'), code: 'INVALID_TABLE_CELLS', message: 'Table cells must be an array.' });
+  if (!rows || !columns || !cells) { ancestors.delete(value); return false; }
+  if (rows.length < 1 || columns.length < 1 || rows.length * columns.length > MAX_TABLE_CELLS) {
+    issues.push({ path, code: 'INVALID_TABLE_SIZE', message: `A table must contain between 1 and ${MAX_TABLE_CELLS} cells.` });
+  }
+  if (cells.length !== rows.length * columns.length || cells.length > MAX_TABLE_CELLS) {
+    issues.push({ path: joinPath(path, 'cells'), code: 'INVALID_TABLE_CELL_COUNT', message: 'Table cells must contain exactly one cell for every row and column pair.' });
+  }
+  const rowIds = new Set<string>();
+  const columnIds = new Set<string>();
+  for (let index = 0; index < Math.min(rows.length, MAX_TABLE_CELLS); index += 1) {
+    const entry = rows[index]; const entryPath = joinPath(joinPath(path, 'rows'), index);
+    if (!isPlainRecord(entry)) { issues.push({ path: entryPath, code: 'INVALID_TABLE_ROW', message: 'Table row must be a plain object.' }); continue; }
+    checkObjectKeys(entry, entryPath, TABLE_ROW_KEYS, issues);
+    if (validateIdField(entry.id, joinPath(entryPath, 'id'), issues)) {
+      if (rowIds.has(entry.id)) issues.push({ path: joinPath(entryPath, 'id'), code: 'DUPLICATE_TABLE_ROW', message: 'Table row ids must be unique.' });
+      rowIds.add(entry.id);
+    }
+    if (typeof entry.height !== 'number' || !Number.isFinite(entry.height) || entry.height < 24 || entry.height > DOMAIN_LIMITS.MAX_DIMENSION) issues.push({ path: joinPath(entryPath, 'height'), code: 'INVALID_TABLE_ROW_HEIGHT', message: 'Table row height must be a finite number between 24 and the dimension limit.' });
+  }
+  for (let index = 0; index < Math.min(columns.length, MAX_TABLE_CELLS); index += 1) {
+    const entry = columns[index]; const entryPath = joinPath(joinPath(path, 'columns'), index);
+    if (!isPlainRecord(entry)) { issues.push({ path: entryPath, code: 'INVALID_TABLE_COLUMN', message: 'Table column must be a plain object.' }); continue; }
+    checkObjectKeys(entry, entryPath, TABLE_COLUMN_KEYS, issues);
+    if (validateIdField(entry.id, joinPath(entryPath, 'id'), issues)) {
+      if (columnIds.has(entry.id)) issues.push({ path: joinPath(entryPath, 'id'), code: 'DUPLICATE_TABLE_COLUMN', message: 'Table column ids must be unique.' });
+      columnIds.add(entry.id);
+    }
+    if (typeof entry.width !== 'number' || !Number.isFinite(entry.width) || entry.width < 40 || entry.width > DOMAIN_LIMITS.MAX_DIMENSION) issues.push({ path: joinPath(entryPath, 'width'), code: 'INVALID_TABLE_COLUMN_WIDTH', message: 'Table column width must be a finite number between 40 and the dimension limit.' });
+  }
+  const pairs = new Set<string>(); const cellIds = new Set<string>(); let totalText = 0;
+  for (let index = 0; index < Math.min(cells.length, MAX_TABLE_CELLS); index += 1) {
+    const entry = cells[index]; const entryPath = joinPath(joinPath(path, 'cells'), index);
+    if (!isPlainRecord(entry)) { issues.push({ path: entryPath, code: 'INVALID_TABLE_CELL', message: 'Table cell must be a plain object.' }); continue; }
+    checkObjectKeys(entry, entryPath, TABLE_CELL_KEYS, issues);
+    if (validateIdField(entry.id, joinPath(entryPath, 'id'), issues)) {
+      if (cellIds.has(entry.id)) issues.push({ path: joinPath(entryPath, 'id'), code: 'DUPLICATE_TABLE_CELL', message: 'Table cell ids must be unique.' });
+      cellIds.add(entry.id);
+    }
+    const rowId = typeof entry.rowId === 'string' ? entry.rowId : '';
+    const columnId = typeof entry.columnId === 'string' ? entry.columnId : '';
+    if (!rowIds.has(rowId)) issues.push({ path: joinPath(entryPath, 'rowId'), code: 'INVALID_TABLE_ROW_REFERENCE', message: 'Table cell rowId must reference an existing row.' });
+    if (!columnIds.has(columnId)) issues.push({ path: joinPath(entryPath, 'columnId'), code: 'INVALID_TABLE_COLUMN_REFERENCE', message: 'Table cell columnId must reference an existing column.' });
+    const pair = `${rowId}\u0000${columnId}`;
+    if (pairs.has(pair)) issues.push({ path: entryPath, code: 'DUPLICATE_TABLE_POSITION', message: 'Only one cell is allowed for each row and column pair.' });
+    pairs.add(pair);
+    if (typeof entry.text !== 'string') issues.push({ path: joinPath(entryPath, 'text'), code: 'INVALID_TEXT', message: 'Table cell text must be a string.' });
+    else totalText += entry.text.length;
+    if (!isPlainRecord(entry.style)) issues.push({ path: joinPath(entryPath, 'style'), code: 'INVALID_TABLE_CELL_STYLE', message: 'Table cell style must be a plain object.' });
+    else {
+      const style = entry.style; checkObjectKeys(style, joinPath(entryPath, 'style'), TABLE_CELL_STYLE_KEYS, issues);
+      for (const colorKey of ['fill', 'color'] as const) if (typeof style[colorKey] !== 'string' || !ANNOTATION_COLOR.test(style[colorKey] as string)) issues.push({ path: joinPath(joinPath(entryPath, 'style'), colorKey), code: 'INVALID_COLOR', message: 'Table cell colors must be six-digit RGB hex values.' });
+      if (typeof style.fontSize !== 'number' || !Number.isFinite(style.fontSize) || style.fontSize < 1 || style.fontSize > 1000) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'fontSize'), code: 'INVALID_FONT_SIZE', message: 'Table cell fontSize must be between 1 and 1000.' });
+      if (!FONT_FAMILIES.has(style.fontFamily as TableCellStyle['fontFamily'])) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'fontFamily'), code: 'INVALID_FONT_FAMILY', message: 'Table cell fontFamily is not supported.' });
+      if (!FONT_WEIGHTS.has(style.fontWeight as TableCellStyle['fontWeight'])) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'fontWeight'), code: 'INVALID_FONT_WEIGHT', message: 'Table cell fontWeight is not supported.' });
+      if (!TEXT_DECORATIONS.has(style.textDecoration as TableCellStyle['textDecoration'])) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'textDecoration'), code: 'INVALID_TEXT_DECORATION', message: 'Table cell textDecoration is not supported.' });
+      if (!LIST_STYLES.has(style.listStyle as TableCellStyle['listStyle'])) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'listStyle'), code: 'INVALID_LIST_STYLE', message: 'Table cell listStyle is not supported.' });
+      if (!TEXT_ALIGNS.has(style.textAlign as TableCellStyle['textAlign'])) issues.push({ path: joinPath(joinPath(entryPath, 'style'), 'textAlign'), code: 'INVALID_TEXT_ALIGN', message: 'Table cell textAlign is not supported.' });
+    }
+  }
+  if (totalText > DOMAIN_LIMITS.MAX_TEXT_LENGTH) issues.push({ path, code: 'TEXT_TOO_LONG', message: `Table content exceeds maximum length of ${DOMAIN_LIMITS.MAX_TEXT_LENGTH} characters.` });
+  ancestors.delete(value);
+  return issues.length === before;
 }
 
 export function validateDocumentationUrl(
@@ -1044,6 +1138,19 @@ export function validateElementIntrinsic(
       if (value.text !== fallback) {
         issues.push({ path: joinPath(path, 'text'), code: 'ANNOTATION_TEXT_MISMATCH', message: 'Annotation text must equal the plain-text fallback derived from annotation content.' });
       }
+    }
+  }
+
+  const hasTable = Object.prototype.hasOwnProperty.call(value, 'table') && value.table !== undefined;
+  if (typedKind === 'table' && !hasTable) {
+    issues.push({ path: joinPath(path, 'table'), code: 'MISSING_TABLE', message: 'Table elements must contain structured table content.' });
+  }
+  if (hasTable) {
+    if (typedKind !== null && typedKind !== 'table') {
+      issues.push({ path: joinPath(path, 'table'), code: 'FORBIDDEN_ELEMENT_FIELD', message: 'Property "table" is only allowed on table elements.' });
+    } else if (validateTableDocument(value.table, joinPath(path, 'table'), ancestors, issues)) {
+      const fallback = tablePlainText(value.table as TableDocument);
+      if (value.text !== fallback) issues.push({ path: joinPath(path, 'text'), code: 'TABLE_TEXT_MISMATCH', message: 'Table text must equal the TSV fallback derived from table content.' });
     }
   }
 

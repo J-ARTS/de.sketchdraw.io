@@ -1,7 +1,7 @@
 /** Shared architecture contract. Runtime validation is required at every input boundary. */
 export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
-  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation';
+  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation' | 'table';
 
 export type AnnotationBlockType =
   | 'paragraph' | 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4'
@@ -25,6 +25,35 @@ export interface AnnotationBlock {
 export interface AnnotationDocument {
   version: 1;
   blocks: AnnotationBlock[];
+}
+
+export interface TableCellStyle {
+  fill: string;
+  color: string;
+  fontSize: number;
+  fontFamily: 'sans' | 'mono' | 'roboto' | 'scribbled';
+  fontWeight: 'normal' | 'bold';
+  textDecoration: 'none' | 'line-through';
+  listStyle: 'none' | 'bullet';
+  textAlign: 'left' | 'center' | 'right';
+}
+
+export interface TableRow { id: string; height: number }
+export interface TableColumn { id: string; width: number }
+export interface TableCell {
+  id: string;
+  rowId: string;
+  columnId: string;
+  text: string;
+  style: TableCellStyle;
+}
+
+/** Safe, versioned table model. Raw HTML and formulas are never stored. */
+export interface TableDocument {
+  version: 1;
+  rows: TableRow[];
+  columns: TableColumn[];
+  cells: TableCell[];
 }
 
 export type ShapeVariant =
@@ -84,6 +113,8 @@ export interface SketchElement {
   text?: string;
   /** Annotation-only structured content. `text` remains its derived plain-text fallback. */
   annotation?: AnnotationDocument;
+  /** Table-only structured content. `text` remains its derived TSV fallback. */
+  table?: TableDocument;
   /** Display name shown in the footer of sticky notes. */
   author?: string;
   /** Element-local points. Connectors always retain at least two points. */
@@ -155,6 +186,7 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   description?: string | null;
   text?: string | null;
   annotation?: AnnotationDocument | null;
+  table?: TableDocument | null;
   author?: string | null;
   points?: Point[] | null;
   connectorRouting?: ConnectorRouting | null;

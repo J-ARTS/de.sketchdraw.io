@@ -8,6 +8,7 @@ import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
 import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCardLinks } from '@/catalog';
 import AnnotationContent from './AnnotationContent.vue';
+import TableContent from './TableContent.vue';
 
 const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean }>();
 const emit = defineEmits<{ openLink: [url: string] }>();
@@ -90,6 +91,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
+      <TableContent v-else-if="e.kind === 'table'" :element="e" :theme="theme" />
       <polyline v-else-if="e.kind === 'path'" :points="e.points?.map(p => `${p.x},${p.y}`).join(' ')" fill="none" />
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
@@ -127,7 +129,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
     <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
       <div class="annotation-body" :style="{ color: stroke, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && e.kind !== 'annotation'" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>

@@ -53,6 +53,8 @@ SVG ist der erste Renderer: editierbare Vektoren, Text, Pfade und Verbindungen b
 
 Die Live-Recherche in `docs/design-research.md` konkretisiert die Bedienung: eine freie Zeichenfläche, kompakte Werkzeugleiste und optionale Panels für Katalog, Code und Eigenschaften. Die semantische Elementnavigation ist ein eigener zugänglicher Bearbeitungsweg. Panelzustand, Auswahl und ungespeicherter Codeentwurf liegen außerhalb des persistenten Dokumentmodells; Panelwechsel dürfen keine Arbeit verwerfen. Speicherstatus wird aus bestätigten Desktop-Ergebnissen abgeleitet, nicht aus einer bloß gestarteten Speicheranforderung.
 
+Formatierbare Tabellen sind ein einzelnes Canvas-Element mit einem sicheren, versionierten Zellmodell. Zeilen, Spalten, Zellen und Zellstile besitzen stabile IDs beziehungsweise explizite Werte; `text` bleibt ein abgeleiteter TSV-Fallback für Suche, Diagram-as-Code und fremde Formate. Version 1 begrenzt eine Tabelle auf 500 Zellen und speichert weder HTML noch Formeln. Zell-, Zeilen- und Spaltenauswahl sind Rendererzustand; abgeschlossene Zell- oder Strukturänderungen laufen als atomare Element-Updates durch dieselbe Command-, History- und P2P-Schicht. Diese Elementgranularität kann konkurrierende Änderungen an verschiedenen Zellen derselben Tabelle als Konflikt behandeln; feinere Zell-CRDTs werden erst nach einem messbaren Kollaborationsbedarf eingeführt.
+
 Die versionierte Textsyntax muss IDs, Positionen, Stile, Verbindungspunkte, Container, Metadaten und Assetreferenzen ausdrücken. Ein JSON-Textfeld allein erfüllt das gewünschte Mermaid-nahe Bedienkonzept nicht. Der Parser liefert Zeilen-/Spaltenfehler; ungültige Bearbeitung bleibt als Entwurf erhalten. Formatierung ist deterministisch und Git-freundlich. Gleichzeitige Canvas-/Textänderungen brauchen eine sichtbare Konfliktentscheidung oder eine revisionsbasierte Zusammenführung; niemals stiller Last-Writer-Wins-Verlust.
 
 ## Cloud-Komponenten und offene Formate
@@ -84,6 +86,7 @@ Electron lädt lokal gebündelte Inhalte, verwendet `contextIsolation: true`, `s
 - [RTCPeerConnection-Konfiguration](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection): Grundlage der direkten ICE-Konfiguration; keine Zusage allgemeiner Internet-Erreichbarkeit.
 - [MCP Server Guide](https://modelcontextprotocol.io/docs/develop/build-server): Protokollintegration; eingesetzte SDK-Version beim Setup erfassen.
 - UI-Referenzen und tatsächlich beobachtete Interaktionen werden in `docs/design-research.md` dokumentiert. Einfaches Layout ist eine ausdrückliche Nutzervorgabe, kein automatisch bestätigtes Detaildesign.
+- [Figma Help: Tables in FigJam](https://help.figma.com/hc/en-us/articles/12583849250199-Tables-in-FigJam): Referenz für Erstellung, Zellnavigation, Formatierung sowie Zeilen-/Spaltenoperationen; Sketchdraw übernimmt nur den im Ticket #58 festgelegten und selbst geprüften Umfang.
 
 ## Validierung und Entscheidungsprozess
 

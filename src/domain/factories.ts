@@ -2,6 +2,7 @@ import { DomainValidationError } from './errors';
 import { cloneElement, normalizeZero } from './geometry';
 import { DEFAULT_CONNECTOR_ROUTING, DEFAULT_END_MARKER, DEFAULT_START_MARKER } from './connectors';
 import { annotationPlainText, createAnnotationDocument } from './annotation';
+import { createTableDocument, tablePlainText } from './table';
 import type { ElementKind, ElementStyle, SketchDocument, SketchElement, ValidationIssue } from './types';
 import {
   ELEMENT_KEYS,
@@ -28,19 +29,20 @@ function generateUniqueId(prefix: string): string {
 function createDefaultStyle(kind: ElementKind): ElementStyle {
   const sticky = kind === 'sticky-note';
   const annotation = kind === 'annotation';
+  const table = kind === 'table';
   return {
-    stroke: sticky ? '#53675a' : annotation ? '#242424' : '#1e293b',
+    stroke: sticky ? '#53675a' : annotation ? '#242424' : table ? '#cbd5e1' : '#1e293b',
     fill:
       kind === 'container'
         ? '#f8fafc'
-        : annotation
+        : annotation || table
           ? '#ffffff'
         : sticky
           ? '#aeeebd'
         : kind === 'text' || kind === 'path' || kind === 'connector'
           ? 'transparent'
           : '#ffffff',
-    strokeWidth: sticky ? 0 : annotation ? 1 : 2,
+    strokeWidth: sticky ? 0 : annotation || table ? 1 : 2,
     opacity: 1,
     fontSize: sticky ? 20 : annotation ? 18 : 16,
     textAlign: 'left',
@@ -140,8 +142,8 @@ export function createElement(
     }
   }
 
-  const defaultWidth = kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
-  const defaultHeight = kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
+  const defaultWidth = kind === 'table' ? 480 : kind === 'annotation' ? 520 : kind === 'container' ? 320 : kind === 'sticky-note' ? 240 : kind === 'text' ? 160 : 120;
+  const defaultHeight = kind === 'table' ? 240 : kind === 'annotation' ? 320 : kind === 'container' ? 200 : kind === 'sticky-note' ? 240 : kind === 'text' ? 32 : 80;
 
   const width = overrides?.width !== undefined ? overrides.width : defaultWidth;
   const height = overrides?.height !== undefined ? overrides.height : defaultHeight;
@@ -209,6 +211,11 @@ export function createElement(
     candidate.annotation = annotation;
     candidate.text = annotationPlainText(annotation);
   }
+  if (kind === 'table') {
+    const table = overrides?.table ?? createTableDocument();
+    candidate.table = table;
+    candidate.text = tablePlainText(table);
+  }
   if ((kind === 'connector' || kind === 'path') && overrides?.points === undefined) {
     const endX = typeof width === 'number' && Number.isFinite(width) ? normalizeZero(width) : 120;
     const endY = typeof height === 'number' && Number.isFinite(height) ? normalizeZero(height) : 80;
@@ -235,6 +242,7 @@ export function createElement(
       'description',
       'text',
       'annotation',
+      'table',
       'author',
       'points',
       'connectorRouting',

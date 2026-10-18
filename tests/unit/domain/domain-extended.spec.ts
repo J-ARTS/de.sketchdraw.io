@@ -36,6 +36,7 @@ const ALL_KINDS: readonly ElementKind[] = [
   'component',
   'sticky-note',
   'annotation',
+  'table',
 ];
 
 function createJpegAsset(id = 'asset:jpeg'): SketchAsset {
@@ -93,6 +94,10 @@ describe('S1 domain extended contract verification', () => {
       if (kind === 'annotation') {
         expect(el.annotation).toEqual({ version: 1, blocks: [{ type: 'paragraph', runs: [{ text: '' }] }] });
         expect(el.text).toBe('');
+      }
+      if (kind === 'table') {
+        expect(el.table?.cells).toHaveLength(9);
+        expect(el.text).toBe('\t\t\n\t\t\n\t\t');
       }
     }
 

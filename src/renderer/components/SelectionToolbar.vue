@@ -13,7 +13,7 @@ import { isResourceCard } from '@/catalog';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -60,6 +60,7 @@ const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.
 const stickyOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'sticky-note');
 const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard(single.value));
 const annotationOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'annotation');
+const tableOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'table');
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
@@ -205,10 +206,28 @@ onBeforeUnmount(() => {
 
 // --- Values --------------------------------------------------------------------------
 function style(patch: Partial<ElementStyle>): void {
+  if (tableOnly.value) {
+    store.formatTableSelection({
+      ...(patch.fill !== undefined && patch.fill !== 'transparent' ? { fill: patch.fill } : {}),
+      ...(patch.stroke !== undefined && patch.stroke !== 'transparent' ? { color: patch.stroke } : {}),
+      ...(patch.fontSize !== undefined ? { fontSize: patch.fontSize } : {}),
+      ...(patch.fontFamily !== undefined ? { fontFamily: patch.fontFamily } : {}),
+      ...(patch.fontWeight !== undefined ? { fontWeight: patch.fontWeight } : {}),
+      ...(patch.textDecoration !== undefined ? { textDecoration: patch.textDecoration } : {}),
+      ...(patch.listStyle !== undefined ? { listStyle: patch.listStyle } : {}),
+      ...(patch.textAlign !== undefined ? { textAlign: patch.textAlign } : {}),
+    });
+    return;
+  }
   // While the text is edited, style changes live in the text draft and are committed together with the text.
   if (s.textEdit) store.setPropertyDraft({ style: patch });
   else store.applyPatch({ style: patch });
 }
+function setFontSize(value: number): void {
+  if (!Number.isFinite(value)) return;
+  if (!tableOnly.value) store.setPropertyDraft({ style: { fontSize: value } });
+}
+function commitFontSize(value: number): void { if (tableOnly.value) style({ fontSize: value }); else void store.commitPropertyDraft(); }
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
@@ -340,7 +359,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
       <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
-    <button v-if="!stickyOnly" :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
+    <button v-if="!stickyOnly && !tableOnly" :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
       <AppIcon name="stroke" /><AppIcon class="chev" name="chevron-down" :size="14" />
     </button>
     <template v-if="connectorOnly">
@@ -384,7 +403,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <span class="size-label">{{ sizeLabel }}</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <span class="sep" aria-hidden="true" />
-      <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
+      <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly && !tableOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
         <AppIcon name="text" />
       </button>
     </template>
@@ -393,10 +412,16 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button type="button" class="tool-btn format-letter" aria-label="Fett" :aria-pressed="info.values.fontWeight === 'bold'" title="Fett" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
       <button type="button" class="tool-btn format-letter strike" aria-label="Durchgestrichen" :aria-pressed="info.values.textDecoration === 'line-through'" title="Durchgestrichen" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
     </template>
+    <template v-if="tableOnly">
+      <button type="button" class="tool-btn format-letter" aria-label="Fett" :aria-pressed="info.values.fontWeight === 'bold'" title="Fett" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
+      <button type="button" class="tool-btn format-letter strike" aria-label="Durchgestrichen" :aria-pressed="info.values.textDecoration === 'line-through'" title="Durchgestrichen" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
+      <button type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+      <button :ref="(el) => setTrigger('table', el)" type="button" class="tool-btn" aria-label="Tabellenstruktur" :aria-expanded="openSegment === 'table'" :aria-controls="panelId('table')" title="Zeilen und Spalten" @click="toggle('table')"><AppIcon name="table" /></button>
+    </template>
     <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" aria-label="Ressourcenkarte bearbeiten" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable('Ressourcenkarte bearbeiten')" @click="toggle('resource')">
       <AppIcon name="more" />
     </button>
-    <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
+    <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(single?.documentationUrl) }" aria-label="Dokumentationslink" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable('Dokumentationslink')" @click="toggle('link')">
       <AppIcon name="link" />
     </button>
     <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
@@ -426,7 +451,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'color' ? 'Farbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -455,7 +480,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     </template>
 
     <template v-else-if="openSegment === 'color'">
-      <div v-if="!connectorOnly && !stickyOnly" class="modes" role="group" aria-label="Füllart">
+      <div v-if="!connectorOnly && !stickyOnly && !tableOnly" class="modes" role="group" aria-label="Füllart">
         <button v-for="mode in FILL_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="currentFillMode === mode.value && !info.mixed.includes('fill')" @click="setFillMode(mode.value)">
           <svg class="mode-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" /><rect v-if="mode.value !== 'none'" x="6" y="6" width="8" height="8" rx="1.5" fill="currentColor" :fill-opacity="mode.value === 'semi' ? 0.35 : 1" /><rect v-else x="6" y="6" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
           {{ mode.label }}
@@ -499,8 +524,23 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <div class="choices column" role="group" aria-label="Größenvorgaben">
         <button v-for="preset in SIZE_PRESETS" :key="preset.value" type="button" class="choice" :aria-pressed="info.values.fontSize === preset.value && !info.mixed.includes('fontSize')" @click="style({ fontSize: preset.value })">{{ preset.label }} <span class="muted">{{ preset.value }} px</span></button>
       </div>
-      <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? 'Verschieden' : undefined" @input="store.setPropertyDraft({ style: { fontSize: ($event.target as HTMLInputElement).valueAsNumber } })" @change="store.commitPropertyDraft()" /></label>
+      <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? 'Verschieden' : undefined" @input="setFontSize(($event.target as HTMLInputElement).valueAsNumber)" @change="commitFontSize(($event.target as HTMLInputElement).valueAsNumber)" /></label>
     </template>
+
+    <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" aria-label="Zeilen und Spalten bearbeiten">
+      <button type="button" class="choice" @click="store.changeTableStructure('row-before')">Zeile oberhalb einfügen</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-after')">Zeile unterhalb einfügen</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-before')">Spalte links einfügen</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-after')">Spalte rechts einfügen</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-duplicate')">Zeile duplizieren</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-duplicate')">Spalte duplizieren</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-up')">Zeile nach oben</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-down')">Zeile nach unten</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-left')">Spalte nach links</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-right')">Spalte nach rechts</button>
+      <button type="button" class="choice danger" @click="store.changeTableStructure('row-delete')">Zeile löschen</button>
+      <button type="button" class="choice danger" @click="store.changeTableStructure('column-delete')">Spalte löschen</button>
+    </div>
 
     <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
 
@@ -619,6 +659,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
 .list-toggle { gap: 2px; font-size: 16px; }
 .author-button { margin-left: 2px; background: #7c3aed; color: white; }
 .author-button:hover:not(:disabled) { background: #6d28d9; }
+.table-actions{display:grid!important;grid-template-columns:repeat(2,minmax(170px,1fr));gap:6px}.table-actions .choice{justify-content:flex-start}.table-actions .danger{color:var(--status-error)}
 
 .chev {
   color: var(--menu-muted);

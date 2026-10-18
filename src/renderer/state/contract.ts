@@ -20,11 +20,20 @@ import type {
   ConnectorMarker,
   ConnectorRouting,
   AnnotationDocument,
+  TableCellStyle,
 } from '@/domain/types';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'image' | 'container';
+  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container';
+
+export interface TableSelection {
+  elementId: string;
+  cellIds: string[];
+  mode: 'cell' | 'row' | 'column' | 'table';
+  rowIndex: number;
+  columnIndex: number;
+}
 
 /** screen = doc * zoom + pan. Zoom is clamped to 0.1..4. Pan is in CSS pixels of the canvas element. */
 export interface Viewport { panX: number; panY: number; zoom: number }
@@ -191,6 +200,7 @@ export interface WhiteboardState {
   connectorTargets: { fromId: string; toId: string | null } | null;
   cursor: string;
   textEdit: TextEditSession | null;
+  tableSelection: TableSelection | null;
   gestureConflict: GestureConflict | null;
   history: HistoryAvailability;
   file: FileState;
@@ -290,6 +300,11 @@ export interface WhiteboardStore {
   cancelTextEdit(): void;
   resolveTextConflict(choice: 'keep-mine' | 'use-current' | 'insert-new'): void;
   resolveGestureConflict(choice: 'retry' | 'discard'): void;
+
+  selectTableCells(elementId: string, cellIds: string[], mode: TableSelection['mode'], rowIndex: number, columnIndex: number): void;
+  setTableCellText(elementId: string, cellId: string, text: string): void;
+  formatTableSelection(patch: Partial<TableCellStyle>): void;
+  changeTableStructure(action: 'row-before' | 'row-after' | 'column-before' | 'column-after' | 'row-duplicate' | 'column-duplicate' | 'row-delete' | 'column-delete' | 'row-up' | 'row-down' | 'column-left' | 'column-right'): void;
 
   insertImageFile(file: File, at?: Point): Promise<void>;
 

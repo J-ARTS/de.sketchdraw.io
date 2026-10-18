@@ -12,6 +12,7 @@ export const KIND_LABELS: Record<ElementKind, string> = {
   component: 'Komponente',
   'sticky-note': 'Notiz',
   annotation: 'Annotation',
+  table: 'Tabelle',
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;

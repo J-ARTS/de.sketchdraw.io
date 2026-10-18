@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T02:01:05Z",
+  "updatedAt": "2026-10-18T02:22:49Z",
   "issues": [
     {
       "number": 1,
@@ -919,6 +919,20 @@
       "owner": "Codex",
       "phase": "Governance and testing",
       "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 58,
+      "title": "Figma-nahe, formatierbare Tabellen als Canvas-Shape",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/58",
+      "owner": "Codex (temporary takeover; Claude Code review, Antigravity quota-limited)",
+      "phase": "Canvas editing and interoperability",
+      "status": "in_progress",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -3923,6 +3937,40 @@
       ],
       "authorization": "The user explicitly requested validation of all GitHub tickets; the project workflow assigns Codex overall ticket coordination and testing.",
       "measurementSource": "GitHub issue and label audit covered issues #1 through #57. Closed issues were checked for active status labels, unchecked acceptance items, missing current-state sections and required domain labels. Open issues were reconciled with repository ancestry, linked comments and CI. Current focused validation passed 18/18 browser UI tests and five complete collaboration-test repetitions totaling 100/100 tests. Elapsed effort, token use and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-table-058",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        58
+      ],
+      "status": "verified_local_integration",
+      "startedAt": "2026-10-18T02:05:00Z",
+      "endedAt": "2026-10-18T02:22:49Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/58",
+        "src/domain/table.ts",
+        "src/renderer/components/TableContent.vue",
+        "src/renderer/components/TableOverlay.vue",
+        "tests/unit/table.spec.ts",
+        "tests/ui/table.spec.ts",
+        "docs/reviews/claude-table-058.md",
+        "src/interop/export.ts",
+        "src/interop/drawio.ts",
+        "agent-state/work-ledger.json",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json"
+      ],
+      "concerns": [
+        "Table edits use element-granular collaboration conflicts in version 1.",
+        "Native draw.io projection is approximate while embedded Sketchdraw data preserves the exact table."
+      ],
+      "authorization": "The user explicitly requested Figma-like tables and previously authorized temporary Codex implementation when assigned tools are quota-limited.",
+      "measurementSource": "Codex implemented the structured table model, FigJam-like canvas editing, formatting, row/column controls and interoperability after Claude Code supplied a read-only UI/architecture review and Antigravity could not accept work due to exhausted quota. Exact local evidence: typecheck passed; 332/332 Vitest unit tests, 50/50 browser UI tests including accessibility, and 6/6 Electron tests passed; the production renderer and Electron/MCP bundles built successfully; diff checks passed. Graphify rebuilt 3,184 code/document nodes and 6,353 edges, then restored and validated 1,001 ledger traceability nodes and 1,464 links. Cross-platform GitHub Actions remains pending; no official benchmark claim and no measured duration, token or cost metric."
     }
   ],
   "evidencePolicy": {
@@ -3970,6 +4018,19 @@
       "requestedModel": "Claude Sonnet 5.5 Medium",
       "status": "unavailable_no_work_product",
       "evidence": "The local Antigravity UI showed exhausted baseline quota until 24 October 2026 and disabled submission for issue #56. Codex used the user-authorized temporary takeover."
+    },
+    {
+      "tool": "claude-code",
+      "requestedModel": "Claude Sonnet",
+      "requestedMode": "read-only architecture and UI review",
+      "status": "review_completed",
+      "evidence": "Local Claude Code reviewed issue #58 source paths and recommended one structured table element, single-cell editing, Tab navigation, ARIA grid semantics, native SVG rendering, toolbar grouping and explicit P2P/export safeguards. It could not read GitHub in its restricted mode; Codex reconciled the review with the issue."
+    },
+    {
+      "tool": "antigravity",
+      "requestedModel": "Claude Sonnet 5.5 Medium",
+      "status": "quota_limited_no_work_product",
+      "evidence": "The local Antigravity UI showed baseline quota exhausted until 24 October 2026 and a disabled send action. No task was accepted and no Antigravity work product is claimed; Codex used the user-authorized temporary takeover for issue #58."
     }
   ]
 }

@@ -133,7 +133,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 function fixedTip(tool: Tool): string {
   const def = TOOL_DEFS.find((item) => item.tool === tool)!;
-  return t('tip.withHint', { label: def.label, hint: formatCombo(def.key, isMac) });
+  return t('tip.withHint', { label: def.label, hint: formatCombo(`${def.shift ? 'Umschalt+' : ''}${def.key}`, isMac) });
 }
 function toolbarShapeLabel(entry: ShapeEntry): string {
   return entry.id === 'square' ? 'Rechteck' : entry.id === 'circle' ? 'Ellipse' : entry.label;

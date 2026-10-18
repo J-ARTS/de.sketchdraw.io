@@ -10,3 +10,4 @@ export { deserializeDocument, serializeDocument } from './serialization';
 export { createController } from './controller';
 export * from './connectors';
 export * from './annotation';
+export * from './table';

@@ -110,6 +110,19 @@ Die Domain-Reparaturen #18–#21 bestehen nun32 Tests inklusive ursprünglicher 
 
 Die aktuelle MCP-Produktabnahme mit echtem SDK und sichtbarem Canvas steht in `docs/reviews/codex-mcp-integration.md`. Reguläre Zuständigkeiten bleiben erhalten; temporäre Codex-Übernahme wurde ausdrücklich vom Nutzer freigegeben. Auch die zusätzlich gewünschten echten Claude-Modelle über Antigravity erreichten Kontingentgrenzen. Die Grenzen werden als Runergebnis erfasst, nicht als abgeschlossene Implementierung.
 
+## Tabellen-Review und Entscheidungen (#58)
+
+Quelle: echter lokaler Claude-Code-Lauf für Issue #58; Antigravity zeigte am 18.10.2026 ein Quotenlimit bis 24.10.2026 und konnte keinen Auftrag annehmen. Die tatsächliche Implementierung erfolgte daher durch Codex im ausdrücklich erlaubten Vertretungsmodus. Der offizielle Verhaltensvergleich stützt sich auf [Figma Help: Tables in FigJam](https://help.figma.com/hc/en-us/articles/12583849250199-Tables-in-FigJam).
+
+| ID | Bedenken aus dem Review | Entscheidung und Nachweis |
+| --- | --- | --- |
+| TB-01 | Der bestehende Texteditor besitzt nur eine Editiersitzung und eignet sich nicht für mehrere Zellinstanzen. | Angenommen. Die Tabelle bleibt ein Element; genau eine Zelle erhält bei Bedarf einen sicheren Texteditor. `Tab`/`Umschalt+Tab`, `Escape` und Strg/Cmd+Enter werden im Zellkontext geprüft. |
+| TB-02 | Elementgranulare Commands können parallele Änderungen verschiedener Zellen derselben Tabelle kollidieren lassen. | Bewusst akzeptiert und in `docs/architecture.md` benannt. Atomare, verlustfreie Konflikte sind für Version 1 wichtiger als eine unbelegte Zell-CRDT. |
+| TB-03 | Viele `foreignObject`-Instanzen können Rendering und Export uneinheitlich machen. | Angenommen. Lesedarstellung und SVG-Projektion verwenden sichere native Text-/Vektorprimitive; nur die aktive Zelle nutzt ein HTML-Textarea. |
+| TB-04 | `Tab` kann den Canvasfokus verlassen und Zellnavigation unzugänglich machen. | Angenommen. Der aktive Zelleditor fängt `Tab` und `Umschalt+Tab` ab; ARIA-Grid, benannte Zellknöpfe und Axe-Prüfung ergänzen den Tastaturpfad. |
+| TB-05 | Zusätzliche Tabellenaktionen können die kontextbezogene Leiste überfüllen. | Angenommen. Häufige Textformatierung bleibt direkt sichtbar; Strukturaktionen sind in einem eigenen Popover gebündelt, Randgriffe bieten die häufigsten Einfügeaktionen. |
+| TB-06 | Tabellen können Diagram-as-Code, SVG/draw.io, Kopieren, Undo und P2P umgehen. | Angenommen. Ein versioniertes Domainmodell mit abgeleitetem TSV wird von Validierung, Clone/Equality, Commands, Code-Syntax und eingebetteten Exporten getragen; Unit- und UI-Tests bilden die Regression ab. |
+
 ## Native Integration und Fremdprogramm-Abnahme
 
 - **P2P-Netzwerk, #14:** Der lokale macOS-Host erreicht keine ICE-Verbindung. Derselbe Stand f8c55fb besteht auf dem unveränderten Ubuntu-Runner beide echten Chromium-/Electron-Transporttests (Run 39041998555, Job 117423198082). Kein STUN/TURN/Relay und keine Abschwächung der Sandbox hinzugefügt. Der dritte Produkt-UI-Test fand eine Mehrdeutigkeit zwischen bestätigtem Element und beibehaltenem Entwurf; getrennte semantische Ebenen und explizite Ergebnisprüfung sind erforderlich.

@@ -1,6 +1,6 @@
 import type { KeyInput, Tool } from '@/renderer/state/contract';
 
-export interface ToolDef { tool: Tool; label: string; key: string; description: string }
+export interface ToolDef { tool: Tool; label: string; key: string; description: string; shift?: boolean }
 
 export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'select', label: 'Auswahl', key: 'v', description: 'Elemente auswählen, verschieben und in der Größe ändern' },
@@ -11,6 +11,7 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'connector', label: 'Verbindung', key: 'l', description: 'Zwei Elemente mit einer Verbindung verknüpfen' },
   { tool: 'path', label: 'Freihand', key: 'p', description: 'Frei zeichnen' },
   { tool: 'text', label: 'Text', key: 't', description: 'Text einfügen' },
+  { tool: 'table', label: 'Tabelle', key: 't', shift: true, description: 'Formatierbare Tabelle einfügen' },
   { tool: 'sticky-note', label: 'Notiz', key: 'n', description: 'Sticky Note einfügen' },
   { tool: 'annotation', label: 'Annotation', key: 'a', description: 'Formatierbaren Textblock einfügen' },
   { tool: 'image', label: 'Bild', key: 'b', description: 'Bild einfügen' },
@@ -84,8 +85,8 @@ const TEXT_EDITING = 'Textbearbeitung';
 const BINDINGS: readonly Binding[] = [
   ...TOOL_DEFS.map((tool) =>
     bind(
-      { id: `tool.${tool.tool}`, label: tool.label, combo: tool.key.toUpperCase(), scope: 'canvas', group: TOOLS },
-      [NONE, letterIs(tool.key)],
+      { id: `tool.${tool.tool}`, label: tool.label, combo: `${tool.shift ? 'Umschalt+' : ''}${tool.key.toUpperCase()}`, scope: 'canvas', group: TOOLS },
+      [tool.shift ? SHIFT : NONE, letterIs(tool.key)],
     ),
   ),
   bind({ id: 'file.open', label: 'Datei öffnen', combo: 'Strg+O', scope: 'global', group: FILE }, [PRIMARY, letterIs('o')]),
