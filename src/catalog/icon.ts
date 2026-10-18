@@ -17,6 +17,10 @@ export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 export type SafeSvgTagName =
   | 'svg'
+  | 'defs'
+  | 'linearGradient'
+  | 'radialGradient'
+  | 'stop'
   | 'g'
   | 'path'
   | 'rect'
@@ -72,6 +76,10 @@ export interface ResolvedCatalogIcon {
 
 const ALLOWED_TAGS: ReadonlySet<SafeSvgTagName> = new Set<SafeSvgTagName>([
   'svg',
+  'defs',
+  'linearGradient',
+  'radialGradient',
+  'stop',
   'g',
   'path',
   'rect',
@@ -82,32 +90,49 @@ const ALLOWED_TAGS: ReadonlySet<SafeSvgTagName> = new Set<SafeSvgTagName>([
   'polygon',
 ]);
 
-const CONTAINER_ICON_TAGS: ReadonlySet<SafeSvgTagName> = new Set<SafeSvgTagName>(['svg', 'g']);
+const CONTAINER_ICON_TAGS: ReadonlySet<SafeSvgTagName> = new Set<SafeSvgTagName>([
+  'svg',
+  'defs',
+  'linearGradient',
+  'radialGradient',
+  'g',
+]);
 
 const PRESENTATION_ATTRIBUTES: ReadonlySet<string> = new Set([
   'fill',
   'stroke',
   'stroke-width',
   'opacity',
+  'fill-opacity',
+  'stroke-opacity',
   'fill-rule',
   'stroke-linecap',
   'stroke-linejoin',
+  'stroke-miterlimit',
 ]);
 
 const GEOMETRY_ATTRIBUTES_BY_TAG: Readonly<Record<SafeSvgTagName, ReadonlySet<string>>> = {
   svg: new Set(['viewBox', 'xmlns']),
-  g: new Set(),
-  path: new Set(['d']),
-  rect: new Set(['x', 'y', 'width', 'height', 'rx', 'ry']),
-  circle: new Set(['cx', 'cy', 'r']),
-  ellipse: new Set(['cx', 'cy', 'rx', 'ry']),
-  line: new Set(['x1', 'y1', 'x2', 'y2']),
-  polyline: new Set(['points']),
-  polygon: new Set(['points']),
+  defs: new Set(),
+  linearGradient: new Set(['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits', 'gradientTransform']),
+  radialGradient: new Set(['id', 'cx', 'cy', 'r', 'fx', 'fy', 'gradientUnits', 'gradientTransform']),
+  stop: new Set(['offset', 'stop-color', 'stop-opacity']),
+  g: new Set(['transform']),
+  path: new Set(['d', 'transform']),
+  rect: new Set(['x', 'y', 'width', 'height', 'rx', 'ry', 'transform']),
+  circle: new Set(['cx', 'cy', 'r', 'transform']),
+  ellipse: new Set(['cx', 'cy', 'rx', 'ry', 'transform']),
+  line: new Set(['x1', 'y1', 'x2', 'y2', 'transform']),
+  polyline: new Set(['points', 'transform']),
+  polygon: new Set(['points', 'transform']),
 };
 
 const REQUIRED_GEOMETRY_BY_TAG: Readonly<Record<SafeSvgTagName, readonly string[]>> = {
   svg: ['viewBox'],
+  defs: [],
+  linearGradient: ['id'],
+  radialGradient: ['id'],
+  stop: ['offset', 'stop-color'],
   g: [],
   path: ['d'],
   rect: ['width', 'height'],
@@ -134,11 +159,19 @@ const ALLOWED_PATH_COMMANDS: ReadonlySet<string> = new Set([
   'v',
   'C',
   'c',
+  'S',
+  's',
   'Q',
   'q',
+  'T',
+  't',
+  'A',
+  'a',
   'Z',
   'z',
 ]);
+const LOCAL_FRAGMENT_PATTERN = /^url\(#([A-Za-z_][A-Za-z0-9_.-]{0,127})\)$/;
+const SVG_ID_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]{0,127}$/;
 
 function parseStrictSvgNumber(raw: string): number | null {
   const trimmed = raw.trim();
@@ -156,7 +189,53 @@ function isValidSvgColor(value: string): boolean {
   if (value === 'none' || value === 'currentColor') {
     return true;
   }
-  return HEX_COLOR_PATTERN.test(value);
+  return HEX_COLOR_PATTERN.test(value) || LOCAL_FRAGMENT_PATTERN.test(value);
+}
+
+function validateSvgTransform(
+  value: string,
+  maxNumbersRemaining: number,
+): { ok: true; numberCount: number } | { ok: false; code: string; message: string } {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { ok: false, code: 'ICON_ATTRIBUTE_VALUE_INVALID', message: 'SVG transform must not be empty.' };
+  }
+
+  const arities: Readonly<Record<string, readonly number[]>> = {
+    matrix: [6], translate: [1, 2], scale: [1, 2], rotate: [1, 3], skewX: [1], skewY: [1],
+  };
+  let cursor = 0;
+  let numberCount = 0;
+  while (cursor < trimmed.length) {
+    while (/\s/.test(trimmed[cursor] ?? '')) cursor += 1;
+    const match = /^(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^()]*)\)/.exec(trimmed.slice(cursor));
+    if (!match) {
+      return {
+        ok: false,
+        code: 'ICON_ATTRIBUTE_VALUE_INVALID',
+        message: `Invalid or unsupported SVG transform near "${trimmed.slice(cursor, cursor + 24)}".`,
+      };
+    }
+    const parsed = parseSvgNumberSequence(match[2]!, maxNumbersRemaining - numberCount);
+    if (!parsed.ok) return parsed;
+    if (!arities[match[1]!]!.includes(parsed.numbers.length)) {
+      return {
+        ok: false,
+        code: 'ICON_ATTRIBUTE_VALUE_INVALID',
+        message: `SVG transform "${match[1]}" has an invalid number of arguments.`,
+      };
+    }
+    numberCount += parsed.numbers.length;
+    cursor += match[0].length;
+    while (/\s/.test(trimmed[cursor] ?? '')) cursor += 1;
+    if (trimmed[cursor] === ',') {
+      cursor += 1;
+      if (cursor >= trimmed.length) {
+        return { ok: false, code: 'ICON_ATTRIBUTE_VALUE_INVALID', message: 'SVG transform has a trailing comma.' };
+      }
+    }
+  }
+  return { ok: true, numberCount };
 }
 
 /**
@@ -300,8 +379,9 @@ function parseSvgNumberSequence(
 }
 
 /**
- * Validates an SVG path `d` attribute against the restricted S2 command set:
- * M/m, L/l, H/h, V/v, C/c, Q/q, Z/z.
+ * Validates an SVG path `d` attribute against the supported geometry-only
+ * command set. No animation, external references, or scriptable constructs
+ * cross this boundary.
  */
 function validateSvgPathData(
   d: string,
@@ -487,7 +567,7 @@ function validateSvgPathData(
           message: `Path command "${cmd}" requires at least 1 numeric argument.`,
         };
       }
-    } else if (upper === 'M' || upper === 'L') {
+    } else if (upper === 'M' || upper === 'L' || upper === 'T') {
       if (args.length < 2 || args.length % 2 !== 0) {
         return {
           ok: false,
@@ -495,7 +575,7 @@ function validateSvgPathData(
           message: `Path command "${cmd}" requires pairs of 2 numeric arguments (got ${args.length}).`,
         };
       }
-    } else if (upper === 'Q') {
+    } else if (upper === 'Q' || upper === 'S') {
       if (args.length < 4 || args.length % 4 !== 0) {
         return {
           ok: false,
@@ -510,6 +590,22 @@ function validateSvgPathData(
           code: 'ICON_INVALID_PATH',
           message: `Path command "${cmd}" requires groups of 6 numeric arguments (got ${args.length}).`,
         };
+      }
+    } else if (upper === 'A') {
+      if (args.length < 7 || args.length % 7 !== 0) {
+        return {
+          ok: false,
+          code: 'ICON_INVALID_PATH',
+          message: `Path command "${cmd}" requires groups of 7 numeric arguments (got ${args.length}).`,
+        };
+      }
+      for (let arcIndex = 0; arcIndex < args.length; arcIndex += 7) {
+        if (args[arcIndex]! < 0 || args[arcIndex + 1]! < 0) {
+          return { ok: false, code: 'ICON_INVALID_PATH', message: 'SVG arc radii must be non-negative.' };
+        }
+        if (![0, 1].includes(args[arcIndex + 3]!) || ![0, 1].includes(args[arcIndex + 4]!)) {
+          return { ok: false, code: 'ICON_INVALID_PATH', message: 'SVG arc flags must be 0 or 1.' };
+        }
       }
     }
   }
@@ -607,6 +703,8 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
   let elementCount = 0;
   let totalNumbers = 0;
   const stack: MutableIconNode[] = [];
+  const gradientIds = new Set<string>();
+  const gradientReferences = new Set<string>();
 
   function recordFailure(code: string, message: string): void {
     if (!state.failure) {
@@ -680,7 +778,7 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
         recordFailure('ICON_INVALID_ROOT', 'Multiple root elements are not allowed in icon SVG.');
         return;
       }
-      if (!CONTAINER_ICON_ICON_TAG_CHECK(parent.tag)) {
+      if (!isAllowedIconChild(parent.tag, tagName)) {
         recordFailure(
           'ICON_INVALID_HIERARCHY',
           `Element "<${parent.tag}>" cannot contain child element "<${tagName}>".`,
@@ -736,10 +834,12 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
         if (!isValidSvgColor(attrVal)) {
           recordFailure(
             'ICON_ATTRIBUTE_VALUE_INVALID',
-            `Invalid color "${attrVal}" for attribute "${attrName}"; only "none", "currentColor", or hex colors are allowed.`,
+            `Invalid color "${attrVal}" for attribute "${attrName}"; only local gradients, "none", "currentColor", or hex colors are allowed.`,
           );
           return;
         }
+        const localReference = LOCAL_FRAGMENT_PATTERN.exec(attrVal);
+        if (localReference) gradientReferences.add(localReference[1]!);
         cleanAttributes[attrName] = attrVal;
         continue;
       }
@@ -757,7 +857,7 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
         continue;
       }
 
-      if (attrName === 'opacity') {
+      if (attrName === 'opacity' || attrName === 'fill-opacity' || attrName === 'stroke-opacity' || attrName === 'stop-opacity') {
         const num = parseStrictSvgNumber(attrVal);
         if (num === null || num < 0 || num > 1) {
           recordFailure(
@@ -767,6 +867,65 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
           return;
         }
         cleanAttributes[attrName] = String(num);
+        continue;
+      }
+
+      if (attrName === 'stroke-miterlimit') {
+        const num = parseStrictSvgNumber(attrVal);
+        if (num === null || num < 1 || num > ICON_LIMITS.MAX_ICON_STROKE_WIDTH) {
+          recordFailure('ICON_ATTRIBUTE_VALUE_INVALID', `Invalid stroke-miterlimit "${attrVal}".`);
+          return;
+        }
+        cleanAttributes[attrName] = String(num);
+        continue;
+      }
+
+      if (attrName === 'stop-color') {
+        if (!HEX_COLOR_PATTERN.test(attrVal)) {
+          recordFailure('ICON_ATTRIBUTE_VALUE_INVALID', `Invalid gradient stop color "${attrVal}".`);
+          return;
+        }
+        cleanAttributes[attrName] = attrVal;
+        continue;
+      }
+
+      if (attrName === 'offset') {
+        const num = parseStrictSvgNumber(attrVal);
+        if (num === null || num < 0 || num > 1) {
+          recordFailure('ICON_ATTRIBUTE_VALUE_INVALID', `Gradient stop offset "${attrVal}" must be between 0 and 1.`);
+          return;
+        }
+        cleanAttributes.offset = String(num);
+        continue;
+      }
+
+      if (attrName === 'id') {
+        if (!SVG_ID_PATTERN.test(attrVal) || gradientIds.has(attrVal)) {
+          recordFailure('ICON_ATTRIBUTE_VALUE_INVALID', `Gradient id "${attrVal}" is invalid or duplicated.`);
+          return;
+        }
+        gradientIds.add(attrVal);
+        cleanAttributes.id = attrVal;
+        continue;
+      }
+
+      if (attrName === 'gradientUnits') {
+        if (attrVal !== 'userSpaceOnUse' && attrVal !== 'objectBoundingBox') {
+          recordFailure('ICON_ATTRIBUTE_VALUE_INVALID', `Unsupported gradientUnits value "${attrVal}".`);
+          return;
+        }
+        cleanAttributes.gradientUnits = attrVal;
+        continue;
+      }
+
+      if (attrName === 'transform' || attrName === 'gradientTransform') {
+        const transform = validateSvgTransform(attrVal, ICON_LIMITS.MAX_ICON_NUMBERS - totalNumbers);
+        if (!transform.ok) {
+          recordFailure(transform.code, transform.message);
+          return;
+        }
+        totalNumbers += transform.numberCount;
+        cleanAttributes[attrName] = attrVal.trim();
         continue;
       }
 
@@ -924,7 +1083,9 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
         attrName === 'x1' ||
         attrName === 'y1' ||
         attrName === 'x2' ||
-        attrName === 'y2'
+        attrName === 'y2' ||
+        attrName === 'fx' ||
+        attrName === 'fy'
       ) {
         const num = parseStrictSvgNumber(attrVal);
         if (num === null || Math.abs(num) > ICON_LIMITS.MAX_ICON_COORDINATE_ABS) {
@@ -1014,6 +1175,16 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
     };
   }
 
+  for (const reference of gradientReferences) {
+    if (!gradientIds.has(reference)) {
+      return {
+        ok: false,
+        code: 'ICON_REFERENCE_INVALID',
+        message: `Icon SVG references missing local gradient "#${reference}".`,
+      };
+    }
+  }
+
   function toSafeElementNode(node: MutableIconNode): SafeSvgElementNode {
     return {
       tag: node.tag as Exclude<SafeSvgTagName, 'svg'>,
@@ -1037,8 +1208,11 @@ export function parseSafeIconSvg(svg: string): SafeIconParseResult {
   };
 }
 
-function CONTAINER_ICON_ICON_TAG_CHECK(tag: SafeSvgTagName): boolean {
-  return CONTAINER_ICON_TAGS.has(tag);
+function isAllowedIconChild(parent: SafeSvgTagName, child: SafeSvgTagName): boolean {
+  if (!CONTAINER_ICON_TAGS.has(parent)) return false;
+  if (parent === 'defs') return child === 'linearGradient' || child === 'radialGradient';
+  if (parent === 'linearGradient' || parent === 'radialGradient') return child === 'stop';
+  return child !== 'stop' && child !== 'linearGradient' && child !== 'radialGradient';
 }
 
 /**

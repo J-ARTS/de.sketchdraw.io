@@ -86,7 +86,7 @@ export interface SketchAsset {
 export interface ComponentDefinition {
   type: string;
   name: string;
-  provider: 'aws' | 'azure' | 'gcp' | 'generic' | 'custom';
+  provider: 'aws' | 'azure' | 'gcp' | 'kubernetes' | 'generic' | 'custom';
   category: string;
   aliases?: string[];
   defaultWidth: number;

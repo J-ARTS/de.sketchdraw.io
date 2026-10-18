@@ -1,4 +1,5 @@
 import type { ComponentDefinition, ComponentSet } from '../domain/types';
+import { OFFICIAL_ICON_SVGS, type OfficialIconType } from './official-icons';
 
 export function deepFreezeComponentSet(set: ComponentSet): ComponentSet {
   for (const comp of set.components) {
@@ -48,12 +49,6 @@ const ICON_USER =
 
 const ICON_NETWORK =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="10.5" y1="7" x2="6.5" y2="17"/><line x1="13.5" y1="7" x2="17.5" y2="17"/><line x1="7.5" y1="19" x2="16.5" y2="19"/></svg>';
-
-const ICON_COMPUTE =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="5"/><line x1="15" y1="2" x2="15" y2="5"/><line x1="9" y1="19" x2="9" y2="22"/><line x1="15" y1="19" x2="15" y2="22"/><line x1="2" y1="9" x2="5" y2="9"/><line x1="2" y1="15" x2="5" y2="15"/><line x1="19" y1="9" x2="22" y2="9"/><line x1="19" y1="15" x2="22" y2="15"/></svg>';
-
-const ICON_STORAGE =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 21 7 21 17 12 22 3 17 3 7"/><polyline points="3 7 12 12 21 7"/><line x1="12" y1="12" x2="12" y2="22"/></svg>';
 
 const GENERIC_COMPONENTS: ComponentDefinition[] = [
   {
@@ -195,279 +190,105 @@ const GENERIC_COMPONENTS: ComponentDefinition[] = [
   },
 ];
 
+const PROVIDER_META = {
+  aws: {
+    stroke: '#b45309', fill: '#fffbeb',
+    source: 'https://aws.amazon.com/architecture/icons/',
+    terms: 'AWS Architecture Icons terms and AWS trademarks apply.',
+  },
+  azure: {
+    stroke: '#0369a1', fill: '#f0f9ff',
+    source: 'https://learn.microsoft.com/azure/architecture/icons/',
+    terms: 'Microsoft Azure architecture icon terms and Microsoft trademarks apply.',
+  },
+  gcp: {
+    stroke: '#166534', fill: '#f0fdf4',
+    source: 'https://cloud.google.com/icons',
+    terms: 'Google Cloud official icon terms and Google trademarks apply.',
+  },
+  kubernetes: {
+    stroke: '#326ce5', fill: '#eff6ff',
+    source: 'https://github.com/kubernetes/community/tree/master/icons',
+    terms: 'Apache-2.0 or CC-BY-4.0; Kubernetes trademark guidelines apply.',
+  },
+} as const;
+
+type OfficialProvider = keyof typeof PROVIDER_META;
+interface OfficialComponentSpec {
+  type: OfficialIconType;
+  name: string;
+  provider: OfficialProvider;
+  category: string;
+  aliases: string[];
+  documentationUrl: string;
+  widgets?: NonNullable<ComponentDefinition['widgets']>;
+}
+
+function officialComponent(spec: OfficialComponentSpec): ComponentDefinition {
+  const theme = PROVIDER_META[spec.provider];
+  return {
+    ...spec,
+    aliases: spec.aliases.map((alias) => alias.replaceAll(' ', '-')),
+    defaultWidth: 160,
+    defaultHeight: 80,
+    style: { stroke: theme.stroke, fill: theme.fill },
+    metadata: {
+      provenance: 'official-architecture-icon',
+      source: theme.source,
+      terms: theme.terms,
+    },
+    iconSvg: OFFICIAL_ICON_SVGS[spec.type],
+  };
+}
+
 const AWS_COMPONENTS: ComponentDefinition[] = [
-  {
-    type: 'aws.compute.instance',
-    name: 'Compute Instance',
-    provider: 'aws',
-    category: 'Compute',
-    aliases: ['Compute', 'EC2', 'Instance', 'VM'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#b45309',
-      fill: '#fffbeb',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_COMPUTE,
-    widgets: [
-      {
-        key: 'region',
-        label: 'Region',
-        kind: 'text',
-      },
-      {
-        key: 'vcpu',
-        label: 'vCPU',
-        kind: 'number',
-      },
-    ],
-  },
-  {
-    type: 'aws.storage.object',
-    name: 'Object Storage',
-    provider: 'aws',
-    category: 'Storage',
-    aliases: ['S3', 'Bucket', 'Object-Storage', 'Storage'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#b45309',
-      fill: '#fffbeb',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_STORAGE,
-    widgets: [
-      {
-        key: 'storageClass',
-        label: 'Speicherklasse',
-        kind: 'select',
-        options: ['standard', 'infrequent-access', 'archive'],
-      },
-    ],
-  },
-  {
-    type: 'aws.database.relational',
-    name: 'Relational Database',
-    provider: 'aws',
-    category: 'Database',
-    aliases: ['RDS', 'Database', 'SQL', 'Datenbank'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#b45309',
-      fill: '#fffbeb',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_DATABASE,
-    widgets: [
-      {
-        key: 'engine',
-        label: 'Engine',
-        kind: 'select',
-        options: ['postgres', 'mysql', 'mariadb'],
-      },
-      {
-        key: 'storageGb',
-        label: 'Speicher (GB)',
-        kind: 'number',
-      },
-    ],
-  },
+  officialComponent({ type: 'aws.compute.instance', name: 'Amazon EC2', provider: 'aws', category: 'Compute', aliases: ['Compute', 'EC2', 'Instance', 'VM'], documentationUrl: 'https://docs.aws.amazon.com/ec2/', widgets: [{ key: 'region', label: 'Region', kind: 'text' }, { key: 'vcpu', label: 'vCPU', kind: 'number' }] }),
+  officialComponent({ type: 'aws.compute.lambda', name: 'AWS Lambda', provider: 'aws', category: 'Compute', aliases: ['Lambda', 'Function', 'Serverless'], documentationUrl: 'https://docs.aws.amazon.com/lambda/' }),
+  officialComponent({ type: 'aws.storage.object', name: 'Amazon S3', provider: 'aws', category: 'Storage', aliases: ['S3', 'Bucket', 'Object Storage'], documentationUrl: 'https://docs.aws.amazon.com/s3/' }),
+  officialComponent({ type: 'aws.database.relational', name: 'Amazon RDS', provider: 'aws', category: 'Database', aliases: ['RDS', 'Relational Database', 'SQL'], documentationUrl: 'https://docs.aws.amazon.com/rds/' }),
+  officialComponent({ type: 'aws.database.dynamodb', name: 'Amazon DynamoDB', provider: 'aws', category: 'Database', aliases: ['DynamoDB', 'NoSQL', 'Database'], documentationUrl: 'https://docs.aws.amazon.com/dynamodb/' }),
+  officialComponent({ type: 'aws.interface.api-gateway', name: 'Amazon API Gateway', provider: 'aws', category: 'Interface', aliases: ['API Gateway', 'REST', 'HTTP API'], documentationUrl: 'https://docs.aws.amazon.com/apigateway/' }),
+  officialComponent({ type: 'aws.messaging.sqs', name: 'Amazon SQS', provider: 'aws', category: 'Messaging', aliases: ['SQS', 'Queue', 'Messaging'], documentationUrl: 'https://docs.aws.amazon.com/sqs/' }),
+  officialComponent({ type: 'aws.containers.eks', name: 'Amazon EKS', provider: 'aws', category: 'Containers', aliases: ['EKS', 'Kubernetes', 'Container'], documentationUrl: 'https://docs.aws.amazon.com/eks/' }),
 ];
 
 const AZURE_COMPONENTS: ComponentDefinition[] = [
-  {
-    type: 'azure.compute.vm',
-    name: 'Virtual Machine',
-    provider: 'azure',
-    category: 'Compute',
-    aliases: ['Virtual-Machine', 'VM', 'Compute', 'Server'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#0369a1',
-      fill: '#f0f9ff',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_COMPUTE,
-    widgets: [
-      {
-        key: 'region',
-        label: 'Region',
-        kind: 'text',
-      },
-      {
-        key: 'cores',
-        label: 'Kerne',
-        kind: 'number',
-      },
-    ],
-  },
-  {
-    type: 'azure.storage.blob',
-    name: 'Blob Storage',
-    provider: 'azure',
-    category: 'Storage',
-    aliases: ['Blob', 'Storage', 'Container', 'Object-Storage'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#0369a1',
-      fill: '#f0f9ff',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_STORAGE,
-    widgets: [
-      {
-        key: 'tier',
-        label: 'Zugriffsebene',
-        kind: 'select',
-        options: ['hot', 'cool', 'archive'],
-      },
-    ],
-  },
-  {
-    type: 'azure.database.sql',
-    name: 'SQL Database',
-    provider: 'azure',
-    category: 'Database',
-    aliases: ['SQL', 'Database', 'Datenbank', 'Relational'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#0369a1',
-      fill: '#f0f9ff',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_DATABASE,
-    widgets: [
-      {
-        key: 'dtu',
-        label: 'DTU / Kapazität',
-        kind: 'number',
-      },
-    ],
-  },
+  officialComponent({ type: 'azure.compute.vm', name: 'Azure Virtual Machine', provider: 'azure', category: 'Compute', aliases: ['Virtual Machine', 'VM', 'Compute', 'Server'], documentationUrl: 'https://learn.microsoft.com/azure/virtual-machines/' }),
+  officialComponent({ type: 'azure.compute.functions', name: 'Azure Functions', provider: 'azure', category: 'Compute', aliases: ['Functions', 'Function App', 'Serverless'], documentationUrl: 'https://learn.microsoft.com/azure/azure-functions/' }),
+  officialComponent({ type: 'azure.storage.blob', name: 'Azure Storage Account', provider: 'azure', category: 'Storage', aliases: ['Blob', 'Storage', 'Container', 'Object Storage'], documentationUrl: 'https://learn.microsoft.com/azure/storage/' }),
+  officialComponent({ type: 'azure.database.sql', name: 'Azure SQL Database', provider: 'azure', category: 'Database', aliases: ['SQL', 'Database', 'Relational'], documentationUrl: 'https://learn.microsoft.com/azure/azure-sql/' }),
+  officialComponent({ type: 'azure.database.cosmos', name: 'Azure Cosmos DB', provider: 'azure', category: 'Database', aliases: ['Cosmos DB', 'NoSQL', 'Database'], documentationUrl: 'https://learn.microsoft.com/azure/cosmos-db/' }),
+  officialComponent({ type: 'azure.network.vnet', name: 'Azure Virtual Network', provider: 'azure', category: 'Networking', aliases: ['Virtual Network', 'VNet', 'Network'], documentationUrl: 'https://learn.microsoft.com/azure/virtual-network/' }),
+  officialComponent({ type: 'azure.security.key-vault', name: 'Azure Key Vault', provider: 'azure', category: 'Security', aliases: ['Key Vault', 'Secret', 'Keys'], documentationUrl: 'https://learn.microsoft.com/azure/key-vault/' }),
+  officialComponent({ type: 'azure.containers.aks', name: 'Azure Kubernetes Service', provider: 'azure', category: 'Containers', aliases: ['AKS', 'Kubernetes', 'Container'], documentationUrl: 'https://learn.microsoft.com/azure/aks/' }),
 ];
 
 const GCP_COMPONENTS: ComponentDefinition[] = [
-  {
-    type: 'gcp.compute.instance',
-    name: 'Compute Engine',
-    provider: 'gcp',
-    category: 'Compute',
-    aliases: ['Compute-Engine', 'GCE', 'Compute', 'VM'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#15803d',
-      fill: '#f0fdf4',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_COMPUTE,
-    widgets: [
-      {
-        key: 'zone',
-        label: 'Zone',
-        kind: 'text',
-      },
-      {
-        key: 'vcpu',
-        label: 'vCPU',
-        kind: 'number',
-      },
-    ],
-  },
-  {
-    type: 'gcp.storage.object',
-    name: 'Cloud Storage',
-    provider: 'gcp',
-    category: 'Storage',
-    aliases: ['Cloud-Storage', 'GCS', 'Bucket', 'Storage'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#15803d',
-      fill: '#f0fdf4',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_STORAGE,
-    widgets: [
-      {
-        key: 'storageClass',
-        label: 'Speicherklasse',
-        kind: 'select',
-        options: ['standard', 'nearline', 'coldline', 'archive'],
-      },
-    ],
-  },
-  {
-    type: 'gcp.database.sql',
-    name: 'Cloud SQL',
-    provider: 'gcp',
-    category: 'Database',
-    aliases: ['Cloud-SQL', 'SQL', 'Database', 'Datenbank'],
-    defaultWidth: 160,
-    defaultHeight: 80,
-    style: {
-      stroke: '#15803d',
-      fill: '#f0fdf4',
-    },
-    metadata: {
-      provenance: 'sketchdraw-generic-symbol',
-    },
-    iconSvg: ICON_DATABASE,
-    widgets: [
-      {
-        key: 'engine',
-        label: 'Engine',
-        kind: 'select',
-        options: ['postgres', 'mysql', 'sqlserver'],
-      },
-    ],
-  },
+  officialComponent({ type: 'gcp.compute.instance', name: 'Compute Engine', provider: 'gcp', category: 'Compute', aliases: ['GCE', 'Compute', 'VM'], documentationUrl: 'https://cloud.google.com/compute/docs' }),
+  officialComponent({ type: 'gcp.compute.cloud-run', name: 'Cloud Run', provider: 'gcp', category: 'Compute', aliases: ['Cloud Run', 'Serverless', 'Container'], documentationUrl: 'https://cloud.google.com/run/docs' }),
+  officialComponent({ type: 'gcp.storage.object', name: 'Cloud Storage', provider: 'gcp', category: 'Storage', aliases: ['GCS', 'Bucket', 'Object Storage'], documentationUrl: 'https://cloud.google.com/storage/docs' }),
+  officialComponent({ type: 'gcp.database.sql', name: 'Cloud SQL', provider: 'gcp', category: 'Database', aliases: ['Cloud SQL', 'SQL', 'Database'], documentationUrl: 'https://cloud.google.com/sql/docs' }),
+  officialComponent({ type: 'gcp.analytics.bigquery', name: 'BigQuery', provider: 'gcp', category: 'Analytics', aliases: ['BigQuery', 'Warehouse', 'Analytics'], documentationUrl: 'https://cloud.google.com/bigquery/docs' }),
+  officialComponent({ type: 'gcp.containers.gke', name: 'Google Kubernetes Engine', provider: 'gcp', category: 'Containers', aliases: ['GKE', 'Kubernetes', 'Container'], documentationUrl: 'https://cloud.google.com/kubernetes-engine/docs' }),
+  officialComponent({ type: 'gcp.ai.vertex', name: 'Vertex AI', provider: 'gcp', category: 'AI', aliases: ['Vertex AI', 'Machine Learning', 'ML'], documentationUrl: 'https://cloud.google.com/vertex-ai/docs' }),
+  officialComponent({ type: 'gcp.interface.apigee', name: 'Apigee API Management', provider: 'gcp', category: 'Interface', aliases: ['Apigee', 'API Management', 'Gateway'], documentationUrl: 'https://cloud.google.com/apigee/docs' }),
+];
+
+const KUBERNETES_COMPONENTS: ComponentDefinition[] = [
+  officialComponent({ type: 'kubernetes.workload.pod', name: 'Pod', provider: 'kubernetes', category: 'Workloads', aliases: ['Pod', 'Container', 'Workload'], documentationUrl: 'https://kubernetes.io/docs/concepts/workloads/pods/' }),
+  officialComponent({ type: 'kubernetes.workload.deployment', name: 'Deployment', provider: 'kubernetes', category: 'Workloads', aliases: ['Deployment', 'ReplicaSet', 'Workload'], documentationUrl: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/' }),
+  officialComponent({ type: 'kubernetes.network.service', name: 'Service', provider: 'kubernetes', category: 'Networking', aliases: ['Service', 'ClusterIP', 'LoadBalancer'], documentationUrl: 'https://kubernetes.io/docs/concepts/services-networking/service/' }),
+  officialComponent({ type: 'kubernetes.network.ingress', name: 'Ingress', provider: 'kubernetes', category: 'Networking', aliases: ['Ingress', 'HTTP', 'Routing'], documentationUrl: 'https://kubernetes.io/docs/concepts/services-networking/ingress/' }),
+  officialComponent({ type: 'kubernetes.config.configmap', name: 'ConfigMap', provider: 'kubernetes', category: 'Configuration', aliases: ['ConfigMap', 'Configuration', 'Config'], documentationUrl: 'https://kubernetes.io/docs/concepts/configuration/configmap/' }),
+  officialComponent({ type: 'kubernetes.config.secret', name: 'Secret', provider: 'kubernetes', category: 'Configuration', aliases: ['Secret', 'Credentials', 'Configuration'], documentationUrl: 'https://kubernetes.io/docs/concepts/configuration/secret/' }),
+  officialComponent({ type: 'kubernetes.storage.persistent-volume', name: 'Persistent Volume', provider: 'kubernetes', category: 'Storage', aliases: ['Persistent Volume', 'PV', 'Storage'], documentationUrl: 'https://kubernetes.io/docs/concepts/storage/persistent-volumes/' }),
+  officialComponent({ type: 'kubernetes.infrastructure.node', name: 'Node', provider: 'kubernetes', category: 'Infrastructure', aliases: ['Node', 'Worker', 'Machine'], documentationUrl: 'https://kubernetes.io/docs/concepts/architecture/nodes/' }),
 ];
 
 export const builtInComponentSets: ComponentSet[] = deepFreezeComponentSets([
-  {
-    id: 'sketchdraw.generic',
-    name: 'Generic Architecture (Starter)',
-    version: '1.0.0',
-    components: GENERIC_COMPONENTS,
-  },
-  {
-    id: 'sketchdraw.aws',
-    name: 'AWS Architecture (Starter)',
-    version: '1.0.0',
-    components: AWS_COMPONENTS,
-  },
-  {
-    id: 'sketchdraw.azure',
-    name: 'Azure Architecture (Starter)',
-    version: '1.0.0',
-    components: AZURE_COMPONENTS,
-  },
-  {
-    id: 'sketchdraw.gcp',
-    name: 'GCP Architecture (Starter)',
-    version: '1.0.0',
-    components: GCP_COMPONENTS,
-  },
+  { id: 'sketchdraw.generic', name: 'Generic Architecture (Starter)', version: '1.0.0', components: GENERIC_COMPONENTS },
+  { id: 'sketchdraw.aws', name: 'AWS Architecture (Official Starter)', version: '2026.10', components: AWS_COMPONENTS },
+  { id: 'sketchdraw.azure', name: 'Azure Architecture (Official Starter)', version: '2026.10', components: AZURE_COMPONENTS },
+  { id: 'sketchdraw.gcp', name: 'Google Cloud Architecture (Official Starter)', version: '2026.10', components: GCP_COMPONENTS },
+  { id: 'sketchdraw.kubernetes', name: 'Kubernetes Icons (Official Starter)', version: '2026.10', components: KUBERNETES_COMPONENTS },
 ]);

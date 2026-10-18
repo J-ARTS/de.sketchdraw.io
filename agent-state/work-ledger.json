@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T00:11:39Z",
+  "updatedAt": "2026-10-18T00:30:35Z",
   "issues": [
     {
       "number": 1,
@@ -799,6 +799,23 @@
       "dependencies": [
         39,
         40
+      ]
+    },
+    {
+      "number": 53,
+      "title": "Weitere Formen als durchsuchbare Sidebar mit Cloud-Iconbibliotheken",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/53",
+      "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Codex temporary user-authorized takeover; Claude Code review completed; Antigravity CLI unavailable",
+      "phase": "Architecture, UI, logic, interface and testing",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        52
       ]
     }
   ],
@@ -3281,6 +3298,85 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata. Governance & Graphify, Direct P2P, macOS 15, Windows 2025 and Ubuntu 24.04 all completed successfully. Observed duration is the difference between recorded run start and completion timestamps."
+    },
+    {
+      "id": "claude-code-shape-library-review-053",
+      "tool": "claude-code",
+      "model": "Claude Sonnet",
+      "issues": [
+        53
+      ],
+      "status": "review_completed",
+      "startedAt": "2026-10-18T00:28:06Z",
+      "endedAt": "2026-10-18T00:28:06Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/components/WorkspacePanels.vue",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/53"
+      ],
+      "concerns": [
+        "Unify the toolbar popup and component catalog into one global sidebar state.",
+        "Use a non-modal sidebar, restore focus on close, and keep Escape behavior consistent.",
+        "Keep the toolbar as a fast favorites strip with keyboard alternatives and visible source terms for official icons."
+      ],
+      "authorization": "The project role assigns UI work to Claude Code and the user explicitly requested Claude Code participation.",
+      "measurementSource": "Bounded read-only local Claude Code CLI review. No files were changed by Claude Code; timestamps record the coordinator checkpoint and no elapsed duration is inferred."
+    },
+    {
+      "id": "antigravity-shape-library-attempt-053",
+      "tool": "antigravity",
+      "model": null,
+      "issues": [
+        53
+      ],
+      "status": "no_work_product",
+      "startedAt": "2026-10-18T00:28:06Z",
+      "endedAt": "2026-10-18T00:28:06Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/53"
+      ],
+      "concerns": [
+        "No local Antigravity CLI was available in this workspace, and prior UI quota remained unavailable; no implementation or review was produced."
+      ],
+      "authorization": "The project role assigns catalog logic and interfaces to Antigravity; the user authorized Codex temporary takeover with actual-tool attribution.",
+      "measurementSource": "Local CLI availability check and previously observed Antigravity quota state. Timestamps record the coordinator checkpoint; no elapsed duration is inferred."
+    },
+    {
+      "id": "codex-shape-library-053",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        53
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T00:28:06Z",
+      "endedAt": "2026-10-18T00:30:35Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/lib/shape-toolbar-state.ts",
+        "src/catalog/official-icons.ts",
+        "src/catalog/builtin.ts",
+        "src/catalog/icon.ts",
+        "THIRD_PARTY_ICONS.md",
+        "tests/ui/shape-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/53",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json",
+        "release/mac-arm64/Sketchdraw.app"
+      ],
+      "concerns": [],
+      "authorization": "The user requested the searchable shape sidebar and previously authorized Codex to temporarily implement work assigned to unavailable agents with actual-tool attribution.",
+      "measurementSource": "Codex implemented the searchable shape sidebar, shared toolbar state, four official icon libraries, safe SVG extensions and regression tests. Local evidence: typecheck and production build passed; 319 Vitest tests, 44 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify tests passed; the unsigned macOS package directory target completed. Cross-platform CI is pending."
     }
   ],
   "evidencePolicy": {
@@ -3302,6 +3398,19 @@
       "observedModel": "gemini-4-argon-high available via agy models",
       "status": "quota_limited",
       "evidence": "The local Antigravity UI showed exhausted baseline and Claude individual model quotas for issues #39/#52. It produced no work product; Codex used the user-authorized temporary takeover."
+    },
+    {
+      "tool": "claude-code",
+      "requestedModel": "Claude Sonnet",
+      "requestedMode": "read-only UI review",
+      "status": "review_completed",
+      "evidence": "Local Claude Code recommended one global catalog state, a non-modal searchable sidebar, focus restoration, keyboard alternatives, and visible icon source/terms documentation for issue #53."
+    },
+    {
+      "tool": "antigravity",
+      "requestedModel": null,
+      "status": "unavailable_no_work_product",
+      "evidence": "No local Antigravity CLI was available and the previously observed UI quota remained unavailable. Codex used the user-authorized temporary takeover for issue #53."
     }
   ]
 }

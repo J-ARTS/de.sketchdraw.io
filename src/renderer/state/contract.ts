@@ -307,6 +307,7 @@ export interface WhiteboardStore {
   applyCode(): Promise<boolean>;
   resetCodeDraft(): void;
   toggleCatalog(): void;
+  setCatalogOpen(open: boolean): void;
   insertComponent(set: ComponentSet, type: string): Promise<void>;
   importComponentSet(file: File): Promise<void>;
   whenIdle(): Promise<void>;

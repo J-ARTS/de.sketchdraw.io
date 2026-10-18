@@ -364,7 +364,7 @@ describe('Component catalog acceptance', () => {
   it('provides deeply frozen built-ins and detached validated imports', () => {
     assertDeepFrozen(builtInComponentSets);
     expect(new Set(builtInComponentSets.flatMap((set) => set.components.map((entry) => entry.provider))))
-      .toEqual(new Set(['generic', 'aws', 'azure', 'gcp']));
+      .toEqual(new Set(['generic', 'aws', 'azure', 'gcp', 'kubernetes']));
     const set = builtInComponentSets[0]!;
     const before = JSON.stringify(set);
     const copy = validateComponentSet(set);
@@ -389,8 +389,8 @@ describe('Component catalog acceptance', () => {
       '<svg viewBox="0 0 24 24" onload="throw 1"/>',
       '<svg viewBox="0 0 24 24"><image href="https://example.com/image.png"/></svg>',
       '<svg viewBox="0 0 24 24"><path d="M0 0L2 2" fill="url(&#35;paint)"/></svg>',
-      '<svg viewBox="0 0 24 24"><g transform="translate(2 2)"/></svg>',
-      '<svg viewBox="0 0 24 24"><path d="M0 0 A1 1 0 0 1 2 2"/></svg>',
+      '<svg viewBox="0 0 24 24"><g transform="translate(calc(2))"/></svg>',
+      '<svg viewBox="0 0 24 24"><path d="M0 0 A1 1 0 3 1 2 2"/></svg>',
       '<svg viewBox="0 0 0 24"/>',
       '<svg viewBox="0 0 24 24"><svg viewBox="0 0 1 1"/></svg>',
     ];

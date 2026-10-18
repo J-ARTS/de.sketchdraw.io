@@ -45,16 +45,17 @@ function getBuiltInSet(id: string): ComponentSet {
 
 describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => {
   describe('Built-in component sets & search', () => {
-    it('provides the 4 required built-in component sets with valid definitions and icons', () => {
+    it('provides generic and four official provider starter sets with valid definitions and icons', () => {
       expect(builtInComponentSets.map((s) => s.id)).toEqual([
         'sketchdraw.generic',
         'sketchdraw.aws',
         'sketchdraw.azure',
         'sketchdraw.gcp',
+        'sketchdraw.kubernetes',
       ]);
 
       for (const set of builtInComponentSets) {
-        expect(set.version).toBe('1.0.0');
+        expect(set.version.length).toBeGreaterThan(0);
         expect(set.components.length).toBeGreaterThanOrEqual(3);
 
         const validated = validateComponentSet(set);
@@ -112,7 +113,10 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(awsOnlyHits.every((r) => r.component.provider === 'aws')).toBe(true);
 
       const allHits = searchCatalogComponents();
-      expect(allHits.length).toBe(14);
+      expect(allHits.length).toBe(37);
+
+      const kubernetesHits = searchCatalogComponents(builtInComponentSets, 'Pod', 'kubernetes');
+      expect(kubernetesHits.some((result) => result.component.type === 'kubernetes.workload.pod')).toBe(true);
     });
   });
 
@@ -152,9 +156,11 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(inst1.element.width).toBe(160);
       expect(inst1.element.height).toBe(80);
       expect(inst1.element.label).toBe('Checkout Handler');
-      expect(inst1.element.text).toBe('Compute Instance');
+      expect(inst1.element.text).toBe('Amazon EC2');
       expect(inst1.element.metadata).toEqual({
-        provenance: 'sketchdraw-generic-symbol',
+        provenance: 'official-architecture-icon',
+        source: 'https://aws.amazon.com/architecture/icons/',
+        terms: 'AWS Architecture Icons terms and AWS trademarks apply.',
         'widget:aws.compute.instance:region': 'eu-central-1',
         'widget:aws.compute.instance:vcpu': '4',
         owner: 'payments',
@@ -180,7 +186,7 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
 
       // Mutating returned element must not affect applied document or builtInComponentSets
       inst2.element.label = 'Mutated Label';
-      expect(doc2.elements[1]?.label).toBe('Object Storage');
+      expect(doc2.elements[1]?.label).toBe('Amazon S3');
     });
 
     it('supports instantiation inside an existing container and rejects missing or non-container parentId', () => {
@@ -564,7 +570,7 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(validatedTree).toEqual(res.tree);
     });
 
-    it('rejects XSS, external refs, DOCTYPE/ENTITY, processing instructions, unknown namespaces, scripts, styles, transforms, and entity-encoded url()', () => {
+    it('rejects XSS, external refs, malformed transforms, unsupported tags and entity-encoded external url()', () => {
       const forbiddenCases: Array<{ name: string; svg: string; expectedCode: string }> = [
         {
           name: 'script tag',
@@ -582,9 +588,9 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
           expectedCode: 'ICON_ATTRIBUTE_FORBIDDEN',
         },
         {
-          name: 'transform attribute',
-          svg: '<svg viewBox="0 0 24 24"><g transform="rotate(45)"><rect x="0" y="0" width="10" height="10"/></g></svg>',
-          expectedCode: 'ICON_ATTRIBUTE_FORBIDDEN',
+          name: 'malformed transform attribute',
+          svg: '<svg viewBox="0 0 24 24"><g transform="rotate(calc(45))"><rect x="0" y="0" width="10" height="10"/></g></svg>',
+          expectedCode: 'ICON_ATTRIBUTE_VALUE_INVALID',
         },
         {
           name: 'href / xlink:href',
@@ -642,8 +648,8 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
           expectedCode: 'ICON_ATTRIBUTE_VALUE_INVALID',
         },
         {
-          name: 'unsupported path arc command A',
-          svg: '<svg viewBox="0 0 24 24"><path d="M4 12 A 4 4 0 0 1 12 12"/></svg>',
+          name: 'invalid path arc flag',
+          svg: '<svg viewBox="0 0 24 24"><path d="M4 12 A 4 4 0 2 1 12 12"/></svg>',
           expectedCode: 'ICON_INVALID_PATH',
         },
         {
@@ -701,13 +707,13 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
 
     it('returns GENERIC_FALLBACK_ICON_TREE with a structured warning when resolveCatalogIcon encounters unsupported decorative SVG', () => {
       const decorativeSvg =
-        '<svg viewBox="0 0 24 24"><defs><linearGradient id="grad1"/></defs><rect x="2" y="2" width="20" height="20"/></svg>';
+        '<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" fill="url(#missing)"/></svg>';
 
       const resolved = resolveCatalogIcon(decorativeSvg);
       expect(resolved.isFallback).toBe(true);
       expect(resolved.tree).toEqual(GENERIC_FALLBACK_ICON_TREE);
       expect(resolved.warning).toBeDefined();
-      expect(resolved.warning?.code).toBe('ICON_TAG_FORBIDDEN');
+      expect(resolved.warning?.code).toBe('ICON_REFERENCE_INVALID');
 
       // Missing/empty iconSvg resolves to generic fallback without warning
       const resolvedEmpty = resolveCatalogIcon(undefined);

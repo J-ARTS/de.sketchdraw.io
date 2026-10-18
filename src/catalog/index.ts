@@ -108,6 +108,7 @@ const PROVIDERS: ReadonlySet<ComponentDefinition['provider']> = new Set([
   'aws',
   'azure',
   'gcp',
+  'kubernetes',
   'generic',
   'custom',
 ]);
@@ -334,7 +335,7 @@ export function validateComponentSet(input: unknown): ComponentSet {
         issues.push({
           path: joinPath(compPath, 'provider'),
           code: 'INVALID_COMPONENT_PROVIDER',
-          message: 'ComponentDefinition provider must be aws, azure, gcp, generic, or custom.',
+          message: 'ComponentDefinition provider must be aws, azure, gcp, kubernetes, generic, or custom.',
         });
       }
 

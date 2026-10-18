@@ -68,8 +68,8 @@ test('real download roundtrip and dirty document cancellation retain the drawing
 
 test('catalog inserts a real component and code updates preserve invalid drafts', async ({ page }) => {
   await workspaceView(page, 'Bibliothek');
-  await page.getByLabel('Komponenten suchen').fill('server');
-  await page.locator('.catalog-item').first().click(); await expect(page.locator('[data-kind=component]')).toHaveCount(1);
+  await page.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('EC2');
+  await page.getByTestId('shape-library-sidebar').getByRole('button', { name: /Amazon EC2/ }).click(); await expect(page.locator('[data-kind=component]')).toHaveCount(1);
   await workspaceView(page, 'Code');
   const code = page.getByTestId('diagram-code'); const original = await code.inputValue(); expect(original).toContain('sketchdraw 1');
   await code.fill(original.replace('Unbenannt', 'Cloud Workspace'));

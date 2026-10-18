@@ -903,6 +903,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     applyCode() { return state.transitioning ? Promise.resolve(false) : applyCode(); },
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
     toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) state.codeOpen = false; },
+    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) state.codeOpen = false; },
     async insertComponent(set: ComponentSet, type: string) {
       if (state.transitioning) return;
       try { const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at: currentCenter() }); if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; } }
