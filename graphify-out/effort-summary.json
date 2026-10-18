@@ -3305,6 +3305,38 @@
         "value": null
       },
       "sharedUnallocatedRunIds": []
+    },
+    "98": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-annotation-list-markers-98"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
     }
   },
   "byTool": {
@@ -3594,16 +3626,17 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       },
-      "runCount": 11,
+      "runCount": 12,
       "runIds": [
+        "codex-annotation-list-markers-98",
         "codex-build-composable-evaluation-73",
         "codex-connector-marker-palette-96",
         "codex-laser-icon-verification-95",
@@ -3620,7 +3653,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 11
+        "unknownRuns": 12
       }
     }
   },
@@ -3629,15 +3662,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 154
+      "unknownRuns": 155
     },
     "observedSeconds": {
       "knownRuns": 48,
       "knownSubtotal": 24009.322263248963,
       "total": null,
-      "unknownRuns": 106
+      "unknownRuns": 107
     },
-    "runCount": 154,
+    "runCount": 155,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3689,6 +3722,7 @@
       "claude-whiteboard-001",
       "claude-whiteboard-002",
       "codex-annotation-056",
+      "codex-annotation-list-markers-98",
       "codex-auto-agent-access-030",
       "codex-build-composable-evaluation-73",
       "codex-ci-signing-env-026",
@@ -3798,7 +3832,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 150
+      "unknownRuns": 151
     }
   },
   "officialScoreClaimReady": false,
@@ -3808,9 +3842,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 82
+    "unknownIssues": 83
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:20:04.909428Z"
+  "updatedAt": "2026-10-18T10:30:11.613775Z"
 }

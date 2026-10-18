@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:20:04.909428Z",
+  "updatedAt": "2026-10-18T10:30:11.613775Z",
   "issues": [
     {
       "number": 1,
@@ -1532,6 +1532,23 @@
       },
       "dependencies": [
         63
+      ]
+    },
+    {
+      "number": 98,
+      "title": "Annotation-Listenmarker während der Bearbeitung nicht sichtbar",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/98",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "local_verification_complete",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        56
       ]
     }
   ],
@@ -5714,6 +5731,31 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 450 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, macOS 15 and Ubuntu 24.04 completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-annotation-list-markers-98",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        98
+      ],
+      "status": "local_verification_complete",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:5992850",
+        "src/renderer/components/AnnotationEditor.vue",
+        "tests/ui/annotation.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/98"
+      ],
+      "concerns": [
+        "The global list reset intentionally removes markers for application navigation lists; marker styles therefore remain scoped to the annotation editor only."
+      ],
+      "authorization": "The user reported the annotation editing defect and had already authorized Codex to temporarily implement UI work assigned to Claude Code when necessary, with actual tool attribution.",
+      "measurementSource": "Local macOS arm64 evidence at product commit 5992850: the pre-fix Playwright regression reproduced list-style-type none; after the fix the annotation UI test passed 1/1 with disc and decimal markers, typecheck passed, and annotation Vitest tests passed 4/4. Exact Codex duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
