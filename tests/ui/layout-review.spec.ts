@@ -112,6 +112,20 @@ test('side panels open below the top chrome with reachable headers (#84)', async
   expect(await reachable(page.getByRole('heading', { name: 'Kommentare', exact: true }))).toBe(true);
 });
 
+test('the shape library header stays compact on desktop and compact screens (#89)', async ({ page }) => {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 480, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    await page.getByTestId('more-shapes').click();
+    const library = page.getByTestId('shape-library-sidebar');
+    const title = await box(library.getByRole('heading', { name: 'Formen' }));
+    const close = await box(library.getByRole('button', { name: 'Formen schließen' }));
+    const panel = await box(library);
+    expect(close.y - panel.y).toBeLessThanOrEqual(10);
+    expect(Math.abs(title.y + title.height / 2 - (close.y + close.height / 2))).toBeLessThanOrEqual(1);
+    await page.keyboard.press('Escape');
+  }
+});
+
 test('the slides button sits above the minimap (#85)', async ({ page }) => {
   const slides = await box(page.getByRole('button', { name: 'Folienleiste öffnen' }));
   const minimap = await box(page.getByTestId('minimap'));
