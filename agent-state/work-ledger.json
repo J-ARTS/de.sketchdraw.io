@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T01:12:55Z",
+  "updatedAt": "2026-10-18T01:19:22Z",
   "issues": [
     {
       "number": 1,
@@ -578,7 +578,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/37",
       "owner": "Claude Code",
       "phase": "UI",
-      "status": "in_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -3602,9 +3602,9 @@
       "issues": [
         55
       ],
-      "status": "verified_local",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-18T01:05:54Z",
-      "endedAt": "2026-10-18T01:12:55Z",
+      "endedAt": "2026-10-18T01:19:22Z",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
@@ -3614,11 +3614,39 @@
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/55",
         "graphify-out/graph.json",
         "graphify-out/traceability.json",
-        "release/mac-arm64/Sketchdraw.app"
+        "release/mac-arm64/Sketchdraw.app",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/84e9a71e75768bacebfdc38a9c5acec8895eeff2",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119"
       ],
       "concerns": [],
       "authorization": "The user requested the selection actions and previously authorized Codex to temporarily implement unavailable agents’ scope with actual-tool attribution.",
-      "measurementSource": "Codex implemented and locally verified the action menu. Typecheck and production build passed; 323 Vitest tests, 47 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify tests passed; the unsigned macOS arm64 package directory target completed."
+      "measurementSource": "Codex implemented and verified the action menu. Local evidence: typecheck and production build passed; 323 Vitest tests, 47 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify tests passed; the unsigned macOS arm64 package directory target completed. GitHub Actions run 39085721119 verified exact commit 84e9a71e75768bacebfdc38a9c5acec8895eeff2 on Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15."
+    },
+    {
+      "id": "github-actions-element-actions-39085721119",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        55
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T01:13:51Z",
+      "endedAt": "2026-10-18T01:19:22Z",
+      "observedSeconds": 331,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/84e9a71e75768bacebfdc38a9c5acec8895eeff2",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551742775",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551743004",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767224",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767251",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39085721119/job/117551767342"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions run metadata for exact commit 84e9a71e75768bacebfdc38a9c5acec8895eeff2. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between recorded run creation and final update timestamps."
     }
   ],
   "evidencePolicy": {
