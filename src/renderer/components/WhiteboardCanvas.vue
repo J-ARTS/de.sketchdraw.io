@@ -90,8 +90,9 @@ function move(event: PointerEvent) {
 function enter(event: PointerEvent) {
   const value = input(event);
   toolPointer.value = { x: value.x, y: value.y };
+  store.pointerMove(value);
 }
-function leave() { toolPointer.value = null; }
+function leave() { toolPointer.value = null; store.pointerLeave(); }
 function up(event: PointerEvent) {
   if (activePointer !== event.pointerId) return;
   const value = input(event);
@@ -139,8 +140,9 @@ onMounted(() => canvas.value?.focus());
       </g>
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
         <template v-for="handle in s.handles" :key="handle.id">
-          <circle v-if="handle.kind === 'connector-point'" :data-handle="handle.id" :data-testid="`connector-handle-${handle.id.split(':')[1]}`" :cx="handle.x" :cy="handle.y" r="6" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="2" />
-          <circle v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-add-handle-${handle.id.split(':')[1]}`" :cx="handle.x" :cy="handle.y" r="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" opacity=".8" />
+          <circle v-if="handle.kind === 'connector-endpoint'" :data-handle="handle.id" :data-testid="`connector-endpoint-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 8 : 7" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="3" />
+          <circle v-else-if="handle.kind === 'connector-control'" :data-handle="handle.id" :data-testid="`connector-control-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 7 : 6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2" />
+          <rect v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-segment-handle-${handle.id.split(':')[1]}`" :data-orientation="handle.orientation" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :x="handle.x - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 22 : 19) : (s.hoveredHandleId === handle.id ? 6 : 5))" :y="handle.y - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 6 : 5) : (s.hoveredHandleId === handle.id ? 22 : 19))" :width="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 44 : 38) : (s.hoveredHandleId === handle.id ? 12 : 10)" :height="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 12 : 10) : (s.hoveredHandleId === handle.id ? 44 : 38)" rx="6" fill="var(--accent)" />
           <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
         </template>
       </g>

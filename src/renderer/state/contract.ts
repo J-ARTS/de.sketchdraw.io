@@ -73,7 +73,11 @@ export interface KeyInput {
   scope: 'canvas' | 'text' | 'other';
 }
 
-export type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate' | `connector:${number}` | `connector-add:${number}`;
+export type HandleId =
+  | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate'
+  | 'connector-endpoint:start' | 'connector-endpoint:end'
+  | `connector-control:${number}`
+  | `connector-segment:${number}`;
 
 /** Frame of the current selection in document coordinates (centre + size, rotation in degrees). */
 export interface SelectionFrame {
@@ -82,7 +86,14 @@ export interface SelectionFrame {
   single: boolean;
 }
 /** Handle positions are in SCREEN pixels so size and hit zone (>= 24 px) are independent of zoom. */
-export interface HandleView { id: HandleId; x: number; y: number; kind?: 'selection' | 'connector-point' | 'connector-segment' }
+export interface HandleView {
+  id: HandleId;
+  x: number;
+  y: number;
+  kind?: 'selection' | 'connector-endpoint' | 'connector-control' | 'connector-segment';
+  /** Segment direction; the drag cursor moves on the perpendicular axis. */
+  orientation?: 'horizontal' | 'vertical';
+}
 
 export interface SnapTarget { elementId: string; anchor: Point; screen: Point }
 
@@ -211,6 +222,7 @@ export interface WhiteboardState {
   marquee: Rect | null;
   frame: SelectionFrame | null;
   handles: readonly HandleView[];
+  hoveredHandleId: HandleId | null;
   snapTarget: SnapTarget | null;
   /** Bound source and current valid target while a connector is being drawn. */
   connectorTargets: { fromId: string; toId: string | null } | null;
@@ -284,6 +296,7 @@ export interface WhiteboardStore {
 
   pointerDown(input: PointerInput): void;
   pointerMove(input: PointerInput): void;
+  pointerLeave(): void;
   pointerUp(input: PointerInput): void;
   pointerCancel(): void;
   doubleClick(input: PointerInput): void;

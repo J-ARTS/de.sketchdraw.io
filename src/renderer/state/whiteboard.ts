@@ -5,7 +5,8 @@ import {
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
   tablePlainText,
-  connectorEndMarker, connectorRoutePoints, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
+  connectorEndMarker, connectorRoutePoints, connectorRoutePointsForRouting, connectorRouting, connectorStartMarker,
+  moveElbowedSegment, DOMAIN_LIMITS, serializeDocument,
   resolveAnchorWorldPoint, worldToElementLocalPoint,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
@@ -58,6 +59,8 @@ type Gesture = {
   connectorFromId?: string;
   connectorPoints?: Point[];
   connectorPointIndex?: number;
+  connectorSegmentIndex?: number;
+  connectorStubLength?: number;
   pencilStrokeWidth?: number;
   pencilOpacity?: number;
   eraserRadius?: number;
@@ -152,6 +155,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pencilSize: PENCIL_SIZE_DEFAULT, pencilOpacity: PENCIL_OPACITY_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
+    hoveredHandleId: null as HandleId | null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
@@ -176,7 +180,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
-    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : ['path', 'eraser'].includes(this.tool) ? 'none' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair'; },
+    get cursor() {
+      if (this.transitioning) return 'wait';
+      if (this.tool === 'hand' || spaceHeld) return 'grab';
+      if (this.tool === 'select' && this.hoveredHandleId) {
+        const hovered = this.handles.find((handle) => handle.id === this.hoveredHandleId);
+        if (hovered?.kind === 'connector-segment') return hovered.orientation === 'horizontal' ? 'ns-resize' : 'ew-resize';
+        if (hovered?.kind === 'connector-endpoint') return 'crosshair';
+        if (hovered?.kind === 'connector-control') return 'move';
+      }
+      return this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : ['path', 'eraser'].includes(this.tool) ? 'none' : this.tool === 'laser' ? LASER_CURSOR : 'crosshair';
+    },
     get frame(): WhiteboardState['frame'] {
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
       const first = elements[0];
@@ -193,12 +207,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const route = connectorRoutePoints(element);
         const c = center(element);
         const screenPoint = (point: Point) => docToScreen(this.viewport, rotatePoint({ x: element.x + point.x, y: element.y + point.y }, c, element.rotation));
-        const handles: HandleView[] = route.map((point, index) => ({ id: `connector:${index}`, ...screenPoint(point), kind: 'connector-point' }));
-        if (connectorRouting(element) === 'straight') {
+        const handles: HandleView[] = route.length >= 2 ? [
+          { id: 'connector-endpoint:start', ...screenPoint(route[0]!), kind: 'connector-endpoint' },
+          { id: 'connector-endpoint:end', ...screenPoint(route.at(-1)!), kind: 'connector-endpoint' },
+        ] : [];
+        const routing = connectorRouting(element);
+        if (routing === 'elbowed') {
           for (let index = 0; index < route.length - 1; index += 1) {
             const start = route[index]!; const end = route[index + 1]!;
-            handles.push({ id: `connector-add:${index}`, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment' });
+            const orientation = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y) ? 'horizontal' : 'vertical';
+            handles.push({ id: `connector-segment:${index}`, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment', orientation });
           }
+        } else if (routing === 'curved') {
+          route.slice(1, -1).forEach((point, index) => handles.push({ id: `connector-control:${index + 1}`, ...screenPoint(point), kind: 'connector-control' }));
         }
         return handles;
       }
@@ -345,6 +366,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     ] };
   }
   function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
+  function handleAt(point: Point): HandleView | undefined {
+    if (state.tool !== 'select') return undefined;
+    return [...state.handles].reverse().find((handle) => {
+      const dx = Math.abs(handle.x - point.x);
+      const dy = Math.abs(handle.y - point.y);
+      if (handle.kind === 'connector-segment') {
+        return handle.orientation === 'horizontal' ? dx <= 24 && dy <= 14 : dx <= 14 && dy <= 24;
+      }
+      return Math.hypot(dx, dy) <= 14;
+    });
+  }
   function extendEraseGesture(g: Gesture, point: Point): void {
     const ids = g.preview?.type === 'delete' ? [...g.preview.ids] : [];
     const erased = new Set(ids);
@@ -395,6 +427,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function setSelection(ids: string[], additive = false) {
     state.selection = [...new Set(additive ? [...state.selection, ...ids] : ids)].filter((id) => state.document.elements.some((e) => e.id === id));
     state.focusedId = state.selection.at(-1) ?? null;
+    state.hoveredHandleId = null;
     if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
@@ -586,7 +619,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
-    state.selection = []; state.focusedId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
+    state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
     state.presenterOpen = false; state.presenterIndex = 0; state.frameSidebarOpen = false;
     gesture = null; failedGesture = null; nudge = null; state.previewCommand = null; state.drawing = null;
     titleDraft = document.title; codeBase = document;
@@ -689,6 +722,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if ((!state.canWrite && !['select', 'hand', 'laser'].includes(tool)) || state.transitioning) return;
       if (state.textEdit) void applyText();
       state.tool = tool;
+      state.hoveredHandleId = null;
       state.workspaceView = 'canvas';
       if (tool === 'rectangle') state.shapeVariant = 'square';
       if (tool === 'ellipse') state.shapeVariant = 'circle';
@@ -780,8 +814,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         store.startComment(target?.id, undefined, point);
         return;
       }
-      const handle = state.tool === 'select' ? state.handles.find((h) => Math.hypot(h.x - input.x, h.y - input.y) <= 12) : undefined;
-      let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : handle.id.startsWith('connector:') || handle.id.startsWith('connector-add:') ? 'connector-point' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
+      const handle = handleAt(input);
+      state.hoveredHandleId = handle?.id ?? null;
+      let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : handle.id.startsWith('connector-') ? 'connector-point' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
       if (!state.canWrite && kind !== 'pan' && kind !== 'marquee') { if (target) setSelection([target.id], input.shiftKey); return; }
       if (input.button !== 0 && input.button !== 1) return;
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
@@ -798,21 +833,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const targets = state.tool === 'connector' && target ? [clone(target)] : selected().map(clone);
       let connectorPoints: Point[] | undefined;
       let connectorPointIndex: number | undefined;
+      let connectorSegmentIndex: number | undefined;
       if (kind === 'connector-point' && targets[0]?.kind === 'connector' && handle) {
         connectorPoints = connectorRoutePoints(targets[0]);
-        if (handle.id.startsWith('connector-add:')) {
-          const segment = Number(handle.id.slice('connector-add:'.length));
-          const start = connectorPoints[segment]!; const end = connectorPoints[segment + 1]!;
-          connectorPointIndex = segment + 1;
-          connectorPoints.splice(connectorPointIndex, 0, { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 });
-        } else connectorPointIndex = Number(handle.id.slice('connector:'.length));
+        if (handle.id === 'connector-endpoint:start') connectorPointIndex = 0;
+        else if (handle.id === 'connector-endpoint:end') connectorPointIndex = connectorPoints.length - 1;
+        else if (handle.id.startsWith('connector-control:')) connectorPointIndex = Number(handle.id.slice('connector-control:'.length));
+        else if (handle.id.startsWith('connector-segment:')) connectorSegmentIndex = Number(handle.id.slice('connector-segment:'.length));
       }
       gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets, handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
         ...(state.tool === 'path' ? {
           pencilStrokeWidth: state.pencilSize / state.viewport.zoom,
           pencilOpacity: state.pencilOpacity,
         } : {}),
-        ...(connectorPoints ? { connectorPoints, connectorPointIndex } : {}),
+        ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
         ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
       if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };
       changedDraft();
@@ -820,7 +854,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pointerMove(input) {
       lastPointerScreen = { x: input.x, y: input.y };
       const g = gesture;
-      if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
+      if (!g) {
+        const hovered = handleAt(input);
+        state.hoveredHandleId = hovered?.id ?? null;
+        return;
+      }
+      if (state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
       const point = screenToDoc(state.viewport, input);
       const dx = point.x - g.start.x; const dy = point.y - g.start.y;
       if (g.kind === 'pan') { store.panBy(input.x - g.screenStart.x, input.y - g.screenStart.y); g.screenStart = input; return; }
@@ -835,31 +874,46 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (g.kind === 'draw') {
         if (g.tool === 'path' && Math.hypot(point.x - g.last.x, point.y - g.last.y) >= 1 / state.viewport.zoom && g.points.length < DOMAIN_LIMITS.MAX_POINTS_PER_ELEMENT) g.points.push(point);
         g.element = createDraw(g, point, input.shiftKey); state.drawing = g.element;
-      } else if (g.kind === 'connector-point' && g.targets[0]?.kind === 'connector' && g.connectorPoints && g.connectorPointIndex !== undefined) {
+      } else if (g.kind === 'connector-point' && g.targets[0]?.kind === 'connector' && g.connectorPoints && (g.connectorPointIndex !== undefined || g.connectorSegmentIndex !== undefined)) {
         const element = g.targets[0];
-        const route = g.connectorPoints.map((entry) => ({ ...entry }));
-        const index = g.connectorPointIndex;
+        let route = g.connectorPoints.map((entry) => ({ ...entry }));
         const patch: ElementPatch = {};
-        if (index === 0 || index === route.length - 1) {
-          const endpoint = index === 0 ? element.from : element.to;
-          const bound = endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined;
-          const anchor = bound ? connectorAnchor(bound, point) : undefined;
-          const world = bound && anchor ? resolveAnchorWorldPoint(bound, anchor) : point;
-          route[index] = worldToElementLocalPoint(element, world);
-          if (endpoint && anchor) {
-            if (index === 0) patch.from = { elementId: endpoint.elementId, anchor };
-            else patch.to = { elementId: endpoint.elementId, anchor };
-          }
-        } else {
+        if (g.connectorSegmentIndex !== undefined) {
           const local = worldToElementLocalPoint(element, point);
-          if (connectorRouting(element) === 'elbowed') {
-            const previous = route[index - 1]!; const current = route[index]!; const next = route[index + 1]!;
-            const previousHorizontal = Math.abs(previous.y - current.y) <= Math.abs(previous.x - current.x);
-            const nextHorizontal = Math.abs(next.y - current.y) <= Math.abs(next.x - current.x);
-            route[index] = { x: previousHorizontal ? local.x : previous.x, y: previousHorizontal ? previous.y : local.y };
-            if (nextHorizontal) next.y = route[index]!.y;
-            else next.x = route[index]!.x;
-          } else route[index] = local;
+          route = moveElbowedSegment(route, g.connectorSegmentIndex, local, g.connectorStubLength);
+        } else {
+          const index = g.connectorPointIndex!;
+          if (index === 0 || index === route.length - 1) {
+            const movingStart = index === 0;
+            const endpoint = movingStart ? element.from : element.to;
+            const opposite = movingStart ? element.to : element.from;
+            const candidate = [...g.base.document.elements].reverse().find((entry) =>
+              entry.id !== element.id && entry.kind !== 'connector' && entry.id !== opposite?.elementId
+              && hitElement(entry, point, 10 / state.viewport.zoom));
+            const bound = candidate ?? (endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined);
+            const anchor = bound ? connectorAnchor(bound, point) : undefined;
+            const world = bound && anchor ? resolveAnchorWorldPoint(bound, anchor) : point;
+            route[index] = worldToElementLocalPoint(element, world);
+            let nextFrom = element.from;
+            let nextTo = element.to;
+            if (bound && anchor) {
+              const binding = { elementId: bound.id, anchor };
+              if (movingStart) { nextFrom = binding; patch.from = binding; }
+              else { nextTo = binding; patch.to = binding; }
+              if (!g.targets.some((target) => target.id === bound.id)) g.targets.push(clone(bound));
+            }
+            const otherBound = opposite ? g.base.document.elements.find((entry) => entry.id === opposite.elementId) : undefined;
+            if (otherBound && !g.targets.some((target) => target.id === otherBound.id)) g.targets.push(clone(otherBound));
+            route = connectorRoutePointsForRouting({
+              ...element,
+              points: [{ ...route[0]! }, { ...route.at(-1)! }],
+              from: nextFrom,
+              to: nextTo,
+            }, connectorRouting(element));
+            state.connectorTargets = candidate && opposite ? { fromId: opposite.elementId, toId: candidate.id } : null;
+          } else {
+            route[index] = worldToElementLocalPoint(element, point);
+          }
         }
         Object.assign(patch, connectorGeometryPatch(element, route));
         g.preview = { type: 'update', changes: [{ id: element.id, patch }] };
@@ -887,6 +941,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       g.last = point; changedDraft();
     },
+    pointerLeave() { if (!gesture) state.hoveredHandleId = null; },
     pointerUp(input) {
       const g = gesture;
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
@@ -904,7 +959,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (g.kind === 'draw' && g.element && g.element.width + g.element.height < 4) { resetGesture(); return; }
       void finishGesture(g);
     },
-    pointerCancel() { if (state.transitioning) return; resetGesture(); },
+    pointerCancel() { if (state.transitioning) return; state.hoveredHandleId = null; resetGesture(); },
     doubleClick(input) {
       if (!state.canWrite || state.transitioning) return;
       const e = hit(screenToDoc(state.viewport, input));
@@ -1102,7 +1157,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     commitPropertyDraft() { return state.transitioning ? Promise.resolve(false) : applyPropertyDraft(); },
     discardPropertyDraft() { if (!state.transitioning && !unknownWrite) { state.propertyDraft = null; changedDraft(); } },
-    applyPatch(value) { if (!state.transitioning) patch(selected().map((e) => ({ id: e.id, patch: value }))); },
+    applyPatch(value) {
+      if (state.transitioning) return;
+      patch(selected().map((element) => {
+        if (element.kind !== 'connector' || !value.connectorRouting || value.connectorRouting === connectorRouting(element)) {
+          return { id: element.id, patch: value };
+        }
+        const route = connectorRoutePointsForRouting(element, value.connectorRouting);
+        return { id: element.id, patch: { ...value, ...connectorGeometryPatch(element, route) } };
+      }));
+    },
     setNumeric(field, value) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(value)) return;
       patch(topSelected(state.document.elements, state.selection).map((e) => {

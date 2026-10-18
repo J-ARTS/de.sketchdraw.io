@@ -12,9 +12,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('a connector binds two elements and exposes the FigJam-style controls', async ({ page }) => {
-  await rectangle(page, 220); await rectangle(page, 700, 460);
+  await rectangle(page, 220); await rectangle(page, 700, 460); await rectangle(page, 1000, 300);
   const shapes = page.locator('.whiteboard-canvas [data-kind=rectangle]');
-  await expect(shapes).toHaveCount(2);
+  await expect(shapes).toHaveCount(3);
 
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
   await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 });
@@ -44,17 +44,76 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await bar.getByRole('button', { name: /^Linienform:/ }).click();
   await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Rechtwinklig' }).click();
   await expect(bar.getByRole('button', { name: 'Linienform: Rechtwinklig' })).toBeVisible();
-  const routeHandles = page.locator('[data-testid^="connector-handle-"]');
-  await expect(routeHandles).toHaveCount(4);
-  const bend = page.getByTestId('connector-handle-1');
-  const bendBox = (await bend.boundingBox())!;
-  const beforeRoute = await path.getAttribute('d');
+  const endpointHandles = page.locator('[data-testid^="connector-endpoint-handle-"]');
+  const segmentHandles = page.locator('[data-testid^="connector-segment-handle-"]');
+  await expect(endpointHandles).toHaveCount(2);
+  await expect(segmentHandles).toHaveCount(3);
+  const middleSegment = page.getByTestId('connector-segment-handle-1');
+  await expect(middleSegment).toHaveAttribute('data-orientation', 'vertical');
+  const bendBox = (await middleSegment.boundingBox())!;
   await page.mouse.move(bendBox.x + bendBox.width / 2, bendBox.y + bendBox.height / 2);
+  await expect(middleSegment).toHaveAttribute('data-hovered', 'true');
+  await expect(page.getByTestId('whiteboard-canvas')).toHaveCSS('cursor', 'ew-resize');
+  const beforeRoute = await path.getAttribute('d');
   await page.mouse.down();
   await page.mouse.move(bendBox.x + bendBox.width / 2 + 36, bendBox.y + bendBox.height / 2, { steps: 4 });
   await page.mouse.up();
   await expect.poll(() => path.getAttribute('d')).not.toBe(beforeRoute);
-  await expect(routeHandles).toHaveCount(4);
+  await expect(segmentHandles).toHaveCount(3);
+
+  const firstSegment = page.getByTestId('connector-segment-handle-0');
+  const firstBox = (await firstSegment.boundingBox())!;
+  await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
+  await expect(firstSegment).toHaveAttribute('data-hovered', 'true');
+  await expect(page.getByTestId('whiteboard-canvas')).toHaveCSS('cursor', 'ns-resize');
+  await page.mouse.down();
+  await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2 - 42, { steps: 4 });
+  await page.mouse.up();
+  await expect(segmentHandles).toHaveCount(5);
+
+  await bar.getByRole('button', { name: /^Linienform:/ }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Gerade' }).click();
+  await expect(segmentHandles).toHaveCount(0);
+  await expect(endpointHandles).toHaveCount(2);
+  const straightPath = await path.getAttribute('d');
+  expect(straightPath).not.toMatch(/[CQ]/);
+  expect(straightPath?.match(/\bL\b/g)).toHaveLength(1);
+
+  await bar.getByRole('button', { name: /^Linienform:/ }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Gebogen' }).click();
+  await expect(page.locator('[data-testid^="connector-control-handle-"]')).toHaveCount(2);
+
+  await bar.getByRole('button', { name: /^Linienform:/ }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Rechtwinklig' }).click();
+  await expect(segmentHandles).toHaveCount(3);
+
+  const thirdShape = shapes.nth(2);
+  const thirdId = await thirdShape.getAttribute('data-element-id');
+  const thirdBox = (await thirdShape.boundingBox())!;
+  const endHandle = page.getByTestId('connector-endpoint-handle-end');
+  const endBox = (await endHandle.boundingBox())!;
+  await page.mouse.move(endBox.x + endBox.width / 2, endBox.y + endBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(thirdBox.x + thirdBox.width / 2, thirdBox.y + thirdBox.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByTestId('connector-target-highlight')).toBeHidden();
+
+  // The same endpoint can move to another side of its current element.
+  let reboundBox = (await endHandle.boundingBox())!;
+  await page.mouse.move(reboundBox.x + reboundBox.width / 2, reboundBox.y + reboundBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(thirdBox.x + thirdBox.width / 2, thirdBox.y, { steps: 8 });
+  await page.mouse.up();
+  reboundBox = (await endHandle.boundingBox())!;
+  expect(Math.abs(reboundBox.y + reboundBox.height / 2 - thirdBox.y)).toBeLessThan(8);
+
+  // Dragging the endpoint onto its opposite element must not create a self-connection.
+  const firstShapeBox = (await shapes.first().boundingBox())!;
+  await page.mouse.move(reboundBox.x + reboundBox.width / 2, reboundBox.y + reboundBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(firstShapeBox.x + firstShapeBox.width / 2, firstShapeBox.y + firstShapeBox.height / 2, { steps: 8 });
+  await expect(page.getByTestId('connector-target-highlight')).toBeHidden();
+  await page.mouse.up();
 
   await bar.getByRole('button', { name: /^Startpunkt:/ }).click();
   const startChoices = page.getByRole('group', { name: 'Startpunkt' });
@@ -86,6 +145,7 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   expect(code).toContain('"startMarker":"zero-or-one"');
   expect(code).toContain('"endMarker":"one-or-many"');
   expect(code).toContain('"from"'); expect(code).toContain('"to"');
+  expect(code).toContain(`"elementId":"${thirdId}"`);
 });
 
 test('free and self connections are rejected without adding an element', async ({ page }) => {
