@@ -2456,7 +2456,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-yjs-openpencil-architecture-70-72"
+        "codex-yjs-openpencil-architecture-70-72",
+        "codex-yjs-trystero-implementation-71-72"
       ]
     },
     "72": {
@@ -2488,7 +2489,8 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
-        "codex-yjs-openpencil-architecture-70-72"
+        "codex-yjs-openpencil-architecture-70-72",
+        "codex-yjs-trystero-implementation-71-72"
       ]
     },
     "8": {
@@ -2852,25 +2854,26 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       },
-      "runCount": 3,
+      "runCount": 4,
       "runIds": [
         "codex-plugin-platform-local-66-69",
         "codex-trystero-architecture-70",
-        "codex-yjs-openpencil-architecture-70-72"
+        "codex-yjs-openpencil-architecture-70-72",
+        "codex-yjs-trystero-implementation-71-72"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 3
+        "unknownRuns": 4
       }
     }
   },
@@ -2879,15 +2882,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 139
+      "unknownRuns": 140
     },
     "observedSeconds": {
       "knownRuns": 44,
       "knownSubtotal": 22322.322263248963,
       "total": null,
-      "unknownRuns": 95
+      "unknownRuns": 96
     },
-    "runCount": 139,
+    "runCount": 140,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -2999,6 +3002,7 @@
       "codex-web-embed-063",
       "codex-whiteboard-takeover-001",
       "codex-yjs-openpencil-architecture-70-72",
+      "codex-yjs-trystero-implementation-71-72",
       "github-actions-agent-access-39054281662",
       "github-actions-agent-access-39054540682",
       "github-actions-annotation-39087268278",
@@ -3033,7 +3037,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 135
+      "unknownRuns": 136
     }
   },
   "officialScoreClaimReady": false,
@@ -3047,5 +3051,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T06:10:00Z"
+  "updatedAt": "2026-10-18T06:53:33Z"
 }

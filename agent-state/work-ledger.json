@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T06:10:00Z",
+  "updatedAt": "2026-10-18T06:53:33Z",
   "issues": [
     {
       "number": 1,
@@ -1139,8 +1139,8 @@
       "title": "Yjs als CRDT-Datenschicht mit lokaler Persistenz",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/71",
       "owner": "Google Antigravity (logic/interface/IAM), OpenAI Codex (architecture/testing), Claude Code (future UI)",
-      "phase": "CRDT architecture and implementation",
-      "status": "planned",
+      "phase": "CRDT implementation verified and integrated",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1148,15 +1148,16 @@
       },
       "dependencies": [
         70
-      ]
+      ],
+      "currentImplementer": "OpenAI Codex (temporary user-authorized takeover; implementation and verification)"
     },
     {
       "number": 72,
       "title": "Trystero-Transportadapter und proxyfreundlicher Automatic-P2P-Modus",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/72",
       "owner": "Google Antigravity (logic/interface/IAM/devops), OpenAI Codex (architecture/testing), Claude Code (future UI)",
-      "phase": "P2P transport and connectivity prototype",
-      "status": "planned",
+      "phase": "Automatic P2P implemented; real proxy, TURN and load validation blocked by external environments",
+      "status": "blocked",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1165,7 +1166,8 @@
       "dependencies": [
         70,
         71
-      ]
+      ],
+      "currentImplementer": "OpenAI Codex (temporary user-authorized takeover; implementation and local verification)"
     }
   ],
   "runs": [
@@ -4836,6 +4838,46 @@
       ],
       "authorization": "The user explicitly decided that Sketchdraw should use Yjs as its CRDT data layer and asked Codex to use OpenPencil as a reference while deepening the Trystero analysis.",
       "measurementSource": "Primary-source review of Trystero 0.26, Yjs documentation, OpenPencil 0.16 documentation and collaboration source at commit 1c1986b20d15f2556c563d6c59d14a006269a40a, compared with Sketchdraw session, domain and P2P contracts. A temporary browser bundle outside the repository succeeded at approximately 158 KiB gzip for Yjs, y-indexeddb, awareness and Trystero MQTT together; npm audit reported zero known production vulnerabilities for the pinned spike packages. Duration, token usage and cost were not measured and remain null. nanoevents@9.1.0 was also bundled outside the repository at 236 bytes minified and 179 bytes gzip; the package is MIT-licensed, dependency-free, and the combined temporary production audit remained at zero known vulnerabilities."
+    },
+    {
+      "id": "codex-yjs-trystero-implementation-71-72",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        71,
+        72
+      ],
+      "status": "locally_verified_external_network_and_load_gates_open",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:4b8fd6c2859d8166d3bc7c629626e1c5f51a5abb",
+        "src/crdt/",
+        "src/collaboration/automatic.ts",
+        "src/collaboration/crdt.ts",
+        "src/collaboration/transport.ts",
+        "src/renderer/components/CollaborationPanel.vue",
+        "tests/unit/crdt.spec.ts",
+        "tests/unit/collaboration/automatic.spec.ts",
+        "tests/ui/collaboration.spec.ts",
+        "docs/decisions/0003-trystero-proxy-assisted-collaboration.md",
+        "docs/decisions/0004-yjs-crdt-data-layer.md",
+        "docs/contracts-p2p.md",
+        "THIRD_PARTY_NOTICES.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/71",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/72"
+      ],
+      "concerns": [
+        "Issue #72 remains blocked for real PAC, NTLM, Kerberos, manual proxy-login, TURN, broker-failure and 25/50/100-participant validation; local deterministic tests do not replace those environments.",
+        "The Automatic-P2P UI intentionally rejects invitations for a document that is not already open; lifecycle-safe foreign-document bootstrap remains open in issue #72.",
+        "The normal renderer chunk still exceeds the configured 500 kB warning threshold, although Trystero is isolated into a separate dynamically loaded chunk.",
+        "The first parallel Playwright run had two artifact-close ENOENT failures because UI and Electron suites shared the test-results directory; a sequential full UI rerun passed 61 of 61 tests."
+      ],
+      "authorization": "The user asked Codex to finish the current implementation and previously authorized Codex to temporarily take over implementation while preserving the nominal agent responsibilities.",
+      "measurementSource": "Verified on macOS in the repository checkout at git commit 4b8fd6c2859d8166d3bc7c629626e1c5f51a5abb: npm run typecheck; npm run test:unit (47 files, 375 tests); npm run test:ui sequential rerun (61 tests); npm run test:electron (6 tests); node --test tests/unit/*.test.mjs (59 tests); npm run build; npm audit --omit=dev (0 known vulnerabilities). Exact elapsed work time, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
