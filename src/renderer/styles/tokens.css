@@ -37,6 +37,10 @@
   /* Every floating bar (document card, tools, workspace, zoom, selection) shares one height. */
   --chrome-height: 56px;
   --chrome-control: 40px;
+  --chrome-inset: var(--space-3);
+  /* Side panels start below the top chrome: one row on wide screens, two rows (tools wrap below) up to 1040 px. */
+  --panel-top-base: calc(var(--chrome-inset) + var(--chrome-height) + var(--space-2));
+  --panel-top: var(--panel-top-base);
   --control-size: 36px;
   --control-size-compact: 32px;
   --panel-width: 288px;
@@ -90,4 +94,15 @@
   --scrim: rgb(0 0 0 / 60%);
 
   color-scheme: dark;
+}
+
+@media (max-width: 1040px) {
+  :root {
+    --panel-top-base: calc(var(--chrome-inset) + 2 * var(--chrome-height) + var(--space-4) + var(--space-2));
+  }
+}
+
+/* The pencil/eraser options bar adds one more row below the tools. */
+:root:has(.tool-options) {
+  --panel-top: calc(var(--panel-top-base) + var(--chrome-height) + var(--space-1));
 }

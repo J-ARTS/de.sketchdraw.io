@@ -71,16 +71,16 @@ describe('Whiteboard uses the real session gateway', () => {
     store.renamePage('page:1', '  Übersicht  '); await store.whenIdle();
     expect(store.state.pages).toEqual([{ id: 'page:1', name: 'Übersicht', elementCount: 0 }]);
     expect(store.state.title).toBe('Unbenannt');
-    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBe('Übersicht');
+    expect(store.state.document.metadata['sketchdraw.pages.compat.v1']).toContain('Übersicht');
     await store.save();
     const saved = deserializeDocument(vi.mocked(bridge.saveDocument).mock.calls[0]![0].text);
-    expect(saved.metadata['sketchdraw.page.v1.name']).toBe('Übersicht');
+    expect(saved.metadata['sketchdraw.pages.compat.v1']).toContain('Übersicht');
     const reopened = createWhiteboardStore({ bridge, controller: createController(saved) }); stores.push(reopened);
     expect(reopened.state.pages[0]?.name).toBe('Übersicht');
     expect(reopened.state.title).toBe('Unbenannt');
     store.undo(); await store.whenIdle();
     expect(store.state.pages[0]?.name).toBe('Seite 1');
-    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBeUndefined();
+    expect(store.state.document.metadata['sketchdraw.pages.compat.v1']).toBeUndefined();
   });
 
   test('single-page rename rejects empty, overlong and foreign-page names and removes the default override', async () => {
@@ -94,7 +94,31 @@ describe('Whiteboard uses the real session gateway', () => {
     store.renamePage('page:1', 'Details'); await store.whenIdle();
     store.renamePage('page:1', ' Seite 1 '); await store.whenIdle();
     expect(store.state.pages[0]?.name).toBe('Seite 1');
-    expect(store.state.document.metadata['sketchdraw.page.v1.name']).toBeUndefined();
+    expect(store.state.document.metadata['sketchdraw.pages.compat.v1']).toContain('Seite 1');
+  });
+
+  test('new page contents survive page switches, save and reopen', async () => {
+    const { store, bridge } = setup();
+    await draw(store);
+    const firstId = store.state.document.elements[0]!.id;
+    store.addPage(); await store.whenIdle();
+    const secondId = store.state.activePageId;
+    expect(store.state.pages).toHaveLength(2);
+    expect(store.state.document.elements).toHaveLength(0);
+    await draw(store, 'ellipse', 500);
+    const ellipseId = store.state.document.elements[0]!.id;
+    store.selectPage('page:1'); await store.whenIdle();
+    expect(store.state.document.elements.map((element) => element.id)).toEqual([firstId]);
+    store.selectPage(secondId); await store.whenIdle();
+    expect(store.state.document.elements.map((element) => element.id)).toEqual([ellipseId]);
+    await store.save();
+    const saved = deserializeDocument(vi.mocked(bridge.saveDocument).mock.calls.at(-1)![0].text);
+    const reopened = createWhiteboardStore({ bridge, controller: createController(saved) }); stores.push(reopened);
+    expect(reopened.state.pages).toHaveLength(2);
+    expect(reopened.state.activePageId).toBe(secondId);
+    expect(reopened.state.document.elements.map((element) => element.id)).toEqual([ellipseId]);
+    reopened.selectPage('page:1'); await reopened.whenIdle();
+    expect(reopened.state.document.elements.map((element) => element.id)).toEqual([firstId]);
   });
 
   test('draw, resize and actor undo/redo form one history entry per gesture', async () => {

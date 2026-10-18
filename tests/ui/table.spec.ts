@@ -21,6 +21,14 @@ test('a table supports cell editing, formatting, navigation and row or column co
   await expect(toolbar.getByRole('button', { name: 'Durchgestrichen' })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: 'Aufzählung' })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: 'Tabellenstruktur' })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: 'Textfarbe' })).toBeVisible();
+  await expect(overlay.getByRole('gridcell').first()).toHaveCSS('border-top-style', 'solid');
+  await expect(overlay.getByRole('gridcell').first()).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+
+  const addColumnBox = (await overlay.getByRole('button', { name: 'Spalte rechts hinzufügen' }).boundingBox())!;
+  const addRowBox = (await overlay.getByRole('button', { name: 'Zeile unten hinzufügen' }).boundingBox())!;
+  expect(addColumnBox.width).toBeCloseTo(addRowBox.height, 0);
+  await expect(overlay.getByRole('group', { name: 'Spalten einfügen' }).getByRole('button')).toHaveCount(2);
 
   const firstCell = overlay.getByRole('button', { name: 'Zelle 1, 1' });
   await firstCell.dblclick();
@@ -36,6 +44,10 @@ test('a table supports cell editing, formatting, navigation and row or column co
   await overlay.getByRole('button', { name: 'Zelle 1, 1' }).click();
   await toolbar.getByRole('button', { name: 'Fett' }).click();
   await expect(overlay.getByRole('gridcell').first()).toHaveCSS('font-weight', '700');
+  await toolbar.getByRole('button', { name: 'Textfarbe' }).click();
+  await page.getByRole('group', { name: 'Textfarbe' }).getByRole('button', { name: 'Text Rot' }).click();
+  await expect(overlay.getByRole('gridcell').first()).toHaveCSS('color', 'rgb(229, 83, 58)');
+  await page.keyboard.press('Escape');
 
   const beforeMove = (await overlay.boundingBox())!;
   const moveHandle = overlay.getByRole('button', { name: 'Tabelle verschieben' });
@@ -50,10 +62,12 @@ test('a table supports cell editing, formatting, navigation and row or column co
   await page.mouse.move(resizeBox.x + 7, resizeBox.y + 7); await page.mouse.down(); await page.mouse.move(resizeBox.x + 47, resizeBox.y + 31); await page.mouse.up();
   await expect.poll(async () => (await overlay.boundingBox())?.width).toBeGreaterThan(beforeResize.width + 25);
 
-  await overlay.getByRole('button', { name: 'Spalte rechts hinzufügen' }).click();
+  await overlay.getByRole('button', { name: 'Spalte zwischen 1 und 2 hinzufügen' }).click();
   await expect(overlay.getByRole('gridcell')).toHaveCount(12);
+  await overlay.getByRole('button', { name: 'Spalte rechts hinzufügen' }).click();
+  await expect(overlay.getByRole('gridcell')).toHaveCount(15);
   await overlay.getByRole('button', { name: 'Zeile unten hinzufügen' }).click();
-  await expect(overlay.getByRole('gridcell')).toHaveCount(16);
+  await expect(overlay.getByRole('gridcell')).toHaveCount(20);
 
   await toolbar.getByRole('button', { name: 'Tabellenstruktur' }).click();
   await expect(page.getByRole('group', { name: 'Zeilen und Spalten bearbeiten' })).toBeVisible();

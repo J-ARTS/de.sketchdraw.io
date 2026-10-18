@@ -5,7 +5,7 @@ import {
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
   tablePlainText,
-  connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
+  connectorEndMarker, connectorRoutePoints, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
   resolveAnchorWorldPoint, worldToElementLocalPoint,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
@@ -27,7 +27,7 @@ import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
 import { instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport } from '@/catalog';
 import type {
-  CreateStoreOptions, DialogChoice, FileState, HandleId, Rect,
+  CreateStoreOptions, DialogChoice, FileState, HandleId, HandleView, Rect,
   EraserSize, PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, DEFAULT_SIZES, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
@@ -37,8 +37,8 @@ import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/save
 import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
 import {
-  MAX_PAGE_NAME_LENGTH, pageClipboardPayload, pageSummaries,
-  SINGLE_PAGE_ID, SINGLE_PAGE_NAME, SINGLE_PAGE_NAME_METADATA_KEY,
+  activePageId, clonePage, documentWithPages, MAX_PAGE_NAME_LENGTH, MAX_PAGES, nextPageName,
+  pageClipboardPayload, pageState, pageSummaries,
 } from './pages';
 import { planQuickConnect, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
@@ -48,11 +48,13 @@ import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
 
 type Gesture = {
-  kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
+  kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'connector-point' | 'pan' | 'marquee';
   start: Point; last: Point; screenStart: Point; base: DocumentSession;
   targets: SketchElement[]; handle?: HandleId; tool: Tool; points: Point[];
   preview: DocumentCommand | null; element: SketchElement | null;
   connectorFromId?: string;
+  connectorPoints?: Point[];
+  connectorPointIndex?: number;
   eraserRadius?: number;
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -180,6 +182,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get handles(): WhiteboardState['handles'] {
       const frame = this.frame;
       if (!frame?.single) return [];
+      const element = selected()[0];
+      if (element?.kind === 'connector') {
+        const route = connectorRoutePoints(element);
+        const c = center(element);
+        const screenPoint = (point: Point) => docToScreen(this.viewport, rotatePoint({ x: element.x + point.x, y: element.y + point.y }, c, element.rotation));
+        const handles: HandleView[] = route.map((point, index) => ({ id: `connector:${index}`, ...screenPoint(point), kind: 'connector-point' }));
+        if (connectorRouting(element) === 'straight') {
+          for (let index = 0; index < route.length - 1; index += 1) {
+            const start = route[index]!; const end = route[index + 1]!;
+            handles.push({ id: `connector-add:${index}`, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment' });
+          }
+        }
+        return handles;
+      }
       const c = { x: frame.cx, y: frame.cy };
       const positions: Array<[HandleId, number, number]> = [['nw', -1, -1], ['ne', 1, -1], ['se', 1, 1], ['sw', -1, 1]];
       const handles = positions.map(([id, x, y]) => ({ id, ...docToScreen(this.viewport, rotatePoint({ x: c.x + x * frame.width / 2, y: c.y + y * frame.height / 2 }, c, frame.rotation)) }));
@@ -220,7 +236,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         canEditText: elements.length === 1 && !['web-embed', 'frame'].includes(first?.kind ?? ''), hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image', 'frame'].includes(e.kind)), hasText: elements.some((e) => !['web-embed', 'frame'].includes(e.kind)) };
     },
     get pages() { return pageSummaries(this.document); },
-    activePageId: SINGLE_PAGE_ID,
+    activePageId: activePageId(initial.document),
     workspaceView: 'canvas' as const,
     commentSidebarOpen: false,
     frameSidebarOpen: false,
@@ -231,7 +247,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     commentComposerTarget: null as CommentTarget | null,
     unreadCommentIds: [] as string[],
     currentActorId: actorId,
-    pagesEditable: false,
+    pagesEditable: true,
     get objectList(): WhiteboardState['objectList'] {
       const index = new Map(this.document.elements.map((e) => [e.id, e]));
       return this.document.elements.map((e) => {
@@ -256,6 +272,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function sync(snapshot: DocumentSession) {
     const before = state.document;
     state.document = Object.freeze(snapshot.document); state.revision = snapshot.revision;
+    state.activePageId = activePageId(snapshot.document);
     state.selection = state.selection.filter((id) => snapshot.document.elements.some((e) => e.id === id));
     if (state.focusedId && !snapshot.document.elements.some((e) => e.id === state.focusedId)) state.focusedId = snapshot.document.elements[0]?.id ?? null;
     if (state.textEdit?.elementId) {
@@ -378,6 +395,30 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; changedDraft(); }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(base.document.elements, ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
+  }
+  function connectorAnchor(element: SketchElement, point: Point): Point {
+    const local = worldToElementLocalPoint(element, point);
+    const x = Math.max(0, Math.min(1, element.width ? local.x / element.width : 0.5));
+    const y = Math.max(0, Math.min(1, element.height ? local.y / element.height : 0.5));
+    const distances = [{ edge: 'left', value: x }, { edge: 'right', value: 1 - x }, { edge: 'top', value: y }, { edge: 'bottom', value: 1 - y }] as const;
+    const edge = distances.reduce((best, entry) => entry.value < best.value ? entry : best).edge;
+    if (edge === 'left') return { x: 0, y };
+    if (edge === 'right') return { x: 1, y };
+    if (edge === 'top') return { x, y: 0 };
+    return { x, y: 1 };
+  }
+  function connectorGeometryPatch(element: SketchElement, points: readonly Point[]): ElementPatch {
+    const minX = Math.min(...points.map((point) => point.x));
+    const minY = Math.min(...points.map((point) => point.y));
+    const maxX = Math.max(...points.map((point) => point.x));
+    const maxY = Math.max(...points.map((point) => point.y));
+    return {
+      x: element.x + minX,
+      y: element.y + minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+      points: points.map((point) => ({ x: point.x - minX, y: point.y - minY })),
+    };
   }
   async function finishGesture(g: Gesture): Promise<boolean> {
     const owner = activeSession();
@@ -724,7 +765,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         return;
       }
       const handle = state.tool === 'select' ? state.handles.find((h) => Math.hypot(h.x - input.x, h.y - input.y) <= 12) : undefined;
-      let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
+      let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : handle.id.startsWith('connector:') || handle.id.startsWith('connector-add:') ? 'connector-point' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
       if (!state.canWrite && kind !== 'pan' && kind !== 'marquee') { if (target) setSelection([target.id], input.shiftKey); return; }
       if (input.button !== 0 && input.button !== 1) return;
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
@@ -738,7 +779,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         if (!state.selection.includes(target.id)) setSelection([target.id], input.shiftKey);
       }
       if (kind === 'marquee' && !input.shiftKey) setSelection([]);
-      gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets: state.tool === 'connector' && target ? [clone(target)] : selected().map(clone), handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
+      const targets = state.tool === 'connector' && target ? [clone(target)] : selected().map(clone);
+      let connectorPoints: Point[] | undefined;
+      let connectorPointIndex: number | undefined;
+      if (kind === 'connector-point' && targets[0]?.kind === 'connector' && handle) {
+        connectorPoints = connectorRoutePoints(targets[0]);
+        if (handle.id.startsWith('connector-add:')) {
+          const segment = Number(handle.id.slice('connector-add:'.length));
+          const start = connectorPoints[segment]!; const end = connectorPoints[segment + 1]!;
+          connectorPointIndex = segment + 1;
+          connectorPoints.splice(connectorPointIndex, 0, { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 });
+        } else connectorPointIndex = Number(handle.id.slice('connector:'.length));
+      }
+      gesture = { kind, start: point, last: point, screenStart: input, base: snapshotSource().getSnapshot(), targets, handle: handle?.id, tool: state.tool, points: [point], preview: null, element: null,
+        ...(connectorPoints ? { connectorPoints, connectorPointIndex } : {}),
         ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
       if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };
       changedDraft();
@@ -761,6 +815,35 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (g.kind === 'draw') {
         if (g.tool === 'path' && Math.hypot(point.x - g.last.x, point.y - g.last.y) >= 1 / state.viewport.zoom && g.points.length < DOMAIN_LIMITS.MAX_POINTS_PER_ELEMENT) g.points.push(point);
         g.element = createDraw(g, point, input.shiftKey); state.drawing = g.element;
+      } else if (g.kind === 'connector-point' && g.targets[0]?.kind === 'connector' && g.connectorPoints && g.connectorPointIndex !== undefined) {
+        const element = g.targets[0];
+        const route = g.connectorPoints.map((entry) => ({ ...entry }));
+        const index = g.connectorPointIndex;
+        const patch: ElementPatch = {};
+        if (index === 0 || index === route.length - 1) {
+          const endpoint = index === 0 ? element.from : element.to;
+          const bound = endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined;
+          const anchor = bound ? connectorAnchor(bound, point) : undefined;
+          const world = bound && anchor ? resolveAnchorWorldPoint(bound, anchor) : point;
+          route[index] = worldToElementLocalPoint(element, world);
+          if (endpoint && anchor) {
+            if (index === 0) patch.from = { elementId: endpoint.elementId, anchor };
+            else patch.to = { elementId: endpoint.elementId, anchor };
+          }
+        } else {
+          const local = worldToElementLocalPoint(element, point);
+          if (connectorRouting(element) === 'elbowed') {
+            const previous = route[index - 1]!; const current = route[index]!; const next = route[index + 1]!;
+            const previousHorizontal = Math.abs(previous.y - current.y) <= Math.abs(previous.x - current.x);
+            const nextHorizontal = Math.abs(next.y - current.y) <= Math.abs(next.x - current.x);
+            route[index] = { x: previousHorizontal ? local.x : previous.x, y: previousHorizontal ? previous.y : local.y };
+            if (nextHorizontal) next.y = route[index]!.y;
+            else next.x = route[index]!.x;
+          } else route[index] = local;
+        }
+        Object.assign(patch, connectorGeometryPatch(element, route));
+        g.preview = { type: 'update', changes: [{ id: element.id, patch }] };
+        state.previewCommand = g.preview;
       } else if (g.targets[0]) {
         const el = g.targets[0]; const c = center(el);
         let value: ElementPatch;
@@ -1372,27 +1455,62 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     openHelp() { if (!state.transitioning) state.dialog = { kind: 'help' }; },
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
     toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; if (state.objectsOpen) state.frameSidebarOpen = false; },
-    selectPage(id) { if (state.pages.some((page) => page.id === id)) state.activePageId = id; },
-    // Structural page mutations stay unavailable until the multi-page schema (#34) lands.
-    addPage() {},
+    selectPage(id) {
+      if (!state.canWrite || state.transitioning || id === state.activePageId) return;
+      const model = pageState(state.document);
+      if (!model.pages.some((page) => page.id === id)) return;
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, model.pages, id) });
+    },
+    addPage() {
+      if (!state.canWrite || state.transitioning) return;
+      const model = pageState(state.document);
+      if (model.pages.length >= MAX_PAGES) { notice(`Ein Dokument kann höchstens ${MAX_PAGES} Seiten enthalten.`, 'error'); return; }
+      const page = { id: uid('page'), name: nextPageName(model.pages), elements: [] };
+      const pages = [...model.pages, page];
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, page.id) });
+    },
     renamePage(id, name) {
       const next = name.trim();
-      if (!state.canWrite || state.transitioning || id !== SINGLE_PAGE_ID || !next || next.length > MAX_PAGE_NAME_LENGTH) return;
-      const current = state.pages[0]?.name;
-      if (next === current) return;
-      void dispatch({
-        type: 'set-metadata',
-        patch: { [SINGLE_PAGE_NAME_METADATA_KEY]: next === SINGLE_PAGE_NAME ? null : next },
-      });
+      if (!state.canWrite || state.transitioning || !next || next.length > MAX_PAGE_NAME_LENGTH) return;
+      const model = pageState(state.document);
+      const page = model.pages.find((entry) => entry.id === id);
+      if (!page || page.name === next) return;
+      const pages = model.pages.map((entry) => entry.id === id ? { ...entry, name: next } : entry);
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, model.activePageId) });
     },
-    duplicatePage() {},
-    deletePage() {},
-    movePage() {},
+    duplicatePage(id) {
+      if (!state.canWrite || state.transitioning) return;
+      const model = pageState(state.document);
+      if (model.pages.length >= MAX_PAGES) { notice(`Ein Dokument kann höchstens ${MAX_PAGES} Seiten enthalten.`, 'error'); return; }
+      const index = model.pages.findIndex((page) => page.id === id);
+      if (index < 0) return;
+      const duplicate = clonePage(model.pages[index]!, uid);
+      const pages = [...model.pages]; pages.splice(index + 1, 0, duplicate);
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, duplicate.id) });
+    },
+    deletePage(id) {
+      if (!state.canWrite || state.transitioning) return;
+      const model = pageState(state.document);
+      const index = model.pages.findIndex((page) => page.id === id);
+      if (index < 0 || model.pages.length <= 1) return;
+      const pages = model.pages.filter((page) => page.id !== id);
+      const nextActive = id === model.activePageId ? pages[Math.min(index, pages.length - 1)]!.id : model.activePageId;
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, nextActive) });
+    },
+    movePage(id, toIndex) {
+      if (!state.canWrite || state.transitioning) return;
+      const model = pageState(state.document);
+      const from = model.pages.findIndex((page) => page.id === id);
+      const target = Math.max(0, Math.min(model.pages.length - 1, toIndex));
+      if (from < 0 || from === target) return;
+      const pages = [...model.pages]; pages.splice(target, 0, pages.splice(from, 1)[0]!);
+      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, model.activePageId) });
+    },
     async copyPage(id) {
-      const page = state.pages.find((entry) => entry.id === id);
+      const page = pageState(state.document).pages.find((entry) => entry.id === id);
       if (!page) return;
       try {
-        await navigator.clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, state.document.elements, state.document.assets)));
+        await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, page.elements, state.document.assets)));
         notice(`Inhalt von „${page.name}“ kopiert.`);
       } catch { notice('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.', 'error'); }
     },

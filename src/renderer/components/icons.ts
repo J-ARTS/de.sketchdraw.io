@@ -19,7 +19,7 @@ export type IconName = ToolIconName | ActionIconName;
 
 /** 24x24 grid, drawn as 1.75 px round-capped strokes in currentColor. */
 export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
-  select: ['M5 3l6 16 2.5-6.5L20 10z'],
+  select: ['M4.5 3.5l15 7.1-6.1 2.3 3 5.9-3.2 1.7-3-6-5.7 2.1z'],
   hand: [
     'M9 14V6.5a1.5 1.5 0 0 1 3 0V12',
     'M12 12V4.5a1.5 1.5 0 0 1 3 0V12',

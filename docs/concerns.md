@@ -152,6 +152,12 @@ Quelle: echter lokaler Claude-Code-Lauf in `docs/reviews/claude-comments-059.md`
 | AUTO-03 | Eine automatische Einladung für ein fremdes Dokument darf ungespeicherte lokale Arbeit nicht still ersetzen. | Der jetzige UI-Prototyp verlangt dieselbe bereits geöffnete Dokument-ID und lehnt andere Dokumente ab. Ein Lifecycle-gesicherter Initial-Bootstrap mit sichtbarer Save-/Discard-Entscheidung bleibt vor allgemeiner Freigabe offen. |
 
 
+## Mehrseiten-Kompatibilitätsgrenze (#33–#35)
+
+| ID | Bedenken | Entscheidung und Nachweis |
+| --- | --- | --- |
+| MP-01 | Der Nutzer benötigt sofort eine funktionierende Plus-Aktion, während das öffentliche Schema v2, MCP, P2P und die mehrseitigen Interop-Verträge aus #33/#34 noch nicht vollständig umgesetzt sind. Eine nur lokale Seitenliste würde Inhalte beim Neustart verlieren; eine vorzeitige Behauptung, Schema v2 sei fertig, wäre ebenfalls falsch. | Der Renderer persistiert vorübergehend validierte inaktive Seitenschnappschüsse in versionierten Kompatibilitätsmetadaten und hält die aktive Seite weiterhin als reguläre v1-Elementliste. Seitenwechsel erfolgen atomar über den vorhandenen `replace`-Command und bleiben damit in History, Save und Authority. Dies erfüllt die aktuelle Plus-/Wechselanforderung, ist aber **kein Abschluss von Schema v2**. #33/#34 bleiben offen, müssen die Metadaten deterministisch migrieren und Diagram-as-Code, MCP, P2P sowie Interop dokumentweit umstellen. Geprüft werden Inhaltstrennung, Save/Reopen, Undo-/Write-Pfad und Browser-UI. |
+
 ## Native Integration und Fremdprogramm-Abnahme
 
 - **P2P-Netzwerk, #14:** Der lokale macOS-Host erreicht keine ICE-Verbindung. Derselbe Stand f8c55fb besteht auf dem unveränderten Ubuntu-Runner beide echten Chromium-/Electron-Transporttests (Run 39041998555, Job 117423198082). Kein STUN/TURN/Relay und keine Abschwächung der Sandbox hinzugefügt. Der dritte Produkt-UI-Test fand eine Mehrdeutigkeit zwischen bestätigtem Element und beibehaltenem Entwurf; getrennte semantische Ebenen und explizite Ergebnisprüfung sind erforderlich.

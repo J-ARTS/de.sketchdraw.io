@@ -73,7 +73,7 @@ export interface KeyInput {
   scope: 'canvas' | 'text' | 'other';
 }
 
-export type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate';
+export type HandleId = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate' | `connector:${number}` | `connector-add:${number}`;
 
 /** Frame of the current selection in document coordinates (centre + size, rotation in degrees). */
 export interface SelectionFrame {
@@ -82,7 +82,7 @@ export interface SelectionFrame {
   single: boolean;
 }
 /** Handle positions are in SCREEN pixels so size and hit zone (>= 24 px) are independent of zoom. */
-export interface HandleView { id: HandleId; x: number; y: number }
+export interface HandleView { id: HandleId; x: number; y: number; kind?: 'selection' | 'connector-point' | 'connector-segment' }
 
 export interface SnapTarget { elementId: string; anchor: Point; screen: Point }
 

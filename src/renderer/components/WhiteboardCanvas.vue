@@ -115,7 +115,11 @@ onMounted(() => canvas.value?.focus());
         <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
-        <rect v-for="handle in s.handles" :key="handle.id" :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
+        <template v-for="handle in s.handles" :key="handle.id">
+          <circle v-if="handle.kind === 'connector-point'" :data-handle="handle.id" :data-testid="`connector-handle-${handle.id.split(':')[1]}`" :cx="handle.x" :cy="handle.y" r="6" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="2" />
+          <circle v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-add-handle-${handle.id.split(':')[1]}`" :cx="handle.x" :cy="handle.y" r="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5" opacity=".8" />
+          <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
+        </template>
       </g>
       <LaserPointerOverlay ref="laser" />
     </svg>

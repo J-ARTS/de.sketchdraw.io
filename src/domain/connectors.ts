@@ -48,23 +48,27 @@ function roundedPolyline(points: readonly Point[], radius: number): string {
   return `${path} L ${point(points.at(-1)!)}`;
 }
 
-/** Deterministic SVG path projection shared by the live renderer and native SVG export. */
-export function connectorPathData(element: Pick<SketchElement, 'points' | 'connectorRouting' | 'from' | 'to'>): string {
-  const points = element.points ?? [];
-  if (points.length < 2) return '';
+/**
+ * Returns the editable local-space route behind the rendered connector.
+ * Two-point legacy connectors are expanded deterministically for elbowed and
+ * curved rendering. Once a user edits a route, its explicit points remain the
+ * canonical, serializable geometry.
+ */
+export function connectorRoutePoints(element: Pick<SketchElement, 'points' | 'connectorRouting' | 'from' | 'to'>): Point[] {
+  const points = (element.points ?? []).map((entry) => ({ x: entry.x, y: entry.y }));
+  if (points.length < 2) return points;
   const start = points[0]!;
   const end = points.at(-1)!;
   const routing = connectorRouting(element);
-  if (routing === 'straight') return `M ${point(start)} ${points.slice(1).map((p) => `L ${point(p)}`).join(' ')}`;
+  if (routing === 'straight' || (routing === 'elbowed' && points.length > 2) || (routing === 'curved' && points.length >= 4)) return points;
   if (routing === 'elbowed') {
-    if (Math.abs(end.x - start.x) < 0.001 || Math.abs(end.y - start.y) < 0.001) return `M ${point(start)} L ${point(end)}`;
+    if (Math.abs(end.x - start.x) < 0.001 || Math.abs(end.y - start.y) < 0.001) return [start, end];
     const fromDirection = anchorDirection(element.from?.anchor, { x: Math.sign(end.x - start.x) || 1, y: 0 });
     const horizontalFirst = fromDirection.x !== 0;
     const middle = horizontalFirst ? (start.x + end.x) / 2 : (start.y + end.y) / 2;
-    const route = horizontalFirst
+    return horizontalFirst
       ? [start, { x: middle, y: start.y }, { x: middle, y: end.y }, end]
       : [start, { x: start.x, y: middle }, { x: end.x, y: middle }, end];
-    return roundedPolyline(route, 16);
   }
   const distance = Math.max(32, Math.min(160, Math.hypot(end.x - start.x, end.y - start.y) * 0.4));
   const fallback = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y)
@@ -72,7 +76,26 @@ export function connectorPathData(element: Pick<SketchElement, 'points' | 'conne
     : { x: 0, y: Math.sign(end.y - start.y) || 1 };
   const fromDirection = anchorDirection(element.from?.anchor, fallback);
   const toDirection = anchorDirection(element.to?.anchor, { x: -fallback.x, y: -fallback.y });
-  const controlA = { x: start.x + fromDirection.x * distance, y: start.y + fromDirection.y * distance };
-  const controlB = { x: end.x + toDirection.x * distance, y: end.y + toDirection.y * distance };
+  return [
+    start,
+    { x: start.x + fromDirection.x * distance, y: start.y + fromDirection.y * distance },
+    { x: end.x + toDirection.x * distance, y: end.y + toDirection.y * distance },
+    end,
+  ];
+}
+
+/** Deterministic SVG path projection shared by the live renderer and native SVG export. */
+export function connectorPathData(element: Pick<SketchElement, 'points' | 'connectorRouting' | 'from' | 'to'>): string {
+  const points = connectorRoutePoints(element);
+  if (points.length < 2) return '';
+  const start = points[0]!;
+  const end = points.at(-1)!;
+  const routing = connectorRouting(element);
+  if (routing === 'straight') return `M ${point(start)} ${points.slice(1).map((p) => `L ${point(p)}`).join(' ')}`;
+  if (routing === 'elbowed') {
+    return roundedPolyline(points, 16);
+  }
+  const controlA = points[1]!;
+  const controlB = points.at(-2)!;
   return `M ${point(start)} C ${point(controlA)} ${point(controlB)} ${point(end)}`;
 }

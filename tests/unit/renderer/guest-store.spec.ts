@@ -60,9 +60,16 @@ test('an editor page rename uses the shared authority and updates every snapshot
   const { store } = setup(); const peer = guestFixture(); await store.joinGuestSession(peer.guest);
   store.renamePage('page:1', 'Gemeinsame Übersicht'); await store.whenIdle();
   expect(peer.submit).toHaveBeenCalledWith(expect.objectContaining({
-    action: { kind: 'dispatch', command: { type: 'set-metadata', patch: { 'sketchdraw.page.v1.name': 'Gemeinsame Übersicht' } } },
+    action: { kind: 'dispatch', command: expect.objectContaining({
+      type: 'replace',
+      document: expect.objectContaining({
+        metadata: expect.objectContaining({
+          'sketchdraw.pages.compat.v1': expect.stringContaining('"name":"Gemeinsame Übersicht"'),
+        }),
+      }),
+    }) },
   }));
-  expect(peer.authority.source.getSnapshot().document.metadata['sketchdraw.page.v1.name']).toBe('Gemeinsame Übersicht');
+  expect(peer.authority.source.getSnapshot().document.metadata['sketchdraw.pages.compat.v1']).toContain('Gemeinsame Übersicht');
   expect(store.state.pages[0]?.name).toBe('Gemeinsame Übersicht');
 });
 

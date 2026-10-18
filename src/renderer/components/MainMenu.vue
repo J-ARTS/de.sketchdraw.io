@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
-import { useEventListener } from '@vueuse/core';
+import { useEventListener, useMediaQuery } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import PageSwitcher from './PageSwitcher.vue';
 import type { IconName } from './icons';
@@ -9,9 +9,10 @@ import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'collaboration' | 'catalog' | 'code' | 'plugins';
+type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'plugins';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
-interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked: boolean; separator?: boolean }
+/** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
+interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
 
 const props = defineProps<{ collaborationOpen: boolean; pluginsOpen: boolean }>();
 const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: []; plugins: [] }>();
@@ -25,6 +26,8 @@ const viewMenuId = `${uid}-view-menu`;
 const titleInputId = `${uid}-title`;
 
 const statusIsProblem = computed(() => s.saveStatus === 'error' || s.saveStatus === 'conflict');
+/** Up to 640 px the document card and workspace bar share one narrow row; secondary buttons move into the menu (#76). */
+const compact = useMediaQuery('(max-width: 640px)');
 
 // --- Document title ---------------------------------------------------------
 const titleDraft = ref(s.title);
@@ -76,7 +79,12 @@ const fileItems: readonly FileItem[] = [
 ];
 
 const viewItems = computed<ViewItem[]>(() => [
-  { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen },
+  ...(compact.value ? [
+    { id: 'objects', label: t('chrome.objects'), icon: 'objects', checked: s.objectsOpen },
+    { id: 'help', label: t('chrome.help'), icon: 'help' },
+    { id: 'theme', label: t('chrome.theme'), icon: s.theme === 'dark' ? 'moon' : 'sun', checked: s.theme === 'dark' },
+  ] satisfies ViewItem[] : []),
+  { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen, separator: compact.value },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
   { id: 'plugins', label: 'Plugin-Einstellungen', icon: 'component', checked: props.pluginsOpen, separator: true },
@@ -171,6 +179,9 @@ function runFile(id: FileItemId): void {
 function runView(id: ViewItemId): void {
   closeMenu(true);
   switch (id) {
+    case 'objects': store.toggleObjects(); break;
+    case 'help': store.openHelp(); break;
+    case 'theme': store.setTheme(s.theme === 'dark' ? 'light' : 'dark'); break;
     case 'collaboration': emit('collaboration'); break;
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
@@ -259,6 +270,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
   <div class="workspace-bar sd-panel" role="group" :aria-label="t('chrome.actions')">
     <button
+      v-if="!compact"
       type="button"
       class="sd-icon-btn bar-btn"
       data-objects-toggle
@@ -273,6 +285,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       <AppIcon name="objects" />
     </button>
     <button
+      v-if="!compact"
       type="button"
       class="sd-icon-btn bar-btn"
       data-testid="help-button"
@@ -284,6 +297,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       <AppIcon name="help" />
     </button>
     <button
+      v-if="!compact"
       type="button"
       class="sd-icon-btn bar-btn theme-btn"
       data-testid="theme-toggle"
@@ -294,7 +308,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
     >
       <AppIcon :name="s.theme === 'dark' ? 'moon' : 'sun'" />
     </button>
-    <span class="bar-sep" aria-hidden="true" />
+    <span v-if="!compact" class="bar-sep" aria-hidden="true" />
     <div class="view-wrap" @focusout="onFocusOut('view', $event)">
       <button
         ref="viewTrigger"
@@ -326,9 +340,10 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
           <span v-if="item.separator" class="rule" role="separator" />
           <button
             type="button"
-            role="menuitemcheckbox"
+            :role="item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
             tabindex="-1"
             class="menu-item"
+            :data-testid="`workspace-menu-${item.id}`"
             :aria-checked="item.checked"
             @click="runView(item.id)"
           >
@@ -345,16 +360,17 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 <style scoped>
 /* --- Document card (top left) --- */
 .doc-card {
-  position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
-  z-index: 40;
+  position: relative;
+  grid-area: doc;
+  justify-self: start;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
   height: var(--chrome-height);
-  max-width: calc(100vw - 2 * var(--space-3));
   padding: 0 var(--space-3) 0 var(--space-2);
+  pointer-events: auto;
 }
 
 .doc-icon {
@@ -473,15 +489,14 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 /* --- Workspace bar (top right) --- */
 .workspace-bar {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  z-index: 40;
+  grid-area: ws;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 2px;
   height: var(--chrome-height);
   padding: 0 6px;
+  pointer-events: auto;
 }
 
 .bar-btn {
@@ -621,17 +636,21 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 }
 
 @media (max-width: 640px) {
+  .doc-card {
+    gap: var(--space-2);
+    padding-left: var(--space-3);
+  }
+
+  .doc-icon {
+    display: none;
+  }
+
   .title-input {
     max-width: 30vw;
   }
 
   .status {
     display: none;
-  }
-
-  .bar-btn {
-    width: 36px;
-    height: 36px;
   }
 }
 

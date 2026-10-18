@@ -365,20 +365,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
         <button type="button" class="task-board-entry" :aria-current="s.workspaceView === 'tasks' ? 'page' : undefined" data-testid="task-board-entry" @click="selectTasks"><AppIcon name="check" :size="18" /><span><strong>Aufgaben</strong><small>{{ (s.document.tasks ?? []).filter((task) => task.status !== 'done').length }} offen</small></span></button>
       </div>
 
-      <div class="panel-foot">
-        <button
-          type="button"
-          class="foot-btn"
-          data-testid="page-paste"
-          :aria-disabled="!editable || undefined"
-          @click="store.pastePage()"
-        >
-          <AppIcon name="paste" :size="18" />
-          <span>{{ t('pages.paste') }}</span>
-        </button>
-        <p v-if="editable" class="foot-note">{{ t('pages.hint') }}</p>
-      </div>
-
       <div
         v-if="menu"
         ref="menuEl"

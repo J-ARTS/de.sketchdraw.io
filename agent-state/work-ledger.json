@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T07:29:31Z",
+  "updatedAt": "2026-10-18T08:48:53Z",
   "issues": [
     {
       "number": 1,
@@ -562,7 +562,7 @@
       "owner": "Claude Code",
       "currentImplementer": "Claude Code (UI) and Codex (temporary logic)",
       "phase": "UI",
-      "status": "blocked",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1221,8 +1221,9 @@
       "title": "Kopfbedienung wird bei 320 px überlagert und ist nicht anklickbar",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/76",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1237,8 +1238,9 @@
       "title": "Auswahlleiste verdeckt den Kopf der Formen-Seitenleiste",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/77",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1253,8 +1255,9 @@
       "title": "Horizontale Werkzeugleisten verstecken Aktionen ohne Überlaufhinweis",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/78",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1269,8 +1272,9 @@
       "title": "Plugin-Dialog lässt Fokus in den Hintergrund entkommen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/79",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1285,8 +1289,9 @@
       "title": "Aufgaben-Dialog hat kein modales Fokus- und Escape-Verhalten",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/80",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1301,8 +1306,9 @@
       "title": "Aufgaben-Dialog schneidet Aktionen bei Reflow ab",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/81",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1317,8 +1323,9 @@
       "title": "Kommentaraktionen-Menü ist nicht per ARIA-Tastaturmuster bedienbar",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/82",
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code (UI), verified by OpenAI Codex",
       "phase": "UI/UX audit follow-up",
-      "status": "planned",
+      "status": "review_pending",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1327,6 +1334,99 @@
       "dependencies": [
         75
       ]
+    },
+    {
+      "number": 83,
+      "title": "Undefinierte Design-Tokens und Kontrastfehler im Dark Mode",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/83",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 84,
+      "title": "Kopfleisten verdecken Hauptleiste und Seitenpanels",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/84",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 85,
+      "title": "Folien-Button überdeckt Minimap, Zoomleiste ragt bei 320 px über den Rand",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/85",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 86,
+      "title": "Eigenschaften-Popover verschwindet bei Auswahlen über dem Viewportrand",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/86",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 87,
+      "title": "Suchfelder in Aufgabenboard und Kommentarleiste ohne sichtbaren Fokus",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/87",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 88,
+      "title": "Kommentar-Editor wird am unteren Rand von Meldungen überdeckt",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/88",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI/UX audit follow-up",
+      "status": "planned",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [75]
+    },
+    {
+      "number": 89,
+      "title": "Formen-Auslöser und Panelkopf kompakter gestalten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/89",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [77, 78]
+    },
+    {
+      "number": 90,
+      "title": "Tabellen-Editor: Raster, Plus-Ausrichtung und Verschieben reparieren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/90",
+      "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [58]
+    },
+    {
+      "number": 91,
+      "title": "Connectoren mit dynamischen Routen- und Endpunktgriffen bearbeiten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/91",
+      "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI, logic and interfaces",
+      "status": "review_pending",
+      "estimatedEffort": { "unit": "story_points", "value": null, "kind": "planning_estimate" },
+      "dependencies": [45, 46, 47]
     }
   ],
   "runs": [
@@ -5120,6 +5220,83 @@
       ],
       "authorization": "The user explicitly asked to introduce VueUse and perform a complete UI/UX check with every confirmed bug listed; the user previously authorized Codex to temporarily perform UI implementation while retaining nominal ownership attribution.",
       "measurementSource": "Integrated commit 4d00f39 on main. Local macOS arm64 evidence: npm run typecheck passed; 375/375 Vitest tests, 61/61 browser UI tests including existing Axe checks, 6/6 Electron integration tests and 59/59 Node build/lifecycle tests passed; npm run build passed; npm audit --omit=dev reported zero known production vulnerabilities. Manual browser review covered 1440x900, 720x450, 480x720, 320x568 and 480x320. Duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "claude-ui-audit-fixes-76-87",
+      "tool": "claude-code",
+      "model": null,
+      "issues": [76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
+      "status": "fully_verified_pending_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/ui-code-review-2026-10-18-claude.md",
+        "src/renderer/components",
+        "src/renderer/styles/tokens.css",
+        "src/renderer/lib/focus.ts",
+        "tests/ui/layout-review.spec.ts",
+        "tests/unit/renderer/design-tokens.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/76",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/77",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/78",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/79",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/80",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/81",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/82",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/83",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/84",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/85",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/86",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/87"
+      ],
+      "concerns": [
+        "Issue #88 remains intentionally open because the comment editor can still be covered by persistent feedback near the lower viewport edge.",
+        "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 3,947 nodes versus 4,059 in the existing graph; deterministic ticket/run/artifact traceability was refreshed and validated."
+      ],
+      "authorization": "The user explicitly requested the UI/UX fixes and asked that Claude Code be used; Codex retains overall testing responsibility.",
+      "measurementSource": "Claude Code produced the bounded UI fixes. OpenAI Codex reviewed the working tree. Final local macOS arm64 evidence on the combined working tree: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. Exact duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-live-ui-page-table-connectors-35-89-91",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [35, 89, 90, 91],
+      "status": "fully_verified_pending_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/domain/connectors.ts",
+        "src/renderer/components/PageSwitcher.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "src/renderer/components/TableOverlay.vue",
+        "src/renderer/components/Toolbar.vue",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "src/renderer/state/pages.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/connectors.spec.ts",
+        "tests/ui/pages.spec.ts",
+        "tests/ui/table.spec.ts",
+        "tests/unit/domain/connectors.spec.ts",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "docs/concerns.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/35",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/89",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/90",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/91"
+      ],
+      "concerns": [
+        "The temporary page snapshot metadata is not the public document schema v2; issues #33 and #34 remain the migration and cross-surface contract work.",
+        "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 3,947 nodes versus 4,059 in the existing graph; deterministic ticket/run/artifact traceability was refreshed and validated."
+      ],
+      "authorization": "The user explicitly requested these page, shape-panel, table and connector changes and authorized Codex to temporarily implement work assigned to quota-limited agents while retaining nominal ownership.",
+      "measurementSource": "Final local macOS arm64 evidence on the combined working tree: typecheck passed; 380/380 Vitest tests, 74/74 browser UI tests including Axe checks, 6/6 Electron integration tests, 59/59 Node build/lifecycle tests and 22/22 Python Graphify tests passed; production build passed; npm audit --omit=dev found zero known production vulnerabilities. Connector tests independently verify dynamic route handles and selectable start/end markers. Exact duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

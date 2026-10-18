@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import {
   applyCommand,
   connectorPathData,
+  connectorRoutePoints,
   createDocument,
   createElement,
   deserializeDocument,
@@ -24,6 +25,17 @@ describe('connector contract', () => {
     expect(connectorPathData({ ...base, connectorRouting: 'straight' })).toBe('M 0 0 L 160 80');
     expect(connectorPathData({ ...base, connectorRouting: 'elbowed' })).toContain(' Q ');
     expect(connectorPathData({ ...base, connectorRouting: 'curved' })).toContain(' C ');
+  });
+
+  test('exposes deterministic editable points and renders persisted custom routes', () => {
+    const base = createElement('connector', { width: 160, height: 80, points: [{ x: 0, y: 0 }, { x: 160, y: 80 }], from: { elementId: 'a', anchor: { x: 1, y: .5 } }, to: { elementId: 'b', anchor: { x: 0, y: .5 } } });
+    expect(connectorRoutePoints({ ...base, connectorRouting: 'elbowed' })).toEqual([
+      { x: 0, y: 0 }, { x: 80, y: 0 }, { x: 80, y: 80 }, { x: 160, y: 80 },
+    ]);
+    expect(connectorRoutePoints({ ...base, connectorRouting: 'curved' })).toHaveLength(4);
+    const custom = { ...base, connectorRouting: 'elbowed' as const, points: [{ x: 0, y: 0 }, { x: 48, y: 0 }, { x: 48, y: 80 }, { x: 160, y: 80 }] };
+    expect(connectorRoutePoints(custom)).toEqual(custom.points);
+    expect(connectorPathData(custom)).toContain('48');
   });
 
   test('patches connector presentation fields without losing endpoint bindings', () => {

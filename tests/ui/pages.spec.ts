@@ -1,8 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-// Page UI (#35) against the single-page fallback; multi-page flows follow once #34 lands.
-// While pagesEditable is false, structural mutations stay silently unavailable: no toast, no schema hint.
 async function expectNoNotice(page: Page) {
   await expect(page.getByRole('button', { name: 'Meldung schließen' })).toHaveCount(0);
 }
@@ -28,17 +26,15 @@ test('page switcher shows the active page and the page list is keyboard reachabl
   await expect(page.getByRole('dialog', { name: 'Seiten' })).toHaveCount(0); await expect(trigger).toBeFocused();
 });
 
-test('context menu opens from the more button, right click and keyboard with blocked actions silently unavailable', async ({ page }) => {
+test('context menu opens from the more button, right click and keyboard', async ({ page }) => {
   await openPages(page);
   await page.getByRole('button', { name: 'Aktionen für Seite 1' }).click();
   const menu = page.getByRole('menu', { name: 'Seitenaktionen' });
   await expect(menu.getByRole('menuitem')).toHaveText(['Inhalt kopieren', 'Umbenennen', 'Duplizieren', 'Nach oben', 'Nach unten', 'Seite löschen']);
   await expect(menu.getByRole('menuitem', { name: 'Inhalt kopieren' })).toBeFocused();
   await expect(menu.getByRole('menuitem', { name: 'Seite löschen' })).toHaveAttribute('aria-disabled', 'true');
-  // Renaming stays available even while structural actions wait for the schema-v2 migration.
   await expect(menu.getByRole('menuitem', { name: 'Umbenennen' })).not.toHaveAttribute('aria-disabled', 'true');
-  // Blocked entries carry no technical schema-v2 hint via title.
-  await expect(menu.getByRole('menuitem', { name: 'Duplizieren' })).not.toHaveAttribute('title');
+  await expect(menu.getByRole('menuitem', { name: 'Duplizieren' })).not.toHaveAttribute('aria-disabled', 'true');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   await page.keyboard.press('ArrowDown'); await expect(menu.getByRole('menuitem', { name: 'Umbenennen' })).toBeFocused();
   await page.keyboard.press('Escape'); await expect(menu).toHaveCount(0);
@@ -48,11 +44,7 @@ test('context menu opens from the more button, right click and keyboard with blo
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /^Seite 1/ }).click({ button: 'right' });
   await expect(menu).toBeVisible();
-  // aria-disabled entries stay focusable but running one does nothing and shows no toast.
-  await menu.getByRole('menuitem', { name: 'Duplizieren' }).press('Enter');
-  await expect(menu).toHaveCount(0);
-  await expectNoNotice(page);
-  await expect(page.getByRole('list', { name: 'Seitenliste' }).getByRole('listitem')).toHaveCount(1);
+  await page.keyboard.press('Escape');
 });
 
 test('double click and Enter rename the page in place without a technical hint', async ({ page }) => {
@@ -88,13 +80,22 @@ test('F2 opens the rename field and Escape discards the draft', async ({ page })
   await expectNoNotice(page);
 });
 
-test('page creation stays silently unavailable without a schema hint', async ({ page }) => {
+test('the plus button creates a persistent page and switching keeps page contents separate', async ({ page }) => {
   await openPages(page);
   const add = page.getByTestId('page-add');
-  await expect(add).toHaveAttribute('aria-disabled', 'true');
   await expect(add).toHaveAttribute('title', 'Neue Seite');
-  await add.press('Enter');
-  await expect(page.getByRole('list', { name: 'Seitenliste' }).getByRole('listitem')).toHaveCount(1);
+  await add.click();
+  await expect(page.getByRole('list', { name: 'Seitenliste' }).getByRole('listitem')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: /^Seite 2/ })).toHaveAttribute('aria-current', 'page');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(350, 220); await page.mouse.down(); await page.mouse.move(550, 360, { steps: 8 }); await page.mouse.up();
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
+  await openPages(page);
+  await page.getByRole('button', { name: /^Seite 1/ }).click();
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(0);
+  await page.getByRole('button', { name: /^Seite 2/ }).click();
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
   await expectNoNotice(page);
 });
 

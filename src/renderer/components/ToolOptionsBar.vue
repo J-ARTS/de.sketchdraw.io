@@ -136,7 +136,7 @@ function pickCustomColor(event: Event): void {
 .option-group{display:flex;align-items:center;gap:4px;flex:none}
 .separator{width:1px;height:32px;margin:0 3px;background:var(--border-subtle);flex:none}
 button{flex:none;border:0;color:var(--text-primary);background:transparent;cursor:pointer}
-button:hover{background:var(--surface-hover)}
+button:hover{background:var(--surface-raised)}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button[aria-pressed='true']{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
 button:disabled{cursor:not-allowed;opacity:.45}

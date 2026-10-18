@@ -4,13 +4,14 @@ import { useWhiteboard } from './use-whiteboard';
 import { docToScreen } from '../lib/viewport';
 import { fontFamilyCss } from '../lib/constants';
 import { themeColor } from '../lib/theme';
+import AppIcon from './AppIcon.vue';
 
 const store = useWhiteboard();
 const s = store.state;
 const editingId = ref<string | null>(null);
 const draft = ref('');
 const preview = ref<{ x: number; y: number; width: number; height: number } | null>(null);
-let gesture: { kind: 'move' | 'resize'; handle?: 'nw' | 'ne' | 'se' | 'sw'; startX: number; startY: number; base: { x: number; y: number; width: number; height: number } } | null = null;
+let gesture: { kind: 'move' | 'resize'; handle?: 'nw' | 'ne' | 'se' | 'sw'; pointerId: number; startX: number; startY: number; base: { x: number; y: number; width: number; height: number } } | null = null;
 const element = computed(() => s.selection.length === 1 ? s.document.elements.find((entry) => entry.id === s.selection[0] && entry.kind === 'table') : undefined);
 const table = computed(() => element.value?.table);
 const style = computed(() => {
@@ -30,6 +31,15 @@ const gridRows = computed(() => table.value?.rows.map((row, rowIndex) => ({
   id: row.id,
   cells: table.value!.columns.map((column, columnIndex) => ({ rowIndex, columnIndex, cell: table.value!.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)! })),
 })) ?? []);
+const columnInsertions = computed(() => {
+  const columns = table.value?.columns ?? [];
+  const total = columns.reduce((sum, column) => sum + column.width, 0);
+  let offset = 0;
+  return columns.slice(0, -1).map((column, index) => {
+    offset += column.width;
+    return { index: index + 1, left: total > 0 ? `${offset / total * 100}%` : '0%' };
+  });
+});
 const selectedIds = computed(() => { const selection = s.tableSelection; return new Set(selection && selection.elementId === element.value?.id ? selection.cellIds : []); });
 function selectCell(cellId: string, rowIndex: number, columnIndex: number): void {
   if (!element.value) return;
@@ -75,11 +85,15 @@ function keydown(event: KeyboardEvent): void {
 function startGesture(event: PointerEvent, kind: 'move' | 'resize', handle?: 'nw' | 'ne' | 'se' | 'sw'): void {
   const value = element.value; if (!value || event.button !== 0) return;
   event.preventDefault(); event.stopPropagation();
-  gesture = { kind, handle, startX: event.clientX, startY: event.clientY, base: { x: value.x, y: value.y, width: value.width, height: value.height } };
-  window.addEventListener('pointermove', updateGesture); window.addEventListener('pointerup', finishGesture, { once: true });
+  const target = event.currentTarget;
+  if (target instanceof HTMLElement) target.setPointerCapture(event.pointerId);
+  gesture = { kind, handle, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, base: { x: value.x, y: value.y, width: value.width, height: value.height } };
+  window.addEventListener('pointermove', updateGesture);
+  window.addEventListener('pointerup', finishGesture);
+  window.addEventListener('pointercancel', cancelGesture);
 }
 function updateGesture(event: PointerEvent): void {
-  if (!gesture) return;
+  if (!gesture || event.pointerId !== gesture.pointerId) return;
   const dx = (event.clientX - gesture.startX) / s.viewport.zoom; const dy = (event.clientY - gesture.startY) / s.viewport.zoom;
   if (gesture.kind === 'move') preview.value = { ...gesture.base, x: gesture.base.x + dx, y: gesture.base.y + dy };
   else {
@@ -90,12 +104,26 @@ function updateGesture(event: PointerEvent): void {
     preview.value = { x: left, y: top, width: right - left, height: bottom - top };
   }
 }
-function finishGesture(): void {
+function cleanupGesture(): void {
   window.removeEventListener('pointermove', updateGesture);
+  window.removeEventListener('pointerup', finishGesture);
+  window.removeEventListener('pointercancel', cancelGesture);
+}
+function cancelGesture(event?: PointerEvent): void {
+  if (event && gesture && event.pointerId !== gesture.pointerId) return;
+  cleanupGesture(); gesture = null; preview.value = null;
+}
+function finishGesture(event?: PointerEvent): void {
+  if (event && gesture && event.pointerId !== gesture.pointerId) return;
+  cleanupGesture();
   const value = preview.value; gesture = null; preview.value = null;
   if (value) store.applyPatch(value);
 }
-onBeforeUnmount(() => { window.removeEventListener('pointermove', updateGesture); window.removeEventListener('pointerup', finishGesture); });
+function insertColumnAt(index: number): void {
+  selectColumn(Math.max(0, index - 1));
+  store.changeTableStructure('column-after');
+}
+onBeforeUnmount(cleanupGesture);
 </script>
 
 <template>
@@ -104,6 +132,9 @@ onBeforeUnmount(() => { window.removeEventListener('pointermove', updateGesture)
     <button v-for="handle in (['nw', 'ne', 'se', 'sw'] as const)" :key="handle" type="button" class="resize-handle" :class="handle" :aria-label="`Tabelle an Ecke ${handle} skalieren`" @pointerdown="startGesture($event, 'resize', handle)" />
     <div class="column-handles" :style="{ gridTemplateColumns: gridStyle.gridTemplateColumns }">
       <button v-for="(_, index) in table.columns" :key="index" type="button" :aria-label="`Spalte ${index + 1} auswählen`" @click="selectColumn(index)"><span /></button>
+    </div>
+    <div class="column-insertions" role="group" aria-label="Spalten einfügen">
+      <button v-for="boundary in columnInsertions" :key="boundary.index" type="button" :style="{ left: boundary.left }" :aria-label="`Spalte zwischen ${boundary.index} und ${boundary.index + 1} hinzufügen`" @click="insertColumnAt(boundary.index)"><AppIcon name="plus" :size="14" /></button>
     </div>
     <div class="row-handles" :style="{ gridTemplateRows: gridStyle.gridTemplateRows }">
       <button v-for="(_, index) in table.rows" :key="index" type="button" :aria-label="`Zeile ${index + 1} auswählen`" @click="selectRow(index)"><span /></button>
@@ -116,12 +147,12 @@ onBeforeUnmount(() => { window.removeEventListener('pointermove', updateGesture)
         </div>
       </div>
     </div>
-    <button type="button" class="add-column" aria-label="Spalte rechts hinzufügen" @click="selectColumn(table.columns.length - 1); store.changeTableStructure('column-after')">+</button>
-    <button type="button" class="add-row" aria-label="Zeile unten hinzufügen" @click="selectRow(table.rows.length - 1); store.changeTableStructure('row-after')">+</button>
+    <button type="button" class="add-column" aria-label="Spalte rechts hinzufügen" @click="selectColumn(table.columns.length - 1); store.changeTableStructure('column-after')"><AppIcon name="plus" /></button>
+    <button type="button" class="add-row" aria-label="Zeile unten hinzufügen" @click="selectRow(table.rows.length - 1); store.changeTableStructure('row-after')"><AppIcon name="plus" /></button>
   </div>
 </template>
 
 <style scoped>
-.table-overlay{position:absolute;z-index:7;transform-origin:center;pointer-events:none}.move-handle{position:absolute;z-index:4;top:-46px;left:50%;width:46px;height:36px;transform:translateX(-50%);border:0;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,var(--surface-panel));color:var(--accent);font-size:24px;line-height:1;pointer-events:auto;cursor:move}.resize-handle{position:absolute;z-index:5;width:14px;height:14px;padding:0;border:2px solid var(--accent);border-radius:3px;background:var(--surface-panel);pointer-events:auto}.resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.table-grid{position:absolute;inset:0;display:grid;pointer-events:auto}.grid-row{display:contents}.cell{position:relative;min-width:0;min-height:0;border:1px solid transparent;overflow:hidden}.cell.selected{border:calc(2px / var(--table-zoom)) solid var(--accent);box-shadow:inset 0 0 0 1px var(--surface-panel)}.cell-button,.cell textarea{width:100%;height:100%;padding:calc(10px * var(--table-zoom));box-sizing:border-box;background:transparent;border:0;color:inherit;font:inherit;text-align:inherit;white-space:pre-wrap;overflow:hidden;resize:none}.cell-button{display:block;cursor:text}.cell textarea{outline:2px solid var(--accent);outline-offset:-2px}.column-handles,.row-handles{position:absolute;display:grid;pointer-events:auto}.column-handles{left:0;right:0;top:-18px;height:18px}.row-handles{top:0;bottom:0;left:-18px;width:18px}.column-handles button,.row-handles button{display:grid;place-items:center;padding:0;background:transparent;border:0;cursor:pointer}.column-handles span,.row-handles span{display:block;border-radius:999px;background:var(--accent)}.column-handles span{width:24px;height:5px}.row-handles span{width:5px;height:24px}.add-column,.add-row{position:absolute;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 25%,var(--surface-panel));border:0;border-radius:10px;color:var(--accent);font-size:30px;font-weight:500;pointer-events:auto;cursor:pointer}.add-column{left:calc(100% + 10px);top:0;width:44px;height:100%}.add-row{left:0;top:calc(100% + 10px);width:100%;height:36px}
+.table-overlay{position:absolute;z-index:7;transform-origin:center;pointer-events:none}.move-handle{position:absolute;z-index:7;top:-54px;left:50%;width:46px;height:36px;transform:translateX(-50%);border:0;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,var(--surface-panel));color:var(--accent);font-size:24px;line-height:1;touch-action:none;pointer-events:auto;cursor:move}.resize-handle{position:absolute;z-index:5;width:14px;height:14px;padding:0;border:2px solid var(--accent);border-radius:3px;background:var(--surface-panel);touch-action:none;pointer-events:auto}.resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.table-grid{position:absolute;inset:0;display:grid;pointer-events:auto}.grid-row{display:contents}.cell{position:relative;min-width:0;min-height:0;border:1px solid var(--border-default);overflow:hidden}.cell.selected{border:2px solid var(--accent);box-shadow:inset 0 0 0 1px var(--surface-panel)}.cell-button,.cell textarea{width:100%;height:100%;padding:calc(10px * var(--table-zoom));box-sizing:border-box;background:transparent;border:0;color:inherit;font:inherit;text-align:inherit;white-space:pre-wrap;overflow:hidden;resize:none}.cell-button{display:block;cursor:text}.cell textarea{outline:2px solid var(--accent);outline-offset:-2px}.column-handles,.row-handles{position:absolute;display:grid;pointer-events:auto}.column-handles{left:0;right:0;top:-18px;height:18px}.row-handles{top:0;bottom:0;left:-18px;width:18px}.column-handles button,.row-handles button{display:grid;place-items:center;padding:0;background:transparent;border:0;cursor:pointer}.column-handles span,.row-handles span{display:block;border-radius:999px;background:var(--accent)}.column-handles span{width:24px;height:5px}.row-handles span{width:5px;height:24px}.column-insertions{position:absolute;z-index:6;inset:0;pointer-events:none}.column-insertions button{position:absolute;top:-37px;display:grid;width:24px;height:24px;padding:0;place-items:center;transform:translateX(-50%);border:1px solid var(--accent);border-radius:50%;background:var(--surface-panel);color:var(--accent);opacity:.78;pointer-events:auto;cursor:pointer}.column-insertions button:hover,.column-insertions button:focus-visible{opacity:1;background:var(--accent-soft)}.add-column,.add-row{position:absolute;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 25%,var(--surface-panel));border:0;border-radius:10px;color:var(--accent);pointer-events:auto;cursor:pointer}.add-column{left:calc(100% + 10px);top:0;width:44px;height:100%}.add-row{left:0;top:calc(100% + 10px);width:100%;height:44px}
 .cell-button.commenting{cursor:crosshair;background:color-mix(in srgb,var(--accent) 8%,transparent)}
 </style>

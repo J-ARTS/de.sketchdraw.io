@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { shapeBaseKind, type ShapeVariant } from '@/domain';
 import { t } from '@/renderer/i18n/de';
 import { shapeEntry, type ShapeEntry } from '@/renderer/lib/shapes';
@@ -11,11 +11,14 @@ import ImageFileInput from './ImageFileInput.vue';
 import ToolOptionsBar from './ToolOptionsBar.vue';
 import WebEmbedDialog from './WebEmbedDialog.vue';
 import { isMacPlatform } from './platform';
+import { useHorizontalOverflow } from './use-horizontal-overflow';
 import { useWhiteboard } from './use-whiteboard';
 
 const store = useWhiteboard();
 const isMac = isMacPlatform();
 const root = ref<HTMLElement | null>(null);
+const scroller = ref<HTMLElement | null>(null);
+const { start: overflowStart, end: overflowEnd, page: pageTools, reveal } = useHorizontalOverflow(scroller);
 const imageInput = ref<InstanceType<typeof ImageFileInput> | null>(null);
 const focusedItem = ref<string | null>(null);
 const toolbarState = useShapeToolbarState();
@@ -36,11 +39,15 @@ const toolbarItemIds = computed(() => [
   'more-shapes',
   ...afterShapes.value.map((entry) => entry.tool),
 ]);
+const activeItem = computed(() => ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool) ? `shape-${store.state.shapeVariant}` : store.state.tool);
 const tabStop = computed(() => {
-  const active = ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool) ? `shape-${store.state.shapeVariant}` : store.state.tool;
-  const preferred = focusedItem.value ?? active;
+  const preferred = focusedItem.value ?? activeItem.value;
   return toolbarItemIds.value.includes(preferred) ? preferred : toolbarItemIds.value[0];
 });
+/** The active tool stays visible when the bar overflows, e.g. after a shortcut picked a scrolled-away tool (#78). */
+function revealActive(): void { reveal(scroller.value?.querySelector(`[data-toolbar-item="${activeItem.value}"]`)); }
+watch(activeItem, () => { void nextTick(revealActive); });
+onMounted(revealActive);
 
 function activateTool(tool: Tool): void {
   if (tool === 'image') { imageInput.value?.open(); return; }
@@ -112,6 +119,8 @@ function onFavoriteKeydown(event: KeyboardEvent, id: ShapeVariant): void {
 function onFocusIn(event: FocusEvent): void {
   const target = event.target;
   if (target instanceof HTMLElement && target.dataset.toolbarItem) focusedItem.value = target.dataset.toolbarItem;
+  // Browsers leave a partly visible item clipped on focus; show it completely (#78).
+  reveal(target as Element | null);
 }
 function onFocusOut(event: FocusEvent): void {
   const next = event.relatedTarget;
@@ -145,20 +154,25 @@ onBeforeUnmount(cancelLongPress);
 
 <template>
   <div ref="root" class="toolbar-wrap" @pointerdown.stop="startLongPress" @pointermove="trackLongPress" @pointerup="cancelLongPress" @pointercancel="cancelLongPress" @keydown="onKeydown" @focusin="onFocusIn" @focusout="onFocusOut">
-    <div class="toolbar sd-panel" :class="{ editing }" data-testid="main-toolbar" role="toolbar" aria-orientation="horizontal" :aria-label="t('toolbar.label')">
-      <button v-for="def in beforeShapes" :key="def.tool" type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && !['select', 'hand'].includes(def.tool)" :aria-label="def.label" :aria-pressed="def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
-      <span class="sep" aria-hidden="true" />
-      <div class="shape-strip" data-testid="shape-favorites" @dragover.prevent @drop="dropAt($event, favorites.length)">
-        <button v-for="(entry, index) in favoriteEntries" :key="entry.id" type="button" class="tool shape-tool sd-icon-btn" :class="{ dragging: dragging === entry.id }" :data-tool="shapeBaseKind(entry.id)" :data-shape="entry.id" :data-toolbar-item="`shape-${entry.id}`" :tabindex="tabStop === `shape-${entry.id}` ? 0 : -1" :disabled="!store.state.canWrite" :draggable="editing" :aria-label="`${toolbarShapeLabel(entry)}${editing ? ', Position ' + (index + 1) : ''}`" :aria-pressed="store.state.shapeVariant === entry.id && ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool)" :title="editing ? `${entry.label}: ziehen, Alt+Pfeil zum Verschieben, Entf zum Entfernen` : entry.label" @click="store.setShapeTool(entry.id)" @keydown="onFavoriteKeydown($event, entry.id)" @dragstart="onDragStart($event, entry.id)" @dragover.prevent @drop.stop="dropAt($event, index)" @dragend="onDragEnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg></button>
+    <div class="toolbar-frame sd-panel" :class="{ editing }">
+      <!-- Pointer affordance only: keyboard users move with the arrow keys, which scroll the focused tool into view. -->
+      <button v-show="overflowStart" type="button" class="overflow-btn start" data-testid="toolbar-scroll-start" tabindex="-1" aria-hidden="true" @pointerdown.stop.prevent @click="pageTools(-1)"><AppIcon name="chevron-left" :size="18" /></button>
+      <div ref="scroller" class="toolbar" :class="{ editing }" data-testid="main-toolbar" role="toolbar" aria-orientation="horizontal" :aria-label="t('toolbar.label')">
+        <button v-for="def in beforeShapes" :key="def.tool" type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && !['select', 'hand'].includes(def.tool)" :aria-label="def.label" :aria-pressed="def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
+        <span class="sep" aria-hidden="true" />
+        <div class="shape-strip" data-testid="shape-favorites" @dragover.prevent @drop="dropAt($event, favorites.length)">
+          <button v-for="(entry, index) in favoriteEntries" :key="entry.id" type="button" class="tool shape-tool sd-icon-btn" :class="{ dragging: dragging === entry.id }" :data-tool="shapeBaseKind(entry.id)" :data-shape="entry.id" :data-toolbar-item="`shape-${entry.id}`" :tabindex="tabStop === `shape-${entry.id}` ? 0 : -1" :disabled="!store.state.canWrite" :draggable="editing" :aria-label="`${toolbarShapeLabel(entry)}${editing ? ', Position ' + (index + 1) : ''}`" :aria-pressed="store.state.shapeVariant === entry.id && ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool)" :title="editing ? `${entry.label}: ziehen, Alt+Pfeil zum Verschieben, Entf zum Entfernen` : entry.label" @click="store.setShapeTool(entry.id)" @keydown="onFavoriteKeydown($event, entry.id)" @dragstart="onDragStart($event, entry.id)" @dragover.prevent @drop.stop="dropAt($event, index)" @dragend="onDragEnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg></button>
+        </div>
+        <button type="button" class="more-shapes" data-toolbar-item="more-shapes" data-testid="more-shapes" :tabindex="tabStop === 'more-shapes' ? 0 : -1" aria-label="Weitere Formen" title="Weitere Formen" :aria-expanded="store.state.catalogOpen" aria-controls="shape-library-panel" @click="toggleCatalog"><AppIcon name="more" /></button>
+        <span class="sep" aria-hidden="true" />
+        <template v-for="def in afterShapes" :key="def.tool">
+          <span v-if="def.tool === 'text'" class="sep" aria-hidden="true" />
+          <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="def.label" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
+        </template>
+        <ImageFileInput ref="imageInput" />
+        <WebEmbedDialog />
       </div>
-      <button type="button" class="more-shapes" data-toolbar-item="more-shapes" data-testid="more-shapes" :tabindex="tabStop === 'more-shapes' ? 0 : -1" aria-label="Weitere Formen" :aria-expanded="store.state.catalogOpen" aria-controls="shape-library-panel" @click="toggleCatalog"><span aria-hidden="true">•••</span><span class="more-label">Weitere Formen</span></button>
-      <span class="sep" aria-hidden="true" />
-      <template v-for="def in afterShapes" :key="def.tool">
-        <span v-if="def.tool === 'text'" class="sep" aria-hidden="true" />
-        <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="def.label" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
-      </template>
-      <ImageFileInput ref="imageInput" />
-      <WebEmbedDialog />
+      <button v-show="overflowEnd" type="button" class="overflow-btn end" data-testid="toolbar-scroll-end" tabindex="-1" aria-hidden="true" @pointerdown.stop.prevent @click="pageTools(1)"><AppIcon name="chevron-right" :size="18" /></button>
     </div>
     <ToolOptionsBar v-if="store.state.tool === 'path' || store.state.tool === 'eraser'" />
     <span class="sr-only" aria-live="polite">{{ announcement }}</span>
@@ -166,9 +180,15 @@ onBeforeUnmount(cancelLongPress);
 </template>
 
 <style scoped>
-.toolbar-wrap{position:absolute;top:var(--space-3);left:50%;z-index:10;display:flex;width:max-content;max-width:calc(100vw - 24px);align-items:center;flex-direction:column;gap:8px;transform:translateX(-50%)}
-.toolbar{display:flex;align-items:center;gap:4px;max-width:100%;min-height:var(--chrome-height);padding:0 6px;overflow-x:auto;overflow-y:hidden}
-.toolbar.editing{outline:2px dashed var(--accent);outline-offset:3px}
+.toolbar-wrap{grid-area:tools;justify-self:center;display:flex;min-width:0;max-width:100%;align-items:center;flex-direction:column;gap:8px;pointer-events:auto}
+/* The edge buttons take their own room beside the scroller, so they never cover a tool (#78). */
+.toolbar-frame{display:flex;align-items:stretch;max-width:100%;min-height:var(--chrome-height);overflow:hidden}
+.toolbar-frame.editing{outline:2px dashed var(--accent);outline-offset:3px}
+.toolbar{display:flex;flex:1 1 auto;align-items:center;gap:4px;min-width:0;padding:0 6px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.overflow-btn{display:grid;flex:none;place-items:center;width:32px;padding:0;border:0;background:transparent;color:var(--text-muted);cursor:pointer}
+.overflow-btn.start{border-right:1px solid var(--border-subtle)}
+.overflow-btn.end{border-left:1px solid var(--border-subtle)}
+.overflow-btn:hover{background:var(--surface-raised);color:var(--text-primary)}
 .sep{flex:none;width:1px;height:24px;margin:0 4px;background:var(--border-subtle)}
 .shape-strip{display:flex;align-items:center;gap:3px;min-height:44px}
 .tool{position:relative;width:var(--chrome-control);height:var(--chrome-control);border-radius:10px;color:var(--text-primary);flex:none}
@@ -176,13 +196,11 @@ onBeforeUnmount(cancelLongPress);
 .shape-tool svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .shape-tool[aria-pressed='true'] svg path:first-child{fill:currentColor;fill-opacity:.13}
 .shape-tool.dragging{opacity:.35}
-.more-shapes{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:9px;color:var(--text-primary);background:transparent;white-space:nowrap}
-.more-shapes:hover,.more-shapes[aria-expanded='true']{background:var(--surface-hover)}
-.more-shapes>span:first-child{font-weight:700;letter-spacing:2px}
+.more-shapes{display:grid;place-items:center;flex:none;width:var(--chrome-control);height:var(--chrome-control);padding:0;border:1px solid var(--border-subtle);border-radius:10px;color:var(--text-primary);background:transparent}
+.more-shapes:hover{background:var(--surface-raised)}
+.more-shapes[aria-expanded='true']{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media (min-width:1041px) and (max-width:1560px){.toolbar-wrap{left:330px;right:230px;width:auto;max-width:none;transform:none}.toolbar{width:100%}}
-@media (max-width:1040px){.toolbar-wrap{top:84px}}
-@media (max-width:860px){.more-label{display:none}.tool,.more-shapes{min-width:44px;min-height:44px}}
+@media (max-width:860px){.tool,.more-shapes{min-width:44px;min-height:44px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
-@media (forced-colors:active){.toolbar.editing{outline:2px dashed Highlight}.shape-tool[aria-pressed='true']{outline:2px solid Highlight}}
+@media (forced-colors:active){.toolbar-frame.editing{outline:2px dashed Highlight}.shape-tool[aria-pressed='true']{outline:2px solid Highlight}.overflow-btn{color:ButtonText}}
 </style>

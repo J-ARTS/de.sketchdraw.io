@@ -165,7 +165,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
 
 <style scoped>
 .annotation-body{width:100%;height:100%;box-sizing:border-box;padding:28px;overflow:hidden;background:transparent}
-.web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-ui)}
+.web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-sans)}
 .web-embed-header{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-raised);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden}.web-embed-header span:last-child{margin-left:auto;color:var(--text-muted);font-size:10px;font-weight:500}.web-embed-dot{width:8px;height:8px;border-radius:50%;background:var(--status-ok);flex:none}
 .web-embed iframe{display:block;width:100%;height:100%;border:0;background:#fff}.web-embed-hint{padding:5px 10px;border-top:1px solid var(--border-subtle);background:var(--surface-panel);color:var(--text-muted);font-size:9px;line-height:1.35}
 .web-embed-placeholder{display:grid;place-items:center;padding:12px;color:var(--text-muted);font-size:14px;text-align:center}

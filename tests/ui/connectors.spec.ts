@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-async function rectangle(page: Page, x: number) {
+async function rectangle(page: Page, x: number, y = 300) {
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
-  await page.mouse.move(x, 300); await page.mouse.down(); await page.mouse.move(x + 150, 400, { steps: 6 }); await page.mouse.up();
+  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 150, y + 100, { steps: 6 }); await page.mouse.up();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -12,12 +12,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('a connector binds two elements and exposes the FigJam-style controls', async ({ page }) => {
-  await rectangle(page, 220); await rectangle(page, 700);
+  await rectangle(page, 220); await rectangle(page, 700, 460);
   const shapes = page.locator('.whiteboard-canvas [data-kind=rectangle]');
   await expect(shapes).toHaveCount(2);
 
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
-  await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 350, { steps: 8 });
+  await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 });
   await expect(page.getByTestId('connector-source-highlight')).toBeVisible();
   await expect(page.getByTestId('connector-target-highlight')).toBeVisible();
   await page.mouse.up();
@@ -44,6 +44,17 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await bar.getByRole('button', { name: /^Linienform:/ }).click();
   await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Rechtwinklig' }).click();
   await expect(bar.getByRole('button', { name: 'Linienform: Rechtwinklig' })).toBeVisible();
+  const routeHandles = page.locator('[data-testid^="connector-handle-"]');
+  await expect(routeHandles).toHaveCount(4);
+  const bend = page.getByTestId('connector-handle-1');
+  const bendBox = (await bend.boundingBox())!;
+  const beforeRoute = await path.getAttribute('d');
+  await page.mouse.move(bendBox.x + bendBox.width / 2, bendBox.y + bendBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bendBox.x + bendBox.width / 2 + 36, bendBox.y + bendBox.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => path.getAttribute('d')).not.toBe(beforeRoute);
+  await expect(routeHandles).toHaveCount(4);
 
   await bar.getByRole('button', { name: /^Startpunkt:/ }).click();
   await page.getByRole('group', { name: 'Startpunkt' }).getByRole('button', { name: 'Kreis' }).click();
