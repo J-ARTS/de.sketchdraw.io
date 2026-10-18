@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T06:53:33Z",
+  "updatedAt": "2026-10-18T07:09:17Z",
   "issues": [
     {
       "number": 1,
@@ -1168,6 +1168,21 @@
         71
       ],
       "currentImplementer": "OpenAI Codex (temporary user-authorized takeover; implementation and local verification)"
+    },
+    {
+      "number": 73,
+      "title": "Build- und Composable-Evaluierung: Vite, Sucrase und VueUse",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/73",
+      "owner": "OpenAI Codex (architecture/testing), Google Antigravity (build/devops), Claude Code (future Vue UI adoption)",
+      "currentImplementer": "OpenAI Codex (temporary user-authorized takeover; architecture research and verification)",
+      "phase": "Build and composable architecture decision verified",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -4878,6 +4893,42 @@
       ],
       "authorization": "The user asked Codex to finish the current implementation and previously authorized Codex to temporarily take over implementation while preserving the nominal agent responsibilities.",
       "measurementSource": "Verified on macOS in the repository checkout at git commit 4b8fd6c2859d8166d3bc7c629626e1c5f51a5abb: npm run typecheck; npm run test:unit (47 files, 375 tests); npm run test:ui sequential rerun (61 tests); npm run test:electron (6 tests); node --test tests/unit/*.test.mjs (59 tests); npm run build; npm audit --omit=dev (0 known vulnerabilities). Exact elapsed work time, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-build-composable-evaluation-73",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        73
+      ],
+      "status": "architecture_decision_locally_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/decisions/0005-vite-sucrase-vueuse.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/73",
+        "https://vite.dev/blog/announcing-vite8",
+        "https://vite.dev/guide/features.html#typescript",
+        "https://github.com/alangpierce/sucrase",
+        "https://github.com/alangpierce/sucrase/blob/main/docs/PROJECT_VISION.md",
+        "https://vueuse.org/guide/",
+        "https://vueuse.org/guide/best-practice",
+        "https://vueuse.org/core/useeventlistener/",
+        "https://vueuse.org/core/useresizeobserver/",
+        "https://vueuse.org/core/usestorage/"
+      ],
+      "concerns": [
+        "Sucrase would duplicate Vite 8's Oxc/Rolldown renderer transforms and cannot replace vue-tsc or the bundling performed by esbuild.",
+        "The published Sucrase speed comparison is from July 2022 and does not measure Vite 8, Oxc, Rolldown or Vue single-file components.",
+        "A broad VueUse migration would create review churn without fixing a confirmed lifecycle defect; adoption is limited to concrete renderer changes.",
+        "VueUse useStorage does not by itself preserve Sketchdraw's versioned allowlist validation and testable StorageLike boundary.",
+        "The source-code Graphify refresh was guarded because the rebuilt graph had 3,839 nodes versus 3,996 in the preserved graph; the existing graph is preserved and only deterministic ticket/run/artifact traceability is refreshed."
+      ],
+      "authorization": "The user explicitly asked Codex to evaluate whether Sketchdraw should use Sucrase, Vite and VueUse.",
+      "measurementSource": "Local macOS arm64 measurements at git 46c43d7 on Node.js 22.16.0 and npm 10.9.2: five isolated-process runs each produced medians of 1.147 s for the renderer build, 0.169 s for the Electron build and 0.181 s for the MCP build; three typecheck runs produced a median of 8.266 s. A temporary external bundle of @vueuse/core@15.0.0 with useEventListener, useResizeObserver and useStorage measured 6,410 bytes minified and 2,880 bytes gzip. Exact work duration, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
