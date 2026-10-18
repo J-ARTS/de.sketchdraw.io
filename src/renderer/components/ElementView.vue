@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
@@ -66,6 +66,15 @@ const embedHost = computed(() => {
   try { return new URL(e.value.embedUrl ?? '').hostname; }
   catch { return 'Webseite'; }
 });
+const embedState = ref<'loading' | 'loaded' | 'failed'>('loading');
+const embedMatchesAppOrigin = computed(() => {
+  if (!e.value.embedUrl || typeof window === 'undefined') return false;
+  try { return new URL(e.value.embedUrl).origin === window.location.origin; }
+  catch { return false; }
+});
+watch(() => e.value.embedUrl, () => { embedState.value = 'loading'; });
+function markEmbedLoaded(): void { embedState.value = 'loaded'; }
+function markEmbedFailed(): void { embedState.value = 'failed'; }
 const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
 </script>
 
@@ -149,17 +158,27 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     <foreignObject v-else-if="e.kind === 'web-embed'" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" :pointer-events="interactive ? 'all' : 'none'">
       <div class="web-embed" data-testid="web-embed-frame">
         <div class="web-embed-header" aria-hidden="true"><span class="web-embed-dot" />{{ embedHost }}<span>Live-Vorschau</span></div>
-        <iframe
-          v-if="e.embedUrl && !staticPreview"
-          :src="e.embedUrl"
-          :title="`Eingebettete Webseite ${embedHost}`"
-          sandbox="allow-forms allow-scripts"
-          referrerpolicy="no-referrer"
-          loading="lazy"
-          :tabindex="interactive ? 0 : -1"
-        />
-        <div v-if="staticPreview" class="web-embed-placeholder">{{ e.label || embedHost }}</div>
-        <div v-else class="web-embed-hint">Wenn die Vorschau leer bleibt, verbietet die Webseite das Einbetten. Über das Link-Symbol kannst du sie extern öffnen.</div>
+        <div class="web-embed-content">
+          <iframe
+            v-if="e.embedUrl && !staticPreview && !embedMatchesAppOrigin"
+            :src="e.embedUrl"
+            :title="`Eingebettete Webseite ${embedHost}`"
+            sandbox="allow-forms allow-same-origin allow-scripts"
+            referrerpolicy="no-referrer"
+            loading="eager"
+            :tabindex="interactive ? 0 : -1"
+            @load="markEmbedLoaded"
+            @error="markEmbedFailed"
+          />
+          <div v-if="staticPreview" class="web-embed-placeholder">{{ e.label || embedHost }}</div>
+          <div v-else-if="embedMatchesAppOrigin" class="web-embed-placeholder">Die Sketchdraw-App selbst kann hier nicht sicher eingebettet werden.</div>
+          <div v-else-if="embedState === 'loading'" class="web-embed-loading" role="status">Webseite wird geladen …</div>
+          <div v-else-if="embedState === 'failed'" class="web-embed-placeholder">Die Webseite konnte nicht geladen werden.</div>
+        </div>
+        <div v-if="!staticPreview" class="web-embed-fallback">
+          <span>Keine Vorschau? Die Webseite kann das Einbetten blockieren.</span>
+          <button type="button" :tabindex="interactive ? 0 : -1" @pointerdown.stop @click.stop="emit('openLink', e.embedUrl!)">Extern öffnen ↗</button>
+        </div>
       </div>
     </foreignObject>
     <text v-else-if="displayText && !editing && !resourceCard && !['annotation', 'table', 'web-embed', 'frame'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
@@ -173,6 +192,6 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
 .annotation-body{width:100%;height:100%;box-sizing:border-box;padding:28px;overflow:hidden;background:transparent}
 .web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-sans)}
 .web-embed-header{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-raised);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden}.web-embed-header span:last-child{margin-left:auto;color:var(--text-muted);font-size:10px;font-weight:500}.web-embed-dot{width:8px;height:8px;border-radius:50%;background:var(--status-ok);flex:none}
-.web-embed iframe{display:block;width:100%;height:100%;border:0;background:#fff}.web-embed-hint{padding:5px 10px;border-top:1px solid var(--border-subtle);background:var(--surface-panel);color:var(--text-muted);font-size:9px;line-height:1.35}
+.web-embed-content{position:relative;min-height:0;background:#fff}.web-embed iframe{display:block;width:100%;height:100%;border:0;background:#fff}.web-embed-loading{position:absolute;inset:0;display:grid;place-items:center;padding:12px;background:var(--surface-panel);color:var(--text-muted);font-size:13px;text-align:center;pointer-events:none}.web-embed-fallback{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 10px;border-top:1px solid var(--border-subtle);background:var(--surface-panel);color:var(--text-muted);font-size:10px;line-height:1.35}.web-embed-fallback button{flex:none;border:0;border-radius:7px;padding:5px 8px;background:var(--accent-soft);color:var(--accent);font:inherit;font-weight:700;cursor:pointer}.web-embed-fallback button:hover{background:var(--accent);color:var(--accent-contrast)}
 .web-embed-placeholder{display:grid;place-items:center;padding:12px;color:var(--text-muted);font-size:14px;text-align:center}
 </style>

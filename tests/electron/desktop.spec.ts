@@ -20,6 +20,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
     let app: ElectronApplication | undefined;
     let failure: unknown;
     try {
+      const embedUrl = 'https://example.invalid/embed';
       // Relocate exact built product files because Main resolves assets relative to __dirname.
       // The launcher only isolates app data; no renderer fixture or product logic is substituted.
       for (const dir of ['dist', 'dist-electron', 'dist-mcp']) await cp(path.join(projectRoot, dir), path.join(root, dir), { recursive: true });
@@ -73,6 +74,20 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument']);
         expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
+      });
+
+      await test.step('real Electron keeps a visible fallback for an unavailable sandboxed web embed', async () => {
+        await page.getByRole('button', { name: 'Web-Embed', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: 'Webseite einbetten' });
+        await dialog.getByTestId('web-embed-url').fill(embedUrl);
+        await dialog.getByRole('button', { name: 'Einbetten', exact: true }).click();
+        const embed = page.locator('.whiteboard-canvas [data-kind="web-embed"]').first();
+        const iframe = embed.locator('iframe');
+        await expect(iframe).toHaveAttribute('src', embedUrl);
+        await expect(iframe).toHaveAttribute('sandbox', 'allow-forms allow-same-origin allow-scripts');
+        await expect(embed.getByRole('button', { name: 'Extern öffnen' })).toBeVisible();
+        await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+        await expect(page.locator('.whiteboard-canvas [data-kind="web-embed"]')).toHaveCount(0);
       });
 
       await test.step('real Save menu reaches persistence and controlled native Cancel keeps a dirty drawing', async () => {
