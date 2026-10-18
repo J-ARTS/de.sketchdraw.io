@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:42:50.203837Z",
+  "updatedAt": "2026-10-18T09:49:49.311185Z",
   "issues": [
     {
       "number": 1,
@@ -1507,7 +1507,7 @@
       "owner": "Claude Code (UI), Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI, logic and interfaces",
-      "status": "integrated_local_verification_complete",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5585,7 +5585,7 @@
       "issues": [
         96
       ],
-      "status": "integrated_local_verification_complete",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -5603,13 +5603,43 @@
         "tests/unit/domain/connectors.spec.ts",
         "tests/unit/interop/connectors.spec.ts",
         "tests/ui/connectors.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/96"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/96",
+        "git:cb79b84c960fc380350fd14d860f892cb57717fc",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470"
       ],
       "concerns": [
         "diagrams.net has no distinct reversed-triangle end marker; unembedded draw.io export uses block as the documented closest projection, while embedded Sketchdraw metadata preserves the exact marker."
       ],
       "authorization": "The user supplied the endpoint-palette reference and had already authorized Codex to temporarily implement work assigned to Claude Code or Antigravity when necessary, with actual tool attribution.",
-      "measurementSource": "Local macOS arm64 evidence at integrated product commit dd1c37d: typecheck passed; 48/48 Vitest files and 382/382 tests passed; connector Playwright UI tests passed 2/2 on an isolated Vite port; production build passed. The twelve-option palette and a zero-or-many marker were visually inspected in the running Electron app. Exact duration, token usage and cost were not measured and remain null. CI was pending when this snapshot was written."
+      "measurementSource": "Local macOS arm64 evidence at product commit dd1c37d: typecheck passed; 48/48 Vitest files and 382/382 tests passed; connector Playwright UI tests passed 2/2 on an isolated Vite port; production build passed. The twelve-option palette and a zero-or-many marker were visually inspected in the running Electron app. Integrated state cb79b84 then passed GitHub Actions run 39116445470: Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-connector-marker-palette-39116445470",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        96
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T09:43:13Z",
+      "endedAt": "2026-10-18T09:49:28Z",
+      "observedSeconds": 375,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:cb79b84c960fc380350fd14d860f892cb57717fc",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470/job/117643183583",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470/job/117643183777",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470/job/117643213106",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470/job/117643213175",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39116445470/job/117643213182"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by pushes to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 375 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, Ubuntu 24.04 and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
