@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T16:19:49.544255+00:00",
+  "updatedAt": "2026-10-18T16:43:28.509285+00:00",
   "issues": [
     {
       "number": 1,
@@ -1741,6 +1741,21 @@
         96,
         107
       ]
+    },
+    {
+      "number": 112,
+      "title": "Bilddateiname wird sichtbar über eingefügtem Bild gerendert",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/112",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -6954,6 +6969,82 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
       "measurementSource": "GitHub Actions timestamps report 101 seconds from creation to final cancellation. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-hide-image-filename-112",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        112
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:77730433d0936565210896a43e40667317276fcf",
+        "src/renderer/components/ElementView.vue",
+        "tests/ui/whiteboard.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/112",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085"
+      ],
+      "concerns": [
+        "The first targeted browser test used a selector one SVG nesting level too shallow and failed before evaluating the product assertion. The selector was corrected while the product code remained unchanged; the repeated test passed.",
+        "Graphify source refresh was guarded: the new extraction had 4,588 nodes versus 4,631 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested that inserted images no longer display their filename on the canvas. Codex remains authorized to implement temporarily while recording the regular Claude Code ownership separately.",
+      "measurementSource": "Local macOS evidence at product commit 7773043: typecheck and the targeted real PNG browser insertion test passed on isolated Vite port 5174. GitHub Actions run 39145541085 verified the exact commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-image-filename-39145541085",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        112
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T16:33:27Z",
+      "endedAt": "2026-10-18T16:42:56Z",
+      "observedSeconds": 569,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:77730433d0936565210896a43e40667317276fcf",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085/job/117728499540",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085/job/117728499639",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085/job/117728529850",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085/job/117728529884",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541085/job/117728529885"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized integration of the Issue 112 fix into main.",
+      "measurementSource": "GitHub Actions timestamps report 569 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-image-filename-duplicate-39145541062",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        112
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T16:33:27Z",
+      "endedAt": "2026-10-18T16:35:17Z",
+      "observedSeconds": 110,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:77730433d0936565210896a43e40667317276fcf",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39145541062"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
+      "measurementSource": "GitHub Actions timestamps report 110 seconds from creation to final cancellation. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {
