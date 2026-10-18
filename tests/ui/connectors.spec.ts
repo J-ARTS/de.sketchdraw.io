@@ -15,11 +15,18 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   await rectangle(page, 220); await rectangle(page, 700, 460); await rectangle(page, 1000, 300);
   const shapes = page.locator('.whiteboard-canvas [data-kind=rectangle]');
   await expect(shapes).toHaveCount(3);
+  const sourceId = await shapes.nth(0).getAttribute('data-element-id');
+  const targetId = await shapes.nth(1).getAttribute('data-element-id');
 
   await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
-  await page.mouse.move(300, 350); await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 });
+  await page.mouse.move(300, 350);
+  await expect(page.getByTestId('whiteboard-canvas')).toHaveAttribute('data-connector-dock-target', sourceId!);
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
+  await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 });
   await expect(page.getByTestId('connector-source-highlight')).toBeVisible();
   await expect(page.getByTestId('connector-target-highlight')).toBeVisible();
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${sourceId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
+  await expect(page.locator(`[data-testid="connector-dock-points"][data-element-id="${targetId}"] [data-testid="connector-dock-point"]`)).toHaveCount(4);
   await page.mouse.up();
 
   const connector = page.locator('.whiteboard-canvas [data-kind=connector]');
@@ -51,6 +58,10 @@ test('a connector binds two elements and exposes the FigJam-style controls', asy
   const middleSegment = page.getByTestId('connector-segment-handle-1');
   await expect(middleSegment).toHaveAttribute('data-orientation', 'vertical');
   const bendBox = (await middleSegment.boundingBox())!;
+  await page.mouse.click(600, 700);
+  await expect(segmentHandles).toHaveCount(0);
+  await page.mouse.move(bendBox.x + bendBox.width / 2 + 1, bendBox.y + bendBox.height / 2);
+  await expect(segmentHandles).toHaveCount(3);
   await page.mouse.move(bendBox.x + bendBox.width / 2, bendBox.y + bendBox.height / 2);
   await expect(middleSegment).toHaveAttribute('data-hovered', 'true');
   await expect(page.getByTestId('whiteboard-canvas')).toHaveCSS('cursor', 'ew-resize');

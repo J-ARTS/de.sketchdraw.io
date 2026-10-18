@@ -64,6 +64,8 @@ describe('Whiteboard uses the real session gateway', () => {
     const before = store.state.revision;
 
     store.setTool('connector');
+    store.pointerMove(point(250, 240));
+    expect(store.state.connectorHoverTargetId).toBe(store.state.document.elements[0]!.id);
     store.pointerDown(point(350, 400));
     expect(store.state.revision).toBe(before);
     expect(store.state.notices.at(-1)?.text).toContain('Beginne den Pfeil');

@@ -88,6 +88,8 @@ export interface SelectionFrame {
 /** Handle positions are in SCREEN pixels so size and hit zone (>= 24 px) are independent of zoom. */
 export interface HandleView {
   id: HandleId;
+  /** Connector owning this handle; enables direct editing from hover previews. */
+  elementId?: string;
   x: number;
   y: number;
   kind?: 'selection' | 'connector-endpoint' | 'connector-control' | 'connector-segment';
@@ -223,6 +225,9 @@ export interface WhiteboardState {
   frame: SelectionFrame | null;
   handles: readonly HandleView[];
   hoveredHandleId: HandleId | null;
+  hoveredConnectorId: string | null;
+  /** Valid non-connector element currently offered as a connector docking target. */
+  connectorHoverTargetId: string | null;
   snapTarget: SnapTarget | null;
   /** Bound source and current valid target while a connector is being drawn. */
   connectorTargets: { fromId: string; toId: string | null } | null;

@@ -13,6 +13,7 @@ import type {
   SketchTask,
 } from './types';
 import { areAnnotationDocumentsEqual, cloneAnnotationDocument } from './annotation';
+import { connectorRoutePoints } from './connectors';
 import { areTableDocumentsEqual, cloneTableDocument } from './table';
 
 export function normalizeZero(value: number): number {
@@ -133,13 +134,18 @@ export function syncConnectorEndpoints(
     }
   }
 
-  if (!updatedPoints) {
-    return connector;
-  }
+  const currentPoints = updatedPoints ?? connector.points;
+  const normalizedPoints = connector.connectorRouting === 'elbowed'
+    ? connectorRoutePoints({ ...connector, points: currentPoints })
+    : currentPoints;
+  const routeChanged = normalizedPoints.length !== currentPoints.length
+    || normalizedPoints.some((point, index) => point.x !== currentPoints[index]?.x || point.y !== currentPoints[index]?.y);
+
+  if (!updatedPoints && !routeChanged) return connector;
 
   return {
     ...connector,
-    points: updatedPoints,
+    points: normalizedPoints,
   };
 }
 

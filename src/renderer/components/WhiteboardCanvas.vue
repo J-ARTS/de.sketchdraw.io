@@ -26,6 +26,22 @@ const pencilCursorVisible = computed(() => s.tool === 'path' && s.canWrite && !s
 const eraserCursorVisible = computed(() => s.tool === 'eraser' && s.canWrite && !s.transitioning && toolPointer.value !== null);
 const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
 const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
+const connectorDockElements = computed(() => {
+  const ids = new Set<string>();
+  if (s.connectorHoverTargetId) ids.add(s.connectorHoverTargetId);
+  if (s.connectorTargets?.fromId) ids.add(s.connectorTargets.fromId);
+  if (s.connectorTargets?.toId) ids.add(s.connectorTargets.toId);
+  return [...ids].flatMap((id) => {
+    const element = s.displayElements.find((entry) => entry.id === id);
+    return element && element.kind !== 'connector' ? [element] : [];
+  });
+});
+const connectorDockSides = [
+  { side: 'top', x: .5, y: 0 },
+  { side: 'right', x: 1, y: .5 },
+  { side: 'bottom', x: .5, y: 1 },
+  { side: 'left', x: 0, y: .5 },
+] as const;
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
 const editStyle = computed(() => {
   const edit = s.textEdit;
@@ -127,7 +143,7 @@ onMounted(() => canvas.value?.focus());
 
 <template>
   <div class="canvas-wrap">
-    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
+    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" :data-connector-dock-target="s.connectorHoverTargetId ?? undefined" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">
@@ -135,14 +151,17 @@ onMounted(() => canvas.value?.focus());
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />
         <rect v-if="connectorFrom" data-testid="connector-source-highlight" :x="connectorFrom.x - 5 / s.viewport.zoom" :y="connectorFrom.y - 5 / s.viewport.zoom" :width="connectorFrom.width + 10 / s.viewport.zoom" :height="connectorFrom.height + 10 / s.viewport.zoom" :transform="`rotate(${connectorFrom.rotation} ${connectorFrom.x + connectorFrom.width / 2} ${connectorFrom.y + connectorFrom.height / 2})`" fill="none" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" stroke-dasharray="5 4" />
         <rect v-if="connectorTo" data-testid="connector-target-highlight" :x="connectorTo.x - 6 / s.viewport.zoom" :y="connectorTo.y - 6 / s.viewport.zoom" :width="connectorTo.width + 12 / s.viewport.zoom" :height="connectorTo.height + 12 / s.viewport.zoom" :transform="`rotate(${connectorTo.rotation} ${connectorTo.x + connectorTo.width / 2} ${connectorTo.y + connectorTo.height / 2})`" fill="none" stroke="var(--status-ok)" :stroke-width="3 / s.viewport.zoom" />
+        <g v-for="element in connectorDockElements" :key="`connector-docks:${element.id}`" data-testid="connector-dock-points" :data-element-id="element.id" :transform="`rotate(${element.rotation} ${element.x + element.width / 2} ${element.y + element.height / 2})`">
+          <circle v-for="dock in connectorDockSides" :key="dock.side" data-testid="connector-dock-point" :data-side="dock.side" :data-target="s.connectorTargets?.toId === element.id ? 'true' : undefined" :cx="element.x + element.width * dock.x" :cy="element.y + element.height * dock.y" :r="6 / s.viewport.zoom" fill="var(--surface-panel)" stroke="#0d99ff" :stroke-width="2 / s.viewport.zoom" />
+        </g>
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
         <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
         <template v-for="handle in s.handles" :key="handle.id">
-          <circle v-if="handle.kind === 'connector-endpoint'" :data-handle="handle.id" :data-testid="`connector-endpoint-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 8 : 7" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="3" />
-          <circle v-else-if="handle.kind === 'connector-control'" :data-handle="handle.id" :data-testid="`connector-control-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 7 : 6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2" />
-          <rect v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-segment-handle-${handle.id.split(':')[1]}`" :data-orientation="handle.orientation" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :x="handle.x - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 22 : 19) : (s.hoveredHandleId === handle.id ? 6 : 5))" :y="handle.y - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 6 : 5) : (s.hoveredHandleId === handle.id ? 22 : 19))" :width="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 44 : 38) : (s.hoveredHandleId === handle.id ? 12 : 10)" :height="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 12 : 10) : (s.hoveredHandleId === handle.id ? 44 : 38)" rx="6" fill="var(--accent)" />
+          <circle v-if="handle.kind === 'connector-endpoint'" :data-handle="handle.id" :data-testid="`connector-endpoint-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 8 : 7" fill="var(--surface-panel)" stroke="#0d99ff" stroke-width="3" />
+          <circle v-else-if="handle.kind === 'connector-control'" :data-handle="handle.id" :data-testid="`connector-control-handle-${handle.id.split(':')[1]}`" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :cx="handle.x" :cy="handle.y" :r="s.hoveredHandleId === handle.id ? 7 : 6" fill="#dbeeff" stroke="#0d99ff" stroke-width="2" />
+          <rect v-else-if="handle.kind === 'connector-segment'" :data-handle="handle.id" :data-testid="`connector-segment-handle-${handle.id.split(':')[1]}`" :data-orientation="handle.orientation" :data-hovered="s.hoveredHandleId === handle.id ? 'true' : undefined" :x="handle.x - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 22 : 19) : (s.hoveredHandleId === handle.id ? 6 : 5))" :y="handle.y - (handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 6 : 5) : (s.hoveredHandleId === handle.id ? 22 : 19))" :width="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 44 : 38) : (s.hoveredHandleId === handle.id ? 12 : 10)" :height="handle.orientation === 'horizontal' ? (s.hoveredHandleId === handle.id ? 12 : 10) : (s.hoveredHandleId === handle.id ? 44 : 38)" rx="6" fill="#0d99ff" />
           <rect v-else :data-handle="handle.id" :x="handle.x - 5" :y="handle.y - 5" width="10" height="10" :rx="handle.id === 'rotate' ? 5 : 2" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="1.5" />
         </template>
       </g>

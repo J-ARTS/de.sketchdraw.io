@@ -1,4 +1,4 @@
-import { effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
+import { connectorRoutePoints, effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
 import type { Rect } from '@/renderer/state/contract';
 
 export function rotatePoint(point: Point, center: Point, degrees: number): Point {
@@ -69,7 +69,8 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
   const x = p.x - element.x;
   const y = p.y - element.y;
   if (element.kind === 'path' || element.kind === 'connector') {
-    return (element.points ?? []).some((b, i, points) => i > 0 && segmentDistance({ x, y }, points[i - 1]!, b) <= tolerance + element.style.strokeWidth / 2);
+    const points = element.kind === 'connector' ? connectorRoutePoints(element) : (element.points ?? []);
+    return points.some((b, i) => i > 0 && segmentDistance({ x, y }, points[i - 1]!, b) <= tolerance + element.style.strokeWidth / 2);
   }
   // Frames are viewports around ordinary canvas elements. Only their outline is selectable so
   // a frame added later in z-order never blocks interaction with content inside it.

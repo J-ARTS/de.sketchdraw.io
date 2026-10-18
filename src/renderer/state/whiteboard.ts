@@ -155,7 +155,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pencilSize: PENCIL_SIZE_DEFAULT, pencilOpacity: PENCIL_OPACITY_DEFAULT, eraserRadius: ERASER_RADIUS_DEFAULT,
     viewport: { panX: 0, panY: 0, zoom: 1 }, viewportSize: { width: 1280, height: 800 },
     marquee: null as Rect | null, snapTarget: null,
-    hoveredHandleId: null as HandleId | null,
+    hoveredHandleId: null as HandleId | null, hoveredConnectorId: null as string | null,
+    connectorHoverTargetId: null as string | null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
@@ -201,28 +202,34 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     get handles(): WhiteboardState['handles'] {
       const frame = this.frame;
-      if (!frame?.single) return [];
-      const element = selected()[0];
+      const selectedElement = this.selection.length === 1
+        ? this.displayElements.find((element) => element.id === this.selection[0])
+        : undefined;
+      const hoveredConnector = this.tool === 'select' && this.hoveredConnectorId !== selectedElement?.id
+        ? this.displayElements.find((element) => element.id === this.hoveredConnectorId && element.kind === 'connector')
+        : undefined;
+      const element = selectedElement?.kind === 'connector' ? selectedElement : hoveredConnector;
       if (element?.kind === 'connector') {
         const route = connectorRoutePoints(element);
         const c = center(element);
         const screenPoint = (point: Point) => docToScreen(this.viewport, rotatePoint({ x: element.x + point.x, y: element.y + point.y }, c, element.rotation));
         const handles: HandleView[] = route.length >= 2 ? [
-          { id: 'connector-endpoint:start', ...screenPoint(route[0]!), kind: 'connector-endpoint' },
-          { id: 'connector-endpoint:end', ...screenPoint(route.at(-1)!), kind: 'connector-endpoint' },
+          { id: 'connector-endpoint:start', elementId: element.id, ...screenPoint(route[0]!), kind: 'connector-endpoint' },
+          { id: 'connector-endpoint:end', elementId: element.id, ...screenPoint(route.at(-1)!), kind: 'connector-endpoint' },
         ] : [];
         const routing = connectorRouting(element);
         if (routing === 'elbowed') {
           for (let index = 0; index < route.length - 1; index += 1) {
             const start = route[index]!; const end = route[index + 1]!;
             const orientation = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y) ? 'horizontal' : 'vertical';
-            handles.push({ id: `connector-segment:${index}`, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment', orientation });
+            handles.push({ id: `connector-segment:${index}`, elementId: element.id, ...screenPoint({ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }), kind: 'connector-segment', orientation });
           }
         } else if (routing === 'curved') {
-          route.slice(1, -1).forEach((point, index) => handles.push({ id: `connector-control:${index + 1}`, ...screenPoint(point), kind: 'connector-control' }));
+          route.slice(1, -1).forEach((point, index) => handles.push({ id: `connector-control:${index + 1}`, elementId: element.id, ...screenPoint(point), kind: 'connector-control' }));
         }
         return handles;
       }
+      if (!frame?.single) return [];
       const c = { x: frame.cx, y: frame.cy };
       const positions: Array<[HandleId, number, number]> = [['nw', -1, -1], ['ne', 1, -1], ['se', 1, 1], ['sw', -1, 1]];
       const handles = positions.map(([id, x, y]) => ({ id, ...docToScreen(this.viewport, rotatePoint({ x: c.x + x * frame.width / 2, y: c.y + y * frame.height / 2 }, c, frame.rotation)) }));
@@ -431,7 +438,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
-  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; changedDraft(); }
+  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; changedDraft(); }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(base.document.elements, ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
   }
@@ -619,7 +626,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
-    state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
+    state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
     state.presenterOpen = false; state.presenterIndex = 0; state.frameSidebarOpen = false;
     gesture = null; failedGesture = null; nudge = null; state.previewCommand = null; state.drawing = null;
     titleDraft = document.title; codeBase = document;
@@ -723,6 +730,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.textEdit) void applyText();
       state.tool = tool;
       state.hoveredHandleId = null;
+      state.hoveredConnectorId = null;
+      state.connectorHoverTargetId = null;
       state.workspaceView = 'canvas';
       if (tool === 'rectangle') state.shapeVariant = 'square';
       if (tool === 'ellipse') state.shapeVariant = 'circle';
@@ -816,6 +825,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       const handle = handleAt(input);
       state.hoveredHandleId = handle?.id ?? null;
+      state.hoveredConnectorId = handle?.elementId
+        ?? (target?.kind === 'connector' ? target.id : null);
+      if (handle?.elementId && !state.selection.includes(handle.elementId)) setSelection([handle.elementId]);
       let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : handle.id.startsWith('connector-') ? 'connector-point' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
       if (!state.canWrite && kind !== 'pan' && kind !== 'marquee') { if (target) setSelection([target.id], input.shiftKey); return; }
       if (input.button !== 0 && input.button !== 1) return;
@@ -848,19 +860,29 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
         ...(state.tool === 'connector' && target ? { connectorFromId: target.id } : {}) };
-      if (state.tool === 'connector' && target) state.connectorTargets = { fromId: target.id, toId: null };
+      if (state.tool === 'connector' && target) {
+        state.connectorTargets = { fromId: target.id, toId: null };
+        state.connectorHoverTargetId = null;
+      }
       changedDraft();
     },
     pointerMove(input) {
       lastPointerScreen = { x: input.x, y: input.y };
+      const point = screenToDoc(state.viewport, input);
       const g = gesture;
+      if (state.tool === 'connector') {
+        const dockingTarget = hit(point);
+        state.connectorHoverTargetId = dockingTarget?.kind !== 'connector' ? dockingTarget?.id ?? null : null;
+      } else if (!g) state.connectorHoverTargetId = null;
       if (!g) {
         const hovered = handleAt(input);
+        const hoveredElement = hit(point);
+        state.hoveredConnectorId = hovered?.elementId
+          ?? (hoveredElement?.kind === 'connector' ? hoveredElement.id : null);
         state.hoveredHandleId = hovered?.id ?? null;
         return;
       }
       if (state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
-      const point = screenToDoc(state.viewport, input);
       const dx = point.x - g.start.x; const dy = point.y - g.start.y;
       if (g.kind === 'pan') { store.panBy(input.x - g.screenStart.x, input.y - g.screenStart.y); g.screenStart = input; return; }
       if (g.kind === 'erase') {
@@ -910,7 +932,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
               from: nextFrom,
               to: nextTo,
             }, connectorRouting(element));
-            state.connectorTargets = candidate && opposite ? { fromId: opposite.elementId, toId: candidate.id } : null;
+            state.connectorTargets = opposite
+              ? { fromId: opposite.elementId, toId: candidate?.id ?? null }
+              : candidate ? { fromId: candidate.id, toId: null } : null;
           } else {
             route[index] = worldToElementLocalPoint(element, point);
           }
@@ -941,7 +965,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       g.last = point; changedDraft();
     },
-    pointerLeave() { if (!gesture) state.hoveredHandleId = null; },
+    pointerLeave() { if (!gesture) { state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; } },
     pointerUp(input) {
       const g = gesture;
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
@@ -959,7 +983,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (g.kind === 'draw' && g.element && g.element.width + g.element.height < 4) { resetGesture(); return; }
       void finishGesture(g);
     },
-    pointerCancel() { if (state.transitioning) return; state.hoveredHandleId = null; resetGesture(); },
+    pointerCancel() { if (state.transitioning) return; state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; resetGesture(); },
     doubleClick(input) {
       if (!state.canWrite || state.transitioning) return;
       const e = hit(screenToDoc(state.viewport, input));
