@@ -3157,7 +3157,7 @@
         52
       ],
       "status": "quota_limited_no_work_product",
-      "startedAt": null,
+      "startedAt": "2026-10-17T23:59:36Z",
       "endedAt": "2026-10-17T23:59:36Z",
       "observedSeconds": null,
       "tokens": null,
@@ -3170,7 +3170,7 @@
         "Local Antigravity UI reported exhausted baseline and Claude individual model quotas; no implementation or review was produced."
       ],
       "authorization": "The user explicitly requested Antigravity participation and authorized Codex temporary takeover with attribution when quotas block work.",
-      "measurementSource": "Direct observation in the locally open Antigravity UI."
+      "measurementSource": "Direct observation in the locally open Antigravity UI. Timestamp fields record the coordinator checkpoint; no elapsed duration is inferred."
     },
     {
       "id": "claude-code-shape-toolbar-review-052",
@@ -3181,7 +3181,7 @@
         52
       ],
       "status": "review_completed",
-      "startedAt": null,
+      "startedAt": "2026-10-17T23:59:36Z",
       "endedAt": "2026-10-17T23:59:36Z",
       "observedSeconds": null,
       "tokens": null,
@@ -3198,7 +3198,7 @@
         "Prevent toolbar gestures from reaching the canvas and keep touch targets usable."
       ],
       "authorization": "The user explicitly asked to use Claude Code for the UI work.",
-      "measurementSource": "Bounded read-only local Claude Code CLI UI/UX review; no files were changed by Claude Code."
+      "measurementSource": "Bounded read-only local Claude Code CLI UI/UX review; no files were changed by Claude Code. Timestamp fields record the coordinator checkpoint; no elapsed duration is inferred."
     },
     {
       "id": "codex-shape-variants-toolbar-039-040-052",
@@ -3210,7 +3210,7 @@
         52
       ],
       "status": "verified_locally",
-      "startedAt": null,
+      "startedAt": "2026-10-17T23:59:36Z",
       "endedAt": "2026-10-17T23:59:36Z",
       "observedSeconds": null,
       "tokens": null,
@@ -3229,7 +3229,7 @@
       ],
       "concerns": [],
       "authorization": "The user requested the feature and explicitly authorized Codex to temporarily implement work assigned to quota-limited agents with actual-tool attribution.",
-      "measurementSource": "Local validation: typecheck passed; 319 unit tests passed; 42 browser UI tests passed; 6 Electron tests passed; production build passed; Graphify rebuilt to 2752 nodes and 5674 edges."
+      "measurementSource": "Local validation: typecheck passed; 319 unit tests passed; 42 browser UI tests passed; 6 Electron tests passed; production build passed; Graphify rebuilt to 2752 nodes and 5674 edges. Timestamp fields record the coordinator checkpoint; no elapsed duration is inferred."
     }
   ],
   "evidencePolicy": {
