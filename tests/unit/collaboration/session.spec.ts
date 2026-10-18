@@ -11,8 +11,10 @@ import { RtcDouble } from './rtc-double';
 const closes: Array<() => Promise<void>> = [];
 beforeEach(() => { RtcDouble.reset(); vi.stubGlobal('RTCPeerConnection', RtcDouble); });
 afterEach(async () => { for (const close of closes.splice(0)) await close().catch(() => undefined); RtcDouble.reset(); vi.useRealTimers(); vi.unstubAllGlobals(); });
-async function until(check: () => boolean) { await vi.waitFor(() => expect(check()).toBe(true), { timeout: 3000, interval: 5 }); }
-async function setup(role: 'editor' | 'viewer' = 'editor', document = createDocument('Original')) {
+async function until(check: () => boolean, timeout = 3000) {
+  await vi.waitFor(() => expect(check()).toBe(true), { timeout, interval: 5 });
+}
+async function setup(role: 'editor' | 'viewer' = 'editor', document = createDocument('Original'), readyTimeout = 3000) {
   const controller = createController(document, 7);
   const authority = createDocumentAuthority({ controller });
   const human = authority.bindActor({ actorId: 'owner', source: 'human', grantId: 'ui', grantGeneration: 0, guard: () => ({ allowed: true }) });
@@ -29,7 +31,7 @@ async function setup(role: 'editor' | 'viewer' = 'editor', document = createDocu
   expect(review.comparisonCode).toMatch(/^(?:[a-f0-9]{4}-){7}[a-f0-9]{4}$/);
   const [guest] = await Promise.all([pairing.confirmOwner(review.comparisonCode), owner.confirmPeer(offer.invitationId, review.comparisonCode)]);
   closes.push(() => guest.leave());
-  await until(() => guest.getStatus().state === 'ready' && owner.getStatus().peers[0]?.state === 'ready');
+  await until(() => guest.getStatus().state === 'ready' && owner.getStatus().peers[0]?.state === 'ready', readyTimeout);
   return { authority, human, controller, owner, guest, guestIdentity, ownerIdentity };
 }
 async function write(guest: GuestSession, title: string) {
@@ -357,7 +359,10 @@ describe('P2P production protocol with paired unit-test RTC transport', () => {
     document.metadata.last = 'x'.repeat(target - before - 16);
     const size = utf8.encode(serializeDocument(document)).length;
     expect(size).toBeGreaterThan(31.9 * 1024 * 1024); expect(size).toBeLessThanOrEqual(32 * 1024 * 1024);
-    const { guest, authority } = await setup('editor', document);
+    // More than 2,000 bounded chunks intentionally cross the asynchronous
+    // transport. Keep the ordinary handshake deadline strict while allowing
+    // this near-limit payload enough time on slower macOS CI runners.
+    const { guest, authority } = await setup('editor', document, 10_000);
     expect(guest.source.getSnapshot().document.metadata.last).toBe(document.metadata.last);
     expect(serializeDocument(guest.source.getSnapshot().document)).toBe(serializeDocument(authority.source.getSnapshot().document));
     const chunks = RtcDouble.sent.filter(frame => frame.data instanceof ArrayBuffer);
