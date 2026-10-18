@@ -58,9 +58,30 @@ test('cloud icons drag to square provider cards at the pointer for every officia
     expect(Math.abs((box?.y ?? 0) + (box?.height ?? 0) / 2 - item.y)).toBeLessThan(3);
     await expect(card.getByTestId('cloud-component-surface')).toBeVisible();
     await expect(card.getByTestId('cloud-component-content')).toContainText(item.provider === 'gcp' ? 'GCP' : item.provider.toUpperCase());
+    const title = card.getByTestId('cloud-component-title');
+    const provider = card.getByTestId('cloud-component-provider');
+    const titleY = Number(await title.getAttribute('y'));
+    const titleLines = await title.locator('tspan').count();
+    const providerY = Number(await provider.getAttribute('y'));
+    expect(providerY - (titleY + (titleLines - 1) * 18)).toBe(24);
+    expect(providerY).toBeLessThan((box?.height ?? 0) - 10);
   }
 
   expect((await new AxeBuilder({ page }).include('.whiteboard-canvas').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('multi-line cloud card titles keep a compact gap before the provider label', async ({ page }) => {
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  await sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('Azure Machine Learning');
+  await sidebar.getByRole('button', { name: /^Azure Machine Learning AZURE$/ }).click();
+  await sidebar.getByRole('button', { name: 'Formen schließen' }).click();
+
+  const card = page.locator('[data-cloud-provider="azure"]');
+  const title = card.getByTestId('cloud-component-title');
+  await expect(title.locator('tspan')).toHaveText(['Azure Machine', 'Learning']);
+  const titleY = Number(await title.getAttribute('y'));
+  const providerY = Number(await card.getByTestId('cloud-component-provider').getAttribute('y'));
+  expect(providerY - (titleY + 18)).toBe(24);
 });
 
 test('global search finds official icons and inserting embeds only their category set', async ({ page }) => {

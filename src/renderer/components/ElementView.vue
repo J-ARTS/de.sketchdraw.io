@@ -66,7 +66,13 @@ function wrapCloudTitle(value: string): string[] {
   return lines.slice(0, 2).map((line) => line.length > max ? `${line.slice(0, Math.max(1, max - 1))}…` : line);
 }
 const cloudTitleLines = computed(() => wrapCloudTitle(text.value || definition.value?.name || 'Komponente'));
+const CLOUD_TITLE_LINE_HEIGHT = 18;
+const CLOUD_PROVIDER_GAP = 24;
 const cloudTitleY = computed(() => cloudTitleLines.value.length > 1 ? Math.max(94, 24 + cloudIconSize.value) : Math.max(104, 30 + cloudIconSize.value));
+const cloudProviderY = computed(() => Math.min(
+  e.value.height - 12,
+  cloudTitleY.value + (cloudTitleLines.value.length - 1) * CLOUD_TITLE_LINE_HEIGHT + CLOUD_PROVIDER_GAP,
+));
 const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? 'Schreib etwas, @erwähne jemanden' : text.value);
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
@@ -155,10 +161,10 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
-      <text :x="e.width / 2" :y="cloudTitleY" fill="var(--text-primary)" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
-        <tspan v-for="(line, index) in cloudTitleLines" :key="`${index}:${line}`" :x="e.width / 2" :dy="index === 0 ? 0 : 18">{{ line }}</tspan>
+      <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" fill="var(--text-primary)" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
+        <tspan v-for="(line, index) in cloudTitleLines" :key="`${index}:${line}`" :x="e.width / 2" :dy="index === 0 ? 0 : CLOUD_TITLE_LINE_HEIGHT">{{ line }}</tspan>
       </text>
-      <text :x="e.width / 2" :y="e.height - 16" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
+      <text data-testid="cloud-component-provider" :x="e.width / 2" :y="cloudProviderY" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
     </g>
     <g v-if="resourceCard && !editing" data-testid="resource-card-content" pointer-events="none">
       <text :x="cardTextX" :y="cardBodyHeight / 2 - Math.max(5, e.style.fontSize * .25)" :fill="stroke" :font-size="Math.max(14, e.style.fontSize)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
