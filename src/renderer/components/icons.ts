@@ -40,7 +40,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   frame: ['M4 4h6', 'M4 4v6', 'M20 4h-6', 'M20 4v6', 'M4 20h6', 'M4 20v-6', 'M20 20h-6', 'M20 20v-6'],
   'web-embed': ['M3 5h18v14H3z', 'M3 9h18', 'M7 7h.01', 'M10 7h.01', 'M8 14h8', 'M12 11l3 3-3 3'],
   comment: ['M4 5h16v12H9l-5 4z', 'M8 9h8', 'M8 13h5'],
-  laser: ['M7.5 16.5l7-7 3 3-7 7z', 'M14.5 9.5l2-2 3 3-2 2', 'M5 5v2', 'M2.5 7.5h2', 'M4 10l-1.5 1.5'],
+  // Handheld laser pointer: pointer body emitting a straight beam onto a target spot — no wand sparkles (#95).
+  laser: ['M4.87 16.87L7.13 19.13 13.13 13.13 10.87 10.87z', 'M8.47 13.27l2.26 2.26', 'M13 11l3.1-3.1', 'M15.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0', 'M17.5 6.5h.01'],
   component: ['M12 3l8 4.5v9L12 21l-8-4.5v-9z', 'M12 12l8-4.5', 'M12 12v9', 'M12 12L4 7.5'],
   undo: ['M9 14L4 9l5-5', 'M4 9h10a6 6 0 0 1 0 12h-3'],
   redo: ['M15 14l5-5-5-5', 'M20 9H10a6 6 0 0 0 0 12h3'],
