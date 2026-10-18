@@ -7,6 +7,20 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+test('the more shapes trigger only shows a borderless ellipsis', async ({ page }) => {
+  const opener = page.getByTestId('more-shapes');
+  await expect(opener).toHaveAttribute('aria-label', 'Weitere Formen');
+  await expect(opener).toHaveText('');
+  await expect(opener.locator('svg')).toHaveCount(1);
+  await expect(opener).toHaveCSS('border-top-style', 'none');
+  await expect(opener).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+  await opener.click();
+  await expect(opener).toHaveAttribute('aria-expanded', 'true');
+  await expect(opener).toHaveCSS('border-top-style', 'none');
+  await expect(opener).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+});
+
 test('Weitere Formen opens a searchable sidebar and activates every catalog shape', async ({ page }) => {
   await page.getByTestId('more-shapes').click();
   const sidebar = page.getByTestId('shape-library-sidebar');

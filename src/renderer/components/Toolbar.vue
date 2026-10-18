@@ -196,9 +196,8 @@ onBeforeUnmount(cancelLongPress);
 .shape-tool svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .shape-tool[aria-pressed='true'] svg path:first-child{fill:currentColor;fill-opacity:.13}
 .shape-tool.dragging{opacity:.35}
-.more-shapes{display:grid;place-items:center;flex:none;width:var(--chrome-control);height:var(--chrome-control);padding:0;border:1px solid var(--border-subtle);border-radius:10px;color:var(--text-primary);background:transparent}
-.more-shapes:hover{background:var(--surface-raised)}
-.more-shapes[aria-expanded='true']{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.more-shapes{display:grid;place-items:center;flex:none;width:var(--chrome-control);height:var(--chrome-control);padding:0;border:0;background:transparent;color:var(--text-primary);cursor:pointer}
+.more-shapes:hover,.more-shapes[aria-expanded='true']{background:transparent;color:var(--accent)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media (max-width:860px){.tool,.more-shapes{min-width:44px;min-height:44px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
