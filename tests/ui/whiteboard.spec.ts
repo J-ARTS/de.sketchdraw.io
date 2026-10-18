@@ -263,6 +263,7 @@ test('document card, workspace menu and minimap follow the workspace chrome desi
   await expect(page.getByText('Dein Dokument bleibt bei dir')).toHaveCount(0);
   await draw(page, 'Rechteck');
   const minimap = page.getByTestId('minimap'); await expect(minimap.locator('rect.shape')).toHaveCount(1);
+  await expect(minimap.getByRole('button', { name: 'Vollbild' })).toHaveCount(0);
   const before = await page.locator('[data-kind=rectangle]').boundingBox();
   const map = await minimap.locator('svg.map').boundingBox(); await page.mouse.click(map!.x + 12, map!.y + 12);
   const after = await page.locator('[data-kind=rectangle]').boundingBox();

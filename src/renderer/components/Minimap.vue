@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useEventListener } from '@vueuse/core';
-import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n/de';
 import { bounds } from '@/renderer/lib/geometry';
@@ -81,15 +79,6 @@ function onPointerUp(event: PointerEvent): void {
   if (svg.value?.hasPointerCapture(event.pointerId)) svg.value.releasePointerCapture(event.pointerId);
 }
 
-const fullscreen = ref(Boolean(document.fullscreenElement));
-const canFullscreen = Boolean(document.fullscreenEnabled);
-function syncFullscreen(): void { fullscreen.value = Boolean(document.fullscreenElement); }
-function toggleFullscreen(): void {
-  if (document.fullscreenElement) void document.exitFullscreen();
-  else void document.documentElement.requestFullscreen().catch(() => undefined);
-}
-
-useEventListener(document, 'fullscreenchange', syncFullscreen);
 </script>
 
 <template>
@@ -119,17 +108,6 @@ useEventListener(document, 'fullscreenchange', syncFullscreen);
       />
       <rect class="view" :x="mapView.x" :y="mapView.y" :width="mapView.width" :height="mapView.height" rx="3" />
     </svg>
-    <button
-      v-if="canFullscreen"
-      type="button"
-      class="fullscreen sd-icon-btn"
-      :aria-pressed="fullscreen"
-      :aria-label="t('minimap.fullscreen')"
-      :title="t('minimap.fullscreen')"
-      @click="toggleFullscreen"
-    >
-      <AppIcon name="maximize" :size="16" />
-    </button>
   </section>
 </template>
 
@@ -165,23 +143,6 @@ svg {
   fill: color-mix(in srgb, var(--accent) 8%, transparent);
   stroke: var(--accent);
   stroke-width: 1.5;
-}
-
-.fullscreen {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  min-width: 0;
-  min-height: 0;
-  border-radius: 8px;
-  background: var(--surface-panel);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
-}
-
-.fullscreen[aria-pressed='true'] {
-  color: var(--accent);
 }
 
 @media (max-width: 760px) {

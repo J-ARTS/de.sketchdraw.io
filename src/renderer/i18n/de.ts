@@ -44,7 +44,6 @@ export const MESSAGES = {
   'pages.delete': 'Seite löschen',
   'pages.hint': 'Doppelklick benennt um, Ziehen sortiert.',
   'minimap.label': 'Übersichtskarte',
-  'minimap.fullscreen': 'Vollbild',
   'menu.export': 'Kopie exportieren',
   'menu.interopImport': 'SVG / draw.io importieren',
   'menu.interopExport': 'SVG / draw.io exportieren',
