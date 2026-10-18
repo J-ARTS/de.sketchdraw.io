@@ -105,7 +105,11 @@
   }
 }
 
-/* The pencil/eraser options bar adds one more row below the tools. */
-:root:has(.tool-options) {
+/* The eraser adds one row; the pencil exposes two rows so every setting remains visible. */
+:root:has(.tool-options[data-testid='eraser-options']) {
   --panel-top: calc(var(--panel-top-base) + var(--chrome-height) + var(--space-1));
+}
+
+:root:has(.tool-options[data-testid='pencil-options']) {
+  --panel-top: calc(var(--panel-top-base) + 2 * var(--chrome-height) + var(--space-1));
 }

@@ -67,6 +67,10 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
   await expect(options).toBeVisible(); await expect(options.locator('img')).toHaveCount(0);
   const mainBox = await main.boundingBox(); const optionsBox = await options.boundingBox();
   expect(optionsBox!.y).toBeGreaterThanOrEqual(mainBox!.y + mainBox!.height);
+  const choiceRow = page.getByTestId('pencil-choice-row'); const controlsRow = page.getByTestId('pencil-controls-row');
+  const choiceBox = await choiceRow.boundingBox(); const controlsBox = await controlsRow.boundingBox();
+  expect(controlsBox!.y).toBeGreaterThanOrEqual(choiceBox!.y + choiceBox!.height);
+  expect(await options.evaluate((element) => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight)).toBe(true);
 
   const fine = options.getByRole('button', { name: 'Fein, 2 Pixel', exact: true });
   const pencil = options.getByRole('button', { name: 'Stift, 4 Pixel', exact: true });
@@ -118,6 +122,17 @@ test('pencil and eraser open a responsive accessible options bar with real drawi
   await page.setViewportSize({ width: 480, height: 720 });
   await page.getByRole('button', { name: 'Freihand', exact: true }).click(); await expect(options).toBeVisible();
   const compact = await options.boundingBox(); expect(compact!.x).toBeGreaterThanOrEqual(0); expect(compact!.x + compact!.width).toBeLessThanOrEqual(480);
+  expect(await options.evaluate((element) => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight)).toBe(true);
+  for (const control of [
+    options.getByRole('button', { name: 'Marker, 10 Pixel', exact: true }),
+    options.getByRole('button', { name: 'Eigene Stiftfarbe wählen', exact: true }),
+    pencilSize,
+    pencilOpacity,
+  ]) {
+    const box = await control.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(compact!.x);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(compact!.x + compact!.width);
+  }
 });
 
 test('laser pointer draws only a stable fading overlay and supports its shortcut', async ({ page }) => {

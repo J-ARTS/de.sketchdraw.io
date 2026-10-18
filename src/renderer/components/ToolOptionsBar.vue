@@ -91,6 +91,7 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
     role="toolbar"
     aria-orientation="horizontal"
     :aria-label="pencilVisible ? 'Stiftoptionen' : 'Radiereroptionen'"
+    :class="pencilVisible ? 'pencil-layout' : 'eraser-layout'"
     :data-testid="pencilVisible ? 'pencil-options' : 'eraser-options'"
     @pointerdown.stop
     @pointermove.stop
@@ -101,98 +102,101 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
     @focusout="onFocusOut"
   >
     <template v-if="pencilVisible">
-      <div class="option-group" role="group" aria-label="Stifttyp und Strichstärke">
-        <button
-          v-for="option in PENCIL_OPTIONS"
-          :key="option.value"
-          type="button"
-          class="stroke-option"
-          :data-option-id="`pencil-${option.value}`"
-          :tabindex="tabStop === `pencil-${option.value}` ? 0 : -1"
-          :aria-label="`${option.label}, ${option.strokeWidth} Pixel`"
-          :aria-pressed="s.pencilPreset === option.value"
-          :title="option.label"
-          :disabled="!s.canWrite || s.transitioning"
-          @click="store.setPencilPreset(option.value)"
-        >
-          <svg viewBox="0 0 42 24" aria-hidden="true" :style="{ color: s.pencilColor, opacity: option.opacity }">
-            <path d="M3 15 C8 4 12 5 15 14 S23 22 28 11 S35 5 39 9" fill="none" stroke="currentColor" :stroke-width="option.strokeWidth" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-      </div>
-      <span class="separator" aria-hidden="true" />
-      <div class="option-group size-group" role="group" aria-label="Pinselgröße">
-        <label class="size-control" for="pencil-size">
-          <span>Größe</span>
-          <input
-            id="pencil-size"
-            data-testid="pencil-size-slider"
-            type="range"
-            :min="PENCIL_SIZE_MIN"
-            :max="PENCIL_SIZE_MAX"
-            step="1"
-            :value="s.pencilSize"
-            aria-label="Pinselgröße"
-            :aria-valuetext="`${s.pencilSize} Pixel Strichbreite`"
-            title="Pinselgröße von 1 bis 500 Pixel"
+      <div class="options-row choice-row" data-testid="pencil-choice-row">
+        <div class="option-group" role="group" aria-label="Stifttyp und Strichstärke">
+          <button
+            v-for="option in PENCIL_OPTIONS"
+            :key="option.value"
+            type="button"
+            class="stroke-option"
+            :data-option-id="`pencil-${option.value}`"
+            :tabindex="tabStop === `pencil-${option.value}` ? 0 : -1"
+            :aria-label="`${option.label}, ${option.strokeWidth} Pixel`"
+            :aria-pressed="s.pencilPreset === option.value"
+            :title="option.label"
             :disabled="!s.canWrite || s.transitioning"
-            @input="setPencilSize"
-            @keydown="onPencilSizeKeydown"
-          />
-          <output for="pencil-size" aria-live="polite">{{ s.pencilSize }} px</output>
-        </label>
-      </div>
-      <span class="separator" aria-hidden="true" />
-      <div class="option-group size-group" role="group" aria-label="Stift-Deckkraft">
-        <label class="size-control opacity-control" for="pencil-opacity">
-          <span>Deckkraft</span>
-          <input
-            id="pencil-opacity"
-            data-testid="pencil-opacity-slider"
-            type="range"
-            :min="PENCIL_OPACITY_MIN"
-            :max="PENCIL_OPACITY_MAX"
-            step="1"
-            :value="s.pencilOpacity"
-            aria-label="Stift-Deckkraft"
-            :aria-valuetext="`${s.pencilOpacity} Prozent Deckkraft`"
-            title="Stift-Deckkraft von 0 bis 100 Prozent"
+            @click="store.setPencilPreset(option.value)"
+          >
+            <svg viewBox="0 0 42 24" aria-hidden="true" :style="{ color: s.pencilColor, opacity: option.opacity }">
+              <path d="M3 15 C8 4 12 5 15 14 S23 22 28 11 S35 5 39 9" fill="none" stroke="currentColor" :stroke-width="option.strokeWidth" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <span class="separator" aria-hidden="true" />
+        <div class="option-group color-group" role="group" aria-label="Stiftfarbe">
+          <button
+            v-for="color in colors"
+            :key="color.value"
+            type="button"
+            class="color-option"
+            :style="{ '--option-color': color.value }"
+            :data-option-id="`color-${color.value}`"
+            :tabindex="tabStop === `color-${color.value}` ? 0 : -1"
+            :aria-label="`Stiftfarbe ${color.name}`"
+            :aria-pressed="s.pencilColor === color.value"
+            :title="color.name"
             :disabled="!s.canWrite || s.transitioning"
-            @input="setPencilOpacity"
-            @keydown="onPencilOpacityKeydown"
+            @click="store.setPencilColor(color.value)"
           />
-          <output for="pencil-opacity" aria-live="polite">{{ s.pencilOpacity }} %</output>
-        </label>
+          <button
+            type="button"
+            class="color-option custom-color"
+            :class="{ selected: customColorSelected }"
+            data-option-id="color-custom"
+            :tabindex="tabStop === 'color-custom' ? 0 : -1"
+            aria-label="Eigene Stiftfarbe wählen"
+            :aria-pressed="customColorSelected"
+            title="Eigene Farbe"
+            :disabled="!s.canWrite || s.transitioning"
+            @click="customInput?.click()"
+          />
+          <input ref="customInput" class="native-color" type="color" :value="s.pencilColor" tabindex="-1" aria-hidden="true" @input="pickCustomColor" />
+        </div>
       </div>
-      <span class="separator" aria-hidden="true" />
-      <div class="option-group color-group" role="group" aria-label="Stiftfarbe">
-        <button
-          v-for="color in colors"
-          :key="color.value"
-          type="button"
-          class="color-option"
-          :style="{ '--option-color': color.value }"
-          :data-option-id="`color-${color.value}`"
-          :tabindex="tabStop === `color-${color.value}` ? 0 : -1"
-          :aria-label="`Stiftfarbe ${color.name}`"
-          :aria-pressed="s.pencilColor === color.value"
-          :title="color.name"
-          :disabled="!s.canWrite || s.transitioning"
-          @click="store.setPencilColor(color.value)"
-        />
-        <button
-          type="button"
-          class="color-option custom-color"
-          :class="{ selected: customColorSelected }"
-          data-option-id="color-custom"
-          :tabindex="tabStop === 'color-custom' ? 0 : -1"
-          aria-label="Eigene Stiftfarbe wählen"
-          :aria-pressed="customColorSelected"
-          title="Eigene Farbe"
-          :disabled="!s.canWrite || s.transitioning"
-          @click="customInput?.click()"
-        />
-        <input ref="customInput" class="native-color" type="color" :value="s.pencilColor" tabindex="-1" aria-hidden="true" @input="pickCustomColor" />
+      <div class="options-row controls-row" data-testid="pencil-controls-row">
+        <div class="option-group size-group" role="group" aria-label="Pinselgröße">
+          <label class="size-control" for="pencil-size">
+            <span>Größe</span>
+            <input
+              id="pencil-size"
+              data-testid="pencil-size-slider"
+              type="range"
+              :min="PENCIL_SIZE_MIN"
+              :max="PENCIL_SIZE_MAX"
+              step="1"
+              :value="s.pencilSize"
+              aria-label="Pinselgröße"
+              :aria-valuetext="`${s.pencilSize} Pixel Strichbreite`"
+              title="Pinselgröße von 1 bis 500 Pixel"
+              :disabled="!s.canWrite || s.transitioning"
+              @input="setPencilSize"
+              @keydown="onPencilSizeKeydown"
+            />
+            <output for="pencil-size" aria-live="polite">{{ s.pencilSize }} px</output>
+          </label>
+        </div>
+        <span class="separator" aria-hidden="true" />
+        <div class="option-group size-group" role="group" aria-label="Stift-Deckkraft">
+          <label class="size-control opacity-control" for="pencil-opacity">
+            <span>Deckkraft</span>
+            <input
+              id="pencil-opacity"
+              data-testid="pencil-opacity-slider"
+              type="range"
+              :min="PENCIL_OPACITY_MIN"
+              :max="PENCIL_OPACITY_MAX"
+              step="1"
+              :value="s.pencilOpacity"
+              aria-label="Stift-Deckkraft"
+              :aria-valuetext="`${s.pencilOpacity} Prozent Deckkraft`"
+              title="Stift-Deckkraft von 0 bis 100 Prozent"
+              :disabled="!s.canWrite || s.transitioning"
+              @input="setPencilOpacity"
+              @keydown="onPencilOpacityKeydown"
+            />
+            <output for="pencil-opacity" aria-live="polite">{{ s.pencilOpacity }} %</output>
+          </label>
+        </div>
       </div>
     </template>
 
@@ -221,7 +225,11 @@ function onEraserRadiusKeydown(event: KeyboardEvent): void {
 </template>
 
 <style scoped>
-.tool-options{display:flex;align-items:center;gap:6px;min-height:52px;max-width:min(760px,calc(100vw - 24px));padding:5px 7px;overflow-x:auto;overflow-y:hidden}
+.tool-options{width:min(760px,calc(100vw - 24px));max-width:100%;min-height:52px;padding:5px 7px;overflow:hidden}
+.pencil-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.eraser-layout{display:flex;align-items:center;justify-content:center}
+.options-row{display:flex;min-width:0;min-height:40px;align-items:center;justify-content:center;gap:6px}
+.controls-row{border-top:1px solid var(--border-subtle)}
 .option-group{display:flex;align-items:center;gap:4px;flex:none}
 .separator{width:1px;height:32px;margin:0 3px;background:var(--border-subtle);flex:none}
 button{flex:none;border:0;color:var(--text-primary);background:transparent;cursor:pointer}
@@ -239,13 +247,17 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .custom-color:hover,.custom-color[aria-pressed='true']{background:radial-gradient(circle,#fff 0 18%,transparent 62%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .native-color{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .size-group{padding:0 7px}
+.controls-row .size-group{flex:1 1 0;min-width:0}
 .size-control{display:grid;grid-template-columns:auto minmax(120px,220px) 54px;align-items:center;gap:12px;font-size:12px;font-weight:650;white-space:nowrap}
 .size-control input{width:220px;max-width:36vw;accent-color:var(--accent);cursor:pointer}
 .opacity-control{grid-template-columns:auto minmax(100px,150px) 48px}
 .opacity-control input{width:150px}
+.controls-row .size-control{width:100%;grid-template-columns:auto minmax(80px,1fr) 54px}
+.controls-row .size-control input{width:100%;max-width:none}
+.controls-row .opacity-control{grid-template-columns:auto minmax(80px,1fr) 48px}
 .size-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text-muted)}
 .size-control input:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:999px}
 .size-control input:disabled{cursor:not-allowed;opacity:.45}
-@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.color-group{gap:6px}.color-option{width:26px;height:26px}.size-control{grid-template-columns:auto minmax(100px,1fr) 50px;gap:8px}.size-control input{width:min(180px,42vw);max-width:none}}
+@media(max-width:640px){.tool-options{max-width:calc(100vw - 24px)}.options-row{gap:3px}.stroke-option{width:40px}.color-group{gap:3px;padding:0 1px}.color-option{width:20px;height:20px}.separator{margin:0 1px}.size-group{padding:0 4px}.size-control,.controls-row .size-control,.controls-row .opacity-control{grid-template-columns:auto minmax(64px,1fr) 44px;gap:6px}.size-control input{width:100%;max-width:none}}
 @media(forced-colors:active){button[aria-pressed='true']{outline:2px solid Highlight;box-shadow:none}.color-option{forced-color-adjust:none}}
 </style>
