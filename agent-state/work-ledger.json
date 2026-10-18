@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T02:50:31Z",
+  "updatedAt": "2026-10-18T02:59:13Z",
   "issues": [
     {
       "number": 1,
@@ -946,7 +946,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/59",
       "owner": "Codex (temporary takeover; Claude Code review, Antigravity quota-limited)",
       "phase": "Canvas collaboration and task tracking",
-      "status": "integration_review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4072,9 +4072,9 @@
       "issues": [
         59
       ],
-      "status": "local_verified",
+      "status": "verified_cross_platform",
       "startedAt": "2026-10-18T02:32:00Z",
-      "endedAt": null,
+      "endedAt": "2026-10-18T02:59:13Z",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
@@ -4096,14 +4096,43 @@
         "docs/reviews/antigravity-comments-059.md",
         "agent-state/work-ledger.json",
         "graphify-out/graph.json",
-        "graphify-out/traceability.json"
+        "graphify-out/traceability.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/45d8384208236565201a6652a7531f6d062ed2d7",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/59#issuecomment-6244967145"
       ],
       "concerns": [
         "Comment and task collections use array-level conflict handling in version 1; simultaneous edits to different threads can require retry.",
         "Exact SVG and draw.io round trips retain discussion data in the embedded Sketchdraw envelope while visible projections omit comment pins; an explicit export privacy control remains a follow-up consideration."
       ],
       "authorization": "The user explicitly requested anchored comments, replies, a comment sidebar and a task board, and previously authorized temporary Codex implementation when assigned tools are quota-limited.",
-      "measurementSource": "Local evidence: typecheck passed; 337/337 Vitest unit tests passed including signed P2P replication; 52/52 browser UI tests and 6/6 Electron tests passed; the production renderer, Electron and MCP bundles built successfully; diff checks passed. Cross-platform GitHub Actions verification is pending."
+      "measurementSource": "Codex implemented the feature after a Claude Code read-only review and an Antigravity quota block. Local evidence at commit 45d8384: typecheck passed; 337/337 Vitest unit tests including signed P2P replication, 52/52 browser UI tests including accessibility, and 6/6 Electron tests passed; production renderer, Electron and MCP bundles built; diff and Graphify ledger checks passed. GitHub Actions run 39091555196 verified the exact feature commit on Windows 2025, macOS 15 and Ubuntu 24.04 plus Governance/Graphify and Direct P2P; all five jobs passed. No measured token or cost metric."
+    },
+    {
+      "id": "github-actions-comments-39091555196",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        59
+      ],
+      "status": "verified_cross_platform",
+      "startedAt": "2026-10-18T02:51:21Z",
+      "endedAt": "2026-10-18T02:59:13Z",
+      "observedSeconds": 472,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569209449",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569209584",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231340",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231377",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39091555196/job/117569231382",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/45d8384208236565201a6652a7531f6d062ed2d7"
+      ],
+      "concerns": [],
+      "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
+      "measurementSource": "GitHub Actions metadata for exact feature commit 45d8384208236565201a6652a7531f6d062ed2d7. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production build, 52 browser UI tests including comments/tasks and accessibility, Electron integration and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
     }
   ],
   "evidencePolicy": {
