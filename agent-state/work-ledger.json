@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T11:05:10Z",
+  "updatedAt": "2026-10-18T11:21:29Z",
   "issues": [
     {
       "number": 1,
@@ -1584,6 +1584,24 @@
       "dependencies": [
         43,
         99
+      ]
+    },
+    {
+      "number": 101,
+      "title": "Sticky Note direkt als Aufgabe anlegen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/101",
+      "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        50,
+        59
       ]
     }
   ],
@@ -5882,6 +5900,69 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 557 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15 and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-sticky-note-task-101",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        101
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8ac023fe0462852a2da3be8c3717e984d3deab93",
+        "src/domain/types.ts",
+        "src/domain/validation.ts",
+        "src/domain/commands.ts",
+        "src/crdt/projection.ts",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/TaskBoard.vue",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/sticky-note.spec.ts",
+        "tests/unit/crdt.spec.ts",
+        "tests/ui/sticky-note.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/101",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160"
+      ],
+      "concerns": [
+        "When a source note is deleted, its task intentionally remains on the board and loses only the source-element link.",
+        "Concurrent P2P creation preserves both task records but deterministically retains only one sticky-note source link to satisfy the one-task-per-note invariant."
+      ],
+      "authorization": "The user reported that tasks could not be created from notes and had already authorized Codex to temporarily implement UI and logic work with actual tool attribution.",
+      "measurementSource": "Local macOS arm64 evidence at product commit 8ac023f: typecheck passed; 48/48 Vitest files and 386/386 tests passed; five relevant Playwright tests passed including Axe and source navigation; production build passed; 59/59 build-lifecycle tests and 22/22 Python Graphify tests passed after restoring the worktree dependency link. GitHub Actions run 39122199160 then passed Governance/Graphify, direct P2P, and full build, browser UI, Electron integration, and package verification on Ubuntu 24.04, macOS 15, and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-sticky-note-task-39122199160",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        101
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T11:10:55Z",
+      "endedAt": "2026-10-18T11:21:01Z",
+      "observedSeconds": 606,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:8ac023fe0462852a2da3be8c3717e984d3deab93",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160/job/117660109486",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160/job/117660109707",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160/job/117660135206",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160/job/117660135258",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39122199160/job/117660135267"
+      ],
+      "concerns": [
+        "GitHub Actions emitted informational Node.js 20 action-runtime deprecation notices; all required jobs completed successfully."
+      ],
+      "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
+      "measurementSource": "GitHub Actions timestamps report 606 seconds elapsed from queued creation to completion. Governance/Graphify, direct P2P, and Build & Verify on Windows 2025, Ubuntu 24.04, and macOS 15 all completed successfully. Token usage and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
