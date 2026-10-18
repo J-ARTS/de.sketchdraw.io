@@ -441,6 +441,42 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "113": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 5
+        },
+        "observedSeconds": {
+          "knownRuns": 4,
+          "knownSubtotal": 870,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 5,
+        "runIds": [
+          "codex-quick-connect-component-copy-113",
+          "github-actions-quick-connect-39148294569",
+          "github-actions-quick-connect-duplicate-39148047340",
+          "github-actions-quick-connect-duplicate-39148294252",
+          "github-actions-quick-connect-initial-39148047339"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 5
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "12": {
       "exclusiveRuns": {
         "costUsd": {
@@ -3979,15 +4015,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 58
+        "unknownRuns": 62
       },
       "observedSeconds": {
-        "knownRuns": 52,
-        "knownSubtotal": 23122,
+        "knownRuns": 56,
+        "knownSubtotal": 23992,
         "total": null,
         "unknownRuns": 6
       },
-      "runCount": 58,
+      "runCount": 62,
       "runIds": [
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
@@ -4026,6 +4062,10 @@
         "github-actions-pencil-size-preview-duplicate-39132341236",
         "github-actions-plugin-platform-39099388855",
         "github-actions-popover-anchor-39070996817",
+        "github-actions-quick-connect-39148294569",
+        "github-actions-quick-connect-duplicate-39148047340",
+        "github-actions-quick-connect-duplicate-39148294252",
+        "github-actions-quick-connect-initial-39148047339",
         "github-actions-release-39044870745",
         "github-actions-release-39046419226",
         "github-actions-remove-library-source-note-39137338429",
@@ -4052,7 +4092,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 58
+        "unknownRuns": 62
       }
     },
     "openai-codex": {
@@ -4060,15 +4100,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 27
+        "unknownRuns": 28
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 27
+        "unknownRuns": 28
       },
-      "runCount": 27,
+      "runCount": 28,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -4085,6 +4125,7 @@
         "codex-pencil-opacity-109",
         "codex-pencil-size-preview-61",
         "codex-plugin-platform-local-66-69",
+        "codex-quick-connect-component-copy-113",
         "codex-remove-library-source-note-108",
         "codex-shape-header-regression-89",
         "codex-simple-connector-icon-103",
@@ -4102,7 +4143,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 27
+        "unknownRuns": 28
       }
     }
   },
@@ -4111,15 +4152,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 194
+      "unknownRuns": 199
     },
     "observedSeconds": {
-      "knownRuns": 72,
-      "knownSubtotal": 35744.32226324896,
+      "knownRuns": 76,
+      "knownSubtotal": 36614.32226324896,
       "total": null,
-      "unknownRuns": 122
+      "unknownRuns": 123
     },
-    "runCount": 194,
+    "runCount": 199,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -4225,6 +4266,7 @@
       "codex-pencil-size-preview-61",
       "codex-plugin-platform-local-66-69",
       "codex-property-draft-025",
+      "codex-quick-connect-component-copy-113",
       "codex-release-fixes-001",
       "codex-release-review-001",
       "codex-remove-library-source-note-108",
@@ -4294,6 +4336,10 @@
       "github-actions-pencil-size-preview-duplicate-39132341236",
       "github-actions-plugin-platform-39099388855",
       "github-actions-popover-anchor-39070996817",
+      "github-actions-quick-connect-39148294569",
+      "github-actions-quick-connect-duplicate-39148047340",
+      "github-actions-quick-connect-duplicate-39148294252",
+      "github-actions-quick-connect-initial-39148047339",
       "github-actions-release-39044870745",
       "github-actions-release-39046419226",
       "github-actions-remove-library-source-note-39137338429",
@@ -4320,7 +4366,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 190
+      "unknownRuns": 195
     }
   },
   "officialScoreClaimReady": false,
@@ -4330,9 +4376,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 95
+    "unknownIssues": 96
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T16:43:28.509285+00:00"
+  "updatedAt": "2026-10-18T17:21:57.810003+00:00"
 }

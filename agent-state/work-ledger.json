@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T16:43:28.509285+00:00",
+  "updatedAt": "2026-10-18T17:21:57.810003+00:00",
   "issues": [
     {
       "number": 1,
@@ -1756,6 +1756,23 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 113,
+      "title": "Duplizieren von Cloud-Icons übernimmt Beschriftung nicht",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/113",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        36
+      ]
     }
   ],
   "runs": [
@@ -7045,6 +7062,136 @@
       ],
       "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
       "measurementSource": "GitHub Actions timestamps report 110 seconds from creation to final cancellation. No completed verification claim is made from this run."
+    },
+    {
+      "id": "codex-quick-connect-component-copy-113",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        113
+      ],
+      "status": "integrated_and_cross_platform_verified",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:041435dc73fc57b2efdc65fee9707caff2d2c235",
+        "git:b66baceb8f0af824690bb28f1654b29779443880",
+        "src/renderer/lib/quick-connect.ts",
+        "tests/ui/quick-connect.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/113",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569"
+      ],
+      "concerns": [
+        "The first targeted browser assertion expected contiguous SVG text although the visible label is split across tspans. The assertion was corrected without changing product behavior, and the repeated test passed.",
+        "The initial broad quick-connect copy also preserved sticky-note text and broke the intentional blank-note creation contract. The first cross-platform run exposed this regression; copying was narrowed to components and the corrected run passed on every required platform.",
+        "Graphify source refresh was guarded: the new extraction had 4,611 nodes versus 4,656 in the existing graph, so graphify refused to overwrite without --force. The existing graph was preserved and deterministic ticket, run and artifact links were refreshed and validated separately."
+      ],
+      "authorization": "The user explicitly requested that a quick-connected duplicate of a cloud icon preserve its complete visible text. Codex remains authorized to implement temporarily while recording the regular Claude Code ownership separately.",
+      "measurementSource": "Local macOS evidence at final product commit b66bace: typecheck, the complete quick-connect UI specification and the sticky-note unit regression tests passed. GitHub Actions run 39148294569 verified the exact commit across Governance and Graphify, Direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025. Exact Codex duration, token usage and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-quick-connect-initial-39148047339",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        113
+      ],
+      "status": "failed",
+      "startedAt": "2026-10-18T17:06:30Z",
+      "endedAt": "2026-10-18T17:08:24Z",
+      "observedSeconds": 114,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:041435dc73fc57b2efdc65fee9707caff2d2c235",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339/job/117735825660",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339/job/117735825904",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339/job/117735870358",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339/job/117735870364",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047339/job/117735870390"
+      ],
+      "concerns": [
+        "The first implementation copied sticky-note text during quick-connect, while sticky-note quick-connect is specified to create an empty note. The corresponding unit test failed on Windows, Ubuntu and macOS; this run is not completion evidence."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized initial integration for Issue 113.",
+      "measurementSource": "GitHub Actions timestamps report 114 seconds elapsed. Governance and Direct P2P succeeded; all three platform build jobs failed on the same sticky-note unit regression. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-quick-connect-39148294569",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        113
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T17:09:47Z",
+      "endedAt": "2026-10-18T17:19:48Z",
+      "observedSeconds": 601,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b66baceb8f0af824690bb28f1654b29779443880",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569/job/117736555734",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569/job/117736555913",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569/job/117736589991",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569/job/117736590067",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294569/job/117736590071"
+      ],
+      "concerns": [],
+      "authorization": "GitHub Actions verification was triggered by the authorized corrected integration for Issue 113.",
+      "measurementSource": "GitHub Actions timestamps report 601 seconds elapsed. Governance and Graphify, Direct P2P, and complete Build and Verify jobs on Ubuntu 24.04, macOS 15 and Windows 2025 all completed successfully. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-quick-connect-duplicate-39148047340",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        113
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T17:06:30Z",
+      "endedAt": "2026-10-18T17:07:21Z",
+      "observedSeconds": 51,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:041435dc73fc57b2efdc65fee9707caff2d2c235",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148047340"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
+      "measurementSource": "GitHub Actions timestamps report 51 seconds from creation to final cancellation. No completed verification claim is made from this run."
+    },
+    {
+      "id": "github-actions-quick-connect-duplicate-39148294252",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        113
+      ],
+      "status": "cancelled_duplicate",
+      "startedAt": "2026-10-18T17:09:47Z",
+      "endedAt": "2026-10-18T17:11:31Z",
+      "observedSeconds": 104,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:b66baceb8f0af824690bb28f1654b29779443880",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39148294252"
+      ],
+      "concerns": [
+        "The branch run was intentionally cancelled after the authoritative main-branch run started. It is not used as completion evidence."
+      ],
+      "authorization": "The duplicate branch verification was triggered by the authorized atomic branch and main push, then cancelled once the authoritative main run was visible.",
+      "measurementSource": "GitHub Actions timestamps report 104 seconds from creation to final cancellation. No completed verification claim is made from this run."
     }
   ],
   "evidencePolicy": {
