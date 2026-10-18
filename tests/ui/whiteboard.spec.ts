@@ -36,6 +36,31 @@ test('draw, resize, undo/redo and zoom with the real domain', async ({ page }) =
   await page.screenshot({ path: 'test-results/whiteboard-properties.png' });
 });
 
+test('eraser sits beside the pencil and removes a drag path in one undo step', async ({ page }) => {
+  const pencil = page.getByRole('button', { name: 'Freihand', exact: true });
+  const eraser = page.getByRole('button', { name: 'Radierer', exact: true });
+  const pencilBox = await pencil.boundingBox(); const eraserBox = await eraser.boundingBox();
+  expect(eraserBox!.x).toBeGreaterThan(pencilBox!.x);
+  expect(eraserBox!.x - (pencilBox!.x + pencilBox!.width)).toBeLessThan(12);
+  await expect(eraser).toHaveAttribute('title', /Umschalt\+e/i);
+
+  await draw(page, 'Freihand', [350, 200], [350, 280]);
+  await draw(page, 'Freihand', [550, 200], [550, 280]);
+  await expect(page.locator('[data-kind=path]')).toHaveCount(2);
+  await eraser.click(); await expect(eraser).toHaveAttribute('aria-pressed', 'true');
+  await page.mouse.move(330, 240); await page.mouse.down();
+  await page.mouse.move(570, 240, { steps: 24 }); await page.mouse.up();
+  await expect(page.locator('[data-kind=path]')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(page.locator('[data-kind=path]')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Wiederholen', exact: true }).click();
+  await expect(page.locator('[data-kind=path]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Auswahl', exact: true }).click();
+  await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('Shift+E');
+  await expect(eraser).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('all primitive shapes, freehand, connection, text and image render', async ({ page }) => {
   await draw(page, 'Rechteck', [300, 180], [440, 270]);
   await draw(page, 'Ellipse', [520, 180], [660, 270]);

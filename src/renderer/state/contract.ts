@@ -27,7 +27,7 @@ import type {
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
+  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container'
   | 'comment';
 
 export interface TableSelection {

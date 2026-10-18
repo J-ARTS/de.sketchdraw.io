@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T02:59:13Z",
+  "updatedAt": "2026-10-18T03:08:34Z",
   "issues": [
     {
       "number": 1,
@@ -947,6 +947,21 @@
       "owner": "Codex (temporary takeover; Claude Code review, Antigravity quota-limited)",
       "phase": "Canvas collaboration and task tracking",
       "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 60,
+      "title": "Radierer neben dem Stift in der oberen Werkzeugleiste",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/60",
+      "owner": "Codex (temporary takeover; Claude Code UI and Antigravity logic ownership retained)",
+      "phase": "Canvas interaction and testing",
+      "status": "in_review",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -4133,6 +4148,38 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions metadata for exact feature commit 45d8384208236565201a6652a7531f6d062ed2d7. Governance & Graphify, Direct P2P, Windows 2025, macOS 15 and Ubuntu 24.04 all completed successfully. Each platform passed typechecks, Node/Vitest suites, production build, 52 browser UI tests including comments/tasks and accessibility, Electron integration and non-publishing package-directory verification. Observed duration is the run creation-to-completion interval."
+    },
+    {
+      "id": "codex-eraser-060",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        60
+      ],
+      "status": "locally_verified",
+      "startedAt": "2026-10-18T03:01:30Z",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/60",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/60#issuecomment-6245007553",
+        "src/renderer/components/icons.ts",
+        "src/renderer/lib/shortcuts.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/renderer/components/WhiteboardCanvas.vue",
+        "tests/unit/renderer/whiteboard.spec.ts",
+        "tests/unit/renderer/guest-store.spec.ts",
+        "tests/ui/whiteboard.spec.ts",
+        "agent-state/work-ledger.json",
+        "graphify-out/graph.json",
+        "graphify-out/traceability.json"
+      ],
+      "concerns": [],
+      "authorization": "The user explicitly requested an eraser beside the pencil and previously authorized temporary Codex implementation with actual-tool attribution.",
+      "measurementSource": "Codex implemented the element eraser through the existing authority and delete-command path. Local evidence: typecheck passed; 338/338 Vitest unit tests, 59/59 Node lifecycle/release tests, 53/53 browser UI tests including the new eraser and accessibility regression, 6/6 Electron tests and 22/22 Graphify projection tests passed; production renderer, Electron and MCP bundles built; diff and Graphify ledger checks passed. Cross-platform CI and exact integrated commit are pending. No measured implementation duration, token or cost metric."
     }
   ],
   "evidencePolicy": {

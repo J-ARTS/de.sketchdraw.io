@@ -1,6 +1,6 @@
 export type ToolIconName =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'comment';
+  | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'comment';
 
 export type ActionIconName =
   | 'component' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
@@ -30,6 +30,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   diamond: ['M12 3l9 9-9 9-9-9z'],
   connector: ['M6.5 17.5L17 7', 'M10 7h7v7', 'M4.5 16.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0'],
   path: ['M4 20l1-4L16 5a2.1 2.1 0 0 1 3 3L8 19z', 'M14 7l3 3'],
+  eraser: ['M4.5 14.5l8.8-8.8a2.4 2.4 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4L9 20H5.5L3 17.5z', 'M9 20h11', 'M8 11l5 5'],
   text: ['M5 6V4h14v2', 'M12 4v16', 'M9 20h6'],
   'sticky-note': ['M5 4h14v16H5z', 'M15 20v-4h4', 'M8 8h8', 'M8 12h6'],
   annotation: ['M4 3h16v18H4z', 'M7 7h10', 'M7 11h7', 'M7 15h10', 'M7 18h6'],

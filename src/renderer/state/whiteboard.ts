@@ -35,7 +35,7 @@ import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 
 type Gesture = {
-  kind: 'draw' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
+  kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'pan' | 'marquee';
   start: Point; last: Point; screenStart: Point; base: DocumentSession;
   targets: SketchElement[]; handle?: HandleId; tool: Tool; points: Point[];
   preview: DocumentCommand | null; element: SketchElement | null;
@@ -128,7 +128,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
-    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : 'crosshair'; },
+    get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : this.tool === 'eraser' ? 'cell' : 'crosshair'; },
     get frame(): WhiteboardState['frame'] {
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
       const first = elements[0];
@@ -266,6 +266,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   function patch(patches: Array<{ id: string; patch: ElementPatch }>) { if (patches.length) void dispatch({ type: 'update', changes: patches }); }
   function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
+  function extendEraseGesture(g: Gesture, point: Point): void {
+    const ids = g.preview?.type === 'delete' ? [...g.preview.ids] : [];
+    const erased = new Set(ids);
+    const distance = Math.hypot(point.x - g.last.x, point.y - g.last.y);
+    const steps = Math.max(1, Math.ceil(distance / (8 / state.viewport.zoom)));
+    for (let index = 0; index <= steps; index++) {
+      const ratio = index / steps;
+      const sample = {
+        x: g.last.x + (point.x - g.last.x) * ratio,
+        y: g.last.y + (point.y - g.last.y) * ratio,
+      };
+      const target = [...g.base.document.elements].reverse()
+        .find((element) => hitElement(element, sample, 7 / state.viewport.zoom));
+      if (!target || erased.has(target.id)) continue;
+      erased.add(target.id);
+      ids.push(target.id);
+      g.targets.push(clone(target));
+    }
+    g.preview = ids.length ? { type: 'delete', ids } : null;
+    state.previewCommand = g.preview;
+    g.last = point;
+  }
   function currentCenter() { return screenToDoc(state.viewport, { x: state.viewportSize.width / 2, y: state.viewportSize.height / 2 }); }
   function commentTargetFor(element: SketchElement, tableCellId?: string, point?: Point): CommentTarget {
     let anchorPoint = point;
@@ -322,7 +344,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   function createDraw(g: Gesture, point: Point, shift: boolean): SketchElement | null {
-    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment') return null;
+    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'eraser' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment') return null;
     let end = point;
     if (shift && !['path', 'connector'].includes(g.tool)) {
       const side = Math.max(Math.abs(point.x - g.start.x), Math.abs(point.y - g.start.y));
@@ -574,6 +596,17 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.textEdit) { void applyText(); return; }
       const point = screenToDoc(state.viewport, input);
       const target = hit(point);
+      if (state.tool === 'eraser') {
+        if (input.button !== 0 || !state.canWrite) return;
+        gesture = {
+          kind: 'erase', start: point, last: point, screenStart: input,
+          base: snapshotSource().getSnapshot(), targets: [], tool: state.tool,
+          points: [point], preview: null, element: null,
+        };
+        extendEraseGesture(gesture, point);
+        changedDraft();
+        return;
+      }
       if (state.tool === 'comment') {
         if (input.button !== 0) return;
         if (!target) { notice('Wähle ein Element oder eine Tabellenzelle für den Kommentar.', 'error'); return; }
@@ -607,7 +640,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const point = screenToDoc(state.viewport, input);
       const dx = point.x - g.start.x; const dy = point.y - g.start.y;
       if (g.kind === 'pan') { store.panBy(input.x - g.screenStart.x, input.y - g.screenStart.y); g.screenStart = input; return; }
-      if (g.kind === 'marquee') {
+      if (g.kind === 'erase') {
+        extendEraseGesture(g, point);
+      } else if (g.kind === 'marquee') {
         state.marquee = normalizedRect(g.start, point);
         const r = state.marquee;
         setSelection(state.document.elements.filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));

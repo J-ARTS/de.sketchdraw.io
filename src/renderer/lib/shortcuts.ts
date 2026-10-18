@@ -10,6 +10,7 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'diamond', label: 'Raute', key: 'd', description: 'Raute aufziehen' },
   { tool: 'connector', label: 'Verbindung', key: 'l', description: 'Zwei Elemente mit einer Verbindung verknüpfen' },
   { tool: 'path', label: 'Freihand', key: 'p', description: 'Frei zeichnen' },
+  { tool: 'eraser', label: 'Radierer', key: 'e', shift: true, description: 'Elemente durch Klicken oder Ziehen entfernen' },
   { tool: 'text', label: 'Text', key: 't', description: 'Text einfügen' },
   { tool: 'table', label: 'Tabelle', key: 't', shift: true, description: 'Formatierbare Tabelle einfügen' },
   { tool: 'sticky-note', label: 'Notiz', key: 'n', description: 'Sticky Note einfügen' },

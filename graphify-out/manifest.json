@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "agent-state/work-ledger.json": {
-    "mtime": 1792292392.8474758,
-    "ast_hash": "9b44b59f8ddf544abe3aad1b9102d77d",
+    "mtime": 1792292813.626065,
+    "ast_hash": "7c41e30f80285730ccaa107a9150494e",
     "semantic_hash": ""
   },
   "tools/graphify-links.py": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/icons.ts": {
-    "mtime": 1792291308.545707,
-    "ast_hash": "52677ae5adbf72a4ec7b4847c98b6c25",
+    "mtime": 1792292611.41361,
+    "ast_hash": "b253ce552a4904566e9ebe3c32d49b31",
     "semantic_hash": ""
   },
   "src/renderer/components/platform.ts": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "src/renderer/lib/shortcuts.ts": {
-    "mtime": 1792291308.5449233,
-    "ast_hash": "62997439dd6bba80eb435f672f0b5e7e",
+    "mtime": 1792292611.4131775,
+    "ast_hash": "35d0c69dd4938ade0f4abbe100310d0b",
     "semantic_hash": ""
   },
   "src/renderer/lib/theme.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/contract.ts": {
-    "mtime": 1792291316.9209878,
-    "ast_hash": "113802efcf222969116253f552529ef0",
+    "mtime": 1792292611.4127152,
+    "ast_hash": "2bc06bf261606701c8334270e31a1a82",
     "semantic_hash": ""
   },
   "tests/electron/desktop.spec.ts": {
@@ -840,8 +840,8 @@
     "semantic_hash": ""
   },
   "src/renderer/components/WhiteboardCanvas.vue": {
-    "mtime": 1792289451.4377096,
-    "ast_hash": "f12ba408b67ff60d72eed1dead94ba93",
+    "mtime": 1792292611.4141524,
+    "ast_hash": "c6a8856c0eba27d1ae84e2ef959685d0",
     "semantic_hash": ""
   },
   "src/renderer/components/WorkspacePanels.vue": {
@@ -860,8 +860,8 @@
     "semantic_hash": ""
   },
   "src/renderer/state/whiteboard.ts": {
-    "mtime": 1792291406.903439,
-    "ast_hash": "f2bcfe2cae4171123a791ce8b8e991cc",
+    "mtime": 1792292623.3801458,
+    "ast_hash": "e904673a07c2f36f20fcae90ea32ca78",
     "semantic_hash": ""
   },
   "src/session/authority.ts": {
@@ -915,8 +915,8 @@
     "semantic_hash": ""
   },
   "tests/ui/whiteboard.spec.ts": {
-    "mtime": 1792283279.8176537,
-    "ast_hash": "61d8f07dc1cb2375ffbce39af273507b",
+    "mtime": 1792292656.5957637,
+    "ast_hash": "de6ede7bacad43ffe6cc1d957072223e",
     "semantic_hash": ""
   },
   "tests/unit/collaboration/protocol.spec.ts": {
@@ -970,13 +970,13 @@
     "semantic_hash": ""
   },
   "tests/unit/renderer/guest-store.spec.ts": {
-    "mtime": 1792271460.4162135,
-    "ast_hash": "da326c0157ef358946b40fc9ff0f3494",
+    "mtime": 1792292676.6198785,
+    "ast_hash": "4e3bd0223a06c58f72f02dfa90907fa3",
     "semantic_hash": ""
   },
   "tests/unit/renderer/whiteboard.spec.ts": {
-    "mtime": 1792276227.3147438,
-    "ast_hash": "5e45e20600f99861de90f2320d630cde",
+    "mtime": 1792292640.7610068,
+    "ast_hash": "cb9127d3f64247c7e3b071bee5da50fb",
     "semantic_hash": ""
   },
   "tests/unit/session/authority.spec.ts": {

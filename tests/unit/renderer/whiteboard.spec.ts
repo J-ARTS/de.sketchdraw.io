@@ -94,6 +94,22 @@ describe('Whiteboard uses the real session gateway', () => {
     store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(0);
     store.redo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(1);
   });
+  test('eraser removes every crossed element in one undoable gesture', async () => {
+    const { store } = setup();
+    await draw(store, 'rectangle', 300); await draw(store, 'rectangle', 500);
+    expect(store.state.document.elements).toHaveLength(2);
+
+    store.setTool('eraser');
+    store.pointerDown(point(350, 240));
+    store.pointerMove(point(550, 240));
+    expect(store.state.displayElements).toHaveLength(0);
+    store.pointerUp(point(550, 240)); await store.whenIdle();
+    expect(store.state.document.elements).toHaveLength(0);
+    expect(store.state.tool).toBe('eraser');
+
+    store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(2);
+    store.redo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(0);
+  });
   test('a click creates the tool default size and group movement moves children once', async () => {
     const { store } = setup(); store.setTool('rectangle'); store.pointerDown(point(300, 200)); store.pointerUp(point(300, 200)); await store.whenIdle();
     expect(store.state.document.elements[0]!.width).toBe(160);
