@@ -48,6 +48,11 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+// Keep WebRTC candidate handling inside Chromium's privacy-aware network stack.
+// Trystero signaling also runs in the renderer so WSS follows the system proxy,
+// PAC configuration and supported operating-system proxy authentication.
+app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
+
 let mainWindow: BrowserWindow | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
 let activeTarget: RendererTarget | null = null;

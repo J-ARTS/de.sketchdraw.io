@@ -140,6 +140,18 @@ Quelle: echter lokaler Claude-Code-Lauf in `docs/reviews/claude-comments-059.md`
 | CL-CMT-14 | Pins liegen als Bildschirm-Overlay außerhalb SVG und Minimap. Sichtbarkeitsfilterung wird erst bei gemessenem Bedarf ergänzt. | UI-Performanceprofil bei großem Dokument. |
 | CL-CMT-15 | Aufgaben sind eine appweite Workspace-Ansicht neben Seiten. Das Mehrseitenmodell #33–#35 bleibt unberührt. | Navigationstest und Schema-Roundtrip. |
 
+## Yjs- und Trystero-Implementierungsgrenzen (#71/#72)
+
+| ID | Bedenken | Entscheidung und Nachweis |
+| --- | --- | --- |
+| CRDT-01 | Ein gültiges konkurrierendes Reparenting kann nach dem Merge einen Containerzyklus erzeugen. | Die Projektion löst ungültige Parent-/Connector-/Assetreferenzen und entfernt deterministisch die Parent-Kante der lexikografisch größten ID eines Zyklus. Zwei-Peer-Regression mit gleichzeitigen Gegenbewegungen besteht. |
+| CRDT-02 | Ein gesamtes Rich-Text-, Kommentar- oder Aufgabenfeld als Map-Skalar würde parallele Eingaben verlieren. | Annotation-Blöcke und -Runs, Element-, Zell-, Kommentar- und Aufgabentexte verwenden verschachtelte Yjs-Typen beziehungsweise `Y.Text`; IDs und Rank-Maps führen unabhängige Einfügungen zusammen. Konvergenztests bestehen. |
+| CRDT-03 | Ein Remote-Yjs-Update kann das aktive Dokument vor der Domainprüfung dauerhaft beschädigen. | Größen- und IAM-Prüfung erfolgt vor einer vollständigen Schattenkopie und validierten `SketchDocument`-Projektion. Erst der bestätigte Stand wird aktiv angewendet. Fuzzing und Speicherprofiling bleiben spätere Härtung. |
+| AUTO-01 | Trystero-MQTT löst Signaling hinter WSS-Proxys, liefert aber keinen WSS-Datenfallback. | Die UI benennt Signaling und ICE/TURN getrennt; es gibt keinen stillen Relaypfad. Reale PAC-/NTLM-/Kerberos-/TURN-Prüfungen bleiben in #72 offen. |
+| AUTO-02 | Ein Vollmesh mit 100 Teilnehmern erzeugt 4.950 Peer-Paare. | Keine 100-Teilnehmer-Zusage. #72 bleibt bis zu 25/50/100-Messungen und einer daraus abgeleiteten begrenzten Topologie offen. |
+| AUTO-03 | Eine automatische Einladung für ein fremdes Dokument darf ungespeicherte lokale Arbeit nicht still ersetzen. | Der jetzige UI-Prototyp verlangt dieselbe bereits geöffnete Dokument-ID und lehnt andere Dokumente ab. Ein Lifecycle-gesicherter Initial-Bootstrap mit sichtbarer Save-/Discard-Entscheidung bleibt vor allgemeiner Freigabe offen. |
+
+
 ## Native Integration und Fremdprogramm-Abnahme
 
 - **P2P-Netzwerk, #14:** Der lokale macOS-Host erreicht keine ICE-Verbindung. Derselbe Stand f8c55fb besteht auf dem unveränderten Ubuntu-Runner beide echten Chromium-/Electron-Transporttests (Run 39041998555, Job 117423198082). Kein STUN/TURN/Relay und keine Abschwächung der Sandbox hinzugefügt. Der dritte Produkt-UI-Test fand eine Mehrdeutigkeit zwischen bestätigtem Element und beibehaltenem Entwurf; getrennte semantische Ebenen und explizite Ergebnisprüfung sind erforderlich.

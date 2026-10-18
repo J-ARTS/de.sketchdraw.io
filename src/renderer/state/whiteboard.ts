@@ -1,6 +1,6 @@
 import { reactive } from 'vue';
 import {
-  applyCommand, createController, createDocument, createElement, deserializeDocument,
+  applyCommand, createDocument, createElement, deserializeDocument,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -15,6 +15,12 @@ import {
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
   type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type PluginExternalEvent,
 } from '@/domain';
+import {
+  attachIndexedDbPersistence,
+  createCrdtController,
+  type CrdtDocumentController,
+  type CrdtPersistenceHandle,
+} from '@/crdt';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
 import { getDesktopBridge } from '@/platform';
@@ -58,7 +64,29 @@ const uid = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
 export function createWhiteboardStore(options: CreateStoreOptions = {}): WhiteboardStore {
   const bridge = options.bridge ?? getDesktopBridge();
   const factory = options.authorityFactory ?? ((controller) => createDocumentAuthority({ controller }));
-  let authority: DocumentAuthority | null = options.authority ?? factory(options.controller ?? createController(createDocument('Unbenannt')));
+  let localCrdtController: CrdtDocumentController | null = null;
+  let crdtPersistence: CrdtPersistenceHandle | null = null;
+  function releaseLocalCrdt(): void {
+    const persistence = crdtPersistence;
+    const controller = localCrdtController;
+    crdtPersistence = null;
+    localCrdtController = null;
+    if (persistence) void persistence.destroy().catch(() => undefined);
+    controller?.destroy();
+  }
+  function managedController(document: SketchDocument): CrdtDocumentController {
+    releaseLocalCrdt();
+    const controller = createCrdtController(document);
+    localCrdtController = controller;
+    if (typeof indexedDB !== 'undefined') {
+      const persistence = attachIndexedDbPersistence(controller, `document:${document.id}`);
+      crdtPersistence = persistence;
+      void persistence.ready.catch(() => undefined);
+    }
+    return controller;
+  }
+  const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
+  let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
   let guest: GuestSession | null = null;
   const activeSession = () => guest ?? authority!;
   const snapshotSource = () => activeSession().source;
@@ -507,7 +535,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const nextSnapshot = nextGuest?.source.getSnapshot();
     if (barrier) lifecycle().completeTransition(barrier.token);
     barrier = null; pendingImport = null;
-    guest = nextGuest; authority = nextGuest ? null : factory(createController(document));
+    if (nextGuest) releaseLocalCrdt();
+    guest = nextGuest; authority = nextGuest ? null : factory(managedController(document));
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
@@ -580,6 +609,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const store: WhiteboardStore = {
     state,
     getAuthority() { return authority; },
+    getCrdtController() { return localCrdtController; },
     getGuestSession() { return guest; },
     async joinGuestSession(next) {
       if (state.transitioning || next === guest) return false;
@@ -1390,7 +1420,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     whenIdle() { return lastWrite; },
     needsCloseWarning() { return needsClosePrompt(state.file, state.revision, state.hasDraft) || pendingWrites > 0 || Boolean(unknownWrite) || guest?.getStatus().hasUnresolvedOutcome === true; },
-    dispose() { disposed = true; settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } },
+    dispose() { disposed = true; settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } releaseLocalCrdt(); },
   };
   const unsubscribeClose = bridge.onCloseRequested((requestId) => { void requestTransition('close', requestId); });
   const unsubscribeMenu = bridge.onMenuCommand((command) => {

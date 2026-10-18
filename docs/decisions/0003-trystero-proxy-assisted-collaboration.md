@@ -1,6 +1,6 @@
 # ADR 0003 — Trystero als optionaler P2P-Transportadapter
 
-Status: angenommen. Umsetzung wird in [#72](https://github.com/J-ARTS/de.sketchdraw.io/issues/72) geplant; die Yjs-Datenschicht folgt [ADR 0004](./0004-yjs-crdt-data-layer.md) und [#71](https://github.com/J-ARTS/de.sketchdraw.io/issues/71).
+Status: angenommen; Transportadapter, CRDT-Brücke und Modusoberfläche sind umgesetzt. Reale Proxy-, TURN- und Lastnachweise bleiben in [#72](https://github.com/J-ARTS/de.sketchdraw.io/issues/72) offen. Die Yjs-Datenschicht folgt [ADR 0004](./0004-yjs-crdt-data-layer.md) und [#71](https://github.com/J-ARTS/de.sketchdraw.io/issues/71).
 
 ## Kontext
 
@@ -85,6 +85,24 @@ Für größere Räume werden vor einer Produktzusage begrenzte Topologien vergli
 ## Paket- und Prototypbefund
 
 Eine temporäre Browser-Bündelung außerhalb des Repositorys mit `yjs@13.6.32`, `y-indexeddb@9.0.12`, `y-protocols@1.0.7` und `@trystero-p2p/mqtt@0.26.0` war erfolgreich. Die vollständig exportierende, minifizierte Testbündelung ergab ungefähr 158 KiB gzip: rund 30 KiB für Yjs/Persistenz/Awareness und rund 127 KiB für Trystero/MQTT. `npm audit --omit=dev` meldete für diesen temporären Stand keine bekannte Schwachstelle. Das ist ein Kompatibilitäts- und Größenhinweis, kein Laufzeit- oder Sicherheitsnachweis.
+
+## Umgesetzter Stand vom 18.10.2026
+
+`src/collaboration/transport.ts` definiert den transportneutralen Vertrag. `automatic.ts` implementiert `@trystero-p2p/mqtt@0.26.0`; `crdt.ts` verbindet dessen getrennte Sync-, Update- und Awareness-Actions mit dem Yjs-Controller. Der bisherige `PeerLink` und das manuelle Owner-/Gastprotokoll bleiben unverändert als Strict Direct erhalten.
+
+Automatic P2P besitzt folgende erzwungene Grenzen:
+
+- Raum-ID und Passwort enthalten jeweils 256 Bit Zufall; die signierte, fünf Minuten gültige Einladung bindet Raum, Rolle, Dokument, Controller-, Sitzungs- und Permission-Epoch sowie die ausdrücklich konfigurierten Endpunkte.
+- `onPeerHandshake` verifiziert Sketchdraw-P-256-Identität, Sitzung, Einladung und Grant, bevor ein Peer Actions verwenden darf. Trystero-Peer-IDs dienen nur dem Routing.
+- Jede Action ist separat signiert und bindet Kanal, Rolle, Grant-Generation, Sequenz, Bytezahl, SHA-256 und Sitzung. Sequenzen bleiben pro Identität über eine Transportwiederverbindung erhalten. Viewer dürfen ausschließlich Sync und Awareness senden.
+- Eingangsgrenzen betragen 256 KiB für State-Vectors, 4 MiB für Yjs-Updates, 64 KiB für Awareness und 8 MiB für Assets. Zusätzlich begrenzt der Adapter ausstehende Ausgangsdaten auf 16 MiB.
+- MQTT-Relays müssen als sichtbare, credential-freie `wss://`-Adressen angegeben werden. `rtcConfig` ist ebenfalls ausdrücklich anzugeben; es gibt keine eingebauten öffentlichen STUN-/TURN-Adressen oder TURN-Zugangsdaten.
+- Die Vue-Oberfläche trennt „Strict Direct“ und „Automatic P2P“, zeigt Signaling- und ICE/TURN-Adressen und erklärt die externe Signaling-Grenze. Automatic P2P startet ohne angegebenen WSS-Endpunkt nicht.
+- Der Trystero-WebSocket läuft im Renderer und nutzt damit Chromium/Electrons System-Netzwerkpfad. Electron aktiviert vor dem App-Start `WebRtcHideLocalIpsWithMdns`. Daraus wird ohne reale Plattformmessung keine PAC-/NTLM-/Kerberos-Garantie abgeleitet.
+
+`@trystero-p2p/mqtt@0.26.0` und `@trystero-p2p/core@0.26.0` sind MIT-lizenziert. Der direkte Produktionsaudit meldete keine bekannte Schwachstelle. Der automatische Modus wird dynamisch geladen: Der normale Renderer-Chunk misst 1.064,93 kB minifiziert beziehungsweise 326,05 kB gzip; der Automatic-P2P-Chunk 403,13 kB beziehungsweise 123,47 kB gzip. Dadurch belastet Trystero den üblichen Startpfad erst beim Öffnen des automatischen Modus.
+
+Deterministische In-Memory-Transporttests prüfen Zwei-Peer-Handshake, Grantbindung, Viewer-Abweisung, Replay, unbekannte Peers, explizite Endpunkte und einen vollständigen Yjs-Updatepfad. Die Browseroberfläche prüft die Modustrennung und verweigert fehlende Endpunkte. Diese Tests ersetzen keinen echten MQTT-Broker-, Unternehmensproxy-, TURN-, Ausfall- oder 25/50/100-Teilnehmer-Nachweis. Ein Gast kann im aktuellen UI-Prototyp nur beitreten, wenn dieselbe Dokument-ID bereits geöffnet ist; der sichere automatische Bootstrap eines fremden Dokuments bleibt vor einer allgemeinen Freigabe zu lösen.
 
 ## Erforderliche Nachweise
 

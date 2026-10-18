@@ -21,15 +21,16 @@ Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert.
 - Synchronisierter Diagrammtext mit Validierung, Konfliktprüfung und erhaltenen Entwürfen.
 - SVG- und draw.io-Austausch mit einer Vorschau möglicher Konvertierungsverluste.
 - Automatischer lokaler MCP-Zugriff auf das aktuell geöffnete Desktop-Dokument, ohne Freigabe-Tab.
-- Verschlüsselte direkte Zusammenarbeit mit manuellem Einladungsaustausch und Rollen.
+- Yjs-basierte kollaborative Dokumente mit lokaler IndexedDB-Wiederherstellung und actor-lokalem Undo/Redo.
+- Zwei sichtbare Kollaborationsmodi: Strict Direct mit manuellem Einladungsaustausch sowie Automatic P2P über ausdrücklich konfigurierte Trystero-MQTT/WSS- und ICE/TURN-Endpunkte.
 
-Dokumente werden lokal gespeichert. Die Zusammenarbeit verwendet keine zentralen Dokument-, Signaling-, STUN-, TURN- oder Relay-Dienste. Direkte Erreichbarkeit ist deshalb nicht in jedem Netzwerk gegeben. Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.
+Dokumente werden lokal gespeichert. **Strict Direct** verwendet keine zentralen Dokument-, Signaling-, STUN-, TURN- oder Relay-Dienste; direkte Erreichbarkeit ist deshalb nicht in jedem Netzwerk gegeben. **Automatic P2P** ist ein ausdrücklicher Opt-in und zeigt seine externen Signaling- und ICE/TURN-Endpunkte an. Signaling speichert oder transportiert keine Diagrammdaten. Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.
 
 ## Lizenz
 
 Sketchdraw steht unter der **PolyForm Noncommercial License 1.0.0**, soweit einzelne Bestandteile nicht anders gekennzeichnet sind. Nutzung, Änderungen und Weitergabe sind für die im [Lizenztext](LICENSE) erlaubten Zwecke möglich. Für darüber hinausgehende kommerzielle Nutzung ist eine gesonderte Erlaubnis der Rechteinhaber erforderlich.
 
-Die [Lizenz-README](docs/licensing/README.md) erklärt die Bedingungen, Drittanbieter-Lizenzen und den Auslieferungsstand. Die Lizenzen der verwendeten Bibliotheken und Schriften bleiben erhalten.
+Die [Lizenz-README](docs/licensing/README.md) erklärt die Bedingungen und den Auslieferungsstand. Direkte Kollaborationsabhängigkeiten stehen in den [Drittanbieter-Hinweisen](THIRD_PARTY_NOTICES.md); die Lizenzen der verwendeten Bibliotheken und Schriften bleiben erhalten.
 
 ## Entwicklung
 

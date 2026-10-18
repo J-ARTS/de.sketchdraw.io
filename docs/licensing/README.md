@@ -18,7 +18,7 @@ Wer Software oder Teile davon weitergibt, muss den Empfängern die Lizenzbedingu
 
 ## Drittanbieter und Schriften
 
-Drittanbieterkomponenten behalten ihre jeweiligen Lizenzen; die Projektlizenz ersetzt diese nicht. Insbesondere werden **Inter** und **JetBrains Mono** unter der **SIL Open Font License 1.1 (OFL-1.1)** bereitgestellt. Beide vollständigen Schriftlizenzen samt Urheberhinweisen stehen in [public/FONT_LICENSES.txt](../../public/FONT_LICENSES.txt).
+Drittanbieterkomponenten behalten ihre jeweiligen Lizenzen; die Projektlizenz ersetzt diese nicht. Die direkt verwendeten Kollaborationspakete und ihre festgeschriebenen Versionen stehen in den [Third-party software notices](../../THIRD_PARTY_NOTICES.md). Insbesondere werden **Inter** und **JetBrains Mono** unter der **SIL Open Font License 1.1 (OFL-1.1)** bereitgestellt. Beide vollständigen Schriftlizenzen samt Urheberhinweisen stehen in [public/FONT_LICENSES.txt](../../public/FONT_LICENSES.txt).
 
 Die Schriften bleiben unter der OFL. Bei ihrer Weitergabe müssen die jeweiligen Urheberhinweise und Lizenzbedingungen erhalten bleiben. Die OFL erlaubt die Bündelung mit Software unter ihren Bedingungen; sie gilt nicht automatisch für Dokumente, die mit den Schriften erstellt werden. Siehe den [offiziellen OFL-Text](https://openfontlicense.org/open-font-license-official-text/).
 

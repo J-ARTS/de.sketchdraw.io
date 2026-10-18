@@ -2,6 +2,7 @@
 import type { InjectionKey } from 'vue';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
+import type { CrdtDocumentController } from '@/crdt';
 import type {
   DesktopBridge,
   DocumentController,
@@ -262,6 +263,7 @@ export interface WhiteboardState {
 export interface WhiteboardStore {
   /** Trusted local composition only; never expose this capability through IPC. */
   getAuthority(): DocumentAuthority | null;
+  getCrdtController(): CrdtDocumentController | null;
   subscribeAuthority(listener: (authority: DocumentAuthority | null) => void): () => void;
   readonly state: WhiteboardState;
 

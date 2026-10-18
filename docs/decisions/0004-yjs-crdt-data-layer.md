@@ -1,6 +1,6 @@
 # ADR 0004 — Yjs als CRDT-Datenschicht
 
-Status: angenommen. Umsetzung wird in [#71](https://github.com/J-ARTS/de.sketchdraw.io/issues/71) geplant; der Transport folgt [ADR 0003](./0003-trystero-proxy-assisted-collaboration.md) und [#72](https://github.com/J-ARTS/de.sketchdraw.io/issues/72).
+Status: angenommen und als vertikaler Produktionsschnitt umgesetzt. Abnahme und verbleibende Betriebsgrenzen werden in [#71](https://github.com/J-ARTS/de.sketchdraw.io/issues/71) gepflegt; der Transport folgt [ADR 0003](./0003-trystero-proxy-assisted-collaboration.md) und [#72](https://github.com/J-ARTS/de.sketchdraw.io/issues/72).
 
 ## Entscheidung
 
@@ -156,6 +156,32 @@ Awareness hält ausschließlich flüchtige Informationen: Presence, Cursor, Ausw
 Assets werden binär und dedupliziert nach Inhalts-Hash gespeichert. Metadaten referenzieren den Hash. Pro Asset, Update, Dokument und Sitzung gelten harte Limits. Initial-Sync und Assettransfer laufen getrennt von interaktiven Updates, damit große Bilder Cursor und Textänderungen nicht blockieren.
 
 Yjs-Historie, Tombstones und IndexedDB-Wachstum werden gemessen. Kompaktierung darf nur über einen validierten Snapshot in eine neue Dokumentgeneration erfolgen; alle Peers müssen den Generationswechsel erkennen.
+
+## Umgesetzter Stand vom 18.10.2026
+
+Der produktive Renderer erzeugt lokale Dokumentautoritäten jetzt mit `createCrdtController()`. Die vorhandenen `DocumentController`-, `DocumentAuthority`-, Datei-, MCP-, Diagram-as-Code- und Plugin-Verträge bleiben dabei erhalten. `revision` ist ein lokaler Projektionszähler; der neue Transport tauscht Yjs-State-Vectors und `updateV2`-Deltas aus.
+
+Die Implementierung liegt unter `src/crdt/`:
+
+- `projection.ts` bildet Dokumentmetadaten, Elemente, Order-Keys, Assets, Komponentensets, Annotation-Blöcke und -Runs, Tabellenzellen, Kommentare und Aufgaben auf versionierte Yjs-Typen ab. Element-, Kommentar-, Aufgaben- und Zelltexte verwenden `Y.Text`.
+- Gleichzeitige Parent-Änderungen werden bei der Projektion deterministisch repariert: ungültige Referenzen werden gelöst und in einem Zyklus verliert die lexikografisch größte Element-ID ihre Parent-Kante. Die CRDT-Daten bleiben auf allen Replikas identisch; der nächste lokale Snapshot schreibt die Reparatur zurück.
+- `controller.ts` prüft Remote-Updates zuerst auf Größe, Dokumentbindung und vollständiger Schattenprojektion. Viewer-Updates werden vor der aktiven Anwendung abgewiesen. Pro Actor verwaltet ein `Y.UndoManager` ausschließlich die passende lokale Origin.
+- `awareness.ts` begrenzt und validiert Presence, Cursor, Auswahl und Agentenstatus; diese Daten sind kein Bestandteil von Dokumentupdates oder IndexedDB-Snapshots.
+- `persistence.ts` verwendet einen dokumentgebundenen `y-indexeddb`-Cache und lädt ihn zuerst in eine Schatteninstanz. Falsche Dokument-IDs, beschädigte Daten und Cachewechsel werden nicht still übernommen.
+- `nanoevents` veröffentlicht kompakte Commit-, Update- und Persistenzereignisse nach dem Commit. Listenerfehler sind isoliert; vollständige Dokumentkopien sind kein Event-Payload.
+
+Direkte Laufzeitabhängigkeiten sind exakt gepinnt und MIT-lizenziert:
+
+| Paket | Version | Verwendung |
+| --- | --- | --- |
+| `yjs` | 13.6.32 | CRDT-Dokument, State-Vectors, Updates und Undo |
+| `y-protocols` | 1.0.7 | Awareness |
+| `y-indexeddb` | 9.0.12 | lokaler Recovery-Cache |
+| `nanoevents` | 9.1.0 | typisierte Ereignisgrenze |
+
+`npm audit --omit=dev` meldete am geprüften Stand keine bekannte Produktionsschwachstelle. Trystero wird dynamisch geladen: Der normale Renderer-Chunk einschließlich Yjs, Vue, Fonts und bestehender Funktionen ist 1.064,93 kB groß, 326,05 kB gzip; Automatic P2P liegt in einem eigenen Chunk mit 403,13 kB beziehungsweise 123,47 kB gzip. Für den normalen Renderer-Chunk bleibt die bestehende Größenwarnung sichtbar.
+
+Die deterministischen Tests decken parallele Text- und Rich-Text-Änderungen, Kommentarantworten, Aufgaben, Add/Delete/Reorder, zyklische Moves, unterschiedliche Empfangsreihenfolgen, State-Vector-Reconnect, Duplikate, Viewer-/Schema-/Größenabwehr, actor-lokales Undo, Awareness sowie IndexedDB-Neustart, Schlüsselisolation und Löschen ab. Große Assets bleiben im offenen v1-Dateiformat als begrenzte Data-URLs gespeichert; eine Hash-basierte binäre Kompaktierung ist weiterhin eine Speicheroptimierung und keine Voraussetzung für die jetzige Projektion.
 
 ## Migrationsschritte
 

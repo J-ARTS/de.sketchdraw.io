@@ -471,3 +471,20 @@ Zwei Prozesse auf demselben Rechner belegen den Protokollpfad, keine netzübergr
 | P2P-C08: Strikte Formulierung ohne STUN | Root bestätigt am 17.10.2026: keine zentralen STUN-/TURN-Dienste; direkte ICE-Protokollpakete sind zulässig. Netzwerkabnahme muss diese tatsächliche Grenze prüfen |
 
 Die API-Skizzen, Grenzwerte und UX-Entscheidungen dieses Dokuments sind eigene Architekturvorschläge. Die verlinkten Primärquellen belegen WebRTC-/Kryptografieeigenschaften, nicht die Sicherheit oder erfolgreiche Implementierung dieses Sketchdraw-Protokolls.
+
+## 13. Automatic-P2P-Erweiterung mit Yjs und Trystero
+
+Der implementierte Automatic-P2P-Modus ergänzt diesen Strict-Direct-Vertrag, ersetzt ihn aber nicht. `src/collaboration/transport.ts` bildet die gemeinsame Transportgrenze; `automatic.ts` verwendet `@trystero-p2p/mqtt@0.26.0` für ausdrücklich konfigurierte MQTT/WSS-Signaling-Endpunkte und WebRTC-DataChannels. `src/collaboration/crdt.ts` synchronisiert Yjs-State-Vectors und validierte Updates. Trystero wird erst beim Öffnen dieses Modus dynamisch geladen.
+
+Die automatische Einladung ist fünf Minuten gültig und signiert Raum-ID, Passwort, Einladungs-ID, Rolle, Dokument-/Controller-/Session-/Permission-Epoche sowie die sichtbaren MQTT- und ICE/TURN-Einstellungen. Raum-ID und Passwort besitzen jeweils 256 Bit Zufall. Vor jeder Action prüft ein P-256-Handshake die Sketchdraw-Identität und den aktuellen Grant. Actions binden Kanal, Sitzung, Identität, Rolle, Grant-ID und -Generation, monotone Sequenz, Länge und SHA-256 an die Signatur. Viewer dürfen nur Sync und Awareness senden.
+
+| Kanal | Eingangsgrenze | Bedeutung |
+| --- | ---: | --- |
+| `sync` | 256 KiB | Yjs-State-Vector und Initialabgleich |
+| `update` | 4 MiB | validiertes Yjs-Update |
+| `awareness` | 64 KiB | flüchtige Presence-Daten |
+| `asset` | 8 MiB | getrennte Assetübertragung |
+
+Ausstehende Ausgangsdaten sind insgesamt auf 16 MiB begrenzt. Abgewiesene Rollen, falsche Sitzungen, unbekannte Identitäten, wiederholte Sequenzen, falsche Hashes und übergroße Nachrichten erreichen den CRDT-Controller nicht. Der Controller prüft Remote-Updates zusätzlich in einer Schattenprojektion gegen Schema, Dokumentbindung und Domainregeln.
+
+Die Oberfläche verlangt mindestens einen credential-freien `wss://`-Endpunkt und eine explizite RTC-Konfiguration. Es gibt keine fest eingebauten öffentlichen STUN-/TURN-Adressen und keinen WSS-Datenfallback. WSS läuft im Renderer über Chromiums System-Netzwerkpfad; daraus folgt ohne reale Plattformprüfung keine Zusage für PAC, NTLM, Kerberos oder manuelle Proxy-Anmeldung. Der sichere Bootstrap eines noch nicht geöffneten fremden Dokuments sowie echte Broker-, Proxy-, TURN-, Ausfall- und 25/50/100-Teilnehmer-Tests bleiben die offenen Freigabegates in Issue #72.

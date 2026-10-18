@@ -1,15 +1,39 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { acceptInvitation, createOwnerSession, createSessionIdentity, type CollaborationStatus, type GuestPairing, type GuestSession, type OwnerSession, type PairingReview, type SessionIdentity } from '@/collaboration';
+import {
+  acceptInvitation,
+  createOwnerSession,
+  createSessionIdentity,
+  type CollaborationStatus,
+  type CollaborationTransport,
+  type CollaborationTransportStatus,
+  type GuestPairing,
+  type GuestSession,
+  type OwnerSession,
+  type PairingReview,
+  type SessionIdentity,
+} from '@/collaboration';
+import { bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
+import type { CrdtDocumentController } from '@/crdt';
 import type { DocumentAuthority } from '@/session';
 
-const props = defineProps<{ open: boolean; authority: DocumentAuthority | null; joinGuest: (session: GuestSession) => Promise<boolean>; leaveGuest: () => Promise<boolean> }>();
+const props = defineProps<{ open: boolean; authority: DocumentAuthority | null; crdtController: CrdtDocumentController | null; joinGuest: (session: GuestSession) => Promise<boolean>; leaveGuest: () => Promise<boolean> }>();
 const emit = defineEmits<{ close: [] }>();
 const mode = ref<'invite' | 'join'>('invite'), role = ref<'viewer' | 'editor'>('viewer');
 const inviteText = ref(''), incoming = ref(''), answerText = ref('');
 const review = shallowRef<PairingReview | null>(null), status = shallowRef<CollaborationStatus | null>(null);
 const checked = ref(false), busy = ref(false), error = ref(''), note = ref('');
+const connectionMode = ref<'strict' | 'automatic'>('strict');
+const automaticRole = ref<'viewer' | 'editor'>('viewer');
+const relayUrlsText = ref('');
+const rtcConfigText = ref('{"iceServers":[]}');
+const automaticInvitation = ref('');
+const automaticIncoming = ref('');
+const automaticStatus = shallowRef<CollaborationTransportStatus | null>(null);
+const automaticActive = ref(false);
 let owner: OwnerSession | undefined, guest: GuestSession | undefined, pairing: GuestPairing | undefined;
+let automaticTransport: CollaborationTransport | undefined, automaticBinding: CrdtTransportBinding | undefined;
+let automaticOffStatus = () => {}, automaticGeneration = 0;
 let identity: Promise<SessionIdentity> | undefined, offStatus = () => {}, generation = 0, disposed = false;
 const identityForSession = () => identity ??= createSessionIdentity();
 const states: Record<CollaborationStatus['state'], string> = { pairing: 'Einladung vorbereiten', 'awaiting-confirmation': 'Code bestätigen', syncing: 'Diagramm abgleichen', ready: 'Verbunden', disconnected: 'Verbindung unterbrochen', 'resync-required': 'Neuer Abgleich erforderlich', revoked: 'Freigabe beendet', closed: 'Sitzung beendet' };
@@ -25,11 +49,140 @@ function clearPairing() { pairing?.cancel(); pairing = undefined; inviteText.val
 function listen(session: OwnerSession | GuestSession) { offStatus(); status.value = session.getStatus(); offStatus = session.subscribeStatus(value => { status.value = value; }); }
 watch(() => props.authority, (next, previous) => {
   if (next === previous) return;
+  void stopAutomatic(false);
   generation++; clearPairing(); busy.value = false; error.value = ''; note.value = '';
   if (owner) { void owner.close().catch(() => {}); owner = undefined; }
   if (next && guest) { void guest.leave().catch(() => {}); guest = undefined; }
   if (!guest) { offStatus(); offStatus = () => {}; status.value = null; }
 });
+
+function automaticRelays(): string[] {
+  const values = relayUrlsText.value.split(/[\n,]/).map(value => value.trim()).filter(Boolean);
+  if (!values.length) throw new Error('AUTOMATIC_RELAY_REQUIRED');
+  return values;
+}
+
+function automaticRtcConfig(): RTCConfiguration {
+  let value: unknown;
+  try { value = JSON.parse(rtcConfigText.value); } catch { throw new Error('AUTOMATIC_RTC_CONFIG_INVALID'); }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('AUTOMATIC_RTC_CONFIG_INVALID');
+  return value as RTCConfiguration;
+}
+
+function reportAutomatic(value: unknown): void {
+  const code = value instanceof Error ? value.message : String(value);
+  error.value = code.includes('AUTOMATIC_RELAY_REQUIRED')
+    ? 'Trage mindestens einen ausdrücklich gewählten MQTT-Endpunkt mit wss:// ein.'
+    : code.includes('DOCUMENT_MISMATCH')
+      ? 'Die Einladung gehört zu einem anderen Dokument. Öffne zuerst dieselbe Sketchdraw-Datei.'
+      : code.includes('RTC_CONFIG')
+        ? 'Die ICE-/TURN-Konfiguration ist kein gültiges JSON-Objekt.'
+        : 'Die automatische P2P-Verbindung konnte nicht sicher aufgebaut werden.';
+}
+
+function listenAutomatic(transport: CollaborationTransport): void {
+  automaticOffStatus();
+  automaticStatus.value = transport.getStatus();
+  automaticOffStatus = transport.subscribeStatus(value => { automaticStatus.value = value; });
+}
+
+async function startAutomaticOwner(): Promise<void> {
+  if (busy.value || !props.authority || !props.crdtController || automaticTransport) return;
+  const epoch = ++automaticGeneration;
+  busy.value = true; error.value = ''; note.value = '';
+  try {
+    const automatic = await import('@/collaboration/automatic');
+    const identity = await identityForSession();
+    const relays = automaticRelays();
+    const rtcConfig = automaticRtcConfig();
+    const credentials = automatic.createAutomaticRoomCredentials();
+    const expiresAt = Date.now() + 5 * 60_000;
+    const session = {
+      ...props.authority.session,
+      sessionId: credentials.roomId.slice(0, 32),
+      permissionEpoch: 0,
+    };
+    const ownerGrant = { role: 'owner' as const, grantId: `auto-owner:${credentials.invitationId}`, grantGeneration: 0 };
+    const transport = await automatic.createAutomaticTransport({
+      appId: 'io.sketchdraw.desktop.v1',
+      ...credentials,
+      relayUrls: relays,
+      rtcConfig,
+      session,
+      identity,
+      localGrant: ownerGrant,
+      authorizePeer: request => request.invitationId === credentials.invitationId && Date.now() <= expiresAt
+        ? { role: automaticRole.value, grantId: `auto-guest:${credentials.invitationId}:${request.keyHash.slice(0, 16)}`, grantGeneration: 0 }
+        : null,
+    });
+    if (epoch !== automaticGeneration || disposed) { await transport.close(); return; }
+    const invitation = await automatic.createAutomaticInvitation(identity, {
+      appId: 'io.sketchdraw.desktop.v1',
+      ...credentials,
+      relayUrls: relays,
+      rtcConfig,
+      session,
+      role: automaticRole.value,
+    });
+    automaticTransport = transport;
+    automaticActive.value = true;
+    automaticBinding = bindCrdtTransport(props.crdtController, transport);
+    automaticInvitation.value = invitation;
+    listenAutomatic(transport);
+    note.value = 'Automatischer Raum bereit. Die Einladung gilt fünf Minuten; Diagrammdaten laufen nur über die direkte WebRTC-Verbindung.';
+  } catch (value) { if (epoch === automaticGeneration) reportAutomatic(value); }
+  finally { if (epoch === automaticGeneration) busy.value = false; }
+}
+
+async function joinAutomatic(): Promise<void> {
+  if (busy.value || !props.crdtController || automaticTransport || !automaticIncoming.value.trim()) return;
+  const epoch = ++automaticGeneration;
+  busy.value = true; error.value = ''; note.value = '';
+  try {
+    const automatic = await import('@/collaboration/automatic');
+    const { invitation, ownerKeyHash } = await automatic.parseAutomaticInvitation(automaticIncoming.value.trim());
+    if (invitation.session.documentId !== props.crdtController.getSnapshot().document.id) throw new Error('DOCUMENT_MISMATCH');
+    const identity = await identityForSession();
+    const localGrant = { role: invitation.role, grantId: `auto-guest:${invitation.invitationId}:${identity.keyHash.slice(0, 16)}`, grantGeneration: 0 };
+    const transport = await automatic.createAutomaticTransport({
+      appId: invitation.appId,
+      roomId: invitation.roomId,
+      password: invitation.password,
+      invitationId: invitation.invitationId,
+      relayUrls: invitation.relayUrls,
+      rtcConfig: invitation.rtcConfig,
+      session: invitation.session,
+      identity,
+      localGrant,
+      authorizePeer: request => request.keyHash === ownerKeyHash
+        ? { role: 'owner', grantId: `auto-owner:${invitation.invitationId}`, grantGeneration: 0 }
+        : null,
+    });
+    if (epoch !== automaticGeneration || disposed) { await transport.close(); return; }
+    automaticTransport = transport;
+    automaticActive.value = true;
+    automaticBinding = bindCrdtTransport(props.crdtController, transport);
+    listenAutomatic(transport);
+    note.value = 'Automatische P2P-Verbindung wird über den System-Netzwerkpfad aufgebaut.';
+  } catch (value) { if (epoch === automaticGeneration) reportAutomatic(value); }
+  finally { if (epoch === automaticGeneration) busy.value = false; }
+}
+
+async function stopAutomatic(showNote = true): Promise<void> {
+  const binding = automaticBinding;
+  const transport = automaticTransport;
+  automaticGeneration += 1;
+  automaticBinding = undefined;
+  automaticTransport = undefined;
+  automaticActive.value = false;
+  automaticOffStatus(); automaticOffStatus = () => {};
+  automaticStatus.value = null;
+  automaticInvitation.value = '';
+  automaticIncoming.value = '';
+  await binding?.close().catch(() => undefined);
+  await transport?.close().catch(() => undefined);
+  if (showNote && !disposed) note.value = 'Automatische P2P-Sitzung beendet.';
+}
 async function createInvitation(resumePeerId?: string) {
   if (busy.value || !props.authority || inviteText.value) return;
   const authority = props.authority, epoch = generation;
@@ -133,13 +286,18 @@ async function copy(value: string) {
   try { await navigator.clipboard.writeText(value); note.value = 'Verbindungstext kopiert.'; }
   catch { note.value = 'Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'; }
 }
-onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus(); void owner?.close().catch(() => {}); void guest?.leave().catch(() => {}); });
+onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus(); void owner?.close().catch(() => {}); void guest?.leave().catch(() => {}); void stopAutomatic(false); });
 </script>
 
 <template>
   <aside v-if="open" class="peer-panel sd-panel" aria-label="Zusammenarbeiten" data-testid="collaboration-panel">
     <header><h2>Zusammenarbeiten</h2><button class="sd-icon-btn" aria-label="Zusammenarbeit schließen" @click="emit('close')">×</button></header>
     <div class="body">
+      <div v-if="!owner && !guest && !automaticActive" class="connection-modes" role="group" aria-label="Verbindungsmodus">
+        <button class="sd-btn" :aria-pressed="connectionMode === 'strict'" :disabled="busy" @click="connectionMode = 'strict'; error = ''; note = ''">Strict Direct</button>
+        <button class="sd-btn" :aria-pressed="connectionMode === 'automatic'" :disabled="busy" @click="connectionMode = 'automatic'; error = ''; note = ''">Automatic P2P</button>
+      </div>
+      <template v-if="connectionMode === 'strict'">
       <p>Verschlüsselt direkt zwischen euren Geräten. Einladungen und Antworten tauscht ihr selbst aus; es gibt keinen zentralen Speicher oder Vermittlungsserver.</p>
       <p class="network-note">Direkte Verbindungen funktionieren nicht in jedem Netzwerk. Beide Geräte müssen erreichbar und die App geöffnet bleiben.</p>
       <p v-if="status" role="status" class="connection-state">{{ states[status.state] }} · {{ status.mode === 'owner' ? 'Dein Dokument' : status.role === 'viewer' ? 'Nur ansehen' : 'Gemeinsam bearbeiten' }}</p>
@@ -161,10 +319,32 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
       <button v-if="guest" class="sd-btn full" :disabled="busy" @click="leave">Sitzung verlassen und Kopie behalten</button>
       <button v-if="review && !owner && !guest && !busy" class="sd-btn full" @click="clearPairing">Verbindungsaufbau abbrechen</button>
       <p v-if="busy" role="status">Verbindung wird geprüft …</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="note" role="status">{{ note }}</p>
+      </template>
+      <template v-else>
+        <p>Automatic P2P nutzt Trystero mit ausdrücklich gewählten MQTT/WSS-Endpunkten für die Peer-Suche. Diagrammdaten werden über WebRTC übertragen; die Anwendung verwendet den Chromium-Systemproxy für WSS.</p>
+        <p class="network-note">Dieser Modus verwendet externe Signaling-Endpunkte. Die verwendeten WSS- und ICE-/TURN-Adressen bleiben unten sichtbar. Ein Datenrelay ist nicht enthalten.</p>
+        <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' ? 'Verbunden' : automaticStatus.state === 'connecting' ? 'Verbindung wird aufgebaut' : automaticStatus.state === 'error' ? 'Verbindungsfehler' : 'Sitzung beendet' }} · {{ automaticStatus.peers.length }} {{ automaticStatus.peers.length === 1 ? 'Peer' : 'Peers' }}</p>
+        <template v-if="!automaticActive">
+          <label class="sd-field-label">MQTT/WSS-Endpunkte<textarea v-model="relayUrlsText" class="sd-textarea compact" aria-label="MQTT WSS Endpunkte" placeholder="wss://mqtt.example.org/mqtt" spellcheck="false" /></label>
+          <label class="sd-field-label">ICE-/TURN-Konfiguration<textarea v-model="rtcConfigText" class="sd-textarea compact" aria-label="ICE und TURN Konfiguration" spellcheck="false" /></label>
+          <label class="sd-field-label">Zugriff für diese Einladung<select v-model="automaticRole" class="sd-select" :disabled="busy"><option value="viewer">Nur ansehen</option><option value="editor">Gemeinsam bearbeiten</option></select></label>
+          <button class="sd-btn full" :disabled="busy || !authority || !crdtController" @click="startAutomaticOwner">Automatischen Raum erstellen</button>
+          <div class="automatic-separator"><span>oder beitreten</span></div>
+          <label class="sd-field-label">Automatische Einladung<textarea v-model="automaticIncoming" class="sd-textarea" aria-label="Automatische Einladung einfügen" maxlength="90000" spellcheck="false" :disabled="busy" /></label>
+          <button class="sd-btn full" :disabled="busy || !crdtController || !automaticIncoming.trim()" @click="joinAutomatic">Einladung prüfen und verbinden</button>
+        </template>
+        <template v-if="automaticInvitation">
+          <label class="sd-field-label">Automatische Einladung<textarea class="sd-textarea" aria-label="Automatische Einladung zum Kopieren" :value="automaticInvitation" readonly spellcheck="false" /></label>
+          <button class="sd-btn full" @click="copy(automaticInvitation)">Einladung kopieren</button>
+        </template>
+        <dl v-if="automaticStatus" class="automatic-endpoints"><dt>Signaling</dt><dd v-for="url in automaticStatus.relayUrls" :key="url">{{ url }}</dd><dt>ICE/TURN</dt><dd v-if="!automaticStatus.iceServers.length">Keine externen ICE-Server</dd><dd v-for="url in automaticStatus.iceServers" :key="url">{{ url }}</dd></dl>
+        <button v-if="automaticActive" class="sd-btn full" :disabled="busy" @click="stopAutomatic()">Automatic-P2P-Sitzung beenden</button>
+        <p v-if="busy" role="status">Verbindung wird geprüft …</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="note" role="status">{{ note }}</p>
+      </template>
     </div>
   </aside>
 </template>
 
 <style scoped>
-.peer-panel{position:absolute;right:12px;top:96px;bottom:72px;width:360px;z-index:8;display:flex;flex-direction:column;overflow:hidden}header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle)}h2{font-size:13px}.body{padding:16px;overflow:auto}p{font-size:12px;line-height:1.7;margin:0 0 12px;color:var(--text-muted)}.network-note{font-size:11px}.tabs{display:flex;gap:6px;margin-bottom:14px}.full{width:100%;margin-bottom:12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-textarea{height:80px;font:10px/1.5 var(--font-mono);resize:vertical}.comparison{padding:12px;border:1px solid var(--border-default);border-radius:6px;margin:16px 0}.fingerprints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere}.fingerprints dd{margin:4px 0 10px}.comparison summary{font-size:11px;cursor:pointer;margin-bottom:12px}.comparison h3{font-size:12px}.comparison output{display:block;font:14px/1.7 var(--font-mono);overflow-wrap:anywhere;margin:10px 0}.confirm-check{display:flex;gap:8px;font-size:12px;line-height:1.6;margin:12px 0}.connection-state{color:var(--text-primary);font-weight:600}.peers li{display:flex;gap:7px;flex-direction:column;padding:12px 0;border-top:1px solid var(--border-subtle);font-size:11px}.error{color:var(--status-error)}@media(max-width:860px){.peer-panel{top:188px;width:min(360px,calc(100vw - 24px))}}
+.peer-panel{position:absolute;right:12px;top:96px;bottom:72px;width:360px;z-index:8;display:flex;flex-direction:column;overflow:hidden}header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle)}h2{font-size:13px}.body{padding:16px;overflow:auto}p{font-size:12px;line-height:1.7;margin:0 0 12px;color:var(--text-muted)}.network-note{font-size:11px}.tabs,.connection-modes{display:flex;gap:6px;margin-bottom:14px}.connection-modes .sd-btn{flex:1}.full{width:100%;margin-bottom:12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-textarea{height:80px;font:10px/1.5 var(--font-mono);resize:vertical}.sd-textarea.compact{height:56px}.automatic-separator{display:flex;align-items:center;gap:8px;margin:4px 0 12px;color:var(--text-muted);font-size:10px}.automatic-separator::before,.automatic-separator::after{content:"";height:1px;background:var(--border-subtle);flex:1}.automatic-endpoints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere;margin:12px 0}.automatic-endpoints dt{font-weight:700;margin-top:8px}.automatic-endpoints dd{margin:2px 0;color:var(--text-muted)}.comparison{padding:12px;border:1px solid var(--border-default);border-radius:6px;margin:16px 0}.fingerprints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere}.fingerprints dd{margin:4px 0 10px}.comparison summary{font-size:11px;cursor:pointer;margin-bottom:12px}.comparison h3{font-size:12px}.comparison output{display:block;font:14px/1.7 var(--font-mono);overflow-wrap:anywhere;margin:10px 0}.confirm-check{display:flex;gap:8px;font-size:12px;line-height:1.6;margin:12px 0}.connection-state{color:var(--text-primary);font-weight:600}.peers li{display:flex;gap:7px;flex-direction:column;padding:12px 0;border-top:1px solid var(--border-subtle);font-size:11px}.error{color:var(--status-error)}@media(max-width:860px){.peer-panel{top:188px;width:min(360px,calc(100vw - 24px))}}
 </style>

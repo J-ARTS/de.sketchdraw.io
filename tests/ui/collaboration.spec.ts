@@ -47,3 +47,17 @@ test('invalid invitation is rejected with a recoverable explanation', async ({ p
   await expect(panel.getByRole('button', { name: 'Einladung prüfen' })).toBeEnabled();
   await expect(panel.getByRole('button', { name: 'Identität bestätigen' })).toHaveCount(0);
 });
+
+test('automatic P2P is clearly separated and requires explicit network endpoints', async ({ page }) => {
+  await page.goto('/');
+  await openCollaboration(page);
+  const panel = page.getByTestId('collaboration-panel');
+  await panel.getByRole('button', { name: 'Automatic P2P', exact: true }).click();
+  await expect(panel).toContainText('externe Signaling-Endpunkte');
+  await expect(panel.getByRole('textbox', { name: 'MQTT WSS Endpunkte' })).toBeVisible();
+  await expect(panel.getByRole('textbox', { name: 'ICE und TURN Konfiguration' })).toHaveValue('{"iceServers":[]}');
+  await panel.getByRole('button', { name: 'Automatischen Raum erstellen' }).click();
+  await expect(panel.getByRole('alert')).toContainText('MQTT-Endpunkt');
+  await panel.getByRole('button', { name: 'Strict Direct', exact: true }).click();
+  await expect(panel).toContainText('keinen zentralen Speicher oder Vermittlungsserver');
+});
