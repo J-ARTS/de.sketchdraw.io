@@ -275,7 +275,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Sprache': 'Language',
   'folgt': 'coming soon',
   'Übersichtskarte': 'Minimap',
-  'Vollbild': 'Full screen',
   'Inhalt kopieren': 'Copy content',
   'Umbenennen': 'Rename',
   'Duplizieren': 'Duplicate',
