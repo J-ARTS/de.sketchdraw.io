@@ -1,6 +1,6 @@
 {
   "name": "de.sketchdraw.io",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Open, cross-platform visual workspace for architecture diagrams, whiteboard sketching, Diagram-as-Code, MCP agents, and strict P2P collaboration.",
   "license": "PolyForm-Noncommercial-1.0.0",
