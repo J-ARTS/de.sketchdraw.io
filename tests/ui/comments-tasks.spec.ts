@@ -12,6 +12,13 @@ test('the task board creates, edits, moves and deletes a standalone task', async
   await page.getByTestId('task-board-entry').click();
   const board = page.getByTestId('task-board');
   const createButton = board.getByRole('button', { name: 'Neue Aufgabe' });
+  const closeButton = board.getByRole('button', { name: 'Aufgabenboard schließen' });
+
+  await expect(closeButton).toBeVisible();
+  await expect(board.getByRole('button', { name: 'Zur Zeichenfläche' })).toHaveCount(0);
+  const createBox = await createButton.boundingBox();
+  expect(createBox).not.toBeNull();
+  expect(createBox!.y).toBeGreaterThan(700);
 
   await createButton.click();
   let dialog = page.getByRole('dialog', { name: 'Neue Aufgabe' });
@@ -49,6 +56,8 @@ test('the task board creates, edits, moves and deletes a standalone task', async
   await page.getByRole('dialog', { name: 'Aufgabe bearbeiten' }).getByRole('button', { name: 'Löschen' }).click();
   await expect(board).not.toContainText('Release veröffentlichen');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await closeButton.click();
+  await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
 });
 
 test('comments support pins, replies, editing, sidebar focus and a linked task board', async ({ page }) => {
