@@ -71,7 +71,7 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
 const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = { none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow', block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond' };
 function styleOf(cell: Cell, ctx: ImportContext) {
@@ -103,7 +103,7 @@ function styleOf(cell: Cell, ctx: ImportContext) {
     s.listStyle = v['sketchdrawListStyle'] === 'bullet' ? 'bullet' : 'none';
   s.strokeDash = v['dashed'] === '1' ? (v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
   for (const [key, value] of Object.entries(v))
-    if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1')) || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
+    if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1') && v['sketchdrawKind'] !== 'annotation') || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
       warn(ctx, node, 'STYLE_APPROXIMATED', key, `Style ${key} is not represented exactly.`);
   if (cell.hidden) {
     s.opacity = 0;
@@ -229,7 +229,7 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
   for (const cell of cells.filter(c => c.vertex && !byId.get(c.parent ?? '')?.edge)) {
     const s = cell.style, hasChildren = (childCounts.get(cell.id) ?? 0) > 0;
     const shapeVariant = typeof s['sketchdrawShapeVariant'] === 'string' && shapeVariants.has(s['sketchdrawShapeVariant'] as ShapeVariant) ? s['sketchdrawShapeVariant'] as ShapeVariant : undefined;
-    let kind: SketchElement['kind'] = shapeVariant ? shapeBaseKind(shapeVariant) : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    let kind: SketchElement['kind'] = shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
     if (!shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);

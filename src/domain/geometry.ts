@@ -8,6 +8,7 @@ import type {
   SketchDocument,
   SketchElement,
 } from './types';
+import { areAnnotationDocumentsEqual, cloneAnnotationDocument } from './annotation';
 
 export function normalizeZero(value: number): number {
   return Object.is(value, -0) ? 0 : value;
@@ -258,6 +259,7 @@ export function cloneElement(element: SketchElement): SketchElement {
   if (element.shapeVariant !== undefined) cloned.shapeVariant = element.shapeVariant;
   if (element.description !== undefined) cloned.description = element.description;
   if (element.text !== undefined) cloned.text = element.text;
+  if (element.annotation !== undefined) cloned.annotation = cloneAnnotationDocument(element.annotation);
   if (element.author !== undefined) cloned.author = element.author;
   if (element.points !== undefined) cloned.points = element.points.map(clonePoint);
   if (element.connectorRouting !== undefined) cloned.connectorRouting = element.connectorRouting;
@@ -414,6 +416,7 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
     a.label === b.label &&
     a.description === b.description &&
     a.text === b.text &&
+    areAnnotationDocumentsEqual(a.annotation, b.annotation) &&
     a.author === b.author &&
     arePointsEqual(a.points, b.points) &&
     a.connectorRouting === b.connectorRouting &&

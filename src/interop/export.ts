@@ -1,4 +1,4 @@
-import { connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
+import { annotationPlainText, connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
@@ -47,6 +47,24 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
 function stickyAuthor(el: SketchElement, d: DiagnosticCollector): string {
   if (el.kind !== 'sticky-note' || !el.author) return '';
   return `<text${attrs({ x: 20, y: el.height - 20, 'font-size': Math.max(12, el.style.fontSize * .72), 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity * .82 })}>${escapeXmlText(xmlText(el.author, d, el))}</text>`;
+}
+function annotationSvgContent(el: SketchElement, d: DiagnosticCollector): string {
+  if (el.kind !== 'annotation' || !el.annotation) return '';
+  diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Formatted annotation text depends on fonts available in the receiving application.');
+  const base = el.style.fontSize;
+  let y = 28;
+  let numbered = 0;
+  return el.annotation.blocks.map((block) => {
+    const size = block.type === 'heading-1' ? base * 1.8 : block.type === 'heading-2' ? base * 1.5 : block.type === 'heading-3' ? base * 1.28 : block.type === 'heading-4' ? base * 1.12 : base;
+    const weight = block.type.startsWith('heading-') ? 700 : 400;
+    if (block.type === 'numbered') numbered += 1; else numbered = 0;
+    const prefix = block.type === 'bullet' ? '• ' : block.type === 'numbered' ? `${numbered}. ` : block.type === 'quote' ? '❝ ' : '';
+    y += size;
+    const runs = block.runs.map((run, index) => `<tspan${attrs({ ...(index === 0 ? { x: 28 } : {}), 'font-weight': run.bold ? 700 : undefined, 'font-style': run.italic ? 'italic' : undefined, 'text-decoration': run.underline ? 'underline' : undefined, fill: run.color ? safeColor(run.color, d, el) : undefined })}>${index === 0 ? escapeXmlText(prefix) : ''}${escapeXmlText(xmlText(run.text, d, el))}</tspan>`).join('');
+    const output = `<text${attrs({ x: 28, y, 'font-size': size, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': weight, fill: safeColor(el.style.stroke, d, el), opacity: el.style.opacity })}>${runs}</text>`;
+    y += size * .65;
+    return output;
+  }).join('');
 }
 function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): string {
   if (!isResourceCard(el)) return '';
@@ -120,6 +138,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       out.append(`<defs><filter id="sd-${index}-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#18251d" flood-opacity=".18"/></filter></defs>`);
       out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, fill: safeColor(el.style.fill, d, el), opacity: el.style.opacity, stroke: 'none', filter: `url(#sd-${index}-shadow)` })}/>`);
     }
+    else if (el.kind === 'annotation') {
+      out.append(`<defs><filter id="sd-${index}-annotation-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#263244" flood-opacity=".14"/></filter></defs>`);
+      out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: 8, fill: safeColor(el.style.fill, d, el), stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity, filter: `url(#sd-${index}-annotation-shadow)` })}/>`);
+    }
     else if (shapeVariant) {
       if (shapeVariant === 'square') out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" data-sketchdraw-shape="square"${paint}/>`);
       else if (shapeVariant === 'circle') out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}" data-sketchdraw-shape="circle"${paint}/>`);
@@ -151,7 +173,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const iconSize = isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
       out.append(`<svg${attrs({ ...tree.attributes, x: isResourceCard(el) ? 20 : 4, y: isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : el.kind === 'annotation' ? annotationSvgContent(el, d) : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
     out.append(el.kind === 'sticky-note' && el.documentationUrl
       ? `<a href="${escapeXmlAttr(el.documentationUrl)}">${visibleText}</a>`
       : visibleText);
@@ -168,7 +190,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   for (const raw of document.elements) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
-    const sourceText = el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
+    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
     const text = xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
     const shapeVariant = effectiveShapeVariant(el);
@@ -194,6 +216,8 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
     else if (el.kind === 'sticky-note')
       style.push('shape=note', 'shadow=1', 'verticalAlign=top', 'spacing=20', `sketchdrawAuthor=${encodeURIComponent(el.author ?? '')}`, `sketchdrawListStyle=${el.style.listStyle ?? 'none'}`);
+    else if (el.kind === 'annotation')
+      style.push('rounded=1', 'arcSize=8', 'shadow=1', 'verticalAlign=top', 'spacing=24', 'whiteSpace=wrap', 'sketchdrawKind=annotation');
     const edge = el.kind === 'connector' || el.kind === 'path';
     if (edge) {
       if (el.kind === 'connector' && connectorRouting(el) === 'elbowed') style.push('edgeStyle=orthogonalEdgeStyle', 'rounded=1', 'noEdgeStyle=0');
@@ -244,7 +268,7 @@ export function prepareExport(document: SketchDocument, format: InteropFormat, o
   const doc = validateDocument(document);
   serializeDocument(doc);
   const d = new DiagnosticCollector(), embed = options.embedDocument !== false;
-  if (doc.componentSets.length || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author))
+  if (doc.componentSets.length || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author || e.annotation))
     diagnostic(d, undefined, embed ? 'SEMANTICS_IN_METADATA' : 'SEMANTICS_OMITTED', embed ? 'Additional document semantics and resources are embedded as data, including information not visible on the canvas.' : 'Portable projection omits native document identity, catalog, binding and metadata semantics.', !embed);
   const contents = format === 'svg' ? nativeSvg(doc, d, embed) : nativeDrawio(doc, d, embed);
   // Do not produce an output whose native projection exceeds our import limits.

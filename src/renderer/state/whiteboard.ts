@@ -1,9 +1,10 @@
 import { reactive } from 'vue';
 import {
   applyCommand, createController, createDocument, createElement, deserializeDocument,
+  areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   connectorEndMarker, connectorRouting, connectorStartMarker, DOMAIN_LIMITS, serializeDocument,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
-  type Point, type SketchDocument, type SketchElement, type ElementStyle,
+  type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument,
   type ShapeVariant, effectiveShapeVariant, shapeBaseKind,
 } from '@/domain';
 import { createDocumentAuthority, SessionAccessError, type ActorBinding, type DocumentAuthority, type TransitionBarrier, type WriteAction, type WriteIntent } from '@/session';
@@ -121,7 +122,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get empty() { return this.document.elements.length === 0; },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },
     get saveStatusText() { return this.hasDraft && !this.file.saving ? 'Offener Entwurf' : deriveSaveStatus(this.file, this.revision).text; },
-    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
+    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
     get cursor() { return this.transitioning ? 'wait' : this.tool === 'hand' || spaceHeld ? 'grab' : this.tool === 'select' ? 'default' : this.tool === 'text' ? 'text' : 'crosshair'; },
     get frame(): WhiteboardState['frame'] {
@@ -270,9 +271,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (owner !== activeSession()) return false;
     if (ok) {
       if (g.element) { setSelection([g.element.id]); state.tool = 'select'; }
-      const editStickyId = g.element?.kind === 'sticky-note' ? g.element.id : null;
+      const editTextId = g.element && ['sticky-note', 'annotation'].includes(g.element.kind) ? g.element.id : null;
       resetGesture(); failedGesture = null; state.gestureConflict = null;
-      if (editStickyId) store.startTextEdit(editStickyId);
+      if (editTextId) store.startTextEdit(editTextId);
     } else { failedGesture = g; state.gestureConflict = { message: 'Die Geste wurde nicht übernommen. Deine Vorschau bleibt erhalten.', canRetry: unchanged }; }
     return ok;
   }
@@ -310,12 +311,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (edit.composing) { notice('Bitte die laufende Texteingabe zuerst abschließen.', 'error'); return false; }
     if (edit.conflict) { notice(edit.conflict, 'error'); return false; }
     const styleChanges = textStyleChanges(edit);
+    const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
     const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
-    if ((!textChanged && !styleChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
-    const id = edit.elementId ?? uid('text');
+    if ((!textChanged && !annotationChanged && !styleChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
+    const contentPatch = edit.kind === 'annotation' && edit.annotationDraft
+      ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
+      : textChanged ? { text: edit.draft } : {};
     const command: DocumentCommand = edit.elementId
-      ? { type: 'update', changes: [{ id, patch: { ...(textChanged ? { text: edit.draft } : {}), ...(styleChanged ? { style: styleChanges } : {}) } }] }
-      : { type: 'add', elements: [createElement('text', { id, ...edit.box, text: edit.draft, style: { ...edit.style } })] };
+      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}) } }] }
+      : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style } })] };
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = 'Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'; return false; }
     const recover = () => { if (state.textEdit === edit) { state.textEdit = null; setSelection([id]); changedDraft(); } };
@@ -786,16 +791,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (isResourceCard(e)) return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', composing: false, conflict: null }; changedDraft();
+      const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.draft = text; changedDraft(); } },
+    setAnnotationDraft(document: AnnotationDocument, plainText: string) { if (state.canWrite && state.textEdit?.kind === 'annotation' && !state.transitioning) { state.textEdit.annotationDraft = cloneAnnotationDocument(document); state.textEdit.draft = plainText; changedDraft(); } },
     setComposing(composing) { if (state.textEdit) { state.textEdit.composing = composing; changedDraft(); } },
     commitTextEdit() { if (state.textEdit?.composing || state.transitioning) return false; void applyText(); return true; },
     cancelTextEdit() { if (!state.transitioning && !unknownWrite) { state.textEdit = null; changedDraft(); } },
     resolveTextConflict(choice) {
       const edit = state.textEdit; if (!edit || state.transitioning || unknownWrite) return;
       if (choice === 'use-current') { state.textEdit = null; changedDraft(); return; }
-      if (choice === 'insert-new') { edit.elementId = null; edit.kind = 'text'; textBase = null; }
+      if (choice === 'insert-new') { edit.elementId = null; if (edit.kind !== 'annotation') edit.kind = 'text'; textBase = null; }
       else { textBase = clone(state.document.elements.find((e) => e.id === edit.elementId) ?? null); if (!textBase) return; }
       edit.conflict = null; textRevision = state.revision; changedDraft(); void applyText();
     },

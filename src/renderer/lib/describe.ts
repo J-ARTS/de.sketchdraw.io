@@ -11,6 +11,7 @@ export const KIND_LABELS: Record<ElementKind, string> = {
   container: 'Container',
   component: 'Komponente',
   'sticky-note': 'Notiz',
+  annotation: 'Annotation',
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;

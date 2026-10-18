@@ -1,4 +1,5 @@
 import { applyCommand } from './commands';
+import { areAnnotationDocumentsEqual, cloneAnnotationDocument } from './annotation';
 import { DomainConflictError, DomainValidationError } from './errors';
 import {
   areAssetsEqual,
@@ -314,6 +315,17 @@ function evaluateTransition(
       } else {
         working.points = tgtEl.points.map(clonePoint);
       }
+    }
+
+    if (!areAnnotationDocumentsEqual(expEl.annotation, tgtEl.annotation)) {
+      if (!areAnnotationDocumentsEqual(curEl.annotation, expEl.annotation)) {
+        return {
+          ok: false,
+          reason: `Element "${id}" annotation content was modified by another operation.`,
+        };
+      }
+      if (tgtEl.annotation === undefined) delete working.annotation;
+      else working.annotation = cloneAnnotationDocument(tgtEl.annotation);
     }
 
     for (const endKey of ['from', 'to'] as const) {

@@ -46,6 +46,10 @@ const libraryComponents = computed(() => activeLibrary.value
   ? searchCatalogComponents(sets.value, query.value, activeLibrary.value)
   : []);
 const filteredShapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, query.value)));
+const annotationMatches = computed(() => {
+  const needle = query.value.trim().toLocaleLowerCase('de');
+  return !needle || ['annotation', 'textblock', 'dokumentation', 'kommentar', 'rich text'].some((term) => term.includes(needle));
+});
 const searching = computed(() => query.value.trim().length > 0);
 const libraryLabel = computed(() => providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
 const groupedLibraryComponents = computed(() => {
@@ -85,6 +89,10 @@ function activateShape(entry: ShapeEntry): void {
 }
 function activateConnector(): void {
   store.setTool('connector');
+  store.setCatalogOpen(false);
+}
+function activateAnnotation(): void {
+  store.setTool('annotation');
   store.setCatalogOpen(false);
 }
 function activateComponent(item: CatalogSearchResult): void {
@@ -162,6 +170,7 @@ onBeforeUnmount(() => {
         <section class="search-results">
           <h3>Formen</h3>
           <div class="shape-grid">
+            <button v-if="annotationMatches" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Annotation" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>Annotation</span></button>
             <button v-for="entry in filteredShapes" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="`${entry.label}${toolbarState.favorites.value.includes(entry.id) ? ', in der Leiste' : ''}`" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="path in entry.icon" :key="path" :d="path" /></svg>
               <span>{{ entry.label }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>
@@ -174,7 +183,7 @@ onBeforeUnmount(() => {
               <SafeIcon v-else :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
-          <p v-if="!filteredShapes.length && !allComponents.length" class="empty-state">Keine Form oder Komponente gefunden.</p>
+          <p v-if="!annotationMatches && !filteredShapes.length && !allComponents.length" class="empty-state">Keine Form oder Komponente gefunden.</p>
         </section>
       </template>
 
@@ -188,6 +197,7 @@ onBeforeUnmount(() => {
         <section v-for="group in shapeGroups" :key="group.id" class="accordion-section">
           <button type="button" class="accordion-trigger" :aria-expanded="expanded[group.id]" :aria-controls="`shape-section-${group.id}`" @click="toggleSection(group.id)"><span>{{ group.label }}</span><span aria-hidden="true">⌄</span></button>
           <div v-if="expanded[group.id]" :id="`shape-section-${group.id}`" class="shape-grid">
+            <button v-if="group.id === 'basic'" type="button" class="shape-tile" :disabled="!s.canWrite" aria-label="Annotation" @click="activateAnnotation"><AppIcon name="annotation" :size="30" /><span>Annotation</span></button>
             <button v-for="entry in entriesFor(group)" :key="entry.id" type="button" class="shape-tile" :class="{ favorite: toolbarState.favorites.value.includes(entry.id) }" draggable="true" :aria-label="`${entry.label}${toolbarState.favorites.value.includes(entry.id) ? ', in der Leiste' : ''}`" @click="activateShape(entry)" @dragstart="dragShape($event, entry)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="path in entry.icon" :key="path" :d="path" /></svg>
               <span>{{ entry.label }}</span><span v-if="toolbarState.favorites.value.includes(entry.id)" class="favorite-mark" aria-hidden="true">✓</span>

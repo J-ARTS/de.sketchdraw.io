@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T01:19:22Z",
+  "updatedAt": "2026-10-18T01:38:34Z",
   "issues": [
     {
       "number": 1,
@@ -851,6 +851,24 @@
       "dependencies": [
         44
       ]
+    },
+    {
+      "number": 56,
+      "title": "Formatierbares Annotation-Shape für längere Textblöcke",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/56",
+      "owner": "Claude Code + Antigravity + Codex",
+      "phase": "Product",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": 5,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        44,
+        55
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
     }
   ],
   "runs": [
@@ -3647,6 +3665,93 @@
       "concerns": [],
       "authorization": "Codex owns cross-platform verification and ticket completion under the project workflow.",
       "measurementSource": "GitHub Actions run metadata for exact commit 84e9a71e75768bacebfdc38a9c5acec8895eeff2. Governance & Graphify, Direct P2P, Ubuntu 24.04, Windows 2025 and macOS 15 all completed successfully. Observed duration is the difference between recorded run creation and final update timestamps."
+    },
+    {
+      "id": "claude-code-annotation-review-056",
+      "tool": "claude-code",
+      "model": "claude-sonnet",
+      "issues": [
+        56
+      ],
+      "status": "review_completed",
+      "startedAt": "2026-10-18T01:35:05Z",
+      "endedAt": "2026-10-18T01:35:05Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/56",
+        "src/domain/annotation.ts",
+        "src/renderer/components/AnnotationEditor.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/annotation.spec.ts"
+      ],
+      "concerns": [
+        "Keep a versioned structured rich-text model at the domain boundary and avoid storing editor HTML.",
+        "Exercise SVG foreignObject placement, editor undo versus document undo, IME input, bounded document size and accessibility in tests.",
+        "Claude Code suggested TipTap v2; Codex retained the same structured boundary and safeguards with the existing Chromium editing surface to avoid adding a new runtime dependency."
+      ],
+      "authorization": "Claude Code owns UI review under the project role assignment; the local invocation was read-only.",
+      "measurementSource": "Local Claude Code read-only architecture and UI review. Timestamps record the coordinator checkpoint; elapsed time, token use and cost were not reported and remain null."
+    },
+    {
+      "id": "antigravity-annotation-attempt-056",
+      "tool": "antigravity",
+      "model": "claude-sonnet-5.5-medium",
+      "issues": [
+        56
+      ],
+      "status": "no_work_product",
+      "startedAt": "2026-10-18T01:35:05Z",
+      "endedAt": "2026-10-18T01:35:05Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/56"
+      ],
+      "concerns": [
+        "The Antigravity UI reported exhausted baseline model quota until 24 October 2026 and disabled message submission; no implementation or review was produced."
+      ],
+      "authorization": "The project role assigns annotation logic and interfaces to Antigravity; the user authorized Codex temporary takeover with actual-tool attribution.",
+      "measurementSource": "Observed local Antigravity UI quota state. Timestamps record the coordinator checkpoint; no elapsed duration is inferred."
+    },
+    {
+      "id": "codex-annotation-056",
+      "tool": "codex",
+      "model": null,
+      "issues": [
+        56
+      ],
+      "status": "verified_local",
+      "startedAt": "2026-10-18T01:20:00Z",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/domain/annotation.ts",
+        "src/domain/types.ts",
+        "src/domain/validation.ts",
+        "src/renderer/lib/annotation.ts",
+        "src/renderer/components/AnnotationContent.vue",
+        "src/renderer/components/AnnotationEditor.vue",
+        "src/renderer/components/ElementView.vue",
+        "src/renderer/components/SelectionToolbar.vue",
+        "src/renderer/components/ShapeLibraryPanel.vue",
+        "src/renderer/state/whiteboard.ts",
+        "src/interop/export.ts",
+        "src/interop/drawio.ts",
+        "tests/unit/annotation.spec.ts",
+        "tests/ui/annotation.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/56",
+        "release/mac-arm64/Sketchdraw.app"
+      ],
+      "concerns": [
+        "Cross-platform verification is pending until GitHub Actions completes on the integrated commit."
+      ],
+      "authorization": "The user requested the annotation shape and previously authorized Codex to temporarily implement unavailable agents’ scope with actual-tool attribution.",
+      "measurementSource": "Codex implemented and locally verified the annotation workflow on the final pre-integration working tree. Typecheck and production build passed; 327 Vitest tests, 48 browser UI tests, 6 Electron tests, 59 Node lifecycle/release tests and 22 Graphify projection tests passed. The unsigned macOS arm64 package directory target completed. Cross-platform GitHub Actions verification is pending."
     }
   ],
   "evidencePolicy": {
@@ -3681,6 +3786,19 @@
       "requestedModel": null,
       "status": "unavailable_no_work_product",
       "evidence": "No local Antigravity CLI was available and the previously observed UI quota remained unavailable. Codex used the user-authorized temporary takeover for issue #53."
+    },
+    {
+      "tool": "claude-code",
+      "requestedModel": "Claude Sonnet",
+      "requestedMode": "read-only architecture and UI review",
+      "status": "review_completed",
+      "evidence": "Local Claude Code reviewed issue #56 and recommended a structured versioned rich-text boundary, editor/domain separation, size caps, IME handling, accessibility and SVG/export coverage. The accepted safeguards are tracked in the issue and implementation tests."
+    },
+    {
+      "tool": "antigravity",
+      "requestedModel": "Claude Sonnet 5.5 Medium",
+      "status": "unavailable_no_work_product",
+      "evidence": "The local Antigravity UI showed exhausted baseline quota until 24 October 2026 and disabled submission for issue #56. Codex used the user-authorized temporary takeover."
     }
   ]
 }

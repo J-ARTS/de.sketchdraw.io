@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useWhiteboard } from './use-whiteboard';
 import ElementView from './ElementView.vue';
 import QuickConnect from './QuickConnect.vue';
+import AnnotationEditor from './AnnotationEditor.vue';
 import { docToScreen } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
@@ -25,8 +26,9 @@ const editStyle = computed(() => {
   const { x, y } = docToScreen(s.viewport, edit.box);
   const free = edit.kind === 'text';
   const sticky = edit.kind === 'sticky-note';
-  const topInset = sticky ? 20 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
-  const sideInset = sticky ? 20 : free ? 0 : 8;
+  const annotation = edit.kind === 'annotation';
+  const topInset = sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  const sideInset = sticky ? 20 : free || annotation ? 0 : 8;
   return {
     left: `${x}px`, top: `${y}px`,
     width: `${Math.max(free ? 120 : 24, edit.box.width * zoom)}px`,
@@ -41,6 +43,7 @@ const editStyle = computed(() => {
     textDecoration: edit.style.textDecoration ?? 'none',
     textAlign: edit.style.textAlign,
     '--edit-color': themeColor(edit.style.stroke, s.theme),
+    '--annotation-zoom': zoom,
   };
 });
 function autosize(): void {
@@ -75,7 +78,7 @@ function wheel(event: WheelEvent) {
   const box = canvas.value!.getBoundingClientRect();
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
 }
-watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); autosize(); editor.value?.focus(); editor.value?.select(); } else canvas.value?.focus({ preventScroll: true }); });
+watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); if (value.kind !== 'annotation') { autosize(); editor.value?.focus(); editor.value?.select(); } } else canvas.value?.focus({ preventScroll: true }); });
 watch(() => [s.textEdit?.draft, s.viewport.zoom], () => { void nextTick(autosize); });
 onMounted(() => {
   observer = new ResizeObserver(([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
@@ -104,7 +107,8 @@ onBeforeUnmount(() => observer?.disconnect());
     <QuickConnect />
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
-      <textarea ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
+      <AnnotationEditor v-if="s.textEdit.kind === 'annotation'" />
+      <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
     </div>
     <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck zeichnen. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>

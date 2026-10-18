@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue';
-import { connectorEndMarker, connectorPathData, connectorStartMarker, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
+import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
 import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
 import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCardLinks } from '@/catalog';
+import AnnotationContent from './AnnotationContent.vue';
 
 const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean }>();
 const emit = defineEmits<{ openLink: [url: string] }>();
@@ -40,6 +41,7 @@ const cardTitle = computed(() => clampCardText(e.value.text || e.value.label || 
 const cardDescription = computed(() => clampCardText((e.value.description || 'BESCHREIBUNG').toUpperCase(), Math.max(10, e.value.style.fontSize * .65)));
 const text = computed(() => e.value.text || e.value.label || '');
 const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? 'Schreib etwas, @erwähne jemanden' : text.value);
+const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
 const lines = computed(() => {
   const inset = e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : 16;
@@ -67,6 +69,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
     <defs>
       <clipPath :id="`${uid}-clip`"><rect :width="e.width" :height="e.height" /></clipPath>
       <filter :id="`${uid}-sticky-shadow`" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#18251d" flood-opacity=".18" /></filter>
+      <filter :id="`${uid}-annotation-shadow`" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#263244" flood-opacity=".14" /></filter>
       <marker :id="`${uid}-line-arrow`" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M2 1.5 L10 6 L2 10.5" fill="none" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /></marker>
       <marker :id="`${uid}-solid-arrow`" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 1 L11 6 L1 11 Z" :fill="stroke" :stroke="stroke" /></marker>
       <marker :id="`${uid}-triangle`" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 1 L11 6 L1 11 Z" :fill="fill === 'transparent' ? 'var(--surface-canvas)' : fill" :stroke="stroke" :stroke-width="Math.max(1, e.style.strokeWidth * .75)" /></marker>
@@ -86,6 +89,7 @@ const shape = computed(() => shapeEntryForElement(e.value));
       </template>
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
+      <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
       <polyline v-else-if="e.kind === 'path'" :points="e.points?.map(p => `${p.x},${p.y}`).join(' ')" fill="none" />
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
@@ -120,9 +124,16 @@ const shape = computed(() => shapeEntryForElement(e.value));
       <rect :x="e.width / 2 - connectorLabelWidth / 2" :y="e.height / 2 - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
       <text :x="e.width / 2" :y="e.height / 2" :fill="stroke" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
     </g>
-    <text v-else-if="displayText && !editing && !resourceCard" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
+      <div class="annotation-body" :style="{ color: stroke, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>
+    </foreignObject>
+    <text v-else-if="displayText && !editing && !resourceCard && e.kind !== 'annotation'" :clip-path="`url(#${uid}-clip)`" :fill="stroke" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="stroke" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
   </g>
 </template>
+
+<style scoped>
+.annotation-body{width:100%;height:100%;box-sizing:border-box;padding:28px;overflow:hidden;background:transparent}
+</style>

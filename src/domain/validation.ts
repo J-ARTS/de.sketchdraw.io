@@ -3,6 +3,7 @@ import { DomainValidationError } from './errors';
 import { DOMAIN_LIMITS } from './limits';
 import type {
   ComponentDefinition,
+  AnnotationBlockType,
   ComponentSet,
   ConnectorMarker,
   ConnectorRouting,
@@ -17,6 +18,7 @@ import type {
   ValidationIssue,
 } from './types';
 import { SHAPE_KINDS, SHAPE_VARIANTS } from './shapes';
+import { annotationPlainText } from './annotation';
 
 export const FORBIDDEN_KEYS: ReadonlySet<string> = new Set([
   '__proto__',
@@ -38,6 +40,7 @@ export const ELEMENT_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'container',
   'component',
   'sticky-note',
+  'annotation',
 ]);
 
 const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
@@ -49,6 +52,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
   'container',
   'component',
   'sticky-note',
+  'annotation',
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);
@@ -113,6 +117,7 @@ export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'label',
   'description',
   'text',
+  'annotation',
   'author',
   'points',
   'connectorRouting',
@@ -160,6 +165,13 @@ const COMPONENT_DEF_KEYS: ReadonlySet<string> = new Set([
   'widgets',
 ]);
 const WIDGET_KEYS: ReadonlySet<string> = new Set(['key', 'label', 'kind', 'options']);
+const ANNOTATION_KEYS: ReadonlySet<string> = new Set(['version', 'blocks']);
+const ANNOTATION_BLOCK_KEYS: ReadonlySet<string> = new Set(['type', 'runs']);
+const ANNOTATION_RUN_KEYS: ReadonlySet<string> = new Set(['text', 'bold', 'italic', 'underline', 'color']);
+const ANNOTATION_BLOCK_TYPES: ReadonlySet<AnnotationBlockType> = new Set([
+  'paragraph', 'heading-1', 'heading-2', 'heading-3', 'heading-4', 'bullet', 'numbered', 'quote',
+]);
+const ANNOTATION_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 const textEncoder = new TextEncoder();
 
@@ -261,6 +273,92 @@ export function checkObjectKeys(
       });
     }
   }
+}
+
+function validateAnnotationDocument(
+  value: unknown,
+  path: string,
+  ancestors: Set<object>,
+  issues: ValidationIssue[],
+): boolean {
+  const initialIssueCount = issues.length;
+  if (!isPlainRecord(value)) {
+    issues.push({ path, code: 'INVALID_ANNOTATION', message: 'Annotation content must be a plain object.' });
+    return false;
+  }
+  if (ancestors.has(value)) {
+    issues.push({ path, code: 'CYCLIC_OBJECT', message: 'Cyclic reference in annotation content.' });
+    return false;
+  }
+  ancestors.add(value);
+  checkObjectKeys(value, path, ANNOTATION_KEYS, issues);
+  if (value.version !== 1) {
+    issues.push({ path: joinPath(path, 'version'), code: 'INVALID_ANNOTATION_VERSION', message: 'Annotation version must be 1.' });
+  }
+  if (!Array.isArray(value.blocks)) {
+    issues.push({ path: joinPath(path, 'blocks'), code: 'INVALID_ANNOTATION_BLOCKS', message: 'Annotation blocks must be an array.' });
+    ancestors.delete(value);
+    return false;
+  }
+  if (ancestors.has(value.blocks)) {
+    issues.push({ path: joinPath(path, 'blocks'), code: 'CYCLIC_OBJECT', message: 'Cyclic reference in annotation blocks.' });
+    ancestors.delete(value);
+    return false;
+  }
+  ancestors.add(value.blocks);
+  if (value.blocks.length < 1 || value.blocks.length > 1_000) {
+    issues.push({ path: joinPath(path, 'blocks'), code: 'INVALID_ANNOTATION_BLOCK_COUNT', message: 'Annotation content must contain between 1 and 1000 blocks.' });
+  }
+  let totalTextLength = 0;
+  let totalRuns = 0;
+  for (let blockIndex = 0; blockIndex < Math.min(value.blocks.length, 1_000); blockIndex += 1) {
+    const block = value.blocks[blockIndex];
+    const blockPath = joinPath(joinPath(path, 'blocks'), blockIndex);
+    if (!isPlainRecord(block)) {
+      issues.push({ path: blockPath, code: 'INVALID_ANNOTATION_BLOCK', message: 'Annotation block must be a plain object.' });
+      continue;
+    }
+    checkObjectKeys(block, blockPath, ANNOTATION_BLOCK_KEYS, issues);
+    if (typeof block.type !== 'string' || !ANNOTATION_BLOCK_TYPES.has(block.type as AnnotationBlockType)) {
+      issues.push({ path: joinPath(blockPath, 'type'), code: 'INVALID_ANNOTATION_BLOCK_TYPE', message: 'Annotation block type is not supported.' });
+    }
+    if (!Array.isArray(block.runs) || block.runs.length < 1 || block.runs.length > 5_000) {
+      issues.push({ path: joinPath(blockPath, 'runs'), code: 'INVALID_ANNOTATION_RUNS', message: 'Annotation block must contain between 1 and 5000 text runs.' });
+      continue;
+    }
+    totalRuns += block.runs.length;
+    for (let runIndex = 0; runIndex < Math.min(block.runs.length, 5_000); runIndex += 1) {
+      const run = block.runs[runIndex];
+      const runPath = joinPath(joinPath(blockPath, 'runs'), runIndex);
+      if (!isPlainRecord(run)) {
+        issues.push({ path: runPath, code: 'INVALID_ANNOTATION_RUN', message: 'Annotation text run must be a plain object.' });
+        continue;
+      }
+      checkObjectKeys(run, runPath, ANNOTATION_RUN_KEYS, issues);
+      if (typeof run.text !== 'string') {
+        issues.push({ path: joinPath(runPath, 'text'), code: 'INVALID_TEXT', message: 'Annotation text run must contain a string.' });
+      } else {
+        totalTextLength += run.text.length;
+      }
+      for (const mark of ['bold', 'italic', 'underline'] as const) {
+        if (Object.prototype.hasOwnProperty.call(run, mark) && run[mark] !== true) {
+          issues.push({ path: joinPath(runPath, mark), code: 'INVALID_ANNOTATION_MARK', message: `Annotation mark "${mark}" must be true when present.` });
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(run, 'color') && (typeof run.color !== 'string' || !ANNOTATION_COLOR.test(run.color))) {
+        issues.push({ path: joinPath(runPath, 'color'), code: 'INVALID_ANNOTATION_COLOR', message: 'Annotation text color must be a six-digit RGB hex value.' });
+      }
+    }
+  }
+  if (totalRuns > 10_000) {
+    issues.push({ path: joinPath(path, 'blocks'), code: 'TOO_MANY_ANNOTATION_RUNS', message: 'Annotation content exceeds 10000 text runs.' });
+  }
+  if (totalTextLength > DOMAIN_LIMITS.MAX_TEXT_LENGTH) {
+    issues.push({ path, code: 'TEXT_TOO_LONG', message: `Annotation content exceeds maximum length of ${DOMAIN_LIMITS.MAX_TEXT_LENGTH} characters.` });
+  }
+  ancestors.delete(value.blocks);
+  ancestors.delete(value);
+  return issues.length === initialIssueCount;
 }
 
 export function validateDocumentationUrl(
@@ -816,7 +914,7 @@ export function validateElementIntrinsic(
     issues.push({
       path: joinPath(path, 'kind'),
       code: 'INVALID_ELEMENT_KIND',
-      message: 'Element kind must be one of the ten supported ElementKind values.',
+      message: 'Element kind must be one of the supported ElementKind values.',
     });
   }
   const typedKind = kindValid ? (kind as ElementKind) : null;
@@ -930,6 +1028,21 @@ export function validateElementIntrinsic(
           code: 'TEXT_TOO_LONG',
           message: `Element ${textKey} exceeds maximum length of ${DOMAIN_LIMITS.MAX_TEXT_LENGTH} characters.`,
         });
+      }
+    }
+  }
+
+  const hasAnnotation = Object.prototype.hasOwnProperty.call(value, 'annotation') && value.annotation !== undefined;
+  if (typedKind === 'annotation' && !hasAnnotation) {
+    issues.push({ path: joinPath(path, 'annotation'), code: 'MISSING_ANNOTATION', message: 'Annotation elements must contain structured annotation content.' });
+  }
+  if (hasAnnotation) {
+    if (typedKind !== null && typedKind !== 'annotation') {
+      issues.push({ path: joinPath(path, 'annotation'), code: 'FORBIDDEN_ELEMENT_FIELD', message: 'Property "annotation" is only allowed on annotation elements.' });
+    } else if (validateAnnotationDocument(value.annotation, joinPath(path, 'annotation'), ancestors, issues)) {
+      const fallback = annotationPlainText(value.annotation as import('./types').AnnotationDocument);
+      if (value.text !== fallback) {
+        issues.push({ path: joinPath(path, 'text'), code: 'ANNOTATION_TEXT_MISMATCH', message: 'Annotation text must equal the plain-text fallback derived from annotation content.' });
       }
     }
   }

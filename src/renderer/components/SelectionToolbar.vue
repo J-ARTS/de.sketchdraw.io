@@ -11,6 +11,7 @@ import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
 import ResourceCardEditor from './ResourceCardEditor.vue';
+import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
 type Segment = 'shape' | 'color' | 'line' | 'font' | 'size' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
@@ -22,6 +23,7 @@ const single = computed(() => s.document.elements.find((e) => e.id === info.valu
 const definition = computed(() => s.document.componentSets.flatMap((set) => set.components).find((c) => c.type === single.value?.componentType));
 
 const SIZE_PRESETS = [{ label: 'Klein', value: 14 }, { label: 'Mittel', value: 20 }, { label: 'Groß', value: 28 }, { label: 'Sehr groß', value: 40 }] as const;
+const HEADING_LEVELS = [1, 2, 3, 4] as const;
 const ALIGNMENTS: ReadonlyArray<{ value: ElementStyle['textAlign']; label: string; icon: IconName }> = [
   { value: 'left', label: 'Links', icon: 'align-left' },
   { value: 'center', label: 'Mitte', icon: 'align-center' },
@@ -57,7 +59,8 @@ const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
 const stickyOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'sticky-note');
 const resourceCardOnly = computed(() => info.value.count === 1 && isResourceCard(single.value));
-const textCapable = computed(() => !resourceCardOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
+const annotationOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'annotation');
+const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
 const barSize = ref({ width: 0, height: 56 });
@@ -308,6 +311,11 @@ function setLineMode(mode: LineMode): void {
 }
 function pickStroke(hex: string): void { lastStroke.value = hex; style({ stroke: hex }); }
 function relayout(): void { void nextTick(placePopover); }
+function formatAnnotation(command: AnnotationFormatCommand, value?: string): void {
+  if (!editing.value || s.textEdit?.kind !== 'annotation') return;
+  dispatchAnnotationFormat(command, value);
+}
+function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnnotation(`heading-${level}`); }
 </script>
 
 <template>
@@ -349,6 +357,22 @@ function relayout(): void { void nextTick(placePopover); }
       <button :ref="(el) => setTrigger('end', el)" type="button" class="segment" :aria-label="`Endpunkt: ${markerLabel(info.values.endMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'end'" :aria-controls="panelId('end')" :title="unavailable('Endpunkt')" @click="toggle('end')">
         <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
+    </template>
+    <template v-if="annotationOnly">
+      <span class="sep" aria-hidden="true" />
+      <button type="button" class="tool-btn heading-button" :disabled="!editing" aria-label="Absatz" :title="editing ? 'Absatz' : 'Zum Formatieren Text bearbeiten'" @pointerdown.prevent @click="formatAnnotation('paragraph')">P</button>
+      <button v-for="level in HEADING_LEVELS" :key="level" type="button" class="tool-btn heading-button" :disabled="!editing" :aria-label="`Überschrift ${level}`" :title="editing ? `Überschrift ${level}` : 'Zum Formatieren Text bearbeiten'" @pointerdown.prevent @click="formatHeading(level)">H<sub>{{ level }}</sub></button>
+      <span class="sep" aria-hidden="true" />
+      <button type="button" class="tool-btn format-letter" :disabled="!editing" aria-label="Fett" title="Fett" @pointerdown.prevent @click="formatAnnotation('bold')">B</button>
+      <button type="button" class="tool-btn format-letter italic" :disabled="!editing" aria-label="Kursiv" title="Kursiv" @pointerdown.prevent @click="formatAnnotation('italic')">I</button>
+      <button type="button" class="tool-btn format-letter underline" :disabled="!editing" aria-label="Unterstrichen" title="Unterstrichen" @pointerdown.prevent @click="formatAnnotation('underline')">U</button>
+      <label class="annotation-color" :class="{ disabled: !editing }" title="Textfarbe"><span aria-hidden="true">A</span><input type="color" value="#242424" aria-label="Textfarbe" :disabled="!editing" @input="formatAnnotation('color', ($event.target as HTMLInputElement).value)" /></label>
+      <span class="sep" aria-hidden="true" />
+      <button type="button" class="tool-btn list-toggle" :disabled="!editing" aria-label="Aufzählung" title="Aufzählung" @pointerdown.prevent @click="formatAnnotation('bullet')"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+      <button type="button" class="tool-btn numbered-toggle" :disabled="!editing" aria-label="Nummerierte Liste" title="Nummerierte Liste" @pointerdown.prevent @click="formatAnnotation('numbered')"><span aria-hidden="true">1.</span><span aria-hidden="true">☰</span></button>
+      <button type="button" class="tool-btn quote-toggle" :disabled="!editing" aria-label="Zitat" title="Zitat" @pointerdown.prevent @click="formatAnnotation('quote')">❝</button>
+      <span class="sep" aria-hidden="true" />
+      <button v-if="!editing" type="button" class="tool-btn" aria-label="Annotation bearbeiten" title="Annotation bearbeiten" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
     </template>
     <template v-if="textCapable">
       <span class="sep" aria-hidden="true" />
@@ -588,6 +612,9 @@ function relayout(): void { void nextTick(placePopover); }
 
 .format-letter { font-size: 21px; font-weight: 700; }
 .format-letter.strike { text-decoration: line-through; font-weight: 400; }
+.format-letter.italic { font-style: italic; font-weight: 500; }
+.format-letter.underline { text-decoration: underline; font-weight: 500; }
+.heading-button{min-width:38px;padding:0 5px;font-family:Georgia,'Times New Roman',serif;font-size:19px}.heading-button sub{font-size:10px;line-height:1}.numbered-toggle{gap:2px;font-size:13px}.quote-toggle{font-family:Georgia,serif;font-size:23px}.annotation-color{position:relative;display:grid;flex:none;width:40px;height:40px;place-items:center;border-radius:10px;font-size:19px;font-weight:650;cursor:pointer}.annotation-color span{padding-bottom:3px;border-bottom:3px solid #242424}.annotation-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.annotation-color:hover{background:var(--menu-hover)}.annotation-color.disabled{opacity:.55;cursor:not-allowed}.annotation-color.disabled input{cursor:not-allowed}
 .tool-btn[aria-pressed='true'] { background: var(--menu-selected); color: var(--menu-selected-text); }
 .list-toggle { gap: 2px; font-size: 16px; }
 .author-button { margin-left: 2px; background: #7c3aed; color: white; }

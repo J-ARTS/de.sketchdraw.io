@@ -19,11 +19,12 @@ import type {
   ComponentSet,
   ConnectorMarker,
   ConnectorRouting,
+  AnnotationDocument,
 } from '@/domain/types';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
-  | 'connector' | 'path' | 'text' | 'sticky-note' | 'image' | 'container';
+  | 'connector' | 'path' | 'text' | 'sticky-note' | 'annotation' | 'image' | 'container';
 
 /** screen = doc * zoom + pan. Zoom is clamped to 0.1..4. Pan is in CSS pixels of the canvas element. */
 export interface Viewport { panX: number; panY: number; zoom: number }
@@ -83,6 +84,9 @@ export interface TextEditSession {
   initialStyle: ElementStyle;
   initialText: string;
   draft: string;
+  /** Present only while editing an annotation shape. */
+  initialAnnotation: AnnotationDocument | null;
+  annotationDraft: AnnotationDocument | null;
   composing: boolean;
   /** Set when the document changed underneath the draft (target changed or deleted). The draft is kept. */
   conflict: string | null;
@@ -279,6 +283,7 @@ export interface WhiteboardStore {
 
   startTextEdit(elementId?: string): void;
   setTextDraft(text: string): void;
+  setAnnotationDraft(document: AnnotationDocument, plainText: string): void;
   setComposing(composing: boolean): void;
   /** Returns false (and keeps the editor open) while composing. */
   commitTextEdit(): boolean;

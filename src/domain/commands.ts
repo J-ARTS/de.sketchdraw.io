@@ -358,6 +358,7 @@ function applyCommandInternal(
           'label',
           'description',
           'text',
+          'annotation',
           'author',
           'points',
           'connectorRouting',

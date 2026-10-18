@@ -12,6 +12,7 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'path', label: 'Freihand', key: 'p', description: 'Frei zeichnen' },
   { tool: 'text', label: 'Text', key: 't', description: 'Text einfügen' },
   { tool: 'sticky-note', label: 'Notiz', key: 'n', description: 'Sticky Note einfügen' },
+  { tool: 'annotation', label: 'Annotation', key: 'a', description: 'Formatierbaren Textblock einfügen' },
   { tool: 'image', label: 'Bild', key: 'b', description: 'Bild einfügen' },
   { tool: 'container', label: 'Container', key: 'c', description: 'Container zum Gruppieren von Elementen aufziehen' },
 ];

@@ -1,7 +1,31 @@
 /** Shared architecture contract. Runtime validation is required at every input boundary. */
 export type ElementKind =
   | 'rectangle' | 'ellipse' | 'diamond' | 'text' | 'path'
-  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note';
+  | 'image' | 'connector' | 'container' | 'component' | 'sticky-note' | 'annotation';
+
+export type AnnotationBlockType =
+  | 'paragraph' | 'heading-1' | 'heading-2' | 'heading-3' | 'heading-4'
+  | 'bullet' | 'numbered' | 'quote';
+
+export interface AnnotationRun {
+  text: string;
+  bold?: true;
+  italic?: true;
+  underline?: true;
+  /** Strict six-digit RGB value. */
+  color?: string;
+}
+
+export interface AnnotationBlock {
+  type: AnnotationBlockType;
+  runs: AnnotationRun[];
+}
+
+/** Safe, versioned rich-text model. Raw HTML is never stored in a document. */
+export interface AnnotationDocument {
+  version: 1;
+  blocks: AnnotationBlock[];
+}
 
 export type ShapeVariant =
   | 'circle' | 'square' | 'diamond' | 'triangle' | 'triangle-down' | 'rounded'
@@ -58,6 +82,8 @@ export interface SketchElement {
   label?: string;
   description?: string;
   text?: string;
+  /** Annotation-only structured content. `text` remains its derived plain-text fallback. */
+  annotation?: AnnotationDocument;
   /** Display name shown in the footer of sticky notes. */
   author?: string;
   /** Element-local points. Connectors always retain at least two points. */
@@ -128,6 +154,7 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
   label?: string | null;
   description?: string | null;
   text?: string | null;
+  annotation?: AnnotationDocument | null;
   author?: string | null;
   points?: Point[] | null;
   connectorRouting?: ConnectorRouting | null;
