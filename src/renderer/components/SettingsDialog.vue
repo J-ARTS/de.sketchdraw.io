@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { CANVAS_BACKGROUNDS, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
 import { wrapTabFocus } from '@/renderer/lib/focus';
@@ -18,7 +19,7 @@ let opener: HTMLElement | null = null;
 
 const presets = computed(() => CANVAS_BACKGROUNDS.map((entry) => ({
   id: entry.id,
-  label: entry.label,
+  label: t(entry.label),
   color: resolveCanvasBackground(entry.id, s.theme) ?? THEME_CANVAS[s.theme],
 })));
 const selectedId = computed(() => s.canvasBackground ?? 'default');
@@ -55,10 +56,10 @@ function onRadioKeydown(event: KeyboardEvent): void {
 <template>
   <dialog ref="dialog" class="settings-dialog" data-testid="settings-dialog" aria-labelledby="settings-title" @cancel.prevent="emit('close')" @pointerdown.self="emit('close')" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
     <div class="settings-panel sd-panel">
-      <header><h2 id="settings-title" class="sd-panel-title">Einstellungen</h2><button ref="closeButton" type="button" class="sd-icon-btn sd-panel-close" aria-label="Einstellungen schließen" @click="emit('close')"><AppIcon name="close" /></button></header>
+      <header><h2 id="settings-title" class="sd-panel-title">{{ t('Einstellungen') }}</h2><button ref="closeButton" type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Einstellungen schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
 
       <section class="setting" aria-labelledby="canvas-bg-title">
-        <h3 id="canvas-bg-title">Canvas-Hintergrund</h3>
+        <h3 id="canvas-bg-title">{{ t('Canvas-Hintergrund') }}</h3>
         <div class="swatches" role="radiogroup" aria-labelledby="canvas-bg-title" @keydown="onRadioKeydown">
           <button
             v-for="preset in presets"
@@ -79,26 +80,26 @@ function onRadioKeydown(event: KeyboardEvent): void {
             class="swatch custom"
             role="radio"
             :aria-checked="customActive"
-            aria-label="Eigene Farbe"
-            title="Eigene Farbe"
+            :aria-label="t('Eigene Farbe')"
+            :title="t('Eigene Farbe')"
             tabindex="-1"
             :style="customActive ? { background: customColor } : undefined"
             @click="pickerOpen = !pickerOpen"
           ><AppIcon v-if="customActive" name="check" :size="16" /></button>
         </div>
-        <ColorPicker v-if="pickerOpen" class="custom-picker" :color="customColor" label="Eigene Hintergrundfarbe wählen" @pick="store.setCanvasBackground($event)" />
-        <p class="hint">Der Hintergrund gilt für dich und wird nicht im Dokument gespeichert. Die Voreinstellungen passen sich dem Design an.</p>
+        <ColorPicker v-if="pickerOpen" class="custom-picker" :color="customColor" :label="t('Eigene Hintergrundfarbe wählen')" @pick="store.setCanvasBackground($event)" />
+        <p class="hint">{{ t('Der Hintergrund gilt für dich und wird nicht im Dokument gespeichert. Die Voreinstellungen passen sich dem Design an.') }}</p>
       </section>
 
       <section class="setting" aria-labelledby="theme-title">
-        <h3 id="theme-title">Design</h3>
+        <h3 id="theme-title">{{ t('Design') }}</h3>
         <div class="segmented" role="radiogroup" aria-labelledby="theme-title" @keydown="onRadioKeydown">
-          <button type="button" role="radio" :aria-checked="s.theme === 'light'" :tabindex="s.theme === 'light' ? 0 : -1" @click="store.setTheme('light')"><AppIcon name="sun" :size="18" /> Hell</button>
-          <button type="button" role="radio" :aria-checked="s.theme === 'dark'" :tabindex="s.theme === 'dark' ? 0 : -1" @click="store.setTheme('dark')"><AppIcon name="moon" :size="18" /> Dunkel</button>
+          <button type="button" role="radio" :aria-checked="s.theme === 'light'" :tabindex="s.theme === 'light' ? 0 : -1" @click="store.setTheme('light')"><AppIcon name="sun" :size="18" /> {{ t('Hell') }}</button>
+          <button type="button" role="radio" :aria-checked="s.theme === 'dark'" :tabindex="s.theme === 'dark' ? 0 : -1" @click="store.setTheme('dark')"><AppIcon name="moon" :size="18" /> {{ t('Dunkel') }}</button>
         </div>
       </section>
 
-      <footer><button type="button" class="sd-btn sd-btn--primary" @click="emit('close')">Fertig</button></footer>
+      <footer><button type="button" class="sd-btn sd-btn--primary" @click="emit('close')">{{ t('Fertig') }}</button></footer>
     </div>
   </dialog>
 </template>

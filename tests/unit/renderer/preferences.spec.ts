@@ -13,11 +13,12 @@ describe('preferences', () => {
     expect(loadPreferences(memory(JSON.stringify({ theme: 'neon', canvasBackground: 'javascript:1', language: 'fr' })))).toEqual(DEFAULT_PREFERENCES);
     expect(loadPreferences(undefined)).toEqual(DEFAULT_PREFERENCES);
   });
-  it('round-trips valid values and never restores an unavailable language', () => {
+  it('round-trips valid values including English and never restores an unknown language', () => {
     const storage = memory();
     expect(savePreferences({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de' }, storage)).toBe(true);
     expect(loadPreferences(storage)).toEqual({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de' });
-    expect(loadPreferences(memory(JSON.stringify({ language: 'en' }))).language).toBe('de');
+    expect(loadPreferences(memory(JSON.stringify({ language: 'en' }))).language).toBe('en');
+    expect(loadPreferences(memory(JSON.stringify({ language: 'fr' }))).language).toBe('de');
   });
   it('resolves presets per theme and validates colors', () => {
     expect(resolveCanvasBackground('yellow', 'light')).not.toBe(resolveCanvasBackground('yellow', 'dark'));

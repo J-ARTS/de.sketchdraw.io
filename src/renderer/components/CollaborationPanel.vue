@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import {
   acceptInvitation,
@@ -59,14 +60,14 @@ let automaticTransport: CollaborationTransport | undefined, automaticBinding: Cr
 let automaticOffStatus = () => {}, automaticGeneration = 0;
 let identity: Promise<SessionIdentity> | undefined, offStatus = () => {}, generation = 0, disposed = false;
 const identityForSession = () => identity ??= createSessionIdentity();
-const states: Record<CollaborationStatus['state'], string> = { pairing: 'Einladung vorbereiten', 'awaiting-confirmation': 'Code bestätigen', syncing: 'Diagramm abgleichen', ready: 'Verbunden', disconnected: 'Verbindung unterbrochen', 'resync-required': 'Neuer Abgleich erforderlich', revoked: 'Freigabe beendet', closed: 'Sitzung beendet' };
+const states: Record<CollaborationStatus['state'], string> = { pairing: t('Einladung vorbereiten'), 'awaiting-confirmation': t('Code bestätigen'), syncing: 'Diagramm abgleichen', ready: t('Verbunden'), disconnected: 'Verbindung unterbrochen', 'resync-required': t('Neuer Abgleich erforderlich'), revoked: 'Freigabe beendet', closed: 'Sitzung beendet' };
 function report(value: unknown) {
   const code = value && typeof value === 'object' && 'message' in value ? String(value.message) : '';
   error.value = /DIRECT_CONNECTION_TIMEOUT|ICE|NOT_CONNECTED|TRANSFER_TIMEOUT|PEER_NOT_READY/.test(code)
-    ? 'Eine direkte Verbindung ist in diesem Netzwerk nicht erreichbar. Es gibt keinen Vermittlungsserver. Prüft ein gemeinsam erreichbares Netzwerk und versucht eine neue Einladung.'
-    : /EXPIRED/.test(code) ? 'Diese Einladung ist abgelaufen. Bitte eine neue Einladung verwenden.'
-      : /COMPARISON|CONFIRM|IDENTITY|SIGNATURE|CERTIFICATE/.test(code) ? 'Identität oder Vergleichscode konnten nicht bestätigt werden. Bitte erneut direkt miteinander abgleichen.'
-        : 'Die Verbindung konnte nicht bestätigt werden. Prüfe den vollständig kopierten Text und versuche es erneut.';
+    ? t('Eine direkte Verbindung ist in diesem Netzwerk nicht erreichbar. Es gibt keinen Vermittlungsserver. Prüft ein gemeinsam erreichbares Netzwerk und versucht eine neue Einladung.')
+    : /EXPIRED/.test(code) ? t('Diese Einladung ist abgelaufen. Bitte eine neue Einladung verwenden.')
+      : /COMPARISON|CONFIRM|IDENTITY|SIGNATURE|CERTIFICATE/.test(code) ? t('Identität oder Vergleichscode konnten nicht bestätigt werden. Bitte erneut direkt miteinander abgleichen.')
+        : t('Die Verbindung konnte nicht bestätigt werden. Prüfe den vollständig kopierten Text und versuche es erneut.');
 }
 function clearPairing() { pairing?.cancel(); pairing = undefined; inviteText.value = ''; incoming.value = ''; answerText.value = ''; review.value = null; checked.value = false; }
 function listen(session: OwnerSession | GuestSession) { offStatus(); status.value = session.getStatus(); offStatus = session.subscribeStatus(value => { status.value = value; }); }
@@ -98,16 +99,16 @@ function remoteOptions() { return { applyRemote: (apply: () => DocumentSession) 
 function reportAutomatic(value: unknown): void {
   const code = value instanceof Error ? value.message : String(value);
   error.value = code.includes('AUTOMATIC_RELAY_REQUIRED')
-    ? 'Trage mindestens einen ausdrücklich gewählten MQTT-Endpunkt mit wss:// ein.'
+    ? t('Trage mindestens einen ausdrücklich gewählten MQTT-Endpunkt mit wss:// ein.')
     : code.includes('DOCUMENT_MISMATCH')
-      ? 'Der Link gehört zu einem anderen Dokument als die Session liefert. Bitte einen neuen Link anfordern.'
+      ? t('Der Link gehört zu einem anderen Dokument als die Session liefert. Bitte einen neuen Link anfordern.')
       : /DIRECT_CONNECTION_TIMEOUT/.test(code)
-        ? 'Die Session konnte nicht erreicht werden. Läuft sie noch, und ist der Gastgeber online?'
+        ? t('Die Session konnte nicht erreicht werden. Läuft sie noch, und ist der Gastgeber online?')
         : /INVITATION_EXPIRED/.test(code)
-          ? 'Dieser Link ist abgelaufen. Bitte einen neuen Link anfordern.'
+          ? t('Dieser Link ist abgelaufen. Bitte einen neuen Link anfordern.')
       : code.includes('RTC_CONFIG')
-        ? 'Die ICE-/TURN-Konfiguration ist kein gültiges JSON-Objekt.'
-        : 'Die Session-Verbindung konnte nicht sicher aufgebaut werden.';
+        ? t('Die ICE-/TURN-Konfiguration ist kein gültiges JSON-Objekt.')
+        : t('Die Session-Verbindung konnte nicht sicher aufgebaut werden.');
 }
 
 function listenAutomatic(transport: CollaborationTransport): void {
@@ -160,7 +161,7 @@ async function startAutomaticOwner(): Promise<void> {
     automaticBinding = bindCrdtTransport(props.crdtController, transport, undefined, remoteOptions());
     automaticInvitation.value = invitation;
     listenAutomatic(transport);
-    note.value = 'Session läuft. Teile den Link; wer ihn im Browser öffnet, tritt direkt bei. Die Zeichnung wird nur direkt zwischen den Geräten übertragen.';
+    note.value = t('Session läuft. Teile den Link; wer ihn im Browser öffnet, tritt direkt bei. Die Zeichnung wird nur direkt zwischen den Geräten übertragen.');
   } catch (value) { if (epoch === automaticGeneration) reportAutomatic(value); }
   finally { if (epoch === automaticGeneration) busy.value = false; }
 }
@@ -168,7 +169,7 @@ async function startAutomaticOwner(): Promise<void> {
 async function joinSession(text: string): Promise<void> {
   const invitationText = extractSessionInvitation(text);
   if (busy.value || automaticTransport) return;
-  if (!invitationText) { error.value = 'Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.'; return; }
+  if (!invitationText) { error.value = t('Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.'); return; }
   const epoch = ++automaticGeneration;
   busy.value = true; error.value = ''; note.value = '';
   let transport: CollaborationTransport | undefined;
@@ -195,7 +196,7 @@ async function joinSession(text: string): Promise<void> {
     automaticTransport = transport;
     automaticActive.value = true;
     listenAutomatic(transport);
-    note.value = 'Session wird gesucht …';
+    note.value = t('Session wird gesucht …');
     let controller = props.crdtController;
     if (!controller || controller.getSnapshot().document.id !== invitation.session.documentId) {
       // This device has no copy yet: fetch the host's document and replace the open one with it.
@@ -204,13 +205,13 @@ async function joinSession(text: string): Promise<void> {
       adopting = true;
       let accepted = false;
       try { accepted = await props.adoptRoom(fetched); } finally { adopting = false; }
-      if (!accepted) { fetched.destroy(); await stopAutomatic(false); note.value = 'Beitritt abgebrochen. Dein Dokument bleibt unverändert.'; return; }
+      if (!accepted) { fetched.destroy(); await stopAutomatic(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); return; }
       controller = fetched;
     }
     if (epoch !== automaticGeneration || disposed) return;
     automaticBinding = bindCrdtTransport(controller, transport, undefined, remoteOptions());
     joinedRoom.value = true;
-    note.value = 'Du bist in der Session. Änderungen werden live abgeglichen.';
+    note.value = t('Du bist in der Session. Änderungen werden live abgeglichen.');
   } catch (value) {
     if (epoch === automaticGeneration) {
       reportAutomatic(value);
@@ -259,7 +260,7 @@ async function createInvitation(resumePeerId?: string) {
     const invitation = await owner.createInvitation(selectedRole, resumePeerId ? { resumePeerId } : undefined);
     if (generation !== epoch || disposed) return;
     mode.value = 'invite'; inviteText.value = invitation.text;
-    note.value = 'Sende die Einladung direkt an die andere Person. Sie gilt fünf Minuten.';
+    note.value = t('Sende die Einladung direkt an die andere Person. Sie gilt fünf Minuten.');
   } catch (value) { if (generation === epoch) report(value); }
   finally { if (generation === epoch) busy.value = false; }
 }
@@ -278,7 +279,7 @@ async function inspectInvitation() {
     const result = guest ? await guest.acceptReconnectOffer(incoming.value.trim()) : await acceptInvitation(incoming.value.trim(), { identity: await identityForSession() });
     if (disposed || generation !== epoch) { result.cancel(); return; }
     pairing = result; answerText.value = result.answer.text; review.value = result.review; checked.value = false;
-    note.value = 'Sende die Antwort zurück. Vergleicht danach den vollständigen Code über euren direkten Kontakt.';
+    note.value = t('Sende die Antwort zurück. Vergleicht danach den vollständigen Code über euren direkten Kontakt.');
   } catch (value) { if (generation === epoch) report(value); }
   finally { if (generation === epoch) busy.value = false; }
 }
@@ -299,7 +300,7 @@ async function confirm() {
   try {
     if (mode.value === 'invite' && owner) {
       await owner.confirmPeer(value.invitationId, value.comparisonCode);
-      if (generation === epoch) { clearPairing(); note.value = 'Identität bestätigt. Der direkte Abgleich läuft.'; }
+      if (generation === epoch) { clearPairing(); note.value = t('Identität bestätigt. Der direkte Abgleich läuft.'); }
     } else if (pairing) {
       const joined = await pairing.confirmOwner(value.comparisonCode);
       pairing = undefined;
@@ -311,7 +312,7 @@ async function confirm() {
       // Store owns the unsaved-document decision and installs only the confirmed guest mirror.
       const accepted = reconnecting || await props.joinGuest(joined);
       if (!accepted) { await joined.leave(); if (guest === joined) { guest = undefined; offStatus(); status.value = null; } }
-      else { prospective = undefined; clearPairing(); note.value = 'Direkt verbunden. Änderungen werden im geöffneten Diagramm abgeglichen.'; }
+      else { prospective = undefined; clearPairing(); note.value = t('Direkt verbunden. Änderungen werden im geöffneten Diagramm abgeglichen.'); }
     }
   } catch (value) {
     if (prospective) {
@@ -325,7 +326,7 @@ async function confirm() {
 async function endOwner() {
   const current = owner; if (!current) return;
   const epoch = ++generation; busy.value = true; clearPairing(); owner = undefined; offStatus();
-  try { await current.close(); if (!disposed && generation === epoch) { status.value = current.getStatus(); note.value = 'Zusammenarbeit beendet. Dein lokales Dokument bleibt geöffnet.'; } }
+  try { await current.close(); if (!disposed && generation === epoch) { status.value = current.getStatus(); note.value = t('Zusammenarbeit beendet. Dein lokales Dokument bleibt geöffnet.'); } }
   catch (value) { if (generation === epoch) report(value); }
   finally { if (generation === epoch) busy.value = false; }
 }
@@ -336,75 +337,75 @@ async function leave() {
     if (await props.leaveGuest()) {
       await current.leave();
       // Successful leave may itself replace the authority through the store.
-      if (!disposed && (!guest || guest === current)) { guest = undefined; clearPairing(); offStatus(); status.value = null; note.value = 'Die bestätigte lokale Kopie bleibt geöffnet. Die Verbindung ist beendet.'; }
+      if (!disposed && (!guest || guest === current)) { guest = undefined; clearPairing(); offStatus(); status.value = null; note.value = t('Die bestätigte lokale Kopie bleibt geöffnet. Die Verbindung ist beendet.'); }
     }
   } catch (value) { if (generation === epoch) report(value); }
   finally { if (generation === epoch) busy.value = false; }
 }
 async function copy(value: string) {
-  try { await navigator.clipboard.writeText(value); note.value = 'Verbindungstext kopiert.'; }
-  catch { note.value = 'Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'; }
+  try { await navigator.clipboard.writeText(value); note.value = t('Verbindungstext kopiert.'); }
+  catch { note.value = t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'); }
 }
 onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus(); void owner?.close().catch(() => {}); void guest?.leave().catch(() => {}); void stopAutomatic(false); });
 </script>
 
 <template>
-  <aside v-if="open" class="peer-panel sd-panel" aria-label="Zusammenarbeiten" data-testid="collaboration-panel">
-    <header><h2 class="sd-panel-title">Zusammenarbeiten</h2><button class="sd-icon-btn sd-panel-close" aria-label="Zusammenarbeit schließen" @click="emit('close')"><AppIcon name="close" /></button></header>
+  <aside v-if="open" class="peer-panel sd-panel" :aria-label="t('Zusammenarbeiten')" data-testid="collaboration-panel">
+    <header><h2 class="sd-panel-title">{{ t('Zusammenarbeiten') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Zusammenarbeit schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
     <div class="body">
       <!-- One flow: start a session, share the link, or paste a link to join. -->
       <section v-if="!owner && !guest" class="session" aria-labelledby="session-title">
         <template v-if="!automaticActive">
-          <h3 id="session-title">Session starten</h3>
-          <p>Starte eine Session und teile den Link. Wer ihn im Browser öffnet, tritt direkt bei und sieht dein Diagramm live. Die Session ist Ende-zu-Ende verschlüsselt; die Zeichnung wird direkt zwischen den Geräten übertragen.</p>
-          <label class="sd-field-label">Zugriff für Eingeladene<select v-model="automaticRole" class="sd-select" :disabled="busy"><option value="viewer">Nur ansehen</option><option value="editor">Gemeinsam bearbeiten</option></select></label>
-          <button class="sd-btn sd-btn--primary full" data-testid="session-start" :disabled="busy || !authority || !crdtController" @click="startAutomaticOwner">Session starten</button>
-          <div class="automatic-separator"><span>oder beitreten</span></div>
-          <label class="sd-field-label">Session-Link<input v-model="joinLinkText" class="sd-input" type="text" aria-label="Session-Link einfügen" placeholder="Link hier einfügen" spellcheck="false" autocomplete="off" :disabled="busy" @keydown.enter.prevent="joinSession(joinLinkText)" /></label>
-          <button class="sd-btn full" :disabled="busy || !crdtController || !joinLinkText.trim()" @click="joinSession(joinLinkText)">Session beitreten</button>
+          <h3 id="session-title">{{ t('Session starten') }}</h3>
+          <p>{{ t('Starte eine Session und teile den Link. Wer ihn im Browser öffnet, tritt direkt bei und sieht dein Diagramm live. Die Session ist Ende-zu-Ende verschlüsselt; die Zeichnung wird direkt zwischen den Geräten übertragen.') }}</p>
+          <label class="sd-field-label">{{ t('Zugriff für Eingeladene') }}<select v-model="automaticRole" class="sd-select" :disabled="busy"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+          <button class="sd-btn sd-btn--primary full" data-testid="session-start" :disabled="busy || !authority || !crdtController" @click="startAutomaticOwner">{{ t('Session starten') }}</button>
+          <div class="automatic-separator"><span>{{ t('oder beitreten') }}</span></div>
+          <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="joinLinkText" class="sd-input" type="text" :aria-label="t('Session-Link einfügen')" :placeholder="t('Link hier einfügen')" spellcheck="false" autocomplete="off" :disabled="busy" @keydown.enter.prevent="joinSession(joinLinkText)" /></label>
+          <button class="sd-btn full" :disabled="busy || !crdtController || !joinLinkText.trim()" @click="joinSession(joinLinkText)">{{ t('Session beitreten') }}</button>
           <details class="advanced" data-testid="session-advanced">
-            <summary>Netzwerk und Link-Adresse</summary>
-            <p class="network-note">Zum Finden der Gegenstelle nutzt die Session die unten gelisteten MQTT/WSS-Endpunkte; für Verbindungen hinter NAT ist ein STUN-Server eingetragen. Es gibt kein Datenrelay, und beide Listen sind änderbar.</p>
-            <label class="sd-field-label">MQTT/WSS-Endpunkte<textarea v-model="relayUrlsText" class="sd-textarea compact" aria-label="MQTT WSS Endpunkte" spellcheck="false" /></label>
-            <label class="sd-field-label">ICE-/TURN-Konfiguration<textarea v-model="rtcConfigText" class="sd-textarea compact" aria-label="ICE und TURN Konfiguration" spellcheck="false" /></label>
-            <label class="sd-field-label">Adresse der Web-App für Einladungslinks<input v-model="webAppUrl" class="sd-input" type="url" aria-label="Adresse der Web-App" spellcheck="false" @change="saveWebAppUrl" /></label>
+            <summary>{{ t('Netzwerk und Link-Adresse') }}</summary>
+            <p class="network-note">{{ t('Zum Finden der Gegenstelle nutzt die Session die unten gelisteten MQTT/WSS-Endpunkte; für Verbindungen hinter NAT ist ein STUN-Server eingetragen. Es gibt kein Datenrelay, und beide Listen sind änderbar.') }}</p>
+            <label class="sd-field-label">{{ t('MQTT/WSS-Endpunkte') }}<textarea v-model="relayUrlsText" class="sd-textarea compact" :aria-label="t('MQTT WSS Endpunkte')" spellcheck="false" /></label>
+            <label class="sd-field-label">{{ t('ICE-/TURN-Konfiguration') }}<textarea v-model="rtcConfigText" class="sd-textarea compact" :aria-label="t('ICE und TURN Konfiguration')" spellcheck="false" /></label>
+            <label class="sd-field-label">{{ t('Adresse der Web-App für Einladungslinks') }}<input v-model="webAppUrl" class="sd-input" type="url" :aria-label="t('Adresse der Web-App')" spellcheck="false" @change="saveWebAppUrl" /></label>
           </details>
         </template>
         <template v-else>
-          <h3 id="session-title">{{ automaticInvitation ? 'Session läuft' : joinedRoom ? 'Du bist in der Session' : 'Session wird gesucht …' }}</h3>
-          <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' ? (automaticStatus.peers.length ? `Verbunden · ${automaticStatus.peers.length} ${automaticStatus.peers.length === 1 ? 'Person' : 'Personen'}` : 'Wartet auf Teilnehmende') : automaticStatus.state === 'connecting' ? (automaticInvitation ? 'Wartet auf Teilnehmende' : 'Verbindung wird aufgebaut') : automaticStatus.state === 'error' ? 'Verbindungsfehler' : 'Sitzung beendet' }}</p>
+          <h3 id="session-title">{{ automaticInvitation ? t('Session läuft') : joinedRoom ? t('Du bist in der Session') : t('Session wird gesucht …') }}</h3>
+          <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' ? (automaticStatus.peers.length ? t('Verbunden · {count} {unit}', { count: automaticStatus.peers.length, unit: automaticStatus.peers.length === 1 ? t('Person') : t('Personen') }) : t('Wartet auf Teilnehmende')) : automaticStatus.state === 'connecting' ? (automaticInvitation ? t('Wartet auf Teilnehmende') : t('Verbindung wird aufgebaut')) : automaticStatus.state === 'error' ? t('Verbindungsfehler') : t('Sitzung beendet') }}</p>
           <template v-if="automaticInvitation">
-            <label class="sd-field-label">Link zum Teilen<span class="copy-row"><input class="sd-input" type="text" readonly aria-label="Session-Link zum Kopieren" data-testid="session-link" :value="sessionLink" @focus="($event.target as HTMLInputElement).select()" /><button class="sd-btn sd-btn--primary" type="button" @click="copy(sessionLink)">Link kopieren</button></span></label>
-            <dl class="session-info"><div><dt>Zugriff</dt><dd>{{ automaticRole === 'editor' ? 'Gemeinsam bearbeiten' : 'Nur ansehen' }}</dd></div><div><dt>Gültig</dt><dd>bis die Session beendet wird (max. 12 Stunden)</dd></div></dl>
+            <label class="sd-field-label">{{ t('Link zum Teilen') }}<span class="copy-row"><input class="sd-input" type="text" readonly :aria-label="t('Session-Link zum Kopieren')" data-testid="session-link" :value="sessionLink" @focus="($event.target as HTMLInputElement).select()" /><button class="sd-btn sd-btn--primary" type="button" @click="copy(sessionLink)">{{ t('Link kopieren') }}</button></span></label>
+            <dl class="session-info"><div><dt>{{ t('Zugriff') }}</dt><dd>{{ automaticRole === 'editor' ? t('Gemeinsam bearbeiten') : t('Nur ansehen') }}</dd></div><div><dt>{{ t('Gültig') }}</dt><dd>{{ t('bis die Session beendet wird (max. 12 Stunden)') }}</dd></div></dl>
           </template>
-          <details v-if="automaticStatus" class="advanced"><summary>Verwendete Endpunkte</summary><dl class="automatic-endpoints"><dt>Signaling</dt><dd v-for="url in automaticStatus.relayUrls" :key="url">{{ url }}</dd><dt>ICE/TURN</dt><dd v-if="!automaticStatus.iceServers.length">Keine externen ICE-Server</dd><dd v-for="url in automaticStatus.iceServers" :key="url">{{ url }}</dd></dl></details>
-          <button class="sd-btn full" :disabled="busy" data-testid="session-stop" @click="stopAutomatic()">{{ automaticInvitation ? 'Session beenden' : 'Session verlassen' }}</button>
+          <details v-if="automaticStatus" class="advanced"><summary>{{ t('Verwendete Endpunkte') }}</summary><dl class="automatic-endpoints"><dt>{{ t('Signaling') }}</dt><dd v-for="url in automaticStatus.relayUrls" :key="url">{{ url }}</dd><dt>ICE/TURN</dt><dd v-if="!automaticStatus.iceServers.length">{{ t('Keine externen ICE-Server') }}</dd><dd v-for="url in automaticStatus.iceServers" :key="url">{{ url }}</dd></dl></details>
+          <button class="sd-btn full" :disabled="busy" data-testid="session-stop" @click="stopAutomatic()">{{ automaticInvitation ? t('Session beenden') : t('Session verlassen') }}</button>
         </template>
       </section>
       <details v-if="!automaticActive" class="manual" data-testid="manual-connection" :open="manualOpen || !!owner || !!guest" @toggle="manualOpen = ($event.target as HTMLDetailsElement).open">
-        <summary>Manuell ohne Server verbinden</summary>
-        <p>Verschlüsselt direkt zwischen euren Geräten. Einladungen und Antworten tauscht ihr selbst aus; es gibt keinen zentralen Speicher oder Vermittlungsserver.</p>
-        <p class="network-note">Direkte Verbindungen funktionieren nicht in jedem Netzwerk. Beide Geräte müssen erreichbar und die App geöffnet bleiben.</p>
-        <p v-if="status" role="status" class="connection-state">{{ states[status.state] }} · {{ status.mode === 'owner' ? 'Dein Dokument' : status.role === 'viewer' ? 'Nur ansehen' : 'Gemeinsam bearbeiten' }}</p>
-        <p v-if="status?.hasUnresolvedOutcome" role="alert">Eine gesendete Änderung ist noch nicht bestätigt. Bitte wieder verbinden und abgleichen, bevor du sie erneut ausführst.</p>
-        <div v-if="!owner && !guest" class="tabs" role="group" aria-label="Verbindungsart"><button class="sd-btn" :aria-pressed="mode === 'invite'" :disabled="busy || !!review" @click="mode = 'invite'; incoming = ''">Einladen</button><button class="sd-btn" :aria-pressed="mode === 'join'" :disabled="busy || !!review" @click="mode = 'join'; incoming = ''">Beitreten</button></div>
+        <summary>{{ t('Manuell ohne Server verbinden') }}</summary>
+        <p>{{ t('Verschlüsselt direkt zwischen euren Geräten. Einladungen und Antworten tauscht ihr selbst aus; es gibt keinen zentralen Speicher oder Vermittlungsserver.') }}</p>
+        <p class="network-note">{{ t('Direkte Verbindungen funktionieren nicht in jedem Netzwerk. Beide Geräte müssen erreichbar und die App geöffnet bleiben.') }}</p>
+        <p v-if="status" role="status" class="connection-state">{{ states[status.state] }} · {{ status.mode === 'owner' ? t('Dein Dokument') : status.role === 'viewer' ? t('Nur ansehen') : t('Gemeinsam bearbeiten') }}</p>
+        <p v-if="status?.hasUnresolvedOutcome" role="alert">{{ t('Eine gesendete Änderung ist noch nicht bestätigt. Bitte wieder verbinden und abgleichen, bevor du sie erneut ausführst.') }}</p>
+        <div v-if="!owner && !guest" class="tabs" role="group" :aria-label="t('Verbindungsart')"><button class="sd-btn" :aria-pressed="mode === 'invite'" :disabled="busy || !!review" @click="mode = 'invite'; incoming = ''">{{ t('Einladen') }}</button><button class="sd-btn" :aria-pressed="mode === 'join'" :disabled="busy || !!review" @click="mode = 'join'; incoming = ''">{{ t('Beitreten') }}</button></div>
         <template v-if="mode === 'invite' && !guest">
-          <label class="sd-field-label">Zugriff<select v-model="role" class="sd-select" :disabled="busy || !!inviteText"><option value="viewer">Nur ansehen</option><option value="editor">Gemeinsam bearbeiten</option></select></label>
-          <button class="sd-btn full" :disabled="busy || !authority || !!inviteText" @click="createInvitation()">Einladung erstellen</button>
-          <template v-if="inviteText"><label class="sd-field-label">Einladung<textarea class="sd-textarea" aria-label="Einladung zum Kopieren" :value="inviteText" readonly spellcheck="false" /></label><button class="sd-btn full" @click="copy(inviteText)">Einladung kopieren</button><label class="sd-field-label">Antwort der anderen Person<textarea v-model="incoming" class="sd-textarea" aria-label="Antwort einfügen" maxlength="358400" spellcheck="false" :disabled="busy || !!review" /></label><button class="sd-btn full" :disabled="busy || !incoming.trim() || !!review" @click="inspectAnswer">Antwort prüfen</button></template>
+          <label class="sd-field-label">{{ t('Zugriff') }}<select v-model="role" class="sd-select" :disabled="busy || !!inviteText"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+          <button class="sd-btn full" :disabled="busy || !authority || !!inviteText" @click="createInvitation()">{{ t('Einladung erstellen') }}</button>
+          <template v-if="inviteText"><label class="sd-field-label">{{ t('Einladung') }}<textarea class="sd-textarea" :aria-label="t('Einladung zum Kopieren')" :value="inviteText" readonly spellcheck="false" /></label><button class="sd-btn full" @click="copy(inviteText)">{{ t('Einladung kopieren') }}</button><label class="sd-field-label">{{ t('Antwort der anderen Person') }}<textarea v-model="incoming" class="sd-textarea" :aria-label="t('Antwort einfügen')" maxlength="358400" spellcheck="false" :disabled="busy || !!review" /></label><button class="sd-btn full" :disabled="busy || !incoming.trim() || !!review" @click="inspectAnswer">{{ t('Antwort prüfen') }}</button></template>
         </template>
         <template v-if="mode === 'join' && !owner">
-          <label class="sd-field-label">{{ guest ? 'Neue Einladung zur Wiederverbindung' : 'Einladung der anderen Person' }}<textarea v-model="incoming" class="sd-textarea" aria-label="Einladung einfügen" maxlength="358400" spellcheck="false" :disabled="busy || !!review" /></label><button class="sd-btn full" :disabled="busy || !incoming.trim() || !!review" @click="inspectInvitation">Einladung prüfen</button>
-          <template v-if="answerText"><label class="sd-field-label">Deine Antwort<textarea class="sd-textarea" aria-label="Antwort zum Kopieren" :value="answerText" readonly spellcheck="false" /></label><button class="sd-btn full" @click="copy(answerText)">Antwort kopieren</button></template>
+          <label class="sd-field-label">{{ guest ? t('Neue Einladung zur Wiederverbindung') : t('Einladung der anderen Person') }}<textarea v-model="incoming" class="sd-textarea" :aria-label="t('Einladung einfügen')" maxlength="358400" spellcheck="false" :disabled="busy || !!review" /></label><button class="sd-btn full" :disabled="busy || !incoming.trim() || !!review" @click="inspectInvitation">{{ t('Einladung prüfen') }}</button>
+          <template v-if="answerText"><label class="sd-field-label">{{ t('Deine Antwort') }}<textarea class="sd-textarea" :aria-label="t('Antwort zum Kopieren')" :value="answerText" readonly spellcheck="false" /></label><button class="sd-btn full" @click="copy(answerText)">{{ t('Antwort kopieren') }}</button></template>
         </template>
-        <section v-if="review" class="comparison"><h3>Vergleicht diesen Code</h3><output aria-label="Vergleichscode">{{ review.comparisonCode }}</output><details><summary>Vollständige Identitäten anzeigen</summary><dl class="fingerprints"><dt>Dokumentbesitzer · Identität</dt><dd>{{ review.ownerKeyFingerprint }}</dd><dt>Gast · Identität</dt><dd>{{ review.peerKeyFingerprint }}</dd><dt>Dokumentbesitzer · Verbindung</dt><dd>{{ review.ownerDtlsFingerprint }}</dd><dt>Gast · Verbindung</dt><dd>{{ review.peerDtlsFingerprint }}</dd></dl></details><p>Der vollständige Code muss bei euch beiden gleich sein. Zugriff: {{ review.role === 'viewer' ? 'Nur ansehen' : 'Gemeinsam bearbeiten' }}.</p><label class="confirm-check"><input v-model="checked" type="checkbox" :disabled="busy" />Ich habe den vollständigen Code mit der anderen Person verglichen.</label><button class="sd-btn sd-btn--primary full" :disabled="busy || !checked" @click="confirm">Identität bestätigen</button></section>
-        <ul v-if="owner && status?.peers.length" aria-label="Verbundene Personen" class="peers"><li v-for="(peer, i) in status.peers" :key="peer.peerId"><strong>Person {{ i + 1 }} · {{ peer.role === 'viewer' ? 'Nur ansehen' : 'Bearbeiten' }}</strong><span>{{ states[peer.state] }}</span><button v-if="peer.state === 'disconnected' || peer.state === 'resync-required'" class="sd-btn" :disabled="busy || !!inviteText" @click="createInvitation(peer.peerId)">Wiederverbinden</button></li></ul>
-        <p v-if="owner" class="network-note">Eine Freigabe beendest du derzeit für die ganze Sitzung. Danach kannst du mit neuen Einladungen starten.</p>
-        <button v-if="owner" class="sd-btn full" :disabled="busy" @click="endOwner">Sitzung für alle beenden</button>
-        <button v-if="guest" class="sd-btn full" :disabled="busy" @click="leave">Sitzung verlassen und Kopie behalten</button>
-        <button v-if="review && !owner && !guest && !busy" class="sd-btn full" @click="clearPairing">Verbindungsaufbau abbrechen</button>
+        <section v-if="review" class="comparison"><h3>{{ t('Vergleicht diesen Code') }}</h3><output :aria-label="t('Vergleichscode')">{{ review.comparisonCode }}</output><details><summary>{{ t('Vollständige Identitäten anzeigen') }}</summary><dl class="fingerprints"><dt>{{ t('Dokumentbesitzer · Identität') }}</dt><dd>{{ review.ownerKeyFingerprint }}</dd><dt>{{ t('Gast · Identität') }}</dt><dd>{{ review.peerKeyFingerprint }}</dd><dt>{{ t('Dokumentbesitzer · Verbindung') }}</dt><dd>{{ review.ownerDtlsFingerprint }}</dd><dt>{{ t('Gast · Verbindung') }}</dt><dd>{{ review.peerDtlsFingerprint }}</dd></dl></details><p>{{ t('Der vollständige Code muss bei euch beiden gleich sein. Zugriff: {access}.', { access: review.role === 'viewer' ? t('Nur ansehen') : t('Gemeinsam bearbeiten') }) }}</p><label class="confirm-check"><input v-model="checked" type="checkbox" :disabled="busy" />{{ t('Ich habe den vollständigen Code mit der anderen Person verglichen.') }}</label><button class="sd-btn sd-btn--primary full" :disabled="busy || !checked" @click="confirm">{{ t('Identität bestätigen') }}</button></section>
+        <ul v-if="owner && status?.peers.length" :aria-label="t('Verbundene Personen')" class="peers"><li v-for="(peer, i) in status.peers" :key="peer.peerId"><strong>{{ t('Person {number} · {role}', { number: i + 1, role: peer.role === 'viewer' ? t('Nur ansehen') : t('Bearbeiten') }) }}</strong><span>{{ states[peer.state] }}</span><button v-if="peer.state === 'disconnected' || peer.state === 'resync-required'" class="sd-btn" :disabled="busy || !!inviteText" @click="createInvitation(peer.peerId)">{{ t('Wiederverbinden') }}</button></li></ul>
+        <p v-if="owner" class="network-note">{{ t('Eine Freigabe beendest du derzeit für die ganze Sitzung. Danach kannst du mit neuen Einladungen starten.') }}</p>
+        <button v-if="owner" class="sd-btn full" :disabled="busy" @click="endOwner">{{ t('Sitzung für alle beenden') }}</button>
+        <button v-if="guest" class="sd-btn full" :disabled="busy" @click="leave">{{ t('Sitzung verlassen und Kopie behalten') }}</button>
+        <button v-if="review && !owner && !guest && !busy" class="sd-btn full" @click="clearPairing">{{ t('Verbindungsaufbau abbrechen') }}</button>
       </details>
-      <p v-if="busy" role="status">Verbindung wird geprüft …</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="note" role="status">{{ note }}</p>
+      <p v-if="busy" role="status">{{ t('Verbindung wird geprüft …') }}</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="note" role="status">{{ note }}</p>
     </div>
   </aside>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
 import { docToScreen } from '../lib/viewport';
@@ -136,27 +137,27 @@ onBeforeUnmount(cleanupGesture);
 
 <template>
   <div v-if="element && table" class="table-overlay" :style="style" data-testid="table-overlay" @pointerdown.stop @keydown="deleteSelectedStructure">
-    <button type="button" class="move-handle" aria-label="Tabelle verschieben" @pointerdown="startGesture($event, 'move')">≡</button>
-    <button v-for="handle in (['nw', 'ne', 'se', 'sw'] as const)" :key="handle" type="button" class="resize-handle" :class="handle" :aria-label="`Tabelle an Ecke ${handle} skalieren`" @pointerdown="startGesture($event, 'resize', handle)" />
+    <button type="button" class="move-handle" :aria-label="t('Tabelle verschieben')" @pointerdown="startGesture($event, 'move')">≡</button>
+    <button v-for="handle in (['nw', 'ne', 'se', 'sw'] as const)" :key="handle" type="button" class="resize-handle" :class="handle" :aria-label="t('Tabelle an Ecke {handle} skalieren', { handle })" @pointerdown="startGesture($event, 'resize', handle)" />
     <div class="column-handles" :style="{ gridTemplateColumns: gridStyle.gridTemplateColumns }">
-      <button v-for="(_, index) in table.columns" :key="index" type="button" :aria-label="`Spalte ${index + 1} auswählen`" @click="selectColumn(index)"><span /></button>
+      <button v-for="(_, index) in table.columns" :key="index" type="button" :aria-label="t('Spalte {index} auswählen', { index: index + 1 })" @click="selectColumn(index)"><span /></button>
     </div>
-    <div class="column-insertions" role="group" aria-label="Spalten einfügen">
-      <button v-for="boundary in columnInsertions" :key="boundary.index" type="button" :style="{ left: boundary.left }" :aria-label="`Spalte zwischen ${boundary.index} und ${boundary.index + 1} hinzufügen`" @click="insertColumnAt(boundary.index)"><AppIcon name="plus" :size="14" /></button>
+    <div class="column-insertions" role="group" :aria-label="t('Spalten einfügen')">
+      <button v-for="boundary in columnInsertions" :key="boundary.index" type="button" :style="{ left: boundary.left }" :aria-label="t('Spalte zwischen {index} und {index2} hinzufügen', { index: boundary.index, index2: boundary.index + 1 })" @click="insertColumnAt(boundary.index)"><AppIcon name="plus" :size="14" /></button>
     </div>
     <div class="row-handles" :style="{ gridTemplateRows: gridStyle.gridTemplateRows }">
-      <button v-for="(_, index) in table.rows" :key="index" type="button" :aria-label="`Zeile ${index + 1} auswählen`" @click="selectRow(index)"><span /></button>
+      <button v-for="(_, index) in table.rows" :key="index" type="button" :aria-label="t('Zeile {index} auswählen', { index: index + 1 })" @click="selectRow(index)"><span /></button>
     </div>
     <div class="table-grid" :style="gridStyle" role="grid" :aria-rowcount="table.rows.length" :aria-colcount="table.columns.length">
       <div v-for="row in gridRows" :key="row.id" class="grid-row" role="row">
         <div v-for="entry in row.cells" :key="entry.cell.id" class="cell" :class="{ selected: selectedIds.has(entry.cell.id) }" :style="{ background: themeColor(entry.cell.style.fill, s.theme), color: themeColor(entry.cell.style.color, s.theme), fontSize: `${entry.cell.style.fontSize * s.viewport.zoom}px`, fontFamily: fontFamilyCss(entry.cell.style.fontFamily), fontWeight: entry.cell.style.fontWeight, textDecoration: entry.cell.style.textDecoration, textAlign: entry.cell.style.textAlign }" role="gridcell" :aria-rowindex="entry.rowIndex + 1" :aria-colindex="entry.columnIndex + 1">
-          <textarea v-if="editingId === entry.cell.id" v-model="draft" data-testid="table-cell-editor" aria-label="Tabellenzelle bearbeiten" @keydown="keydown" @blur="blur(entry.cell.id)" />
-          <button v-else type="button" class="cell-button" :class="{ commenting: s.tool === 'comment' }" :aria-label="s.tool === 'comment' ? `Kommentar an Zelle ${entry.rowIndex + 1}, ${entry.columnIndex + 1} anheften` : `Zelle ${entry.rowIndex + 1}, ${entry.columnIndex + 1}`" @click="selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex)" @dblclick="s.tool !== 'comment' && edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)" @keydown.enter.prevent="s.tool === 'comment' ? selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex) : edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)">{{ entry.cell.style.listStyle === 'bullet' && entry.cell.text ? `• ${entry.cell.text}` : entry.cell.text }}</button>
+          <textarea v-if="editingId === entry.cell.id" v-model="draft" data-testid="table-cell-editor" :aria-label="t('Tabellenzelle bearbeiten')" @keydown="keydown" @blur="blur(entry.cell.id)" />
+          <button v-else type="button" class="cell-button" :class="{ commenting: s.tool === 'comment' }" :aria-label="s.tool === 'comment' ? t('Kommentar an Zelle {rowIndex}, {columnIndex} anheften', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 }) : t('Zelle {rowIndex}, {columnIndex}', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 })" @click="selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex)" @dblclick="s.tool !== 'comment' && edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)" @keydown.enter.prevent="s.tool === 'comment' ? selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex) : edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)">{{ entry.cell.style.listStyle === 'bullet' && entry.cell.text ? `• ${entry.cell.text}` : entry.cell.text }}</button>
         </div>
       </div>
     </div>
-    <button type="button" class="add-column" aria-label="Spalte rechts hinzufügen" @click="selectColumn(table.columns.length - 1); store.changeTableStructure('column-after')"><AppIcon name="plus" /></button>
-    <button type="button" class="add-row" aria-label="Zeile unten hinzufügen" @click="selectRow(table.rows.length - 1); store.changeTableStructure('row-after')"><AppIcon name="plus" /></button>
+    <button type="button" class="add-column" :aria-label="t('Spalte rechts hinzufügen')" @click="selectColumn(table.columns.length - 1); store.changeTableStructure('column-after')"><AppIcon name="plus" /></button>
+    <button type="button" class="add-row" :aria-label="t('Zeile unten hinzufügen')" @click="selectRow(table.rows.length - 1); store.changeTableStructure('row-after')"><AppIcon name="plus" /></button>
   </div>
 </template>
 

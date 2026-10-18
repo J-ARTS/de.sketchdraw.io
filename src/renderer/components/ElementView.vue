@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '../lib/geometry';
+import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
 import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
@@ -66,7 +68,7 @@ function wrapCloudTitle(value: string): string[] {
   }
   return lines.slice(0, 2).map((line) => line.length > max ? `${line.slice(0, Math.max(1, max - 1))}…` : line);
 }
-const cloudTitleLines = computed(() => wrapCloudTitle(text.value || definition.value?.name || 'Komponente'));
+const cloudTitleLines = computed(() => wrapCloudTitle(text.value || definition.value?.name || t('Komponente')));
 const CLOUD_TITLE_LINE_HEIGHT = 18;
 const CLOUD_PROVIDER_GAP = 24;
 const cloudTitleY = computed(() => cloudTitleLines.value.length > 1 ? Math.max(94, 24 + cloudIconSize.value) : Math.max(104, 30 + cloudIconSize.value));
@@ -74,7 +76,7 @@ const cloudProviderY = computed(() => Math.min(
   e.value.height - 12,
   cloudTitleY.value + (cloudTitleLines.value.length - 1) * CLOUD_TITLE_LINE_HEIGHT + CLOUD_PROVIDER_GAP,
 ));
-const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? 'Schreib etwas, @erwähne jemanden' : text.value);
+const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? t('Schreib etwas, @erwähne jemanden') : text.value);
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
 const lines = computed(() => {
@@ -100,6 +102,8 @@ const cornerRadius = computed(() => {
   const half = Math.min(e.value.width, e.value.height) / 2;
   return Math.max(0, Math.min(e.value.style.cornerRadius ?? Math.min(e.value.width, e.value.height) / 6, half));
 });
+/** Diamond and triangles are sharp by default; the corner radius is capped to half the shorter side. */
+const polygonRadius = computed(() => Math.max(0, Math.min(e.value.style.cornerRadius ?? 0, Math.min(e.value.width, e.value.height) / 2)));
 const embedHost = computed(() => {
   try { return new URL(e.value.embedUrl ?? '').hostname; }
   catch { return 'Webseite'; }
@@ -113,7 +117,7 @@ const embedMatchesAppOrigin = computed(() => {
 watch(() => e.value.embedUrl, () => { embedState.value = 'loading'; });
 function markEmbedLoaded(): void { embedState.value = 'loaded'; }
 function markEmbedFailed(): void { embedState.value = 'failed'; }
-const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
+const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
 </script>
 
 <template>
@@ -140,7 +144,8 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
       <rect v-else-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
       <rect v-else-if="shape?.id === 'rounded'" data-testid="rounded-surface" :width="e.width" :height="e.height" :rx="cornerRadius" :ry="cornerRadius" />
       <ellipse v-else-if="shape?.id === 'circle'" :cx="e.width / 2" :cy="e.height / 2" :rx="e.width / 2" :ry="e.height / 2" />
-      <polygon v-else-if="shape?.id === 'diamond'" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
+      <polygon v-else-if="shape?.id === 'diamond' && polygonRadius === 0" :points="`${e.width / 2},0 ${e.width},${e.height / 2} ${e.width / 2},${e.height} 0,${e.height / 2}`" />
+      <path v-else-if="shape && ROUNDABLE_POLYGONS.includes(shape.id)" :data-testid="`${shape.id}-rounded-surface`" :d="roundedPolygonPath(shape.id, e.width, e.height, polygonRadius)" />
       <svg v-else-if="shape" :width="e.width" :height="e.height" viewBox="3 3 18 18" preserveAspectRatio="none" overflow="visible">
         <path v-for="(d, index) in shape.icon" :key="d" :d="d" :fill="index === 0 ? fill : 'none'" vector-effect="non-scaling-stroke" />
       </svg>
@@ -180,7 +185,7 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
         :role="staticPreview ? undefined : 'link'"
         :tabindex="staticPreview ? -1 : 0"
         :pointer-events="staticPreview ? 'none' : 'all'"
-        :aria-label="`${link.label} öffnen`"
+        :aria-label="t('{label} öffnen', { label: link.label })"
         @pointerdown.stop
         @click.stop="emit('openLink', link.url)"
         @keydown.enter.stop.prevent="emit('openLink', link.url)"
@@ -204,12 +209,12 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
     </foreignObject>
     <foreignObject v-else-if="e.kind === 'web-embed'" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" :pointer-events="interactive ? 'all' : 'none'">
       <div class="web-embed" data-testid="web-embed-frame">
-        <div class="web-embed-header" aria-hidden="true"><span class="web-embed-dot" />{{ embedHost }}<span>Live-Vorschau</span></div>
+        <div class="web-embed-header" aria-hidden="true"><span class="web-embed-dot" />{{ embedHost }}<span>{{ t('Live-Vorschau') }}</span></div>
         <div class="web-embed-content">
           <iframe
             v-if="e.embedUrl && !staticPreview && !embedMatchesAppOrigin"
             :src="e.embedUrl"
-            :title="`Eingebettete Webseite ${embedHost}`"
+            :title="t('Eingebettete Webseite {embedHost}', { embedHost })"
             sandbox="allow-forms allow-same-origin allow-scripts"
             referrerpolicy="no-referrer"
             loading="eager"
@@ -218,13 +223,13 @@ const frameTitle = computed(() => e.value.label?.trim() || 'Folie');
             @error="markEmbedFailed"
           />
           <div v-if="staticPreview" class="web-embed-placeholder">{{ e.label || embedHost }}</div>
-          <div v-else-if="embedMatchesAppOrigin" class="web-embed-placeholder">Die Sketchdraw-App selbst kann hier nicht sicher eingebettet werden.</div>
-          <div v-else-if="embedState === 'loading'" class="web-embed-loading" role="status">Webseite wird geladen …</div>
-          <div v-else-if="embedState === 'failed'" class="web-embed-placeholder">Die Webseite konnte nicht geladen werden.</div>
+          <div v-else-if="embedMatchesAppOrigin" class="web-embed-placeholder">{{ t('Die Sketchdraw-App selbst kann hier nicht sicher eingebettet werden.') }}</div>
+          <div v-else-if="embedState === 'loading'" class="web-embed-loading" role="status">{{ t('Webseite wird geladen …') }}</div>
+          <div v-else-if="embedState === 'failed'" class="web-embed-placeholder">{{ t('Die Webseite konnte nicht geladen werden.') }}</div>
         </div>
         <div v-if="!staticPreview" class="web-embed-fallback">
-          <span>Keine Vorschau? Die Webseite kann das Einbetten blockieren.</span>
-          <button type="button" :tabindex="interactive ? 0 : -1" @pointerdown.stop @click.stop="emit('openLink', e.embedUrl!)">Extern öffnen ↗</button>
+          <span>{{ t('Keine Vorschau? Die Webseite kann das Einbetten blockieren.') }}</span>
+          <button type="button" :tabindex="interactive ? 0 : -1" @pointerdown.stop @click.stop="emit('openLink', e.embedUrl!)">{{ t('Extern öffnen ↗') }}</button>
         </div>
       </div>
     </foreignObject>

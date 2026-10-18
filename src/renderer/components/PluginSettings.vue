@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput } from '@/domain';
 import { wrapTabFocus } from '@/renderer/lib/focus';
@@ -43,40 +44,40 @@ async function searchPages(): Promise<void> { await store.searchConfluencePages(
 <template>
   <dialog ref="dialog" class="plugin-dialog" aria-labelledby="plugin-title" @cancel.prevent="emit('close')" @pointerdown.self="emit('close')" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
     <div class="plugin-panel sd-panel">
-      <header class="panel-head"><div><span class="eyebrow">DESKTOP-INTEGRATIONEN</span><h1 id="plugin-title" class="sd-panel-title">Plugins</h1></div><button ref="closeButton" class="sd-icon-btn sd-panel-close" type="button" aria-label="Plugin-Einstellungen schließen" @click="emit('close')"><AppIcon name="close" /></button></header>
-      <p v-if="!s.pluginSettings?.available" class="desktop-note" role="status">Git und Atlassian sind in der Electron-Desktop-App verfügbar. Die Browser-Version speichert keine Systemzugänge.</p>
+      <header class="panel-head"><div><span class="eyebrow">DESKTOP-INTEGRATIONEN</span><h1 id="plugin-title" class="sd-panel-title">{{ t('Plugins') }}</h1></div><button ref="closeButton" class="sd-icon-btn sd-panel-close" type="button" :aria-label="t('Plugin-Einstellungen schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
+      <p v-if="!s.pluginSettings?.available" class="desktop-note" role="status">{{ t('Git und Atlassian sind in der Electron-Desktop-App verfügbar. Die Browser-Version speichert keine Systemzugänge.') }}</p>
 
       <section class="plugin-card" :data-health="s.pluginSettings?.git.health ?? 'disabled'">
-        <header><div class="plugin-mark git-mark" aria-hidden="true">⑂</div><div><h2>Git</h2><p>{{ s.pluginSettings?.git.message }}</p></div><label class="switch"><input v-model="git.enabled" type="checkbox" :disabled="!s.pluginSettings?.available" /><span>Aktiv</span></label></header>
+        <header><div class="plugin-mark git-mark" aria-hidden="true">⑂</div><div><h2>Git</h2><p>{{ tm(s.pluginSettings?.git.message ?? '') }}</p></div><label class="switch"><input v-model="git.enabled" type="checkbox" :disabled="!s.pluginSettings?.available" /><span>{{ t('Aktiv') }}</span></label></header>
         <div class="form-grid">
-          <label>Remote<input v-model="git.remote" maxlength="128" autocomplete="off" /></label>
-          <label class="check"><input v-model="git.autoCommit" type="checkbox" /> Dokument nach dem Speichern committen</label>
-          <label class="check"><input v-model="git.autoPull" type="checkbox" /> Änderungen automatisch abrufen</label>
-          <label class="check"><input v-model="git.autoPush" type="checkbox" /> Erfolgreiche Commits pushen</label>
+          <label>{{ t('Remote') }}<input v-model="git.remote" maxlength="128" autocomplete="off" /></label>
+          <label class="check"><input v-model="git.autoCommit" type="checkbox" /> {{ t('Dokument nach dem Speichern committen') }}</label>
+          <label class="check"><input v-model="git.autoPull" type="checkbox" /> {{ t('Änderungen automatisch abrufen') }}</label>
+          <label class="check"><input v-model="git.autoPush" type="checkbox" /> {{ t('Erfolgreiche Commits pushen') }}</label>
         </div>
-        <dl v-if="s.pluginSettings?.git.repositoryName" class="status-grid"><div><dt>Repository</dt><dd>{{ s.pluginSettings.git.repositoryName }}</dd></div><div><dt>Branch</dt><dd>{{ s.pluginSettings.git.branch }}</dd></div><div><dt>Änderungen</dt><dd>{{ s.pluginSettings.git.changedFiles ?? 0 }}</dd></div><div><dt>Remote</dt><dd>↑ {{ s.pluginSettings.git.ahead ?? 0 }} · ↓ {{ s.pluginSettings.git.behind ?? 0 }}</dd></div></dl>
-        <div v-if="s.pendingExternalDocument" class="conflict" role="alert"><strong>Externe Änderung wartet</strong><span>Lokale Entwürfe wurden nicht überschrieben.</span><button class="sd-btn" :disabled="s.saveStatus === 'dirty'" @click="store.acceptExternalDocument()">Externe Version laden</button></div>
-        <footer><button class="sd-btn" :disabled="s.pluginBusy || !s.file.handle" @click="store.refreshGitStatus()">Status prüfen</button><button class="sd-btn" :disabled="s.pluginBusy || !s.file.handle" @click="store.syncGit()">Jetzt synchronisieren</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy || !s.pluginSettings?.available" @click="store.configureGitPlugin(git)">Speichern</button></footer>
+        <dl v-if="s.pluginSettings?.git.repositoryName" class="status-grid"><div><dt>{{ t('Repository') }}</dt><dd>{{ s.pluginSettings.git.repositoryName }}</dd></div><div><dt>{{ t('Branch') }}</dt><dd>{{ s.pluginSettings.git.branch }}</dd></div><div><dt>{{ t('Änderungen') }}</dt><dd>{{ s.pluginSettings.git.changedFiles ?? 0 }}</dd></div><div><dt>{{ t('Remote') }}</dt><dd>↑ {{ s.pluginSettings.git.ahead ?? 0 }} · ↓ {{ s.pluginSettings.git.behind ?? 0 }}</dd></div></dl>
+        <div v-if="s.pendingExternalDocument" class="conflict" role="alert"><strong>{{ t('Externe Änderung wartet') }}</strong><span>{{ t('Lokale Entwürfe wurden nicht überschrieben.') }}</span><button class="sd-btn" :disabled="s.saveStatus === 'dirty'" @click="store.acceptExternalDocument()">{{ t('Externe Version laden') }}</button></div>
+        <footer><button class="sd-btn" :disabled="s.pluginBusy || !s.file.handle" @click="store.refreshGitStatus()">{{ t('Status prüfen') }}</button><button class="sd-btn" :disabled="s.pluginBusy || !s.file.handle" @click="store.syncGit()">{{ t('Jetzt synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy || !s.pluginSettings?.available" @click="store.configureGitPlugin(git)">{{ t('Speichern') }}</button></footer>
       </section>
 
       <section class="plugin-card" :data-health="s.pluginSettings?.atlassian.health ?? 'disabled'">
-        <header><div class="plugin-mark atlas-mark" aria-hidden="true">A</div><div><h2>Atlassian</h2><p>{{ s.pluginSettings?.atlassian.message }}</p></div><label class="switch"><input v-model="atlassian.enabled" type="checkbox" :disabled="!s.pluginSettings?.available" /><span>Aktiv</span></label></header>
+        <header><div class="plugin-mark atlas-mark" aria-hidden="true">A</div><div><h2>{{ t('Atlassian') }}</h2><p>{{ tm(s.pluginSettings?.atlassian.message ?? '') }}</p></div><label class="switch"><input v-model="atlassian.enabled" type="checkbox" :disabled="!s.pluginSettings?.available" /><span>{{ t('Aktiv') }}</span></label></header>
         <div class="form-grid two">
-          <label class="wide">Atlassian-URL<input v-model="atlassian.siteUrl" type="url" placeholder="https://example.atlassian.net" autocomplete="url" /></label>
-          <label>E-Mail<input v-model="atlassian.email" type="email" autocomplete="username" /></label>
-          <label>API-Token<input v-model="atlassian.apiToken" type="password" :placeholder="s.pluginSettings?.atlassian.credentialStored ? 'Gespeichert – leer lassen zum Behalten' : 'API-Token'" autocomplete="new-password" /></label>
-          <label>Confluence-Space<input v-model="atlassian.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
-          <label>Jira-Projekt<input v-model="atlassian.jiraProjectKey" placeholder="PROJ" autocomplete="off" /></label>
-          <label>Jira-Vorgangstyp<input v-model="atlassian.jiraIssueType" placeholder="Task" autocomplete="off" /></label>
+          <label class="wide">{{ t('Atlassian-URL') }}<input v-model="atlassian.siteUrl" type="url" placeholder="https://example.atlassian.net" autocomplete="url" /></label>
+          <label>{{ t('E-Mail') }}<input v-model="atlassian.email" type="email" autocomplete="username" /></label>
+          <label>{{ t('API-Token') }}<input v-model="atlassian.apiToken" type="password" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label>
+          <label>{{ t('Confluence-Space') }}<input v-model="atlassian.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
+          <label>{{ t('Jira-Projekt') }}<input v-model="atlassian.jiraProjectKey" placeholder="PROJ" autocomplete="off" /></label>
+          <label>{{ t('Jira-Vorgangstyp') }}<input v-model="atlassian.jiraIssueType" :placeholder="t('Task')" autocomplete="off" /></label>
         </div>
-        <p class="security-copy">Das Token wird verschlüsselt im Betriebssystemspeicher der Desktop-App abgelegt. Es wird nicht in Diagramme, Git oder die Oberfläche zurückgegeben.</p>
-        <footer><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.credentialStored" @click="store.testAtlassianPlugin()">Verbindung testen</button><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.enabled" @click="store.syncJiraTasks()">Jira-Board synchronisieren</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy || !s.pluginSettings?.available" @click="store.configureAtlassianPlugin(atlassian)">Speichern</button></footer>
+        <p class="security-copy">{{ t('Das Token wird verschlüsselt im Betriebssystemspeicher der Desktop-App abgelegt. Es wird nicht in Diagramme, Git oder die Oberfläche zurückgegeben.') }}</p>
+        <footer><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.credentialStored" @click="store.testAtlassianPlugin()">{{ t('Verbindung testen') }}</button><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.enabled" @click="store.syncJiraTasks()">{{ t('Jira-Board synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy || !s.pluginSettings?.available" @click="store.configureAtlassianPlugin(atlassian)">{{ t('Speichern') }}</button></footer>
 
-        <div class="integration-section"><h3>Confluence Live Docs</h3><form class="search-row" @submit.prevent="searchPages"><input v-model="confluenceQuery" type="search" placeholder="Seiten suchen" aria-label="Confluence-Seiten suchen" /><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.enabled">Suchen</button></form>
-          <ul v-if="s.confluencePages.length" class="result-list"><li v-for="page in s.confluencePages" :key="page.id"><div><strong>{{ page.title }}</strong><span>Version {{ page.version }}</span></div><button class="sd-btn" @click="store.insertConfluencePage(page.id)">Einbinden</button></li></ul>
-          <p v-else class="empty">Suche nach Seiten, um sie als editierbare Annotation einzubinden.</p>
+        <div class="integration-section"><h3>{{ t('Confluence Live Docs') }}</h3><form class="search-row" @submit.prevent="searchPages"><input v-model="confluenceQuery" type="search" :placeholder="t('Seiten suchen')" :aria-label="t('Confluence-Seiten suchen')" /><button class="sd-btn" :disabled="s.pluginBusy || !s.pluginSettings?.atlassian.enabled">{{ t('Suchen') }}</button></form>
+          <ul v-if="s.confluencePages.length" class="result-list"><li v-for="page in s.confluencePages" :key="page.id"><div><strong>{{ page.title }}</strong><span>{{ t('Version {version}', { version: page.version }) }}</span></div><button class="sd-btn" @click="store.insertConfluencePage(page.id)">{{ t('Einbinden') }}</button></li></ul>
+          <p v-else class="empty">{{ t('Suche nach Seiten, um sie als editierbare Annotation einzubinden.') }}</p>
         </div>
-        <div v-if="linkedPages.length" class="integration-section"><h3>Verknüpfte Seiten</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || 'Confluence-Seite' }}</strong><span>Version {{ element.metadata?.['sketchdraw.atlassian.pageVersion'] }}</span></div><span class="row-actions"><button class="sd-btn" @click="store.refreshConfluenceElement(element.id)">Neu laden</button><button class="sd-btn" @click="store.syncConfluenceElement(element.id)">Senden</button></span></li></ul></div>
+        <div v-if="linkedPages.length" class="integration-section"><h3>{{ t('Verknüpfte Seiten') }}</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || t('Confluence-Seite') }}</strong><span>{{ t('Version {version}', { version: String(element.metadata?.['sketchdraw.atlassian.pageVersion'] ?? '') }) }}</span></div><span class="row-actions"><button class="sd-btn" @click="store.refreshConfluenceElement(element.id)">{{ t('Neu laden') }}</button><button class="sd-btn" @click="store.syncConfluenceElement(element.id)">{{ t('Senden') }}</button></span></li></ul></div>
       </section>
     </div>
   </dialog>

@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n/de';
+import { t } from '@/renderer/i18n';
 import { bounds } from '@/renderer/lib/geometry';
 import type { Rect } from '@/renderer/state/contract';
 

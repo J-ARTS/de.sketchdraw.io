@@ -255,6 +255,9 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
         folder: ['shape=folder'], note: ['shape=note'], pentagon: ['shape=pentagon'], 'loop-limit': ['shape=loopLimit'],
       };
       style.push(...(native[shapeVariant] ?? []));
+      if (['diamond', 'triangle', 'triangle-down'].includes(shapeVariant) && (el.style.cornerRadius ?? 0) > 0) {
+        style.push('rounded=1', `arcSize=${Math.round(Math.min(50, ((el.style.cornerRadius ?? 0) / Math.max(1, Math.min(el.width, el.height))) * 100))}`);
+      }
     }
     else if (el.kind === 'text')
       style.push('text', 'strokeColor=none', 'fillColor=none');

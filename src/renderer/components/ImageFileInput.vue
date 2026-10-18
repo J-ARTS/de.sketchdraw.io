@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n/de';
+import { t } from '@/renderer/i18n';
 
 const store = useWhiteboard();
 const input = ref<HTMLInputElement | null>(null);

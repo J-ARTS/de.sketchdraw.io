@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { intlLocale, L, t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { SketchTask, TaskStatus, TaskType } from '@/domain';
 import { useWhiteboard } from './use-whiteboard';
@@ -13,20 +14,21 @@ const query = ref(''); const selectedId = ref<string | null>(null);
 const creating = ref(false); const title = ref(''); const description = ref(''); const titleError = ref(false);
 const type = ref<TaskType | ''>(''); const assignee = ref(''); const dueDate = ref('');
 const columns: ReadonlyArray<{ status: TaskStatus; label: string }> = [
-  { status: 'todo', label: 'Offen' }, { status: 'doing', label: 'In Arbeit' },
-  { status: 'review', label: 'Prüfung' }, { status: 'done', label: 'Erledigt' },
+  { status: 'todo', label: L('Offen') }, { status: 'doing', label: L('In Arbeit') },
+  { status: 'review', label: L('Prüfung') }, { status: 'done', label: L('Erledigt') },
 ];
-const statusOptions = columns.map((column) => ({ value: column.status, label: column.label }));
+const statusOptions = computed(() => columns.map((column) => ({ value: column.status, label: t(column.label) })));
 const TYPE_OPTIONS: ReadonlyArray<{ value: TaskType | ''; label: string }> = [
-  { value: '', label: 'Kein Typ' }, { value: 'feature', label: 'Funktion' }, { value: 'bug', label: 'Fehler' }, { value: 'design', label: 'Design' },
-  { value: 'research', label: 'Recherche' }, { value: 'docs', label: 'Dokumentation' }, { value: 'ops', label: 'Betrieb' },
+  { value: '', label: L('Kein Typ') }, { value: 'feature', label: L('Funktion') }, { value: 'bug', label: L('Fehler') }, { value: 'design', label: L('Design') },
+  { value: 'research', label: L('Recherche') }, { value: 'docs', label: L('Dokumentation') }, { value: 'ops', label: L('Betrieb') },
 ];
+const typeOptions = computed(() => TYPE_OPTIONS.map((option) => ({ ...option, label: t(option.label) })));
 const tasks = computed(() => (s.document.tasks ?? []).filter((task) => `${task.title} ${task.description} ${task.assignee ?? ''}`.toLocaleLowerCase('de').includes(query.value.trim().toLocaleLowerCase('de'))));
 const selected = computed(() => (s.document.tasks ?? []).find((task) => task.id === selectedId.value) ?? null);
 const dialogOpen = computed(() => creating.value || selected.value !== null);
-const knownAssignees = computed(() => [...new Set((s.document.tasks ?? []).map((task) => task.assignee).filter((name): name is string => Boolean(name)))].sort((a, b) => a.localeCompare(b, 'de')));
+const knownAssignees = computed(() => [...new Set((s.document.tasks ?? []).map((task) => task.assignee).filter((name): name is string => Boolean(name)))].sort((a, b) => a.localeCompare(b, intlLocale())));
 function tasksFor(status: TaskStatus): SketchTask[] { return tasks.value.filter((task) => task.status === status).sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt)); }
-function columnLabel(status: TaskStatus): string { return columns.find((entry) => entry.status === status)?.label ?? status; }
+function columnLabel(status: TaskStatus): string { return t(columns.find((entry) => entry.status === status)?.label ?? status); }
 function open(task: SketchTask): void {
   creating.value = false; selectedId.value = task.id; title.value = task.title; description.value = task.description; titleError.value = false;
   type.value = task.type ?? ''; assignee.value = task.assignee ?? ''; dueDate.value = task.dueDate ?? '';
@@ -45,9 +47,9 @@ async function save(): Promise<void> {
 }
 async function removeSelected(): Promise<void> { if (selected.value && await store.deleteTask(selected.value.id)) closeDialog(); }
 function sourceLabel(task: SketchTask): string | null {
-  if (task.sourceThreadId) return 'Kommentar öffnen';
-  if (task.sourceElementId) return 'Notiz öffnen';
-  if (task.external) return 'In Jira öffnen';
+  if (task.sourceThreadId) return t('Kommentar öffnen');
+  if (task.sourceElementId) return t('Notiz öffnen');
+  if (task.external) return t('In Jira öffnen');
   return null;
 }
 function openSource(task: SketchTask): void {
@@ -66,13 +68,13 @@ const menuTask = computed(() => (s.document.tasks ?? []).find((task) => task.id 
 const menuActions = computed<MenuAction[]>(() => {
   const task = menuTask.value;
   if (!task) return [];
-  const actions: MenuAction[] = [{ id: 'edit', label: 'Bearbeiten', run: () => open(task) }];
+  const actions: MenuAction[] = [{ id: 'edit', label: L('Bearbeiten'), run: () => open(task) }];
   const source = sourceLabel(task);
   if (source) actions.push({ id: 'source', label: source, run: () => openSource(task) });
   for (const column of columns) {
-    if (column.status !== task.status) actions.push({ id: `move-${column.status}`, label: `Nach „${column.label}“ verschieben`, run: () => { void store.moveTask(task.id, column.status, tasksFor(column.status).length); } });
+    if (column.status !== task.status) actions.push({ id: `move-${column.status}`, label: t('Nach „{label}“ verschieben', { label: t(column.label) }), run: () => { void store.moveTask(task.id, column.status, tasksFor(column.status).length); } });
   }
-  actions.push({ id: 'delete', label: 'Löschen', danger: true, run: () => { void store.deleteTask(task.id); } });
+  actions.push({ id: 'delete', label: L('Löschen'), danger: true, run: () => { void store.deleteTask(task.id); } });
   return actions;
 });
 async function openMenu(task: SketchTask, event: MouseEvent): Promise<void> {
@@ -204,10 +206,10 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
 
 <template>
   <section ref="board" class="task-board" data-testid="task-board" aria-labelledby="task-board-title">
-    <header class="board-head"><div><span class="eyebrow">SKETCHDRAW WORKSPACE</span><h1 id="task-board-title">Aufgaben</h1></div><div class="head-actions"><label class="board-search"><AppIcon name="search" :size="18" /><input ref="searchInput" v-model="query" type="search" placeholder="Aufgaben suchen" aria-label="Aufgaben suchen" /></label><button v-if="s.pluginSettings?.atlassian.enabled" type="button" class="sd-btn" :disabled="s.pluginBusy" @click="store.syncJiraTasks()">Jira synchronisieren</button><button type="button" class="sd-icon-btn board-close" aria-label="Aufgabenboard schließen" title="Aufgabenboard schließen" @click="store.showCanvas()"><AppIcon name="close" /></button></div></header>
-    <div class="columns" aria-label="Kanban-Board">
-      <section v-for="column in columns" :key="column.status" class="task-column" :class="{ 'drop-target': drag?.over === column.status }" :data-status="column.status" :aria-label="column.label">
-        <header><h2><span class="status-dot" aria-hidden="true" />{{ column.label }}</h2><span>{{ tasksFor(column.status).length }}</span></header>
+    <header class="board-head"><div><span class="eyebrow">SKETCHDRAW WORKSPACE</span><h1 id="task-board-title">{{ t('Aufgaben') }}</h1></div><div class="head-actions"><label class="board-search"><AppIcon name="search" :size="18" /><input ref="searchInput" v-model="query" type="search" :placeholder="t('Aufgaben suchen')" :aria-label="t('Aufgaben suchen')" /></label><button v-if="s.pluginSettings?.atlassian.enabled" type="button" class="sd-btn" :disabled="s.pluginBusy" @click="store.syncJiraTasks()">{{ t('Jira synchronisieren') }}</button><button type="button" class="sd-icon-btn board-close" :aria-label="t('Aufgabenboard schließen')" :title="t('Aufgabenboard schließen')" @click="store.showCanvas()"><AppIcon name="close" /></button></div></header>
+    <div class="columns" :aria-label="t('Kanban-Board')">
+      <section v-for="column in columns" :key="column.status" class="task-column" :class="{ 'drop-target': drag?.over === column.status }" :data-status="column.status" :aria-label="t(column.label)">
+        <header><h2><span class="status-dot" aria-hidden="true" />{{ t(column.label) }}</h2><span>{{ tasksFor(column.status).length }}</span></header>
         <ol>
           <template v-for="(task, index) in tasksFor(column.status)" :key="task.id">
             <li v-if="indicatorAt(column.status) !== null && indicatorAt(column.status) === othersBefore(column.status, task)" class="drop-indicator" aria-hidden="true" />
@@ -215,7 +217,7 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
               <TaskCard
                 :task="task"
                 :menu-open="menu?.taskId === task.id"
-                :aria-label="`${task.title}, Status ${column.label}`"
+                :aria-label="t('{title}, Status {label}', { title: task.title, label: t(column.label) })"
                 @open="openFromCard(task)"
                 @menu="openMenu(task, $event)"
                 @pointerdown="onCardPointerDown($event, task, column.status, index)"
@@ -224,28 +226,28 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
           </template>
           <li v-if="indicatorAt(column.status) !== null && indicatorAt(column.status)! >= tasksFor(column.status).filter((entry) => entry.id !== drag?.task.id).length" class="drop-indicator" aria-hidden="true" />
         </ol>
-        <p v-if="!tasksFor(column.status).length && drag?.over !== column.status" class="column-empty">Keine Aufgaben</p>
+        <p v-if="!tasksFor(column.status).length && drag?.over !== column.status" class="column-empty">{{ t('Keine Aufgaben') }}</p>
       </section>
     </div>
-    <button ref="newTaskButton" type="button" class="new-task-fab" aria-label="Neue Aufgabe" title="Neue Aufgabe" @click="startCreate"><AppIcon name="plus" :size="24" /></button>
+    <button ref="newTaskButton" type="button" class="new-task-fab" :aria-label="t('Neue Aufgabe')" :title="t('Neue Aufgabe')" @click="startCreate"><AppIcon name="plus" :size="24" /></button>
 
     <div v-if="drag" class="drag-ghost" :style="{ width: `${drag.width}px`, left: `${drag.x - drag.offsetX}px`, top: `${drag.y - drag.offsetY}px`, transformOrigin: `${drag.offsetX}px ${drag.offsetY}px` }" aria-hidden="true">
       <TaskCard :task="drag.task" ghost />
     </div>
-    <span class="visually-hidden" role="status" aria-live="polite">{{ drag ? `${drag.task.title} wird verschoben${drag.over ? ` nach ${columnLabel(drag.over)}` : ''}` : '' }}</span>
+    <span class="visually-hidden" role="status" aria-live="polite">{{ drag ? (drag.over ? t('{title} wird verschoben nach {column}', { title: drag.task.title, column: columnLabel(drag.over) }) : t('{title} wird verschoben', { title: drag.task.title })) : '' }}</span>
 
-    <div v-if="menu && menuTask" ref="menuEl" class="card-menu" role="menu" :aria-label="`Aktionen für ${menuTask.title}`" :style="{ right: `${menu.right}px`, top: `${menu.top}px` }" @keydown="onMenuKeydown">
+    <div v-if="menu && menuTask" ref="menuEl" class="card-menu" role="menu" :aria-label="t('Aktionen für {title}', { title: menuTask.title })" :style="{ right: `${menu.right}px`, top: `${menu.top}px` }" @keydown="onMenuKeydown">
       <template v-for="action in menuActions" :key="action.id">
         <span v-if="action.id === 'delete'" class="menu-sep" role="separator" />
-        <button type="button" role="menuitem" tabindex="-1" class="card-menu-item" :class="{ danger: action.danger }" :data-testid="`task-menu-${action.id}`" @click="runMenu(action)">{{ action.label }}</button>
+        <button type="button" role="menuitem" tabindex="-1" class="card-menu-item" :class="{ danger: action.danger }" :data-testid="`task-menu-${action.id}`" @click="runMenu(action)">{{ t(action.label) }}</button>
       </template>
     </div>
 
     <dialog ref="taskDialog" class="task-dialog" aria-labelledby="task-dialog-title" @cancel.prevent="closeDialog" @pointerdown.self="closeDialog" @keydown.stop="taskDialog && wrapTabFocus($event, taskDialog)">
-      <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? 'Neue Aufgabe' : 'Aufgabe bearbeiten' }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" aria-label="Schließen" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>Titel<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">Bitte gib einen Titel ein.</span><label>Beschreibung<textarea v-model="description" maxlength="50000" /></label>
-        <div class="field-row"><AppSelect label="Typ" :model-value="type" :options="TYPE_OPTIONS" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" label="Fällig am" /></div>
-        <label>Zugewiesen an<input v-model="assignee" list="task-assignees" maxlength="120" autocomplete="off" placeholder="Name" /></label><datalist id="task-assignees"><option v-for="name in knownAssignees" :key="name" :value="name" /></datalist>
-        <AppSelect v-if="selected" label="Status" :model-value="selected.status" :options="statusOptions" @update:model-value="store.updateTask(selected.id, { status: $event as TaskStatus })" /></div><div class="dialog-actions"><button v-if="selected" type="button" class="sd-btn danger" @click="removeSelected">Löschen</button><button v-if="selected && sourceLabel(selected)" type="button" class="sd-btn" @click="openSource(selected)">{{ sourceLabel(selected) }}</button><button type="button" class="sd-btn" @click="closeDialog">Abbrechen</button><button class="sd-btn sd-btn--primary" type="submit">{{ creating ? 'Aufgabe erstellen' : 'Speichern' }}</button></div></form>
+      <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? t('Neue Aufgabe') : t('Aufgabe bearbeiten') }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Schließen')" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>{{ t('Titel') }}<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">{{ t('Bitte gib einen Titel ein.') }}</span><label>{{ t('Beschreibung') }}<textarea v-model="description" maxlength="50000" /></label>
+        <div class="field-row"><AppSelect :label="t('Typ')" :model-value="type" :options="typeOptions" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" :label="t('Fällig am')" /></div>
+        <label>{{ t('Zugewiesen an') }}<input v-model="assignee" list="task-assignees" maxlength="120" autocomplete="off" :placeholder="t('Name')" /></label><datalist id="task-assignees"><option v-for="name in knownAssignees" :key="name" :value="name" /></datalist>
+        <AppSelect v-if="selected" :label="t('Status')" :model-value="selected.status" :options="statusOptions" @update:model-value="store.updateTask(selected.id, { status: $event as TaskStatus })" /></div><div class="dialog-actions"><button v-if="selected" type="button" class="sd-btn danger" @click="removeSelected">{{ t('Löschen') }}</button><button v-if="selected && sourceLabel(selected)" type="button" class="sd-btn" @click="openSource(selected)">{{ sourceLabel(selected) }}</button><button type="button" class="sd-btn" @click="closeDialog">{{ t('Abbrechen') }}</button><button class="sd-btn sd-btn--primary" type="submit">{{ creating ? t('Aufgabe erstellen') : t('Speichern') }}</button></div></form>
     </dialog>
   </section>
 </template>

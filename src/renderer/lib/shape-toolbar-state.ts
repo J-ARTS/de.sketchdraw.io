@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue';
 import type { ShapeVariant } from '@/domain';
 import { shapeEntry } from './shapes';
+import { t } from '@/renderer/i18n';
 import {
   DEFAULT_SHAPE_FAVORITES,
   MAX_SHAPE_FAVORITES,
@@ -29,7 +30,7 @@ function moveFavorite(from: number, to: number): void {
   const [item] = next.splice(from, 1);
   next.splice(bounded, 0, item!);
   favorites.value = next;
-  persist(`${label(item!)} steht jetzt an Position ${bounded + 1}.`);
+  persist(t('{item} steht jetzt an Position {bounded}.', { item: label(item!), bounded: bounded + 1 }));
 }
 
 function addFavorite(id: ShapeVariant, index = favorites.value.length): void {
@@ -39,22 +40,22 @@ function addFavorite(id: ShapeVariant, index = favorites.value.length): void {
     return;
   }
   if (favorites.value.length >= MAX_SHAPE_FAVORITES) {
-    announcement.value = `Die Leiste kann höchstens ${MAX_SHAPE_FAVORITES} Formen enthalten.`;
+    announcement.value = t('Die Leiste kann höchstens {MAX_SHAPE_FAVORITES} Formen enthalten.', { MAX_SHAPE_FAVORITES });
     return;
   }
   const next = [...favorites.value];
   next.splice(Math.max(0, Math.min(index, next.length)), 0, id);
   favorites.value = next;
-  persist(`${label(id)} wurde zur Leiste hinzugefügt.`);
+  persist(t('{id} wurde zur Leiste hinzugefügt.', { id: label(id) }));
 }
 
 function removeFavorite(id: ShapeVariant): void {
   if (favorites.value.length <= 1) {
-    announcement.value = 'Mindestens eine Form muss in der Leiste bleiben.';
+    announcement.value = t('Mindestens eine Form muss in der Leiste bleiben.');
     return;
   }
   favorites.value = favorites.value.filter((favorite) => favorite !== id);
-  persist(`${label(id)} wurde aus der Leiste entfernt.`);
+  persist(t('{id} wurde aus der Leiste entfernt.', { id: label(id) }));
 }
 
 function resetFavorites(): void {
@@ -64,7 +65,7 @@ function resetFavorites(): void {
 
 function startEditing(): void {
   editing.value = true;
-  announcement.value = 'Bearbeitungsmodus für die Formenleiste aktiviert.';
+  announcement.value = t('Bearbeitungsmodus für die Formenleiste aktiviert.');
 }
 
 function stopEditing(): void {

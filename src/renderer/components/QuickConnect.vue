@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from './AppIcon.vue';
 import ElementView from './ElementView.vue';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n/de';
+import { t } from '@/renderer/i18n';
 import { createElement, type Point, type SketchElement } from '@/domain';
 import { DEFAULT_STYLE, QUICK_CONNECT_KINDS } from '@/renderer/lib/constants';
 import { bounds, center, hitElement, normalizedRect, rotatePoint } from '@/renderer/lib/geometry';

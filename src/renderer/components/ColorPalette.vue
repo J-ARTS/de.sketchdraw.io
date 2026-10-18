@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';
 import ColorPicker from './ColorPicker.vue';
 import { PALETTE } from '@/renderer/lib/constants';
@@ -26,7 +27,7 @@ function togglePicker(): void {
       type="button"
       class="swatch"
       :style="{ '--swatch': color.value }"
-      :aria-label="`${prefix} ${color.name}`"
+      :aria-label="t('{prefix} {color}', { prefix, color: t(color.name) })"
       :aria-pressed="!mixed && base === color.value"
       @click="emit('pick', color.value)"
     />
@@ -35,13 +36,13 @@ function togglePicker(): void {
       class="swatch custom"
       :class="{ chosen: custom }"
       :style="{ '--swatch': custom ?? 'transparent' }"
-      :aria-label="`${prefix}: eigene Farbe`"
+      :aria-label="t('{prefix}: eigene Farbe', { prefix })"
       :aria-pressed="!mixed && Boolean(custom)"
       :aria-expanded="pickerOpen"
       @click="togglePicker"
     />
   </div>
-  <ColorPicker v-if="pickerOpen" :color="base ?? '#e5533a'" :label="`${prefix}: eigene Farbe wählen`" @pick="emit('pick', $event)" />
+  <ColorPicker v-if="pickerOpen" :color="base ?? '#e5533a'" :label="t('{prefix}: eigene Farbe wählen', { prefix })" @pick="emit('pick', $event)" />
 </template>
 
 <style scoped>

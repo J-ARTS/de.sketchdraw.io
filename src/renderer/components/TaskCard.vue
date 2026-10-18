@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { intlLocale, t } from '@/renderer/i18n';
 import { computed } from 'vue';
 import type { SketchTask, TaskType } from '@/domain';
 import AppIcon from './AppIcon.vue';
@@ -7,7 +8,7 @@ import AppIcon from './AppIcon.vue';
 const props = defineProps<{ task: SketchTask; menuOpen?: boolean; ghost?: boolean }>();
 const emit = defineEmits<{ open: []; menu: [event: MouseEvent] }>();
 
-const TYPE_LABELS: Readonly<Record<TaskType, string>> = { feature: 'Funktion', bug: 'Fehler', design: 'Design', research: 'Recherche', docs: 'Dokumentation', ops: 'Betrieb' };
+const TYPE_LABELS: Readonly<Record<TaskType, string>> = { feature: 'Funktion', bug: t('Fehler'), design: 'Design', research: 'Recherche', docs: 'Dokumentation', ops: 'Betrieb' };
 // All reach at least 4.5:1 with white initials.
 const AVATAR_COLORS = ['#7c3aed', '#be185d', '#c2410c', '#0369a1', '#047857', '#4f46e5', '#be123c', '#0e7490'];
 
@@ -23,7 +24,7 @@ const due = computed(() => {
   const date = new Date(`${props.task.dueDate}T00:00:00`);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return {
-    label: new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date),
+    label: new Intl.DateTimeFormat(intlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date),
     overdue: date < today && props.task.status !== 'done',
   };
 });
@@ -44,7 +45,7 @@ const due = computed(() => {
           class="card-menu-btn"
           aria-haspopup="menu"
           :aria-expanded="menuOpen || false"
-          :aria-label="`Aktionen für ${task.title}`"
+          :aria-label="t('Aktionen für {title}', { title: task.title })"
           :tabindex="ghost ? -1 : undefined"
           @click.stop="emit('menu', $event)"
         >
@@ -57,12 +58,12 @@ const due = computed(() => {
         <span v-if="due" class="due" :class="{ overdue: due.overdue }">
           <AppIcon name="calendar" :size="16" />
           <time :datetime="task.dueDate">{{ due.label }}</time>
-          <span v-if="due.overdue" class="visually-hidden">(überfällig)</span>
+          <span v-if="due.overdue" class="visually-hidden">{{ t('(überfällig)') }}</span>
         </span>
         <span v-else aria-hidden="true" />
-        <span v-if="task.assignee" class="avatar" :style="{ background: avatarColor }" :title="`Zugewiesen: ${task.assignee}`">
+        <span v-if="task.assignee" class="avatar" :style="{ background: avatarColor }" :title="t('Zugewiesen: {assignee}', { assignee: task.assignee })">
           <span aria-hidden="true">{{ initials }}</span>
-          <span class="visually-hidden">Zugewiesen an {{ task.assignee }}</span>
+          <span class="visually-hidden">{{ t('Zugewiesen an {name}', { name: task.assignee }) }}</span>
         </span>
       </div>
     </div>

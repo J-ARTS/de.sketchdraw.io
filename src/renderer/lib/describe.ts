@@ -1,20 +1,21 @@
 import type { ElementKind, Endpoint, SketchDocument, SketchElement } from '@/domain/types';
 
+import { L, t, tn } from '@/renderer/i18n';
 export const KIND_LABELS: Record<ElementKind, string> = {
-  rectangle: 'Rechteck',
-  ellipse: 'Ellipse',
-  diamond: 'Raute',
-  text: 'Text',
-  path: 'Freihand',
-  image: 'Bild',
-  connector: 'Verbindung',
-  container: 'Container',
-  component: 'Komponente',
-  'sticky-note': 'Notiz',
-  annotation: 'Annotation',
-  table: 'Tabelle',
-  'web-embed': 'Web-Embed',
-  frame: 'Frame',
+  rectangle: L('Rechteck'),
+  ellipse: L('Ellipse'),
+  diamond: L('Raute'),
+  text: L('Text'),
+  path: L('Freihand'),
+  image: L('Bild'),
+  connector: L('Verbindung'),
+  container: L('Container'),
+  component: L('Komponente'),
+  'sticky-note': L('Notiz'),
+  annotation: L('Annotation'),
+  table: L('Tabelle'),
+  'web-embed': L('Web-Embed'),
+  frame: L('Frame'),
 };
 
 const MAX_TEXT_NAME_LENGTH = 40;
@@ -28,7 +29,7 @@ interface NameParts {
 }
 
 export function elementCountLabel(count: number): string {
-  return count === 1 ? '1 Element' : `${count} Elemente`;
+  return tn(count, '{count} Element', '{count} Elemente');
 }
 
 function collapse(value: string | undefined): string {
@@ -73,12 +74,12 @@ function endpointName(
 ): string {
   if (endpoint !== undefined) {
     const target = findElement(doc, endpoint.elementId);
-    if (target === undefined) return 'Unbekannt';
+    if (target === undefined) return t('Unbekannt');
     // A connector pointing at another connector would otherwise recurse.
-    if (target.kind === 'connector' && depth > 0) return KIND_LABELS.connector;
+    if (target.kind === 'connector' && depth > 0) return t(KIND_LABELS.connector);
     return nameParts(target, doc, depth + 1).name;
   }
-  return point === undefined ? 'offenes Ende' : `Punkt ${position(point.x, point.y)}`;
+  return point === undefined ? t('offenes Ende') : t('Punkt {position}', { position: position(point.x, point.y) });
 }
 
 function nameParts(element: SketchElement, doc: SketchDocument, depth: number): NameParts {
@@ -121,11 +122,11 @@ function nameParts(element: SketchElement, doc: SketchDocument, depth: number): 
       doc,
       depth,
     );
-    return { name: `Verbindung von ${from} nach ${to}`, includesKind: true, includesPosition: false };
+    return { name: t('Verbindung von {from} nach {to}', { from, to }), includesKind: true, includesPosition: false };
   }
 
   return {
-    name: `${KIND_LABELS[element.kind]} bei ${position(element.x, element.y)}`,
+    name: t('{kind} bei {position}', { kind: t(KIND_LABELS[element.kind]), position: position(element.x, element.y) }),
     includesKind: true,
     includesPosition: true,
   };
@@ -139,16 +140,16 @@ export function describeElement(el: SketchElement, doc: SketchDocument): string 
 /** Live announcement for the current selection: name, kind and rounded position for one element, names for several. */
 export function describeSelection(elements: readonly SketchElement[], doc: SketchDocument): string {
   const [first] = elements;
-  if (first === undefined) return 'Nichts ausgewählt';
+  if (first === undefined) return t('Nichts ausgewählt');
   if (elements.length === 1) {
     const parts = nameParts(first, doc, 0);
     let text = parts.name;
-    if (!parts.includesKind) text += `, ${KIND_LABELS[first.kind]}`;
-    if (!parts.includesPosition) text += `, bei ${position(first.x, first.y)}`;
+    if (!parts.includesKind) text += `, ${t(KIND_LABELS[first.kind])}`;
+    if (!parts.includesPosition) text += `, ${t('bei {position}', { position: position(first.x, first.y) })}`;
     return text;
   }
   const names = elements.slice(0, MAX_ANNOUNCED_NAMES).map((element) => describeElement(element, doc));
   const rest = elements.length - names.length;
-  const more = rest > 0 ? ` und ${rest} weitere` : '';
-  return `${elementCountLabel(elements.length)} ausgewählt: ${names.join(', ')}${more}`;
+  const more = rest > 0 ? ` ${t('und {count} weitere', { count: rest })}` : '';
+  return t('{elements} ausgewählt: {names}{more}', { elements: elementCountLabel(elements.length), names: names.join(', '), more });
 }

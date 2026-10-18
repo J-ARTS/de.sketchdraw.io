@@ -1,5 +1,6 @@
 import type { PencilPreset } from '@/renderer/state/contract';
 
+import { L } from '@/renderer/i18n';
 export interface PencilOption {
   value: PencilPreset;
   label: string;
@@ -8,9 +9,9 @@ export interface PencilOption {
 }
 
 export const PENCIL_OPTIONS: readonly PencilOption[] = [
-  { value: 'fine', label: 'Fein', strokeWidth: 2, opacity: 1 },
-  { value: 'pencil', label: 'Stift', strokeWidth: 4, opacity: 1 },
-  { value: 'marker', label: 'Marker', strokeWidth: 10, opacity: 0.55 },
+  { value: 'fine', label: L('Fein'), strokeWidth: 2, opacity: 1 },
+  { value: 'pencil', label: L('Stift'), strokeWidth: 4, opacity: 1 },
+  { value: 'marker', label: L('Marker'), strokeWidth: 10, opacity: 0.55 },
 ];
 
 export const PENCIL_SIZE_MIN = 1;

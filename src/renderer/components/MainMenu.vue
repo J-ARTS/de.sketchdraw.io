@@ -6,7 +6,7 @@ import PageSwitcher from './PageSwitcher.vue';
 import type { IconName } from './icons';
 import { isMacPlatform, modHint } from './platform';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n/de';
+import { L, t } from '@/renderer/i18n';
 import { LANGUAGES, type LanguageCode } from '@/renderer/lib/preferences';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
@@ -89,9 +89,9 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen, separator: compact.value },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
-  { id: 'slides', label: 'Folien', icon: 'pages', checked: s.frameSidebarOpen },
-  { id: 'plugins', label: 'Plugin-Einstellungen', icon: 'component', checked: props.pluginsOpen, separator: true },
-  { id: 'settings', label: 'Einstellungen', icon: 'settings', separator: true },
+  { id: 'slides', label: L('Folien'), icon: 'pages', checked: s.frameSidebarOpen },
+  { id: 'plugins', label: L('Plugin-Einstellungen'), icon: 'component', checked: props.pluginsOpen, separator: true },
+  { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
 ]);
 
 type MenuName = 'file' | 'view';
@@ -267,7 +267,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
           @click="runFile(item.id)"
         >
           <AppIcon :name="item.icon" :size="18" />
-          <span class="menu-label">{{ item.label }}</span>
+          <span class="menu-label">{{ t(item.label) }}</span>
           <span v-if="item.hint" class="menu-hint">{{ item.hint }}</span>
         </button>
       </template>
@@ -354,13 +354,13 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             @click="runView(item.id)"
           >
             <AppIcon :name="item.icon" :size="18" />
-            <span class="menu-label">{{ item.label }}</span>
+            <span class="menu-label">{{ t(item.label) }}</span>
             <AppIcon v-if="item.checked" class="menu-check" name="check" :size="16" />
           </button>
         </template>
         <span class="rule" role="separator" />
-        <div role="group" aria-label="Sprache" class="language-group">
-          <span class="group-label" aria-hidden="true">Sprache</span>
+        <div role="group" :aria-label="t('Sprache')" class="language-group">
+          <span class="group-label" aria-hidden="true">{{ t('Sprache') }}</span>
           <button
             v-for="language in LANGUAGES"
             :key="language.code"
@@ -375,7 +375,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
           >
             <AppIcon name="globe" :size="18" />
             <span class="menu-label">{{ language.label }}</span>
-            <span v-if="!language.available" class="menu-hint">folgt</span>
+            <span v-if="!language.available" class="menu-hint">{{ t('folgt') }}</span>
             <AppIcon v-else-if="s.language === language.code" class="menu-check" name="check" :size="16" />
           </button>
         </div>

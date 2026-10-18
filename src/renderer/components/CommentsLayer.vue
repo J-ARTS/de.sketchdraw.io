@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { intlLocale, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useElementSize, useEventListener } from '@vueuse/core';
 import type { CommentMessage, CommentThread } from '@/domain';
@@ -43,7 +44,7 @@ function initials(name: string): string { return name.trim().split(/\s+/).map((p
 function relative(iso: string): string {
   const seconds = Math.round((Date.parse(iso) - Date.now()) / 1000); const absolute = Math.abs(seconds);
   const [value, unit] = absolute < 60 ? [seconds, 'second'] : absolute < 3600 ? [Math.round(seconds / 60), 'minute'] : absolute < 86400 ? [Math.round(seconds / 3600), 'hour'] : [Math.round(seconds / 86400), 'day'];
-  return new Intl.RelativeTimeFormat('de', { numeric: 'auto' }).format(value, unit as Intl.RelativeTimeFormatUnit);
+  return new Intl.RelativeTimeFormat(intlLocale(), { numeric: 'auto' }).format(value, unit as Intl.RelativeTimeFormatUnit);
 }
 async function submitNew(): Promise<void> { if (await store.createComment(draft.value)) { draft.value = ''; await nextTick(); } }
 async function submitReply(): Promise<void> { if (active.value && await store.addCommentReply(active.value.id, reply.value)) reply.value = ''; }
@@ -143,39 +144,39 @@ watch(() => s.activeCommentId, () => { reply.value = ''; editingId.value = null;
 </script>
 
 <template>
-  <div class="comments-layer" role="group" aria-label="Kommentare auf der Zeichenfläche">
+  <div class="comments-layer" role="group" :aria-label="t('Kommentare auf der Zeichenfläche')">
     <div v-if="activeTarget" class="target-highlight" :style="highlightStyle" aria-hidden="true" />
-    <button v-for="pin in pins" :key="pin.thread.id" type="button" class="comment-pin" :class="{ active: pin.thread.id === s.activeCommentId, resolved: pin.thread.resolved, unread: s.unreadCommentIds.includes(pin.thread.id) }" :style="{ left: `${pin.point.x}px`, top: `${pin.point.y}px` }" :aria-label="`Kommentar von ${pin.thread.messages[0]?.authorName ?? 'Unbekannt'} öffnen`" @click="store.openComment(pin.thread.id, { reveal: false })">
-      <span class="pin-initials" aria-hidden="true">{{ initials(pin.thread.messages[0]?.authorName ?? '') }}</span>
-      <span class="hover-card" role="tooltip"><strong>{{ pin.thread.messages.at(-1)?.authorName }}</strong><span>{{ relative(pin.thread.updatedAt) }}</span><p>{{ pin.thread.messages.at(-1)?.body }}</p></span>
+    <button v-for="pin in pins" :key="pin.thread.id" type="button" class="comment-pin" :class="{ active: pin.thread.id === s.activeCommentId, resolved: pin.thread.resolved, unread: s.unreadCommentIds.includes(pin.thread.id) }" :style="{ left: `${pin.point.x}px`, top: `${pin.point.y}px` }" :aria-label="t('Kommentar von {authorName} öffnen', { authorName: t(pin.thread.messages[0]?.authorName ?? 'Unbekannt') })" @click="store.openComment(pin.thread.id, { reveal: false })">
+      <span class="pin-initials" aria-hidden="true">{{ initials(t(pin.thread.messages[0]?.authorName ?? '')) }}</span>
+      <span class="hover-card" role="tooltip"><strong>{{ t(pin.thread.messages.at(-1)?.authorName ?? '') }}</strong><span>{{ relative(pin.thread.updatedAt) }}</span><p>{{ pin.thread.messages.at(-1)?.body }}</p></span>
     </button>
 
     <span v-if="composerPoint" class="comment-pin comment-pin--draft" :style="{ left: `${composerPoint.x}px`, top: `${composerPoint.y}px` }" data-testid="comment-draft-pin" aria-hidden="true">
-      <span class="pin-initials">{{ initials('Lokaler Benutzer') }}</span>
+      <span class="pin-initials">{{ initials(t('Lokaler Benutzer')) }}</span>
     </span>
 
     <form v-if="composerPoint" ref="composerEl" class="comment-composer" :style="composerStyle" @submit.prevent="submitNew">
-      <label class="visually-hidden" for="new-comment">Kommentar</label>
-      <textarea id="new-comment" ref="composerInput" v-model="draft" rows="1" maxlength="50000" placeholder="Kommentar hinzufügen …" @input="fitComposer" @keydown.escape.prevent="store.cancelComment()" @keydown.enter.exact.prevent="submitNew" />
-      <button type="button" class="composer-cancel" aria-label="Abbrechen" title="Abbrechen (Esc)" @click="store.cancelComment()"><AppIcon name="close" :size="16" /></button>
-      <button type="submit" class="composer-send" aria-label="Senden" title="Senden (Enter)" :disabled="!draft.trim()"><AppIcon name="arrow-up" :size="18" /></button>
+      <label class="visually-hidden" for="new-comment">{{ t('Kommentar') }}</label>
+      <textarea id="new-comment" ref="composerInput" v-model="draft" rows="1" maxlength="50000" :placeholder="t('Kommentar hinzufügen …')" @input="fitComposer" @keydown.escape.prevent="store.cancelComment()" @keydown.enter.exact.prevent="submitNew" />
+      <button type="button" class="composer-cancel" :aria-label="t('Abbrechen')" :title="t('Abbrechen (Esc)')" @click="store.cancelComment()"><AppIcon name="close" :size="16" /></button>
+      <button type="submit" class="composer-send" :aria-label="t('Senden')" :title="t('Senden (Enter)')" :disabled="!draft.trim()"><AppIcon name="arrow-up" :size="18" /></button>
     </form>
 
-    <section v-if="active" ref="threadEl" class="thread-popover sd-panel" :style="threadStyle" data-testid="comment-thread" aria-label="Kommentar-Thread">
-      <header><h2 class="sd-panel-title">Kommentar</h2><div class="thread-actions"><button class="sd-icon-btn" :aria-label="active.resolved ? 'Wieder öffnen' : 'Als erledigt markieren'" @click="store.setCommentResolved(active.id, !active.resolved)"><AppIcon name="check" /></button><button ref="menuTrigger" class="sd-icon-btn" aria-label="Weitere Kommentaraktionen" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuOpen ? menuId : undefined" @click="toggleMenu" @keydown="onMenuTriggerKeydown"><AppIcon name="more" /></button><button class="sd-icon-btn sd-panel-close" aria-label="Kommentar schließen" @click="store.closeCommentThread()"><AppIcon name="close" /></button></div></header>
-      <div v-if="menuOpen" :id="menuId" ref="menuEl" class="thread-menu" role="menu" aria-label="Kommentaraktionen" @keydown="onMenuKeydown" @focusout="onMenuFocusOut">
-        <button type="button" role="menuitem" tabindex="-1" @click="threadAction('unread')">Als ungelesen markieren</button>
-        <button type="button" role="menuitem" tabindex="-1" @click="threadAction('link')">Link kopieren</button>
-        <button type="button" role="menuitem" tabindex="-1" :disabled="tasks.some((task) => task.sourceThreadId === active!.id)" @click="threadAction('task')">{{ tasks.some((task) => task.sourceThreadId === active!.id) ? 'Aufgabe bereits erstellt' : 'Aufgabe erstellen' }}</button>
-        <button type="button" role="menuitem" tabindex="-1" class="danger" @click="threadAction('delete')">Thread löschen</button>
+    <section v-if="active" ref="threadEl" class="thread-popover sd-panel" :style="threadStyle" data-testid="comment-thread" :aria-label="t('Kommentar-Thread')">
+      <header><h2 class="sd-panel-title">{{ t('Kommentar') }}</h2><div class="thread-actions"><button class="sd-icon-btn" :aria-label="active.resolved ? t('Wieder öffnen') : t('Als erledigt markieren')" @click="store.setCommentResolved(active.id, !active.resolved)"><AppIcon name="check" /></button><button ref="menuTrigger" class="sd-icon-btn" :aria-label="t('Weitere Kommentaraktionen')" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuOpen ? menuId : undefined" @click="toggleMenu" @keydown="onMenuTriggerKeydown"><AppIcon name="more" /></button><button class="sd-icon-btn sd-panel-close" :aria-label="t('Kommentar schließen')" @click="store.closeCommentThread()"><AppIcon name="close" /></button></div></header>
+      <div v-if="menuOpen" :id="menuId" ref="menuEl" class="thread-menu" role="menu" :aria-label="t('Kommentaraktionen')" @keydown="onMenuKeydown" @focusout="onMenuFocusOut">
+        <button type="button" role="menuitem" tabindex="-1" @click="threadAction('unread')">{{ t('Als ungelesen markieren') }}</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="threadAction('link')">{{ t('Link kopieren') }}</button>
+        <button type="button" role="menuitem" tabindex="-1" :disabled="tasks.some((task) => task.sourceThreadId === active!.id)" @click="threadAction('task')">{{ tasks.some((task) => task.sourceThreadId === active!.id) ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen') }}</button>
+        <button type="button" role="menuitem" tabindex="-1" class="danger" @click="threadAction('delete')">{{ t('Thread löschen') }}</button>
       </div>
       <div class="message-list">
         <article v-for="message in active.messages" :key="message.id" class="message">
-          <span class="avatar">{{ initials(message.authorName) }}</span><div><div class="message-head"><strong>{{ message.authorName }}</strong><time :datetime="message.createdAt">{{ relative(message.createdAt) }}</time><span v-if="message.authorId === s.currentActorId && editingId !== message.id" class="message-more"><button type="button" class="message-menu-btn" :aria-label="`Aktionen für Kommentar von ${message.authorName}`" aria-haspopup="menu" :aria-expanded="messageMenuFor === message.id" @click="openMessageMenu(message, $event)" @keydown="onMessageTriggerKeydown(message, $event)"><AppIcon name="more" :size="18" /></button><span v-if="messageMenuFor === message.id" :ref="(el) => { messageMenuEl = el as HTMLElement | null; }" class="thread-menu message-menu" role="menu" aria-label="Kommentaraktionen" @keydown="onMessageMenuKeydown"><button type="button" role="menuitem" tabindex="-1" @click="messageAction(active!, message, 'edit')">Bearbeiten</button><button type="button" role="menuitem" tabindex="-1" class="danger" @click="messageAction(active!, message, 'delete')">Löschen</button></span></span></div>
-          <template v-if="editingId === message.id"><textarea v-model="editDraft" :aria-label="`Kommentar von ${message.authorName} bearbeiten`" /><div class="edit-actions"><button class="sd-btn" @click="editingId = null">Abbrechen</button><button class="sd-btn sd-btn--primary" @click="saveEdit(active!, message)">Speichern</button></div></template><p v-else>{{ message.body }} <small v-if="message.editedAt">bearbeitet</small></p></div>
+          <span class="avatar">{{ initials(t(message.authorName)) }}</span><div><div class="message-head"><strong>{{ t(message.authorName) }}</strong><time :datetime="message.createdAt">{{ relative(message.createdAt) }}</time><span v-if="message.authorId === s.currentActorId && editingId !== message.id" class="message-more"><button type="button" class="message-menu-btn" :aria-label="t('Aktionen für Kommentar von {authorName}', { authorName: t(message.authorName) })" aria-haspopup="menu" :aria-expanded="messageMenuFor === message.id" @click="openMessageMenu(message, $event)" @keydown="onMessageTriggerKeydown(message, $event)"><AppIcon name="more" :size="18" /></button><span v-if="messageMenuFor === message.id" :ref="(el) => { messageMenuEl = el as HTMLElement | null; }" class="thread-menu message-menu" role="menu" :aria-label="t('Kommentaraktionen')" @keydown="onMessageMenuKeydown"><button type="button" role="menuitem" tabindex="-1" @click="messageAction(active!, message, 'edit')">{{ t('Bearbeiten') }}</button><button type="button" role="menuitem" tabindex="-1" class="danger" @click="messageAction(active!, message, 'delete')">{{ t('Löschen') }}</button></span></span></div>
+          <template v-if="editingId === message.id"><textarea v-model="editDraft" :aria-label="t('Kommentar von {authorName} bearbeiten', { authorName: t(message.authorName) })" /><div class="edit-actions"><button class="sd-btn" @click="editingId = null">{{ t('Abbrechen') }}</button><button class="sd-btn sd-btn--primary" @click="saveEdit(active!, message)">{{ t('Speichern') }}</button></div></template><p v-else>{{ message.body }} <small v-if="message.editedAt">{{ t('bearbeitet') }}</small></p></div>
         </article>
       </div>
-      <form class="reply" @submit.prevent="submitReply"><span class="avatar">{{ initials('Lokaler Benutzer') }}</span><textarea v-model="reply" aria-label="Auf Kommentar antworten" placeholder="Antworten" @keydown.meta.enter.prevent="submitReply" @keydown.ctrl.enter.prevent="submitReply" /><button type="submit" class="send" :disabled="!reply.trim()" aria-label="Antwort senden"><AppIcon name="arrow-up" :size="18" /></button></form>
+      <form class="reply" @submit.prevent="submitReply"><span class="avatar">{{ initials(t('Lokaler Benutzer')) }}</span><textarea v-model="reply" :aria-label="t('Auf Kommentar antworten')" :placeholder="t('Antworten')" @keydown.meta.enter.prevent="submitReply" @keydown.ctrl.enter.prevent="submitReply" /><button type="submit" class="send" :disabled="!reply.trim()" :aria-label="t('Antwort senden')"><AppIcon name="arrow-up" :size="18" /></button></form>
     </section>
   </div>
 </template>

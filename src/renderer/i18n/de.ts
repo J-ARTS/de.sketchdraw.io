@@ -152,23 +152,8 @@ export const MESSAGES = {
 
 export type MessageKey = keyof typeof MESSAGES;
 export type MessageParams = Readonly<Record<string, string | number>>;
-type PluralBase = MessageKey extends infer K ? (K extends `${infer B}.one` ? B : never) : never;
 
-export function t(key: MessageKey, params?: MessageParams): string {
-  const template: string = MESSAGES[key];
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (match: string, name: string) => {
-    const value = params[name];
-    return value === undefined ? match : String(value);
-  });
-}
-
-export function tCount(base: PluralBase, count: number): string {
-  const key = `${base}.${count === 1 ? 'one' : 'other'}` as MessageKey;
-  return t(key, { count });
-}
-
-const SHORTCUT_GROUP_TITLES: Readonly<Record<string, string>> = {
+export const SHORTCUT_GROUP_TITLES: Readonly<Record<string, string>> = {
   tools: 'Werkzeuge',
   edit: 'Bearbeiten',
   file: 'Datei',
@@ -183,6 +168,6 @@ const SHORTCUT_GROUP_TITLES: Readonly<Record<string, string>> = {
 };
 
 /** Shortcut groups may arrive as ids or already as display titles. */
-export function shortcutGroupTitle(group: string): string {
+export function shortcutGroupKey(group: string): string {
   return SHORTCUT_GROUP_TITLES[group] ?? group;
 }

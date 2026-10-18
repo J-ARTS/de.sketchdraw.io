@@ -55,6 +55,27 @@ const POLYGON_SHAPES: Partial<Record<ShapeVariant, readonly Point[]>> = {
   'loop-limit': [{ x: .25, y: 0 }, { x: .75, y: 0 }, { x: 1, y: .25 }, { x: 1, y: 1 }, { x: 0, y: 1 }, { x: 0, y: .25 }],
 };
 
+/** Shapes that are drawn as a polygon with an adjustable corner radius (diamond and triangles). */
+export const ROUNDABLE_POLYGONS: readonly ShapeVariant[] = ['diamond', 'triangle', 'triangle-down'];
+
+/** SVG path of a unit polygon scaled to width x height with every corner rounded by `radius` (capped per corner). */
+export function roundedPolygonPath(variant: ShapeVariant, width: number, height: number, radius: number): string {
+  const unit = POLYGON_SHAPES[variant];
+  if (!unit) return '';
+  const points = unit.map((point) => ({ x: point.x * width, y: point.y * height }));
+  const count = points.length;
+  const parts: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const prev = points[(index + count - 1) % count]!; const current = points[index]!; const next = points[(index + 1) % count]!;
+    const toPrev = Math.hypot(prev.x - current.x, prev.y - current.y); const toNext = Math.hypot(next.x - current.x, next.y - current.y);
+    const reach = Math.max(0, Math.min(radius, toPrev / 2, toNext / 2));
+    const start = { x: current.x + (prev.x - current.x) / toPrev * reach, y: current.y + (prev.y - current.y) / toPrev * reach };
+    const end = { x: current.x + (next.x - current.x) / toNext * reach, y: current.y + (next.y - current.y) / toNext * reach };
+    parts.push(`${index === 0 ? 'M' : 'L'}${start.x} ${start.y}`, `Q${current.x} ${current.y} ${end.x} ${end.y}`);
+  }
+  return `${parts.join(' ')} Z`;
+}
+
 function insidePolygon(point: Point, polygon: readonly Point[]): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {

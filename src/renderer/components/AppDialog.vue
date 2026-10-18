@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
 import { SHORTCUTS, formatCombo } from '../lib/shortcuts';
@@ -18,21 +19,21 @@ onBeforeUnmount(() => dialog.value?.close());
 <template>
   <dialog ref="dialog" class="app-dialog sd-panel" aria-labelledby="dialog-title" @cancel.prevent="!busy && store.closeDialog()">
     <template v-if="store.state.dialog?.kind === 'help'">
-      <div class="dialog-heading"><h2 id="dialog-title" class="sd-panel-title">Schneller mit der Tastatur</h2><button class="sd-icon-btn sd-panel-close" aria-label="Hilfe schließen" @click="store.closeDialog()"><AppIcon name="close" /></button></div>
-      <p class="intro">Kürzel für die Zeichenfläche. In Textfeldern bleiben die gewohnten Textbefehle erhalten.</p>
-      <dl class="shortcuts"><template v-for="item in SHORTCUTS" :key="item.id"><dt>{{ item.label }}</dt><dd><kbd class="sd-kbd">{{ formatCombo(item.combo, isMac) }}</kbd></dd></template></dl>
-      <div class="buttons"><button class="sd-btn sd-btn--primary" @click="store.closeDialog()">Verstanden</button></div>
+      <div class="dialog-heading"><h2 id="dialog-title" class="sd-panel-title">{{ t('Schneller mit der Tastatur') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Hilfe schließen')" @click="store.closeDialog()"><AppIcon name="close" /></button></div>
+      <p class="intro">{{ t('Kürzel für die Zeichenfläche. In Textfeldern bleiben die gewohnten Textbefehle erhalten.') }}</p>
+      <dl class="shortcuts"><template v-for="item in SHORTCUTS" :key="item.id"><dt>{{ t(item.label) }}</dt><dd><kbd class="sd-kbd">{{ formatCombo(item.combo, isMac) }}</kbd></dd></template></dl>
+      <div class="buttons"><button class="sd-btn sd-btn--primary" @click="store.closeDialog()">{{ t('Verstanden') }}</button></div>
     </template>
     <template v-else-if="store.state.dialog?.kind === 'unsaved'">
-      <h2 id="dialog-title" class="sd-panel-title">Änderungen behalten?</h2><p class="intro">Dein Dokument enthält ungespeicherte Änderungen oder offene Entwürfe. Beim Speichern werden gültige Entwürfe übernommen.</p>
-      <p v-if="store.state.pendingPeerWrite || store.state.collaboration?.hasUnresolvedOutcome" class="error">Eine Peer-Änderung hat noch keinen bestätigten Ausgang. Speichern ist bis zur Klärung gesperrt. Verwerfen beendet die Sitzung; eine lokale Kopie enthält ausschließlich den zuletzt bestätigten Stand, ohne diesen Entwurf.</p>
-      <p v-else-if="store.state.dialog.reason === 'leave'" class="intro">Beim Verlassen wird eine neue lokale Kopie des bestätigten Stands angelegt. Offene Entwürfe gehören erst nach bestätigter Übernahme dazu.</p>
-      <p v-if="store.state.bridgePlatform === 'browser'" class="intro">Im Browser wird die Datei als Download übergeben. Prüfe den Download, bevor du das Fenster schließt.</p>
+      <h2 id="dialog-title" class="sd-panel-title">{{ t('Änderungen behalten?') }}</h2><p class="intro">{{ t('Dein Dokument enthält ungespeicherte Änderungen oder offene Entwürfe. Beim Speichern werden gültige Entwürfe übernommen.') }}</p>
+      <p v-if="store.state.pendingPeerWrite || store.state.collaboration?.hasUnresolvedOutcome" class="error">{{ t('Eine Peer-Änderung hat noch keinen bestätigten Ausgang. Speichern ist bis zur Klärung gesperrt. Verwerfen beendet die Sitzung; eine lokale Kopie enthält ausschließlich den zuletzt bestätigten Stand, ohne diesen Entwurf.') }}</p>
+      <p v-else-if="store.state.dialog.reason === 'leave'" class="intro">{{ t('Beim Verlassen wird eine neue lokale Kopie des bestätigten Stands angelegt. Offene Entwürfe gehören erst nach bestätigter Übernahme dazu.') }}</p>
+      <p v-if="store.state.bridgePlatform === 'browser'" class="intro">{{ t('Im Browser wird die Datei als Download übergeben. Prüfe den Download, bevor du das Fenster schließt.') }}</p>
       <p v-if="store.state.dialog.error" role="alert" class="error">{{ store.state.dialog.error }}</p>
-      <div class="buttons"><button class="sd-btn" :disabled="busy" autofocus @click="store.resolveDialog('cancel')">Abbrechen</button><button class="sd-btn sd-btn--danger" :disabled="busy" @click="store.resolveDialog('discard')">Verwerfen</button><button class="sd-btn sd-btn--primary" :disabled="busy" @click="store.resolveDialog('save')">{{ busy ? 'Wird geprüft …' : 'Speichern' }}</button></div>
+      <div class="buttons"><button class="sd-btn" :disabled="busy" autofocus @click="store.resolveDialog('cancel')">{{ t('Abbrechen') }}</button><button class="sd-btn sd-btn--danger" :disabled="busy" @click="store.resolveDialog('discard')">{{ t('Verwerfen') }}</button><button class="sd-btn sd-btn--primary" :disabled="busy" @click="store.resolveDialog('save')">{{ busy ? t('Wird geprüft …') : t('Speichern') }}</button></div>
     </template>
     <template v-else-if="store.state.dialog?.kind === 'save-conflict'">
-      <h2 id="dialog-title" class="sd-panel-title">Datei wurde geändert</h2><p class="intro">{{ store.state.dialog.message }}</p><div class="buttons"><button class="sd-btn" @click="store.resolveDialog('cancel')">Abbrechen</button><button class="sd-btn sd-btn--primary" @click="store.resolveDialog('save-copy')">Als Kopie speichern</button></div>
+      <h2 id="dialog-title" class="sd-panel-title">{{ t('Datei wurde geändert') }}</h2><p class="intro">{{ store.state.dialog.message }}</p><div class="buttons"><button class="sd-btn" @click="store.resolveDialog('cancel')">{{ t('Abbrechen') }}</button><button class="sd-btn sd-btn--primary" @click="store.resolveDialog('save-copy')">{{ t('Als Kopie speichern') }}</button></div>
     </template>
   </dialog>
 </template>

@@ -51,14 +51,23 @@ test('the canvas background is chosen in the settings, follows the theme and per
   expect(await canvasColor(page)).not.toBe('rgb(17, 26, 38)');
 });
 
-test('the language sits in the user menu; unavailable translations are listed but disabled', async ({ page }) => {
+test('the language sits in the user menu and switches the whole interface live and persistently', async ({ page }) => {
   await page.getByTestId('workspace-menu-button').click();
   const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
   const languages = menu.getByRole('group', { name: 'Sprache' });
   await expect(languages.getByRole('menuitemradio', { name: 'Deutsch' })).toHaveAttribute('aria-checked', 'true');
   const english = languages.getByRole('menuitemradio', { name: /English/ });
-  await expect(english).toHaveAttribute('aria-disabled', 'true');
-  await english.click({ force: true });
+  await expect(english).not.toHaveAttribute('aria-disabled', 'true');
+  await english.click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await page.getByTestId('workspace-menu-button').click();
+  const englishMenu = page.getByRole('menu', { name: 'Workspace' });
+  await expect(englishMenu.getByRole('group', { name: 'Language' }).getByRole('menuitemradio', { name: 'English' })).toHaveAttribute('aria-checked', 'true');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('toolbar', { name: 'Tools' })).toBeVisible();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByRole('menu', { name: 'Workspace' }).getByRole('group', { name: 'Language' }).getByRole('menuitemradio', { name: 'Deutsch' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
-  await expect(languages.getByRole('menuitemradio', { name: 'Deutsch' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('toolbar', { name: 'Werkzeuge' })).toBeVisible();
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { shapeBaseKind, type ShapeVariant } from '@/domain';
-import { t } from '@/renderer/i18n/de';
+import { t } from '@/renderer/i18n';
 import { shapeEntry, type ShapeEntry } from '@/renderer/lib/shapes';
 import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
 import { TOOL_DEFS, formatCombo } from '@/renderer/lib/shortcuts';
@@ -145,10 +145,10 @@ function onKeydown(event: KeyboardEvent): void {
 }
 function fixedTip(tool: Tool): string {
   const def = TOOL_DEFS.find((item) => item.tool === tool)!;
-  return t('tip.withHint', { label: def.label, hint: formatCombo(`${def.shift ? 'Umschalt+' : ''}${def.key}`, isMac) });
+  return t('tip.withHint', { label: t(def.label), hint: formatCombo(`${def.shift ? 'Umschalt+' : ''}${def.key}`, isMac) });
 }
 function toolbarShapeLabel(entry: ShapeEntry): string {
-  return entry.id === 'square' ? 'Rechteck' : entry.id === 'circle' ? 'Ellipse' : entry.label;
+  return t(entry.id === 'square' ? 'Rechteck' : entry.id === 'circle' ? 'Ellipse' : entry.label);
 }
 onBeforeUnmount(cancelLongPress);
 </script>
@@ -159,16 +159,16 @@ onBeforeUnmount(cancelLongPress);
       <!-- Pointer affordance only: keyboard users move with the arrow keys, which scroll the focused tool into view. -->
       <button v-show="overflowStart" type="button" class="overflow-btn start" data-testid="toolbar-scroll-start" tabindex="-1" aria-hidden="true" @pointerdown.stop.prevent @click="pageTools(-1)"><AppIcon name="chevron-left" :size="18" /></button>
       <div ref="scroller" class="toolbar" :class="{ editing }" data-testid="main-toolbar" role="toolbar" aria-orientation="horizontal" :aria-label="t('toolbar.label')">
-        <button v-for="def in beforeShapes" :key="def.tool" type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && !['select', 'hand'].includes(def.tool)" :aria-label="def.label" :aria-pressed="def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
+        <button v-for="def in beforeShapes" :key="def.tool" type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && !['select', 'hand'].includes(def.tool)" :aria-label="t(def.label)" :aria-pressed="def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
         <span class="sep" aria-hidden="true" />
         <div class="shape-strip" data-testid="shape-favorites" @dragover.prevent @drop="dropAt($event, favorites.length)">
-          <button v-for="(entry, index) in favoriteEntries" :key="entry.id" type="button" class="tool shape-tool sd-icon-btn" :class="{ dragging: dragging === entry.id }" :data-tool="shapeBaseKind(entry.id)" :data-shape="entry.id" :data-toolbar-item="`shape-${entry.id}`" :tabindex="tabStop === `shape-${entry.id}` ? 0 : -1" :disabled="!store.state.canWrite" :draggable="editing" :aria-label="`${toolbarShapeLabel(entry)}${editing ? ', Position ' + (index + 1) : ''}`" :aria-pressed="store.state.shapeVariant === entry.id && ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool)" :title="editing ? `${entry.label}: ziehen, Alt+Pfeil zum Verschieben, Entf zum Entfernen` : entry.label" @click="store.setShapeTool(entry.id)" @keydown="onFavoriteKeydown($event, entry.id)" @dragstart="onDragStart($event, entry.id)" @dragover.prevent @drop.stop="dropAt($event, index)" @dragend="onDragEnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg></button>
+          <button v-for="(entry, index) in favoriteEntries" :key="entry.id" type="button" class="tool shape-tool sd-icon-btn" :class="{ dragging: dragging === entry.id }" :data-tool="shapeBaseKind(entry.id)" :data-shape="entry.id" :data-toolbar-item="`shape-${entry.id}`" :tabindex="tabStop === `shape-${entry.id}` ? 0 : -1" :disabled="!store.state.canWrite" :draggable="editing" :aria-label="editing ? t('{label}, Position {index}', { label: toolbarShapeLabel(entry), index: index + 1 }) : toolbarShapeLabel(entry)" :aria-pressed="store.state.shapeVariant === entry.id && ['rectangle', 'ellipse', 'diamond'].includes(store.state.tool)" :title="editing ? t('{label}: ziehen, Alt+Pfeil zum Verschieben, Entf zum Entfernen', { label: t(entry.label) }) : t(entry.label)" @click="store.setShapeTool(entry.id)" @keydown="onFavoriteKeydown($event, entry.id)" @dragstart="onDragStart($event, entry.id)" @dragover.prevent @drop.stop="dropAt($event, index)" @dragend="onDragEnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg></button>
         </div>
-        <button type="button" class="more-shapes" data-toolbar-item="more-shapes" data-testid="more-shapes" :tabindex="tabStop === 'more-shapes' ? 0 : -1" aria-label="Weitere Formen" title="Weitere Formen" :aria-expanded="store.state.catalogOpen" aria-controls="shape-library-panel" @click="toggleCatalog"><AppIcon name="more" /></button>
+        <button type="button" class="more-shapes" data-toolbar-item="more-shapes" data-testid="more-shapes" :tabindex="tabStop === 'more-shapes' ? 0 : -1" :aria-label="t('Weitere Formen')" :title="t('Weitere Formen')" :aria-expanded="store.state.catalogOpen" aria-controls="shape-library-panel" @click="toggleCatalog"><AppIcon name="more" /></button>
         <span class="sep" aria-hidden="true" />
         <template v-for="def in afterShapes" :key="def.tool">
           <span v-if="def.tool === 'text'" class="sep" aria-hidden="true" />
-          <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="def.label" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
+          <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="t(def.label)" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
         </template>
         <ImageFileInput ref="imageInput" />
         <WebEmbedDialog />

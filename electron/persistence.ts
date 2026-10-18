@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { nativeText } from './i18n';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { INTEROP_LIMITS } from '../src/interop/limits';
@@ -308,7 +309,7 @@ export class DocumentPersistenceService {
     let selection: OpenDialogSelection;
     try {
       selection = await this.dialogs.showOpenDialog({
-        title: 'Sketchdraw-Dokument öffnen',
+        title: nativeText('Sketchdraw-Dokument öffnen'),
         filters: [
           { name: 'Sketchdraw Document', extensions: ['sketchdraw', 'json'] },
         ],
@@ -483,7 +484,7 @@ export class DocumentPersistenceService {
     let saveSelection: SaveDialogSelection;
     try {
       saveSelection = await this.dialogs.showSaveDialog({
-        title: 'Sketchdraw-Dokument speichern unter',
+        title: nativeText('Sketchdraw-Dokument speichern unter'),
         defaultPath: safeDefaultName,
         filters: getDialogFiltersForFormat('sketchdraw'),
       });

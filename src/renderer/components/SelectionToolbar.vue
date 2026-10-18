@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useEventListener, useResizeObserver } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
@@ -10,6 +11,7 @@ import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
 import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
+import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
 import ResourceCardEditor from './ResourceCardEditor.vue';
@@ -25,36 +27,36 @@ const info = computed(() => s.selectionInfo);
 const single = computed(() => s.document.elements.find((e) => e.id === info.value.singleId));
 const definition = computed(() => s.document.componentSets.flatMap((set) => set.components).find((c) => c.type === single.value?.componentType));
 
-const SIZE_PRESETS = [{ label: 'Klein', value: 14 }, { label: 'Mittel', value: 20 }, { label: 'Groß', value: 28 }, { label: 'Sehr groß', value: 40 }] as const;
+const SIZE_PRESETS = [{ label: L('Klein'), value: 14 }, { label: L('Mittel'), value: 20 }, { label: L('Groß'), value: 28 }, { label: L('Sehr groß'), value: 40 }] as const;
 const HEADING_LEVELS = [1, 2, 3, 4] as const;
 const ALIGNMENTS: ReadonlyArray<{ value: ElementStyle['textAlign']; label: string; icon: IconName }> = [
-  { value: 'left', label: 'Links', icon: 'align-left' },
-  { value: 'center', label: 'Mitte', icon: 'align-center' },
-  { value: 'right', label: 'Rechts', icon: 'align-right' },
+  { value: 'left', label: L('Links'), icon: 'align-left' },
+  { value: 'center', label: L('Mitte'), icon: 'align-center' },
+  { value: 'right', label: L('Rechts'), icon: 'align-right' },
 ];
 const FILL_MODES: ReadonlyArray<{ value: FillMode; label: string }> = [
-  { value: 'fill', label: 'Füllung' },
-  { value: 'semi', label: 'Transparent' },
-  { value: 'none', label: 'Keine Füllung' },
+  { value: 'fill', label: L('Füllung') },
+  { value: 'semi', label: L('Transparent') },
+  { value: 'none', label: L('Keine Füllung') },
 ];
 type LineMode = 'solid' | 'dashed' | 'none';
 const LINE_MODES: ReadonlyArray<{ value: LineMode; label: string; icon: IconName }> = [
-  { value: 'solid', label: 'Durchgezogen', icon: 'line-solid' },
-  { value: 'dashed', label: 'Gestrichelt', icon: 'line-dashed' },
-  { value: 'none', label: 'Keine', icon: 'none' },
+  { value: 'solid', label: L('Durchgezogen'), icon: 'line-solid' },
+  { value: 'dashed', label: L('Gestrichelt'), icon: 'line-dashed' },
+  { value: 'none', label: L('Keine'), icon: 'none' },
 ];
-const WIDTHS = [{ value: 1, label: 'Dünn' }, { value: 2, label: 'Mittel' }, { value: 4, label: 'Dick' }] as const;
-const CONNECTOR_WIDTHS = [{ value: 2, label: 'Dünn' }, { value: 4, label: 'Dick' }] as const;
+const WIDTHS = [{ value: 1, label: L('Dünn') }, { value: 2, label: L('Mittel') }, { value: 4, label: L('Dick') }] as const;
+const CONNECTOR_WIDTHS = [{ value: 2, label: L('Dünn') }, { value: 4, label: L('Dick') }] as const;
 const ROUTES: ReadonlyArray<{ value: ConnectorRouting; label: string }> = [
-  { value: 'elbowed', label: 'Rechtwinklig' }, { value: 'curved', label: 'Gebogen' }, { value: 'straight', label: 'Gerade' },
+  { value: 'elbowed', label: L('Rechtwinklig') }, { value: 'curved', label: L('Gebogen') }, { value: 'straight', label: L('Gerade') },
 ];
 const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
-  { value: 'none', label: 'Keine' }, { value: 'line-arrow', label: 'Linienpfeil' },
-  { value: 'solid-arrow', label: 'Gefüllter Pfeil' }, { value: 'triangle', label: 'Dreieck' },
-  { value: 'reverse-triangle', label: 'Umgekehrtes Dreieck' }, { value: 'circle', label: 'Kreis' },
-  { value: 'diamond', label: 'Raute' }, { value: 'zero-or-one', label: 'Null oder eins' },
-  { value: 'exactly-one', label: 'Genau eins' }, { value: 'zero-or-many', label: 'Null oder viele' },
-  { value: 'one-or-many', label: 'Eins oder viele' }, { value: 'many', label: 'Viele' },
+  { value: 'none', label: L('Keine') }, { value: 'line-arrow', label: L('Linienpfeil') },
+  { value: 'solid-arrow', label: L('Gefüllter Pfeil') }, { value: 'triangle', label: L('Dreieck') },
+  { value: 'reverse-triangle', label: L('Umgekehrtes Dreieck') }, { value: 'circle', label: L('Kreis') },
+  { value: 'diamond', label: L('Raute') }, { value: 'zero-or-one', label: L('Null oder eins') },
+  { value: 'exactly-one', label: L('Genau eins') }, { value: 'zero-or-many', label: L('Null oder viele') },
+  { value: 'one-or-many', label: L('Eins oder viele') }, { value: 'many', label: L('Viele') },
 ];
 
 // --- Visibility and placement ----------------------------------------------------
@@ -71,9 +73,10 @@ const tableOnly = computed(() => info.value.count === 1 && info.value.kinds.leng
 const webEmbedOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'web-embed');
 /** Corner radius applies when every selected element is a rounded rectangle. */
 const selectedElements = computed(() => s.document.elements.filter((element) => s.selection.includes(element.id)));
-const roundedOnly = computed(() => selectedElements.value.length > 0 && selectedElements.value.every((element) => effectiveShapeVariant(element) === 'rounded'));
+const roundedOnly = computed(() => selectedElements.value.length > 0 && selectedElements.value.every((element) => { const variant = effectiveShapeVariant(element); return variant === 'rounded' || (variant != null && ROUNDABLE_POLYGONS.includes(variant)); }));
 const radiusMax = computed(() => Math.max(1, Math.floor(Math.min(...selectedElements.value.map((element) => Math.min(element.width, element.height))) / 2)));
-const defaultRadius = computed(() => Math.round(Math.min(...selectedElements.value.map((element) => Math.min(element.width, element.height))) / 6));
+/** Rounded rectangles start with a soft corner; diamond and triangles start sharp. */
+const defaultRadius = computed(() => selectedElements.value.every((element) => effectiveShapeVariant(element) === 'rounded') ? Math.round(Math.min(...selectedElements.value.map((element) => Math.min(element.width, element.height))) / 6) : 0);
 const radiusValue = computed(() => Math.min(radiusMax.value, Math.round(info.value.values.cornerRadius ?? defaultRadius.value)));
 const radiusMixed = computed(() => info.value.mixed.includes('cornerRadius'));
 /** Live preview through the property draft; committed once on release (same flow as the font size). */
@@ -252,7 +255,7 @@ function setFontSize(value: number): void {
 }
 function commitFontSize(value: number): void { if (tableOnly.value) style({ fontSize: value }); else void store.commitPropertyDraft(); }
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
-function unavailable(label: string): string { return editing.value ? `${label} (während der Textbearbeitung nicht verfügbar)` : label; }
+function unavailable(label: string): string { return editing.value ? t('{label} (während der Textbearbeitung nicht verfügbar)', { label }) : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
 watch(editing, (value) => { if (value && openSegment.value && ['shape', 'radius', 'link', 'resource', 'author', 'more', 'actions'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
@@ -263,18 +266,18 @@ const swatchColor = computed(() => {
   const fill = info.value.values.fill;
   return info.value.hasFill && fill && fill !== 'transparent' ? fill : info.value.values.stroke ?? '#1e1e1e';
 });
-const markerLabel = (value: ConnectorMarker | undefined) => MARKERS.find((entry) => entry.value === value)?.label ?? 'Keine';
-const routeLabel = computed(() => ROUTES.find((entry) => entry.value === info.value.values.connectorRouting)?.label ?? 'Gerade');
+const markerLabel = (value: ConnectorMarker | undefined) => t(MARKERS.find((entry) => entry.value === value)?.label ?? 'Keine');
+const routeLabel = computed(() => t(ROUTES.find((entry) => entry.value === info.value.values.connectorRouting)?.label ?? 'Gerade'));
 const sizeLabel = computed(() => {
-  if (info.value.mixed.includes('fontSize')) return 'Gemischt';
+  if (info.value.mixed.includes('fontSize')) return t('Gemischt');
   const size = info.value.values.fontSize ?? 20;
-  return SIZE_PRESETS.find((preset) => preset.value === size)?.label ?? `${size} px`;
+  return t(SIZE_PRESETS.find((preset) => preset.value === size)?.label ?? `${size} px`);
 });
 const alignIcon = computed<IconName>(() => ALIGNMENTS.find((a) => a.value === info.value.values.textAlign)?.icon ?? 'align-left');
 type FontFamilyValue = 'sans' | 'roboto' | 'scribbled' | 'mono';
 const FONT_OPTIONS: readonly { value: FontFamilyValue; label: string }[] = [
-  { value: 'sans', label: 'Inter (Serifenlos)' },
-  { value: 'roboto', label: 'Roboto (Sans Serif)' },
+  { value: 'sans', label: L('Inter (Serifenlos)') },
+  { value: 'roboto', label: L('Roboto (Sans Serif)') },
   { value: 'scribbled', label: 'Scribbled' },
   { value: 'mono', label: 'JetBrains Mono (Monospace)' },
 ];
@@ -383,7 +386,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     ref="bar"
     class="context-bar"
     role="toolbar"
-    aria-label="Eigenschaften"
+    :aria-label="t('Eigenschaften')"
     data-testid="properties-panel"
     :style="{ left: `${position.left}px`, top: `${position.top}px`, visibility: measured ? undefined : 'hidden' }"
     @keydown="onBarKeydown"
@@ -394,102 +397,102 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <button v-show="overflowStart" type="button" class="bar-overflow start" data-testid="properties-scroll-start" tabindex="-1" aria-hidden="true" @pointerdown.prevent @click="pageBar(-1)"><AppIcon name="chevron-left" :size="18" /></button>
     <div ref="barTrack" class="context-track" @focusin="revealControl($event.target as Element | null)">
       <template v-if="swappable">
-        <button :ref="(el) => setTrigger('shape', el)" type="button" class="segment" aria-label="Form ändern" :disabled="editing" :aria-expanded="openSegment === 'shape'" :aria-controls="panelId('shape')" :title="unavailable('Form ändern')" @click="toggle('shape')">
+        <button :ref="(el) => setTrigger('shape', el)" type="button" class="segment" :aria-label="t('Form ändern')" :disabled="editing" :aria-expanded="openSegment === 'shape'" :aria-controls="panelId('shape')" :title="unavailable(t('Form ändern'))" @click="toggle('shape')">
           <svg class="shape-icon" viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in currentShape?.icon ?? []" :key="d" :d="d" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
         <span class="sep" aria-hidden="true" />
       </template>
-      <button v-if="roundedOnly" :ref="(el) => setTrigger('radius', el)" type="button" class="segment" :aria-label="`Eckenradius: ${radiusMixed ? 'Gemischt' : radiusValue + ' px'}`" :disabled="editing" :aria-expanded="openSegment === 'radius'" :aria-controls="panelId('radius')" :title="unavailable('Eckenradius')" @click="toggle('radius')">
+      <button v-if="roundedOnly" :ref="(el) => setTrigger('radius', el)" type="button" class="segment" :aria-label="t('Eckenradius: {radiusValue}', { radiusValue: radiusMixed ? t('Gemischt') : radiusValue + ' px' })" :disabled="editing" :aria-expanded="openSegment === 'radius'" :aria-controls="panelId('radius')" :title="unavailable(t('Eckenradius'))" @click="toggle('radius')">
           <svg class="shape-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V12a7 7 0 0 1 7-7h7" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
-        <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" aria-label="Farbe" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" title="Farbe" @click="toggle('color')">
+        <button v-if="info.hasFill || connectorOnly" :ref="(el) => setTrigger('color', el)" type="button" class="segment" :aria-label="t('Farbe')" :aria-expanded="openSegment === 'color'" :aria-controls="panelId('color')" :title="t('Farbe')" @click="toggle('color')">
         <span class="color-dot" :style="{ background: swatchColor }" aria-hidden="true" /><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
-      <button v-if="textColorCapable" :ref="(el) => setTrigger('text-color', el)" type="button" class="segment" aria-label="Schriftfarbe" :aria-expanded="openSegment === 'text-color'" :aria-controls="panelId('text-color')" title="Schriftfarbe" @click="toggle('text-color')">
+      <button v-if="textColorCapable" :ref="(el) => setTrigger('text-color', el)" type="button" class="segment" :aria-label="t('Schriftfarbe')" :aria-expanded="openSegment === 'text-color'" :aria-controls="panelId('text-color')" :title="t('Schriftfarbe')" @click="toggle('text-color')">
         <span class="text-color-glyph" :style="{ '--text-color': textColorBase }" aria-hidden="true">A</span><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
-      <button v-if="!stickyOnly && !tableOnly" :ref="(el) => setTrigger('line', el)" type="button" class="segment" aria-label="Linie" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" title="Linie" @click="toggle('line')">
+      <button v-if="!stickyOnly && !tableOnly" :ref="(el) => setTrigger('line', el)" type="button" class="segment" :aria-label="t('Linie')" :aria-expanded="openSegment === 'line'" :aria-controls="panelId('line')" :title="t('Linie')" @click="toggle('line')">
         <AppIcon name="stroke" /><AppIcon class="chev" name="chevron-down" :size="14" />
       </button>
       <template v-if="connectorOnly">
         <span class="sep" aria-hidden="true" />
-        <button type="button" class="tool-btn" aria-label="Text hinzufügen oder bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text hinzufügen oder bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
+        <button type="button" class="tool-btn" :aria-label="t('Text hinzufügen oder bearbeiten')" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? t('Text wird bearbeitet') : t('Text hinzufügen oder bearbeiten')" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('route', el)" type="button" class="segment" :aria-label="`Linienform: ${routeLabel}`" :disabled="editing" :aria-expanded="openSegment === 'route'" :aria-controls="panelId('route')" :title="unavailable('Linienform')" @click="toggle('route')">
+        <button :ref="(el) => setTrigger('route', el)" type="button" class="segment" :aria-label="t('Linienform: {routeLabel}', { routeLabel })" :disabled="editing" :aria-expanded="openSegment === 'route'" :aria-controls="panelId('route')" :title="unavailable(t('Linienform'))" @click="toggle('route')">
           <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V10c0-3 2-5 5-5h9" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('start', el)" type="button" class="segment" :aria-label="`Startpunkt: ${markerLabel(info.values.startMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'start'" :aria-controls="panelId('start')" :title="unavailable('Startpunkt')" @click="toggle('start')">
+        <button :ref="(el) => setTrigger('start', el)" type="button" class="segment" :aria-label="t('Startpunkt: {startMarker}', { startMarker: markerLabel(info.values.startMarker) })" :disabled="editing" :aria-expanded="openSegment === 'start'" :aria-controls="panelId('start')" :title="unavailable(t('Startpunkt'))" @click="toggle('start')">
           <ConnectorMarkerIcon class="toolbar-marker-icon start-marker-preview" :marker="info.values.startMarker ?? 'none'" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
-        <button :ref="(el) => setTrigger('end', el)" type="button" class="segment" :aria-label="`Endpunkt: ${markerLabel(info.values.endMarker)}`" :disabled="editing" :aria-expanded="openSegment === 'end'" :aria-controls="panelId('end')" :title="unavailable('Endpunkt')" @click="toggle('end')">
+        <button :ref="(el) => setTrigger('end', el)" type="button" class="segment" :aria-label="t('Endpunkt: {endMarker}', { endMarker: markerLabel(info.values.endMarker) })" :disabled="editing" :aria-expanded="openSegment === 'end'" :aria-controls="panelId('end')" :title="unavailable(t('Endpunkt'))" @click="toggle('end')">
           <ConnectorMarkerIcon class="toolbar-marker-icon" :marker="info.values.endMarker ?? 'none'" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
       </template>
       <template v-if="annotationOnly">
         <span class="sep" aria-hidden="true" />
-        <button type="button" class="tool-btn heading-button" :disabled="!editing" aria-label="Absatz" :title="editing ? 'Absatz' : 'Zum Formatieren Text bearbeiten'" @pointerdown.prevent @click="formatAnnotation('paragraph')">P</button>
-        <button v-for="level in HEADING_LEVELS" :key="level" type="button" class="tool-btn heading-button" :disabled="!editing" :aria-label="`Überschrift ${level}`" :title="editing ? `Überschrift ${level}` : 'Zum Formatieren Text bearbeiten'" @pointerdown.prevent @click="formatHeading(level)">H<sub>{{ level }}</sub></button>
+        <button type="button" class="tool-btn heading-button" :disabled="!editing" :aria-label="t('Absatz')" :title="editing ? t('Absatz') : t('Zum Formatieren Text bearbeiten')" @pointerdown.prevent @click="formatAnnotation('paragraph')">P</button>
+        <button v-for="level in HEADING_LEVELS" :key="level" type="button" class="tool-btn heading-button" :disabled="!editing" :aria-label="t('Überschrift {level}', { level })" :title="editing ? t('Überschrift {level}', { level }) : t('Zum Formatieren Text bearbeiten')" @pointerdown.prevent @click="formatHeading(level)">H<sub>{{ level }}</sub></button>
         <span class="sep" aria-hidden="true" />
-        <button type="button" class="tool-btn format-letter" :disabled="!editing" aria-label="Fett" title="Fett" @pointerdown.prevent @click="formatAnnotation('bold')">B</button>
-        <button type="button" class="tool-btn format-letter italic" :disabled="!editing" aria-label="Kursiv" title="Kursiv" @pointerdown.prevent @click="formatAnnotation('italic')">I</button>
-        <button type="button" class="tool-btn format-letter underline" :disabled="!editing" aria-label="Unterstrichen" title="Unterstrichen" @pointerdown.prevent @click="formatAnnotation('underline')">U</button>
-        <label class="annotation-color" :class="{ disabled: !editing }" title="Textfarbe"><span aria-hidden="true">A</span><input type="color" value="#242424" aria-label="Textfarbe" :disabled="!editing" @input="formatAnnotation('color', ($event.target as HTMLInputElement).value)" /></label>
+        <button type="button" class="tool-btn format-letter" :disabled="!editing" :aria-label="t('Fett')" :title="t('Fett')" @pointerdown.prevent @click="formatAnnotation('bold')">B</button>
+        <button type="button" class="tool-btn format-letter italic" :disabled="!editing" :aria-label="t('Kursiv')" :title="t('Kursiv')" @pointerdown.prevent @click="formatAnnotation('italic')">I</button>
+        <button type="button" class="tool-btn format-letter underline" :disabled="!editing" :aria-label="t('Unterstrichen')" :title="t('Unterstrichen')" @pointerdown.prevent @click="formatAnnotation('underline')">U</button>
+        <label class="annotation-color" :class="{ disabled: !editing }" :title="t('Textfarbe')"><span aria-hidden="true">A</span><input type="color" value="#242424" :aria-label="t('Textfarbe')" :disabled="!editing" @input="formatAnnotation('color', ($event.target as HTMLInputElement).value)" /></label>
         <span class="sep" aria-hidden="true" />
-        <button type="button" class="tool-btn list-toggle" :disabled="!editing" aria-label="Aufzählung" title="Aufzählung" @pointerdown.prevent @click="formatAnnotation('bullet')"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
-        <button type="button" class="tool-btn numbered-toggle" :disabled="!editing" aria-label="Nummerierte Liste" title="Nummerierte Liste" @pointerdown.prevent @click="formatAnnotation('numbered')"><span aria-hidden="true">1.</span><span aria-hidden="true">☰</span></button>
-        <button type="button" class="tool-btn quote-toggle" :disabled="!editing" aria-label="Zitat" title="Zitat" @pointerdown.prevent @click="formatAnnotation('quote')">❝</button>
+        <button type="button" class="tool-btn list-toggle" :disabled="!editing" :aria-label="t('Aufzählung')" :title="t('Aufzählung')" @pointerdown.prevent @click="formatAnnotation('bullet')"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+        <button type="button" class="tool-btn numbered-toggle" :disabled="!editing" :aria-label="t('Nummerierte Liste')" :title="t('Nummerierte Liste')" @pointerdown.prevent @click="formatAnnotation('numbered')"><span aria-hidden="true">1.</span><span aria-hidden="true">☰</span></button>
+        <button type="button" class="tool-btn quote-toggle" :disabled="!editing" :aria-label="t('Zitat')" :title="t('Zitat')" @pointerdown.prevent @click="formatAnnotation('quote')">❝</button>
         <span class="sep" aria-hidden="true" />
-        <button v-if="!editing" type="button" class="tool-btn" aria-label="Annotation bearbeiten" title="Annotation bearbeiten" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
+        <button v-if="!editing" type="button" class="tool-btn" :aria-label="t('Annotation bearbeiten')" :title="t('Annotation bearbeiten')" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
       </template>
       <template v-if="textCapable">
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('font', el)" type="button" class="segment" aria-label="Schriftart" :aria-expanded="openSegment === 'font'" :aria-controls="panelId('font')" title="Schriftart" @click="toggle('font')">
+        <button :ref="(el) => setTrigger('font', el)" type="button" class="segment" :aria-label="t('Schriftart')" :aria-expanded="openSegment === 'font'" :aria-controls="panelId('font')" :title="t('Schriftart')" @click="toggle('font')">
           <span class="font-glyph" :style="fontGlyphStyle" data-testid="font-glyph" aria-hidden="true">Aa</span><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('size', el)" type="button" class="segment size-segment" :aria-label="`Schriftgröße: ${sizeLabel}`" :aria-expanded="openSegment === 'size'" :aria-controls="panelId('size')" @click="toggle('size')">
+        <button :ref="(el) => setTrigger('size', el)" type="button" class="segment size-segment" :aria-label="t('Schriftgröße: {sizeLabel}', { sizeLabel })" :aria-expanded="openSegment === 'size'" :aria-controls="panelId('size')" @click="toggle('size')">
           <span class="size-label">{{ sizeLabel }}</span><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
         <span class="sep" aria-hidden="true" />
-        <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly && !tableOnly && !webEmbedOnly" type="button" class="tool-btn" aria-label="Text bearbeiten" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? 'Text wird bearbeitet' : 'Text bearbeiten'" @click="store.startTextEdit(info.singleId ?? undefined)">
+        <button v-if="info.canEditText && !stickyOnly && !resourceCardOnly && !tableOnly && !webEmbedOnly" type="button" class="tool-btn" :aria-label="t('Text bearbeiten')" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? t('Text wird bearbeitet') : t('Text bearbeiten')" @click="store.startTextEdit(info.singleId ?? undefined)">
           <AppIcon name="text" />
         </button>
       </template>
       <template v-if="stickyOnly">
         <span class="sep" aria-hidden="true" />
-        <button type="button" class="tool-btn format-letter" aria-label="Fett" :aria-pressed="info.values.fontWeight === 'bold'" title="Fett" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
-        <button type="button" class="tool-btn format-letter strike" aria-label="Durchgestrichen" :aria-pressed="info.values.textDecoration === 'line-through'" title="Durchgestrichen" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
+        <button type="button" class="tool-btn format-letter" :aria-label="t('Fett')" :aria-pressed="info.values.fontWeight === 'bold'" :title="t('Fett')" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
+        <button type="button" class="tool-btn format-letter strike" :aria-label="t('Durchgestrichen')" :aria-pressed="info.values.textDecoration === 'line-through'" :title="t('Durchgestrichen')" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
       </template>
       <template v-if="tableOnly">
-        <button type="button" class="tool-btn format-letter" aria-label="Fett" :aria-pressed="info.values.fontWeight === 'bold'" title="Fett" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
-        <button type="button" class="tool-btn format-letter strike" aria-label="Durchgestrichen" :aria-pressed="info.values.textDecoration === 'line-through'" title="Durchgestrichen" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
-        <button type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
-        <button :ref="(el) => setTrigger('table', el)" type="button" class="tool-btn" aria-label="Tabellenstruktur" :aria-expanded="openSegment === 'table'" :aria-controls="panelId('table')" title="Zeilen und Spalten" @click="toggle('table')"><AppIcon name="table" /></button>
+        <button type="button" class="tool-btn format-letter" :aria-label="t('Fett')" :aria-pressed="info.values.fontWeight === 'bold'" :title="t('Fett')" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
+        <button type="button" class="tool-btn format-letter strike" :aria-label="t('Durchgestrichen')" :aria-pressed="info.values.textDecoration === 'line-through'" :title="t('Durchgestrichen')" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
+        <button type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="info.values.listStyle === 'bullet'" :title="t('Aufzählung')" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+        <button :ref="(el) => setTrigger('table', el)" type="button" class="tool-btn" :aria-label="t('Tabellenstruktur')" :aria-expanded="openSegment === 'table'" :aria-controls="panelId('table')" :title="t('Zeilen und Spalten')" @click="toggle('table')"><AppIcon name="table" /></button>
       </template>
-      <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" aria-label="Ressourcenkarte bearbeiten" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable('Ressourcenkarte bearbeiten')" @click="toggle('resource')">
+      <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" :aria-label="t('Ressourcenkarte bearbeiten')" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable(t('Ressourcenkarte bearbeiten'))" @click="toggle('resource')">
         <AppIcon name="more" />
       </button>
-      <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="webEmbedOnly ? 'Webadresse' : 'Dokumentationslink'" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable(webEmbedOnly ? 'Webadresse' : 'Dokumentationslink')" @click="toggle('link')">
+      <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="webEmbedOnly ? t('Webadresse') : t('Dokumentationslink')" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable(webEmbedOnly ? t('Webadresse') : t('Dokumentationslink'))" @click="toggle('link')">
         <AppIcon name="link" />
       </button>
-      <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" aria-label="Aufzählung" :aria-pressed="info.values.listStyle === 'bullet'" title="Aufzählung" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
-      <button v-if="stickyOnly" :ref="(el) => setTrigger('author', el)" type="button" class="tool-btn author-button" :disabled="editing" aria-label="Autor bearbeiten" :aria-expanded="openSegment === 'author'" :aria-controls="panelId('author')" :title="unavailable('Autor bearbeiten')" @click="toggle('author')"><AppIcon name="user" /></button>
-      <button v-if="stickyOnly" type="button" class="tool-btn" :disabled="stickyTaskExists || s.transitioning" :aria-label="stickyTaskExists ? 'Aufgabe bereits erstellt' : 'Aufgabe erstellen'" :title="stickyTaskExists ? 'Aufgabe bereits erstellt' : 'Aufgabe erstellen'" @click="createStickyTask"><AppIcon name="file-plus" /></button>
+      <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="info.values.listStyle === 'bullet'" :title="t('Aufzählung')" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+      <button v-if="stickyOnly" :ref="(el) => setTrigger('author', el)" type="button" class="tool-btn author-button" :disabled="editing" :aria-label="t('Autor bearbeiten')" :aria-expanded="openSegment === 'author'" :aria-controls="panelId('author')" :title="unavailable(t('Autor bearbeiten'))" @click="toggle('author')"><AppIcon name="user" /></button>
+      <button v-if="stickyOnly" type="button" class="tool-btn" :disabled="stickyTaskExists || s.transitioning" :aria-label="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" :title="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" @click="createStickyTask"><AppIcon name="file-plus" /></button>
       <template v-if="textCapable && !stickyOnly">
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('align', el)" type="button" class="segment" aria-label="Textausrichtung" :aria-expanded="openSegment === 'align'" :aria-controls="panelId('align')" title="Textausrichtung" @click="toggle('align')">
+        <button :ref="(el) => setTrigger('align', el)" type="button" class="segment" :aria-label="t('Textausrichtung')" :aria-expanded="openSegment === 'align'" :aria-controls="panelId('align')" :title="t('Textausrichtung')" @click="toggle('align')">
           <AppIcon :name="alignIcon" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
       </template>
       <template v-if="definition?.widgets?.length">
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" aria-label="Komponenteneinstellungen" :disabled="editing" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" :title="unavailable('Komponenteneinstellungen')" @click="toggle('more')">
+        <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" :aria-label="t('Komponenteneinstellungen')" :disabled="editing" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" :title="unavailable(t('Komponenteneinstellungen'))" @click="toggle('more')">
           <AppIcon name="more" />
         </button>
       </template>
       <span class="sep" aria-hidden="true" />
-      <button :ref="(el) => setTrigger('actions', el)" type="button" class="tool-btn" aria-label="Elementaktionen" :disabled="editing" :aria-expanded="openSegment === 'actions'" :aria-controls="panelId('actions')" :title="unavailable('Elementaktionen')" @click="toggle('actions')">
+      <button :ref="(el) => setTrigger('actions', el)" type="button" class="tool-btn" :aria-label="t('Elementaktionen')" :disabled="editing" :aria-expanded="openSegment === 'actions'" :aria-controls="panelId('actions')" :title="unavailable(t('Elementaktionen'))" @click="toggle('actions')">
         <AppIcon name="more" />
       </button>
     </div>
@@ -503,7 +506,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     class="context-popover"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? 'Form ändern' : openSegment === 'radius' ? 'Eckenradius' : openSegment === 'color' ? 'Farbe' : openSegment === 'text-color' ? 'Schriftfarbe' : openSegment === 'line' ? 'Linie' : openSegment === 'font' ? 'Schriftart' : openSegment === 'size' ? 'Schriftgröße' : openSegment === 'table' ? 'Tabellenstruktur' : openSegment === 'link' ? 'Link' : openSegment === 'resource' ? 'Ressourcenkarte bearbeiten' : openSegment === 'author' ? 'Autor bearbeiten' : openSegment === 'align' ? 'Textausrichtung' : openSegment === 'actions' ? 'Elementaktionen' : openSegment === 'route' ? 'Linienform' : openSegment === 'start' ? 'Startpunkt' : openSegment === 'end' ? 'Endpunkt' : 'Komponenteneinstellungen'"
+    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -512,128 +515,128 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <template v-if="openSegment === 'shape'">
       <label class="shape-search">
         <AppIcon name="search" :size="18" />
-        <input v-model="shapeQuery" class="search-input" type="search" aria-label="Form suchen" placeholder="Form suchen" autocomplete="off" spellcheck="false" />
+        <input v-model="shapeQuery" class="search-input" type="search" :aria-label="t('Form suchen')" :placeholder="t('Form suchen')" autocomplete="off" spellcheck="false" />
       </label>
-      <div class="shape-grid" role="group" aria-label="Formen">
+      <div class="shape-grid" role="group" :aria-label="t('Formen')">
         <button
           v-for="entry in shapes"
           :key="entry.id"
           type="button"
           class="shape-btn"
-          :aria-label="entry.label"
-          :title="entry.label"
+          :aria-label="t(entry.label)"
+          :title="t(entry.label)"
           :aria-pressed="entry === currentShape"
           @click="pickShape(entry)"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true"><path v-for="d in entry.icon" :key="d" :d="d" /></svg>
         </button>
-        <p v-if="!shapes.length" class="shape-empty">Keine Form gefunden</p>
+        <p v-if="!shapes.length" class="shape-empty">{{ t('Keine Form gefunden') }}</p>
       </div>
     </template>
 
     <template v-else-if="openSegment === 'radius'">
-      <label class="field radius-field">Eckenradius
-        <span class="radius-row"><input class="radius-range" type="range" min="0" :max="radiusMax" step="1" :value="radiusValue" aria-label="Eckenradius" :aria-valuetext="`${radiusValue} px`" @input="setRadius(($event.target as HTMLInputElement).valueAsNumber)" @change="commitRadius" /><output class="radius-output">{{ radiusMixed ? '–' : radiusValue }} px</output></span>
+      <label class="field radius-field">{{ t('Eckenradius') }}
+        <span class="radius-row"><input class="radius-range" type="range" min="0" :max="radiusMax" step="1" :value="radiusValue" :aria-label="t('Eckenradius')" :aria-valuetext="`${radiusValue} px`" @input="setRadius(($event.target as HTMLInputElement).valueAsNumber)" @change="commitRadius" /><output class="radius-output">{{ radiusMixed ? '–' : radiusValue }} px</output></span>
       </label>
-      <div class="choices" role="group" aria-label="Eckenradius-Vorgaben">
-        <button v-for="preset in [0, 8, 16, 32]" :key="preset" type="button" class="choice" :aria-pressed="!radiusMixed && radiusValue === Math.min(preset, radiusMax)" @click="setRadius(preset); commitRadius()">{{ preset === 0 ? 'Eckig' : `${preset} px` }}</button>
+      <div class="choices" role="group" :aria-label="t('Eckenradius-Vorgaben')">
+        <button v-for="preset in [0, 8, 16, 32]" :key="preset" type="button" class="choice" :aria-pressed="!radiusMixed && radiusValue === Math.min(preset, radiusMax)" @click="setRadius(preset); commitRadius()">{{ preset === 0 ? t('Eckig') : `${preset} px` }}</button>
       </div>
     </template>
 
     <template v-else-if="openSegment === 'color'">
-      <div v-if="!connectorOnly && !stickyOnly && !tableOnly" class="modes" role="group" aria-label="Füllart">
+      <div v-if="!connectorOnly && !stickyOnly && !tableOnly" class="modes" role="group" :aria-label="t('Füllart')">
         <button v-for="mode in FILL_MODES" :key="mode.value" type="button" class="mode" :aria-pressed="currentFillMode === mode.value && !info.mixed.includes('fill')" @click="setFillMode(mode.value)">
           <svg class="mode-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" /><rect v-if="mode.value !== 'none'" x="6" y="6" width="8" height="8" rx="1.5" fill="currentColor" :fill-opacity="mode.value === 'semi' ? 0.35 : 1" /><rect v-else x="6" y="6" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4" /></svg>
-          {{ mode.label }}
+          {{ t(mode.label) }}
         </button>
       </div>
-      <ColorPalette v-if="connectorOnly" :value="strokeBase" prefix="Linie" group-label="Linienfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
-      <ColorPalette v-else :value="fillBase" prefix="Füllung" group-label="Füllfarbe" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
+      <ColorPalette v-if="connectorOnly" :value="strokeBase" :prefix="t('Linie')" :group-label="t('Linienfarbe')" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
+      <ColorPalette v-else :value="fillBase" :prefix="t('Füllung')" :group-label="t('Füllfarbe')" :mixed="info.mixed.includes('fill')" @pick="pickFill" @layout="relayout" />
     </template>
 
-    <ColorPalette v-else-if="openSegment === 'text-color'" :value="textColorBase" prefix="Schrift" group-label="Schriftfarbe" :mixed="info.mixed.includes('textColor')" @pick="pickTextColor" @layout="relayout" />
+    <ColorPalette v-else-if="openSegment === 'text-color'" :value="textColorBase" :prefix="t('Schrift')" :group-label="t('Schriftfarbe')" :mixed="info.mixed.includes('textColor')" @pick="pickTextColor" @layout="relayout" />
 
     <template v-else-if="openSegment === 'line'">
-      <div class="modes" role="group" aria-label="Linienstil">
+      <div class="modes" role="group" :aria-label="t('Linienstil')">
         <button v-for="mode in (connectorOnly ? LINE_MODES.filter((entry) => entry.value !== 'none') : LINE_MODES)" :key="mode.value" type="button" class="mode" :aria-pressed="lineMode === mode.value" @click="setLineMode(mode.value)">
-          <AppIcon :name="mode.icon" :size="18" />{{ mode.label }}
+          <AppIcon :name="mode.icon" :size="18" />{{ t(mode.label) }}
         </button>
       </div>
-      <ColorPalette v-if="!connectorOnly" :value="strokeBase" prefix="Kontur" group-label="Konturfarbe" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
-      <div class="widths" role="group" aria-label="Linienstärke">
-        <button v-for="width in (connectorOnly ? CONNECTOR_WIDTHS : WIDTHS)" :key="width.value" type="button" class="mode width" :aria-label="`Linienstärke ${width.label}`" :title="width.label" :aria-pressed="info.values.strokeWidth === width.value && !info.mixed.includes('strokeWidth')" @click="style({ strokeWidth: width.value })">
+      <ColorPalette v-if="!connectorOnly" :value="strokeBase" :prefix="t('Kontur')" :group-label="t('Konturfarbe')" :mixed="info.mixed.includes('stroke')" @pick="pickStroke" @layout="relayout" />
+      <div class="widths" role="group" :aria-label="t('Linienstärke')">
+        <button v-for="width in (connectorOnly ? CONNECTOR_WIDTHS : WIDTHS)" :key="width.value" type="button" class="mode width" :aria-label="t('Linienstärke {label}', { label: t(width.label) })" :title="t(width.label)" :aria-pressed="info.values.strokeWidth === width.value && !info.mixed.includes('strokeWidth')" @click="style({ strokeWidth: width.value })">
           <svg viewBox="0 0 28 12" aria-hidden="true"><line x1="3" y1="6" x2="25" y2="6" stroke="currentColor" :stroke-width="width.value" stroke-linecap="round" /></svg>
         </button>
       </div>
     </template>
 
-    <div v-else-if="openSegment === 'route'" class="choices column" role="group" aria-label="Linienform">
+    <div v-else-if="openSegment === 'route'" class="choices column" role="group" :aria-label="t('Linienform')">
       <button v-for="route in ROUTES" :key="route.value" type="button" class="choice connector-choice" :aria-pressed="info.values.connectorRouting === route.value" @click="connectorPatch({ connectorRouting: route.value }); close(true)">
-        <svg class="connector-choice-icon" viewBox="0 0 48 24" aria-hidden="true"><path v-if="route.value === 'straight'" d="M5 19L43 5" /><path v-else-if="route.value === 'curved'" d="M5 19C20 19 28 5 43 5" /><path v-else d="M5 19H24V5H43" /></svg>{{ route.label }}
+        <svg class="connector-choice-icon" viewBox="0 0 48 24" aria-hidden="true"><path v-if="route.value === 'straight'" d="M5 19L43 5" /><path v-else-if="route.value === 'curved'" d="M5 19C20 19 28 5 43 5" /><path v-else d="M5 19H24V5H43" /></svg>{{ t(route.label) }}
       </button>
     </div>
 
-    <div v-else-if="openSegment === 'start' || openSegment === 'end'" class="choices marker-grid" role="group" :aria-label="openSegment === 'start' ? 'Startpunkt' : 'Endpunkt'">
-      <button v-for="marker in MARKERS" :key="marker.value" type="button" class="choice marker-choice" :aria-label="marker.label" :title="marker.label" :aria-pressed="(openSegment === 'start' ? info.values.startMarker : info.values.endMarker) === marker.value" @click="connectorPatch(openSegment === 'start' ? { startMarker: marker.value } : { endMarker: marker.value }); close(true)">
+    <div v-else-if="openSegment === 'start' || openSegment === 'end'" class="choices marker-grid" role="group" :aria-label="openSegment === 'start' ? t('Startpunkt') : t('Endpunkt')">
+      <button v-for="marker in MARKERS" :key="marker.value" type="button" class="choice marker-choice" :aria-label="t(marker.label)" :title="t(marker.label)" :aria-pressed="(openSegment === 'start' ? info.values.startMarker : info.values.endMarker) === marker.value" @click="connectorPatch(openSegment === 'start' ? { startMarker: marker.value } : { endMarker: marker.value }); close(true)">
         <ConnectorMarkerIcon :marker="marker.value" />
       </button>
     </div>
 
-    <div v-else-if="openSegment === 'font'" class="choices column" role="group" aria-label="Schriftart">
-      <button v-for="font in FONT_OPTIONS" :key="font.value" type="button" class="choice" :aria-pressed="!fontMixed && currentFont === font.value" :data-font="font.value" @click="style({ fontFamily: font.value })"><span class="font-sample" :style="{ fontFamily: FONT_FAMILY_CSS[font.value] }" aria-hidden="true">Aa</span> {{ font.label }}</button>
+    <div v-else-if="openSegment === 'font'" class="choices column" role="group" :aria-label="t('Schriftart')">
+      <button v-for="font in FONT_OPTIONS" :key="font.value" type="button" class="choice" :aria-pressed="!fontMixed && currentFont === font.value" :data-font="font.value" @click="style({ fontFamily: font.value })"><span class="font-sample" :style="{ fontFamily: FONT_FAMILY_CSS[font.value] }" aria-hidden="true">Aa</span> {{ t(font.label) }}</button>
     </div>
 
     <template v-else-if="openSegment === 'size'">
-      <div class="choices column" role="group" aria-label="Größenvorgaben">
-        <button v-for="preset in SIZE_PRESETS" :key="preset.value" type="button" class="choice" :aria-pressed="info.values.fontSize === preset.value && !info.mixed.includes('fontSize')" @click="style({ fontSize: preset.value })">{{ preset.label }} <span class="muted">{{ preset.value }} px</span></button>
+      <div class="choices column" role="group" :aria-label="t('Größenvorgaben')">
+        <button v-for="preset in SIZE_PRESETS" :key="preset.value" type="button" class="choice" :aria-pressed="info.values.fontSize === preset.value && !info.mixed.includes('fontSize')" @click="style({ fontSize: preset.value })">{{ t(preset.label) }} <span class="muted">{{ preset.value }} px</span></button>
       </div>
-      <label class="field">Schriftgröße<input aria-label="Schriftgröße" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? 'Verschieden' : undefined" @input="setFontSize(($event.target as HTMLInputElement).valueAsNumber)" @change="commitFontSize(($event.target as HTMLInputElement).valueAsNumber)" /></label>
+      <label class="field">{{ t('Schriftgröße') }}<input :aria-label="t('Schriftgröße')" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? t('Verschieden') : undefined" @input="setFontSize(($event.target as HTMLInputElement).valueAsNumber)" @change="commitFontSize(($event.target as HTMLInputElement).valueAsNumber)" /></label>
     </template>
 
-    <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" aria-label="Zeilen und Spalten bearbeiten">
-      <button type="button" class="choice" @click="store.changeTableStructure('row-before')">Zeile oberhalb einfügen</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('row-after')">Zeile unterhalb einfügen</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('column-before')">Spalte links einfügen</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('column-after')">Spalte rechts einfügen</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('row-duplicate')">Zeile duplizieren</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('column-duplicate')">Spalte duplizieren</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('row-up')">Zeile nach oben</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('row-down')">Zeile nach unten</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('column-left')">Spalte nach links</button>
-      <button type="button" class="choice" @click="store.changeTableStructure('column-right')">Spalte nach rechts</button>
-      <button type="button" class="choice danger" @click="store.changeTableStructure('row-delete')">Zeile löschen</button>
-      <button type="button" class="choice danger" @click="store.changeTableStructure('column-delete')">Spalte löschen</button>
+    <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" :aria-label="t('Zeilen und Spalten bearbeiten')">
+      <button type="button" class="choice" @click="store.changeTableStructure('row-before')">{{ t('Zeile oberhalb einfügen') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-after')">{{ t('Zeile unterhalb einfügen') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-before')">{{ t('Spalte links einfügen') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-after')">{{ t('Spalte rechts einfügen') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-duplicate')">{{ t('Zeile duplizieren') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-duplicate')">{{ t('Spalte duplizieren') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-up')">{{ t('Zeile nach oben') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('row-down')">{{ t('Zeile nach unten') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-left')">{{ t('Spalte nach links') }}</button>
+      <button type="button" class="choice" @click="store.changeTableStructure('column-right')">{{ t('Spalte nach rechts') }}</button>
+      <button type="button" class="choice danger" @click="store.changeTableStructure('row-delete')">{{ t('Zeile löschen') }}</button>
+      <button type="button" class="choice danger" @click="store.changeTableStructure('column-delete')">{{ t('Spalte löschen') }}</button>
     </div>
 
     <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
 
     <template v-else-if="openSegment === 'link'">
-      <label class="field">{{ webEmbedOnly ? 'Webadresse' : stickyOnly ? 'Link' : 'Dokumentationslink' }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="webEmbedOnly ? 'Webadresse' : stickyOnly ? 'Link' : 'Dokumentationslink'" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>
-      <button v-if="webEmbedOnly && single?.embedUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.embedUrl)">Webseite extern öffnen ↗</button>
-      <button v-else-if="single?.documentationUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.documentationUrl)">{{ stickyOnly ? 'Link öffnen' : 'Dokumentation öffnen' }} ↗</button>
+      <label class="field">{{ webEmbedOnly ? t('Webadresse') : stickyOnly ? t('Link') : t('Dokumentationslink') }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="webEmbedOnly ? t('Webadresse') : stickyOnly ? t('Link') : t('Dokumentationslink')" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>
+      <button v-if="webEmbedOnly && single?.embedUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.embedUrl)">{{ t('Webseite extern öffnen ↗') }}</button>
+      <button v-else-if="single?.documentationUrl" type="button" class="ctx-btn" @click="store.openDocumentationLink(single.documentationUrl)">{{ stickyOnly ? t('Link öffnen') : t('Dokumentation öffnen') }} ↗</button>
     </template>
 
     <template v-else-if="openSegment === 'author'">
-      <label class="field">Autor<input v-model="authorDraft" class="ctx-input wide" type="text" aria-label="Autor" placeholder="Name" maxlength="240" @change="saveAuthor" @keydown.enter.prevent="saveAuthor" /></label>
+      <label class="field">{{ t('Autor') }}<input v-model="authorDraft" class="ctx-input wide" type="text" :aria-label="t('Autor')" :placeholder="t('Name')" maxlength="240" @change="saveAuthor" @keydown.enter.prevent="saveAuthor" /></label>
     </template>
 
-    <div v-else-if="openSegment === 'align'" class="choices" role="group" aria-label="Textausrichtung">
-      <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="align.label" :title="align.label" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
+    <div v-else-if="openSegment === 'align'" class="choices" role="group" :aria-label="t('Textausrichtung')">
+      <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
     </div>
 
     <div v-else-if="openSegment === 'actions'" class="action-strip">
-      <button type="button" class="action-button" aria-label="Ganz nach hinten" title="Ganz nach hinten" :disabled="!canMoveBackward" @click="runSelectionAction('back')"><AppIcon name="order-back" /></button>
-      <button type="button" class="action-button" aria-label="Eine Ebene zurück" title="Eine Ebene zurück" :disabled="!canMoveBackward" @click="runSelectionAction('backward')"><AppIcon name="order-backward" /></button>
-      <button type="button" class="action-button" aria-label="Eine Ebene vor" title="Eine Ebene vor" :disabled="!canMoveForward" @click="runSelectionAction('forward')"><AppIcon name="order-forward" /></button>
-      <button type="button" class="action-button" aria-label="Ganz nach vorn" title="Ganz nach vorn" :disabled="!canMoveForward" @click="runSelectionAction('front')"><AppIcon name="order-front" /></button>
+      <button type="button" class="action-button" :aria-label="t('Ganz nach hinten')" :title="t('Ganz nach hinten')" :disabled="!canMoveBackward" @click="runSelectionAction('back')"><AppIcon name="order-back" /></button>
+      <button type="button" class="action-button" :aria-label="t('Eine Ebene zurück')" :title="t('Eine Ebene zurück')" :disabled="!canMoveBackward" @click="runSelectionAction('backward')"><AppIcon name="order-backward" /></button>
+      <button type="button" class="action-button" :aria-label="t('Eine Ebene vor')" :title="t('Eine Ebene vor')" :disabled="!canMoveForward" @click="runSelectionAction('forward')"><AppIcon name="order-forward" /></button>
+      <button type="button" class="action-button" :aria-label="t('Ganz nach vorn')" :title="t('Ganz nach vorn')" :disabled="!canMoveForward" @click="runSelectionAction('front')"><AppIcon name="order-front" /></button>
       <span class="action-separator" aria-hidden="true" />
-      <button type="button" class="action-button" aria-label="Klonen" title="Klonen" @click="runSelectionAction('clone')"><AppIcon name="duplicate" /></button>
-      <button type="button" class="action-button danger" aria-label="Löschen" title="Löschen" @click="runSelectionAction('delete')"><AppIcon name="trash" /></button>
+      <button type="button" class="action-button" :aria-label="t('Klonen')" :title="t('Klonen')" @click="runSelectionAction('clone')"><AppIcon name="duplicate" /></button>
+      <button type="button" class="action-button danger" :aria-label="t('Löschen')" :title="t('Löschen')" @click="runSelectionAction('delete')"><AppIcon name="trash" /></button>
     </div>
 
     <template v-else-if="openSegment === 'more'">
       <template v-for="item in definition?.widgets" :key="item.key">
-        <label class="field">{{ item.label }}<select v-if="item.kind === 'select'" class="ctx-input wide" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @change="widget(item.key, ($event.target as HTMLSelectElement).value); store.commitPropertyDraft()"><option value="" disabled>Bitte auswählen</option><option v-for="option in item.options" :key="option">{{ option }}</option></select><input v-else class="ctx-input wide" :type="item.kind === 'number' ? 'number' : 'text'" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @input="widget(item.key, ($event.target as HTMLInputElement).value)" @change="store.commitPropertyDraft()" /></label>
+        <label class="field">{{ t(item.label) }}<select v-if="item.kind === 'select'" class="ctx-input wide" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @change="widget(item.key, ($event.target as HTMLSelectElement).value); store.commitPropertyDraft()"><option value="" disabled>{{ t('Bitte auswählen') }}</option><option v-for="option in item.options" :key="option">{{ option }}</option></select><input v-else class="ctx-input wide" :type="item.kind === 'number' ? 'number' : 'text'" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @input="widget(item.key, ($event.target as HTMLInputElement).value)" @change="store.commitPropertyDraft()" /></label>
       </template>
     </template>
   </div>

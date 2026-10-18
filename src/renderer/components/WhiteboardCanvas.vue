@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useResizeObserver } from '@vueuse/core';
 import { useWhiteboard } from './use-whiteboard';
@@ -7,10 +8,11 @@ import QuickConnect from './QuickConnect.vue';
 import AnnotationEditor from './AnnotationEditor.vue';
 import TableOverlay from './TableOverlay.vue';
 import LaserPointerOverlay from './LaserPointerOverlay.vue';
-import { docToScreen } from '../lib/viewport';
+import { createElement, type SketchElement } from '@/domain';
+import { docToScreen, screenToDoc } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { DOCK_POINTS } from '../lib/geometry';
-import { fontFamilyCss } from '../lib/constants';
+import { DEFAULT_SIZES, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
 
@@ -25,6 +27,22 @@ let laserGesture = false;
 const transform = computed(() => `translate(${s.viewport.panX} ${s.viewport.panY}) scale(${s.viewport.zoom})`);
 const pencilCursorVisible = computed(() => s.tool === 'path' && s.canWrite && !s.transitioning && toolPointer.value !== null);
 const eraserCursorVisible = computed(() => s.tool === 'eraser' && s.canWrite && !s.transitioning && toolPointer.value !== null);
+const SILHOUETTE_TOOLS: readonly string[] = ['rectangle', 'ellipse', 'diamond', 'container', 'sticky-note', 'frame'];
+/** Translucent preview of the shape that a drag with the active shape tool will create, like the eraser ring. */
+const shapeSilhouette = computed<SketchElement | null>(() => {
+  const point = toolPointer.value;
+  if (!point || !SILHOUETTE_TOOLS.includes(s.tool) || !s.canWrite || s.transitioning || s.draftElement || s.textEdit) return null;
+  const size = DEFAULT_SIZES[s.tool];
+  if (!size) return null;
+  const at = screenToDoc(s.viewport, point);
+  const kind = s.tool as 'rectangle' | 'ellipse' | 'diamond' | 'container' | 'sticky-note' | 'frame';
+  try {
+    return createElement(kind, {
+      id: 'shape-silhouette', x: at.x, y: at.y, width: size.width, height: size.height,
+      style: { ...DEFAULT_STYLE, ...STYLE_BY_KIND[kind] }, ...(['rectangle', 'ellipse', 'diamond'].includes(kind) ? { shapeVariant: s.shapeVariant } : {}),
+    });
+  } catch { return null; }
+});
 const connectorFrom = computed(() => s.connectorTargets ? s.document.elements.find((element) => element.id === s.connectorTargets!.fromId) : undefined);
 const connectorTo = computed(() => s.connectorTargets?.toId ? s.document.elements.find((element) => element.id === s.connectorTargets!.toId) : undefined);
 const connectorDockElements = computed(() => {
@@ -139,12 +157,15 @@ onMounted(() => canvas.value?.focus());
 
 <template>
   <div class="canvas-wrap">
-    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" :data-connector-dock-target="s.connectorHoverTargetId ?? undefined" tabindex="0" role="application" aria-label="Zeichenfläche" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
+    <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" :data-connector-dock-target="s.connectorHoverTargetId ?? undefined" tabindex="0" role="application" :aria-label="t('Zeichenfläche')" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">
         <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id" :interactive="element.kind === 'web-embed' && s.tool === 'select' && s.selection.length === 1 && s.selection[0] === element.id" @open-link="store.openDocumentationLink" />
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />
+        <g v-if="shapeSilhouette" class="shape-silhouette" data-testid="shape-silhouette" :data-shape="s.shapeVariant" pointer-events="none" aria-hidden="true" opacity=".38">
+          <ElementView :element="shapeSilhouette" :document="s.document" :theme="s.theme" />
+        </g>
         <rect v-if="connectorFrom" data-testid="connector-source-highlight" :x="connectorFrom.x - 5 / s.viewport.zoom" :y="connectorFrom.y - 5 / s.viewport.zoom" :width="connectorFrom.width + 10 / s.viewport.zoom" :height="connectorFrom.height + 10 / s.viewport.zoom" :transform="`rotate(${connectorFrom.rotation} ${connectorFrom.x + connectorFrom.width / 2} ${connectorFrom.y + connectorFrom.height / 2})`" fill="none" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" stroke-dasharray="5 4" />
         <rect v-if="connectorTo" data-testid="connector-target-highlight" :x="connectorTo.x - 6 / s.viewport.zoom" :y="connectorTo.y - 6 / s.viewport.zoom" :width="connectorTo.width + 12 / s.viewport.zoom" :height="connectorTo.height + 12 / s.viewport.zoom" :transform="`rotate(${connectorTo.rotation} ${connectorTo.x + connectorTo.width / 2} ${connectorTo.y + connectorTo.height / 2})`" fill="none" stroke="var(--status-ok)" :stroke-width="3 / s.viewport.zoom" />
         <g v-for="element in connectorDockElements" :key="`connector-docks:${element.id}`" data-testid="connector-dock-points" :data-element-id="element.id" :transform="`rotate(${element.rotation} ${element.x + element.width / 2} ${element.y + element.height / 2})`">
@@ -173,13 +194,13 @@ onMounted(() => canvas.value?.focus());
     </svg>
     <QuickConnect />
     <TableOverlay />
-    <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>Gedanken brauchen Raum.</h1><p>Wähle ein Werkzeug und leg los.<br>Mit <kbd>R</kbd> zeichnest du dein erstes Rechteck.</p><span class="empty-arrow">↖</span></div>
+    <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>{{ t('Gedanken brauchen Raum.') }}</h1><p>{{ t('Wähle ein Werkzeug und leg los.') }}<br>Mit <kbd>R</kbd> {{ t('zeichnest du dein erstes Rechteck.') }}</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
       <AnnotationEditor v-if="s.textEdit.kind === 'annotation'" />
-      <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" aria-label="Text auf der Zeichenfläche" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? 'Schreib etwas, @erwähne jemanden' : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
-      <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">Als neuen Text einfügen</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">Meinen Text übernehmen</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">Entwurf verwerfen</button></div>
+      <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" :aria-label="t('Text auf der Zeichenfläche')" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? t('Schreib etwas, @erwähne jemanden') : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
+      <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">{{ t('Als neuen Text einfügen') }}</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">{{ t('Meinen Text übernehmen') }}</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">{{ t('Entwurf verwerfen') }}</button></div>
     </div>
-    <p id="canvas-help" class="visually-hidden">Mit V auswählen, mit R ein Rechteck und mit F einen Präsentationsframe zeichnen. Mit Alt+Umschalt+P startest du die Präsentation. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.</p>
+    <p id="canvas-help" class="visually-hidden">{{ t('Mit V auswählen, mit R ein Rechteck und mit F einen Präsentationsframe zeichnen. Mit Alt+Umschalt+P startest du die Präsentation. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.') }}</p>
   </div>
 </template>
 

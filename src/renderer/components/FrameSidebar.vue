@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/renderer/i18n';
 import { nextTick, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
 import FramePreview from './FramePreview.vue';
@@ -32,25 +33,25 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
 </script>
 
 <template>
-  <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" class="frame-sidebar sd-panel" data-testid="frame-sidebar" aria-label="Folien">
-    <header><div><span class="eyebrow">PRÄSENTATION</span><h2 class="sd-panel-title">Folien</h2></div><button class="sd-icon-btn sd-panel-close" aria-label="Folienleiste schließen" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button></header>
-    <button class="present sd-btn" :disabled="!s.frameSlides.length" @click="store.startPresentation()"><AppIcon name="maximize" /> Präsentieren</button>
-    <p v-if="!s.frameSlides.length" class="empty">Ziehe mit <kbd>F</kbd> einen Frame auf. Jeder Frame wird hier als Folie angezeigt.</p>
+  <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" class="frame-sidebar sd-panel" data-testid="frame-sidebar" :aria-label="t('Folien')">
+    <header><div><span class="eyebrow">{{ t('PRÄSENTATION') }}</span><h2 class="sd-panel-title">{{ t('Folien') }}</h2></div><button class="sd-icon-btn sd-panel-close" :aria-label="t('Folienleiste schließen')" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button></header>
+    <button class="present sd-btn" :disabled="!s.frameSlides.length" @click="store.startPresentation()"><AppIcon name="maximize" /> {{ t('Präsentieren') }}</button>
+    <p v-if="!s.frameSlides.length" class="empty">{{ t('Ziehe mit') }} <kbd>F</kbd> {{ t('einen Frame auf. Jeder Frame wird hier als Folie angezeigt.') }}</p>
     <ol v-else class="slides">
       <li v-for="(frame, index) in s.frameSlides" :key="frame.id" :class="{ active: s.selection.includes(frame.id) }" draggable="true" @dragstart="draggingId = frame.id" @dragover.prevent @drop.prevent="drop(index)">
-        <button class="slide-card" :aria-label="`${frame.label || `Folie ${index + 1}`}, Folie ${index + 1} auswählen`" @click="store.focusFrame(frame.id)" @dblclick="edit(frame.id, frame.label || `Folie ${index + 1}`)" @keydown="cardKey($event, frame.id, index)">
+        <button class="slide-card" :aria-label="t('{name}, Folie {index} auswählen', { name: frame.label || t('Folie {index}', { index: index + 1 }), index: index + 1 })" @click="store.focusFrame(frame.id)" @dblclick="edit(frame.id, frame.label || t('Folie {index}', { index: index + 1 }))" @keydown="cardKey($event, frame.id, index)">
           <span class="index">{{ index + 1 }}</span>
           <span class="thumb"><FramePreview :frame="frame" :document="s.document" :theme="s.theme" /></span>
         </button>
         <div class="slide-meta">
-          <input v-if="editingId === frame.id" v-model="nameDraft" maxlength="120" aria-label="Folienname" @keydown.enter.prevent="commit" @keydown.escape.prevent="editingId = null" @blur="commit" />
-          <button v-else class="name" :title="'Doppelklick zum Umbenennen'" @dblclick="edit(frame.id, frame.label || `Folie ${index + 1}`)">{{ frame.label || `Folie ${index + 1}` }}</button>
+          <input v-if="editingId === frame.id" v-model="nameDraft" maxlength="120" :aria-label="t('Folienname')" @keydown.enter.prevent="commit" @keydown.escape.prevent="editingId = null" @blur="commit" />
+          <button v-else class="name" :title="t('Doppelklick zum Umbenennen')" @dblclick="edit(frame.id, frame.label || t('Folie {index}', { index: index + 1 }))">{{ frame.label || t('Folie {index}', { index: index + 1 }) }}</button>
           <span>{{ Math.round(frame.width) }} × {{ Math.round(frame.height) }}</span>
-          <button class="grip sd-icon-btn" aria-label="Folie ziehen; Alt und Pfeiltasten ändern die Reihenfolge"><AppIcon name="grip" /></button>
+          <button class="grip sd-icon-btn" :aria-label="t('Folie ziehen; Alt und Pfeiltasten ändern die Reihenfolge')"><AppIcon name="grip" /></button>
         </div>
       </li>
     </ol>
-    <p class="hint">Doppelklick benennt um · Ziehen oder Alt+↑/↓ sortiert</p>
+    <p class="hint">{{ t('Doppelklick benennt um · Ziehen oder Alt+↑/↓ sortiert') }}</p>
   </aside>
 </template>
 
