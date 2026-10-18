@@ -70,6 +70,36 @@
         "codex-whiteboard-takeover-001"
       ]
     },
+    "100": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "11": {
       "exclusiveRuns": {
         "costUsd": {
@@ -3338,6 +3368,38 @@
         "value": null
       },
       "sharedUnallocatedRunIds": []
+    },
+    "99": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-comment-marker-targets-99"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
     }
   },
   "byTool": {
@@ -3628,18 +3690,19 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       },
-      "runCount": 12,
+      "runCount": 13,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-build-composable-evaluation-73",
+        "codex-comment-marker-targets-99",
         "codex-connector-marker-palette-96",
         "codex-laser-icon-verification-95",
         "codex-live-ui-page-table-connectors-35-89-91",
@@ -3655,7 +3718,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 12
+        "unknownRuns": 13
       }
     }
   },
@@ -3664,15 +3727,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 156
+      "unknownRuns": 157
     },
     "observedSeconds": {
       "knownRuns": 49,
       "knownSubtotal": 24572.322263248963,
       "total": null,
-      "unknownRuns": 107
+      "unknownRuns": 108
     },
-    "runCount": 156,
+    "runCount": 157,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -3729,6 +3792,7 @@
       "codex-build-composable-evaluation-73",
       "codex-ci-signing-env-026",
       "codex-codec-catalog-tests-001",
+      "codex-comment-marker-targets-99",
       "codex-comments-tasks-059",
       "codex-connector-implementation-045",
       "codex-connector-marker-palette-96",
@@ -3835,7 +3899,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 152
+      "unknownRuns": 153
     }
   },
   "officialScoreClaimReady": false,
@@ -3845,9 +3909,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 83
+    "unknownIssues": 85
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:39:55Z"
+  "updatedAt": "2026-10-18T10:55:40Z"
 }

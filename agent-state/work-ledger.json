@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T10:39:55Z",
+  "updatedAt": "2026-10-18T10:55:40Z",
   "issues": [
     {
       "number": 1,
@@ -1549,6 +1549,41 @@
       },
       "dependencies": [
         56
+      ]
+    },
+    {
+      "number": 99,
+      "title": "Kommentar-Marker frei platzieren und zugleich an Elemente anheften",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/99",
+      "owner": "Claude Code (UI), Antigravity (logic), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI and logic",
+      "status": "local_verification_complete",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        59
+      ]
+    },
+    {
+      "number": 100,
+      "title": "Schriftarten-UI-Test unterscheidet vier Fonts nicht zuverlässig",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/100",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (triage)",
+      "phase": "UI test triage",
+      "status": "dismissed_environment_artifact",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        43,
+        99
       ]
     }
   ],
@@ -5786,6 +5821,36 @@
       ],
       "authorization": "Triggered automatically by the push to main under the repository CI workflow.",
       "measurementSource": "GitHub Actions timestamps report 563 seconds elapsed. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu 24.04, macOS 15, and Windows 2025 completed successfully. Token usage and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-comment-marker-targets-99",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        99
+      ],
+      "status": "local_verification_complete",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/CommentsLayer.vue",
+        "src/renderer/lib/comments.ts",
+        "src/renderer/state/contract.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/ui/comments-tasks.spec.ts",
+        "tests/unit/comments-tasks.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/99",
+        "git:e64a71a"
+      ],
+      "concerns": [
+        "Free canvas comments reuse the existing absolute fallback coordinate and therefore require no document-schema migration.",
+        "The full isolated UI run passed 76 of 77 tests; the only failure came from font files blocked by Vite because node_modules was symlinked outside the temporary worktree. Targeted comment tests passed and the environment-only finding was dismissed in issue #100."
+      ],
+      "authorization": "The user requested Figma-like freely placeable comment markers that can also select elements and had already authorized Codex to temporarily implement UI and logic work with actual tool attribution.",
+      "measurementSource": "Local macOS arm64 evidence: typecheck passed; 48/48 Vitest files and 383/383 tests passed; targeted comment UI tests passed 3/3 including Axe; production build passed; 59/59 build-lifecycle tests and 22/22 Graphify tests passed. Exact Codex duration, token usage and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
