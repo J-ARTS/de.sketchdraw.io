@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T09:09:00.580051Z",
+  "updatedAt": "2026-10-18T09:19:14.557380Z",
   "issues": [
     {
       "number": 1,
@@ -1438,7 +1438,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -5423,23 +5423,51 @@
       "issues": [
         89
       ],
-      "status": "integrated_locally_pending_cross_platform_ci",
+      "status": "integrated_and_cross_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
       "artifacts": [
-        "git:6eefe390ed194d58e947969a862d40774856c360",
+        "git:6eefe39aee331d7ca827c0f0b745334412123181",
         "src/renderer/components/ShapeLibraryPanel.vue",
         "tests/ui/layout-review.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/89"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/89",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217"
       ],
       "concerns": [
         "The source-code Graphify refresh guard preserved the existing graph because the rebuilt graph contained 4,008 nodes versus 4,135 in the existing graph; deterministic ticket/run/artifact traceability is refreshed separately."
       ],
       "authorization": "The user supplied a follow-up screenshot for the shape-library header after previously requesting removal of the excessive top padding; issue #89 was reopened as a regression and Codex was already authorized to implement temporarily.",
-      "measurementSource": "Local macOS Electron visual inspection confirmed the reduced 8 px top inset. npm run typecheck and 19/19 targeted Playwright UI tests passed. Cross-platform GitHub Actions evidence is pending. Exact duration, token usage and cost were not measured and remain null."
+      "measurementSource": "Local macOS Electron visual inspection confirmed the reduced 8 px top inset. npm run typecheck and 19/19 targeted Playwright UI tests passed. GitHub Actions run 39114208217 then passed Governance/Graphify, direct P2P, and the complete Build & Verify matrix on ubuntu-24.04, macos-15 and windows-2025 for integrated head 5e97c77. Exact duration, token usage and cost for the Codex run were not measured and remain null."
+    },
+    {
+      "id": "github-actions-shape-header-39114208217",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        89
+      ],
+      "status": "completed",
+      "startedAt": "2026-10-18T09:09:11Z",
+      "endedAt": "2026-10-18T09:16:38Z",
+      "observedSeconds": 447,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:5e97c77ecbf5751b273577e65f50d1e7ebe5d3fd",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217/job/117636788585",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217/job/117636789003",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217/job/117636815111",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217/job/117636815116",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39114208217/job/117636815159"
+      ],
+      "concerns": [
+        "GitHub emitted a non-blocking annotation that actions/checkout@v4 and actions/setup-python@v5 target deprecated Node.js 20 action runtimes and were forced to Node.js 24 by the runner."
+      ],
+      "measurementSource": "Fresh GitHub read confirmed overall success at head 5e97c77. Governance/Graphify, direct P2P, and Build & Verify on Ubuntu, macOS and Windows all completed successfully. The observed duration is derived from GitHub run createdAt and updatedAt; tokens and cost are unavailable and remain null."
     }
   ],
   "evidencePolicy": {
