@@ -1355,6 +1355,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const now = new Date().toISOString(); message.body = text; message.editedAt = now; thread.updatedAt = now;
       const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Kommentar bearbeitet.'; return ok;
     },
+    async deleteCommentMessage(threadId, messageId) {
+      if (!state.canWrite || state.transitioning) return false;
+      const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); const message = thread?.messages.find((entry) => entry.id === messageId);
+      if (!thread || !message || message.authorId !== actorId) return false;
+      if (thread.messages.length === 1) return store.deleteCommentThread(threadId);
+      thread.messages = thread.messages.filter((entry) => entry.id !== messageId); thread.updatedAt = new Date().toISOString();
+      const ok = await dispatch({ type: 'set-comments', threads }); if (ok) state.liveMessage = 'Kommentar gelöscht.'; return ok;
+    },
     async setCommentResolved(threadId, resolved) {
       const threads = clone(state.document.commentThreads ?? []); const thread = threads.find((entry) => entry.id === threadId); if (!thread || !state.canWrite || state.transitioning) return false;
       thread.resolved = resolved; thread.updatedAt = new Date().toISOString();

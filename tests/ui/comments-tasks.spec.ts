@@ -80,7 +80,8 @@ test('comments support pins, replies, editing, sidebar focus and a linked task b
   const reply = page.getByRole('textbox', { name: 'Auf Kommentar antworten' });
   await reply.fill('Ist mit dem Diagramm abgeglichen.'); await reply.press('ControlOrMeta+Enter');
   await expect(page.getByTestId('comment-thread')).toContainText('Ist mit dem Diagramm abgeglichen.');
-  await page.getByTestId('comment-thread').getByRole('button', { name: 'Bearbeiten' }).first().click();
+  await page.getByTestId('comment-thread').getByRole('button', { name: /^Aktionen für Kommentar/ }).first().click();
+  await page.getByRole('menuitem', { name: 'Bearbeiten' }).click();
   const edit = page.getByRole('textbox', { name: /Kommentar von Lokaler Benutzer bearbeiten/ });
   await edit.fill('API- und P2P-Vertrag bitte prüfen'); await page.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(page.getByTestId('comment-thread')).toContainText('API- und P2P-Vertrag bitte prüfen');
@@ -143,5 +144,39 @@ test('a comment marker can be placed freely or select an element as its target',
   await page.getByRole('textbox', { name: 'Kommentar' }).fill('Kommentar am ausgewählten Element');
   await page.getByRole('button', { name: 'Senden' }).click();
   await expect(page.getByTestId('comment-sidebar')).not.toContainText('Gelöschtes Ziel');
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('each own message has a menu to edit or delete it; deleting the last message removes the thread', async ({ page }) => {
+  await page.getByRole('button', { name: 'Kommentar', exact: true }).click();
+  await page.mouse.click(600, 400);
+  await page.getByRole('textbox', { name: 'Kommentar' }).fill('Erster');
+  await page.getByRole('button', { name: 'Senden' }).click();
+  const thread = page.getByTestId('comment-thread');
+  await expect(thread).toBeVisible();
+  const reply = thread.getByRole('textbox', { name: 'Auf Kommentar antworten' });
+  await reply.fill('Zweiter'); await reply.press('ControlOrMeta+Enter');
+  await expect(thread).toContainText('Zweiter');
+  await expect(thread.getByRole('button', { name: 'Bearbeiten' })).toHaveCount(0);
+
+  // Keyboard: menu opens on the first item, Escape returns focus to the trigger.
+  const triggers = thread.getByRole('button', { name: /^Aktionen für Kommentar/ });
+  await triggers.nth(1).focus(); await page.keyboard.press('ArrowDown');
+  const menu = page.getByRole('menu', { name: 'Kommentaraktionen' }).last();
+  await expect(menu.getByRole('menuitem', { name: 'Bearbeiten' })).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(menu.getByRole('menuitem', { name: 'Löschen' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(triggers.nth(1)).toBeFocused();
+
+  // Deleting one message keeps the thread; deleting the last one removes it.
+  await triggers.nth(1).click();
+  await page.getByRole('menuitem', { name: 'Löschen' }).click();
+  await expect(thread).not.toContainText('Zweiter');
+  await expect(thread).toContainText('Erster');
+  await triggers.first().click();
+  await page.getByRole('menuitem', { name: 'Löschen' }).click();
+  await expect(thread).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Kommentar von .* öffnen/ })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });

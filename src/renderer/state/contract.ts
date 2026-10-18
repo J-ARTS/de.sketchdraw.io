@@ -375,6 +375,8 @@ export interface WhiteboardStore {
   closeCommentSidebar(): void;
   addCommentReply(threadId: string, body: string): Promise<boolean>;
   editCommentMessage(threadId: string, messageId: string, body: string): Promise<boolean>;
+  /** Deletes one of the actor's own messages; removing the last message of a thread removes the thread. */
+  deleteCommentMessage(threadId: string, messageId: string): Promise<boolean>;
   setCommentResolved(threadId: string, resolved: boolean): Promise<boolean>;
   markCommentUnread(threadId: string): void;
   copyCommentLink(threadId: string): Promise<void>;
