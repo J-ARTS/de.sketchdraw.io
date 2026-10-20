@@ -722,6 +722,7 @@
       "sharedUnallocatedRunIds": [
         "codex-p2p-session-link-ui-120",
         "codex-v0.1.3-final-candidate-local",
+        "codex-v0.1.3-merge-latest-main-131",
         "codex-windows-i18n-path-130",
         "github-actions-p2p-session-link-ui-39160057940",
         "github-actions-v0.1.3-final-candidate-39165923335",
@@ -949,6 +950,38 @@
         "codex-windows-i18n-path-130",
         "github-actions-v0.1.3-final-candidate-39165923335",
         "github-actions-v0.1.3-windows-path-finding-39165632342"
+      ]
+    },
+    "131": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-v0.1.3-merge-latest-main-131"
       ]
     },
     "14": {
@@ -4509,15 +4542,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 35
+        "unknownRuns": 36
       },
       "observedSeconds": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 35
+        "unknownRuns": 36
       },
-      "runCount": 35,
+      "runCount": 36,
       "runIds": [
         "codex-annotation-list-markers-98",
         "codex-borderless-more-shapes-89",
@@ -4549,6 +4582,7 @@
         "codex-trystero-architecture-70",
         "codex-two-row-tool-settings-116",
         "codex-v0.1.3-final-candidate-local",
+        "codex-v0.1.3-merge-latest-main-131",
         "codex-vueuse-uiux-audit-74-82",
         "codex-web-embed-compatibility-97",
         "codex-windows-i18n-path-130",
@@ -4559,7 +4593,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 35
+        "unknownRuns": 36
       }
     }
   },
@@ -4568,15 +4602,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 220
+      "unknownRuns": 221
     },
     "observedSeconds": {
       "knownRuns": 88,
       "knownSubtotal": 41959.32226324896,
       "total": null,
-      "unknownRuns": 132
+      "unknownRuns": 133
     },
-    "runCount": 220,
+    "runCount": 221,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -4715,6 +4749,7 @@
       "codex-two-row-tool-settings-116",
       "codex-ui-review-031",
       "codex-v0.1.3-final-candidate-local",
+      "codex-v0.1.3-merge-latest-main-131",
       "codex-vueuse-uiux-audit-74-82",
       "codex-web-embed-063",
       "codex-web-embed-compatibility-97",
@@ -4803,7 +4838,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 216
+      "unknownRuns": 217
     }
   },
   "officialScoreClaimReady": false,
@@ -4813,9 +4848,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 107
+    "unknownIssues": 108
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-20T12:12:19Z"
+  "updatedAt": "2026-10-20T12:19:43Z"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-20T12:12:19Z",
+  "updatedAt": "2026-10-20T12:19:43Z",
   "issues": [
     {
       "number": 1,
@@ -1872,7 +1872,8 @@
         120,
         126,
         127,
-        128
+        128,
+        131
       ]
     },
     {
@@ -1957,6 +1958,20 @@
       "dependencies": [
         122
       ]
+    },
+    {
+      "number": 131,
+      "title": "Popovers der Eigenschaftenleiste werden oben abgeschnitten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/131",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "phase": "UI",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -7981,6 +7996,33 @@
       ],
       "authorization": "The user explicitly asked Codex to continue, merge the completed work, close eligible issues and publish the cross-platform release.",
       "measurementSource": "GitHub Actions reports 692 seconds. Governance/Graphify, direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025 all passed on exact commit 146b09d, which was then fast-forwarded into main. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "codex-v0.1.3-merge-latest-main-131",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        122,
+        131
+      ],
+      "status": "local_verified_awaiting_release_ci",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:0a33cad",
+        "git:45f7425",
+        "src/renderer/components/SelectionToolbar.vue",
+        "tests/ui/selection-toolbar.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/131"
+      ],
+      "concerns": [
+        "Issue 131 reached main after the previous candidate CI. The merge is locally verified; the exact tagged release workflow must provide the three-platform evidence."
+      ],
+      "authorization": "The user asked Codex to continue, preserve concurrent changes and publish the release.",
+      "measurementSource": "Local macOS verification after merging latest main: typecheck and all nine selection-toolbar UI tests passed against an isolated Vite server. Exact Codex duration, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {
