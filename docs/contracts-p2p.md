@@ -487,7 +487,14 @@ Die automatische Einladung ist fünf Minuten gültig und signiert Raum-ID, Passw
 
 Ausstehende Ausgangsdaten sind insgesamt auf 16 MiB begrenzt. Abgewiesene Rollen, falsche Sitzungen, unbekannte Identitäten, wiederholte Sequenzen, falsche Hashes und übergroße Nachrichten erreichen den CRDT-Controller nicht. Der Controller prüft Remote-Updates zusätzlich in einer Schattenprojektion gegen Schema, Dokumentbindung und Domainregeln.
 
-Die Oberfläche verlangt mindestens einen credential-freien `wss://`-Endpunkt und eine explizite RTC-Konfiguration. Es gibt keine fest eingebauten öffentlichen STUN-/TURN-Adressen und keinen WSS-Datenfallback. WSS läuft im Renderer über Chromiums System-Netzwerkpfad; daraus folgt ohne reale Plattformprüfung keine Zusage für PAC, NTLM, Kerberos oder manuelle Proxy-Anmeldung. Der sichere Bootstrap eines noch nicht geöffneten fremden Dokuments sowie echte Broker-, Proxy-, TURN-, Ausfall- und 25/50/100-Teilnehmer-Tests bleiben die offenen Freigabegates in Issue #72.
+Die Oberfläche verlangt mindestens einen credential-freien `wss://`-Endpunkt und eine explizite RTC-Konfiguration. Es gibt keine fest eingebauten öffentlichen STUN-/TURN-Adressen und keinen WSS-Datenfallback. WSS läuft im Renderer über Chromiums System-Netzwerkpfad; daraus folgt ohne reale Plattformprüfung keine Zusage für PAC, NTLM, Kerberos oder manuelle Proxy-Anmeldung. Echte Broker-, Proxy-, TURN-, Ausfall- und Lasttests bleiben die offenen Freigabegates in Issue #72; der Plan dafür steht in `docs/network-test-plan.md`.
+
+### Teilnehmergrenze, Neustart und Fehlerverhalten (20.10.2026)
+
+- **Teilnehmergrenze:** Ein Raum ist eine Vollvermaschung. Der Transport nimmt standardmäßig höchstens 25 Teilnehmer inklusive der eigenen Person auf (`AUTOMATIC_DEFAULT_MAX_PARTICIPANTS`); `maxParticipants` erlaubt 2 bis 100 (`AUTOMATIC_MAX_PARTICIPANTS_CEILING`). Wer darüber hinaus beitreten will, scheitert im Handshake mit `ROOM_FULL`; bestehende Verbindungen bleiben unberührt. Begründung, Messwerte und der Weg zu einer höheren Grenze stehen in `docs/network-test-plan.md`.
+- **Sequenzen über Neustarts:** Die Sequenz je Kanal beginnt bei der aktuellen Zeit in Mikrosekunden statt bei null. Ein neu erzeugter Transport mit derselben Identität bleibt damit über den Sequenzen seines Vorgängers und wird nicht als Replay abgewiesen. Das Wire-Format ändert sich nicht.
+- **Abgewiesene Beitritte:** Ein fehlgeschlagener Handshake (unbekannte Identität, falsche Sitzung, volle Sitzung) setzt den Zustand nur auf `error`, solange kein Peer verbunden ist. Eine laufende Sitzung bleibt `ready`. Ein Peer, der auf unserer Seite den Handshake bestanden hat, aber nie beitrat, wird wieder entfernt; ein Handshake, den die Gegenseite bereits aufgegeben hat, registriert nichts mehr.
+- **Logging:** `src/collaboration`, `src/crdt`, `src/session` und das Panel enthalten kein `console.*` (automatisch geprüft). Die Signalisierung veröffentlicht laut Test nur gehashte Topics und die zufällige Peer-ID.
 
 ## Session starten und per Link beitreten (18.10.2026)
 

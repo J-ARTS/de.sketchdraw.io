@@ -36,6 +36,8 @@ export interface AutomaticTransportConfig {
   localGrant: AutomaticPeerGrant;
   authorizePeer(request: AutomaticPeerAuthorizationRequest): AutomaticPeerGrant | null | Promise<AutomaticPeerGrant | null>;
   maxReceiveBytes?: number;
+  /** Participants including the local one; defaults to AUTOMATIC_DEFAULT_MAX_PARTICIPANTS, at most 100. */
+  maxParticipants?: number;
 }
 
 export interface CollaborationTransportMessage {

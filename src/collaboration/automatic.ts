@@ -35,6 +35,15 @@ const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 /** A room invitation stays valid while the host keeps the session open, but never longer than this. */
 export const MAX_INVITATION_TTL_MS = 12 * 60 * 60 * 1000;
 const OUTGOING_LIMIT = 16 * 1024 * 1024;
+/**
+ * Participants (including the local one) one room accepts. Every participant keeps one WebRTC connection per other
+ * participant (full mesh), so connections grow quadratically and an edit is sent once per connection. The protocol
+ * overhead was measured up to 100 participants in process (docs/network-test-plan.md); real WebRTC resources were not,
+ * hence the conservative default.
+ */
+export const AUTOMATIC_DEFAULT_MAX_PARTICIPANTS = 25;
+/** Upper bound of the product promise; larger rooms need a different topology. */
+export const AUTOMATIC_MAX_PARTICIPANTS_CEILING = 100;
 const DEFAULT_MAX_RECEIVE = 8 * 1024 * 1024;
 const CHANNEL_LIMITS: Record<CollaborationTransportChannel, number> = {
   sync: 256 * 1024,
@@ -129,14 +138,17 @@ function checkedGrant(grant: AutomaticPeerGrant): AutomaticPeerGrant {
   return { ...grant };
 }
 
-function checkedConfig(config: AutomaticTransportConfig): AutomaticTransportConfig & { relayUrls: string[]; rtcConfig: RTCConfiguration } {
+function checkedConfig(config: AutomaticTransportConfig): AutomaticTransportConfig & { relayUrls: string[]; rtcConfig: RTCConfiguration; maxParticipants: number } {
   if (!id(config.appId) || !hex(config.roomId, 32) || !hex(config.password, 32) || !hex(config.invitationId)) throw new TypeError('Automatic P2P room credentials are invalid.');
   sessionKey(config.session);
   if (typeof config.authorizePeer !== 'function') throw new TypeError('Peer authorization callback is required.');
   const maxReceiveBytes = config.maxReceiveBytes ?? DEFAULT_MAX_RECEIVE;
   if (!integer(maxReceiveBytes) || maxReceiveBytes < CHANNEL_LIMITS.update || maxReceiveBytes > DEFAULT_MAX_RECEIVE) throw new TypeError('Automatic P2P receive limit is invalid.');
+  const maxParticipants = config.maxParticipants ?? AUTOMATIC_DEFAULT_MAX_PARTICIPANTS;
+  if (!integer(maxParticipants) || maxParticipants < 2 || maxParticipants > AUTOMATIC_MAX_PARTICIPANTS_CEILING) throw new TypeError('Automatic P2P participant limit is invalid.');
   return {
     ...config,
+    maxParticipants,
     localGrant: checkedGrant(config.localGrant),
     relayUrls: checkedRelayUrls(config.relayUrls),
     rtcConfig: checkedIceServers(config.rtcConfig),
@@ -245,10 +257,17 @@ export async function createAutomaticTransport(
   const now = dependencies.now ?? Date.now;
   const roomBinding = await sha(`sketchdraw.auto.v1\n${config.appId}\n${config.roomId}\n${config.invitationId}`);
   const peers = new Map<string, PeerRuntime>();
+  /** Peers whose connection completed; a peer in `peers` but not here only passed our side of the handshake. */
+  const joinedPeers = new Set<string>();
+  /** The handshake currently running per peer; a join error invalidates it so a late completion registers nothing. */
+  const pendingHandshakes = new Map<string, symbol>();
   const peerSequences = new Map<string, Record<CollaborationTransportChannel, number>>();
   const statusListeners = new Set<(status: CollaborationTransportStatus) => void>();
   const messageListeners = new Set<(message: CollaborationTransportMessage) => void | Promise<void>>();
-  const sequence: Record<CollaborationTransportChannel, number> = { sync: 0, update: 0, awareness: 0, asset: 0 };
+  // A restarted transport with the same identity must stay above the sequences its predecessor already used,
+  // otherwise the other side rejects everything it sends as a replay. Wall-clock microseconds keep that order.
+  const sequenceBase = Math.max(0, Math.floor(now())) * 1000;
+  const sequence: Record<CollaborationTransportChannel, number> = { sync: sequenceBase, update: sequenceBase, awareness: sequenceBase, asset: sequenceBase };
   let outgoingBytes = 0;
   let closed = false;
   let transportState: CollaborationTransportStatus['state'] = 'connecting';
@@ -277,6 +296,16 @@ export async function createAutomaticTransport(
   }
 
   async function handshake(peerId: string, send: (data: string) => Promise<void>, receive: () => Promise<{ data: unknown }>): Promise<void> {
+    const token = Symbol(peerId);
+    pendingHandshakes.set(peerId, token);
+    try {
+      await runHandshake(peerId, token, send, receive);
+    } finally {
+      if (pendingHandshakes.get(peerId) === token) pendingHandshakes.delete(peerId);
+    }
+  }
+
+  async function runHandshake(peerId: string, token: symbol, send: (data: string) => Promise<void>, receive: () => Promise<{ data: unknown }>): Promise<void> {
     const createdAt = now();
     const own: HandshakePayload = {
       version: 1,
@@ -309,6 +338,10 @@ export async function createAutomaticTransport(
     });
     if (!grant) fail('ACCESS_DENIED', 'PEER_NOT_AUTHORIZED');
     const checked = checkedGrant(grant);
+    // Both checks run directly before the peer is registered, so concurrent handshakes cannot overshoot the limit
+    // and a handshake that the other side already gave up on registers nothing.
+    if (pendingHandshakes.get(peerId) !== token) fail('ACCESS_DENIED', 'HANDSHAKE_ABORTED');
+    if (!peers.has(peerId) && peers.size + 1 >= config.maxParticipants) fail('ACCESS_DENIED', 'ROOM_FULL');
     let lastSequence = peerSequences.get(payload.keyHash);
     if (!lastSequence) {
       lastSequence = { sync: 0, update: 0, awareness: 0, asset: 0 };
@@ -337,6 +370,13 @@ export async function createAutomaticTransport(
     handshakeTimeoutMs: 20_000,
     onPeerHandshake: (peerId, send, receive) => handshake(peerId, data => send(data), receive as () => Promise<{ data: unknown }>),
     onJoinError: details => {
+      // A handshake that passed on our side but failed on the other one leaves a registration behind: that peer never joined.
+      if (details.peerId && !joinedPeers.has(details.peerId)) {
+        pendingHandshakes.delete(details.peerId);
+        peers.delete(details.peerId);
+      }
+      // A rejected newcomer must not turn a running session into an error state.
+      if (closed || peers.size > 0) return;
       transportState = 'error';
       transportError = details.error.slice(0, 512);
       publishStatus();
@@ -375,11 +415,13 @@ export async function createAutomaticTransport(
       room.getPeers()[peerId]?.close();
       return;
     }
+    joinedPeers.add(peerId);
     transportState = 'ready';
     transportError = undefined;
     publishStatus();
   };
   room.onPeerLeave = peerId => {
+    joinedPeers.delete(peerId);
     peers.delete(peerId);
     if (!closed) transportState = peers.size ? 'ready' : 'connecting';
     publishStatus();
@@ -433,6 +475,8 @@ export async function createAutomaticTransport(
       closed = true;
       transportState = 'closed';
       peers.clear();
+      joinedPeers.clear();
+      pendingHandshakes.clear();
       peerSequences.clear();
       await room.leave();
       publishStatus();

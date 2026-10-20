@@ -19,6 +19,8 @@ export default defineConfig({
       'dist-electron/**',
       'release/**',
     ],
+    // Trystero must go through Vite so tests can replace its MQTT client (tests/unit/collaboration/automatic-signaling.spec.ts).
+    server: { deps: { inline: [/@trystero-p2p\//] } },
     passWithNoTests: false,
     clearMocks: true,
     restoreMocks: true,
