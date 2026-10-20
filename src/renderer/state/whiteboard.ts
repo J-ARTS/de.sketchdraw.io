@@ -6,7 +6,7 @@ import {
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
   tablePlainText,
   connectorEndMarker, connectorRoutePoints, connectorRoutePointsForRouting, connectorRouting, connectorStartMarker,
-  moveElbowedSegment, DOMAIN_LIMITS, serializeDocument,
+  moveElbowedSegment, copyPageContent, DOMAIN_LIMITS, serializeDocument,
   resolveAnchorWorldPoint, worldToElementLocalPoint,
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
@@ -38,8 +38,7 @@ import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/save
 import { describeElement, describeSelection } from '../lib/describe';
 import { resolveShortcut } from '../lib/shortcuts';
 import {
-  activePageId, clonePage, documentWithPages, MAX_PAGE_NAME_LENGTH, MAX_PAGES, nextPageName,
-  pageClipboardPayload, pageState, pageSummaries,
+  MAX_PAGE_NAME_LENGTH, MAX_PAGES, nextPageName, pageClipboardPayload, pageSummaries, parsePageClipboard, resolveActivePage,
 } from './pages';
 import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
@@ -161,7 +160,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
   };
 
-  const selected = () => state.document.elements.filter((e) => state.selection.includes(e.id));
+  // The canvas shows one page at a time: everything that works on "the elements" uses the active page.
+  const pageViewports = new Map<string, WhiteboardState['viewport']>();
+  let pageCache: { doc: SketchDocument; page: string; elements: SketchElement[] } | null = null;
+  const pageElsOf = (doc: SketchDocument): SketchElement[] => doc.elements.filter((e) => e.pageId === state.activePageId);
+  function pageEls(): SketchElement[] {
+    if (pageCache?.doc !== state.document || pageCache.page !== state.activePageId) pageCache = { doc: state.document, page: state.activePageId, elements: pageElsOf(state.document) };
+    return pageCache.elements;
+  }
+  const selected = () => pageEls().filter((e) => state.selection.includes(e.id));
   const changedDraft = () => { draftGeneration += 1; state.draftVersion = draftGeneration; };
   const state = reactive({
     draftVersion: 0, collaboration: null as CollaborationStatus | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
@@ -187,14 +194,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
     previewCommand: null as DocumentCommand | null, drawing: null as SketchElement | null,
     get displayElements(): readonly SketchElement[] {
-      if (!this.previewCommand) return this.document.elements;
-      try { return applyCommand(this.document, this.previewCommand).elements; }
-      catch { return this.document.elements; }
+      let elements: readonly SketchElement[] = this.document.elements;
+      if (this.previewCommand) { try { elements = applyCommand(this.document, this.previewCommand).elements; } catch { /* keep the committed elements */ } }
+      return elements.filter((e) => e.pageId === this.activePageId);
     },
     get draftElement() { return this.drawing; },
     get hasElementPreview() { return Boolean(this.previewCommand); },
     get title() { return this.document.title; },
-    get empty() { return this.document.elements.length === 0; },
+    get empty() { return !this.document.elements.some((e) => e.pageId === this.activePageId); },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },
     get saveStatusText() { return this.hasDraft && !this.file.saving ? t('Offener Entwurf') : deriveSaveStatus(this.file, this.revision).text; },
     get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
@@ -291,11 +298,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         canEditText: elements.length === 1 && !['web-embed', 'frame'].includes(first?.kind ?? ''), hasStroke: true, hasFill: elements.some((e) => !['text', 'path', 'connector', 'image', 'frame'].includes(e.kind)), hasText: elements.some((e) => !['web-embed', 'frame'].includes(e.kind)) };
     },
     get pages() { return pageSummaries(this.document); },
-    activePageId: activePageId(initial.document),
+    get pageElements() { return pageEls(); },
+    activePageId: initial.document.pages[0]!.id,
     workspaceView: 'canvas' as const,
     commentSidebarOpen: false,
     frameSidebarOpen: false,
-    get frameSlides() { return orderedFrames(this.document); },
+    get frameSlides() { return orderedFrames({ ...this.document, elements: this.document.elements.filter((e) => e.pageId === this.activePageId) }); },
     presenterOpen: false,
     presenterIndex: 0,
     presenterNotes: false,
@@ -305,8 +313,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     currentActorId: actorId,
     pagesEditable: true,
     get objectList(): WhiteboardState['objectList'] {
-      const index = new Map(this.document.elements.map((e) => [e.id, e]));
-      return this.document.elements.map((e) => {
+      const onPage = this.document.elements.filter((e) => e.pageId === this.activePageId);
+      const index = new Map(onPage.map((e) => [e.id, e]));
+      return onPage.map((e) => {
         let depth = 0; let parent = e.parentId;
         while (parent && depth < 32) { depth++; parent = index.get(parent)?.parentId; }
         return { id: e.id, depth, kind: e.kind, name: describeElement(e, this.document), selected: this.selection.includes(e.id), parentId: e.parentId ?? null };
@@ -328,9 +337,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   function sync(snapshot: DocumentSession) {
     const before = state.document;
     state.document = Object.freeze(snapshot.document); state.revision = snapshot.revision;
-    state.activePageId = activePageId(snapshot.document);
-    state.selection = state.selection.filter((id) => snapshot.document.elements.some((e) => e.id === id));
-    if (state.focusedId && !snapshot.document.elements.some((e) => e.id === state.focusedId)) state.focusedId = snapshot.document.elements[0]?.id ?? null;
+    state.activePageId = resolveActivePage(before, snapshot.document, state.activePageId);
+    const onPage = pageElsOf(snapshot.document);
+    state.selection = state.selection.filter((id) => onPage.some((e) => e.id === id));
+    if (state.focusedId && !onPage.some((e) => e.id === state.focusedId)) state.focusedId = onPage[0]?.id ?? null;
     if (state.textEdit?.elementId) {
       const current = snapshot.document.elements.find((e) => e.id === state.textEdit!.elementId);
       if (!same(current, textBase)) state.textEdit.conflict = current ? t('Das Element wurde zwischenzeitlich geändert. Dein Text bleibt erhalten.') : t('Das Element wurde gelöscht. Dein Text bleibt erhalten.');
@@ -380,8 +390,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     lastWrite = result.then(() => { if (activeSession() === owner) pendingWrites--; }, () => { if (activeSession() === owner) pendingWrites--; });
     return result;
   }
+  /** The UI only ever adds to the page on screen: elements of `add` commands land on the active page. */
+  function onActivePage(command: DocumentCommand): DocumentCommand {
+    if (command.type === 'add') return { ...command, elements: command.elements.map((e) => (e.pageId === state.activePageId ? e : { ...e, pageId: state.activePageId })) };
+    if (command.type === 'batch') return { ...command, commands: command.commands.map(onActivePage) };
+    return command;
+  }
   function dispatch(command: DocumentCommand, revision = state.revision, source: 'human' | 'code' | 'import' = 'human', recover?: () => void) {
-    return write({ kind: 'dispatch', command }, revision, source, recover);
+    return write({ kind: 'dispatch', command: onActivePage(command) }, revision, source, recover);
   }
   function patch(patches: Array<{ id: string; patch: ElementPatch }>) { if (patches.length) void dispatch({ type: 'update', changes: patches }); }
   function deleteCommand(ids: readonly string[]): DocumentCommand {
@@ -394,7 +410,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       { type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(remaining) } },
     ] };
   }
-  function hit(p: Point) { return [...state.document.elements].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
+  function hit(p: Point) { return [...pageEls()].reverse().find((e) => hitElement(e, p, 7 / state.viewport.zoom)); }
   /** Segment handles are only shown on screen-space segments at least this long (px). */
   const MIN_SEGMENT_HANDLE_LENGTH = 48;
   function handleAt(point: Point): HandleView | undefined {
@@ -423,7 +439,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         x: g.last.x + (point.x - g.last.x) * ratio,
         y: g.last.y + (point.y - g.last.y) * ratio,
       };
-      const target = [...g.base.document.elements].reverse()
+      const target = [...pageElsOf(g.base.document)].reverse()
         .find((element) => hitElement(element, sample, radius / state.viewport.zoom));
       if (!target || erased.has(target.id)) continue;
       erased.add(target.id);
@@ -459,7 +475,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return { elementId: element.id, ...(tableCellId ? { tableCellId } : {}), anchor, fallback: resolveAnchorWorldPoint(element, anchor) };
   }
   function setSelection(ids: string[], additive = false) {
-    state.selection = [...new Set(additive ? [...state.selection, ...ids] : ids)].filter((id) => state.document.elements.some((e) => e.id === id));
+    state.selection = [...new Set(additive ? [...state.selection, ...ids] : ids)].filter((id) => pageEls().some((e) => e.id === id));
     state.focusedId = state.selection.at(-1) ?? null;
     state.hoveredHandleId = null;
     if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
@@ -467,7 +483,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; changedDraft(); }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
-    return { type: 'update', changes: topSelected(base.document.elements, ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
+    return { type: 'update', changes: topSelected(pageElsOf(base.document), ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
   }
   function connectorAnchor(element: SketchElement, point: Point): Point { return endpointAt(element, point); }
   function connectorGeometryPatch(element: SketchElement, points: readonly Point[]): ElementPatch {
@@ -487,10 +503,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const owner = activeSession();
     const command = g.element ? { type: 'add' as const, elements: [g.element] } : g.preview?.type === 'delete' ? deleteCommand(g.preview.ids) : g.preview;
     if (!command) return true;
-    const unchanged = g.targets.every((e) => same(e, state.document.elements.find((current) => current.id === e.id)));
+    const unchanged = g.targets.every((e) => same(e, pageEls().find((current) => current.id === e.id)));
     if (!unchanged) {
       failedGesture = g;
-      state.gestureConflict = { message: t('Ein betroffenes Element wurde während der Geste geändert. Die Vorschau bleibt erhalten.'), canRetry: g.targets.every((e) => state.document.elements.some((current) => current.id === e.id)) };
+      state.gestureConflict = { message: t('Ein betroffenes Element wurde während der Geste geändert. Die Vorschau bleibt erhalten.'), canRetry: g.targets.every((e) => pageEls().some((current) => current.id === e.id)) };
       return false;
     }
     const recover = () => { if (gesture === g || failedGesture === g) { if (g.element) { setSelection([g.element.id]); state.tool = 'select'; if (g.element.kind === 'frame') state.frameSidebarOpen = true; } resetGesture(); failedGesture = null; state.gestureConflict = null; } };
@@ -525,7 +541,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (g.tool === 'path' || g.tool === 'connector') value.points = points.map((p) => ({ x: p.x - rect.x, y: p.y - rect.y }));
     if (g.tool === 'connector') {
       value.connectorRouting = state.connectorDefaults.routing; value.endMarker = state.connectorDefaults.endMarker;
-      const from = state.document.elements.find((element) => element.id === g.connectorFromId);
+      const from = pageEls().find((element) => element.id === g.connectorFromId);
       const to = hit(end);
       const validTo = to && to.kind !== 'connector' && to.id !== from?.id ? to : null;
       state.connectorTargets = from ? { fromId: from.id, toId: validTo?.id ?? null } : null;
@@ -533,7 +549,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (validTo) value.to = { elementId: validTo.id, anchor: endpointAt(validTo, end) };
       if (from && validTo) {
         const ids = new Set([from.id, validTo.id]);
-        g.targets = g.base.document.elements.filter((element) => ids.has(element.id)).map(clone);
+        g.targets = pageElsOf(g.base.document).filter((element) => ids.has(element.id)).map(clone);
       }
     }
     try { return createElement(g.tool, value); } catch { return null; }
@@ -551,7 +567,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const linksChanged = edit.kind !== 'annotation' && !sameTextLinks(edit.links ?? [], edit.initialLinks ?? []);
     if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged && !linksChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
-    const existing = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : undefined;
+    const existing = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : undefined;
     // Free text grows and shrinks with its line count; the width stays whatever the user chose.
     const textWidth = existing?.width ?? edit.box.width;
     const fitHeight = edit.kind === 'text' ? fittedTextHeight(edit.draft, textWidth, edit.style.fontSize) : null;
@@ -563,7 +579,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}), ...(linksChanged || (textChanged && (edit.links?.length ?? 0) > 0) ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? []) } } : {}) } }] }
       : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style }, ...((edit.links?.length ?? 0) > 0 ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? [])! } } : {}) })] };
     const createdText = !edit.elementId && edit.kind === 'text';
-    const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
+    const now = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
     const recover = () => { if (state.textEdit === edit) { state.textEdit = null; setSelection([id]); if (createdText && state.tool === 'text') state.tool = 'select'; changedDraft(); } };
     const ok = await dispatch(command, state.revision === textRevision ? textRevision : state.revision, 'human', recover);
@@ -586,7 +602,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!draft) return true;
     const changes = draft.ids.map((id) => {
       const value = clone(draft.patch);
-      const e = state.document.elements.find((element) => element.id === id);
+      const e = pageEls().find((element) => element.id === id);
       if (e?.points && (value.width !== undefined || value.height !== undefined)) value.points = e.points.map((p) => ({ x: value.width !== undefined && e.width ? p.x * value.width / e.width : p.x, y: value.height !== undefined && e.height ? p.y * value.height / e.height : p.y }));
       return { id, patch: value };
     });
@@ -654,6 +670,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
     state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
+    state.activePageId = document.pages[0]!.id; pageViewports.clear();
     state.presenterOpen = false; state.presenterIndex = 0; state.frameSidebarOpen = false;
     gesture = null; failedGesture = null; nudge = null; state.previewCommand = null; state.drawing = null;
     titleDraft = document.title; codeBase = document;
@@ -941,7 +958,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (g.kind === 'marquee') {
         state.marquee = normalizedRect(g.start, point);
         const r = state.marquee;
-        setSelection(state.document.elements.filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));
+        setSelection(pageEls().filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));
       } else if (g.kind === 'move') {
         g.preview = moveCommand(g.base, g.targets.map((e) => e.id), dx, dy); state.previewCommand = g.preview;
       } else if (g.kind === 'draw') {
@@ -960,14 +977,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
             const movingStart = index === 0;
             const endpoint = movingStart ? element.from : element.to;
             const opposite = movingStart ? element.to : element.from;
-            const candidate = [...g.base.document.elements].reverse().find((entry) =>
+            const candidate = [...pageElsOf(g.base.document)].reverse().find((entry) =>
               entry.id !== element.id && entry.kind !== 'connector' && entry.id !== opposite?.elementId
               && hitElement(entry, point, 10 / state.viewport.zoom));
             // Dropped on a shape: dock at its nearest of twelve points. Dropped on empty canvas: the end is free.
             // Over the opposite end's own shape (a self-connection) the end keeps its previous binding instead of detaching.
-            const oppositeShape = opposite ? g.base.document.elements.find((entry) => entry.id === opposite.elementId) : undefined;
+            const oppositeShape = opposite ? pageElsOf(g.base.document).find((entry) => entry.id === opposite.elementId) : undefined;
             const overOpposite = Boolean(oppositeShape && !candidate && hitElement(oppositeShape, point, 10 / state.viewport.zoom));
-            const bound = candidate ?? (overOpposite && endpoint ? g.base.document.elements.find((entry) => entry.id === endpoint.elementId) : undefined);
+            const bound = candidate ?? (overOpposite && endpoint ? pageElsOf(g.base.document).find((entry) => entry.id === endpoint.elementId) : undefined);
             const anchor = bound ? connectorAnchor(bound, point) : undefined;
             const world = bound && anchor ? resolveAnchorWorldPoint(bound, anchor) : point;
             route[index] = worldToElementLocalPoint(element, world);
@@ -982,7 +999,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
               if (movingStart) { nextFrom = undefined; patch.from = null; }
               else { nextTo = undefined; patch.to = null; }
             }
-            const otherBound = opposite ? g.base.document.elements.find((entry) => entry.id === opposite.elementId) : undefined;
+            const otherBound = opposite ? pageElsOf(g.base.document).find((entry) => entry.id === opposite.elementId) : undefined;
             if (otherBound && !g.targets.some((target) => target.id === otherBound.id)) g.targets.push(clone(otherBound));
             route = connectorRoutePointsForRouting({
               ...element,
@@ -1065,9 +1082,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const dy = input.key === 'ArrowUp' ? -d : input.key === 'ArrowDown' ? d : 0;
         if (state.selection.length) store.nudge(dx, dy); else store.panBy(-dx * 20, -dy * 20);
       } else if (action.startsWith('select.')) {
-        const index = state.document.elements.findIndex((e) => e.id === state.focusedId);
+        const index = pageEls().findIndex((e) => e.id === state.focusedId);
         const delta = action === 'select.previous' || input.key === 'ArrowLeft' || input.key === 'ArrowUp' ? -1 : 1;
-        const e = state.document.elements[(index + delta + state.document.elements.length) % state.document.elements.length];
+        const e = pageEls()[(index + delta + pageEls().length) % pageEls().length];
         if (e) store.focusElement(e.id);
       } else if (actions[action]) actions[action]!();
       else if (input.key === 'Escape') { if (state.textEdit) store.commitTextEdit(); else { resetGesture(); store.clearSelection(); state.tool = 'select'; } }
@@ -1080,10 +1097,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     zoomBy(factor, anchor) { store.zoomTo(state.viewport.zoom * factor, anchor); },
     zoomTo(zoom, anchor = { x: state.viewportSize.width / 2, y: state.viewportSize.height / 2 }) { state.viewport = zoomAround(state.viewport, zoom, anchor); },
     panBy(dx, dy) { state.viewport = { ...state.viewport, panX: state.viewport.panX + dx, panY: state.viewport.panY + dy }; },
-    fitAll() { const box = bounds(state.document.elements); state.viewport = box ? fitRect(state.viewportSize, box, 100, 1) : { panX: 0, panY: 0, zoom: 1 }; },
+    fitAll() { const box = bounds(pageEls()); state.viewport = box ? fitRect(state.viewportSize, box, 100, 1) : { panX: 0, panY: 0, zoom: 1 }; },
     fitSelection() { const box = bounds(selected()); if (box) state.viewport = fitRect(state.viewportSize, box, 100, 2); },
     revealOffscreenChanges() { store.fitAll(); state.offscreenChanges = 0; },
-    select: setSelection, selectAll() { setSelection(state.document.elements.map((e) => e.id)); }, clearSelection() { setSelection([]); },
+    select: setSelection, selectAll() { setSelection(pageEls().map((e) => e.id)); }, clearSelection() { setSelection([]); },
     focusElement(id) { setSelection([id]); store.fitSelection(); },
     deleteSelection() { if (!state.transitioning && state.selection.length) void dispatch(deleteCommand(state.selection)); },
     async copySelection() {
@@ -1127,7 +1144,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     duplicateSelection() {
       if (!state.canWrite || state.transitioning || !state.selection.length) return;
-      const all = state.document.elements; const ids = new Set(state.selection);
+      const all = pageEls(); const ids = new Set(state.selection);
       for (let pass = 0; pass < 32; pass++) for (const e of all) if (e.parentId && ids.has(e.parentId)) ids.add(e.id);
       const map = new Map([...ids].map((id) => [id, uid('copy')]));
       const copies = all.filter((e) => ids.has(e.id)).map((element) => {
@@ -1148,25 +1165,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     endNudge() {
       if (!nudge) return;
       const n = nudge; nudge = null;
-      const targets = topSelected(n.base.document.elements, n.ids).map(clone);
+      const targets = topSelected(pageElsOf(n.base.document), n.ids).map(clone);
       void finishGesture({ kind: 'move', start: { x: 0, y: 0 }, last: { x: n.dx, y: n.dy }, screenStart: { x: 0, y: 0 }, base: n.base, targets, tool: 'select', points: [], preview: moveCommand(n.base, n.ids, n.dx, n.dy), element: null });
     },
     moveObject(id, toIndex) {
       if (state.transitioning || !state.canWrite) return Promise.resolve(false);
-      const ids = state.document.elements.map((e) => e.id);
+      const ids = pageEls().map((e) => e.id);
       const from = ids.indexOf(id);
       if (from === -1) return Promise.resolve(false);
       const target = Math.max(0, Math.min(ids.length - 1, Math.round(toIndex)));
       if (target === from) return Promise.resolve(false);
       ids.splice(from, 1);
       ids.splice(target, 0, id);
-      const element = state.document.elements.find((e) => e.id === id)!;
+      const element = pageEls().find((e) => e.id === id)!;
       state.liveMessage = t('{name} an Position {position} von {count}', { name: describeElement(element, state.document), position: target + 1, count: ids.length });
       return dispatch({ type: 'reorder', ids });
     },
     reorder(op) {
       if (state.transitioning) return;
-      const ids = state.document.elements.map((e) => e.id); const selection = new Set(state.selection);
+      const ids = pageEls().map((e) => e.id); const selection = new Set(state.selection);
       if (op === 'front' || op === 'back') ids.sort((a, b) => (Number(selection.has(a)) - Number(selection.has(b))) * (op === 'front' ? 1 : -1));
       else {
         const ordered = op === 'forward' ? [...ids.keys()].reverse() : [...ids.keys()];
@@ -1176,16 +1193,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     groupSelection() {
       if (state.transitioning) return;
-      const roots = topSelected(state.document.elements, state.selection); const box = bounds(roots);
+      const roots = topSelected(pageEls(), state.selection); const box = bounds(roots);
       if (!box) return;
       const container = createElement('container', { id: uid('container'), x: box.x - 24, y: box.y - 40, width: box.width + 48, height: box.height + 64, text: 'Gruppe', style: { ...DEFAULT_STYLE, ...STYLE_BY_KIND.container } });
-      void dispatch({ type: 'batch', commands: [{ type: 'add', elements: [container] }, { type: 'update', changes: roots.map((e) => ({ id: e.id, patch: { parentId: container.id } })) }, { type: 'reorder', ids: [container.id, ...state.document.elements.map((e) => e.id)] }] }).then((ok) => { if (ok) setSelection([container.id]); });
+      void dispatch({ type: 'batch', commands: [{ type: 'add', elements: [container] }, { type: 'update', changes: roots.map((e) => ({ id: e.id, patch: { parentId: container.id } })) }, { type: 'reorder', ids: [container.id, ...pageEls().map((e) => e.id)] }] }).then((ok) => { if (ok) setSelection([container.id]); });
     },
     ungroupSelection() {
       if (state.transitioning) return;
       const containers = selected().filter((e) => e.kind === 'container'); if (!containers.length) return;
       const ids = new Set(containers.map((e) => e.id));
-      const children = state.document.elements.filter((e) => e.parentId && ids.has(e.parentId));
+      const children = pageEls().filter((e) => e.parentId && ids.has(e.parentId));
       void dispatch({ type: 'batch', commands: [{ type: 'update', changes: children.map((e) => ({ id: e.id, patch: { parentId: null } })) }, { type: 'delete', ids: [...ids] }] }).then((ok) => { if (ok) setSelection(children.filter((e) => !ids.has(e.id)).map((e) => e.id)); });
     },
     connectSelection() {
@@ -1206,7 +1223,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     quickConnectTo(direction, targetId) {
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;
       const source = selected()[0];
-      const target = state.document.elements.find((element) => element.id === targetId);
+      const target = pageEls().find((element) => element.id === targetId);
       if (!source || !target || target.id === source.id || target.kind === 'connector' || !QUICK_CONNECT_KINDS.has(source.kind)) return;
       const fromAnchor = QUICK_SIDES[direction].from;
       const start = anchorPoint(source, fromAnchor);
@@ -1222,7 +1239,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;
       const source = selected()[0];
       if (!source || !QUICK_CONNECT_KINDS.has(source.kind)) return;
-      const plan = planQuickConnect(source, direction, state.document.elements);
+      const plan = planQuickConnect(source, direction, pageEls());
       try {
         const shape = createElement(source.kind, { id: uid(source.kind), ...quickConnectCopy(source, plan.shape) });
         const rect = normalizedRect(plan.start, plan.end);
@@ -1263,7 +1280,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setNumeric(field, value) {
       if (!state.canWrite || state.transitioning || !Number.isFinite(value)) return;
-      patch(topSelected(state.document.elements, state.selection).map((e) => {
+      patch(topSelected(pageEls(), state.selection).map((e) => {
         const patch: ElementPatch = { [field]: value };
         if (field === 'rotation' && e.kind === 'container') patch.rotation = 0;
         if ((field === 'width' || field === 'height') && e.points) patch.points = e.points.map((p) => ({ x: field === 'width' && e.width ? p.x * value / e.width : p.x, y: field === 'height' && e.height ? p.y * value / e.height : p.y }));
@@ -1274,7 +1291,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     updateTitleDraft(title) { if (state.canWrite && !state.transitioning && title !== titleDraft) { titleDraft = title; changedDraft(); } },
     startTextEdit(elementId) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
-      const e = elementId ? state.document.elements.find((e) => e.id === elementId) : undefined;
+      const e = elementId ? pageEls().find((e) => e.id === elementId) : undefined;
       if (isResourceCard(e) || e?.kind === 'table') return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
@@ -1300,19 +1317,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const edit = state.textEdit; if (!edit || state.transitioning || unknownWrite) return;
       if (choice === 'use-current') { state.textEdit = null; changedDraft(); return; }
       if (choice === 'insert-new') { edit.elementId = null; if (edit.kind !== 'annotation') edit.kind = 'text'; textBase = null; }
-      else { textBase = clone(state.document.elements.find((e) => e.id === edit.elementId) ?? null); if (!textBase) return; }
+      else { textBase = clone(pageEls().find((e) => e.id === edit.elementId) ?? null); if (!textBase) return; }
       edit.conflict = null; textRevision = state.revision; changedDraft(); void applyText();
     },
     resolveGestureConflict(choice) {
       if (state.transitioning || unknownWrite) return;
       if (choice === 'discard') { failedGesture = null; state.gestureConflict = null; resetGesture(); return; }
       if (failedGesture && state.gestureConflict?.canRetry) {
-        failedGesture.targets = failedGesture.targets.map((e) => clone(state.document.elements.find((current) => current.id === e.id)!));
+        failedGesture.targets = failedGesture.targets.map((e) => clone(pageEls().find((current) => current.id === e.id)!));
         void finishGesture(failedGesture);
       }
     },
     selectTableCells(elementId, cellIds, mode, rowIndex, columnIndex) {
-      const element = state.document.elements.find((entry) => entry.id === elementId && entry.kind === 'table');
+      const element = pageEls().find((entry) => entry.id === elementId && entry.kind === 'table');
       if (!element?.table) return;
       setSelection([elementId]);
       state.tableSelection = { elementId, cellIds: cellIds.filter((id) => element.table!.cells.some((cell) => cell.id === id)), mode, rowIndex, columnIndex };
@@ -1320,14 +1337,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setTableCellText(elementId, cellId, text) {
       if (!state.canWrite || state.transitioning) return;
-      const element = state.document.elements.find((entry) => entry.id === elementId && entry.kind === 'table');
+      const element = pageEls().find((entry) => entry.id === elementId && entry.kind === 'table');
       if (!element?.table || !element.table.cells.some((cell) => cell.id === cellId)) return;
       commitTable(element, updateTableCellText(element.table, cellId, text), 'Tabellenzelle aktualisiert.');
     },
     formatTableSelection(value: Partial<TableCellStyle>) {
       if (!state.canWrite || state.transitioning) return;
       const selection = state.tableSelection;
-      const element = selection ? state.document.elements.find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
+      const element = selection ? pageEls().find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
       if (!element?.table || element.kind !== 'table') return;
       const ids = selection?.elementId === element.id ? selection.cellIds : [];
       commitTable(element, formatTableCells(element.table, ids, value), 'Tabellenformatierung aktualisiert.');
@@ -1335,7 +1352,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     changeTableStructure(action) {
       if (!state.canWrite || state.transitioning) return;
       const selection = state.tableSelection;
-      const element = selection ? state.document.elements.find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
+      const element = selection ? pageEls().find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
       if (!element?.table || element.kind !== 'table') return;
       const row = Math.max(0, selection?.rowIndex ?? 0); const column = Math.max(0, selection?.columnIndex ?? 0);
       let table = element.table;
@@ -1355,13 +1372,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     startComment(elementId, tableCellId, at) {
       if (!state.canWrite || state.transitioning) return;
-      const element = elementId ? state.document.elements.find((entry) => entry.id === elementId) : undefined;
+      const element = elementId ? pageEls().find((entry) => entry.id === elementId) : undefined;
       if (elementId && !element) return;
       if (!element && !at) return;
       if (tableCellId && (!element || element.kind !== 'table' || !element.table?.cells.some((cell) => cell.id === tableCellId))) return;
       state.commentComposerTarget = element
         ? commentTargetFor(element, tableCellId, at)
-        : { anchor: { x: 0.5, y: 0.5 }, fallback: { x: at!.x, y: at!.y } };
+        : { pageId: state.activePageId, anchor: { x: 0.5, y: 0.5 }, fallback: { x: at!.x, y: at!.y } };
       setSelection(element ? [element.id] : []);
       state.commentSidebarOpen = true; state.frameSidebarOpen = false;
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
@@ -1386,7 +1403,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true; state.frameSidebarOpen = false;
       state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId);
-      const element = thread.target.elementId ? state.document.elements.find((entry) => entry.id === thread.target.elementId) : undefined;
+      const element = thread.target.elementId ? pageEls().find((entry) => entry.id === thread.target.elementId) : undefined;
       if (element) {
         setSelection([element.id]);
         if (thread.target.tableCellId && element.kind === 'table' && element.table) {
@@ -1492,7 +1509,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     async createTaskFromStickyNote(elementId) {
       if (!state.canWrite || state.transitioning || (state.document.tasks ?? []).some((task) => task.sourceElementId === elementId)) return false;
-      const note = state.document.elements.find((element) => element.id === elementId && element.kind === 'sticky-note');
+      const note = pageEls().find((element) => element.id === elementId && element.kind === 'sticky-note');
       if (!note) return false;
       const description = (note.text ?? '').trim();
       const firstLine = description.split(/\r?\n/).find((line) => line.trim())?.trim();
@@ -1613,13 +1630,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async syncConfluenceElement(elementId) {
-      if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
+      if (!bridge.plugins) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
       if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
       state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async refreshConfluenceElement(elementId) {
-      if (!bridge.plugins) return false; const element = state.document.elements.find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
+      if (!bridge.plugins) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
       if (!element || !pageId) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
       state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
       catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
@@ -1756,65 +1773,71 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     closeDialog() { if (state.dialog?.kind === 'unsaved') void store.resolveDialog('cancel'); else state.dialog = null; },
     toggleObjects(open) { state.objectsOpen = open ?? !state.objectsOpen; if (state.objectsOpen) state.frameSidebarOpen = false; },
     selectPage(id) {
-      if (!state.canWrite || state.transitioning || id === state.activePageId) return;
-      const model = pageState(state.document);
-      if (!model.pages.some((page) => page.id === id)) return;
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, model.pages, id) });
+      if (state.transitioning || id === state.activePageId || !state.document.pages.some((page) => page.id === id)) return;
+      if (state.textEdit) void applyText();
+      pageViewports.set(state.activePageId, { ...state.viewport });
+      state.activePageId = id;
+      state.viewport = pageViewports.get(id) ?? { panX: 0, panY: 0, zoom: 1 };
+      state.workspaceView = 'canvas';
+      state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null;
+      state.tableSelection = null; state.propertyDraft = null; state.previewCommand = null; state.drawing = null; gesture = null;
+      changedDraft();
     },
     addPage() {
       if (!state.canWrite || state.transitioning) return;
-      const model = pageState(state.document);
-      if (model.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
-      const page = { id: uid('page'), name: nextPageName(model.pages), elements: [] };
-      const pages = [...model.pages, page];
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, page.id) });
+      if (state.document.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
+      const page = { id: uid('page'), name: nextPageName(state.document.pages) };
+      void dispatch({ type: 'add-page', page }).then((ok) => { if (ok) store.selectPage(page.id); });
     },
     renamePage(id, name) {
       const next = name.trim();
       if (!state.canWrite || state.transitioning || !next || next.length > MAX_PAGE_NAME_LENGTH) return;
-      const model = pageState(state.document);
-      const page = model.pages.find((entry) => entry.id === id);
+      const page = state.document.pages.find((entry) => entry.id === id);
       if (!page || page.name === next) return;
-      const pages = model.pages.map((entry) => entry.id === id ? { ...entry, name: next } : entry);
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, model.activePageId) });
+      void dispatch({ type: 'rename-page', pageId: id, name: next });
     },
     duplicatePage(id) {
       if (!state.canWrite || state.transitioning) return;
-      const model = pageState(state.document);
-      if (model.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
-      const index = model.pages.findIndex((page) => page.id === id);
+      if (state.document.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
+      const index = state.document.pages.findIndex((page) => page.id === id);
       if (index < 0) return;
-      const duplicate = clonePage(model.pages[index]!, uid);
-      const pages = [...model.pages]; pages.splice(index + 1, 0, duplicate);
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, duplicate.id) });
+      const source = state.document.pages[index]!;
+      const copy = copyPageContent({ name: source.name, elements: state.document.elements.filter((e) => e.pageId === id), assets: state.document.assets }, uid, t('{name} Kopie', { name: source.name }));
+      void dispatch({ type: 'add-page', page: copy.page, index: index + 1, elements: copy.elements, assets: copy.assets }).then((ok) => { if (ok) store.selectPage(copy.page.id); });
     },
     deletePage(id) {
       if (!state.canWrite || state.transitioning) return;
-      const model = pageState(state.document);
-      const index = model.pages.findIndex((page) => page.id === id);
-      if (index < 0 || model.pages.length <= 1) return;
-      const pages = model.pages.filter((page) => page.id !== id);
-      const nextActive = id === model.activePageId ? pages[Math.min(index, pages.length - 1)]!.id : model.activePageId;
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, nextActive) });
+      if (!state.document.pages.some((page) => page.id === id) || state.document.pages.length <= 1) return;
+      void dispatch({ type: 'delete-page', pageId: id });
     },
     movePage(id, toIndex) {
       if (!state.canWrite || state.transitioning) return;
-      const model = pageState(state.document);
-      const from = model.pages.findIndex((page) => page.id === id);
-      const target = Math.max(0, Math.min(model.pages.length - 1, toIndex));
+      const ids = state.document.pages.map((page) => page.id);
+      const from = ids.indexOf(id);
+      const target = Math.max(0, Math.min(ids.length - 1, toIndex));
       if (from < 0 || from === target) return;
-      const pages = [...model.pages]; pages.splice(target, 0, pages.splice(from, 1)[0]!);
-      void dispatch({ type: 'replace', document: documentWithPages(state.document, pages, model.activePageId) });
+      ids.splice(target, 0, ids.splice(from, 1)[0]!);
+      void dispatch({ type: 'reorder-pages', ids });
     },
     async copyPage(id) {
-      const page = pageState(state.document).pages.find((entry) => entry.id === id);
+      const page = state.document.pages.find((entry) => entry.id === id);
       if (!page) return;
       try {
-        await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, page.elements, state.document.assets)));
+        await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, state.document.elements.filter((e) => e.pageId === id), state.document.assets)));
         notice(t('Inhalt von „{name}“ kopiert.', { name: page.name }));
       } catch { notice(t('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.'), 'error'); }
     },
-    async pastePage() {},
+    async pastePage() {
+      if (!state.canWrite || state.transitioning) return;
+      if (state.document.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
+      let text: string;
+      try { text = await clipboard.readText(); } catch { notice(t('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.'), 'error'); return; }
+      const payload = parsePageClipboard(text);
+      if (!payload) { notice(t('Die Zwischenablage enthält keinen Seiteninhalt.'), 'error'); return; }
+      const copy = copyPageContent({ name: payload.name, elements: payload.elements, assets: payload.assets }, uid);
+      const ok = await dispatch({ type: 'add-page', page: copy.page, elements: copy.elements, assets: copy.assets });
+      if (ok) { store.selectPage(copy.page.id); notice(t('Seite „{name}“ eingefügt.', { name: copy.page.name })); }
+    },
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
     setTheme(theme) { state.theme = theme; persistPreferences(); },
     setCanvasBackground(value) {

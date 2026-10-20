@@ -3,7 +3,7 @@ import { computed, nextTick, ref, useId } from 'vue';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
-import { t } from '@/renderer/i18n';
+import { t, tm } from '@/renderer/i18n';
 import type { PageSummary } from '@/renderer/state/contract';
 
 type MenuAction = 'copy' | 'rename' | 'duplicate' | 'moveUp' | 'moveDown' | 'delete';
@@ -19,7 +19,7 @@ const MENU_WIDTH = 224;
 
 const pages = computed(() => s.pages);
 const activePage = computed(() => pages.value.find((page) => page.id === s.activePageId) ?? pages.value[0]);
-const currentName = computed(() => s.workspaceView === 'tasks' ? t('Aufgaben') : activePage.value?.name ?? '');
+const currentName = computed(() => s.workspaceView === 'tasks' ? t('Aufgaben') : tm(activePage.value?.name ?? ''));
 const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
@@ -66,7 +66,7 @@ const renameInput = ref<HTMLInputElement[] | HTMLInputElement | null>(null);
 async function startRename(page: PageSummary): Promise<void> {
   if (!canRename.value) return;
   editingId.value = page.id;
-  nameDraft.value = page.name;
+  nameDraft.value = tm(page.name);
   await nextTick();
   const input = Array.isArray(renameInput.value) ? renameInput.value[0] : renameInput.value;
   input?.focus();
@@ -79,7 +79,7 @@ function commitRename(): void {
   const name = nameDraft.value.trim();
   const page = pages.value.find((entry) => entry.id === id);
   editingId.value = null;
-  if (page && name && name !== page.name) store.renamePage(id, name);
+  if (page && name && name !== tm(page.name)) store.renamePage(id, name);
   void nextTick(() => rowButton(id)?.focus());
 }
 
@@ -214,7 +214,7 @@ const dropIndex = ref<number | null>(null);
 function onDragStart(page: PageSummary, event: DragEvent): void {
   if (!editable.value) { event.preventDefault(); return; }
   dragId.value = page.id;
-  event.dataTransfer?.setData('text/plain', page.name);
+  event.dataTransfer?.setData('text/plain', tm(page.name));
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 }
 
@@ -298,6 +298,17 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
         >
           <AppIcon name="plus" :size="18" />
         </button>
+        <button
+          type="button"
+          class="sd-icon-btn head-btn"
+          data-testid="page-paste"
+          :aria-disabled="!editable || undefined"
+          :aria-label="t('pages.paste')"
+          :title="t('pages.paste')"
+          @click="void store.pastePage()"
+        >
+          <AppIcon name="paste" :size="18" />
+        </button>
       </div>
 
       <ul class="page-list" :aria-label="t('pages.list')" @dragleave.self="dropIndex = null">
@@ -344,7 +355,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             @dblclick="startRename(page)"
             @keydown="onRowKeydown(page, index, $event)"
           >
-            <span class="page-name">{{ page.name }}</span>
+            <span class="page-name">{{ tm(page.name) }}</span>
           </button>
           <button
             type="button"
@@ -352,7 +363,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             :data-more-id="page.id"
             aria-haspopup="menu"
             :aria-expanded="menu?.id === page.id"
-            :aria-label="t('pages.more', { name: page.name })"
+            :aria-label="t('pages.more', { name: tm(page.name) })"
             @click="openMenuFromButton(page.id, $event)"
           >
             <AppIcon name="more" :size="18" />

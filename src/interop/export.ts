@@ -1,4 +1,4 @@
-import { annotationPlainText, connectorEndMarker, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
+import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
@@ -238,8 +238,13 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   const out = new XmlOutputBuilder();
   const ids = new Map(document.elements.map((e, i) => [e.id, `sd-${i}`]));
   const map = new Map(document.elements.map(e => [e.id, e]));
-  out.append(`<mxfile compressed="false"><diagram id="page-1" name="${escapeXmlAttr(xmlText(document.title, d))}"><mxGraphModel><root><object id="0"${embed ? ` sketchdrawInterop="${encodeEnvelope(document, 'drawio')}"` : ''}><mxCell/></object><mxCell id="1" parent="0"/>`);
-  for (const raw of document.elements) {
+  out.append('<mxfile compressed="false">');
+  // One <diagram> per page, in page order. A single-page document keeps its title as the diagram name; the embedded
+  // model (all pages) sits on the first diagram.
+  for (const [pageIndex, page] of document.pages.entries()) {
+  const diagramName = document.pages.length === 1 ? document.title : page.name;
+  out.append(`<diagram id="page-${pageIndex + 1}" name="${escapeXmlAttr(xmlText(diagramName, d))}"><mxGraphModel><root><object id="0"${embed && pageIndex === 0 ? ` sketchdrawInterop="${encodeEnvelope(document, 'drawio')}"` : ''}><mxCell/></object><mxCell id="1" parent="0"/>`);
+  for (const raw of document.elements.filter((candidate) => candidate.pageId === page.id)) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
     const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
@@ -317,6 +322,8 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       out.append(`<mxGeometry${attrs({ x: el.x - p.x, y: el.y - p.y, width: el.width, height: el.height, as: 'geometry' })}/>`);
     out.append('</mxCell>');
   }
+  out.append('</root></mxGraphModel></diagram>');
+  }
   // mxGraph paints children together. Detect non-contiguous descendants in the flat domain order.
   for (const parent of document.elements.filter(e => e.kind === 'container')) {
     const descendants = new Set([parent.id]);
@@ -328,13 +335,20 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     if (indices.length > 1 && indices.at(-1)! - indices[0]! + 1 !== indices.length)
       diagnostic(d, parent, 'STACKING_ORDER_APPROXIMATED', 'Native hierarchy groups descendants and can change flat stacking order.');
   }
-  out.append('</root></mxGraphModel></diagram></mxfile>');
+  out.append('</mxfile>');
   return out.toString();
 }
 export function prepareExport(document: SketchDocument, format: InteropFormat, options: InteropExportOptions = {}): InteropExportResult {
-  const doc = validateDocument(document);
-  serializeDocument(doc);
+  const full = validateDocument(document);
+  serializeDocument(full);
   const d = new DiagnosticCollector(), embed = options.embedDocument !== false;
+  // SVG shows a single page; the embedded model is then that page as a standalone document.
+  const svgPageId = options.pageId ?? full.pages[0]!.id;
+  if (format === 'svg' && !full.pages.some((page) => page.id === svgPageId))
+    throw new InteropError('PAGE_NOT_FOUND', 'The page to export does not exist.');
+  const doc = format === 'svg' && full.pages.length > 1 ? extractPage(full, svgPageId) : full;
+  if (format === 'svg' && full.pages.length > 1)
+    diagnostic(d, undefined, 'PAGE_EXPORTED_SINGLE', `SVG contains one page ("${full.pages.find((page) => page.id === svgPageId)!.name}"); the other ${full.pages.length - 1} page(s) are not part of this file.`, false);
   if (doc.componentSets.length || (doc.commentThreads?.length ?? 0) || (doc.tasks?.length ?? 0) || Object.keys(doc.metadata).length || Object.keys(doc.assets).length || doc.elements.some(e => e.parentId || e.from || e.to || e.metadata || e.label || e.description || e.componentType || e.author || e.annotation || e.table))
     diagnostic(d, undefined, embed ? 'SEMANTICS_IN_METADATA' : 'SEMANTICS_OMITTED', embed ? 'Additional document semantics and resources are embedded as data, including information not visible on the canvas.' : 'Portable projection omits native document identity, catalog, binding and metadata semantics.', !embed);
   const contents = format === 'svg' ? nativeSvg(doc, d, embed) : nativeDrawio(doc, d, embed);

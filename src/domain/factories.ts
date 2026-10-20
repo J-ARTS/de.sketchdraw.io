@@ -1,3 +1,4 @@
+import { DEFAULT_PAGE_ID, DEFAULT_PAGE_NAME } from './migration';
 import { DomainValidationError } from './errors';
 import { cloneElement, normalizeZero } from './geometry';
 import { DEFAULT_CONNECTOR_ROUTING, DEFAULT_END_MARKER, DEFAULT_START_MARKER } from './connectors';
@@ -58,9 +59,10 @@ function createDefaultStyle(kind: ElementKind): ElementStyle {
 
 export function createDocument(title = 'Untitled'): SketchDocument {
   const doc: SketchDocument = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: generateUniqueId('document'),
     title,
+    pages: [{ id: DEFAULT_PAGE_ID, name: DEFAULT_PAGE_NAME }],
     elements: [],
     assets: {},
     componentSets: [],
@@ -203,6 +205,7 @@ export function createElement(
 
   const candidate: Record<string, unknown> = {
     id: overrides?.id !== undefined ? overrides.id : generateUniqueId(kind),
+    pageId: overrides?.pageId !== undefined ? overrides.pageId : DEFAULT_PAGE_ID,
     kind,
     ...(overrides?.shapeVariant !== undefined ? { shapeVariant: overrides.shapeVariant } : {}),
     x: overrides?.x !== undefined ? overrides.x : 0,

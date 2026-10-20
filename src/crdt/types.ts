@@ -7,7 +7,8 @@ import type {
   SketchDocument,
 } from '../domain';
 
-export const CRDT_SCHEMA_VERSION = 1 as const;
+/** 2: pages (document schema v2) are part of the shared state. */
+export const CRDT_SCHEMA_VERSION = 2 as const;
 export const CRDT_UPDATE_LIMIT_BYTES = 4 * 1024 * 1024;
 export const AWARENESS_UPDATE_LIMIT_BYTES = 64 * 1024;
 

@@ -501,3 +501,7 @@ Die Oberfläche kennt keinen Moduswechsel mehr: „Session starten“ erstellt e
 - **CSP:** `connect-src` erlaubt `wss:` (Signaling), `worker-src` erlaubt `blob:` (Trystero). Der Adapter akzeptiert nur credential-freie `wss://`-Endpunkte.
 - **Empfangene Binärdaten:** Trystero liefert `Uint8Array`; der Transport akzeptiert `ArrayBuffer` und `ArrayBufferView`.
 - **Prüfung:** `tests/ui/session-network.spec.ts` (mit `SKETCHDRAW_NETWORK_E2E=1`) startet zwei Browser über die öffentlichen Broker und prüft Beitritt und Live-Sync in beide Richtungen. Nicht geprüft: Unternehmensproxys, TURN, Last, Viewer-Durchsetzung im Gast-Browser.
+
+## Seiten im gemeinsamen Zustand (Schema v2)
+
+Mit ADR 0006 gehören `pages` (JSON-Register je Seite plus Rangliste `pagesOrder`) und `pageId` jedes Elements zum CRDT-Zustand; `CRDT_SCHEMA_VERSION` ist 2 und `documentSchemaVersion` 2. Ein Peer mit älterem Schema scheitert beim Lesen mit `CRDT_SCHEMA_VERSION_UNSUPPORTED` und erhält keine Dokumentdaten. Die aktive Seite ist pro Teilnehmer lokal. Reparatur nach gleichzeitigen Änderungen (deterministisch auf jedem Replikat): fehlt jede Seite, wird `page:1` angelegt; Elemente einer gelöschten Seite wandern auf die erste Seite; `parentId`, Connector-Endpunkte und Kommentar-`pageId`, die auf eine andere oder gelöschte Seite zeigen, werden gelöst. Löscht ein Peer eine Seite, die ein anderer ansieht, wechselt dessen Ansicht auf die nächstgelegene Seite.

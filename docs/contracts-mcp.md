@@ -44,6 +44,10 @@ Alle Tools liefern strukturierte Resultate und verständliche Fehlermeldungen. S
 
 Fehlercodes mindestens: `ACCESS_DENIED`, `ACCESS_REVOKED`, `DOCUMENT_MISMATCH`, `SESSION_CHANGED`, `REVISION_CONFLICT`, `VALIDATION_FAILED`, `REQUEST_TOO_LARGE`, `BUSY`, `REQUEST_TIMEOUT`, `OUTCOME_UNKNOWN`. Schemafehler nennen Pfad/Code, aber keine Capability oder lokalen Dateipfade. Konflikte enthalten nur nach erfolgreicher Rechteprüfung die aktuelle Revision.
 
+## Seiten (Schema v2)
+
+`sketchdraw_read_document` liefert `document.pages` und je Element `pageId`; `sketchdraw_find_elements` nennt `pageId` je Treffer; `sketchdraw_analyze_document` enthält `summary.pageCount`; `sketchdraw_read_code` liefert `formatVersion: 2` (Abschnitte `page "id" {"name":…}`), `sketchdraw_apply_code` liest auch Skripte mit `sketchdraw 1`. `sketchdraw_apply_commands` kennt `add-page`, `rename-page`, `delete-page`, `reorder-pages`; ein `add` ohne `pageId` ist bei mehreren Seiten ein Fehler (`VALIDATION_FAILED`) statt einer stillen Wahl der ersten Seite. Die aktive Seite der Oberfläche ist kein Dokumentzustand.
+
 ## SDK und Kompatibilität
 
 Codex hat nach Prüfung der offiziellen npm-Metadaten am17.10.2026 `@modelcontextprotocol/server@2.3.1`, `@modelcontextprotocol/client@2.3.1` und `zod@4.6.7` exakt installiert (Node>=20); npm-Audit danach0. Keine Mischung aus v1- und v2-Importpfaden. Der tatsächlich installierte StdioServerTransport unterstützt `maxBufferSize`; statt seines10-MB-Defaults wird die vereinbarte40-MiB-Grenze explizit gesetzt und getestet. Die alten zusammengefassten SDK1.x-Pakete sind die Wartungslinie für2025-11-25; neue Entwicklung richtet sich nach dem stabilen v2-SDK. Tatsächliche Kompatibilität mit den installierten Claude-/Codex-/Antigravity-Hosts wird durch reale stdio-Sitzungen belegt, nicht aus dem Versionsnamen abgeleitet.

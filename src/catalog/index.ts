@@ -8,6 +8,7 @@ import {
 import { SCRIPT_V1_DEFAULT_STYLE } from '../codec';
 import {
   applyCommand,
+  DEFAULT_PAGE_ID,
   DOMAIN_LIMITS,
   DomainValidationError,
   serializeDocument,
@@ -65,6 +66,8 @@ export interface InstantiateComponentRequest {
   id: string;
   at: Point; // absolute top-left document coordinates
   parentId?: string;
+  /** Page of the new element; defaults to the first page. */
+  pageId?: string;
   label?: string;
   metadata?: Record<string, string>;
 }
@@ -99,6 +102,7 @@ const INSTANTIATE_REQUEST_KEYS: ReadonlySet<string> = new Set([
   'set',
   'type',
   'id',
+  'pageId',
   'at',
   'parentId',
   'label',
@@ -1166,6 +1170,7 @@ export function instantiateComponent(
 
   const element: SketchElement = {
     id: request.id,
+    pageId: request.pageId ?? DEFAULT_PAGE_ID,
     kind: 'component',
     componentType: definition.type,
     x: normalizeZero(request.at.x),

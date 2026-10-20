@@ -27,10 +27,15 @@ import {
 } from './validation';
 
 const PATCH_KEYS: ReadonlySet<string> = new Set(
-  Array.from(ELEMENT_KEYS).filter((key) => key !== 'id' && key !== 'kind'),
+  Array.from(ELEMENT_KEYS).filter((key) => key !== 'id' && key !== 'kind' && key !== 'pageId'),
 );
 
-const ADD_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'elements', 'assets']);
+const ADD_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'elements', 'assets', 'pageId']);
+const ADD_PAGE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'page', 'index', 'elements', 'assets']);
+const PAGE_ENTRY_KEYS: ReadonlySet<string> = new Set(['id', 'name']);
+const RENAME_PAGE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'pageId', 'name']);
+const DELETE_PAGE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'pageId']);
+const REORDER_PAGES_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'ids']);
 const UPDATE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'changes']);
 const CHANGE_ENTRY_KEYS: ReadonlySet<string> = new Set(['id', 'patch']);
 const DELETE_COMMAND_KEYS: ReadonlySet<string> = new Set(['type', 'ids']);
@@ -190,7 +195,31 @@ function applyCommandInternal(
         throw new DomainValidationError(issues);
       }
 
-      const rawElements = [...baseDoc.elements, ...(command.elements as SketchElement[])];
+      // Elements without a page go to `command.pageId`, or to the only page of a single-page document.
+      let defaultPageId: string | undefined;
+      if (Object.prototype.hasOwnProperty.call(command, 'pageId') && command.pageId !== undefined) {
+        if (validateIdField(command.pageId, joinPath(commandPath, 'pageId'), issues)) defaultPageId = command.pageId;
+      } else if (baseDoc.pages.length === 1) {
+        defaultPageId = baseDoc.pages[0]!.id;
+      }
+      const incoming = (command.elements as unknown[]).map((entry, index) => {
+        if (isPlainRecord(entry) && entry.pageId === undefined) {
+          if (defaultPageId === undefined) {
+            issues.push({
+              path: joinPath(joinPath(joinPath(commandPath, 'elements'), index), 'pageId'),
+              code: 'MISSING_PAGE_ID',
+              message: 'Element needs a pageId because the document has several pages.',
+            });
+            return entry;
+          }
+          return { ...entry, pageId: defaultPageId };
+        }
+        return entry;
+      });
+      if (issues.length > 0) {
+        throw new DomainValidationError(issues);
+      }
+      const rawElements = [...baseDoc.elements, ...(incoming as SketchElement[])];
       const candidateDoc: SketchDocument = {
         ...baseDoc,
         elements: rawElements,
@@ -587,12 +616,16 @@ function applyCommandInternal(
         throw new DomainValidationError(issues);
       }
 
+      // The ids are a permutation of the elements of exactly one page; the other pages keep their stacking.
       const elementById = new Map(baseDoc.elements.map((el) => [el.id, el]));
-      if (command.ids.length !== baseDoc.elements.length) {
+      const firstId = command.ids.find((id) => typeof id === 'string' && elementById.has(id)) as string | undefined;
+      const targetPageId = firstId !== undefined ? elementById.get(firstId)!.pageId : baseDoc.elements[0]?.pageId;
+      const pageElementCount = baseDoc.elements.filter((el) => el.pageId === targetPageId).length;
+      if (command.ids.length !== pageElementCount) {
         issues.push({
           path: joinPath(commandPath, 'ids'),
           code: 'INVALID_PERMUTATION_LENGTH',
-          message: `Reorder ids length (${command.ids.length}) must match element count (${baseDoc.elements.length}).`,
+          message: `Reorder ids length (${command.ids.length}) must match the element count of the page (${pageElementCount}).`,
         });
       }
 
@@ -622,6 +655,14 @@ function applyCommandInternal(
           });
           continue;
         }
+        if (found.pageId !== targetPageId) {
+          issues.push({
+            path: idPath,
+            code: 'CROSS_PAGE_REORDER',
+            message: `Reorder ids must all belong to one page; "${rawId}" is on another page.`,
+          });
+          continue;
+        }
         reordered.push(found);
       }
 
@@ -629,10 +670,111 @@ function applyCommandInternal(
         throw new DomainValidationError(issues);
       }
 
+      // Put the reordered page elements back into the slots the page occupied.
+      let cursor = 0;
+      const merged = baseDoc.elements.map((el) => (el.pageId === targetPageId ? reordered[cursor++]! : el));
       return validateDocument({
         ...baseDoc,
-        elements: reordered,
+        elements: merged,
       });
+    }
+
+    case 'add-page': {
+      checkObjectKeys(command, commandPath, ADD_PAGE_COMMAND_KEYS, issues);
+      const pagePath = joinPath(commandPath, 'page');
+      if (!isPlainRecord(command.page)) {
+        issues.push({ path: pagePath, code: 'INVALID_PAGE', message: 'add-page needs a page object.' });
+        throw new DomainValidationError(issues);
+      }
+      checkObjectKeys(command.page, pagePath, PAGE_ENTRY_KEYS, issues);
+      const newPage = command.page as unknown as { id: string; name: string };
+      if (!validateIdField(newPage.id, joinPath(pagePath, 'id'), issues)) throw new DomainValidationError(issues);
+      if (baseDoc.pages.some((page) => page.id === newPage.id)) {
+        issues.push({ path: joinPath(pagePath, 'id'), code: 'DUPLICATE_PAGE_ID', message: `Page "${newPage.id}" already exists.` });
+      }
+      if (typeof newPage.name !== 'string') {
+        issues.push({ path: joinPath(pagePath, 'name'), code: 'INVALID_PAGE_NAME', message: 'Page name must be a string.' });
+      }
+      if (Object.prototype.hasOwnProperty.call(command, 'index') && command.index !== undefined && (typeof command.index !== 'number' || !Number.isInteger(command.index))) {
+        issues.push({ path: joinPath(commandPath, 'index'), code: 'INVALID_PAGE_INDEX', message: 'Page index must be an integer.' });
+      }
+      if (command.elements !== undefined && !Array.isArray(command.elements)) {
+        issues.push({ path: joinPath(commandPath, 'elements'), code: 'INVALID_ELEMENTS', message: 'add-page elements must be an array.' });
+      }
+      if (issues.length > 0) throw new DomainValidationError(issues);
+      const pageElements = ((command.elements as unknown[] | undefined) ?? []).map((entry) => (isPlainRecord(entry) ? { ...entry, pageId: newPage.id } : entry)) as SketchElement[];
+      const pages = [...baseDoc.pages];
+      const at = typeof command.index === 'number' ? Math.max(0, Math.min(pages.length, command.index)) : pages.length;
+      pages.splice(at, 0, { id: newPage.id, name: typeof newPage.name === 'string' ? newPage.name.trim() : newPage.name });
+      const withPage: SketchDocument = { ...baseDoc, pages };
+      // Reuse the add command for the page's elements (and assets), which validates the result.
+      if (pageElements.length === 0 && !Array.isArray(command.assets)) return validateDocument(withPage);
+      return applyCommandInternal(withPage, { type: 'add', elements: pageElements, ...(Array.isArray(command.assets) ? { assets: command.assets } : {}), pageId: newPage.id }, commandPath, batchDepth, batchState);
+    }
+
+    case 'rename-page': {
+      checkObjectKeys(command, commandPath, RENAME_PAGE_COMMAND_KEYS, issues);
+      if (!validateIdField(command.pageId, joinPath(commandPath, 'pageId'), issues)) throw new DomainValidationError(issues);
+      if (typeof command.name !== 'string') {
+        issues.push({ path: joinPath(commandPath, 'name'), code: 'INVALID_PAGE_NAME', message: 'Page name must be a string.' });
+        throw new DomainValidationError(issues);
+      }
+      if (!baseDoc.pages.some((page) => page.id === command.pageId)) {
+        issues.push({ path: joinPath(commandPath, 'pageId'), code: 'UNKNOWN_PAGE_ID', message: `Cannot rename unknown page "${command.pageId}".` });
+        throw new DomainValidationError(issues);
+      }
+      const name = command.name.trim();
+      return validateDocument({ ...baseDoc, pages: baseDoc.pages.map((page) => (page.id === command.pageId ? { ...page, name } : page)) });
+    }
+
+    case 'delete-page': {
+      checkObjectKeys(command, commandPath, DELETE_PAGE_COMMAND_KEYS, issues);
+      if (!validateIdField(command.pageId, joinPath(commandPath, 'pageId'), issues)) throw new DomainValidationError(issues);
+      if (!baseDoc.pages.some((page) => page.id === command.pageId)) {
+        issues.push({ path: joinPath(commandPath, 'pageId'), code: 'UNKNOWN_PAGE_ID', message: `Cannot delete unknown page "${command.pageId}".` });
+        throw new DomainValidationError(issues);
+      }
+      if (baseDoc.pages.length <= 1) {
+        issues.push({ path: joinPath(commandPath, 'pageId'), code: 'LAST_PAGE', message: 'The last page of a document cannot be deleted.' });
+        throw new DomainValidationError(issues);
+      }
+      const ids = baseDoc.elements.filter((el) => el.pageId === command.pageId).map((el) => el.id);
+      // Deleting the page's elements also detaches comments and tasks that pointed at them.
+      const withoutElements = ids.length ? applyCommandInternal(baseDoc, { type: 'delete', ids }, commandPath, batchDepth, batchState) : baseDoc;
+      // Free comments of the deleted page move to the first page instead of disappearing.
+      const threads = (withoutElements.commentThreads ?? []).map((thread) => {
+        if (thread.target.pageId !== command.pageId) return thread;
+        const target = { ...thread.target };
+        delete target.pageId;
+        return { ...thread, target };
+      });
+      return validateDocument({ ...withoutElements, commentThreads: threads, pages: withoutElements.pages.filter((page) => page.id !== command.pageId) });
+    }
+
+    case 'reorder-pages': {
+      checkObjectKeys(command, commandPath, REORDER_PAGES_COMMAND_KEYS, issues);
+      if (!Array.isArray(command.ids)) {
+        issues.push({ path: joinPath(commandPath, 'ids'), code: 'INVALID_REORDER_IDS', message: 'reorder-pages ids must be an array.' });
+        throw new DomainValidationError(issues);
+      }
+      if (command.ids.length !== baseDoc.pages.length) {
+        issues.push({ path: joinPath(commandPath, 'ids'), code: 'INVALID_PERMUTATION_LENGTH', message: `reorder-pages ids length (${command.ids.length}) must match the page count (${baseDoc.pages.length}).` });
+      }
+      const byId = new Map(baseDoc.pages.map((page) => [page.id, page]));
+      const seen = new Set<string>();
+      const ordered: Array<{ id: string; name: string }> = [];
+      for (let i = 0; i < command.ids.length; i += 1) {
+        const idPath = joinPath(joinPath(commandPath, 'ids'), i);
+        const rawId = command.ids[i];
+        if (!validateIdField(rawId, idPath, issues)) continue;
+        if (seen.has(rawId)) { issues.push({ path: idPath, code: 'DUPLICATE_REORDER_ID', message: `Duplicate page id "${rawId}".` }); continue; }
+        seen.add(rawId);
+        const page = byId.get(rawId);
+        if (!page) { issues.push({ path: idPath, code: 'UNKNOWN_PAGE_ID', message: `Unknown page id "${rawId}".` }); continue; }
+        ordered.push(page);
+      }
+      if (issues.length > 0) throw new DomainValidationError(issues);
+      return validateDocument({ ...baseDoc, pages: ordered });
     }
 
     case 'rename': {

@@ -14,6 +14,8 @@ export interface DomainLimits {
   readonly MAX_COMMENT_THREADS: number;
   readonly MAX_COMMENTS_PER_THREAD: number;
   readonly MAX_TASKS: number;
+  readonly MAX_PAGES: number;
+  readonly MAX_PAGE_NAME_LENGTH: number;
   readonly [key: string]: number;
 }
 
@@ -33,4 +35,6 @@ export const DOMAIN_LIMITS: DomainLimits = Object.freeze({
   MAX_COMMENT_THREADS: 5_000,
   MAX_COMMENTS_PER_THREAD: 1_000,
   MAX_TASKS: 5_000,
+  MAX_PAGES: 100,
+  MAX_PAGE_NAME_LENGTH: 120,
 });

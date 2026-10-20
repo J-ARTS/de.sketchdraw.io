@@ -43,7 +43,7 @@ const handles = computed(() => {
 const preview = computed<SketchElement[]>(() => {
   const element = source.value;
   if (!element || !hovered.value || link.value?.active) return [];
-  const plan = planQuickConnect(element, hovered.value, s.document.elements);
+  const plan = planQuickConnect(element, hovered.value, s.pageElements);
   const rect = normalizedRect(plan.start, plan.end);
   try {
     return [

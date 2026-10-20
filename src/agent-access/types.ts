@@ -151,6 +151,7 @@ export interface ElementMatchSummary {
   text?: string;
   componentType?: string;
   parentId?: string;
+  pageId: string;
   x: number;
   y: number;
   width: number;
@@ -187,6 +188,7 @@ export interface AnalyzeDocumentOutput {
   revision: number;
   title: string;
   summary: {
+    pageCount: number;
     totalElements: number;
     countsByKind: Record<ElementKind, number>;
     containerCount: number;
@@ -229,7 +231,8 @@ export interface ReadCodeInput {
 export interface ReadCodeOutput {
   documentId: string;
   revision: number;
-  formatVersion: 1;
+  /** 2: the script has `page` sections (schema v2); version-1 scripts are still accepted by apply_code. */
+  formatVersion: 2;
   code: string;
 }
 

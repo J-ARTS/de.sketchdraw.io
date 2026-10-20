@@ -62,6 +62,10 @@ Die neuen `DesktopBridge`-Typen verwenden ausschließlich opake, vom Main-Prozes
 
 Gleichzeitige Speicheraufrufe desselben Handles werden im Main-Prozess serialisiert. Atomarer Rename schützt vor halben Dateien, bietet aber alleine keinen atomaren Compare-and-Swap gegenüber fremden Prozessen; diese Restgrenze wird dokumentiert und unmittelbar vor Rename erneut geprüft. Browser-Downloads liefern `download-initiated`, niemals einen behaupteten nativen Speichererfolg. Erst `saved` mit neuer Dateiversion darf die UI als bestätigte Speicherung anzeigen. Änderungen während eines laufenden Saves bleiben als ungespeichert markiert, auch wenn die frühere Revision erfolgreich gespeichert wurde.
 
+## Schema v2: Seiten
+
+Seit ADR 0006 (`docs/decisions/0006-multi-page-schema-v2.md`) hat `SketchDocument` `schemaVersion: 2`, `pages: SketchPage[]` (1–100, `{ id, name }`) und trägt jedes Element `pageId`. Die flache Elementliste ist kanonisch nach Seiten gruppiert. `parentId` und Connector-Endpunkte dürfen die Seite nicht verlassen. Commands: `add` (mit optionalem `pageId`), `add-page`, `rename-page`, `delete-page`, `reorder-pages`; `reorder` permutiert die Elemente genau einer Seite. v1-Dokumente werden beim Laden zu einer Seite migriert, gespeichert wird immer v2.
+
 ## Adapter
 
 `src/codec/index.ts`: `parseDiagram(source: string, contextDocument?: SketchDocument): ParseResult`, `formatDiagram(doc: SketchDocument): string`. Im Editor liefert der Kontext Dokument-ID, Assets und Component Sets; die Syntax muss referenzierte Ressourcen ausdrücklich benennen. Fehlende Ressourcen ohne Kontext sind strukturierte Fehler, kein stilles Entfernen. Ein Codeentwurf führt `baseRevision`; bei abweichender Sessionrevision bleibt er erhalten und wird nicht automatisch angewendet.

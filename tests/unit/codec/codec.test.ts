@@ -17,7 +17,7 @@ const VALID_PNG_DATA_URL =
 
 function buildFullSketchDocument(): SketchDocument {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
     id: 'doc-full-roundtrip',
     title: 'Full Roundtrip Architecture\nWith Multiline & "Quotes" \\ Backslash',
     metadata: {
@@ -76,6 +76,7 @@ function buildFullSketchDocument(): SketchDocument {
     elements: [
       {
         id: 'vpc-main',
+        pageId: 'page:1',
         kind: 'container',
         x: 20,
         y: 30,
@@ -93,6 +94,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'rect-1',
+        pageId: 'page:1',
         kind: 'rectangle',
         x: 40.125,
         y: 60.875,
@@ -110,6 +112,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'ellipse-1',
+        pageId: 'page:1',
         kind: 'ellipse',
         x: 220,
         y: 60,
@@ -122,6 +125,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'diamond-1',
+        pageId: 'page:1',
         kind: 'diamond',
         x: 380,
         y: 60,
@@ -134,6 +138,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'text-1',
+        pageId: 'page:1',
         kind: 'text',
         x: 40,
         y: 180,
@@ -150,6 +155,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'path-1',
+        pageId: 'page:1',
         kind: 'path',
         x: 40,
         y: 250,
@@ -168,6 +174,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'img-1',
+        pageId: 'page:1',
         kind: 'image',
         x: 200,
         y: 240,
@@ -180,6 +187,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'comp-ec2',
+        pageId: 'page:1',
         kind: 'component',
         x: 520,
         y: 70,
@@ -204,6 +212,7 @@ function buildFullSketchDocument(): SketchDocument {
       },
       {
         id: 'conn-1',
+        pageId: 'page:1',
         kind: 'connector',
         x: 180,
         y: 100,
@@ -234,7 +243,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
     it('roundtrips a complete document with all 9 element kinds, assets, componentSets, widgets, and metadata', () => {
       const original = buildFullSketchDocument();
       const script1 = formatDiagram(original);
-      expect(script1.startsWith('sketchdraw 1\n')).toBe(true);
+      expect(script1.startsWith('sketchdraw 2\n')).toBe(true);
       expect(script1.endsWith('\n')).toBe(true);
 
       const parsed1 = parseDiagram(script1);
@@ -272,7 +281,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
 
     it('preserves high-precision floats and normalizes -0 to 0', () => {
       const doc: SketchDocument = {
-        schemaVersion: 1,
+        schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
         id: 'doc-precision',
         title: 'Precision Test',
         assets: {},
@@ -281,6 +290,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
         elements: [
           {
             id: 'r-float',
+            pageId: 'page:1',
             kind: 'rectangle',
             x: -0,
             y: 123.4567890123456,
@@ -313,7 +323,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
       const loneHigh = 'prefix-\uD800-suffix';
       const loneLow = 'prefix-\uDC00-suffix';
       const doc: SketchDocument = {
-        schemaVersion: 1,
+        schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
         id: 'doc-surrogate',
         title: loneHigh,
         assets: {},
@@ -324,6 +334,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
         elements: [
           {
             id: 'txt-surrogate',
+            pageId: 'page:1',
             kind: 'text',
             x: 0,
             y: 0,
@@ -402,11 +413,10 @@ describe('Diagram as Code Codec (src/codec)', () => {
       const formatted = formatDiagram(parsed.document);
       const groups = formatted.trim().split('\n\n');
       expect(groups).toHaveLength(4);
-      expect(groups[0]?.startsWith('sketchdraw 1\ndocument ')).toBe(true);
+      expect(groups[0]?.startsWith('sketchdraw 2\ndocument ')).toBe(true);
       expect(groups[1]?.startsWith('asset "asset-1"')).toBe(true);
       expect(groups[2]?.startsWith('set "custom.set"')).toBe(true);
-      expect(groups[3]?.startsWith('image "img-1"\n')).toBe(false);
-      expect(groups[3]?.startsWith('image "img-1" ')).toBe(true);
+      expect(groups[3]?.startsWith('page "page:1" {"name":"Seite 1"}\nimage "img-1" ')).toBe(true);
     });
 
     it('parses all four Section 5 contract example scripts cleanly', () => {
@@ -436,7 +446,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
 
       // Context snapshot for Examples 3 & 4
       const demoAssetsContext: SketchDocument = {
-        schemaVersion: 1,
+        schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
         id: 'demo.assets',
         title: 'Demo Assets',
         metadata: {},
@@ -510,7 +520,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
         expect(emptyRes.diagnostics[0]?.code).toBe('EXPECTED_HEADER');
       }
 
-      const badVer = parseDiagram('sketchdraw 2\ndocument {"id":"d","title":"t"}');
+      const badVer = parseDiagram('sketchdraw 3\ndocument {"id":"d","title":"t"}');
       expect(badVer.ok).toBe(false);
       if (!badVer.ok) {
         expect(badVer.diagnostics[0]?.code).toBe('FORMAT_VERSION');
@@ -793,7 +803,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
 
     it('preserves valid Schema-1 legacy documents (unprefixed componentType, arbitrary widget:* metadata, decorative SVG)', () => {
       const legacyDoc: SketchDocument = {
-        schemaVersion: 1,
+        schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
         id: 'doc-legacy-s1',
         title: 'Legacy Schema-1 Document',
         assets: {},
@@ -826,6 +836,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
         elements: [
           {
             id: 'el-legacy',
+            pageId: 'page:1',
             kind: 'component',
             x: 10,
             y: 20,
@@ -851,7 +862,7 @@ describe('Diagram as Code Codec (src/codec)', () => {
 
     it('throws DomainValidationError when formatDiagram is given an invalid SketchDocument', () => {
       const invalidDoc: SketchDocument = {
-        schemaVersion: 1,
+        schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }],
         id: 'bad id with spaces',
         title: 'Invalid',
         assets: {},

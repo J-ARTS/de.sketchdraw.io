@@ -88,13 +88,13 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       const { assets: _assets, ...summary } = document;
       return { ...base, includeAssetData, document: includeAssetData ? document : summary, assetSummaries };
     }
-    if (request.operation === 'sketchdraw_read_code') return { ...base, formatVersion: 1, code: formatDiagram(document) };
+    if (request.operation === 'sketchdraw_read_code') return { ...base, formatVersion: 2, code: formatDiagram(document) };
     if (request.operation === 'sketchdraw_find_elements' && 'query' in input) {
       const query = input.query.toLocaleLowerCase();
       const matches = document.elements.flatMap(element => {
         const fields: Record<string, string> = { id: element.id, kind: element.kind, shapeVariant: element.shapeVariant ?? '', label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', author: element.author ?? '', componentType: element.componentType ?? '', embedUrl: element.embedUrl ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
         const matchedFields = Object.keys(fields).filter(key => fields[key]!.toLocaleLowerCase().includes(query));
-        return matchedFields.length ? [{ id: element.id, kind: element.kind, ...(element.shapeVariant ? { shapeVariant: element.shapeVariant } : {}), x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
+        return matchedFields.length ? [{ id: element.id, pageId: element.pageId, kind: element.kind, ...(element.shapeVariant ? { shapeVariant: element.shapeVariant } : {}), x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
       });
       const limit = input.limit ?? L.DEFAULT_FIND_LIMIT;
       return { ...base, query: input.query, totalMatches: matches.length, truncated: matches.length > limit, matches: matches.slice(0, limit) };
@@ -117,7 +117,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
         if (element.kind === 'container' && !parents.has(element.id)) findings.push({ code: 'EMPTY_CONTAINER', severity: 'info', elementId: element.id, message: 'Container has no children.' });
         if (!element.label && !element.text) findings.push({ code: 'UNLABELED_ELEMENT', severity: 'info', elementId: element.id, message: 'Element has no human-readable label.' });
       }
-      return { ...base, title: document.title, summary: { totalElements: document.elements.length, countsByKind: counts, containerCount: counts.container, maxContainerDepth: maxDepth, connectorCount: counts.connector, boundConnectorCount: bound, unboundConnectorCount: unbound, partiallyBoundConnectorCount: partial, assetCount: Object.keys(document.assets).length, totalAssetDataUrlBytes: Object.values(document.assets).reduce((total, asset) => total + new TextEncoder().encode(asset.dataUrl).length, 0), componentSetCount: document.componentSets.length, totalComponentDefinitions: document.componentSets.reduce((total, set) => total + set.components.length, 0) }, findings };
+      return { ...base, title: document.title, summary: { pageCount: document.pages.length, totalElements: document.elements.length, countsByKind: counts, containerCount: counts.container, maxContainerDepth: maxDepth, connectorCount: counts.connector, boundConnectorCount: bound, unboundConnectorCount: unbound, partiallyBoundConnectorCount: partial, assetCount: Object.keys(document.assets).length, totalAssetDataUrlBytes: Object.values(document.assets).reduce((total, asset) => total + new TextEncoder().encode(asset.dataUrl).length, 0), componentSetCount: document.componentSets.length, totalComponentDefinitions: document.componentSets.reduce((total, set) => total + set.components.length, 0) }, findings };
     }
     if (!('commandId' in input) || request.commandId !== input.commandId || request.expectedRevision !== input.expectedRevision) throw new AgentAccessError('VALIDATION_FAILED', 'Mutation metadata mismatch.');
     let command: DocumentCommand;

@@ -30,7 +30,7 @@ const SAFE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" f
 
 function shape(id: string, kind: ElementKind = 'rectangle', extra: Partial<SketchElement> = {}): SketchElement {
   return {
-    id, kind, x: 10, y: 20, width: 80, height: 40, rotation: 0,
+    id, pageId: 'page:1', kind, x: 10, y: 20, width: 80, height: 40, rotation: 0,
     style: {
       stroke: '#123456', fill: '#abcdef', strokeWidth: 2, opacity: 0.75,
       fontSize: 17, textAlign: 'center', strokeDash: 'dashed',
@@ -62,7 +62,7 @@ function componentSet(id = 'acme.core'): ComponentSet {
 
 function document(elements: SketchElement[] = []): SketchDocument {
   return {
-    schemaVersion: 1, id: 'doc:acceptance', title: 'Architektur 🧭',
+    schemaVersion: 2, pages: [{ id: 'page:1', name: 'Seite 1' }], id: 'doc:acceptance', title: 'Architektur 🧭',
     elements, assets: {}, componentSets: [], metadata: { owner: 'Team' },
   };
 }
@@ -163,7 +163,7 @@ describe('Sketchdraw Script acceptance', () => {
     expect(new Set(decoded.elements.map((element) => element.kind)).size).toBe(10);
     expect(serializeDocument(decoded)).toBe(expected);
     expect(formatDiagram(decoded)).toBe(source);
-    expect(source.startsWith('sketchdraw 1\ndocument ')).toBe(true);
+    expect(source.startsWith('sketchdraw 2\ndocument ')).toBe(true);
     expect(source.endsWith('\n')).toBe(true);
     expect(source.endsWith('\n\n')).toBe(false);
     expect(source).not.toContain('\r');
@@ -252,8 +252,8 @@ describe('Sketchdraw Script acceptance', () => {
     expect(diagnostic.line).toBe(2);
     expect(diagnostic.column).toBe(line.indexOf('"ti\\u0074le"') + 1);
 
-    expectParseError('sketchdraw 1\ndocument {"id":"d","title":"x","metadata":{"a":"first","a":"second"}}', 'DUPLICATE_JSON_KEY');
-    expectParseError('sketchdraw 1\ndocument {"id":"d","title":"x","metadata":{"__proto__":"pollution"}}');
+    expectParseError('sketchdraw 2\ndocument {"id":"d","title":"x","metadata":{"a":"first","a":"second"}}', 'DUPLICATE_JSON_KEY');
+    expectParseError('sketchdraw 2\ndocument {"id":"d","title":"x","metadata":{"__proto__":"pollution"}}');
     expect(({} as Record<string, unknown>).pollution).toBeUndefined();
   });
 
@@ -261,13 +261,13 @@ describe('Sketchdraw Script acceptance', () => {
     const context = freezeDeep(document());
     const before = serializeDocument(context);
     const line = 'rectangle "bad" {"text":"🧭","x":0,"y":0,"width":-1,"height":20}';
-    const failure = expectParseError(`sketchdraw 1\ndocument {"title":"Draft"}\n${line}`, undefined, context);
+    const failure = expectParseError(`sketchdraw 2\ndocument {"title":"Draft"}\n${line}`, undefined, context);
     const diagnostic = failure.diagnostics.find((entry) => entry.issuePath?.endsWith('.width'));
     expect(diagnostic).toBeDefined();
     expect(diagnostic).toMatchObject({ line: 3, elementId: 'bad', severity: 'error' });
     expect(diagnostic!.column).toBeGreaterThan(1);
     expect(serializeDocument(context)).toBe(before);
-    expectParseError('sketchdraw 1\ndocument {"id":"d","title":"x"}\nrectangle "a" {"x":0,"y":0,"width":20,"height":20}\nrectangle "a" {"x":0,"y":0,"width":20,"height":20}', 'DUPLICATE_DECLARATION');
+    expectParseError('sketchdraw 2\ndocument {"id":"d","title":"x"}\nrectangle "a" {"x":0,"y":0,"width":20,"height":20}\nrectangle "a" {"x":0,"y":0,"width":20,"height":20}', 'DUPLICATE_DECLARATION');
   });
 
   it('does not let a valid old code draft overwrite a newer controller revision', () => {

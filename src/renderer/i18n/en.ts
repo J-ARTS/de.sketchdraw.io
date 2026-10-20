@@ -1032,4 +1032,9 @@ export const EN: Readonly<Record<string, string>> = {
   'Link entfernen': 'Remove link',
   'Text markieren, um einen Link zu setzen': 'Select text to set a link',
   'Bitte eine gültige Webadresse (http oder https) eingeben.': 'Please enter a valid web address (http or https).',
+  'Die Zwischenablage enthält keinen Seiteninhalt.': 'The clipboard does not contain page content.',
+  'Seite „{name}“ eingefügt.': 'Page “{name}” pasted.',
+  'Alle {count} Seiten importieren': 'Import all {count} pages',
+  '{count} Seiten': '{count} pages',
+  'Seite für den SVG-Export': 'Page for the SVG export',
 };

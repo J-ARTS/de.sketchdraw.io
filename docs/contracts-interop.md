@@ -112,6 +112,8 @@ Die SVG-Spezifikation unterscheidet Ressourcen-/Ausführungsmodi; das ist keine 
 
 ## 3. draw.io: Container, Seiten und Einlesen
 
+Seit Schema v2 (ADR 0006): `DrawioImportOptions.pageIndex` akzeptiert zusätzlich `'all'`; dann wird jede `<diagram>`-Seite zu einer Dokumentseite (Name aus `name`). Ohne Angabe bleibt bei mehreren Seiten die ausdrückliche Auswahl Pflicht (`PAGE_SELECTION_REQUIRED`). Der Export schreibt eine `<diagram>` je Seite, das eingebettete Modell sitzt auf der ersten. `InteropExportOptions.pageId` wählt die Seite des SVG-Exports (Standard: erste Seite; Hinweis `PAGE_EXPORTED_SINGLE`, kein Verlustwarnung).
+
 Akzeptierte Eingänge sind `<mxfile>` mit `<diagram>`-Seiten sowie ein einzelnes `<mxGraphModel>`. Eine Seite enthält entweder direkt ein `<mxGraphModel>` oder komprimierten Text. Der komprimierte Weg ist **Base64 → raw DEFLATE → URI-Decodierung → XML**, nicht ZIP oder ungeprüftes zlib-Autodetect. Andere Verpackungen liefern einen Formatfehler. Diese Varianten und der Zusammenhang zwischen `mxfile`, Seiten und Modellen sind im [primären Dateiformat](https://github.com/jgraph/drawio/wiki/File-Format) beschrieben.
 
 - `inspectDrawio` liest nur den begrenzten äußeren XML-Baum und meldet Seiten in Dateireihenfolge. Komprimierte Seiten werden dabei nicht entpackt und noch nicht als gültiges Modell bestätigt. Name ohne Inhalt: `Seite N`. Ein bloßes `<mxGraphModel>` erhält eine synthetische Seite mit Index 0.

@@ -1,105 +1,28 @@
-import { validateDocument, type SketchAsset, type SketchDocument, type SketchElement } from '@/domain';
+import { DOMAIN_LIMITS, createDocument, validateDocument, type SketchAsset, type SketchDocument, type SketchElement, type SketchPage } from '@/domain';
 import type { PageSummary } from './contract';
+import { t } from '@/renderer/i18n';
 
-import { L, t } from '@/renderer/i18n';
-export const SINGLE_PAGE_ID = 'page:1';
-export const SINGLE_PAGE_NAME = L('Seite 1');
-export const SINGLE_PAGE_NAME_METADATA_KEY = 'sketchdraw.page.v1.name';
-/** Compatibility store used while the public schema-v2 contract is completed in #33/#34. */
-export const PAGE_STATE_METADATA_KEY = 'sketchdraw.pages.compat.v1';
-export const MAX_PAGE_NAME_LENGTH = 120;
-export const MAX_PAGES = 100;
-
-export interface PageSnapshot {
-  id: string;
-  name: string;
-  elements: SketchElement[];
-}
-
-interface StoredPage { id: string; name: string; elements?: SketchElement[] }
-interface StoredPageState { version: 1; activePageId: string; pages: StoredPage[] }
-
-const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-
-export function singlePageName(document: SketchDocument): string {
-  const persisted = document.metadata[SINGLE_PAGE_NAME_METADATA_KEY]?.trim();
-  return persisted && persisted.length <= MAX_PAGE_NAME_LENGTH ? persisted : t(SINGLE_PAGE_NAME);
-}
-
-function validName(value: unknown): value is string {
-  return typeof value === 'string' && Boolean(value.trim()) && value.trim().length <= MAX_PAGE_NAME_LENGTH;
-}
-
-function validateElements(document: SketchDocument, elements: unknown): SketchElement[] | null {
-  if (!Array.isArray(elements)) return null;
-  try {
-    return validateDocument({ ...document, elements, metadata: { ...document.metadata, [PAGE_STATE_METADATA_KEY]: '' } }).elements;
-  } catch { return null; }
-}
-
-/** Returns a validated renderer page model. The active page always comes from document.elements. */
-export function pageState(document: SketchDocument): { activePageId: string; pages: PageSnapshot[] } {
-  const raw = document.metadata[PAGE_STATE_METADATA_KEY];
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as Partial<StoredPageState>;
-      if (parsed.version === 1 && typeof parsed.activePageId === 'string' && Array.isArray(parsed.pages) && parsed.pages.length > 0 && parsed.pages.length <= MAX_PAGES) {
-        const seen = new Set<string>();
-        const pages: PageSnapshot[] = [];
-        for (const candidate of parsed.pages) {
-          if (!candidate || typeof candidate.id !== 'string' || !candidate.id || seen.has(candidate.id) || !validName(candidate.name)) throw new Error('invalid page');
-          seen.add(candidate.id);
-          const elements = candidate.id === parsed.activePageId ? clone(document.elements) : validateElements(document, candidate.elements);
-          if (!elements) throw new Error('invalid elements');
-          pages.push({ id: candidate.id, name: candidate.name.trim(), elements: clone(elements) });
-        }
-        if (seen.has(parsed.activePageId)) return { activePageId: parsed.activePageId, pages };
-      }
-    } catch { /* Invalid compatibility metadata falls back to the legacy page. */ }
-  }
-  return { activePageId: SINGLE_PAGE_ID, pages: [{ id: SINGLE_PAGE_ID, name: singlePageName(document), elements: clone(document.elements) }] };
-}
+export const MAX_PAGE_NAME_LENGTH = DOMAIN_LIMITS.MAX_PAGE_NAME_LENGTH;
+export const MAX_PAGES = DOMAIN_LIMITS.MAX_PAGES;
 
 export function pageSummaries(document: SketchDocument): PageSummary[] {
-  return pageState(document).pages.map((page) => ({ id: page.id, name: page.name, elementCount: page.elements.length }));
+  const counts = new Map<string, number>();
+  for (const element of document.elements) counts.set(element.pageId, (counts.get(element.pageId) ?? 0) + 1);
+  return document.pages.map((page) => ({ id: page.id, name: page.name, elementCount: counts.get(page.id) ?? 0 }));
 }
 
-export function activePageId(document: SketchDocument): string { return pageState(document).activePageId; }
-
-/** Builds one atomic replacement document while keeping inactive pages persisted and the active page canonical. */
-export function documentWithPages(document: SketchDocument, pages: readonly PageSnapshot[], activeId: string): SketchDocument {
-  const active = pages.find((page) => page.id === activeId);
-  if (!active || !pages.length || pages.length > MAX_PAGES) return document;
-  const stored: StoredPageState = {
-    version: 1,
-    activePageId: activeId,
-    pages: pages.map((page) => page.id === activeId
-      ? { id: page.id, name: page.name }
-      : { id: page.id, name: page.name, elements: clone(page.elements) }),
-  };
-  const metadata: Record<string, string> = { ...document.metadata, [PAGE_STATE_METADATA_KEY]: JSON.stringify(stored) };
-  delete metadata[SINGLE_PAGE_NAME_METADATA_KEY];
-  return validateDocument({ ...document, elements: clone(active.elements), metadata });
+/** The page that stays active when `active` disappeared (deleted here, by a peer or by undo): the nearest remaining one. */
+export function resolveActivePage(before: SketchDocument, after: SketchDocument, active: string): string {
+  if (after.pages.some((page) => page.id === active)) return active;
+  const index = Math.max(0, before.pages.findIndex((page) => page.id === active));
+  return after.pages[Math.min(index, after.pages.length - 1)]!.id;
 }
 
-export function nextPageName(pages: readonly PageSnapshot[]): string {
+export function nextPageName(pages: readonly Pick<SketchPage, 'name'>[]): string {
   let number = pages.length + 1;
   const names = new Set(pages.map((page) => page.name));
   while (names.has(t('Seite {number}', { number }))) number += 1;
   return t('Seite {number}', { number });
-}
-
-export function clonePage(page: PageSnapshot, idFactory: (prefix: string) => string): PageSnapshot {
-  const ids = new Map(page.elements.map((element) => [element.id, idFactory(element.kind)]));
-  const elements = page.elements.map((element) => {
-    const copied = clone(element);
-    copied.id = ids.get(element.id)!;
-    if (copied.parentId) copied.parentId = ids.get(copied.parentId) ?? copied.parentId;
-    if (copied.from) copied.from.elementId = ids.get(copied.from.elementId) ?? copied.from.elementId;
-    if (copied.to) copied.to.elementId = ids.get(copied.to.elementId) ?? copied.to.elementId;
-    return copied;
-  });
-  return { id: idFactory('page'), name: t('{name} Kopie', { name: page.name }).slice(0, MAX_PAGE_NAME_LENGTH), elements };
 }
 
 /** Clipboard envelope for "Inhalt kopieren". Pasting treats it as untrusted input. */
@@ -111,6 +34,8 @@ export interface PageClipboardPayload {
   assets: Record<string, SketchAsset>;
 }
 
+const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
 export function pageClipboardPayload(name: string, elements: readonly SketchElement[], assets: Readonly<Record<string, SketchAsset>>): PageClipboardPayload {
   const used: Record<string, SketchAsset> = {};
   for (const element of elements) {
@@ -118,4 +43,23 @@ export function pageClipboardPayload(name: string, elements: readonly SketchElem
     if (asset && element.assetId) used[element.assetId] = asset;
   }
   return { format: 'sketchdraw.page', version: 1, name, elements: clone([...elements]), assets: clone(used) };
+}
+
+/** Parses and validates clipboard text; anything that is not a valid page payload yields null. */
+export function parsePageClipboard(text: string): { name: string; elements: SketchElement[]; assets: Record<string, SketchAsset> } | null {
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { return null; }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const payload = raw as Record<string, unknown>;
+  if (payload['format'] !== 'sketchdraw.page' || payload['version'] !== 1 || typeof payload['name'] !== 'string' || !Array.isArray(payload['elements'])) return null;
+  try {
+    const base = createDocument('clipboard');
+    const validated = validateDocument({
+      ...base,
+      pages: [{ id: base.pages[0]!.id, name: payload['name'].trim().slice(0, MAX_PAGE_NAME_LENGTH) || t('Seite 1') }],
+      elements: payload['elements'].map((element) => (typeof element === 'object' && element !== null ? { ...(element as object), pageId: base.pages[0]!.id } : element)),
+      assets: typeof payload['assets'] === 'object' && payload['assets'] !== null ? payload['assets'] : {},
+    });
+    return { name: validated.pages[0]!.name, elements: validated.elements, assets: validated.assets };
+  } catch { return null; }
 }

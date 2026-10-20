@@ -114,3 +114,65 @@ test('copying a page puts its content on the clipboard as sketchdraw.page', asyn
   expect(payload).toMatchObject({ format: 'sketchdraw.page', version: 1, name: 'Seite 1', assets: {} });
   expect(payload.elements).toHaveLength(1); expect(payload.elements[0].kind).toBe('rectangle');
 });
+
+test('a copied page can be pasted as a new page and rejects foreign clipboard text', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(350, 220); await page.mouse.down(); await page.mouse.move(550, 360, { steps: 8 }); await page.mouse.up();
+  await openPages(page);
+  await page.getByRole('button', { name: 'Aktionen für Seite 1' }).click();
+  await page.getByRole('menuitem', { name: 'Inhalt kopieren' }).click();
+  await page.getByTestId('page-paste').click();
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName(/^Seiten \(2\)/);
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Meldungen' })).toContainText('eingefügt');
+  await page.evaluate(() => navigator.clipboard.writeText('kein Seiteninhalt'));
+  await page.getByTestId('page-paste').click();
+  await expect(page.getByRole('region', { name: 'Meldungen' })).toContainText('keinen Seiteninhalt');
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName(/^Seiten \(2\)/);
+});
+
+async function ensurePages(page: Page) {
+  if (!(await page.getByRole('dialog', { name: 'Seiten' }).isVisible())) await openPages(page);
+}
+
+test('pages can be duplicated, reordered by menu, keyboard and drag and drop, and deleted with undo', async ({ page }) => {
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(350, 220); await page.mouse.down(); await page.mouse.move(550, 360, { steps: 8 }); await page.mouse.up();
+  const names = () => page.getByRole('list', { name: 'Seitenliste' }).locator('.page-name').allTextContents();
+
+  // Duplicate: the copy is a new page with its own copy of the content.
+  await ensurePages(page);
+  await page.getByRole('button', { name: 'Aktionen für Seite 1', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Duplizieren' }).click();
+  await expect.poll(names).toEqual(['Seite 1', 'Seite 1 Kopie']);
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName(/aktuelle Seite: Seite 1 Kopie$/);
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
+  const copyElementId = await page.locator('[data-kind=rectangle]').first().getAttribute('data-element-id');
+  await ensurePages(page);
+  await page.getByRole('button', { name: /^Seite 1$/ }).click();
+  expect(await page.locator('[data-kind=rectangle]').first().getAttribute('data-element-id')).not.toBe(copyElementId);
+
+  // Reorder through the menu, the keyboard and drag and drop.
+  await ensurePages(page);
+  await page.getByRole('button', { name: 'Aktionen für Seite 1', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Nach unten' }).click();
+  await expect.poll(names).toEqual(['Seite 1 Kopie', 'Seite 1']);
+  await page.getByRole('button', { name: /^Seite 1$/ }).focus();
+  await page.keyboard.press('Alt+ArrowUp');
+  await expect.poll(names).toEqual(['Seite 1', 'Seite 1 Kopie']);
+  const rows = page.getByRole('list', { name: 'Seitenliste' }).locator('.page-row');
+  await rows.nth(0).dragTo(rows.nth(1), { targetPosition: { x: 40, y: 30 } });
+  await expect.poll(names).toEqual(['Seite 1 Kopie', 'Seite 1']);
+
+  // Deleting a page removes its content; Undo brings page and content back in place.
+  await page.getByRole('button', { name: 'Aktionen für Seite 1 Kopie', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Seite löschen' }).click();
+  await expect.poll(names).toEqual(['Seite 1']);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await ensurePages(page);
+  await expect.poll(names).toEqual(['Seite 1 Kopie', 'Seite 1']);
+  await page.getByRole('button', { name: /^Seite 1 Kopie$/ }).click();
+  await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
+});

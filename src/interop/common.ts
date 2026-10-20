@@ -1,5 +1,5 @@
 import { Parser } from 'htmlparser2';
-import { createDocument, createElement, serializeDocument, validateDocument, DOMAIN_LIMITS } from '../domain';
+import { createDocument, createElement, DEFAULT_PAGE_ID, serializeDocument, validateDocument, DOMAIN_LIMITS } from '../domain';
 import type { ElementStyle, Point, SketchDocument, SketchElement, ValidationIssue } from '../domain';
 import { validateAsset, utf8ByteLength } from '../domain/validation';
 import { parseStrictJsonObject } from '../codec/json';
@@ -18,9 +18,11 @@ export interface ImportContext {
   sourceBudget: SourceMetadataBudget;
   totalPoints: number;
   assetBytes: number;
+  /** Page that receives the elements added by `add` (draw.io pages). */
+  pageId: string;
 }
 export function context(format: InteropFormat, title: string): ImportContext {
-  return { format, document: createDocument(title), diagnostics: new DiagnosticCollector(), ids: new DeterministicIdMapper(), sourceBudget: new SourceMetadataBudget(), totalPoints: 0, assetBytes: 0 };
+  return { format, document: createDocument(title), diagnostics: new DiagnosticCollector(), ids: new DeterministicIdMapper(), sourceBudget: new SourceMetadataBudget(), totalPoints: 0, assetBytes: 0, pageId: DEFAULT_PAGE_ID };
 }
 export function warn(ctx: Pick<ImportContext, 'diagnostics' | 'format'>, node: XmlElementNode | undefined, code: string, property: string, message: string, effect: 'approximated' | 'omitted' | 'preserved-as-data' = 'approximated'): void {
   ctx.diagnostics.add({ code, property, message: `${ctx.format}: ${message}`, severity: 'warning', effect, sourceId: node?.attributes['id'], sourcePath: node?.path ?? '/', });
@@ -90,6 +92,7 @@ export function add(ctx: ImportContext, element: SketchElement, node?: XmlElemen
     element.metadata ??= {};
     ctx.sourceBudget.attach(element.metadata, { format: ctx.format, sourceId: node.attributes['id'], sourceType, extraAttributes: { ...node.attributes } }, ctx.diagnostics, { elementId: element.id, sourcePath: node.path, sourceId: node.attributes['id'] });
   }
+  element.pageId = ctx.pageId;
   ctx.document.elements.push(element);
   return element;
 }

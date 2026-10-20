@@ -8,6 +8,7 @@ import type {
   ComponentSet,
   SketchAsset,
   SketchDocument,
+  SketchPage,
   SketchElement,
   SketchTask,
   TableCell,
@@ -15,7 +16,7 @@ import type {
   TableDocument,
   TableRow,
 } from '../domain';
-import { annotationPlainText, tablePlainText, validateDocument } from '../domain';
+import { annotationPlainText, DEFAULT_PAGE_ID, DEFAULT_PAGE_NAME, tablePlainText, validateDocument } from '../domain';
 import { CRDT_SCHEMA_VERSION } from './types';
 
 export const CRDT_ROOT_KEY = 'sketchdraw.v1';
@@ -550,6 +551,20 @@ function readJsonArrayById<T>(root: Y.Map<unknown>, key: string, path: string): 
 }
 
 function repairConcurrentReferences(document: SketchDocument): void {
+  // A page deleted concurrently with elements added to it, or every page deleted by different peers: keep every
+  // replica on the same, valid structure. Orphaned elements move to the first page; cross-page links are dropped.
+  if (document.pages.length === 0) document.pages.push({ id: DEFAULT_PAGE_ID, name: DEFAULT_PAGE_NAME });
+  const pageIds = new Set(document.pages.map(page => page.id));
+  const firstPageId = document.pages[0]!.id;
+  for (const element of document.elements) if (!pageIds.has(element.pageId)) element.pageId = firstPageId;
+  const byId = new Map(document.elements.map(element => [element.id, element]));
+  for (const element of document.elements) {
+    if (element.parentId !== undefined && byId.get(element.parentId)?.pageId !== element.pageId) delete element.parentId;
+    if (element.kind === 'connector') {
+      if (element.from !== undefined && byId.get(element.from.elementId)?.pageId !== element.pageId) delete element.from;
+      if (element.to !== undefined && byId.get(element.to.elementId)?.pageId !== element.pageId) delete element.to;
+    }
+  }
   const elements = new Map(document.elements.map(element => [element.id, element]));
   const componentTypes = new Set(document.componentSets.flatMap(set => set.components.map(component => component.type)));
   for (const element of document.elements) {
@@ -596,6 +611,7 @@ function repairConcurrentReferences(document: SketchDocument): void {
 
   const threadIds = new Set((document.commentThreads ?? []).map(thread => thread.id));
   for (const thread of document.commentThreads ?? []) {
+    if (thread.target.pageId !== undefined && !pageIds.has(thread.target.pageId)) delete thread.target.pageId;
     const elementId = thread.target.elementId;
     if (elementId !== undefined && !elements.has(elementId)) {
       delete thread.target.elementId;
@@ -635,6 +651,7 @@ export function writeDocumentToCrdt(doc: Y.Doc, document: SketchDocument): void 
   setValue(root, 'title', valid.title);
   syncStringMap(root, 'metadata', valid.metadata);
 
+  syncJsonArrayById(root, 'pages', valid.pages);
   syncMapEntities(root, 'elements', valid.elements, syncElement);
   syncRankMap(root, 'elementOrder', valid.elements.map(element => element.id));
   syncJsonRecord(root, 'assets', valid.assets);
@@ -648,14 +665,15 @@ export function writeDocumentToCrdt(doc: Y.Doc, document: SketchDocument): void 
 export function readDocumentFromCrdt(doc: Y.Doc): SketchDocument {
   const root = getCrdtRoot(doc);
   if (root.get('crdtSchemaVersion') !== CRDT_SCHEMA_VERSION) throw new Error('CRDT_SCHEMA_VERSION_UNSUPPORTED');
-  if (root.get('documentSchemaVersion') !== 1) throw new Error('DOCUMENT_SCHEMA_VERSION_UNSUPPORTED');
+  if (root.get('documentSchemaVersion') !== 2) throw new Error('DOCUMENT_SCHEMA_VERSION_UNSUPPORTED');
   const elementsMap = asMap(root.get('elements'), 'elements');
   const commentThreadsMap = asMap(root.get('commentThreads'), 'commentThreads');
   const tasksMap = asMap(root.get('tasks'), 'tasks');
   const candidate: SketchDocument = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: stringValue(root, 'id', 'document'),
     title: stringValue(root, 'title', 'document'),
+    pages: readJsonArrayById<SketchPage>(root, 'pages', 'pages'),
     elements: orderedIds(elementsMap, root.get('elementOrder'), 'elements').map(id => readElement(elementsMap.get(id), id)),
     assets: readJsonRecord<SketchAsset>(root, 'assets', 'assets'),
     componentSets: readJsonArrayById<ComponentSet>(root, 'componentSets', 'componentSets'),

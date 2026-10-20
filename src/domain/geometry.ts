@@ -9,6 +9,7 @@ import type {
   Point,
   SketchAsset,
   SketchDocument,
+  SketchPage,
   SketchElement,
   SketchTask,
 } from './types';
@@ -262,6 +263,7 @@ export function cloneStringRecord(record: Record<string, string>): Record<string
 export function cloneElement(element: SketchElement): SketchElement {
   const cloned: SketchElement = {
     id: element.id,
+    pageId: element.pageId,
     kind: element.kind,
     x: normalizeZero(element.x),
     y: normalizeZero(element.y),
@@ -347,6 +349,7 @@ export function cloneComponentSet(set: ComponentSet): ComponentSet {
 
 export function cloneCommentTarget(target: CommentTarget): CommentTarget {
   const cloned: CommentTarget = { anchor: clonePoint(target.anchor), fallback: clonePoint(target.fallback) };
+  if (target.pageId !== undefined) cloned.pageId = target.pageId;
   if (target.elementId !== undefined) cloned.elementId = target.elementId;
   if (target.tableCellId !== undefined) cloned.tableCellId = target.tableCellId;
   return cloned;
@@ -376,6 +379,14 @@ export function cloneTask(task: SketchTask): SketchTask {
   return { ...task, rank: normalizeZero(task.rank) };
 }
 
+export function clonePage(page: SketchPage): SketchPage {
+  return { id: page.id, name: page.name };
+}
+
+export function arePagesEqual(a: readonly SketchPage[], b: readonly SketchPage[]): boolean {
+  return a.length === b.length && a.every((page, index) => page.id === b[index]!.id && page.name === b[index]!.name);
+}
+
 export function cloneDocument(doc: SketchDocument): SketchDocument {
   const assets: Record<string, SketchAsset> = {};
   for (const key of Object.keys(doc.assets)) {
@@ -385,9 +396,10 @@ export function cloneDocument(doc: SketchDocument): SketchDocument {
     }
   }
   const cloned: SketchDocument = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: doc.id,
     title: doc.title,
+    pages: doc.pages.map(clonePage),
     elements: doc.elements.map(cloneElement),
     assets,
     componentSets: doc.componentSets.map(cloneComponentSet),
@@ -470,6 +482,7 @@ export function areElementsEqual(a: SketchElement, b: SketchElement): boolean {
   if (a === b) return true;
   return (
     a.id === b.id &&
+    a.pageId === b.pageId &&
     a.kind === b.kind &&
     a.shapeVariant === b.shapeVariant &&
     a.x === b.x &&
@@ -580,6 +593,7 @@ export function areDocumentsEqual(a: SketchDocument, b: SketchDocument): boolean
     a.id !== b.id ||
     a.title !== b.title ||
     a.elements.length !== b.elements.length ||
+    !arePagesEqual(a.pages, b.pages) ||
     !areStringRecordsEqual(a.metadata, b.metadata) ||
     !areComponentSetsEqual(a.componentSets, b.componentSets) ||
     !areCommentThreadsEqual(a.commentThreads ?? [], b.commentThreads ?? []) ||

@@ -261,6 +261,8 @@ export interface WhiteboardState {
   objectList: readonly ObjectListItem[];
   pages: readonly PageSummary[];
   activePageId: string;
+  /** Elements of the active page in stacking order (the canvas content). */
+  readonly pageElements: readonly SketchElement[];
   workspaceView: 'canvas' | 'tasks';
   commentSidebarOpen: boolean;
   frameSidebarOpen: boolean;

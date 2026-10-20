@@ -72,3 +72,18 @@ test('export and import panels satisfy automated accessibility checks', async ({
   await menu(page, 'export');
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze(); expect(result.violations).toEqual([]);
 });
+
+test('importing all pages of a draw.io file creates a document with those pages', async ({ page }) => {
+  await menu(page, 'import');
+  await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('a', 'Zweite Seite')}</diagram></mxfile>`);
+  await page.getByLabel('Seite auswählen').selectOption('all');
+  await expect(page.getByTestId('interop-panel')).toContainText('2 Seiten');
+  const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
+  await page.getByRole('button', { name: 'Als neues Dokument öffnen' }).click();
+  await expect(page.getByTestId('whiteboard-canvas')).toContainText('Erste Seite');
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName(/^Seiten \(2\)/);
+  await page.getByTestId('page-switcher').click();
+  await page.getByRole('button', { name: /^Zweite/ }).click();
+  await expect(page.getByTestId('whiteboard-canvas')).toContainText('Zweite Seite');
+  await expect(page.getByTestId('whiteboard-canvas')).not.toContainText('Erste Seite');
+});

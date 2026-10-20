@@ -268,6 +268,11 @@ export class DeterministicIdMapper {
   private readonly usedDomainIds = new Set<string>();
   private fallbackIndex = 1;
 
+  /** A new page has its own source ids (draw.io repeats "2", "3" … per diagram); used domain ids stay reserved. */
+  beginPage(): void {
+    this.sourceToDomain.clear();
+  }
+
   resolveId(
     rawSourceId: string | undefined,
     prefix: string,

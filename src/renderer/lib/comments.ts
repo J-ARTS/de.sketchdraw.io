@@ -1,6 +1,12 @@
 import { resolveAnchorWorldPoint, type CommentTarget, type Point, type SketchDocument } from '@/domain';
 
 import { t } from '@/renderer/i18n';
+/** The page a comment belongs to: the page of its element, else its own page, else the first page. */
+export function commentPageId(target: CommentTarget, document: SketchDocument): string {
+  const element = target.elementId ? document.elements.find((entry) => entry.id === target.elementId) : undefined;
+  return element?.pageId ?? target.pageId ?? document.pages[0]!.id;
+}
+
 export function commentTargetPoint(target: CommentTarget, document: SketchDocument): Point {
   const element = target.elementId
     ? document.elements.find((entry) => entry.id === target.elementId)

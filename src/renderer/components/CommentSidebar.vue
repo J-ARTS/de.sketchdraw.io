@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';
-import { commentTargetLabel } from '../lib/comments';
+import { commentPageId, commentTargetLabel } from '../lib/comments';
 import { useWhiteboard } from './use-whiteboard';
 import AppIcon from './AppIcon.vue';
 
 const store = useWhiteboard(); const s = store.state;
 const query = ref(''); const filter = ref<'open' | 'resolved' | 'all'>('open');
 const threads = computed(() => (s.document.commentThreads ?? []).filter((thread) => {
+  if (commentPageId(thread.target, s.document) !== s.activePageId) return false;
   if (filter.value === 'open' && thread.resolved) return false;
   if (filter.value === 'resolved' && !thread.resolved) return false;
   const term = query.value.trim().toLocaleLowerCase('de');

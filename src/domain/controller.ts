@@ -7,6 +7,8 @@ import {
   areComponentSetsEqual,
   areCommentThreadsEqual,
   areDocumentsEqual,
+  arePagesEqual,
+  clonePage,
   areElementsEqual,
   areEndpointsEqual,
   arePointsEqual,
@@ -33,6 +35,7 @@ import type {
   SketchAsset,
   SketchDocument,
   SketchElement,
+  SketchPage,
   ValidationIssue,
 } from './types';
 import { checkObjectKeys, isPlainRecord, validateDocument, validateIdField } from './validation';
@@ -60,6 +63,7 @@ const SCALAR_ELEMENT_FIELDS = [
   'author',
   'assetId',
   'parentId',
+  'pageId',
   'componentType',
   'documentationUrl',
   'embedUrl',
@@ -121,6 +125,58 @@ function hasSameGeometry(a: SketchElement, b: SketchElement): boolean {
     a.height === b.height &&
     a.rotation === b.rotation
   );
+}
+
+type PageMerge = { ok: true; pages: SketchPage[] } | { ok: false; reason: string };
+
+/** Three-way merge of the page list for undo/redo: names and order are merged, deleted pages come back where they were. */
+function mergePages(current: readonly SketchPage[], expected: readonly SketchPage[], target: readonly SketchPage[]): PageMerge {
+  if (arePagesEqual(expected, target)) return { ok: true, pages: current.map(clonePage) };
+  const expectedMap = new Map(expected.map((page) => [page.id, page]));
+  const targetMap = new Map(target.map((page) => [page.id, page]));
+  const currentMap = new Map(current.map((page) => [page.id, page]));
+  const removed = new Set<string>(); const restored = new Set<string>();
+  for (const id of expectedMap.keys()) if (!targetMap.has(id)) removed.add(id);
+  for (const id of targetMap.keys()) if (!expectedMap.has(id)) restored.add(id);
+  for (const id of removed) {
+    const page = currentMap.get(id);
+    if (!page) return { ok: false, reason: `Page "${id}" no longer exists in the document.` };
+    if (page.name !== expectedMap.get(id)!.name) return { ok: false, reason: `Page "${id}" was renamed by another operation.` };
+  }
+  for (const id of restored) if (currentMap.has(id)) return { ok: false, reason: `Page "${id}" already exists in the document.` };
+  const next = new Map<string, SketchPage>();
+  for (const [id, page] of currentMap) if (!removed.has(id)) next.set(id, clonePage(page));
+  for (const id of restored) next.set(id, clonePage(targetMap.get(id)!));
+  for (const [id, expPage] of expectedMap) {
+    const tgtPage = targetMap.get(id);
+    if (!tgtPage || expPage.name === tgtPage.name) continue;
+    const curPage = currentMap.get(id);
+    if (!curPage || curPage.name !== expPage.name) return { ok: false, reason: `Page "${id}" was renamed by another operation.` };
+    next.get(id)!.name = tgtPage.name;
+  }
+  const expectedIds = expected.map((page) => page.id); const targetIds = target.map((page) => page.id); const currentIds = current.map((page) => page.id);
+  const expectedCommon = expectedIds.filter((id) => targetMap.has(id));
+  const targetCommon = targetIds.filter((id) => expectedMap.has(id));
+  let orderedIds: string[];
+  if (!arraysEqual(expectedCommon, targetCommon)) {
+    if (!arraysEqual(currentIds, expectedIds)) return { ok: false, reason: 'Page order was modified by another operation.' };
+    orderedIds = [...targetIds];
+  } else {
+    if (!arraysEqual(currentIds.filter((id) => targetMap.has(id)), expectedCommon)) return { ok: false, reason: 'Page order was modified by another operation.' };
+    orderedIds = currentIds.filter((id) => !removed.has(id));
+    for (let i = 0; i < targetIds.length; i += 1) {
+      const id = targetIds[i]!;
+      if (!restored.has(id)) continue;
+      const prevId = i > 0 ? targetIds[i - 1] : undefined;
+      if (prevId === undefined) orderedIds.unshift(id);
+      else {
+        const prevIndex = orderedIds.indexOf(prevId);
+        if (prevIndex === -1) return { ok: false, reason: 'Cannot reconstruct the order of the restored page.' };
+        orderedIds.splice(prevIndex + 1, 0, id);
+      }
+    }
+  }
+  return { ok: true, pages: orderedIds.map((id) => next.get(id)!) };
 }
 
 function evaluateTransition(
@@ -624,10 +680,13 @@ function evaluateTransition(
     }
     nextTasks = targetDoc.tasks?.map(cloneTask);
   }
+  const pageMerge = mergePages(currentDoc.pages, expectedDoc.pages, targetDoc.pages);
+  if (!pageMerge.ok) return pageMerge;
   const candidateDoc: SketchDocument = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: currentDoc.id,
     title: nextTitle,
+    pages: pageMerge.pages,
     elements: nextElements,
     assets: nextAssets,
     componentSets: nextComponentSets,

@@ -1,6 +1,7 @@
 import { cloneDocument, normalizeZero } from './geometry';
 import { DomainValidationError } from './errors';
 import { DOMAIN_LIMITS } from './limits';
+import { migrateV1Candidates } from './migration';
 import type {
   ComponentDefinition,
   AnnotationBlockType,
@@ -114,6 +115,7 @@ const DOCUMENT_KEYS: ReadonlySet<string> = new Set([
   'schemaVersion',
   'id',
   'title',
+  'pages',
   'elements',
   'assets',
   'componentSets',
@@ -122,8 +124,11 @@ const DOCUMENT_KEYS: ReadonlySet<string> = new Set([
   'tasks',
 ]);
 
+const PAGE_KEYS: ReadonlySet<string> = new Set(['id', 'name']);
+
 export const ELEMENT_KEYS: ReadonlySet<string> = new Set([
   'id',
+  'pageId',
   'kind',
   'shapeVariant',
   'x',
@@ -200,7 +205,7 @@ const TABLE_COLUMN_KEYS: ReadonlySet<string> = new Set(['id', 'width']);
 const TABLE_CELL_KEYS: ReadonlySet<string> = new Set(['id', 'rowId', 'columnId', 'text', 'style']);
 const TABLE_CELL_STYLE_KEYS: ReadonlySet<string> = new Set(['fill', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textDecoration', 'listStyle', 'textAlign']);
 const COMMENT_THREAD_KEYS: ReadonlySet<string> = new Set(['id', 'target', 'messages', 'resolved', 'createdAt', 'updatedAt']);
-const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['elementId', 'tableCellId', 'anchor', 'fallback']);
+const COMMENT_TARGET_KEYS: ReadonlySet<string> = new Set(['pageId', 'elementId', 'tableCellId', 'anchor', 'fallback']);
 const COMMENT_MESSAGE_KEYS: ReadonlySet<string> = new Set(['id', 'authorId', 'authorName', 'body', 'createdAt', 'editedAt']);
 const TASK_KEYS: ReadonlySet<string> = new Set(['id', 'sourceThreadId', 'sourceElementId', 'title', 'description', 'status', 'rank', 'createdAt', 'updatedAt', 'external', 'type', 'assignee', 'dueDate']);
 const TASK_TYPES: ReadonlySet<TaskType> = new Set<TaskType>(['feature', 'bug', 'design', 'research', 'docs', 'ops']);
@@ -1050,6 +1055,7 @@ export function validateElementIntrinsic(
   checkObjectKeys(value, path, ELEMENT_KEYS, issues);
 
   validateIdField(value.id, joinPath(path, 'id'), issues);
+  validateIdField(value.pageId, joinPath(path, 'pageId'), issues);
 
   const kind = value.kind;
   const kindValid = typeof kind === 'string' && ELEMENT_KINDS.has(kind as ElementKind);
@@ -1760,6 +1766,7 @@ function validateCommentTarget(value: unknown, path: string, issues: ValidationI
     return false;
   }
   checkObjectKeys(value, path, COMMENT_TARGET_KEYS, issues);
+  if (value.pageId !== undefined) validateIdField(value.pageId, joinPath(path, 'pageId'), issues);
   if (value.elementId !== undefined) validateIdField(value.elementId, joinPath(path, 'elementId'), issues);
   if (value.tableCellId !== undefined) {
     validateIdField(value.tableCellId, joinPath(path, 'tableCellId'), issues);
@@ -1904,7 +1911,26 @@ function validateTasks(
   return result;
 }
 
+/**
+ * Validates a document and returns its canonical form. Schema-v1 input (including the multi-page preview stored in the
+ * metadata) is migrated to v2 first; the stored form is always v2.
+ */
 export function validateAndSerializeDocument(input: unknown): {
+  document: SketchDocument;
+  serialized: string;
+} {
+  if (isPlainRecord(input) && input.schemaVersion === 1) {
+    const candidates = migrateV1Candidates(input);
+    let lastError: unknown;
+    for (const candidate of candidates) {
+      try { return validateAndSerializeV2(candidate); } catch (error) { lastError = error; }
+    }
+    throw lastError;
+  }
+  return validateAndSerializeV2(input);
+}
+
+function validateAndSerializeV2(input: unknown): {
   document: SketchDocument;
   serialized: string;
 } {
@@ -1920,12 +1946,37 @@ export function validateAndSerializeDocument(input: unknown): {
   ancestors.add(input);
   checkObjectKeys(input, '', DOCUMENT_KEYS, issues);
 
-  if (input.schemaVersion !== 1) {
+  if (input.schemaVersion !== 2) {
     issues.push({
       path: 'schemaVersion',
       code: 'UNSUPPORTED_SCHEMA_VERSION',
-      message: 'Document schemaVersion must be 1.',
+      message: 'Document schemaVersion must be 2 (or 1, which is migrated).',
     });
+  }
+
+  const pageIds = new Set<string>();
+  if (!Array.isArray(input.pages)) {
+    issues.push({ path: 'pages', code: 'INVALID_PAGES', message: 'Document pages must be an array.' });
+  } else {
+    if (input.pages.length < 1 || input.pages.length > DOMAIN_LIMITS.MAX_PAGES) {
+      issues.push({ path: 'pages', code: 'INVALID_PAGE_COUNT', message: `Document must contain between 1 and ${DOMAIN_LIMITS.MAX_PAGES} pages.` });
+    }
+    for (let i = 0; i < Math.min(input.pages.length, DOMAIN_LIMITS.MAX_PAGES); i += 1) {
+      const page = input.pages[i] as unknown;
+      const pagePath = joinPath('pages', i);
+      if (!isPlainRecord(page)) {
+        issues.push({ path: pagePath, code: 'INVALID_PAGE', message: 'Page must be a plain object.' });
+        continue;
+      }
+      checkObjectKeys(page, pagePath, PAGE_KEYS, issues);
+      if (validateIdField(page.id, joinPath(pagePath, 'id'), issues)) {
+        if (pageIds.has(page.id)) issues.push({ path: joinPath(pagePath, 'id'), code: 'DUPLICATE_PAGE_ID', message: `Duplicate page id "${page.id}".` });
+        pageIds.add(page.id);
+      }
+      if (typeof page.name !== 'string' || page.name.trim().length === 0 || page.name.trim().length > DOMAIN_LIMITS.MAX_PAGE_NAME_LENGTH) {
+        issues.push({ path: joinPath(pagePath, 'name'), code: 'INVALID_PAGE_NAME', message: `Page name must be between 1 and ${DOMAIN_LIMITS.MAX_PAGE_NAME_LENGTH} characters.` });
+      }
+    }
   }
 
   validateIdField(input.id, 'id', issues);
@@ -1949,6 +2000,11 @@ export function validateAndSerializeDocument(input: unknown): {
   // Collaboration records were added without bumping the file schema. Missing arrays from
   // older v1 documents are normalized to empty collections.
   const normalizedThreads = validateComments(input.commentThreads, issues);
+  normalizedThreads.forEach((thread, index) => {
+    if (thread.target.pageId !== undefined && !pageIds.has(thread.target.pageId)) {
+      issues.push({ path: joinPath(joinPath(joinPath('commentThreads', index), 'target'), 'pageId'), code: 'MISSING_PAGE_REFERENCE', message: `Comment references missing page "${thread.target.pageId}".` });
+    }
+  });
   const taskSourceElementKinds = new Map<string, ElementKind>();
   if (Array.isArray(input.elements)) {
     for (const value of input.elements) {
@@ -2078,6 +2134,14 @@ export function validateAndSerializeDocument(input: unknown): {
     for (const [id, { element: el, index }] of elementById.entries()) {
       const elPath = joinPath('elements', index);
 
+      if (typeof el.pageId === 'string' && !pageIds.has(el.pageId)) {
+        issues.push({
+          path: joinPath(elPath, 'pageId'),
+          code: 'MISSING_PAGE_REFERENCE',
+          message: `Element "${id}" references missing page "${el.pageId}".`,
+        });
+      }
+
       if (el.kind === 'image' && typeof el.assetId === 'string') {
         if (!assetIds.has(el.assetId)) {
           issues.push({
@@ -2114,6 +2178,12 @@ export function validateAndSerializeDocument(input: unknown): {
                 code: 'DANGLING_CONNECTOR_REFERENCE',
                 message: `Connector "${id}" ${endKey} references missing element "${endpoint.elementId}".`,
               });
+            } else if (elementById.get(endpoint.elementId)!.element.pageId !== el.pageId) {
+              issues.push({
+                path: joinPath(joinPath(elPath, endKey), 'elementId'),
+                code: 'CROSS_PAGE_REFERENCE',
+                message: `Connector "${id}" ${endKey} must reference an element on the same page.`,
+              });
             }
           }
         }
@@ -2126,6 +2196,12 @@ export function validateAndSerializeDocument(input: unknown): {
             path: joinPath(elPath, 'parentId'),
             code: 'MISSING_PARENT_CONTAINER',
             message: `Element "${id}" references missing parent container "${el.parentId}".`,
+          });
+        } else if (parentEntry.element.pageId !== el.pageId) {
+          issues.push({
+            path: joinPath(elPath, 'parentId'),
+            code: 'CROSS_PAGE_REFERENCE',
+            message: `Parent "${el.parentId}" of element "${id}" must be on the same page.`,
           });
         } else if (parentEntry.element.kind !== 'container') {
           issues.push({
@@ -2176,6 +2252,9 @@ export function validateAndSerializeDocument(input: unknown): {
   }
 
   const normalizedInput = { ...(input as unknown as SketchDocument) };
+  // Canonical order: the elements of a page are contiguous and pages follow the page order (stable within a page).
+  const pageRank = new Map((input.pages as SketchDocument['pages']).map((page, index) => [page.id, index]));
+  normalizedInput.elements = [...normalizedInput.elements].sort((a, b) => (pageRank.get(a.pageId) ?? 0) - (pageRank.get(b.pageId) ?? 0));
   if (input.commentThreads !== undefined) normalizedInput.commentThreads = normalizedThreads;
   if (input.tasks !== undefined) normalizedInput.tasks = normalizedTasks;
   const cloned = cloneDocument(normalizedInput);

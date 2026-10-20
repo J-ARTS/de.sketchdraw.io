@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { t } from '@/renderer/i18n';
+import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { importDrawio, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
 import { getDesktopBridge } from '@/platform';
@@ -14,7 +14,8 @@ const props = defineProps<{ open: boolean; mode: 'import' | 'export' }>();
 const emit = defineEmits<{ close: [] }>();
 const store = useWhiteboard(); const bridge = getDesktopBridge();
 const format = ref<InteropFormat>('drawio'); const source = ref(''); const fileName = ref('');
-const pages = ref<DrawioPageInfo[]>([]); const pageIndex = ref<number | null>(null);
+const pages = ref<DrawioPageInfo[]>([]); const pageIndex = ref<number | 'all' | null>(null);
+const svgPageId = ref(store.state.activePageId);
 const imported = shallowRef<InteropImportResult | null>(null);
 const exported = shallowRef<{ result: InteropExportResult; authority: DocumentAuthority | null; revision: number; title: string } | null>(null);
 const embedDocument = ref(true); const accepted = ref(false); const busy = ref(false); const error = ref(''); const status = ref('');
@@ -23,8 +24,10 @@ const diagnostics = computed(() => failures.value.length ? failures.value : prop
 const warnings = computed(() => diagnostics.value.filter(item => item.severity === 'warning'));
 const requiresConfirmation = computed(() => props.mode === 'import' ? imported.value?.requiresConfirmation === true : exported.value?.result.requiresConfirmation === true);
 const staleExport = computed(() => exported.value !== null && (exported.value.authority !== store.getAuthority() || exported.value.revision !== store.state.revision || store.state.hasDraft));
+/** The preview shows the first page only; the summary counts every page of the import. */
+const previewElements = computed(() => { const doc = imported.value?.document; return doc ? doc.elements.filter((element) => element.pageId === doc.pages[0]!.id) : []; });
 const previewBounds = computed(() => {
-  const rect = imported.value ? bounds(imported.value.document.elements) : null;
+  const rect = imported.value ? bounds(previewElements.value) : null;
   return rect ? `${rect.x - 20} ${rect.y - 20} ${Math.max(80, rect.width + 40)} ${Math.max(80, rect.height + 40)}` : '0 0 400 200';
 });
 function clear() { serial++; source.value = ''; fileName.value = ''; pages.value = []; pageIndex.value = null; imported.value = null; exported.value = null; accepted.value = false; busy.value = false; error.value = ''; status.value = ''; failures.value = []; }
@@ -69,7 +72,7 @@ async function prepareExport() {
   try {
     const snapshot = await store.prepareDocumentSnapshot();
     if (!snapshot || own !== serial || owner !== store.getAuthority()) return;
-    const result = format.value === 'svg' ? prepareSvgExport(snapshot.document, { embedDocument: embedDocument.value }) : prepareDrawioExport(snapshot.document, { embedDocument: embedDocument.value });
+    const result = format.value === 'svg' ? prepareSvgExport(snapshot.document, { embedDocument: embedDocument.value, pageId: store.state.pages.some((item) => item.id === svgPageId.value) ? svgPageId.value : store.state.activePageId }) : prepareDrawioExport(snapshot.document, { embedDocument: embedDocument.value });
     exported.value = { result, authority: owner, revision: snapshot.revision, title: snapshot.document.title };
   } catch (value) { if (own === serial) failure(value); }
   finally { if (own === serial) busy.value = false; }
@@ -92,7 +95,7 @@ async function writeExport() {
 }
 watch(() => props.mode, clear);
 watch(() => props.open, open => { if (!open) clear(); });
-watch([format, embedDocument], () => { accepted.value = false; exported.value = null; if (props.mode === 'import' && source.value && !busy.value) inspect(); });
+watch([format, embedDocument, svgPageId], () => { accepted.value = false; exported.value = null; if (props.mode === 'import' && source.value && !busy.value) inspect(); });
 const unsubscribe = store.subscribeAuthority(() => { clear(); emit('close'); });
 onBeforeUnmount(() => { unsubscribe(); clear(); });
 </script>
@@ -108,10 +111,11 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
       </template>
       <label class="sd-field-label" for="interop-format">{{ t('Format') }}<select id="interop-format" v-model="format" class="sd-select" :disabled="busy"><option value="drawio">{{ t('draw.io') }}</option><option value="svg">SVG</option></select></label>
       <template v-if="mode === 'import'">
-        <label v-if="pages.length > 1" class="sd-field-label" for="interop-page">{{ t('Seite auswählen') }}<select id="interop-page" v-model="pageIndex" class="sd-select" @change="convert"><option :value="null" disabled>{{ t('Bitte eine der {count} Seiten auswählen', { count: pages.length }) }}</option><option v-for="item in pages" :key="item.index" :value="item.index">{{ item.index + 1 }} · {{ item.name }}</option></select></label>
-        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in imported.document.elements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
+        <label v-if="pages.length > 1" class="sd-field-label" for="interop-page">{{ t('Seite auswählen') }}<select id="interop-page" v-model="pageIndex" class="sd-select" @change="convert"><option :value="null" disabled>{{ t('Bitte eine der {count} Seiten auswählen', { count: pages.length }) }}</option><option value="all">{{ t('Alle {count} Seiten importieren', { count: pages.length }) }}</option><option v-for="item in pages" :key="item.index" :value="item.index">{{ item.index + 1 }} · {{ item.name }}</option></select></label>
+        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p v-if="imported.document.pages.length > 1">{{ t('{count} Seiten', { count: imported.document.pages.length }) }}</p><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in previewElements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
       </template>
       <template v-else>
+        <label v-if="format === 'svg' && store.state.pages.length > 1" class="sd-field-label" for="interop-svg-page">{{ t('Seite für den SVG-Export') }}<select id="interop-svg-page" v-model="svgPageId" class="sd-select" :disabled="busy"><option v-for="item in store.state.pages" :key="item.id" :value="item.id">{{ tm(item.name) }}</option></select></label>
         <label class="embed-option"><input v-model="embedDocument" type="checkbox" :disabled="busy" /><span>{{ t('Vollständiges Sketchdraw-Modell einbetten') }}</span></label><p class="metadata-note">{{ embedDocument ? t('Enthält auch nicht sichtbare Metadaten und ungenutzte Ressourcen. Damit kann ein unveränderter eigener Export vollständig zurückgelesen werden.') : t('Nur die sichtbare native Formatprojektion. Zusätzliche Sketchdraw-Informationen können verloren gehen.') }}</p>
         <button class="sd-btn full" :disabled="busy || store.state.transitioning" @click="prepareExport">{{ t('Exportvorschau erstellen') }}</button>
         <p v-if="exported" class="summary">{{ exported.result.embedsDocument ? t('{format} vorbereitet · mit eingebettetem Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) : t('{format} vorbereitet · ohne eingebettetes Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) }}</p>

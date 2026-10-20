@@ -1,5 +1,5 @@
-import { createElement, createTableDocument, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
-import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchElement } from '../domain';
+import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
+import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
@@ -134,9 +134,33 @@ function pointNode(geometry: XmlElementNode | undefined, name: string): Point | 
   const p = geometry && children(geometry).find(n => named(n, 'mxPoint') && n.attributes['as'] === name);
   return p ? { x: number(p.attributes['x']), y: number(p.attributes['y']) } : undefined;
 }
+function pageNameOf(info: DrawioPageInfo, index: number): string {
+  const name = info.name.trim().slice(0, DOMAIN_LIMITS.MAX_PAGE_NAME_LENGTH);
+  return name || `Seite ${index + 1}`;
+}
+/** An embedded model (own export) describes every page; a single explicit page narrows it to that page. */
+function narrowToPage(doc: SketchDocument, index: number): SketchDocument {
+  const page = doc.pages[index];
+  return doc.pages.length > 1 && page ? extractPage(doc, page.id) : doc;
+}
 function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropImportResult {
   const nodeBudget = { used: 0 };
   const { root, pages, infos } = outer(xml, nodeBudget);
+  if (options.pageIndex === 'all') {
+    const ctx = context('drawio', pageNameOf(infos[0]!, 0));
+    if (new Set(infos.filter(p => p.id !== undefined).map(p => p.id)).size !== infos.filter(p => p.id !== undefined).length)
+      warn(ctx, root, 'DUPLICATE_PAGE_ID', 'id', 'Repeated page IDs are disambiguated by page index.');
+    ctx.document.pages = pages.map((_, index) => ({ id: index === 0 ? DEFAULT_PAGE_ID : `page:${index + 1}`, name: pageNameOf(infos[index]!, index) }));
+    for (const [index, pageNode] of pages.entries()) {
+      ctx.pageId = ctx.document.pages[index]!.id;
+      ctx.ids.beginPage();
+      const embedded = importPage(ctx, root, pageNode, infos[index]!, index, nodeBudget);
+      if (embedded)
+        return finish(ctx, options, embedded);
+    }
+    ctx.diagnostics.add({ code: 'PAGES_IMPORTED', severity: 'info', effect: 'normalized', message: `drawio: Imported ${pages.length} page${pages.length === 1 ? '' : 's'} as document pages.` });
+    return finish(ctx, options);
+  }
   if (pages.length > 1 && options.pageIndex === undefined)
     fail('PAGE_SELECTION_REQUIRED', 'Select a draw.io page explicitly.');
   const index = options.pageIndex ?? 0;
@@ -146,6 +170,12 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
   if (new Set(infos.filter(p => p.id !== undefined).map(p => p.id)).size !== infos.filter(p => p.id !== undefined).length)
     warn(ctx, root, 'DUPLICATE_PAGE_ID', 'id', 'Repeated page IDs are disambiguated by page index.');
   ctx.diagnostics.add({ code: 'PAGE_SELECTED', severity: 'info', effect: 'normalized', pageIndex: index, message: `drawio: Selected page ${index + 1} of ${pages.length}; other pages are not imported.` });
+  const embedded = importPage(ctx, root, page, info, index, nodeBudget);
+  return finish(ctx, options, embedded ? narrowToPage(embedded, index) : undefined, info);
+}
+/** Converts one diagram into `ctx` (as page `ctx.pageId`). Returns the embedded model of an own export when it verifies. */
+function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNode, info: DrawioPageInfo, index: number, nodeBudget: { used: number }): SketchDocument | undefined {
+  const firstOfPage = ctx.document.elements.length;
   const models = named(page, 'mxGraphModel') ? [page] : children(page).filter(n => named(n, 'mxGraphModel'));
   const model = info.encoding === 'xml' ? (models.length === 1 ? models[0]! : fail('UNSUPPORTED_FORMAT', 'Expected exactly one graph model.')) : parseXmlDocument(decompressDrawioPageXml(text(page), index, page.path), { maxInputBytes: L.MAX_DECODED_PAGE_BYTES, nodeBudget });
   if (!named(model, 'mxGraphModel'))
@@ -193,7 +223,7 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
       const doc = decodeEnvelope(envelopes[0]!.value, 'drawio');
       const expected = parseXmlDocument(prepareDrawioExport(doc).contents);
       if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
-        return finish(ctx, options, doc, info);
+        return doc;
       warn(ctx, envelopes[0]!.node, 'EMBEDDED_MODEL_STALE', 'sketchdrawInterop', 'Visible native projection changed; embedded document ignored.');
     }
     catch (error) {
@@ -342,7 +372,8 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
   }
   // Match the source cell stacking order; placeholders retain their insertion order at the end.
   const order = new Map(cells.map((c, i) => [elements.get(c.id)?.id, i]));
-  ctx.document.elements.sort((a, b) => (order.get(a.id) ?? cells.length) - (order.get(b.id) ?? cells.length));
-  return finish(ctx, options, undefined, info);
+  const imported = ctx.document.elements.splice(firstOfPage).sort((a, b) => (order.get(a.id) ?? cells.length) - (order.get(b.id) ?? cells.length));
+  ctx.document.elements.push(...imported);
+  return undefined;
 }
 export function importDrawio(xml: string, options: DrawioImportOptions = {}): InteropImportResult { return importBoundary(() => convertDrawio(xml, options)); }

@@ -1,4 +1,6 @@
 import {
+  DEFAULT_PAGE_ID,
+  DEFAULT_PAGE_NAME,
   DOMAIN_LIMITS,
   DomainValidationError,
   serializeDocument,
@@ -57,6 +59,16 @@ interface ParsedElementEntry {
   lineSpan: SourceSpan;
   idSpan: SourceSpan;
   jsonSpans: JsonObjectSpans;
+}
+
+interface ParsedPageEntry {
+  id: string;
+  name: unknown;
+  lineSpan: SourceSpan;
+  idSpan: SourceSpan;
+  jsonSpans?: JsonObjectSpans;
+  /** True when the page was created implicitly for elements that precede any `page` declaration. */
+  implicit?: boolean;
 }
 
 interface ParsedAssetEntry {
@@ -181,6 +193,7 @@ function mapDomainIssueToDiagnostic(
   assetEntries: ReadonlyMap<string, ParsedAssetEntry>,
   setEntries: readonly ParsedSetEntry[],
   elementEntries: readonly ParsedElementEntry[],
+  pageEntries: readonly ParsedPageEntry[] = [],
 ): ParseDiagnostic {
   const { path, code, message } = issue;
   const preferKey =
@@ -254,6 +267,17 @@ function mapDomainIssueToDiagnostic(
     return makeDiag(code, documentSpan, message, { issuePath: path });
   }
 
+  if (path === 'pages' || path.startsWith('pages[')) {
+    const match = /^pages\[(\d+)\](?:\.(.*))?$/.exec(path);
+    const entry = match ? pageEntries[Number(match[1])] : undefined;
+    if (entry) {
+      const relPath = match?.[2] ?? '';
+      if (relPath === 'id' || relPath === '') return makeDiag(code, entry.idSpan, message, { issuePath: path });
+      return makeDiag(code, lookupSpanInJson(entry.jsonSpans, relPath, preferKey, entry.lineSpan), message, { issuePath: path });
+    }
+    return makeDiag(code, documentSpan, message, { issuePath: path });
+  }
+
   if (path === 'elements' || path.startsWith('elements[')) {
     const match = /^elements\[(\d+)\](?:\.(.*))?$/.exec(path);
     if (match) {
@@ -285,14 +309,16 @@ function applyElementScriptDefaults(
   rawObj: Record<string, unknown>,
   kind: ElementKind,
   id: string,
+  pageId: string,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {
     id,
+    pageId,
     kind,
   };
 
   for (const key of Object.getOwnPropertyNames(rawObj)) {
-    if (key === 'id' || key === 'kind') {
+    if (key === 'id' || key === 'kind' || key === 'pageId') {
       continue;
     }
     Object.defineProperty(out, key, {
@@ -410,6 +436,8 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
   const handledSetIds = new Set<string>();
 
   const elementEntries: ParsedElementEntry[] = [];
+  const pageEntries: ParsedPageEntry[] = [];
+  let currentPageId: string | null = null;
   const assetEntries = new Map<string, ParsedAssetEntry>();
   const setEntries: ParsedSetEntry[] = [];
 
@@ -503,12 +531,12 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
         endLine: lineNumber,
         endColumn: trimEnd + 1,
       };
-      if (verText !== '1') {
+      if (verText !== '1' && verText !== '2') {
         diagnostics.push(
           makeDiag(
             'FORMAT_VERSION',
             verSpan,
-            `Unsupported Sketchdraw script format version "${verText}"; expected "1".`,
+            `Unsupported Sketchdraw script format version "${verText}"; expected "1" or "2".`,
           ),
         );
       }
@@ -698,7 +726,7 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
         seenElementIds.add(elementId);
       }
 
-      for (const forbiddenTailKey of ['id', 'kind'] as const) {
+      for (const forbiddenTailKey of ['id', 'kind', 'pageId'] as const) {
         if (Object.prototype.hasOwnProperty.call(jsonRes.value, forbiddenTailKey)) {
           const kSpan = jsonRes.spans.keySpans.get(forbiddenTailKey) ?? jsonRes.spans.root;
           diagnostics.push(
@@ -712,7 +740,14 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
         }
       }
 
-      const normalizedElement = applyElementScriptDefaults(jsonRes.value, kind, elementId);
+      // Elements before the first `page` declaration (and every v1 script) belong to the implicit default page.
+      if (currentPageId === null) {
+        currentPageId = DEFAULT_PAGE_ID;
+        if (!pageEntries.some((entry) => entry.id === DEFAULT_PAGE_ID)) {
+          pageEntries.push({ id: DEFAULT_PAGE_ID, name: DEFAULT_PAGE_NAME, lineSpan, idSpan: idToken.span, implicit: true });
+        }
+      }
+      const normalizedElement = applyElementScriptDefaults(jsonRes.value, kind, elementId, currentPageId);
       elementEntries.push({
         id: elementId,
         element: normalizedElement,
@@ -720,6 +755,55 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
         idSpan: idToken.span,
         jsonSpans: jsonRes.spans,
       });
+      continue;
+    }
+
+    if (keyword === 'page') {
+      const idStart = skipHorizontalWs(line, kwEnd, trimEnd);
+      if (idStart === kwEnd || idStart >= trimEnd) {
+        diagnostics.push(makeDiag('JSON_SYNTAX', lineSpan, 'Missing page ID and JSON object after "page".'));
+        continue;
+      }
+      const idToken = scanJsonStringToken(line, idStart, trimEnd, lineNumber);
+      if (!idToken.ok) {
+        diagnostics.push(idToken.diagnostic);
+        continue;
+      }
+      const pageId = idToken.value;
+      const pageIndex = pageEntries.filter((entry) => !entry.implicit || entry.id !== pageId).length;
+      const basePath = joinPath('pages', pageIndex);
+      const jsonStart = skipHorizontalWs(line, idToken.nextOffset, trimEnd);
+      if (jsonStart === idToken.nextOffset || jsonStart >= trimEnd) {
+        diagnostics.push(
+          makeDiag(
+            'JSON_SYNTAX',
+            { line: lineNumber, column: idToken.nextOffset + 1, endLine: lineNumber, endColumn: trimEnd + 1 },
+            `Expected whitespace and a JSON object after page ID "${pageId}".`,
+            { issuePath: basePath },
+          ),
+        );
+        continue;
+      }
+      const jsonRes = parseStrictJsonObject(line.slice(jsonStart, trimEnd), { lineNumber, lineOffset: jsonStart, basePath });
+      if (!jsonRes.ok) {
+        diagnostics.push(...jsonRes.diagnostics);
+        continue;
+      }
+      for (const key of Object.getOwnPropertyNames(jsonRes.value)) {
+        if (key !== 'name') {
+          diagnostics.push(
+            makeDiag('UNKNOWN_FIELD', jsonRes.spans.keySpans.get(key) ?? jsonRes.spans.root, `Unknown or disallowed property "${key}" in page declaration.`, { issuePath: joinPath(basePath, key) }),
+          );
+        }
+      }
+      const existing = pageEntries.find((entry) => entry.id === pageId);
+      if (existing && !(existing.implicit && pageId === DEFAULT_PAGE_ID && currentPageId === DEFAULT_PAGE_ID)) {
+        diagnostics.push(makeDiag('DUPLICATE_DECLARATION', idToken.span, `Duplicate page declaration for id "${pageId}".`, { issuePath: basePath }));
+        continue;
+      }
+      const entry: ParsedPageEntry = { id: pageId, name: jsonRes.value['name'], lineSpan, idSpan: idToken.span, jsonSpans: jsonRes.spans };
+      if (existing) pageEntries.splice(pageEntries.indexOf(existing), 1, entry); else pageEntries.push(entry);
+      currentPageId = pageId;
       continue;
     }
 
@@ -1366,10 +1450,14 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
       });
     }
 
+    if (pageEntries.length === 0) {
+      pageEntries.push({ id: DEFAULT_PAGE_ID, name: DEFAULT_PAGE_NAME, lineSpan: documentSpan, idSpan: documentSpan, implicit: true });
+    }
     const candidateDoc: Record<string, unknown> = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: docId,
       title: docTitle,
+      pages: pageEntries.map((entry) => ({ id: entry.id, name: entry.name })),
       elements: elementEntries.map((e) => e.element),
       assets: assetsRecord,
       componentSets: setEntries.map((s) => s.set),
@@ -1414,6 +1502,7 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
             assetEntries,
             setEntries,
             elementEntries,
+            pageEntries,
           );
           diagnostics.push(diag);
         }
@@ -1450,7 +1539,7 @@ function formatSetTail(set: ComponentSet): string {
 function formatElementTail(element: SketchElement): string {
   const tail: Record<string, unknown> = {};
   for (const key of Object.keys(element)) {
-    if (key === 'id' || key === 'kind') {
+    if (key === 'id' || key === 'kind' || key === 'pageId') {
       continue;
     }
     const val = element[key as keyof SketchElement];
@@ -1478,7 +1567,7 @@ export function formatDiagram(document: SketchDocument): string {
   if (validated.commentThreads !== undefined) documentDeclaration.commentThreads = validated.commentThreads;
   if (validated.tasks !== undefined) documentDeclaration.tasks = validated.tasks;
   const headerAndDocGroup = [
-    'sketchdraw 1',
+    'sketchdraw 2',
     `document ${formatCompactJson(documentDeclaration)}`,
   ].join('\n');
 
@@ -1500,11 +1589,13 @@ export function formatDiagram(document: SketchDocument): string {
     groups.push(setLines.join('\n'));
   }
 
-  if (validated.elements.length > 0) {
-    const elementLines = validated.elements.map(
-      (el) => `${el.kind} ${formatJsonString(el.id)} ${formatElementTail(el)}`,
-    );
-    groups.push(elementLines.join('\n'));
+  // One section per page; the elements of a page follow its `page` line in stacking order.
+  for (const page of validated.pages) {
+    const lines = [`page ${formatJsonString(page.id)} ${formatCompactJson({ name: page.name })}`];
+    for (const el of validated.elements) {
+      if (el.pageId === page.id) lines.push(`${el.kind} ${formatJsonString(el.id)} ${formatElementTail(el)}`);
+    }
+    groups.push(lines.join('\n'));
   }
 
   const output = `${groups.join('\n\n')}\n`;

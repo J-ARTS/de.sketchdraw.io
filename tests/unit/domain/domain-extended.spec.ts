@@ -67,7 +67,8 @@ function createWebpAsset(id = 'asset:webp'): SketchAsset {
 describe('S1 domain extended contract verification', () => {
   it('creates valid documents and elements for all ElementKind variants', () => {
     const doc = createDocument('Architecture Canvas');
-    expect(doc.schemaVersion).toBe(1);
+    expect(doc.schemaVersion).toBe(2);
+    expect(doc.pages).toEqual([{ id: 'page:1', name: 'Seite 1' }]);
     expect(doc.title).toBe('Architecture Canvas');
     expect(validateDocument(doc)).toEqual(doc);
 

@@ -208,6 +208,35 @@ describe('Yjs document data layer', () => {
     first.destroy(); second.destroy();
   });
 
+  it('shares pages and repairs a page deleted while another peer adds to it', () => {
+    const document = createDocument('Pages');
+    document.id = 'document:pages';
+    document.pages.push({ id: 'page:2', name: 'Zwei' });
+    const first = createCrdtController(document);
+    const second = createCrdtControllerFromUpdate(first.encodeUpdate());
+    expect(second.getSnapshot().document.pages).toEqual([{ id: 'page:1', name: 'Seite 1' }, { id: 'page:2', name: 'Zwei' }]);
+
+    // One peer deletes page 2 while the other adds an element and a connector link to it.
+    first.dispatch({ type: 'delete-page', pageId: 'page:2' }, context(0, 'actor:first'));
+    second.dispatch({ type: 'add', pageId: 'page:2', elements: [createElement('rectangle', { id: 'shape:late', pageId: 'page:2' })] }, context(0, 'actor:second'));
+    const firstUpdate = first.encodeUpdate(second.encodeStateVector());
+    const secondUpdate = second.encodeUpdate(first.encodeStateVector());
+    first.applyRemoteUpdate(secondUpdate, { actorId: 'actor:second', role: 'editor', source: 'peer' });
+    second.applyRemoteUpdate(firstUpdate, { actorId: 'actor:first', role: 'editor', source: 'peer' });
+    const result = first.getSnapshot().document;
+    expect(second.getSnapshot().document).toEqual(result);
+    expect(result.pages.map(page => page.id)).toEqual(['page:1']);
+    expect(result.elements.find(element => element.id === 'shape:late')?.pageId).toBe('page:1');
+
+    // Renames and page order converge as well.
+    first.dispatch({ type: 'add-page', page: { id: 'page:3', name: 'Drei' } }, context(first.getSnapshot().revision, 'actor:first'));
+    sync(first, second, 'actor:first', 'peer-first');
+    first.dispatch({ type: 'rename-page', pageId: 'page:3', name: 'Neu' }, context(first.getSnapshot().revision, 'actor:first'));
+    sync(first, second, 'actor:first', 'peer-first');
+    expect(second.getSnapshot().document.pages).toEqual([{ id: 'page:1', name: 'Seite 1' }, { id: 'page:3', name: 'Neu' }]);
+    first.destroy(); second.destroy();
+  });
+
   it('keeps undo actor-local and retains remote changes', () => {
     const local = createCrdtController(baseDocument());
     const remote = createCrdtControllerFromUpdate(local.encodeUpdate());

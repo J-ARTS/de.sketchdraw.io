@@ -16,3 +16,6 @@ export * from './web-embed';
 export * from './frames';
 export * from './atlassian';
 export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';
+export { DEFAULT_PAGE_ID, DEFAULT_PAGE_NAME } from './migration';
+export { copyPageContent, extractPage, pageElements } from './pages';
+export type { PageCopy } from './pages';

@@ -64,7 +64,8 @@ export interface ImportOptions {
 }
 
 export interface DrawioImportOptions extends ImportOptions {
-  pageIndex?: number;
+  /** A zero-based page, or 'all' to import every page as a page of the document. */
+  pageIndex?: number | 'all';
 }
 
 export type InteropFidelity = 'own-roundtrip' | 'supported-subset' | 'approximate';
@@ -77,6 +78,8 @@ export interface InteropImportResult extends ImportResult {
 }
 
 export interface InteropExportOptions {
+  /** SVG shows one page: the page with this id (default: the first page). draw.io always exports every page. */
+  pageId?: string;
   /** Default true; explicit false creates a portable projection without embedded envelope. */
   embedDocument?: boolean;
 }

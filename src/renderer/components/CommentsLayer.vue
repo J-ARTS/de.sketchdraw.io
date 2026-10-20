@@ -3,7 +3,7 @@ import { intlLocale, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useElementSize, useEventListener } from '@vueuse/core';
 import type { CommentMessage, CommentThread } from '@/domain';
-import { commentTargetPoint } from '../lib/comments';
+import { commentPageId, commentTargetPoint } from '../lib/comments';
 import { docToScreen } from '../lib/viewport';
 import { useWhiteboard } from './use-whiteboard';
 import AppIcon from './AppIcon.vue';
@@ -19,7 +19,7 @@ function fitComposer(): void { const input = composerInput.value; if (!input) re
 const threadEl = ref<HTMLElement | null>(null);
 const { height: composerHeight } = useElementSize(composerEl, undefined, { box: 'border-box' });
 const { height: threadHeight } = useElementSize(threadEl, undefined, { box: 'border-box' });
-const threads = computed(() => s.document.commentThreads ?? []);
+const threads = computed(() => (s.document.commentThreads ?? []).filter((thread) => commentPageId(thread.target, s.document) === s.activePageId));
 const active = computed(() => threads.value.find((entry) => entry.id === s.activeCommentId) ?? null);
 const tasks = computed(() => s.document.tasks ?? []);
 const pins = computed(() => threads.value.map((thread) => ({ thread, point: docToScreen(s.viewport, commentTargetPoint(thread.target, s.document)) })));

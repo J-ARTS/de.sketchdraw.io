@@ -25,7 +25,7 @@ const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4
 
 function element(id: string, kind: ElementKind = 'rectangle', overrides: Partial<SketchElement> = {}): SketchElement {
   return {
-    id, kind, x: 0, y: 0, width: 40, height: 20, rotation: 0,
+    id, pageId: 'page:1', kind, x: 0, y: 0, width: 40, height: 20, rotation: 0,
     style: {
       stroke: '#111111', fill: '#ffffff', strokeWidth: 2, opacity: 1,
       fontSize: 16, textAlign: 'left', strokeDash: 'solid', fontFamily: 'sans',
@@ -36,7 +36,7 @@ function element(id: string, kind: ElementKind = 'rectangle', overrides: Partial
 
 function document(elements: SketchElement[] = [], assets: SketchAsset[] = []): SketchDocument {
   return {
-    schemaVersion: 1, id: 'document:acceptance', title: 'Acceptance workspace', elements,
+    schemaVersion: 2, id: 'document:acceptance', title: 'Acceptance workspace', pages: [{ id: 'page:1', name: 'Seite 1' }], elements,
     assets: Object.fromEntries(assets.map((asset) => [asset.id, asset])),
     componentSets: [], metadata: {},
   };

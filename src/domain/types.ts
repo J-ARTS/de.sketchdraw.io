@@ -106,8 +106,18 @@ export interface Endpoint {
   anchor: Point;
 }
 
+/** One page of a document. Elements belong to a page through `SketchElement.pageId`. */
+export interface SketchPage {
+  /** Stable, unique within the document. */
+  id: string;
+  /** 1–120 characters after trimming; not required to be unique. */
+  name: string;
+}
+
 export interface SketchElement {
   id: string;
+  /** The page this element lives on (schema v2). References from parentId/from/to never cross pages. */
+  pageId: string;
   kind: ElementKind;
   /** Concrete visual form for geometric elements. Missing values retain the legacy kind shape. */
   shapeVariant?: ShapeVariant;
@@ -184,6 +194,8 @@ export interface ComponentSet {
 
 /** A collaboration marker anchored to an element, a table cell, or a retained canvas point. */
 export interface CommentTarget {
+  /** Page of a free comment (without elementId); missing means the first page. */
+  pageId?: string;
   elementId?: string;
   tableCellId?: string;
   /** Normalized element coordinates while elementId is present. */
@@ -248,10 +260,12 @@ export interface SketchTask {
 }
 
 export interface SketchDocument {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   title: string;
-  /** Back-to-front stacking order. */
+  /** Ordered pages, 1 to MAX_PAGES. */
+  pages: SketchPage[];
+  /** Elements of all pages in back-to-front stacking order; the relative order within one page is that page's order. */
   elements: SketchElement[];
   assets: Record<string, SketchAsset>;
   componentSets: ComponentSet[];
@@ -287,7 +301,11 @@ export type ElementPatch = Partial<Pick<SketchElement, 'x' | 'y' | 'width' | 'he
 };
 
 export type DocumentCommand =
-  | { type: 'add'; elements: SketchElement[]; assets?: SketchAsset[] }
+  | { type: 'add'; elements: SketchElement[]; assets?: SketchAsset[]; pageId?: string }
+  | { type: 'add-page'; page: SketchPage; index?: number; elements?: SketchElement[]; assets?: SketchAsset[] }
+  | { type: 'rename-page'; pageId: string; name: string }
+  | { type: 'delete-page'; pageId: string }
+  | { type: 'reorder-pages'; ids: string[] }
   | { type: 'update'; changes: Array<{ id: string; patch: ElementPatch }> }
   | { type: 'delete'; ids: string[] }
   | { type: 'reorder'; ids: string[] }

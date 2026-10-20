@@ -37,7 +37,7 @@ describe('Real local agent host and renderer authority', () => {
       expect((await lstat(path.dirname(file))).mode & 0o777).toBe(0o700);
     } else expect(f.host.endpoint).toMatch(/^tcp:127\.0\.0\.1:\d+$/);
     expect(await f.client.request('sketchdraw_read_document', { documentId: f.document.id })).toMatchObject({ revision: 0, includeAssetData: false, document: { title: 'Original' } });
-    expect(await f.client.request('sketchdraw_read_code', { documentId: f.document.id })).toMatchObject({ formatVersion: 1, code: expect.stringContaining('sketchdraw 1') });
+    expect(await f.client.request('sketchdraw_read_code', { documentId: f.document.id })).toMatchObject({ formatVersion: 2, code: expect.stringContaining('sketchdraw 2') });
     expect(await f.client.request('sketchdraw_analyze_document', { documentId: f.document.id })).toMatchObject({ summary: { totalElements: 0 } });
   });
   it('commits into the same authority and permits a subsequent human edit', async () => {
@@ -48,6 +48,22 @@ describe('Real local agent host and renderer authority', () => {
     await human.gateway.submit({ requestId: human.gateway.nextRequestId()!, expectedRevision: 1, action: { kind: 'dispatch', command: { type: 'update', changes: [{ id: element.id, patch: { x: 70 } }] } } });
     expect(await f.client.request('sketchdraw_find_elements', { documentId: f.document.id, query: 'Agent box' })).toMatchObject({ revision: 2, matches: [expect.objectContaining({ id: element.id, x: 70, shapeVariant: 'hexagon' })] });
     expect(f.controller.getSnapshot().revision).toBe(2);
+  });
+  it('lets agents work with pages: add a page, add to it, read pages and find elements with their page', async () => {
+    const f = await fixture();
+    expect(await f.client.request('sketchdraw_apply_commands', { ...rename('page'), command: { type: 'add-page', page: { id: 'page:agent', name: 'Agentenseite' } } })).toMatchObject({ revision: 1, changed: true });
+    const element = createElement('rectangle', { id: 'shape:page', label: 'On page two', pageId: 'page:agent' });
+    expect(await f.client.request('sketchdraw_apply_commands', { ...rename('on-page', 'Original', 1), command: { type: 'add', pageId: 'page:agent', elements: [element] } })).toMatchObject({ revision: 2, changed: true });
+    // With several pages an element without a page is rejected instead of silently landing on the first one.
+    const loose = { ...createElement('rectangle', { id: 'shape:loose' }), pageId: undefined } as unknown as ReturnType<typeof createElement>;
+    await expect(f.client.request('sketchdraw_apply_commands', { ...rename('loose', 'Original', 2), command: { type: 'add', elements: [loose] } })).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+    const read = await f.client.request('sketchdraw_read_document', { documentId: f.document.id });
+    expect(read).toMatchObject({ document: { pages: [{ id: 'page:1' }, { id: 'page:agent', name: 'Agentenseite' }] } });
+    expect(await f.client.request('sketchdraw_find_elements', { documentId: f.document.id, query: 'On page two' })).toMatchObject({ matches: [expect.objectContaining({ id: 'shape:page', pageId: 'page:agent' })] });
+    expect(await f.client.request('sketchdraw_analyze_document', { documentId: f.document.id })).toMatchObject({ summary: { pageCount: 2, totalElements: 1 } });
+    const code = await f.client.request('sketchdraw_read_code', { documentId: f.document.id });
+    if (!('code' in code)) throw new Error('Missing code result.');
+    expect(code.code).toContain('page "page:agent" {"name":"Agentenseite"}');
   });
   it('denies read-only writes, wrong capabilities and actor spoofing', async () => {
     const f = await fixture('read');

@@ -376,10 +376,10 @@ const panelId = (segment: Segment) => `${uid}-${segment}`;
 
 // --- Selection actions -------------------------------------------------------------
 const selectedIds = computed(() => new Set(s.selection));
-const canMoveBackward = computed(() => s.document.elements.some((element, index, elements) => (
+const canMoveBackward = computed(() => s.pageElements.some((element, index, elements) => (
   selectedIds.value.has(element.id) && index > 0 && !selectedIds.value.has(elements[index - 1]!.id)
 )));
-const canMoveForward = computed(() => s.document.elements.some((element, index, elements) => (
+const canMoveForward = computed(() => s.pageElements.some((element, index, elements) => (
   selectedIds.value.has(element.id) && index < elements.length - 1 && !selectedIds.value.has(elements[index + 1]!.id)
 )));
 function runSelectionAction(action: 'back' | 'backward' | 'forward' | 'front' | 'clone' | 'delete'): void {
