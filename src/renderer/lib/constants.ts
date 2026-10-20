@@ -81,6 +81,15 @@ export const DEFAULT_SIZES: Readonly<Partial<Record<Tool, Readonly<Size>>>> = {
   frame: { width: 1280, height: 720 },
 };
 
+/** Variants of the ellipse tool that are round by nature: placing them with a click yields a circle, not an oval. */
+const ROUND_VARIANTS: readonly string[] = ['circle', 'summing', 'or'];
+
+/** Size of a shape placed with a plain click; round variants are square so they appear as circles. */
+export function defaultSizeFor(tool: Tool, variant: string | null | undefined): Readonly<Size> | undefined {
+  if (tool === 'ellipse' && variant && ROUND_VARIANTS.includes(variant)) return { width: 120, height: 120 };
+  return DEFAULT_SIZES[tool];
+}
+
 export interface NamedColor { name: string; value: string }
 
 /** Shared stroke and fill palette (#38): strong colors, then their light tints. */

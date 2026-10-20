@@ -31,7 +31,7 @@ import type {
   CreateStoreOptions, DialogChoice, FileState, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
 } from './contract';
-import { ACTOR_ID, DEFAULT_STYLE, DEFAULT_SIZES, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
+import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
 import { bounds, center, endpointAt, hitElement, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
 import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '../lib/viewport';
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
@@ -1009,7 +1009,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
       store.pointerMove(input);
       if (g.kind === 'draw' && !g.element && !['path', 'connector'].includes(g.tool)) {
-        const size = DEFAULT_SIZES[g.tool];
+        const size = defaultSizeFor(g.tool, state.shapeVariant);
         if (size) { g.element = createDraw(g, { x: g.start.x + size.width, y: g.start.y + size.height }, false); state.drawing = g.element; }
       }
       if (g.kind === 'pan' || g.kind === 'marquee' || (!g.preview && !g.element)) { resetGesture(); return; }
