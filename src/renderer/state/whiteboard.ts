@@ -542,13 +542,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const styleChanges = textStyleChanges(edit);
     const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
     const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
-    if ((!textChanged && !annotationChanged && !styleChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
+    if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
     const contentPatch = edit.kind === 'annotation' && edit.annotationDraft
       ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
       : textChanged ? { text: edit.draft } : {};
     const command: DocumentCommand = edit.elementId
-      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}) } }] }
+      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}) } }] }
       : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style } })] };
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
@@ -1138,6 +1139,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const targets = topSelected(n.base.document.elements, n.ids).map(clone);
       void finishGesture({ kind: 'move', start: { x: 0, y: 0 }, last: { x: n.dx, y: n.dy }, screenStart: { x: 0, y: 0 }, base: n.base, targets, tool: 'select', points: [], preview: moveCommand(n.base, n.ids, n.dx, n.dy), element: null });
     },
+    moveObject(id, toIndex) {
+      if (state.transitioning || !state.canWrite) return Promise.resolve(false);
+      const ids = state.document.elements.map((e) => e.id);
+      const from = ids.indexOf(id);
+      if (from === -1) return Promise.resolve(false);
+      const target = Math.max(0, Math.min(ids.length - 1, Math.round(toIndex)));
+      if (target === from) return Promise.resolve(false);
+      ids.splice(from, 1);
+      ids.splice(target, 0, id);
+      const element = state.document.elements.find((e) => e.id === id)!;
+      state.liveMessage = t('{name} an Position {position} von {count}', { name: describeElement(element, state.document), position: target + 1, count: ids.length });
+      return dispatch({ type: 'reorder', ids });
+    },
     reorder(op) {
       if (state.transitioning) return;
       const ids = state.document.elements.map((e) => e.id); const selection = new Set(state.selection);
@@ -1253,8 +1267,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
+    setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.draft = text; changedDraft(); } },
     setAnnotationDraft(document: AnnotationDocument, plainText: string) { if (state.canWrite && state.textEdit?.kind === 'annotation' && !state.transitioning) { state.textEdit.annotationDraft = cloneAnnotationDocument(document); state.textEdit.draft = plainText; changedDraft(); } },
     setComposing(composing) { if (state.textEdit) { state.textEdit.composing = composing; changedDraft(); } },

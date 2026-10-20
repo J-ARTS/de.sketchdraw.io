@@ -526,7 +526,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Nach „{label}“ verschieben': 'Move to “{label}”',
   'Aufgaben suchen': 'Search tasks',
   'Jira synchronisieren': 'Sync Jira',
-  'Aufgabenboard schließen': 'Close task board',
   'Kanban-Board': 'Kanban board',
   '{title}, Status {label}': '{title}, status {label}',
   'Keine Aufgaben': 'No tasks',
@@ -1019,4 +1018,6 @@ export const EN: Readonly<Record<string, string>> = {
   '{label}, in der Leiste': '{label}, in the bar',
   '{label}, Position {index}': '{label}, position {index}',
   'Schriftfarbe': 'Font color',
+  'Ziehen oder Alt+↑/↓ ändert die Reihenfolge': 'Drag or Alt+↑/↓ changes the order',
+  '{name} an Position {position} von {count}': '{name} at position {position} of {count}',
 };

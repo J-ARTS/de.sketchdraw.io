@@ -32,12 +32,14 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
   await expect(bar.getByRole('button', { name: 'Linie' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Textausrichtung' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Dokumentationslink' })).toBeDisabled();
-  await expect(bar.getByRole('button', { name: 'Autor bearbeiten' })).toBeDisabled();
+  await expect(bar.getByRole('button', { name: 'Autor bearbeiten' })).toBeEnabled();
 
   await editor.fill('Plan\nReview');
   await bar.getByRole('button', { name: 'Fett' }).click();
   await bar.getByRole('button', { name: 'Durchgestrichen' }).click();
+  await editor.press('ControlOrMeta+A');
   await bar.getByRole('button', { name: 'Aufzählung' }).click();
+  await expect(editor).toHaveValue('• Plan\n• Review');
   await bar.getByRole('button', { name: 'Schriftart' }).click();
   await page.getByRole('button', { name: 'Roboto (Sans Serif)', exact: true }).click();
   await expect(editor).toHaveCSS('font-weight', '700');
@@ -101,4 +103,29 @@ test('a sticky note creates one linked task and the task board returns to its so
   await expect(page.getByRole('toolbar', { name: 'Eigenschaften' })).toBeVisible();
   await expect(page.locator('.whiteboard-canvas [data-kind="sticky-note"]')).toHaveCount(1);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('the bullet list applies only to the selected lines and the author can be edited while typing', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('n');
+  await page.mouse.move(400, 300); await page.mouse.down(); await page.mouse.move(640, 540, { steps: 6 }); await page.mouse.up();
+  await page.mouse.dblclick(520, 420);
+  const editor = page.getByTestId('canvas-text-editor');
+  await editor.fill('Hello\nWorld\nTest');
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  // Select only "World" and make that line a list item.
+  await editor.evaluate((element) => { (element as HTMLTextAreaElement).setSelectionRange(6, 11); });
+  await bar.getByRole('button', { name: 'Aufzählung' }).click();
+  await expect(editor).toHaveValue('Hello\n• World\nTest');
+  await expect(bar.getByRole('button', { name: 'Aufzählung' })).toHaveAttribute('aria-pressed', 'true');
+  await bar.getByRole('button', { name: 'Aufzählung' }).click();
+  await expect(editor).toHaveValue('Hello\nWorld\nTest');
+
+  // The author button stays available while the text is edited and the author is committed with the text.
+  await bar.getByRole('button', { name: 'Autor bearbeiten' }).click();
+  const author = page.getByRole('textbox', { name: 'Autor' });
+  await author.fill('Jeremy'); await author.press('Enter');
+  await editor.focus();
+  await editor.press('ControlOrMeta+Enter');
+  await expect(page.getByTestId('sticky-note-author')).toContainText('Jeremy');
 });

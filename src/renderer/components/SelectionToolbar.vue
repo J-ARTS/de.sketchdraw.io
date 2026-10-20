@@ -11,6 +11,7 @@ import ColorPalette from './ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
 import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
+import { bulletsActive, toggleBullets } from '@/renderer/lib/bullets';
 import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
@@ -257,7 +258,7 @@ function commitFontSize(value: number): void { if (tableOnly.value) style({ font
 function connectorPatch(patch: ElementPatch): void { if (!editing.value) store.applyPatch(patch); }
 function unavailable(label: string): string { return editing.value ? t('{label} (während der Textbearbeitung nicht verfügbar)', { label }) : label; }
 // Document-level actions are unavailable during text editing; close their popovers.
-watch(editing, (value) => { if (value && openSegment.value && ['shape', 'radius', 'link', 'resource', 'author', 'more', 'actions'].includes(openSegment.value)) close(false); });
+watch(editing, (value) => { if (value && openSegment.value && ['shape', 'radius', 'link', 'resource', 'more', 'actions'].includes(openSegment.value)) close(false); });
 function widget(key: string, value: string): void {
   if (single.value) store.setPropertyDraft({ metadata: { ...single.value.metadata, [`widget:${single.value.componentType}:${key}`]: value } });
 }
@@ -297,10 +298,34 @@ function saveLink(): void {
     store.applyPatch({ embedUrl: parsed.url, label: webEmbedLabel(parsed.url) });
   } else store.applyPatch({ documentationUrl: url || null });
 }
+// Bullet list for sticky notes: only the selected lines of the text get the bullet (the caret line without a selection).
+const selectionTick = ref(0);
+useEventListener(document, 'selectionchange', () => { if (s.textEdit) selectionTick.value += 1; });
+const stickyEditor = (): HTMLTextAreaElement | null => document.querySelector<HTMLTextAreaElement>('[data-testid="canvas-text-editor"]');
+const stickyBulletsActive = computed(() => {
+  void selectionTick.value;
+  const editor = s.textEdit ? stickyEditor() : null;
+  if (s.textEdit) return editor ? bulletsActive(s.textEdit.draft, editor.selectionStart, editor.selectionEnd) : false;
+  const text = single.value?.text ?? '';
+  return bulletsActive(text, 0, text.length);
+});
+function toggleStickyBullets(): void {
+  const editor = s.textEdit ? stickyEditor() : null;
+  if (s.textEdit && editor) {
+    const result = toggleBullets(s.textEdit.draft, editor.selectionStart, editor.selectionEnd);
+    store.setTextDraft(result.text);
+    void nextTick(() => { editor.focus(); editor.setSelectionRange(result.start, result.end); selectionTick.value += 1; });
+    return;
+  }
+  const text = single.value?.text ?? '';
+  const result = toggleBullets(text, 0, text.length);
+  store.applyPatch({ text: result.text });
+}
 const authorDraft = ref('');
 watch(() => single.value?.author, (author) => { authorDraft.value = author ?? ''; }, { immediate: true });
 function saveAuthor(): void {
   const author = authorDraft.value.trim();
+  if (s.textEdit) { store.setTextAuthor(author || null); return; }
   if (author === (single.value?.author ?? '')) return;
   store.applyPatch({ author: author || null });
 }
@@ -480,8 +505,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="webEmbedOnly ? t('Webadresse') : t('Dokumentationslink')" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable(webEmbedOnly ? t('Webadresse') : t('Dokumentationslink'))" @click="toggle('link')">
         <AppIcon name="link" />
       </button>
-      <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="info.values.listStyle === 'bullet'" :title="t('Aufzählung')" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
-      <button v-if="stickyOnly" :ref="(el) => setTrigger('author', el)" type="button" class="tool-btn author-button" :disabled="editing" :aria-label="t('Autor bearbeiten')" :aria-expanded="openSegment === 'author'" :aria-controls="panelId('author')" :title="unavailable(t('Autor bearbeiten'))" @click="toggle('author')"><AppIcon name="user" /></button>
+      <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="stickyBulletsActive" :title="t('Aufzählung')" @mousedown.prevent @click="toggleStickyBullets"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
+      <button v-if="stickyOnly" :ref="(el) => setTrigger('author', el)" type="button" class="tool-btn author-button" :aria-label="t('Autor bearbeiten')" :aria-expanded="openSegment === 'author'" :aria-controls="panelId('author')" :title="t('Autor bearbeiten')" @click="toggle('author')"><AppIcon name="user" /></button>
       <button v-if="stickyOnly" type="button" class="tool-btn" :disabled="stickyTaskExists || s.transitioning" :aria-label="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" :title="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" @click="createStickyTask"><AppIcon name="file-plus" /></button>
       <template v-if="textCapable && !stickyOnly">
         <span class="sep" aria-hidden="true" />
@@ -508,6 +533,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     :id="panelId(openSegment)"
     ref="popover"
     class="context-popover"
+    :class="{ compact: openSegment === 'align' }"
     role="group"
     data-focus-scope
     :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
@@ -971,6 +997,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
   width: 28px;
   height: 12px;
 }
+
+.context-popover.compact { min-width: 0; }
 
 .context-popover {
   position: fixed;

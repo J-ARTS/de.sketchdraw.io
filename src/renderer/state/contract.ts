@@ -115,6 +115,9 @@ export interface TextEditSession {
   initialStyle: ElementStyle;
   initialText: string;
   draft: string;
+  /** Sticky note author while editing; written together with the text on commit. */
+  author?: string | null;
+  initialAuthor?: string | null;
   /** Present only while editing an annotation shape. */
   initialAnnotation: AnnotationDocument | null;
   annotationDraft: AnnotationDocument | null;
@@ -339,6 +342,8 @@ export interface WhiteboardStore {
   nudge(dx: number, dy: number): void;
   endNudge(): void;
   reorder(op: 'front' | 'back' | 'forward' | 'backward'): void;
+  /** Moves one element to a new position in the stacking order (object list drag and drop), one undo step. */
+  moveObject(id: string, toIndex: number): Promise<boolean>;
   groupSelection(): void;
   ungroupSelection(): void;
   connectSelection(): void;
@@ -359,6 +364,8 @@ export interface WhiteboardStore {
 
   startTextEdit(elementId?: string): void;
   setTextDraft(text: string): void;
+  /** Changes a sticky note's author while its text is edited; committed with the text. */
+  setTextAuthor(author: string | null): void;
   setAnnotationDraft(document: AnnotationDocument, plainText: string): void;
   setComposing(composing: boolean): void;
   /** Returns false (and keeps the editor open) while composing. */
