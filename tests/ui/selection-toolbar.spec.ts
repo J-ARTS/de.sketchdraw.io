@@ -235,7 +235,7 @@ test('the shape picker swaps shapes, keeps connections, filters by search and un
   await expect(page.locator('.whiteboard-canvas [data-shape-variant=square]')).toHaveCount(2);
 });
 
-test('an open popover opens on the side of the bar and never covers the shape', async ({ page }) => {
+test('an open popover opens on the side of the bar, above only when it fits completely', async ({ page }) => {
   // A selection near the top edge leaves no room above, so the bar flips below the shape (#38).
   await drawRectangle(page, [350, 110], [550, 210]);
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
@@ -257,8 +257,14 @@ test('an open popover opens on the side of the bar and never covers the shape', 
       expect(Math.abs(popoverBox.y - (barBox.y + barBox.height + 8))).toBeLessThan(3);
     } else {
       const popoverBottom = popoverBox.y + popoverBox.height;
-      expect(popoverBottom).toBeLessThanOrEqual(shapeBox.y + 1);
-      expect(Math.abs(popoverBottom - (Math.min(barBox.y, shapeBox.y) - 8))).toBeLessThan(3);
+      if (popoverBox.y >= barBox.y + barBox.height - 1) {
+        // Not enough room above the bar: the popover opens completely below it instead of being cut off.
+        expect(Math.abs(popoverBox.y - (barBox.y + barBox.height + 8))).toBeLessThan(3);
+        expect(popoverBottom).toBeLessThanOrEqual(page.viewportSize()!.height);
+      } else {
+        expect(popoverBottom).toBeLessThanOrEqual(shapeBox.y + 1);
+        expect(Math.abs(popoverBottom - (Math.min(barBox.y, shapeBox.y) - 8))).toBeLessThan(3);
+      }
     }
     return barBox.y;
   };
@@ -325,4 +331,22 @@ test('the font color can be chosen while typing in a shape and typing continues'
   const text = page.locator('[data-kind="rectangle"] text').first();
   await expect(text).toHaveText('Hallo Welt');
   expect(await text.evaluate((element) => getComputedStyle(element).fill)).toBe('rgb(229, 83, 58)');
+});
+
+test('a popover that does not fit above the bar opens completely below it', async ({ page }) => {
+  // The bar sits above the shape (room for the bar) but the popover needs more room than is left below the top chrome.
+  await drawRectangle(page, [350, 260], [550, 360]);
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: 'Farbe', exact: true }).click();
+  const popover = page.getByRole('group', { name: 'Farbe', exact: true });
+  await expect(popover).toBeVisible();
+  const barBox = (await bar.boundingBox())!;
+  const box = (await popover.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  // Fully visible, not clipped, and either completely above the bar or completely below it.
+  expect(box.y).toBeGreaterThanOrEqual(80);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+  expect(box.y + box.height <= barBox.y + 1 || box.y >= barBox.y + barBox.height - 1).toBe(true);
+  const clipped = await popover.locator('xpath=..').evaluate((element) => element.scrollHeight > element.clientHeight + 1);
+  expect(clipped).toBe(false);
 });

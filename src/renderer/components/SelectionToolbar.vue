@@ -138,8 +138,6 @@ const openSegment = ref<Segment | null>(null);
 const triggers = ref<Partial<Record<Segment, HTMLButtonElement>>>({});
 const popover = ref<HTMLElement | null>(null);
 const popoverAt = ref({ left: 0, top: 0, maxHeight: 0 });
-/** Below this much room above the selection a popover cannot show even one row of choices. */
-const MIN_POPOVER_SPACE = 48;
 
 function setTrigger(segment: Segment, element: unknown): void {
   if (element instanceof HTMLButtonElement) triggers.value[segment] = element;
@@ -173,20 +171,21 @@ function placePopover(): void {
   const windowOffset = barBox.top - position.value.top;
   const selectionTop = selTopLocal === null ? barBox.top : selTopLocal + windowOffset;
   const natural = (popover.value?.scrollHeight ?? box.height) + 2; // unclamped height, even after an earlier max-height
-  const fits = (space: number) => space >= Math.min(natural, MIN_POPOVER_SPACE);
   const belowBar = Math.max(0, window.innerHeight - barBox.bottom - 16); // 8 px gap + 8 px bottom margin
   const placeBelow = () => { popoverAt.value = { left, top: barBox.bottom + 8, maxHeight: belowBar }; };
-  if (barBox.top > selectionTop) {
-    // The bar was pushed below the selection: follow it downwards.
-    if (fits(belowBar)) { placeBelow(); return; }
-  } else {
-    const anchorTop = Math.min(barBox.top, selectionTop);
-    const spaceAbove = Math.max(0, anchorTop - 16);
-    if (fits(spaceAbove)) { popoverAt.value = { left, top: anchorTop - 8 - Math.min(natural, spaceAbove), maxHeight: spaceAbove }; return; }
-  }
-  const aboveBar = Math.max(0, barBox.top - 16);
-  if (belowBar >= aboveBar) placeBelow();
-  else popoverAt.value = { left, top: barBox.top - 8 - Math.min(natural, aboveBar), maxHeight: aboveBar };
+  // Above the anchor the popover must not reach under the top chrome (tool bars), so only the space below it counts.
+  const topLimit = s.viewportSize.width <= 1040 ? 144 : 80;
+  const anchorTop = Math.min(barBox.top, selectionTop);
+  const spaceAbove = Math.max(0, anchorTop - 8 - topLimit);
+  const placeAbove = () => { popoverAt.value = { left, top: anchorTop - 8 - Math.min(natural, spaceAbove), maxHeight: spaceAbove }; };
+  const barBelowSelection = barBox.top > selectionTop;
+  // Preferred side first; when the popover would not fit completely there, open on the other side of the bar (#86).
+  const preferredFits = barBelowSelection ? belowBar >= natural : spaceAbove >= natural;
+  const otherFits = barBelowSelection ? spaceAbove >= natural : belowBar >= natural;
+  if (preferredFits) { barBelowSelection ? placeBelow() : placeAbove(); return; }
+  if (otherFits) { barBelowSelection ? placeAbove() : placeBelow(); return; }
+  // Neither side shows it completely: use the larger one and scroll inside.
+  if (belowBar >= spaceAbove) placeBelow(); else placeAbove();
 }
 
 function close(returnFocus: boolean): void {
