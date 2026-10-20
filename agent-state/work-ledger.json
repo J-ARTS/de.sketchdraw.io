@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-18T21:00:43Z",
+  "updatedAt": "2026-10-20T12:12:19Z",
   "issues": [
     {
       "number": 1,
@@ -669,7 +669,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/42",
       "owner": "Antigravity + Codex",
       "phase": "Testing",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1897,7 +1897,7 @@
       "owner": "Claude Code (UI), Google Antigravity (logic), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI / Logic",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1914,7 +1914,7 @@
       "owner": "OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex",
       "phase": "Testing",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1931,7 +1931,7 @@
       "owner": "Google Antigravity (devops), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "Testing / DevOps",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1948,7 +1948,7 @@
       "owner": "OpenAI Codex (testing), Google Antigravity (devops)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "Testing / DevOps",
-      "status": "in_progress",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -7895,7 +7895,7 @@
         122,
         130
       ],
-      "status": "local_verified_awaiting_platform_ci",
+      "status": "integrated_and_platform_verified",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -7906,14 +7906,81 @@
         "tools/i18n-scan.mjs",
         "tests/unit/renderer/i18n-coverage.spec.ts",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/130",
-        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342"
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342",
+        "git:146b09d938e28daff6e79347ba48756cefb193e0",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335"
       ],
       "concerns": [
         "The complete release matrix must be rerun because local macOS cannot execute the Windows-native drive-letter path behavior.",
         "The post-change Graphify source refresh remains guarded when extraction produces fewer nodes than the preserved graph; deterministic ledger links are refreshed without forcing a destructive overwrite."
       ],
       "authorization": "The user authorized completing and releasing all current changes; Issue 130 is a release-blocking cross-platform test defect discovered during that verification.",
-      "measurementSource": "Local macOS evidence: targeted i18n coverage 5/5, both i18n CLI entrypoints, full Vitest suite 452/452 and typecheck passed. Exact Codex duration, tokens and cost were not measured and remain null."
+      "measurementSource": "Local macOS evidence: targeted i18n coverage 5/5, both i18n CLI entrypoints, full Vitest suite 452/452 and typecheck passed. GitHub Actions run 39165923335 then passed Governance/Graphify, direct P2P and the complete Ubuntu 24.04, macOS 15 and Windows 2025 matrix on exact integrated commit 146b09d. Exact Codex duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-v0.1.3-windows-path-finding-39165632342",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        122,
+        130
+      ],
+      "status": "cancelled_after_windows_failure",
+      "startedAt": "2026-10-18T20:57:07Z",
+      "endedAt": "2026-10-18T21:01:28Z",
+      "observedSeconds": 261,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:e3b91bc8e109758931e4da7d898e3ea4a4101688",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165632342/job/117787907253",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/130"
+      ],
+      "concerns": [
+        "The newly merged i18n scanner converted import.meta.url through URL.pathname, producing a duplicated Windows drive prefix. Ubuntu and macOS were cancelled after the definitive Windows failure so the corrected candidate could start."
+      ],
+      "authorization": "GitHub Actions verification was triggered by the authorized release-candidate push; cancellation followed the confirmed release-blocking Windows finding.",
+      "measurementSource": "GitHub Actions timestamps report 261 seconds. Governance and direct P2P passed; Windows failed in i18n coverage; Ubuntu and macOS were cancelled after the finding. Tokens and cost are not applicable and remain null."
+    },
+    {
+      "id": "github-actions-v0.1.3-final-candidate-39165923335",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        42,
+        122,
+        126,
+        127,
+        128,
+        129,
+        130
+      ],
+      "status": "passed_and_integrated",
+      "startedAt": "2026-10-18T21:01:02Z",
+      "endedAt": "2026-10-18T21:12:34Z",
+      "observedSeconds": 692,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:146b09d938e28daff6e79347ba48756cefb193e0",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335/job/117788821289",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335/job/117788821500",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335/job/117788859652",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335/job/117788859682",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/39165923335/job/117788859816",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/42",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/127",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/128",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/129",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/130"
+      ],
+      "concerns": [
+        "GitHub emitted Node.js 20 action-runtime deprecation annotations; all project checks passed and the warning does not change the verified application result."
+      ],
+      "authorization": "The user explicitly asked Codex to continue, merge the completed work, close eligible issues and publish the cross-platform release.",
+      "measurementSource": "GitHub Actions reports 692 seconds. Governance/Graphify, direct P2P, Ubuntu 24.04, macOS 15 and Windows 2025 all passed on exact commit 146b09d, which was then fast-forwarded into main. Tokens and cost are not applicable and remain null."
     }
   ],
   "evidencePolicy": {
