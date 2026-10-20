@@ -4,6 +4,7 @@ import { nextTick, ref } from 'vue';
 import AppIcon from './AppIcon.vue';
 import FramePreview from './FramePreview.vue';
 import { useWhiteboard } from './use-whiteboard';
+import { slideNotes, MAX_SLIDE_NOTES_LENGTH } from '../lib/slide-notes';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -36,6 +37,7 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
   <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" class="frame-sidebar sd-panel" data-testid="frame-sidebar" :aria-label="t('Folien')">
     <header><div><span class="eyebrow">{{ t('PRÄSENTATION') }}</span><h2 class="sd-panel-title">{{ t('Folien') }}</h2></div><button class="sd-icon-btn sd-panel-close" :aria-label="t('Folienleiste schließen')" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button></header>
     <button class="present sd-btn" :disabled="!s.frameSlides.length" @click="store.startPresentation()"><AppIcon name="maximize" /> {{ t('Präsentieren') }}</button>
+    <button class="present sd-btn" :disabled="!s.frameSlides.length" data-testid="present-with-notes" @click="store.startPresentation(undefined, true)"><AppIcon name="text" /> {{ t('Presenter-Ansicht mit Notizen') }}</button>
     <p v-if="!s.frameSlides.length" class="empty">{{ t('Ziehe mit') }} <kbd>F</kbd> {{ t('einen Frame auf. Jeder Frame wird hier als Folie angezeigt.') }}</p>
     <ol v-else class="slides">
       <li v-for="(frame, index) in s.frameSlides" :key="frame.id" :class="{ active: s.selection.includes(frame.id) }" draggable="true" @dragstart="draggingId = frame.id" @dragover.prevent @drop.prevent="drop(index)">
@@ -49,6 +51,10 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
           <span>{{ Math.round(frame.width) }} × {{ Math.round(frame.height) }}</span>
           <button class="grip sd-icon-btn" :aria-label="t('Folie ziehen; Alt und Pfeiltasten ändern die Reihenfolge')"><AppIcon name="grip" /></button>
         </div>
+        <details class="slide-notes" :open="Boolean(slideNotes(frame)) || undefined">
+          <summary>{{ t('Notizen') }}<span v-if="slideNotes(frame)" class="has-notes" aria-hidden="true" /></summary>
+          <textarea :value="slideNotes(frame)" :maxlength="MAX_SLIDE_NOTES_LENGTH" :disabled="!s.canWrite" :aria-label="t('Notizen zur Folie')" :placeholder="t('Notizen nur für dich – in der normalen Ansicht nicht sichtbar')" @change="store.setSlideNotes(frame.id, ($event.target as HTMLTextAreaElement).value)" />
+        </details>
       </li>
     </ol>
     <p class="hint">{{ t('Doppelklick benennt um · Ziehen oder Alt+↑/↓ sortiert') }}</p>
@@ -58,4 +64,5 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
 <style scoped>
 .frame-sidebar{position:absolute;top:var(--panel-top);right:16px;bottom:16px;z-index:22;width:280px;display:flex;flex-direction:column;padding:14px;overflow:hidden}.frame-sidebar header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.frame-sidebar h2{margin:2px 0 0}.eyebrow{font-size:9px;letter-spacing:.16em;color:var(--accent);font-weight:750}.present{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:12px}.present :deep(svg){width:17px}.empty{padding:28px 18px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.6}.empty kbd{padding:2px 6px;border:1px solid var(--border-default);border-radius:5px}.slides{display:grid;gap:12px;overflow:auto;list-style:none;padding:2px;margin:0}.slides li{position:relative;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised)}.slides li.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.slide-card{position:relative;width:100%;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--surface-canvas);aspect-ratio:16/9;cursor:pointer}.thumb{position:absolute;inset:0}.index{position:absolute;top:6px;left:6px;z-index:2;display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--surface-panel) 88%,transparent);font-size:11px;font-weight:700}.slide-meta{display:grid;grid-template-columns:minmax(0,1fr) auto 30px;align-items:center;gap:5px;margin-top:7px}.slide-meta input,.name{min-width:0;width:100%;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:12px;font-weight:650;text-align:left;padding:3px}.slide-meta input{outline:1px solid var(--accent);border-radius:4px}.slide-meta>span{font-size:9px;color:var(--text-muted)}.grip{width:28px;height:28px;color:var(--text-muted)}.hint{margin:10px 0 0;text-align:center;font-size:9px;color:var(--text-muted)}
 @media(max-width:760px){.frame-sidebar{right:8px;bottom:8px;width:min(270px,calc(100vw - 16px))}}
+.slide-notes{margin:4px 2px 0;font-size:12px;color:var(--text-muted)}.slide-notes summary{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0}.has-notes{width:6px;height:6px;border-radius:50%;background:var(--accent)}.slide-notes textarea{width:100%;min-height:72px;margin-top:4px;resize:vertical;padding:8px;border:1px solid var(--border-default);border-radius:8px;background:var(--surface-panel);color:var(--text-primary);font:13px/1.45 var(--font-sans)}
 </style>

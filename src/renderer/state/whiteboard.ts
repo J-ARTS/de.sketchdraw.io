@@ -55,6 +55,8 @@ import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type P
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 import { setLocale, t, tm, tn } from '@/renderer/i18n';
+import { fittedTextHeight } from '../lib/text-metrics';
+import { MAX_SLIDE_NOTES_LENGTH, SLIDE_NOTES_KEY, slideNotes } from '../lib/slide-notes';
 type Gesture = {
   kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'connector-point' | 'pan' | 'marquee';
   start: Point; last: Point; screenStart: Point; base: DocumentSession;
@@ -295,6 +297,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get frameSlides() { return orderedFrames(this.document); },
     presenterOpen: false,
     presenterIndex: 0,
+    presenterNotes: false,
     activeCommentId: null as string | null,
     commentComposerTarget: null as CommentTarget | null,
     unreadCommentIds: [] as string[],
@@ -394,7 +397,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   /** Segment handles are only shown on screen-space segments at least this long (px). */
   const MIN_SEGMENT_HANDLE_LENGTH = 48;
   function handleAt(point: Point): HandleView | undefined {
-    if (state.tool !== 'select') return undefined;
+    // The text tool keeps the handles of the selected text usable (resize, rotate).
+    if (state.tool !== 'select' && state.tool !== 'text') return undefined;
     const hits = (handle: HandleView): boolean => {
       const dx = Math.abs(handle.x - point.x);
       const dy = Math.abs(handle.y - point.y);
@@ -545,15 +549,21 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
     if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
+    const existing = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : undefined;
+    // Free text grows and shrinks with its line count; the width stays whatever the user chose.
+    const textWidth = existing?.width ?? edit.box.width;
+    const fitHeight = edit.kind === 'text' ? fittedTextHeight(edit.draft, textWidth, edit.style.fontSize) : null;
+    const heightPatch = fitHeight !== null && (existing ? Math.abs(existing.height - fitHeight) > 0.5 : true) ? { height: fitHeight } : {};
     const contentPatch = edit.kind === 'annotation' && edit.annotationDraft
       ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
-      : textChanged ? { text: edit.draft } : {};
+      : textChanged || Object.keys(heightPatch).length ? { text: edit.draft, ...heightPatch } : {};
     const command: DocumentCommand = edit.elementId
       ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}) } }] }
       : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style } })] };
+    const createdText = !edit.elementId && edit.kind === 'text';
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
-    const recover = () => { if (state.textEdit === edit) { state.textEdit = null; setSelection([id]); changedDraft(); } };
+    const recover = () => { if (state.textEdit === edit) { state.textEdit = null; setSelection([id]); if (createdText && state.tool === 'text') state.tool = 'select'; changedDraft(); } };
     const ok = await dispatch(command, state.revision === textRevision ? textRevision : state.revision, 'human', recover);
     if (ok) recover();
     return ok;
@@ -1648,13 +1658,21 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(ids) } });
       state.presenterIndex = target;
     },
-    startPresentation(frameId) {
+    setPresenterNotes(open) { state.presenterNotes = open; },
+    setSlideNotes(frameId, notes) {
+      if (!state.canWrite || state.transitioning) return;
+      const frame = state.frameSlides.find((entry) => entry.id === frameId);
+      const value = notes.slice(0, MAX_SLIDE_NOTES_LENGTH);
+      if (!frame || slideNotes(frame) === value) return;
+      void dispatch({ type: 'update', changes: [{ id: frameId, patch: { metadata: { [SLIDE_NOTES_KEY]: value.trim() ? value : null } } }] });
+    },
+    startPresentation(frameId, withNotes = false) {
       const slides = state.frameSlides;
       if (!slides.length) { notice(t('Lege zuerst mindestens einen Frame an.'), 'error'); return; }
       const selectedFrame = frameId ?? state.selection.find((id) => slides.some((frame) => frame.id === id));
       const index = selectedFrame ? slides.findIndex((frame) => frame.id === selectedFrame) : 0;
       state.presenterIndex = Math.max(0, index);
-      state.presenterOpen = true;
+      state.presenterOpen = true; state.presenterNotes = withNotes;
       state.liveMessage = t('Präsentation gestartet: {name}.', { name: slides[state.presenterIndex]?.label || t('Folie {index}', { index: state.presenterIndex + 1 }) });
     },
     stopPresentation() { state.presenterOpen = false; state.liveMessage = t('Präsentation beendet.'); },

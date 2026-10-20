@@ -264,6 +264,8 @@ export interface WhiteboardState {
   frameSlides: readonly SketchElement[];
   presenterOpen: boolean;
   presenterIndex: number;
+  /** Presenter view: the presentation shows the speaker notes of the current slide next to it. */
+  presenterNotes: boolean;
   activeCommentId: string | null;
   commentComposerTarget: CommentTarget | null;
   unreadCommentIds: readonly string[];
@@ -421,7 +423,10 @@ export interface WhiteboardStore {
   focusFrame(id: string): void;
   renameFrame(id: string, name: string): void;
   moveFrame(id: string, toIndex: number): void;
-  startPresentation(frameId?: string): void;
+  startPresentation(frameId?: string, withNotes?: boolean): void;
+  /** Writes the speaker notes of a slide (stored in the frame's metadata, one undo step). */
+  setSlideNotes(frameId: string, notes: string): void;
+  setPresenterNotes(open: boolean): void;
   stopPresentation(): void;
   goToPresentation(index: number): void;
 

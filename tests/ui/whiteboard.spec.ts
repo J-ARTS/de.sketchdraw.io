@@ -289,3 +289,28 @@ test('the text tool edits an existing text instead of creating a second one', as
   await expect(texts).toHaveCount(1);
   await expect(texts.first()).toContainText('Hello World');
 });
+
+test('free text grows with every line break and its box can be resized afterwards', async ({ page }) => {
+  await page.keyboard.press('t');
+  await page.mouse.click(400, 400);
+  await page.keyboard.type('Hello');
+  await page.keyboard.press('Control+Enter');
+  const text = page.locator('.whiteboard-canvas [data-kind=text]');
+  const height = async () => Number(await text.locator('clipPath rect').first().getAttribute('height'));
+  const oneLine = await height();
+
+  await page.mouse.dblclick(420, 412);
+  await expect(page.getByTestId('canvas-text-editor')).toBeVisible();
+  await page.getByTestId('canvas-text-editor').fill('Hello\nTest\n- das ist schön');
+  await page.keyboard.press('Control+Enter');
+  await expect.poll(height).toBeGreaterThan(oneLine * 1.7);
+  await expect(text).toContainText('das ist schön');
+
+  // The box can be dragged wider at the corner handle.
+  const width = async () => Number(await text.locator('clipPath rect').first().getAttribute('width'));
+  const widthBefore = await width();
+  const handle = (await page.locator('[data-handle="se"]').boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down(); await page.mouse.move(handle.x + 160, handle.y + 40, { steps: 6 }); await page.mouse.up();
+  await expect.poll(width).toBeGreaterThan(widthBefore + 100);
+});

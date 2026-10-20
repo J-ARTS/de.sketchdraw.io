@@ -1021,4 +1021,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Ziehen oder Alt+↑/↓ ändert die Reihenfolge': 'Drag or Alt+↑/↓ changes the order',
   '{name} an Position {position} von {count}': '{name} at position {position} of {count}',
   'Animiert': 'Animated',
+  'Presenter-Ansicht mit Notizen': 'Presenter view with notes',
+  'Notizen zur Folie': 'Slide notes',
+  'Notizen nur für dich – in der normalen Ansicht nicht sichtbar': 'Notes just for you – not visible in the normal view',
+  'Notizen': 'Notes',
 };
