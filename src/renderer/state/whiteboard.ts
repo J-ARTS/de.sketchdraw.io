@@ -56,6 +56,7 @@ import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorD
 
 import { setLocale, t, tm, tn } from '@/renderer/i18n';
 import { fittedTextHeight } from '../lib/text-metrics';
+import { normalizeLinkUrl, parseTextLinks, removeLinks, sameTextLinks, serializeTextLinks, setLink, shiftLinks, TEXT_LINKS_KEY } from '../lib/text-links';
 import { MAX_SLIDE_NOTES_LENGTH, SLIDE_NOTES_KEY, slideNotes } from '../lib/slide-notes';
 type Gesture = {
   kind: 'draw' | 'erase' | 'move' | 'resize' | 'rotate' | 'connector-point' | 'pan' | 'marquee';
@@ -547,7 +548,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
     const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
     const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
-    if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    const linksChanged = edit.kind !== 'annotation' && !sameTextLinks(edit.links ?? [], edit.initialLinks ?? []);
+    if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged && !linksChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
     const existing = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : undefined;
     // Free text grows and shrinks with its line count; the width stays whatever the user chose.
@@ -558,8 +560,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
       : textChanged || Object.keys(heightPatch).length ? { text: edit.draft, ...heightPatch } : {};
     const command: DocumentCommand = edit.elementId
-      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}) } }] }
-      : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style } })] };
+      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}), ...(linksChanged || (textChanged && (edit.links?.length ?? 0) > 0) ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? []) } } : {}) } }] }
+      : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style }, ...((edit.links?.length ?? 0) > 0 ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? [])! } } : {}) })] };
     const createdText = !edit.elementId && edit.kind === 'text';
     const now = edit.elementId ? state.document.elements.find((e) => e.id === edit.elementId) : null;
     if (edit.elementId && !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
@@ -1277,10 +1279,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       textBase = e ? clone(e) : null; textRevision = state.revision;
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
-    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.draft = text; changedDraft(); } },
+    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
+    setTextLink(start, end, url) {
+      const edit = state.textEdit;
+      if (!state.canWrite || !edit || state.transitioning || edit.kind === 'annotation') return false;
+      if (url === null) { edit.links = removeLinks(edit.links ?? [], start, end); changedDraft(); return true; }
+      const normalized = normalizeLinkUrl(url);
+      if (!normalized || end <= start) return false;
+      edit.links = setLink(edit.links ?? [], start, end, normalized); changedDraft();
+      return true;
+    },
     setAnnotationDraft(document: AnnotationDocument, plainText: string) { if (state.canWrite && state.textEdit?.kind === 'annotation' && !state.transitioning) { state.textEdit.annotationDraft = cloneAnnotationDocument(document); state.textEdit.draft = plainText; changedDraft(); } },
     setComposing(composing) { if (state.textEdit) { state.textEdit.composing = composing; changedDraft(); } },
     commitTextEdit() { if (state.textEdit?.composing || state.transitioning) return false; void applyText(); return true; },

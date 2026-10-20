@@ -26,12 +26,12 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
   const noteBox = (await note.boundingBox())!;
   const barBox = (await bar.boundingBox())!;
   expect(barBox.y + barBox.height).toBeLessThan(noteBox.y);
-  for (const name of ['Farbe', 'Schriftfarbe', 'Schriftart', 'Fett', 'Durchgestrichen', 'Dokumentationslink', 'Aufzählung', 'Autor bearbeiten']) {
+  for (const name of ['Farbe', 'Schriftfarbe', 'Schriftart', 'Fett', 'Durchgestrichen', 'Link zum Text', 'Aufzählung', 'Autor bearbeiten']) {
     await expect(bar.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await expect(bar.getByRole('button', { name: 'Linie' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Textausrichtung' })).toHaveCount(0);
-  await expect(bar.getByRole('button', { name: 'Dokumentationslink' })).toBeDisabled();
+  await expect(bar.getByRole('button', { name: 'Link zum Text' })).toBeEnabled();
   await expect(bar.getByRole('button', { name: 'Autor bearbeiten' })).toBeEnabled();
 
   await editor.fill('Plan\nReview');
@@ -128,4 +128,55 @@ test('the bullet list applies only to the selected lines and the author can be e
   await editor.focus();
   await editor.press('ControlOrMeta+Enter');
   await expect(page.getByTestId('sticky-note-author')).toContainText('Jeremy');
+});
+
+test('a link can be put on the selected words, edited and removed again', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('n');
+  await page.mouse.move(400, 300); await page.mouse.down(); await page.mouse.move(640, 540, { steps: 6 }); await page.mouse.up();
+  await page.mouse.dblclick(520, 420);
+  const editor = page.getByTestId('canvas-text-editor');
+  await editor.fill('Hello Test link');
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  const linkButton = bar.getByRole('button', { name: 'Link zum Text' });
+
+  // Without a selection there is nothing to link.
+  await editor.evaluate((element) => { (element as HTMLTextAreaElement).setSelectionRange(2, 2); });
+  await linkButton.click();
+  await expect(page.getByRole('button', { name: 'Link setzen' })).toBeDisabled();
+  await page.keyboard.press('Escape');
+
+  // Select "Test" and link it.
+  await editor.evaluate((element) => { (element as HTMLTextAreaElement).setSelectionRange(6, 10); });
+  await linkButton.click();
+  const input = page.getByRole('textbox', { name: 'Link zum markierten Text' });
+  await input.fill('javascript:alert(1)'); await input.press('Enter');
+  await expect(page.getByRole('alert')).toContainText('gültige Webadresse');
+  await input.fill('example.com/docs'); await input.press('Enter');
+  await expect(editor).toBeFocused();
+  await editor.press('ControlOrMeta+Enter');
+  const link = page.locator('[data-text-link]');
+  await expect(link).toHaveCount(1);
+  await expect(link).toHaveText('Test');
+  await expect(link).toHaveAttribute('data-text-link', 'https://example.com/docs');
+
+  // Ctrl/Cmd+click on the linked word opens the address.
+  const popup = page.waitForEvent('popup', { timeout: 5000 }).catch(() => null);
+  await link.click({ modifiers: ['ControlOrMeta'] });
+  const opened = await popup;
+  expect(opened?.url() ?? '').toContain('example.com/docs');
+  await opened?.close();
+
+  // Editing keeps the link on its word; the link under the caret can be changed and removed.
+  await page.mouse.dblclick(520, 330);
+  await editor.evaluate((element) => { const field = element as HTMLTextAreaElement; field.setSelectionRange(0, 0); });
+  await editor.press('Home');
+  await page.keyboard.type('Oh ');
+  await editor.evaluate((element) => { (element as HTMLTextAreaElement).setSelectionRange(10, 10); });
+  await linkButton.click();
+  await expect(page.getByRole('textbox', { name: 'Link zum markierten Text' })).toHaveValue('https://example.com/docs');
+  await page.getByRole('button', { name: 'Link entfernen' }).click();
+  await editor.press('ControlOrMeta+Enter');
+  await expect(page.locator('[data-text-link]')).toHaveCount(0);
+  await expect(page.locator('.whiteboard-canvas [data-kind="sticky-note"]')).toContainText('Oh Hello Test link');
 });

@@ -1025,4 +1025,11 @@ export const EN: Readonly<Record<string, string>> = {
   'Notizen zur Folie': 'Slide notes',
   'Notizen nur für dich – in der normalen Ansicht nicht sichtbar': 'Notes just for you – not visible in the normal view',
   'Notizen': 'Notes',
+  'Link zum Text': 'Link on text',
+  'Link zum markierten Text': 'Link for the selected text',
+  'Link ändern': 'Change link',
+  'Link setzen': 'Set link',
+  'Link entfernen': 'Remove link',
+  'Text markieren, um einen Link zu setzen': 'Select text to set a link',
+  'Bitte eine gültige Webadresse (http oder https) eingeben.': 'Please enter a valid web address (http or https).',
 };

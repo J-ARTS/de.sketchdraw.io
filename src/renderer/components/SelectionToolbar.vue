@@ -12,6 +12,7 @@ import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@
 import { docToScreen } from '@/renderer/lib/viewport';
 import { FONT_FAMILY_CSS } from '@/renderer/lib/constants';
 import { bulletsActive, toggleBullets } from '@/renderer/lib/bullets';
+import { linkAt } from '@/renderer/lib/text-links';
 import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
@@ -19,7 +20,7 @@ import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -147,6 +148,7 @@ function setTrigger(segment: Segment, element: unknown): void {
 
 async function toggle(segment: Segment): Promise<void> {
   if (openSegment.value === segment) { close(true); return; }
+  if (segment === 'textlink') prepareTextLink();
   openSegment.value = segment;
   await nextTick();
   placePopover();
@@ -321,6 +323,46 @@ function toggleStickyBullets(): void {
   const text = single.value?.text ?? '';
   const result = toggleBullets(text, 0, text.length);
   store.applyPatch({ text: result.text });
+}
+// Links on parts of the text while it is edited: the selected words (or the link under the caret) get the address.
+const textLinkCapable = computed(() => Boolean(s.textEdit && s.textEdit.kind !== 'annotation' && s.textEdit.kind !== 'table'));
+const textEditHasLinks = computed(() => (s.textEdit?.links?.length ?? 0) > 0);
+const textLinkDraft = ref('');
+const textLinkError = ref('');
+const textLinkRange = ref<{ start: number; end: number } | null>(null);
+const textLinkCurrent = computed(() => (textLinkRange.value && s.textEdit ? linkAt(s.textEdit.links ?? [], textLinkRange.value.start, textLinkRange.value.end) : undefined));
+const textLinkSelectionLabel = computed(() => {
+  const range = textLinkRange.value;
+  if (!range || !s.textEdit) return t('Text markieren, um einen Link zu setzen');
+  const link = textLinkCurrent.value;
+  const target = link && range.end === range.start ? { start: link.start, end: link.end } : range;
+  return `„${s.textEdit.draft.slice(target.start, target.end).replace(/\s+/g, ' ').slice(0, 60)}“`;
+});
+function prepareTextLink(): void {
+  const editor = stickyEditor();
+  textLinkError.value = '';
+  if (!s.textEdit || !editor) { textLinkRange.value = null; textLinkDraft.value = ''; return; }
+  const start = Math.min(editor.selectionStart, editor.selectionEnd); const end = Math.max(editor.selectionStart, editor.selectionEnd);
+  const link = linkAt(s.textEdit.links ?? [], start, end);
+  textLinkRange.value = end > start || link ? { start, end } : null;
+  textLinkDraft.value = link?.url ?? '';
+}
+function finishTextLink(range: { start: number; end: number }): void {
+  close(false);
+  void nextTick(() => { const editor = stickyEditor(); editor?.focus(); editor?.setSelectionRange(range.start, range.end); selectionTick.value += 1; });
+}
+function applyTextLink(): void {
+  const range = textLinkRange.value; const link = textLinkCurrent.value;
+  if (!range) return;
+  const target = link && range.end === range.start ? { start: link.start, end: link.end } : range;
+  if (!store.setTextLink(target.start, target.end, textLinkDraft.value)) { textLinkError.value = t('Bitte eine gültige Webadresse (http oder https) eingeben.'); return; }
+  finishTextLink(range);
+}
+function removeTextLink(): void {
+  const range = textLinkRange.value;
+  if (!range) return;
+  store.setTextLink(range.start, range.end, null);
+  finishTextLink(range);
 }
 const authorDraft = ref('');
 watch(() => single.value?.author, (author) => { authorDraft.value = author ?? ''; }, { immediate: true });
@@ -503,7 +545,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" :aria-label="t('Ressourcenkarte bearbeiten')" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable(t('Ressourcenkarte bearbeiten'))" @click="toggle('resource')">
         <AppIcon name="more" />
       </button>
-      <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing" :ref="(el) => setTrigger('link', el)" type="button" class="tool-btn" :class="{ on: Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="webEmbedOnly ? t('Webadresse') : t('Dokumentationslink')" :aria-expanded="openSegment === 'link'" :aria-controls="panelId('link')" :title="unavailable(webEmbedOnly ? t('Webadresse') : t('Dokumentationslink'))" @click="toggle('link')">
+      <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing && !textLinkCapable" :ref="(el) => setTrigger(editing ? 'textlink' : 'link', el)" type="button" class="tool-btn" :class="{ on: editing ? textEditHasLinks : Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="editing ? t('Link zum Text') : webEmbedOnly ? t('Webadresse') : t('Dokumentationslink')" :aria-expanded="openSegment === (editing ? 'textlink' : 'link')" :aria-controls="panelId(editing ? 'textlink' : 'link')" :title="editing ? t('Link zum Text') : unavailable(webEmbedOnly ? t('Webadresse') : t('Dokumentationslink'))" @click="toggle(editing ? 'textlink' : 'link')">
         <AppIcon name="link" />
       </button>
       <button v-if="stickyOnly" type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="stickyBulletsActive" :title="t('Aufzählung')" @mousedown.prevent @click="toggleStickyBullets"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
@@ -537,7 +579,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     :class="{ compact: openSegment === 'align' }"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
+    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -640,6 +682,16 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     </div>
 
     <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
+
+    <template v-else-if="openSegment === 'textlink'">
+      <p class="link-hint">{{ textLinkSelectionLabel }}</p>
+      <label class="field">{{ t('Link zum markierten Text') }}<input ref="textLinkInput" v-model="textLinkDraft" class="ctx-input wide" type="url" :aria-label="t('Link zum markierten Text')" placeholder="https://" @keydown.enter.prevent="applyTextLink" /></label>
+      <p v-if="textLinkError" class="link-error" role="alert">{{ textLinkError }}</p>
+      <div class="link-actions">
+        <button type="button" class="ctx-btn" :disabled="!textLinkRange" @click="applyTextLink">{{ textLinkCurrent ? t('Link ändern') : t('Link setzen') }}</button>
+        <button v-if="textLinkCurrent" type="button" class="ctx-btn" @click="removeTextLink">{{ t('Link entfernen') }}</button>
+      </div>
+    </template>
 
     <template v-else-if="openSegment === 'link'">
       <label class="field">{{ webEmbedOnly ? t('Webadresse') : stickyOnly ? t('Link') : t('Dokumentationslink') }}<input v-model="linkDraft" class="ctx-input wide" type="url" :aria-label="webEmbedOnly ? t('Webadresse') : stickyOnly ? t('Link') : t('Dokumentationslink')" placeholder="https://" @change="saveLink" @keydown.enter.prevent="saveLink" /></label>
@@ -1173,4 +1225,5 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     color: HighlightText;
   }
 }
+.link-hint{margin:0;color:var(--menu-muted);font-size:12px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.link-error{margin:0;color:var(--status-error);font-size:12px}.link-actions{display:flex;gap:8px}
 </style>

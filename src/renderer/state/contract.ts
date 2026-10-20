@@ -118,6 +118,9 @@ export interface TextEditSession {
   /** Sticky note author while editing; written together with the text on commit. */
   author?: string | null;
   initialAuthor?: string | null;
+  /** Hyperlinks on parts of the text (plain text elements only); committed with the text. */
+  links?: import('../lib/text-links').TextLink[];
+  initialLinks?: import('../lib/text-links').TextLink[];
   /** Present only while editing an annotation shape. */
   initialAnnotation: AnnotationDocument | null;
   annotationDraft: AnnotationDocument | null;
@@ -368,6 +371,8 @@ export interface WhiteboardStore {
   setTextDraft(text: string): void;
   /** Changes a sticky note's author while its text is edited; committed with the text. */
   setTextAuthor(author: string | null): void;
+  /** Links [start, end) of the edited text to `url`, or removes the link there when `url` is null. */
+  setTextLink(start: number, end: number, url: string | null): boolean;
   setAnnotationDraft(document: AnnotationDocument, plainText: string): void;
   setComposing(composing: boolean): void;
   /** Returns false (and keeps the editor open) while composing. */

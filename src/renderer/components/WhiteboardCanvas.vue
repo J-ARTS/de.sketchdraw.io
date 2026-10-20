@@ -102,6 +102,11 @@ function input(event: PointerEvent | MouseEvent): PointerInput {
 }
 function down(event: PointerEvent) {
   if (activePointer !== null) return;
+  // Ctrl/Cmd+click on linked text opens its address.
+  if ((event.ctrlKey || event.metaKey) && event.button === 0) {
+    const url = (event.target as Element | null)?.closest?.('[data-text-link]')?.getAttribute('data-text-link');
+    if (url) { event.preventDefault(); void store.openDocumentationLink(url); return; }
+  }
   canvas.value?.focus({ preventScroll: true });
   event.preventDefault(); activePointer = event.pointerId;
   canvas.value?.setPointerCapture(event.pointerId);

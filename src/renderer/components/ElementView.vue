@@ -4,6 +4,7 @@ import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
 import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
+import { lineSegments, parseTextLinks } from '../lib/text-links';
 import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
@@ -82,13 +83,18 @@ const fontSize = computed(() => e.value.style.fontSize);
 const lines = computed(() => {
   const inset = e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : 16;
   const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * .6)));
+  let offset = 0;
   return displayText.value.split('\n').flatMap((line) => {
-    const chars = Array.from(line); const result: string[] = [];
-    for (let i = 0; i < chars.length; i += max) result.push(chars.slice(i, i + max).join(''));
-    return result.length ? result : [''];
-  }).map((line) => e.value.style.listStyle === 'bullet' && line ? `• ${line}` : line)
+    const chars = Array.from(line); const result: Array<{ text: string; from: number }> = [];
+    let at = offset;
+    for (let i = 0; i < chars.length; i += max) { const chunk = chars.slice(i, i + max).join(''); result.push({ text: chunk, from: at }); at += chunk.length; }
+    offset += line.length + 1;
+    return result.length ? result : [{ text: '', from: at }];
+  }).map((entry) => ({ ...entry, bullet: e.value.style.listStyle === 'bullet' && entry.text !== '' }))
     .slice(0, Math.max(1, Math.floor((e.value.height - (e.value.kind === 'sticky-note' ? 68 : 0)) / (fontSize.value * 1.25))));
 });
+/** Hyperlinks on parts of the text, drawn underlined and opened with Ctrl/Cmd+click. */
+const textLinks = computed(() => (text.value ? parseTextLinks(e.value.metadata, text.value.length) : []));
 const textX = computed(() => e.value.style.textAlign === 'center' ? e.value.width / 2 : e.value.style.textAlign === 'right' ? e.value.width - (e.value.kind === 'sticky-note' ? 20 : 8) : e.value.kind === 'text' ? 0 : e.value.kind === 'sticky-note' ? 20 : 8);
 const textY = computed(() => e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
 const connectorPath = computed(() => e.value.kind === 'connector' ? connectorPathData(e.value) : '');
@@ -236,13 +242,14 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       </div>
     </foreignObject>
     <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
-      <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25">{{ line }}</tspan>
+      <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25"><template v-if="line.bullet">• </template><template v-for="(segment, j) in lineSegments(line.text, line.from, textLinks)" :key="j"><tspan v-if="segment.url" class="text-link" text-decoration="underline" pointer-events="visiblePainted" :data-text-link="segment.url">{{ segment.text }}</tspan><template v-else>{{ segment.text }}</template></template></tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="textColor" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>
   </g>
 </template>
 
 <style scoped>
+.text-link { cursor: pointer; }
 .dash-animated { animation: sd-dash-flow 0.9s linear infinite; }
 @keyframes sd-dash-flow { to { stroke-dashoffset: -14; } }
 @media (prefers-reduced-motion: reduce) { .dash-animated { animation: none; } }

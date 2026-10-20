@@ -70,10 +70,13 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   expect(editBox.x).toBeGreaterThanOrEqual(0); expect(editBox.x + editBox.width).toBeLessThanOrEqual(480);
   expect(editBox.y + editBox.height).toBeLessThanOrEqual(330);
   await expect(bar.getByRole('button')).toHaveCount(buttonCount);
-  for (const name of ['Form ändern', 'Text bearbeiten', 'Dokumentationslink', 'Elementaktionen']) {
+  for (const name of ['Form ändern', 'Text bearbeiten', 'Elementaktionen']) {
     const action = bar.getByRole('button', { name });
     await expect(action).toBeVisible(); await expect(action).toBeDisabled();
   }
+  // The link button turns into the text link while the text is edited.
+  await expect(bar.getByRole('button', { name: 'Link zum Text' })).toBeEnabled();
+  await expect(bar.getByRole('button', { name: 'Dokumentationslink' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Text bearbeiten' })).toHaveAttribute('aria-pressed', 'true');
   await expect(bar.getByRole('button', { name: 'Form ändern' })).toHaveAttribute('title', /nicht verfügbar/);
   for (const name of ['Farbe', 'Schriftfarbe', 'Linie', 'Schriftart', 'Textausrichtung']) await expect(bar.getByRole('button', { name, exact: true })).toBeEnabled();
