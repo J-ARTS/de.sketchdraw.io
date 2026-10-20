@@ -146,6 +146,7 @@ export function moveElbowedSegment(
   segmentIndex: number,
   target: Point,
   stubLength = 24,
+  snapDistance = 0,
 ): Point[] {
   if (points.length < 2 || segmentIndex < 0 || segmentIndex >= points.length - 1) {
     return points.map((point) => ({ ...point }));
@@ -155,7 +156,14 @@ export function moveElbowedSegment(
   const end = route[segmentIndex + 1]!;
   const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y);
   const currentAxis = horizontal ? start.y : start.x;
-  const targetAxis = horizontal ? target.y : target.x;
+  let targetAxis = horizontal ? target.y : target.x;
+  // Snap to the axis of any other bend or endpoint (and the segment's own), so a segment dragged back into line
+  // merges with its neighbours instead of leaving a tiny jog with an extra handle behind.
+  if (snapDistance > 0) {
+    const axes = route.map((point) => (horizontal ? point.y : point.x));
+    const nearest = axes.reduce((best, axis) => (Math.abs(axis - targetAxis) < Math.abs(best - targetAxis) ? axis : best), currentAxis);
+    if (Math.abs(nearest - targetAxis) <= snapDistance) targetAxis = nearest;
+  }
   if (Math.abs(targetAxis - currentAxis) < ROUTE_EPSILON) return simplifyElbowedRoute(route);
 
   const stub = Math.max(1, stubLength);

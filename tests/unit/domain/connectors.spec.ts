@@ -72,6 +72,16 @@ describe('connector contract', () => {
     expect(moved.slice(1).every((point, index) => point.x === moved[index]!.x || point.y === moved[index]!.y)).toBe(true);
   });
 
+  test('a segment dragged back next to its neighbours snaps into line and merges instead of leaving a jog', () => {
+    const jogged = [{ x: 0, y: 0 }, { x: 24, y: 0 }, { x: 24, y: -48 }, { x: 80, y: -48 }, { x: 80, y: 80 }, { x: 160, y: 80 }];
+    const merged = moveElbowedSegment(jogged, 2, { x: 50, y: 3 }, 24, 6);
+    expect(merged).toEqual([{ x: 0, y: 0 }, { x: 80, y: 0 }, { x: 80, y: 80 }, { x: 160, y: 80 }]);
+    // Without snapping the same drop would keep a 3-unit jog (and a handle for every tiny segment).
+    expect(moveElbowedSegment(jogged, 2, { x: 50, y: 3 }, 24, 0).length).toBeGreaterThan(4);
+    // Far away from every other axis the segment moves freely.
+    expect(moveElbowedSegment(jogged, 2, { x: 50, y: -30 }, 24, 6)[2]).toEqual({ x: 24, y: -30 });
+  });
+
   test('rebuilds route geometry when the line type changes instead of retaining stale bends', () => {
     const custom = createElement('connector', {
       width: 160,

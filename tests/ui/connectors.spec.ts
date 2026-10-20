@@ -277,3 +277,41 @@ test('an endpoint stays grabbable next to its stub, can move to another dock poi
   expect(Math.abs(freed.y + freed.height / 2 - 650)).toBeLessThan(8);
   await expect(page.getByTestId('connector-target-highlight')).toBeHidden();
 });
+
+test('a segment dragged out and back into line merges again without extra segment handles', async ({ page }) => {
+  await rectangle(page, 220); await rectangle(page, 700, 460);
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await page.mouse.move(300, 350);
+  await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 }); await page.mouse.up();
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: /^Linienform:/ }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Rechtwinklig' }).click();
+  const path = page.locator('.whiteboard-canvas [data-kind=connector] path').last();
+  const segmentHandles = page.locator('[data-testid^="connector-segment-handle-"]');
+  await expect(segmentHandles).toHaveCount(3);
+  // The path is stored relative to the element box, which moves with the bends: compare the shape from its first point.
+  const shape = async () => {
+    const numbers = ((await path.getAttribute('d')) ?? '').match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    return numbers.map((value, index) => Math.round(value - numbers[index % 2]!));
+  };
+  const original = await shape();
+  const originalPath = await path.getAttribute('d');
+
+  // Pull the first segment away: stubs and extra bends appear.
+  const first = (await page.getByTestId('connector-segment-handle-0').boundingBox())!;
+  const fx = first.x + first.width / 2; const fy = first.y + first.height / 2;
+  await page.mouse.move(fx, fy); await page.mouse.down(); await page.mouse.move(fx, fy - 90, { steps: 6 }); await page.mouse.up();
+  await expect.poll(() => path.getAttribute('d')).not.toBe(originalPath);
+
+  // Drop the moved segment back within a few pixels of the old line: it snaps in and the route is the original again.
+  let moved: { x: number; y: number } | null = null;
+  for (const handle of await segmentHandles.all()) {
+    if ((await handle.getAttribute('data-orientation')) !== 'horizontal') continue;
+    const box = (await handle.boundingBox())!;
+    if (Math.abs(box.y + box.height / 2 - (fy - 90)) < 6) moved = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  }
+  expect(moved).not.toBeNull();
+  await page.mouse.move(moved!.x, moved!.y); await page.mouse.down(); await page.mouse.move(moved!.x, fy + 3, { steps: 8 }); await page.mouse.up();
+  await expect.poll(shape).toEqual(original);
+  await expect(segmentHandles).toHaveCount(3);
+});

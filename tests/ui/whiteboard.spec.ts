@@ -269,3 +269,23 @@ test('document card, workspace menu and minimap follow the workspace chrome desi
   const after = await page.locator('[data-kind=rectangle]').boundingBox();
   expect(Math.abs(after!.x - before!.x) + Math.abs(after!.y - before!.y)).toBeGreaterThan(20);
 });
+
+test('the text tool edits an existing text instead of creating a second one', async ({ page }) => {
+  await page.keyboard.press('t');
+  await page.mouse.click(400, 400);
+  await page.keyboard.type('Hello');
+  await page.keyboard.press('Escape');
+  const texts = page.locator('.whiteboard-canvas [data-kind=text]');
+  await expect(texts).toHaveCount(1);
+  await page.getByRole('button', { name: 'Text', exact: true }).first().click();
+  const box = (await texts.first().boundingBox())!;
+  await page.mouse.click(box.x + 8, box.y + box.height / 2);
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toBeVisible();
+  await expect(editor).toHaveValue('Hello');
+  await page.keyboard.press('End');
+  await page.keyboard.type(' World');
+  await page.keyboard.press('Escape');
+  await expect(texts).toHaveCount(1);
+  await expect(texts.first()).toContainText('Hello World');
+});

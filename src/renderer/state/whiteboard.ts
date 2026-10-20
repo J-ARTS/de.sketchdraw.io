@@ -864,6 +864,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       let kind: Gesture['kind'] = state.tool === 'hand' || spaceHeld || input.button === 1 ? 'pan' : handle ? handle.id === 'rotate' ? 'rotate' : handle.id.startsWith('connector-') ? 'connector-point' : 'resize' : state.tool === 'select' ? target ? 'move' : 'marquee' : 'draw';
       if (!state.canWrite && kind !== 'pan' && kind !== 'marquee') { if (target) setSelection([target.id], input.shiftKey); return; }
       if (input.button !== 0 && input.button !== 1) return;
+      // Clicking existing text (or a shape's label) with the text tool edits it instead of creating a second text.
+      if (state.tool === 'text' && kind === 'draw' && target && ['text', 'rectangle', 'ellipse', 'diamond', 'sticky-note', 'container'].includes(target.kind)) {
+        setSelection([target.id]);
+        store.startTextEdit(target.id);
+        return;
+      }
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
       if (state.tool === 'image') return;
       if (kind === 'move' && target) {
@@ -933,7 +939,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const patch: ElementPatch = {};
         if (g.connectorSegmentIndex !== undefined) {
           const local = worldToElementLocalPoint(element, point);
-          route = moveElbowedSegment(route, g.connectorSegmentIndex, local, g.connectorStubLength);
+          route = moveElbowedSegment(route, g.connectorSegmentIndex, local, g.connectorStubLength, 6 / state.viewport.zoom);
         } else {
           const index = g.connectorPointIndex!;
           if (index === 0 || index === route.length - 1) {
