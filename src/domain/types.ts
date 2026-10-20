@@ -401,6 +401,8 @@ export interface DesktopBridge {
   saveDocument(request: SaveDocumentRequest): Promise<SaveDocumentResult>;
   exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'sketchdraw'): Promise<ExportFileResult>;
   openExternal(url: string): Promise<void>;
+  /** Optional desktop capability: reports the UI language so native menus and dialogs follow it. */
+  setLanguage?(language: 'de' | 'en'): Promise<void>;
   onCloseRequested(listener: (requestId: string) => void): () => void;
   respondToClose(requestId: string, decision: 'close' | 'cancel'): Promise<void>;
   onMenuCommand(listener: (command: 'open' | 'save' | 'save-as' | 'undo' | 'redo') => void): () => void;

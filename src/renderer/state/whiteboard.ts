@@ -104,6 +104,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     : options.preferences;
   const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de' };
   setLocale(savedPreferences.language);
+  void bridge.setLanguage?.(savedPreferences.language)?.catch(() => undefined);
   function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language }); }
   const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
   let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
@@ -1779,7 +1780,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setLanguage(language) {
       if (language === state.language || !LANGUAGES.some((entry) => entry.code === language && entry.available)) return;
-      state.language = language; setLocale(language); persistPreferences();
+      state.language = language; setLocale(language); persistPreferences(); void bridge.setLanguage?.(language)?.catch(() => undefined);
     },
     dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },

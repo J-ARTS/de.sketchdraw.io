@@ -24,7 +24,9 @@ import type {
 } from '../src/domain/plugins';
 import {
   type CloseDecision,
+  type AppLanguage,
   type ExportFormat,
+  validateSetLanguageRequest,
   IPC_CHANNELS,
   isMenuCommand,
   isValidCloseRequestId,
@@ -143,6 +145,10 @@ export function createPreloadDesktopBridge(
         validated.value,
       );
       return result as ExportFileResult;
+    },
+
+    async setLanguage(language: AppLanguage): Promise<void> {
+      await ipc.invoke(IPC_CHANNELS.SET_LANGUAGE, { language: validateSetLanguageRequest({ language }) });
     },
 
     async openExternal(url: string): Promise<void> {

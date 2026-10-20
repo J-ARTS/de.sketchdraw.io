@@ -13,11 +13,13 @@ export const IPC_CHANNELS = Object.freeze({
   MENU_COMMAND: 'sketchdraw:menu:command',
   PLUGIN_INVOKE: 'sketchdraw:plugins:invoke',
   PLUGIN_EVENT: 'sketchdraw:plugins:event',
+  SET_LANGUAGE: 'sketchdraw:app:set-language',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
 export type ExportFormat = 'svg' | 'drawio' | 'sketchdraw';
 export type CloseDecision = 'close' | 'cancel';
+export type AppLanguage = 'de' | 'en';
 
 export const MENU_COMMANDS: readonly MenuCommand[] = Object.freeze([
   'open',
@@ -37,6 +39,8 @@ export const CLOSE_DECISIONS: readonly CloseDecision[] = Object.freeze([
   'close',
   'cancel',
 ]);
+
+export const APP_LANGUAGES: readonly AppLanguage[] = Object.freeze(['de', 'en']);
 
 export const HANDLE_ID_PATTERN = /^hdl_[0-9a-f]{32}$/;
 export const VERSION_TOKEN_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -315,6 +319,18 @@ export function validateExportFileRequest(
       format,
     },
   };
+}
+
+/** The renderer reports its UI language so native menus and dialogs follow it. Only the two known codes are accepted. */
+export function validateSetLanguageRequest(input: unknown): AppLanguage {
+  if (!isPlainRecord(input) || !hasOnlyAllowedKeys(input, new Set(['language']))) {
+    throw new Error('Invalid setLanguage payload.');
+  }
+  const language = input['language'];
+  if (typeof language !== 'string' || !(APP_LANGUAGES as readonly string[]).includes(language)) {
+    throw new Error('Unsupported language.');
+  }
+  return language as AppLanguage;
 }
 
 export function validateOpenExternalRequest(

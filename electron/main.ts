@@ -11,7 +11,7 @@ import {
   session,
   shell,
 } from 'electron';
-import { nativeText } from './i18n';
+import { nativeText, setNativeLanguage } from './i18n';
 import type {
   ExportFileResult,
   OpenDocumentResult,
@@ -23,6 +23,7 @@ import {
   IPC_CHANNELS,
   type MenuCommand,
   validateOpenExternalRequest,
+  validateSetLanguageRequest,
 } from './ipc-contract';
 import { DocumentPersistenceService } from './persistence';
 import { PluginService } from './plugin-service';
@@ -298,6 +299,21 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
 
       const validatedUrl = validateExternalUrl(url);
       await shell.openExternal(validatedUrl.toString());
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SET_LANGUAGE,
+    async (event, rawPayload: unknown): Promise<void> => {
+      const check = validateIpcSender(
+        event as unknown as IpcSenderEventLike,
+        getCurrentSecurityContext(),
+      );
+      if (!check.ok) {
+        throw new Error(check.reason);
+      }
+      setNativeLanguage(validateSetLanguageRequest(rawPayload));
+      Menu.setApplicationMenu(buildApplicationMenu());
     },
   );
 

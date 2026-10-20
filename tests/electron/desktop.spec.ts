@@ -71,7 +71,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
             invalidHandle: await window.sketchdraw!.saveDocument({ mode: 'save', handleId: '/etc/passwd', expectedVersionToken: `sha256:${'0'.repeat(64)}`, text: '{}', suggestedName: 'test.sketchdraw.json' }) };
         });
         expect(surface.globals).toEqual([]); expect(surface.platform).toBe('electron'); expect(surface.frozen).toBe(true); expect(surface.popupBlocked).toBe(true);
-        expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument']);
+        expect(surface.keys).toEqual(['exportFile', 'onCloseRequested', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage']);
         expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
       });
@@ -110,6 +110,17 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         await expect.poll(() => electronApp.evaluate(() => (globalThis as unknown as { desktopSaveDialogCalls: number }).desktopSaveDialogCalls)).toBe(1);
         await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'unsaved-new');
         await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
+      });
+
+      await test.step('the native menu follows the language chosen in the app, and unknown languages are rejected', async () => {
+        const menuLabels = () => electronApp.evaluate(({ Menu }) => Menu.getApplicationMenu()?.items.map((item) => item.label) ?? []);
+        await page.evaluate(() => (window as unknown as { sketchdraw: { setLanguage(language: string): Promise<void> } }).sketchdraw.setLanguage('en'));
+        await expect.poll(menuLabels).toContain('File');
+        await expect.poll(menuLabels).toContain('Edit');
+        const rejected = await page.evaluate(() => (window as unknown as { sketchdraw: { setLanguage(language: string): Promise<void> } }).sketchdraw.setLanguage('fr').then(() => 'accepted', () => 'rejected'));
+        expect(rejected).toBe('rejected');
+        await page.evaluate(() => (window as unknown as { sketchdraw: { setLanguage(language: string): Promise<void> } }).sketchdraw.setLanguage('de'));
+        await expect.poll(menuLabels).toContain('Datei');
       });
 
       await test.step('native element clipboard pastes at the mouse and remains one undo step', async () => {
