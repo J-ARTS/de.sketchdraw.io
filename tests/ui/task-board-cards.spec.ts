@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 // #105 task cards with cover, menu, assignee and due date; #106 pointer drag with placeholder and tilted card.
 async function openBoard(page: Page) {
-  await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click(); await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board'); await expect(board).toBeVisible();
   return board;
 }

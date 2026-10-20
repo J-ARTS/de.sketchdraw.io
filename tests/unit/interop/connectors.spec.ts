@@ -49,6 +49,16 @@ describe('connector interoperability', () => {
     });
   });
 
+  test('an animated dashed line keeps its flow animation through draw.io and falls back to dashes in SVG', () => {
+    const document = connectorDocument();
+    document.elements = document.elements.map((element) => element.kind === 'connector' ? { ...element, style: { ...element.style, strokeDash: 'animated' as const } } : element);
+    const drawio = prepareDrawioExport(document, { embedDocument: false });
+    expect(drawio.contents).toContain('dashed=1');
+    expect(drawio.contents).toContain('flowAnimation=1');
+    expect(importDrawio(drawio.contents).document.elements.find((element) => element.kind === 'connector')?.style.strokeDash).toBe('animated');
+    expect(prepareSvgExport(document, { embedDocument: false }).contents).toContain('stroke-dasharray="8 6"');
+  });
+
   test('filled circle and triangle markers stay distinct in SVG and draw.io projections', () => {
     const document = connectorDocument('solid-circle', 'solid-triangle');
     const svg = prepareSvgExport(document, { embedDocument: false });

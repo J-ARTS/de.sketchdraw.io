@@ -71,7 +71,7 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
 const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = {
   none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow',
@@ -113,7 +113,7 @@ function styleOf(cell: Cell, ctx: ImportContext) {
   }
   if (v['sketchdrawListStyle'] !== undefined)
     s.listStyle = v['sketchdrawListStyle'] === 'bullet' ? 'bullet' : 'none';
-  s.strokeDash = v['dashed'] === '1' ? (v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
+  s.strokeDash = v['dashed'] === '1' ? (v['flowAnimation'] === '1' ? 'animated' : v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
   for (const [key, value] of Object.entries(v))
     if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1') && v['sketchdrawKind'] !== 'annotation') || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
       warn(ctx, node, 'STYLE_APPROXIMATED', key, `Style ${key} is not represented exactly.`);

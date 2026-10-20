@@ -90,8 +90,8 @@ test('a sticky note creates one linked task and the task board returns to its so
   await expect(duplicateGuard).toBeVisible();
   await expect(duplicateGuard).toBeDisabled();
 
-  await page.getByTestId('page-switcher').click();
-  await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board');
   await expect(board).toBeVisible();
   await expect(board).toContainText('Release planen');

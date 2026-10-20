@@ -74,6 +74,7 @@ const STROKE_DASHES: ReadonlySet<ElementStyle['strokeDash']> = new Set([
   'solid',
   'dashed',
   'dotted',
+  'animated',
 ]);
 const FONT_FAMILIES: ReadonlySet<NonNullable<ElementStyle['fontFamily']>> = new Set([
   'sans',
@@ -787,7 +788,7 @@ export function validateStyle(
       issues.push({
         path: joinPath(path, 'strokeDash'),
         code: 'INVALID_STYLE_FIELD',
-        message: 'Style strokeDash must be "solid", "dashed", or "dotted".',
+        message: 'Style strokeDash must be "solid", "dashed", "dotted", or "animated".',
       });
     }
   }

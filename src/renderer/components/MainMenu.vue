@@ -10,7 +10,7 @@ import { L, t } from '@/renderer/i18n';
 import { LANGUAGES, type LanguageCode } from '@/renderer/lib/preferences';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'plugins' | 'settings';
+type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
@@ -90,6 +90,7 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
   { id: 'slides', label: L('Folien'), icon: 'pages', checked: s.frameSidebarOpen },
+  { id: 'tasks', label: L('Aufgaben'), icon: 'check', checked: s.workspaceView === 'tasks' },
   { id: 'plugins', label: L('Plugin-Einstellungen'), icon: 'component', checked: props.pluginsOpen, separator: true },
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
 ]);
@@ -190,6 +191,7 @@ function runView(id: ViewItemId): void {
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
     case 'slides': store.toggleFrameSidebar(!s.frameSidebarOpen); break;
+    case 'tasks': if (s.workspaceView === 'tasks') store.showCanvas(); else store.openTaskBoard(); break;
     case 'plugins': emit('plugins'); break;
     case 'settings': emit('settings'); break;
   }

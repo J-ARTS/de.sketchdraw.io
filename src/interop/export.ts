@@ -28,7 +28,7 @@ function attrs(values: Record<string, string | number | undefined>): string {
 }
 function svgPaint(el: SketchElement, d: DiagnosticCollector): string {
   return attrs({ stroke: safeColor(el.style.stroke, d, el), fill: safeColor(el.style.fill, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity,
-    ...(el.style.strokeDash === 'solid' ? {} : { 'stroke-dasharray': el.style.strokeDash === 'dashed' ? '8 6' : '2 4' }) });
+    ...(el.style.strokeDash === 'solid' ? {} : { 'stroke-dasharray': el.style.strokeDash === 'dotted' ? '2 4' : '8 6' }) });
 }
 const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
@@ -248,7 +248,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const shapeVariant = effectiveShapeVariant(el);
     const startMarker = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
     const endMarker = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, `startArrow=${DRAWIO_MARKER[startMarker]}`, `startFill=${DRAWIO_FILLED_MARKERS.has(startMarker) ? 1 : 0}`, `endArrow=${DRAWIO_MARKER[endMarker]}`, `endFill=${DRAWIO_FILLED_MARKERS.has(endMarker) ? 1 : 0}`];
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, ...(el.style.strokeDash === 'animated' ? ['flowAnimation=1'] : []), `startArrow=${DRAWIO_MARKER[startMarker]}`, `startFill=${DRAWIO_FILLED_MARKERS.has(startMarker) ? 1 : 0}`, `endArrow=${DRAWIO_MARKER[endMarker]}`, `endFill=${DRAWIO_FILLED_MARKERS.has(endMarker) ? 1 : 0}`];
     if (shapeVariant) {
       style.push(`sketchdrawShapeVariant=${shapeVariant}`);
       const native: Partial<Record<typeof shapeVariant, readonly string[]>> = {

@@ -187,8 +187,8 @@ test('comments, tables, annotations, frames, presentation and the task dialog ar
   await check('presenter mode');
   await page.keyboard.press('Escape');
 
-  await page.getByTestId('page-switcher').click();
-  await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board');
   await check('task board');
   await board.getByRole('button', { name: 'New task' }).click();

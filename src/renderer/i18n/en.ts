@@ -1020,4 +1020,5 @@ export const EN: Readonly<Record<string, string>> = {
   'Schriftfarbe': 'Font color',
   'Ziehen oder Alt+↑/↓ ändert die Reihenfolge': 'Drag or Alt+↑/↓ changes the order',
   '{name} an Position {position} von {count}': '{name} at position {position} of {count}',
+  'Animiert': 'Animated',
 };

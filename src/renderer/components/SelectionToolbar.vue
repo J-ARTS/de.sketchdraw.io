@@ -40,10 +40,11 @@ const FILL_MODES: ReadonlyArray<{ value: FillMode; label: string }> = [
   { value: 'semi', label: L('Transparent') },
   { value: 'none', label: L('Keine Füllung') },
 ];
-type LineMode = 'solid' | 'dashed' | 'none';
+type LineMode = 'solid' | 'dashed' | 'animated' | 'none';
 const LINE_MODES: ReadonlyArray<{ value: LineMode; label: string; icon: IconName }> = [
   { value: 'solid', label: L('Durchgezogen'), icon: 'line-solid' },
   { value: 'dashed', label: L('Gestrichelt'), icon: 'line-dashed' },
+  { value: 'animated', label: L('Animiert'), icon: 'line-animated' },
   { value: 'none', label: L('Keine'), icon: 'none' },
 ];
 const WIDTHS = [{ value: 1, label: L('Dünn') }, { value: 2, label: L('Mittel') }, { value: 4, label: L('Dick') }] as const;
@@ -379,7 +380,7 @@ const fillBase = computed(() => (currentFillMode.value === 'none' ? null : norma
 const lineMode = computed<LineMode | null>(() => {
   if (info.value.mixed.includes('stroke') || info.value.mixed.includes('strokeDash')) return null;
   if (info.value.values.stroke === NO_COLOR) return 'none';
-  return info.value.values.strokeDash === 'solid' || info.value.values.strokeDash === 'dashed' ? info.value.values.strokeDash : null;
+  return ['solid', 'dashed', 'animated'].includes(info.value.values.strokeDash ?? '') ? info.value.values.strokeDash as LineMode : null;
 });
 const strokeBase = computed(() => (lineMode.value === 'none' ? null : normalizeHex(info.value.values.stroke ?? '')));
 const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? info.value.values.stroke ?? '') ?? '#242424');

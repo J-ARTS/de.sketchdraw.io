@@ -19,7 +19,7 @@ const e = computed(() => props.element);
 const stroke = computed(() => themeColor(e.value.style.stroke, props.theme));
 const fill = computed(() => themeColor(e.value.style.fill, props.theme));
 const textColor = computed(() => themeColor(e.value.style.textColor ?? e.value.style.stroke, props.theme));
-const dash = computed(() => e.value.style.strokeDash === 'dashed' ? '8 6' : e.value.style.strokeDash === 'dotted' ? '2 5' : undefined);
+const dash = computed(() => e.value.style.strokeDash === 'dashed' || e.value.style.strokeDash === 'animated' ? '8 6' : e.value.style.strokeDash === 'dotted' ? '2 5' : undefined);
 const asset = computed(() => props.document.assets[e.value.assetId ?? '']);
 const definition = computed(() => props.document.componentSets.flatMap((set) => set.components).find((c) => c.type === e.value.componentType));
 const resourceCard = computed(() => isResourceCard(e.value));
@@ -141,7 +141,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <marker :id="`${uid}-zero-or-many`" markerWidth="20" markerHeight="14" refX="17" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><circle cx="4.5" cy="7" r="3.5" fill="var(--surface-canvas)" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /><path d="M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /></marker>
       <marker :id="`${uid}-one-or-many`" markerWidth="20" markerHeight="14" refX="17" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M5 2V12M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /></marker>
     </defs>
-    <g :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
+    <g :class="{ 'dash-animated': e.style.strokeDash === 'animated' }" :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
       <rect v-if="e.kind === 'frame'" data-testid="frame-surface" :width="e.width" :height="e.height" fill="transparent" :stroke="stroke" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash ?? '10 7'" />
       <rect v-else-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
       <rect v-else-if="shape?.id === 'rounded'" data-testid="rounded-surface" :width="e.width" :height="e.height" :rx="cornerRadius" :ry="cornerRadius" />
@@ -243,6 +243,9 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
 </template>
 
 <style scoped>
+.dash-animated { animation: sd-dash-flow 0.9s linear infinite; }
+@keyframes sd-dash-flow { to { stroke-dashoffset: -14; } }
+@media (prefers-reduced-motion: reduce) { .dash-animated { animation: none; } }
 .annotation-body{width:100%;height:100%;box-sizing:border-box;padding:28px;overflow:hidden;background:transparent}
 .web-embed{width:100%;height:100%;display:grid;grid-template-rows:34px minmax(0,1fr) auto;overflow:hidden;border-radius:7px;background:var(--surface-panel);color:var(--text-primary);font-family:var(--font-sans)}
 .web-embed-header{display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-raised);font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden}.web-embed-header span:last-child{margin-left:auto;color:var(--text-muted);font-size:10px;font-weight:500}.web-embed-dot{width:8px;height:8px;border-radius:50%;background:var(--status-ok);flex:none}

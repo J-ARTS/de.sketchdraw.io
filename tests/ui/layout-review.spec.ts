@@ -285,7 +285,7 @@ test('comment actions, task dialog and search fields follow keyboard and theme r
   await menu.getByRole('menuitem', { name: 'Aufgabe erstellen' }).click();
   await expect(trigger).toBeFocused();
 
-  await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click(); await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board');
   await expect(board).toBeVisible();
 
@@ -434,7 +434,7 @@ test('diamonds and triangles can be rounded with the same corner radius control'
 for (const width of [1440, 1920]) {
   test(`task board edges align with the top bars at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
+    await page.getByTestId('workspace-menu-button').click(); await page.getByTestId('workspace-menu-tasks').click();
     const columns = page.locator('.task-board .columns');
     await expect(columns).toBeVisible();
     const card = await box(page.locator('header.doc-card'));

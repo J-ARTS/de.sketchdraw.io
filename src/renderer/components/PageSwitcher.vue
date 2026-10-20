@@ -57,7 +57,6 @@ function selectPage(id: string): void {
   store.showCanvas();
   store.selectPage(id);
 }
-function selectTasks(): void { store.openTaskBoard(); closePanel(true); }
 
 // --- Rename (double click / F2) ----------------------------------------------
 const editingId = ref<string | null>(null);
@@ -361,9 +360,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
         </li>
       </ul>
 
-      <div class="workspace-views">
-        <button type="button" class="task-board-entry" :aria-current="s.workspaceView === 'tasks' ? 'page' : undefined" data-testid="task-board-entry" @click="selectTasks"><AppIcon name="check" :size="18" /><span><strong>{{ t('Aufgaben') }}</strong><small>{{ (s.document.tasks ?? []).filter((task) => task.status !== 'done').length }} offen</small></span></button>
-      </div>
 
       <div
         v-if="menu"
@@ -623,10 +619,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   color: var(--text-primary);
 }
 
-.workspace-views{margin-top:6px;padding:6px 2px;border-top:1px solid var(--border-subtle)}
-.task-board-entry{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:6px 10px;border:0;border-radius:10px;background:transparent;color:var(--text-primary);text-align:left}
-.task-board-entry:hover,.task-board-entry[aria-current='page']{background:var(--accent-soft);color:var(--accent-ink)}
-.task-board-entry>span{display:grid;gap:2px}.task-board-entry small{color:var(--text-muted);font-size:11px}
 .panel-foot {
   display: grid;
   gap: 2px;

@@ -91,7 +91,7 @@ export interface ElementStyle {
   opacity: number;
   fontSize: number;
   textAlign: 'left' | 'center' | 'right';
-  strokeDash: 'solid' | 'dashed' | 'dotted';
+  strokeDash: 'solid' | 'dashed' | 'dotted' | 'animated';
   fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled';
   fontWeight?: 'normal' | 'bold';
   textDecoration?: 'none' | 'line-through';

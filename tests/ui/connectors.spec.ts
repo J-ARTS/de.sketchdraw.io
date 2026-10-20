@@ -315,3 +315,17 @@ test('a segment dragged out and back into line merges again without extra segmen
   await expect.poll(shape).toEqual(original);
   await expect(segmentHandles).toHaveCount(3);
 });
+
+test('a connector can use an animated dashed line', async ({ page }) => {
+  await rectangle(page, 220); await rectangle(page, 700, 460);
+  await page.getByRole('button', { name: 'Verbindung', exact: true }).click();
+  await page.mouse.move(300, 350);
+  await page.mouse.down(); await page.mouse.move(775, 510, { steps: 8 }); await page.mouse.up();
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: 'Linie', exact: true }).click();
+  await page.getByRole('button', { name: 'Animiert', exact: true }).click();
+  const connector = page.locator('.whiteboard-canvas [data-kind=connector]');
+  await expect(connector.locator(':scope > g').first()).toHaveClass(/dash-animated/);
+  await expect(connector.locator(':scope > g').first()).toHaveAttribute('stroke-dasharray', '8 6');
+  await expect.poll(() => connector.locator(':scope > g').first().evaluate((element) => getComputedStyle(element).animationName)).toMatch(/sd-dash-flow/);
+});

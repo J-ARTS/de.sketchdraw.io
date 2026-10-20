@@ -8,8 +8,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the task board creates, edits, moves and deletes a standalone task', async ({ page }) => {
-  await page.getByTestId('page-switcher').click();
-  await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board');
   const createButton = board.getByRole('button', { name: 'Neue Aufgabe' });
   const closeButton = board.getByRole('button', { name: 'Aufgabenboard schließen' });
@@ -90,7 +90,7 @@ test('comments support pins, replies, editing, sidebar focus and a linked task b
 
   await page.getByRole('button', { name: 'Weitere Kommentaraktionen' }).click();
   await page.getByRole('menuitem', { name: 'Aufgabe erstellen' }).click();
-  await page.getByTestId('page-switcher').click(); await page.getByTestId('task-board-entry').click();
+  await page.getByTestId('workspace-menu-button').click(); await page.getByTestId('workspace-menu-tasks').click();
   const board = page.getByTestId('task-board'); await expect(board).toBeVisible();
   await expect(board).toContainText('API- und P2P-Vertrag bitte prüfen');
   await board.getByRole('button', { name: /^Aktionen für/ }).click();
