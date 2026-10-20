@@ -12,7 +12,7 @@ import { createElement, type SketchElement } from '@/domain';
 import { docToScreen, screenToDoc } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
 import { DOCK_POINTS } from '../lib/geometry';
-import { DEFAULT_SIZES, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '../lib/constants';
+import { defaultSizeFor, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
 
@@ -32,7 +32,7 @@ const SILHOUETTE_TOOLS: readonly string[] = ['rectangle', 'ellipse', 'diamond', 
 const shapeSilhouette = computed<SketchElement | null>(() => {
   const point = toolPointer.value;
   if (!point || !SILHOUETTE_TOOLS.includes(s.tool) || !s.canWrite || s.transitioning || s.draftElement || s.textEdit) return null;
-  const size = DEFAULT_SIZES[s.tool];
+  const size = defaultSizeFor(s.tool, s.shapeVariant);
   if (!size) return null;
   const at = screenToDoc(s.viewport, point);
   const kind = s.tool as 'rectangle' | 'ellipse' | 'diamond' | 'container' | 'sticky-note' | 'frame';

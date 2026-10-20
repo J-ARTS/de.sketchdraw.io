@@ -157,3 +157,19 @@ test('an active shape tool shows a translucent silhouette at the pointer, like t
   await expect(silhouette).toHaveCount(0);
   await expect(page.getByTestId('eraser-cursor')).toBeVisible();
 });
+
+test('a circle placed with a plain click is round, and its silhouette shows a circle too', async ({ page }) => {
+  await page.goto('/');
+  const canvas = page.getByTestId('whiteboard-canvas');
+  const box = (await canvas.boundingBox())!;
+  await page.getByTestId('main-toolbar').locator('[data-shape="circle"]').first().click();
+  await page.mouse.move(box.x + 500, box.y + 400);
+  const silhouetteBox = (await page.getByTestId('shape-silhouette').boundingBox())!;
+  expect(Math.abs(silhouetteBox.width - silhouetteBox.height)).toBeLessThan(6);
+  await page.mouse.click(box.x + 500, box.y + 400);
+  const circle = page.locator('[data-shape-variant="circle"] ellipse').first();
+  await expect(circle).toHaveCount(1);
+  const rx = Number(await circle.getAttribute('rx'));
+  const ry = Number(await circle.getAttribute('ry'));
+  expect(rx).toBe(ry);
+});
