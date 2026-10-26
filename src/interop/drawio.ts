@@ -1,3 +1,4 @@
+import { awsGroupByDrawioIcon, awsGroupById, GROUP_METADATA_KEY, type AwsGroup } from '../catalog/aws-groups';
 import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
 import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
@@ -73,6 +74,15 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
 }
 const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
+/** Styles of draw.io's AWS group shapes that the group look already covers (#143). */
+const GROUP_STYLE_KEYS = new Set(['sketchdrawGroup', 'grIcon', 'grStroke', 'grIconSize', 'spacingLeft', 'spacingTop', 'pointerEvents', 'collapsible', 'recursiveResize', 'outlineConnect', 'gradientColor', 'points']);
+/** The AWS group a vertex stands for: our own marker, or draw.io's `mxgraph.aws4.group` with a known icon. */
+function awsGroupOfStyle(style: Record<string, string>): AwsGroup | undefined {
+  const own = awsGroupById(style['sketchdrawGroup']);
+  if (own) return own;
+  if (style['shape'] !== 'mxgraph.aws4.group' && style['shape'] !== 'mxgraph.aws4.groupCenter') return undefined;
+  return style['grIcon'] ? awsGroupByDrawioIcon(style['grIcon'], style['strokeColor']) : undefined;
+}
 const DRAWIO_MARKERS: Readonly<Record<string, ConnectorMarker>> = {
   none: 'none', open: 'line-arrow', classic: 'solid-arrow', classicThin: 'solid-arrow',
   block: 'triangle', blockThin: 'triangle', oval: 'circle', diamond: 'diamond', diamondThin: 'diamond',
@@ -95,9 +105,11 @@ function styleOf(cell: Cell, ctx: ImportContext) {
     s.textColor=ink;
     if(v['text']==='1'||v['shape']==='text')s.stroke=ink;
   }
-  s.strokeWidth = number(v['strokeWidth'], 2);
+  const group = awsGroupOfStyle(v);
+  // draw.io frames default to 1 px and `grStroke=0` leaves the frame out while the stroke color still colors the header tile.
+  s.strokeWidth = group && v['grStroke'] === '0' ? 0 : number(v['strokeWidth'], group ? 1 : 2);
   s.opacity = number(v['opacity'], 100) / 100;
-  s.fontSize = number(v['fontSize'], 16);
+  s.fontSize = number(v['fontSize'], group ? 12 : 16);
   if (['left', 'center', 'right'].includes(v['align'] ?? ''))
     s.textAlign = v['align'] as typeof s.textAlign;
   if (v['fontFamily']) {
@@ -115,7 +127,7 @@ function styleOf(cell: Cell, ctx: ImportContext) {
     s.listStyle = v['sketchdrawListStyle'] === 'bullet' ? 'bullet' : 'none';
   s.strokeDash = v['dashed'] === '1' ? (v['flowAnimation'] === '1' ? 'animated' : v['dashPattern'] === '2 4' ? 'dotted' : 'dashed') : 'solid';
   for (const [key, value] of Object.entries(v))
-    if (!knownStyles.has(key) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1') && v['sketchdrawKind'] !== 'annotation') || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
+    if ((!knownStyles.has(key) && !(group && GROUP_STYLE_KEYS.has(key))) || (['rounded', 'shadow'].includes(key) && value !== '0' && !(key === 'rounded' && cell.edge && value === '1') && v['sketchdrawKind'] !== 'annotation') || (['startArrow', 'endArrow'].includes(key) && !DRAWIO_MARKERS[value]))
       warn(ctx, node, 'STYLE_APPROXIMATED', key, `Style ${key} is not represented exactly.`);
   if (cell.hidden) {
     s.opacity = 0;
@@ -271,8 +283,9 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
   for (const cell of cells.filter(c => c.vertex && !byId.get(c.parent ?? '')?.edge)) {
     const s = cell.style, hasChildren = (childCounts.get(cell.id) ?? 0) > 0;
     const shapeVariant = typeof s['sketchdrawShapeVariant'] === 'string' && shapeVariants.has(s['sketchdrawShapeVariant'] as ShapeVariant) ? s['sketchdrawShapeVariant'] as ShapeVariant : undefined;
-    let kind: SketchElement['kind'] = shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
-    if (!shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
+    const group = awsGroupOfStyle(s);
+    let kind: SketchElement['kind'] = group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    if (!group && !shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
     if (kind === 'container' && (rotation !== 0 || cell.node.attributes['collapsed'] === '1'))
@@ -299,7 +312,7 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
       entry.text = importedText.split('\n')[rowIndex]?.split('\t')[columnIndex] ?? '';
       entry.style = { fill: outerStyle.fill === 'transparent' ? '#ffffff' : outerStyle.fill, color: outerStyle.stroke, fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
     });
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}) });
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }

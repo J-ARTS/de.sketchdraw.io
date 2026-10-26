@@ -32,7 +32,7 @@ import type {
   PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
-import { bounds, center, endpointAt, hitElement, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
+import { bounds, center, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
 import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '../lib/viewport';
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
 import { describeElement, describeSelection } from '../lib/describe';
@@ -182,6 +182,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     marquee: null as Rect | null, snapTarget: null,
     hoveredHandleId: null as HandleId | null, hoveredConnectorId: null as string | null,
     connectorHoverTargetId: null as string | null,
+    dropTargetId: null as string | null,
     connectorTargets: null as WhiteboardState['connectorTargets'],
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
@@ -481,9 +482,49 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
-  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; changedDraft(); }
+  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; state.dropTargetId = null; changedDraft(); }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(pageElsOf(base.document), ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
+  }
+  /** Containers never adopt a moving element, one of its descendants, or an ancestor chain through it. */
+  function containerAt(elements: readonly SketchElement[], point: Point, moving: ReadonlySet<string>): SketchElement | undefined {
+    const index = new Map(elements.map((e) => [e.id, e]));
+    const blocked = (element: SketchElement): boolean => {
+      for (let current: SketchElement | undefined = element, depth = 0; current && depth < 64; current = current.parentId ? index.get(current.parentId) : undefined, depth += 1) if (moving.has(current.id)) return true;
+      return false;
+    };
+    return [...elements].reverse().find((e) => e.kind === 'container' && !blocked(e) && insideContainer(e, point));
+  }
+  /**
+   * Dragging into a container makes the elements its children, dragging out detaches them (like draw.io, #143).
+   * The container is the topmost one under the pointer; moved elements are lifted above it.
+   */
+  function moveIntoContainerCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number, point: Point): { command: DocumentCommand; targetId: string | null } {
+    const elements = pageElsOf(base.document);
+    const roots = topSelected(elements, ids);
+    const move = moveCommand(base, ids, dx, dy);
+    if (Math.hypot(dx, dy) * state.viewport.zoom < 4) return { command: move, targetId: null };
+    const target = containerAt(elements, point, new Set(roots.map((e) => e.id)));
+    const adopted = roots.filter((e) => e.kind !== 'connector' && e.kind !== 'frame' && (e.parentId ?? null) !== (target?.id ?? null));
+    if (!adopted.length) return { command: move, targetId: null };
+    const parentPatches = { type: 'update' as const, changes: roots.map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy, ...(adopted.includes(e) ? { parentId: target?.id ?? null } : {}) } })) };
+    const commands: DocumentCommand[] = [parentPatches];
+    if (target) {
+      const adoptedIds = new Set(adopted.map((e) => e.id));
+      for (let pass = 0; pass < 32; pass += 1) for (const e of elements) if (e.parentId && adoptedIds.has(e.parentId)) adoptedIds.add(e.id);
+      const order = elements.map((e) => e.id);
+      const family = new Set<string>([target.id]);
+      for (let pass = 0; pass < 32; pass += 1) for (const e of elements) if (e.parentId && family.has(e.parentId)) family.add(e.id);
+      const targetIndex = order.indexOf(target.id);
+      if ([...adoptedIds].some((id) => order.indexOf(id) < targetIndex)) {
+        const rest = order.filter((id) => !adoptedIds.has(id));
+        const lifted = order.filter((id) => adoptedIds.has(id));
+        let at = -1;
+        rest.forEach((id, index) => { if (family.has(id)) at = index; });
+        commands.push({ type: 'reorder', ids: [...rest.slice(0, at + 1), ...lifted, ...rest.slice(at + 1)] });
+      }
+    }
+    return { command: commands.length === 1 ? commands[0]! : { type: 'batch', commands }, targetId: target?.id ?? null };
   }
   function connectorAnchor(element: SketchElement, point: Point): Point { return endpointAt(element, point); }
   function connectorGeometryPatch(element: SketchElement, points: readonly Point[]): ElementPatch {
@@ -960,7 +1001,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const r = state.marquee;
         setSelection(pageEls().filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));
       } else if (g.kind === 'move') {
-        g.preview = moveCommand(g.base, g.targets.map((e) => e.id), dx, dy); state.previewCommand = g.preview;
+        const moved = moveIntoContainerCommand(g.base, g.targets.map((e) => e.id), dx, dy, point);
+        g.preview = moved.command; state.previewCommand = g.preview; state.dropTargetId = moved.targetId;
       } else if (g.kind === 'draw') {
         if (g.tool === 'path' && Math.hypot(point.x - g.last.x, point.y - g.last.y) >= 1 / state.viewport.zoom && g.points.length < DOMAIN_LIMITS.MAX_POINTS_PER_ELEMENT) g.points.push(point);
         g.element = createDraw(g, point, input.shiftKey); state.drawing = g.element;
@@ -1865,7 +1907,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const at = definition
           ? { x: centre.x - definition.defaultWidth / 2, y: centre.y - definition.defaultHeight / 2 }
           : centre;
-        const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at });
+        // Dropping from the library into a container makes the new element its child; a click places it at the center.
+        const parent = screenAt ? containerAt(pageEls(), centre, new Set()) : undefined;
+        const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at, ...(parent ? { parentId: parent.id } : {}) });
         if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; }
       }
       catch (error) { fail(error); }

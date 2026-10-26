@@ -1,5 +1,8 @@
 import { connectorRoutePoints, effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
+import { awsGroupOf, groupChrome } from '@/catalog/aws-groups';
 import type { Rect } from '@/renderer/state/contract';
+import { NO_FILL } from './constants';
+import { parseColor } from './theme';
 
 export function rotatePoint(point: Point, center: Point, degrees: number): Point {
   const angle = degrees * Math.PI / 180;
@@ -85,6 +88,36 @@ function insidePolygon(point: Point, polygon: readonly Point[]): boolean {
   return inside;
 }
 
+/** True when the fill paints nothing; such a group lets clicks pass through its interior. */
+function fillless(fill: string): boolean {
+  return fill === NO_FILL || (parseColor(fill)?.a ?? 1) === 0;
+}
+
+/**
+ * AWS group frames without a fill (#143) are hit at their frame, header tile and label only, like draw.io's
+ * `pointerEvents=0` containers: a click inside selects what lies underneath or starts a marquee.
+ */
+function hitGroupOutline(element: SketchElement, x: number, y: number, tolerance: number): boolean {
+  const group = awsGroupOf(element)!;
+  const edge = Math.min(Math.abs(x), Math.abs(y), Math.abs(element.width - x), Math.abs(element.height - y));
+  if (edge <= tolerance + element.style.strokeWidth / 2) return true;
+  const chrome = groupChrome(group, element.width, element.style.fontSize);
+  if (chrome.icon && x >= chrome.icon.x && x <= chrome.icon.x + chrome.icon.size && y >= chrome.icon.y && y <= chrome.icon.y + chrome.icon.size) return true;
+  const lines = (element.text ?? '').split('\n');
+  if (!lines.some(Boolean)) return false;
+  const available = Math.max(0, chrome.label.right - chrome.label.left);
+  const widest = Math.min(available, Math.max(...lines.map((line) => Array.from(line).length)) * element.style.fontSize * 0.6);
+  const align = element.style.textAlign;
+  const left = align === 'center' ? (chrome.label.left + chrome.label.right - widest) / 2 : align === 'right' ? chrome.label.right - widest : chrome.label.left;
+  const bottom = chrome.label.top + lines.length * element.style.fontSize * 1.25;
+  return x >= left - tolerance && x <= left + widest + tolerance && y >= chrome.label.top - tolerance && y <= bottom + tolerance;
+}
+
+/** Whether a point lies inside the rectangle of a (non-rotated) container, used to find drop targets. */
+export function insideContainer(element: SketchElement, point: Point): boolean {
+  return point.x >= element.x && point.x <= element.x + element.width && point.y >= element.y && point.y <= element.y + element.height;
+}
+
 export function hitElement(element: SketchElement, point: Point, tolerance: number): boolean {
   const p = rotatePoint(point, center(element), -element.rotation);
   const x = p.x - element.x;
@@ -101,6 +134,7 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
     return edge <= tolerance + element.style.strokeWidth / 2;
   }
   if (x < -tolerance || y < -tolerance || x > element.width + tolerance || y > element.height + tolerance) return false;
+  if (element.kind === 'container' && fillless(element.style.fill) && awsGroupOf(element)) return hitGroupOutline(element, x, y, tolerance);
   const variant = effectiveShapeVariant(element);
   if (variant === 'circle' || variant === 'summing' || variant === 'or') {
     return ((x - element.width / 2) / (element.width / 2 + tolerance)) ** 2 + ((y - element.height / 2) / (element.height / 2 + tolerance)) ** 2 <= 1;

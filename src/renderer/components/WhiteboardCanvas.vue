@@ -8,6 +8,7 @@ import QuickConnect from './QuickConnect.vue';
 import AnnotationEditor from './AnnotationEditor.vue';
 import TableOverlay from './TableOverlay.vue';
 import LaserPointerOverlay from './LaserPointerOverlay.vue';
+import { awsGroupOf, groupChrome } from '@/catalog';
 import { createElement, type SketchElement } from '@/domain';
 import { docToScreen, screenToDoc } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
@@ -56,6 +57,7 @@ const connectorDockElements = computed(() => {
   });
 });
 const connectorDockSides = DOCK_POINTS;
+const dropTarget = computed(() => s.dropTargetId ? s.displayElements.find((element) => element.id === s.dropTargetId) : undefined);
 /** In-place editor over the rendered text (#41): same box, font, size, color and alignment as ElementView. */
 const editStyle = computed(() => {
   const edit = s.textEdit;
@@ -65,14 +67,17 @@ const editStyle = computed(() => {
   const free = edit.kind === 'text';
   const sticky = edit.kind === 'sticky-note';
   const annotation = edit.kind === 'annotation';
-  const topInset = sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  // AWS group frames (#143) edit their label in the header, next to the tile.
+  const group = edit.kind === 'container' ? awsGroupOf(s.document.elements.find((element) => element.id === edit.elementId)) : undefined;
+  const chrome = group ? groupChrome(group, edit.box.width, edit.style.fontSize) : null;
+  const topInset = chrome ? chrome.label.top : sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
   const sideInset = sticky ? 20 : free || annotation ? 0 : 8;
   return {
     left: `${x}px`, top: `${y}px`,
     width: `${Math.max(free ? 120 : 24, edit.box.width * zoom)}px`,
     ...(free ? { minHeight: `${edit.style.fontSize * 1.25 * zoom}px` } : { height: `${Math.max(24, edit.box.height * zoom)}px` }),
     alignItems: free || topInset ? 'flex-start' : 'center',
-    padding: free ? '0' : `${topInset * zoom}px ${sideInset * zoom}px ${sticky ? 56 * zoom : 0}px`,
+    padding: free ? '0' : chrome ? `${topInset * zoom}px ${(edit.box.width - chrome.label.right) * zoom}px 0 ${chrome.label.left * zoom}px` : `${topInset * zoom}px ${sideInset * zoom}px ${sticky ? 56 * zoom : 0}px`,
     boxSizing: 'border-box' as const,
     transform: `rotate(${edit.rotation}deg)`,
     fontSize: `${edit.style.fontSize * zoom}px`,
@@ -176,6 +181,7 @@ onMounted(() => canvas.value?.focus());
         <g v-for="element in connectorDockElements" :key="`connector-docks:${element.id}`" data-testid="connector-dock-points" :data-element-id="element.id" :transform="`rotate(${element.rotation} ${element.x + element.width / 2} ${element.y + element.height / 2})`">
           <circle v-for="dock in connectorDockSides" :key="`${dock.side}-${dock.slot}`" data-testid="connector-dock-point" :data-side="dock.side" :data-slot="dock.slot" :data-target="s.connectorTargets?.toId === element.id ? 'true' : undefined" :cx="element.x + element.width * dock.x" :cy="element.y + element.height * dock.y" :r="6 / s.viewport.zoom" fill="var(--surface-panel)" stroke="#0d99ff" :stroke-width="2 / s.viewport.zoom" />
         </g>
+        <rect v-if="dropTarget" data-testid="drop-target-highlight" :data-element-id="dropTarget.id" :x="dropTarget.x - 2 / s.viewport.zoom" :y="dropTarget.y - 2 / s.viewport.zoom" :width="dropTarget.width + 4 / s.viewport.zoom" :height="dropTarget.height + 4 / s.viewport.zoom" fill="var(--accent-soft)" fill-opacity=".25" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" pointer-events="none" />
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
         <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>

@@ -41,10 +41,12 @@ import {
   validateStringMetadata,
   validateStyle,
 } from '../domain/validation';
+import { awsGroupById, GROUP_METADATA_KEY } from './aws-groups';
 import { builtInComponentSets } from './builtin';
 import { ICON_LIMITS, parseSafeIconSvg } from './icon';
 
 export { builtInComponentSets } from './builtin';
+export * from './aws-groups';
 export * from './icon';
 export * from './resource-card';
 
@@ -1167,6 +1169,30 @@ export function instantiateComponent(
       ? { fontFamily: definition.style.fontFamily }
       : {}),
   };
+
+  // AWS group frames (#143) are containers that carry their look in a metadata key, not components.
+  const group = awsGroupById(definition.metadata?.[GROUP_METADATA_KEY]);
+  if (group) {
+    const text = request.label ?? group.label;
+    const container: SketchElement = {
+      id: request.id,
+      pageId: request.pageId ?? DEFAULT_PAGE_ID,
+      kind: 'container',
+      x: normalizeZero(request.at.x),
+      y: normalizeZero(request.at.y),
+      width: normalizeZero(definition.defaultWidth),
+      height: normalizeZero(definition.defaultHeight),
+      rotation: 0,
+      style: mergedStyle,
+      text,
+      label: text,
+      ...(request.parentId !== undefined ? { parentId: request.parentId } : {}),
+      metadata: { [GROUP_METADATA_KEY]: group.id, ...(request.metadata ?? {}) },
+    };
+    const groupCommand: DocumentCommand = { type: 'add', elements: [cloneElement(container)] };
+    serializeDocument(applyCommand(validatedDoc, groupCommand));
+    return { element: cloneElement(container), command: groupCommand };
+  }
 
   const element: SketchElement = {
     id: request.id,

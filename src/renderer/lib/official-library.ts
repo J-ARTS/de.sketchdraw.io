@@ -1,4 +1,5 @@
 import type { ComponentDefinition, ComponentSet } from '@/domain';
+import { AWS_GROUPS, withAwsGroupSet } from '@/catalog/aws-groups';
 import { OFFICIAL_PROVIDERS, toOfficialComponentSets, type OfficialProvider, type RawOfficialLibrary } from '@/catalog/official-sets';
 
 export { OFFICIAL_PROVIDERS, type OfficialProvider };
@@ -11,14 +12,14 @@ const manifest = Object.values(import.meta.glob<Manifest>('../../catalog/officia
 const cache = new Map<OfficialProvider, Promise<ComponentSet[]>>();
 
 export function officialIconCount(provider: OfficialProvider): number {
-  return manifest?.providers[provider]?.count ?? 0;
+  return (manifest?.providers[provider]?.count ?? 0) + (provider === 'aws' ? AWS_GROUPS.length : 0);
 }
 
 export function loadOfficialLibrary(provider: OfficialProvider): Promise<ComponentSet[]> {
   let pending = cache.get(provider);
   if (!pending) {
     const load = loaders[`../../catalog/official/${provider}.json`];
-    pending = load ? load().then(toOfficialComponentSets) : Promise.resolve([]);
+    pending = load ? load().then(toOfficialComponentSets).then((sets) => (provider === 'aws' ? withAwsGroupSet(sets) : sets)) : Promise.resolve([]);
     pending.catch(() => cache.delete(provider));
     cache.set(provider, pending);
   }

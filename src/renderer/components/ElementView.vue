@@ -5,11 +5,12 @@ import { computed, ref, useId, watch } from 'vue';
 import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '../lib/theme';
 import { lineSegments, parseTextLinks } from '../lib/text-links';
+import { wrapWords } from '../lib/text-metrics';
 import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
-import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCardLinks } from '@/catalog';
+import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLinks } from '@/catalog';
 import AnnotationContent from './AnnotationContent.vue';
 import TableContent from './TableContent.vue';
 
@@ -20,7 +21,21 @@ const e = computed(() => props.element);
 const stroke = computed(() => themeColor(e.value.style.stroke, props.theme));
 const fill = computed(() => themeColor(e.value.style.fill, props.theme));
 const textColor = computed(() => themeColor(e.value.style.textColor ?? e.value.style.stroke, props.theme));
-const dash = computed(() => e.value.style.strokeDash === 'dashed' || e.value.style.strokeDash === 'animated' ? '8 6' : e.value.style.strokeDash === 'dotted' ? '2 5' : undefined);
+/** AWS group frames (#143): draw.io's fine dash pattern, scaled by the line width. */
+const group = computed(() => awsGroupOf(e.value));
+const dash = computed(() => {
+  const line = e.value.style.strokeDash;
+  if (line === 'solid') return undefined;
+  if (group.value) { const unit = Math.max(1, e.value.style.strokeWidth); return line === 'dotted' ? `${unit} ${3 * unit}` : `${3 * unit} ${3 * unit}`; }
+  return line === 'dashed' || line === 'animated' ? '8 6' : '2 5';
+});
+const chrome = computed(() => (group.value ? groupChrome(group.value, e.value.width, e.value.style.fontSize) : null));
+const groupTile = computed(() => {
+  const entry = group.value;
+  if (!entry || !chrome.value?.icon) return undefined;
+  const color = stroke.value;
+  return groupTileSvg(entry, /^#[0-9a-f]{6}$/i.test(color) ? color : entry.stroke);
+});
 const asset = computed(() => props.document.assets[e.value.assetId ?? '']);
 const definition = computed(() => props.document.componentSets.flatMap((set) => set.components).find((c) => c.type === e.value.componentType));
 const resourceCard = computed(() => isResourceCard(e.value));
@@ -81,10 +96,12 @@ const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
 const lines = computed(() => {
-  const inset = e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : 16;
-  const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * .6)));
+  const inset = chrome.value ? chrome.value.label.left + (e.value.width - chrome.value.label.right) : e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : 16;
+  // Group labels wrap at word boundaries like draw.io; other text wraps by character count.
+  const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * (group.value ? .55 : .6))));
   let offset = 0;
   return displayText.value.split('\n').flatMap((line) => {
+    if (group.value) { const wrapped = wrapWords(line, offset, max); offset += line.length + 1; return wrapped; }
     const chars = Array.from(line); const result: Array<{ text: string; from: number }> = [];
     let at = offset;
     for (let i = 0; i < chars.length; i += max) { const chunk = chars.slice(i, i + max).join(''); result.push({ text: chunk, from: at }); at += chunk.length; }
@@ -95,8 +112,8 @@ const lines = computed(() => {
 });
 /** Hyperlinks on parts of the text, drawn underlined and opened with Ctrl/Cmd+click. */
 const textLinks = computed(() => (text.value ? parseTextLinks(e.value.metadata, text.value.length) : []));
-const textX = computed(() => e.value.style.textAlign === 'center' ? e.value.width / 2 : e.value.style.textAlign === 'right' ? e.value.width - (e.value.kind === 'sticky-note' ? 20 : 8) : e.value.kind === 'text' ? 0 : e.value.kind === 'sticky-note' ? 20 : 8);
-const textY = computed(() => e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
+const textX = computed(() => chrome.value ? (e.value.style.textAlign === 'center' ? (chrome.value.label.left + chrome.value.label.right) / 2 : e.value.style.textAlign === 'right' ? chrome.value.label.right : chrome.value.label.left) : e.value.style.textAlign === 'center' ? e.value.width / 2 : e.value.style.textAlign === 'right' ? e.value.width - (e.value.kind === 'sticky-note' ? 20 : 8) : e.value.kind === 'text' ? 0 : e.value.kind === 'sticky-note' ? 20 : 8);
+const textY = computed(() => chrome.value ? chrome.value.label.top : e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
 const connectorPath = computed(() => e.value.kind === 'connector' ? connectorPathData(e.value) : '');
 const startMarker = computed(() => e.value.kind === 'connector' ? connectorStartMarker(e.value) : 'none');
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');
@@ -147,7 +164,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <marker :id="`${uid}-zero-or-many`" markerWidth="20" markerHeight="14" refX="17" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><circle cx="4.5" cy="7" r="3.5" fill="var(--surface-canvas)" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /><path d="M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /></marker>
       <marker :id="`${uid}-one-or-many`" markerWidth="20" markerHeight="14" refX="17" refY="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M5 2V12M8 7H11M11 7L17 1M11 7L17 7M11 7L17 13" fill="none" :stroke="stroke" :stroke-width="Math.max(1.5, e.style.strokeWidth)" /></marker>
     </defs>
-    <g :class="{ 'dash-animated': e.style.strokeDash === 'animated' }" :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" stroke-linecap="round" stroke-linejoin="round">
+    <g :class="{ 'dash-animated': e.style.strokeDash === 'animated' }" :stroke="stroke" :fill="fill" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash" :stroke-linecap="group ? 'butt' : 'round'" :stroke-linejoin="group ? 'miter' : 'round'">
       <rect v-if="e.kind === 'frame'" data-testid="frame-surface" :width="e.width" :height="e.height" fill="transparent" :stroke="stroke" :stroke-width="e.style.strokeWidth" :stroke-dasharray="dash ?? '10 7'" />
       <rect v-else-if="shape?.id === 'square'" :width="e.width" :height="e.height" rx="3" />
       <rect v-else-if="shape?.id === 'rounded'" data-testid="rounded-surface" :width="e.width" :height="e.height" :rx="cornerRadius" :ry="cornerRadius" />
@@ -162,6 +179,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
         <path :d="`M0 ${e.height - cardFooterHeight} H${e.width} V${e.height - 8} Q${e.width} ${e.height} ${e.width - 8} ${e.height} H8 Q0 ${e.height} 0 ${e.height - 8} Z`" fill="var(--accent-soft)" stroke="none" />
       </template>
       <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" :fill="cloudFill" :stroke="cloudStroke" :stroke-width="Math.max(1, e.style.strokeWidth)" />
+      <rect v-else-if="group" data-testid="aws-group-surface" :data-group="group.id" :width="e.width" :height="e.height" rx="0" />
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
@@ -171,7 +189,8 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
-    <svg v-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
+    <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
+    <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">

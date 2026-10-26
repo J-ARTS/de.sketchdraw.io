@@ -2,7 +2,7 @@ import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
-import { builtInComponentSets, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
+import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
 import { SVG_NS, OWN_NS, color, encodeEnvelope } from './common';
 import { parseXmlDocument } from './xml';
@@ -42,8 +42,10 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
   diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Editable text depends on fonts available in the receiving application.');
   const font = el.style.fontSize, align = el.kind === 'connector' ? 'center' : el.style.textAlign;
   const inset = el.kind === 'sticky-note' ? 20 : 0;
-  const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
-  const y = el.kind === 'connector' ? el.height / 2 : font + inset;
+  const group = awsGroupOf(el);
+  const label = group ? groupChrome(group, el.width, font).label : null;
+  const x = label ? (align === 'center' ? (label.left + label.right) / 2 : align === 'right' ? label.right : label.left) : align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
+  const y = label ? label.top + font * .93 : el.kind === 'connector' ? el.height / 2 : font + inset;
   const text = xmlText(visibleText, d, el);
   return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeTextColor(el, d), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
 }
@@ -224,6 +226,12 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const iconSize = isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
       out.append(`<svg${attrs({ ...tree.attributes, x: isResourceCard(el) ? 20 : 4, y: isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
+    const group = awsGroupOf(el);
+    const groupIcon = group ? groupChrome(group, el.width, el.style.fontSize).icon : null;
+    if (group && groupIcon) {
+      const tree = resolveCatalogIcon(groupTileSvg(group, safeColor(el.style.stroke, d, el))).tree;
+      out.append(`<svg${attrs({ ...tree.attributes, x: groupIcon.x, y: groupIcon.y, width: groupIcon.size, height: groupIcon.size, viewBox: tree.viewBox, opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+    }
     const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
     const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
     out.append(exportLink
@@ -272,8 +280,24 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     }
     else if (el.kind === 'text')
       style.push('text', 'strokeColor=none', 'fillColor=none');
-    else if (el.kind === 'container')
+    else if (el.kind === 'container') {
       style.push('container=1', 'verticalAlign=top');
+      const group = awsGroupOf(el);
+      if (group) {
+        // AWS group frames (#143): draw.io's own group shape, so the file opens with the same look and container behavior.
+        const k = el.style.fontSize / 12;
+        const chrome = groupChrome(group, el.width, el.style.fontSize);
+        style.push('pointerEvents=0', 'collapsible=0', 'recursiveResize=0', 'whiteSpace=wrap', `sketchdrawGroup=${group.id}`);
+        if (group.drawioIcon) {
+          style.push(`shape=mxgraph.aws4.${group.layout === 'center' ? 'groupCenter' : 'group'}`, `grIcon=${group.drawioIcon}`, `grIconSize=${n(Math.round(25 * k * 100) / 100)}`);
+          if (el.style.strokeWidth === 0) style.push('grStroke=0');
+          style.push(group.layout === 'center' ? `spacingTop=${n(Math.round(25 * k * 100) / 100)}` : `spacingLeft=${n(Math.round((chrome.label.left - 2 * k) * 100) / 100)}`);
+        }
+        else if (el.style.strokeWidth === 0) style.push('strokeColor=none');
+        const dashed = style.indexOf('dashPattern=8 6');
+        if (dashed >= 0 && el.style.strokeDash === 'dashed') style[dashed] = 'dashPattern=3 3';
+      }
+    }
     else if (el.kind === 'frame') {
       style.push('fillColor=none', 'dashed=1', 'dashPattern=10 7', 'verticalAlign=top', 'sketchdrawKind=frame');
       diagnostic(d, el, 'FRAME_PROJECTED_AS_VIEWPORT', 'Frame is exported as an editable viewport outline; slide order remains in embedded document metadata.', false);

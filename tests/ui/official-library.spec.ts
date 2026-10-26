@@ -11,11 +11,11 @@ test.beforeEach(async ({ page }) => {
 
 test('provider pages load the full official libraries in collapsible categories', async ({ page }) => {
   const sidebar = page.getByTestId('shape-library-sidebar');
-  for (const [label, count] of [['AWS', 784], ['Azure', 713], ['Google Cloud', 235], ['Kubernetes', 39]] as const) {
+  for (const [label, count] of [['AWS', 804], ['Azure', 713], ['Google Cloud', 235], ['Kubernetes', 39]] as const) {
     await expect(sidebar.getByRole('button', { name: new RegExp(`^${label} ${count} Symbole`) })).toBeVisible();
   }
 
-  await sidebar.getByRole('button', { name: /^AWS 784 Symbole/ }).click();
+  await sidebar.getByRole('button', { name: /^AWS 804 Symbole/ }).click();
   await expect(sidebar.getByText('Offizielle Architektur-Symbole.', { exact: false })).toHaveCount(0);
   const categories = sidebar.locator('.category-toggle');
   await expect(categories.first()).toHaveAttribute('aria-expanded', 'true');

@@ -239,6 +239,8 @@ export interface WhiteboardState {
   hoveredConnectorId: string | null;
   /** Valid non-connector element currently offered as a connector docking target. */
   connectorHoverTargetId: string | null;
+  /** Container that adopts the dragged elements when the pointer is released (#143). */
+  dropTargetId: string | null;
   snapTarget: SnapTarget | null;
   /** Bound source and current valid target while a connector is being drawn. */
   connectorTargets: { fromId: string; toId: string | null } | null;
