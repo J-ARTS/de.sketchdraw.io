@@ -287,28 +287,30 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
     >
       <div class="panel-head">
         <h2 :id="headingId" class="sd-panel-title">{{ t('pages.label') }}</h2>
-        <button
-          type="button"
-          class="sd-icon-btn head-btn"
-          data-testid="page-add"
-          :aria-disabled="!editable || undefined"
-          :aria-label="t('pages.add')"
-          :title="t('pages.add')"
-          @click="store.addPage()"
-        >
-          <AppIcon name="plus" :size="18" />
-        </button>
-        <button
-          type="button"
-          class="sd-icon-btn head-btn"
-          data-testid="page-paste"
-          :aria-disabled="!editable || undefined"
-          :aria-label="t('pages.paste')"
-          :title="t('pages.paste')"
-          @click="void store.pastePage()"
-        >
-          <AppIcon name="paste" :size="18" />
-        </button>
+        <div class="panel-actions">
+          <button
+            type="button"
+            class="sd-icon-btn head-btn"
+            data-testid="page-paste"
+            :aria-disabled="!editable || undefined"
+            :aria-label="t('pages.paste')"
+            :title="t('pages.paste')"
+            @click="void store.pastePage()"
+          >
+            <AppIcon name="paste" :size="18" />
+          </button>
+          <button
+            type="button"
+            class="sd-icon-btn head-btn"
+            data-testid="page-add"
+            :aria-disabled="!editable || undefined"
+            :aria-label="t('pages.add')"
+            :title="t('pages.add')"
+            @click="store.addPage()"
+          >
+            <AppIcon name="plus" :size="18" />
+          </button>
+        </div>
       </div>
 
       <ul class="page-list" :aria-label="t('pages.list')" @dragleave.self="dropIndex = null">
@@ -478,6 +480,13 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   align-items: center;
   justify-content: space-between;
   padding: 2px 2px 6px 10px;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
 }
 
 .head-btn {
