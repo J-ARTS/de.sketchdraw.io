@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-10T11:22:54Z",
+  "updatedAt": "2026-11-10T12:24:33Z",
   "issues": [
     {
       "number": 1,
@@ -2012,7 +2012,7 @@
       "owner": "Claude Code (UI), OpenAI Codex (testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI / Testing",
-      "status": "local_verified_awaiting_integration",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -8166,7 +8166,7 @@
       "issues": [
         147
       ],
-      "status": "local_verified_awaiting_integration",
+      "status": "integrated_with_graphify_followup",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -8175,13 +8175,68 @@
       "artifacts": [
         "src/renderer/components/PageSwitcher.vue",
         "tests/ui/pages.spec.ts",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/147"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/147",
+        "git:bd65d7ecfe5a670f3a7b1a9a0581786ea19d7160",
+        "git:28cdd32952296c2a85ee0bc21440cab726ad0f77",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/148",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42807095972",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42807102694"
       ],
       "concerns": [
         "The final live screenshot could not be captured because macOS was locked; the actual geometry and full page interaction flow are verified by Playwright."
       ],
       "authorization": "The user explicitly requested that the page add icon be placed at the right edge of the pages header.",
-      "measurementSource": "Local macOS verification on branch codex/147-page-plus-right: typecheck passed and all eight page UI tests passed. Exact Codex duration, tokens and cost were not measured and remain null."
+      "measurementSource": "Local macOS verification on commit bd65d7e: typecheck and all eight page UI tests passed. GitHub Actions push run 42807095972 and pull-request run 42807102694 independently passed Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows for exact head bd65d7e before merge commit 28cdd32. Exact Codex duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-147-push-42807095972",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        147
+      ],
+      "status": "passed_and_integrated",
+      "startedAt": "2026-11-10T11:23:37Z",
+      "endedAt": "2026-11-10T11:36:59Z",
+      "observedSeconds": 802,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bd65d7ecfe5a670f3a7b1a9a0581786ea19d7160",
+        "git:28cdd32952296c2a85ee0bc21440cab726ad0f77",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42807095972",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/148"
+      ],
+      "concerns": [
+        "GitHub reported the existing Node.js 20 action-runtime deprecation annotation; all project checks passed."
+      ],
+      "authorization": "The user explicitly requested the UI alignment change and previously authorized completion and integration of project work.",
+      "measurementSource": "GitHub Actions timestamps report 802 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit bd65d7e."
+    },
+    {
+      "id": "github-actions-147-pr-42807102694",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        147
+      ],
+      "status": "passed_and_integrated",
+      "startedAt": "2026-11-10T11:23:40Z",
+      "endedAt": "2026-11-10T11:40:05Z",
+      "observedSeconds": 985,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:bd65d7ecfe5a670f3a7b1a9a0581786ea19d7160",
+        "git:28cdd32952296c2a85ee0bc21440cab726ad0f77",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42807102694",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/148"
+      ],
+      "concerns": [
+        "GitHub reported the existing Node.js 20 action-runtime deprecation annotation; all project checks passed."
+      ],
+      "authorization": "The user explicitly requested the UI alignment change and previously authorized completion and integration of project work.",
+      "measurementSource": "GitHub Actions timestamps report 985 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit bd65d7e."
     }
   ],
   "evidencePolicy": {

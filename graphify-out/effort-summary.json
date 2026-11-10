@@ -1099,23 +1099,25 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 3
         },
         "observedSeconds": {
-          "knownRuns": 0,
-          "knownSubtotal": 0,
+          "knownRuns": 2,
+          "knownSubtotal": 1787,
           "total": null,
           "unknownRuns": 1
         },
-        "runCount": 1,
+        "runCount": 3,
         "runIds": [
-          "codex-147-page-plus-right"
+          "codex-147-page-plus-right",
+          "github-actions-147-pr-42807102694",
+          "github-actions-147-push-42807095972"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 3
         }
       },
       "planning": {
@@ -4542,18 +4544,20 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 78
+        "unknownRuns": 80
       },
       "observedSeconds": {
-        "knownRuns": 70,
-        "knownSubtotal": 30773,
+        "knownRuns": 72,
+        "knownSubtotal": 32560,
         "total": null,
         "unknownRuns": 8
       },
-      "runCount": 78,
+      "runCount": 80,
       "runIds": [
         "github-actions-144-pr-42793287352",
         "github-actions-144-push-42793279304",
+        "github-actions-147-pr-42807102694",
+        "github-actions-147-push-42807095972",
         "github-actions-agent-access-39054281662",
         "github-actions-agent-access-39054540682",
         "github-actions-annotation-39087268278",
@@ -4635,7 +4639,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 78
+        "unknownRuns": 80
       }
     },
     "openai-codex": {
@@ -4705,15 +4709,15 @@
       "knownRuns": 0,
       "knownSubtotal": 0,
       "total": null,
-      "unknownRuns": 225
+      "unknownRuns": 227
     },
     "observedSeconds": {
-      "knownRuns": 90,
-      "knownSubtotal": 43395.32226324896,
+      "knownRuns": 92,
+      "knownSubtotal": 45182.32226324896,
       "total": null,
       "unknownRuns": 135
     },
-    "runCount": 225,
+    "runCount": 227,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -4864,6 +4868,8 @@
       "codex-yjs-trystero-implementation-71-72",
       "github-actions-144-pr-42793287352",
       "github-actions-144-push-42793279304",
+      "github-actions-147-pr-42807102694",
+      "github-actions-147-push-42807095972",
       "github-actions-agent-access-39054281662",
       "github-actions-agent-access-39054540682",
       "github-actions-annotation-39087268278",
@@ -4945,7 +4951,7 @@
       "knownRuns": 4,
       "knownSubtotal": 391342,
       "total": null,
-      "unknownRuns": 221
+      "unknownRuns": 223
     }
   },
   "officialScoreClaimReady": false,
@@ -4959,5 +4965,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-10T11:22:54Z"
+  "updatedAt": "2026-11-10T12:24:33Z"
 }
