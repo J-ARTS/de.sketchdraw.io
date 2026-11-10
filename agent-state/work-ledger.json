@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-10T10:06:48Z",
+  "updatedAt": "2026-11-10T11:22:54Z",
   "issues": [
     {
       "number": 1,
@@ -2004,6 +2004,21 @@
       "dependencies": [
         144
       ]
+    },
+    {
+      "number": 147,
+      "title": "Plus im Kopf der Seitenleiste rechts ausrichten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/147",
+      "owner": "Claude Code (UI), OpenAI Codex (testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI / Testing",
+      "status": "local_verified_awaiting_integration",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -8143,6 +8158,30 @@
       ],
       "authorization": "The user requested implementation and had already authorized completing and merging the project work.",
       "measurementSource": "GitHub Actions timestamps report 737 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit 7781fa5 before merge."
+    },
+    {
+      "id": "codex-147-page-plus-right",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        147
+      ],
+      "status": "local_verified_awaiting_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/components/PageSwitcher.vue",
+        "tests/ui/pages.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/147"
+      ],
+      "concerns": [
+        "The final live screenshot could not be captured because macOS was locked; the actual geometry and full page interaction flow are verified by Playwright."
+      ],
+      "authorization": "The user explicitly requested that the page add icon be placed at the right edge of the pages header.",
+      "measurementSource": "Local macOS verification on branch codex/147-page-plus-right: typecheck passed and all eight page UI tests passed. Exact Codex duration, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

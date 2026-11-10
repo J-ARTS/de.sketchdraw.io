@@ -19,6 +19,10 @@ test('page switcher shows the active page and the page list is keyboard reachabl
   const trigger = page.getByTestId('page-switcher');
   await expect(trigger).toHaveAccessibleName('Seiten (1), aktuelle Seite: Seite 1');
   await openPages(page);
+  const addBox = await page.getByTestId('page-add').boundingBox();
+  const pasteBox = await page.getByTestId('page-paste').boundingBox();
+  expect(addBox).not.toBeNull(); expect(pasteBox).not.toBeNull();
+  expect(addBox!.x).toBeGreaterThan(pasteBox!.x);
   const row = page.getByRole('button', { name: /^Seite 1/ });
   await expect(row).toHaveAttribute('aria-current', 'page'); await expect(row).toBeFocused();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
