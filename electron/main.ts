@@ -237,7 +237,9 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
           message: check.reason,
         };
       }
-      return persistence.openDocument();
+      const result = await persistence.openDocument();
+      if (result.status === 'opened') await plugins.activateDocument(result.file.handleId);
+      return result;
     },
   );
 
@@ -256,7 +258,10 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
         };
       }
       const result = await persistence.saveDocument(rawPayload);
-      if (result.status === 'saved') void plugins.afterDocumentSaved(result.file.handleId);
+      if (result.status === 'saved') {
+        await plugins.activateDocument(result.file.handleId);
+        void plugins.afterDocumentSaved(result.file.handleId);
+      }
       return result;
     },
   );
@@ -342,6 +347,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
     const payload = request.payload as never;
     switch (request.action) {
       case 'get-settings': return plugins.getSettings();
+      case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as 'git' | 'jira');
+      case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as 'git' | 'jira');
       case 'configure-git': return plugins.configureGit(payload);
       case 'configure-atlassian': return plugins.configureAtlassian(payload);
       case 'test-atlassian': return plugins.testAtlassian();

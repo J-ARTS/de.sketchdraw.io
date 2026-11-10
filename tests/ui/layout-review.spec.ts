@@ -253,7 +253,7 @@ test('the plugin dialog keeps focus inside and returns it on Escape (#79)', asyn
   await expect(close).toBeFocused();
   // The workspace behind the modal is inert: a background control cannot take focus.
   expect(await page.locator('.bottom-tools button').first().evaluate((element: HTMLElement) => { element.focus(); return document.activeElement === element; })).toBe(false);
-  expect((await new AxeBuilder({ page }).include('.plugin-panel').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  expect((await new AxeBuilder({ page }).include('.plugin-shell').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId('workspace-menu-button')).toBeFocused();

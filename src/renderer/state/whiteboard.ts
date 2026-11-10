@@ -1628,9 +1628,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = t('Aufgabenboard geöffnet.'); },
     showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = t('Zeichenfläche geöffnet.'); },
     async refreshPluginSettings() {
-      if (!bridge.plugins) { state.pluginSettings = { available: false, git: { enabled: false, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
+      if (!bridge.plugins) { state.pluginSettings = { available: false, projectFolder: '', git: { installed: false, enabled: false, folderPath: '', autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { installed: false, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
       try { state.pluginSettings = await bridge.plugins.getSettings(); if (state.file.handle && state.pluginSettings.git.enabled) void bridge.plugins.watchDocument(state.file.handle.handleId); }
       catch (error) { fail(error); }
+    },
+    async setPluginInstalled(id, installed) {
+      if (!bridge.plugins) return false; state.pluginBusy = true;
+      try { state.pluginSettings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
+      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
       if (!bridge.plugins) return false; state.pluginBusy = true;
