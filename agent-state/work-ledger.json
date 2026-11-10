@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-10-20T12:19:43Z",
+  "updatedAt": "2026-11-10T09:44:18Z",
   "issues": [
     {
       "number": 1,
@@ -1972,6 +1972,38 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 144,
+      "title": "Plugin-Marketplace mit Git- und Jira-Konfiguration",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/144",
+      "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex (temporary)",
+      "phase": "UI / Logic / Interface / Testing",
+      "status": "local_verified_awaiting_integration",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 145,
+      "title": "Graphify verweigert Aktualisierung bei reduzierter Knotenzahl",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/145",
+      "owner": "OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex",
+      "phase": "Architecture / Testing",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        144
+      ]
     }
   ],
   "runs": [
@@ -8023,6 +8055,39 @@
       ],
       "authorization": "The user asked Codex to continue, preserve concurrent changes and publish the release.",
       "measurementSource": "Local macOS verification after merging latest main: typecheck and all nine selection-toolbar UI tests passed against an isolated Vite server. Exact Codex duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "codex-144-plugin-marketplace-project-config",
+      "tool": "openai-codex",
+      "model": "gpt-6",
+      "issues": [
+        144,
+        145
+      ],
+      "status": "local_verified_awaiting_integration_with_graphify_followup",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "electron/plugin-service.ts",
+        "electron/main.ts",
+        "electron/preload.ts",
+        "src/domain/plugins.ts",
+        "src/renderer/components/PluginSettings.vue",
+        "tests/unit/plugin-service.spec.ts",
+        "tests/ui/plugins.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/144",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/145"
+      ],
+      "concerns": [
+        "Git- und Jira-Secrets werden mit Electron safeStorage verschlüsselt in der projektlokalen Datei abgelegt; diese Datei wird bei Git-Projekten über .git/info/exclude lokal vom Commit ausgeschlossen.",
+        "Reale Git-Remote- und Jira-Cloud-Verbindungen benötigen Nutzerzugangsdaten und wurden lokal nicht gegen externe Dienste ausgeführt; Vertrags-, Secret-, JQL-, IPC- und UI-Pfade sind automatisiert geprüft.",
+        "graphify update . refused to replace the code graph because the newly extracted graph had 5,174 nodes versus 5,201 existing nodes; follow-up issue #145 records the unresolved maintenance gap, while the ledger projection itself passed validation."
+      ],
+      "authorization": "The user explicitly requested the marketplace, Git and Jira configuration flows and clarified that configuration is scoped to the diagram folder and reused by new diagrams in that same folder.",
+      "measurementSource": "Local macOS verification on branch codex/144-plugin-marketplace: typecheck passed; 550 unit tests passed, with the four plugin-service tests rerun after the same-folder assertion; 140 UI tests passed and one P2P network test was skipped; six Electron tests passed; production build passed. Exact Codex duration, tokens and cost were not measured and remain null."
     }
   ],
   "evidencePolicy": {

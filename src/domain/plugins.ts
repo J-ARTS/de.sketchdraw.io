@@ -1,13 +1,21 @@
 import type { FileReference, TaskStatus } from './types';
 
 export type PluginHealth = 'disabled' | 'ready' | 'attention' | 'error';
+export type PluginId = 'git' | 'jira';
+export type GitAuthMode = 'system' | 'token';
 
 export interface GitPluginSettings {
+  installed: boolean;
   enabled: boolean;
+  folderPath: string;
   autoCommit: boolean;
   autoPush: boolean;
   autoPull: boolean;
   remote: string;
+  remoteUrl: string;
+  authMode: GitAuthMode;
+  username: string;
+  credentialStored: boolean;
   health: PluginHealth;
   message: string;
   repositoryName?: string;
@@ -18,12 +26,14 @@ export interface GitPluginSettings {
 }
 
 export interface AtlassianPluginSettings {
+  installed: boolean;
   enabled: boolean;
   siteUrl: string;
   email: string;
   confluenceSpaceKey: string;
   jiraProjectKey: string;
   jiraIssueType: string;
+  jqlFilter: string;
   credentialStored: boolean;
   health: PluginHealth;
   message: string;
@@ -31,6 +41,7 @@ export interface AtlassianPluginSettings {
 
 export interface PluginSettingsSnapshot {
   available: boolean;
+  projectFolder: string;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
 }
@@ -41,6 +52,11 @@ export interface ConfigureGitPluginInput {
   autoPush: boolean;
   autoPull: boolean;
   remote: string;
+  remoteUrl: string;
+  authMode: GitAuthMode;
+  username: string;
+  accessToken?: string;
+  clearCredential?: boolean;
 }
 
 export interface ConfigureAtlassianPluginInput {
@@ -52,6 +68,7 @@ export interface ConfigureAtlassianPluginInput {
   confluenceSpaceKey: string;
   jiraProjectKey: string;
   jiraIssueType: string;
+  jqlFilter: string;
 }
 
 export interface PluginOperationResult {
@@ -93,6 +110,8 @@ export type PluginExternalEvent = {
 
 export interface PluginBridge {
   getSettings(): Promise<PluginSettingsSnapshot>;
+  installPlugin(id: PluginId): Promise<PluginSettingsSnapshot>;
+  uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot>;
   configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot>;
   configureAtlassian(input: ConfigureAtlassianPluginInput): Promise<PluginSettingsSnapshot>;
   testAtlassian(): Promise<PluginOperationResult>;

@@ -27,7 +27,7 @@ import type {
   TaskStatus,
   TaskType,
 } from '@/domain/types';
-import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginSettingsSnapshot } from '@/domain/plugins';
+import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
@@ -416,6 +416,7 @@ export interface WhiteboardStore {
   openTaskBoard(): void;
   showCanvas(): void;
   refreshPluginSettings(): Promise<void>;
+  setPluginInstalled(id: PluginId, installed: boolean): Promise<boolean>;
   configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
   configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;
   testAtlassianPlugin(): Promise<boolean>;

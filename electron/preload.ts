@@ -19,6 +19,7 @@ import type {
   GitSyncResult,
   JiraIssueSummary,
   PluginExternalEvent,
+  PluginId,
   PluginOperationResult,
   PluginSettingsSnapshot,
 } from '../src/domain/plugins';
@@ -209,6 +210,8 @@ export function createPreloadDesktopBridge(
 
     plugins: Object.freeze({
       getSettings: () => pluginInvoke<PluginSettingsSnapshot>('get-settings'),
+      installPlugin: (id: PluginId) => pluginInvoke<PluginSettingsSnapshot>('install-plugin', id),
+      uninstallPlugin: (id: PluginId) => pluginInvoke<PluginSettingsSnapshot>('uninstall-plugin', id),
       configureGit: (input: ConfigureGitPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-git', input),
       configureAtlassian: (input: ConfigureAtlassianPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-atlassian', input),
       testAtlassian: () => pluginInvoke<PluginOperationResult>('test-atlassian'),
