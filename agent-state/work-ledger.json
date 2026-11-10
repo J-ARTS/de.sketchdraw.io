@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-10T09:44:18Z",
+  "updatedAt": "2026-11-10T10:06:48Z",
   "issues": [
     {
       "number": 1,
@@ -1980,7 +1980,7 @@
       "owner": "Claude Code (UI), Google Antigravity (logic/interface), OpenAI Codex (architecture/testing)",
       "currentImplementer": "OpenAI Codex (temporary)",
       "phase": "UI / Logic / Interface / Testing",
-      "status": "local_verified_awaiting_integration",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -8064,7 +8064,7 @@
         144,
         145
       ],
-      "status": "local_verified_awaiting_integration_with_graphify_followup",
+      "status": "integrated_with_graphify_followup",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -8079,7 +8079,12 @@
         "tests/unit/plugin-service.spec.ts",
         "tests/ui/plugins.spec.ts",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/144",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/145"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/145",
+        "git:7781fa53a8b8df704e5cd0f7837cdcdb55413e2f",
+        "git:86b18f3715ca059fb597d036b55d8d08ef9124db",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/146",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42793279304",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42793287352"
       ],
       "concerns": [
         "Git- und Jira-Secrets werden mit Electron safeStorage verschlüsselt in der projektlokalen Datei abgelegt; diese Datei wird bei Git-Projekten über .git/info/exclude lokal vom Commit ausgeschlossen.",
@@ -8087,7 +8092,57 @@
         "graphify update . refused to replace the code graph because the newly extracted graph had 5,174 nodes versus 5,201 existing nodes; follow-up issue #145 records the unresolved maintenance gap, while the ledger projection itself passed validation."
       ],
       "authorization": "The user explicitly requested the marketplace, Git and Jira configuration flows and clarified that configuration is scoped to the diagram folder and reused by new diagrams in that same folder.",
-      "measurementSource": "Local macOS verification on branch codex/144-plugin-marketplace: typecheck passed; 550 unit tests passed, with the four plugin-service tests rerun after the same-folder assertion; 140 UI tests passed and one P2P network test was skipped; six Electron tests passed; production build passed. Exact Codex duration, tokens and cost were not measured and remain null."
+      "measurementSource": "Local macOS verification on commit 7781fa5: typecheck, 550 unit tests, four final plugin-service tests, 140 UI tests with one P2P network skip, six Electron tests, production build, 22 Graphify adapter tests and traceability validation passed. GitHub Actions push run 42793279304 and pull-request run 42793287352 independently passed Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows for exact head 7781fa5 before merge commit 86b18f3. Exact Codex duration, tokens and cost were not measured and remain null."
+    },
+    {
+      "id": "github-actions-144-push-42793279304",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        144
+      ],
+      "status": "passed_and_integrated",
+      "startedAt": "2026-11-10T09:44:51Z",
+      "endedAt": "2026-11-10T09:56:30Z",
+      "observedSeconds": 699,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:7781fa53a8b8df704e5cd0f7837cdcdb55413e2f",
+        "git:86b18f3715ca059fb597d036b55d8d08ef9124db",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42793279304",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/146"
+      ],
+      "concerns": [
+        "The workflow verifies plugin contracts and the packaged application without using live user-specific Git remotes or Jira Cloud credentials."
+      ],
+      "authorization": "The user requested implementation and had already authorized completing and merging the project work.",
+      "measurementSource": "GitHub Actions timestamps report 699 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit 7781fa5 before merge."
+    },
+    {
+      "id": "github-actions-144-pr-42793287352",
+      "tool": "github-actions",
+      "model": null,
+      "issues": [
+        144
+      ],
+      "status": "passed_and_integrated",
+      "startedAt": "2026-11-10T09:44:54Z",
+      "endedAt": "2026-11-10T09:57:11Z",
+      "observedSeconds": 737,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:7781fa53a8b8df704e5cd0f7837cdcdb55413e2f",
+        "git:86b18f3715ca059fb597d036b55d8d08ef9124db",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/42793287352",
+        "https://github.com/J-ARTS/de.sketchdraw.io/pull/146"
+      ],
+      "concerns": [
+        "The workflow verifies plugin contracts and the packaged application without using live user-specific Git remotes or Jira Cloud credentials."
+      ],
+      "authorization": "The user requested implementation and had already authorized completing and merging the project work.",
+      "measurementSource": "GitHub Actions timestamps report 737 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit 7781fa5 before merge."
     }
   ],
   "evidencePolicy": {
