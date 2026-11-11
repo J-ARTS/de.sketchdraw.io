@@ -1,0 +1,15 @@
+{
+  "electron": "44.9.0",
+  "sandbox": true,
+  "contextIsolation": true,
+  "plain": {
+    "ok": true,
+    "value": {
+      "enabled": true
+    }
+  },
+  "proxy": {
+    "ok": false,
+    "message": "An object could not be cloned."
+  }
+}

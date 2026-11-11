@@ -3,7 +3,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
 /** Visible, keyboard-reachable descendants of `container` in tab order. */
 export function focusableWithin(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE))
-    .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
+    // :disabled also covers controls disabled by a fieldset, respecting its first-legend exception.
+    .filter((element) => !element.matches(':disabled') && element.tabIndex >= 0 && element.getClientRects().length > 0);
 }
 
 /**

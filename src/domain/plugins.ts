@@ -109,7 +109,10 @@ export type PluginExternalEvent = {
 };
 
 export interface PluginBridge {
-  getSettings(): Promise<PluginSettingsSnapshot>;
+  /** A handle selects the current local project; null releases it. Omission only reads the snapshot. */
+  getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot>;
+  /** Run autosync only after the renderer accepted a save in its current local document. */
+  afterDocumentSaved?(handleId: string): Promise<void>;
   installPlugin(id: PluginId): Promise<PluginSettingsSnapshot>;
   uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot>;
   configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot>;

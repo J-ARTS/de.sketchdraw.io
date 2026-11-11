@@ -259,7 +259,7 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
         };
       }
       const result = await persistence.openDocument();
-      if (result.status === 'opened') await plugins.activateDocument(result.file.handleId);
+      // The renderer selects the project only after accepting and parsing this document.
       return result;
     },
   );
@@ -279,10 +279,7 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
         };
       }
       const result = await persistence.saveDocument(rawPayload);
-      if (result.status === 'saved') {
-        await plugins.activateDocument(result.file.handleId);
-        void plugins.afterDocumentSaved(result.file.handleId);
-      }
+      // Autosync is requested by the renderer after accepting a local document save.
       return result;
     },
   );
@@ -389,7 +386,11 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
     const request = rawPayload as { action?: unknown; payload?: unknown };
     const payload = request.payload as never;
     switch (request.action) {
-      case 'get-settings': return plugins.getSettings();
+      case 'get-settings': {
+        if (request.payload !== undefined && request.payload !== null && typeof request.payload !== 'string') throw new Error('Ungültiger Dokumentkontext.');
+        return plugins.getSettings(request.payload as string | null | undefined);
+      }
+      case 'after-document-saved': return plugins.afterDocumentSaved(String(request.payload ?? ''));
       case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as 'git' | 'jira');
       case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as 'git' | 'jira');
       case 'configure-git': return plugins.configureGit(payload);

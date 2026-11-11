@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:12:32.326526+00:00",
+  "updatedAt": "2026-11-11T21:35:56.402204+00:00",
   "issues": [
     {
       "number": 1,
@@ -2204,9 +2204,23 @@
       "title": "Plugin-Marketplace überarbeiten und vorinstallierte Integrationen konfigurierbar machen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/160",
       "owner": "Claude Code (ui), OpenAI Codex (architecture/testing), Antigravity (logic/interface responsibility)",
-      "currentImplementer": "Claude Code CLI Fable 5.2 high UI and sparring; Codex authorized backend/store implementation and tests",
+      "currentImplementer": "Codex root UI/native validation and delegated backend/store/tests; actual Claude Code Fable5.2/high read-only sparring completed; additional CLI UI attempts interrupted without edits",
       "phase": "UI / Project configuration / Testing",
-      "status": "in_progress",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 161,
+      "title": "Unbekannte oder beschädigte Plugin-Konfiguration vor Überschreiben schützen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/161",
+      "owner": "Antigravity (logic), Claude Code (ui), OpenAI Codex (testing)",
+      "phase": "Project configuration follow-up",
+      "status": "planned",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -8760,30 +8774,104 @@
       "issues": [
         160
       ],
-      "status": "in_progress",
+      "status": "completed",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
       "artifacts": [
-        "agent-state/tasks/160-plugin-marketplace.md"
+        "agent-state/tasks/160-plugin-marketplace.md",
+        "docs/reviews/160-plugin-marketplace-review.md",
+        "docs/reviews/160-local-validation.json",
+        "docs/reviews/160-electron-proxy-probe.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/160"
       ],
       "authorization": "User requested marketplace redesign, configurability and bundled Git/Jira; actual Claude Fable5.2 high sparring. Existing temporary Codex implementation authorization.",
-      "measurementSource": "No timing/token/cost measured; results pending.",
+      "measurementSource": "Local implementation and documented final validation complete; no root duration/token/cost measurement. Issue still review pending main integration.",
       "delegation": {
         "agents": [
           "/root/plugin_configuration_audit",
-          "/root/plugin_ui_tests"
+          "/root/plugin_backend_review",
+          "/root/plugin_ui_tests",
+          "/root/theme_settings_review"
         ],
-        "scope": "Exclusive backend/store with unit tests; separate UI acceptance tests",
-        "status": "in_progress"
+        "scope": "Separate backend/store, UI tests, independent backend review, independent UI review and focus correction; root UI/native integration",
+        "status": "completed"
       },
       "concerns": [
         "PL-160-01",
         "PL-160-02",
-        "PL-160-03"
+        "PL-160-03",
+        "PL-160-04",
+        "PL-160-05",
+        "PL-160-06",
+        "PL-160-07",
+        "PL-160-08"
       ]
+    },
+    {
+      "id": "claude-160-fable-sparring",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        160
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 491.754,
+      "tokens": 1646897,
+      "costUsd": 4.9250778,
+      "artifacts": [
+        "docs/reviews/160-fable-sparring.json",
+        "docs/reviews/160-fable-sparring.md"
+      ],
+      "concerns": [],
+      "measurementSource": "Actual successful read-only review CLI metrics. No source edits or tests by Fable. Tokens sum input/cache creation/cache read/output; thinking already included; cost is reported list price."
+    },
+    {
+      "id": "claude-160-ui-attempt",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        160
+      ],
+      "status": "interrupted",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 797.582,
+      "tokens": 1337246,
+      "costUsd": 5.5225998,
+      "artifacts": [
+        "docs/reviews/160-ui-fable-interrupted.json",
+        "docs/reviews/160-fable-sparring.md"
+      ],
+      "concerns": [],
+      "measurementSource": "Actual CLI duration_ms, usage input+cache creation+cache read+output (thinking already included), reported list-price total_cost_usd. Each invocation counted once. UI attempt interrupted with no source changes."
+    },
+    {
+      "id": "claude-160-ui-resume",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": null,
+      "requestedModel": "claude-sonnet-5-5",
+      "effort": "high",
+      "issues": [
+        160
+      ],
+      "status": "interrupted",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 208.305,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/160-ui-resume-interrupted.json"
+      ],
+      "concerns": [],
+      "measurementSource": "Actual duration_ms. Resume produced no edits/no new model output; emitted modelUsage/cost are cumulative prior Fable session and are deliberately not counted again."
     }
   ],
   "evidencePolicy": {

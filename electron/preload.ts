@@ -251,7 +251,8 @@ export function createPreloadDesktopBridge(
     },
 
     plugins: Object.freeze({
-      getSettings: () => pluginInvoke<PluginSettingsSnapshot>('get-settings'),
+      getSettings: (handleId?: string | null) => pluginInvoke<PluginSettingsSnapshot>('get-settings', handleId),
+      afterDocumentSaved: (handleId: string) => pluginInvoke<void>('after-document-saved', handleId),
       installPlugin: (id: PluginId) => pluginInvoke<PluginSettingsSnapshot>('install-plugin', id),
       uninstallPlugin: (id: PluginId) => pluginInvoke<PluginSettingsSnapshot>('uninstall-plugin', id),
       configureGit: (input: ConfigureGitPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-git', input),

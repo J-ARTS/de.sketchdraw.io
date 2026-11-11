@@ -1,0 +1,142 @@
+{
+  "issue": 160,
+  "recordedAt": "2026-11-11T21:35:56.402204+00:00",
+  "branch": "codex/158-custom-dropdowns",
+  "baseCommit": "3bd7ab98099c864cce6d3ac53fee4cc07df0ec07",
+  "sourceState": "local uncommitted #160 changes; source hashes identify tested final implementation",
+  "environment": {
+    "os": "macOS-14.6.1-arm64-arm-64bit-Mach-O",
+    "node": "v22.16.0",
+    "electron": "44.9.0"
+  },
+  "sourceSha256": {
+    "electron/main.ts": "d2be68349a4a2b0211f4f2ad26a7415a1415457adc16dea1081c33a874ebff16",
+    "electron/plugin-service.ts": "6be9db2e6cf8314a1d44581b709340e42151529ac7b642a7e415f271d322532f",
+    "electron/preload.ts": "ec75086207de567884fd609b0dcea807de19bdd7dc0afac03aa90d62a0ffbf8e",
+    "src/domain/plugins.ts": "e520f8521834ce5da47cd5ff7e7e1dbbc6bb071a4457042f946c5f508c917b88",
+    "src/renderer/state/whiteboard.ts": "b4ae17ae7f2ce16a5b90f466f7cb9455d3e66c3421ca5e2aca0b67d4c3992cfb",
+    "src/renderer/components/PluginSettings.vue": "d660e5254795347bfea0739862cebdfa47790ed1ebb1ce55cfcbba73ba1f3d10",
+    "src/renderer/i18n/en.ts": "c8016ca45ceb67d9f9c9ca510859066fa634d5603ccb41ffc04308df914d4937",
+    "src/renderer/lib/focus.ts": "aeca2b5c357044f7c9f5a652f163e66294a48e3f262f94b3bf735a91f7faf5e8",
+    "tests/unit/plugin-service.spec.ts": "ed94071d5278b7600052a0038bac79020751cfab5c50f8d0f56898f5aa581189",
+    "tests/unit/renderer/plugin-store.spec.ts": "c471f9de8b577f7682d6859634f9138c16f0fb72c1480b81fbe8bcbdb59d6a80",
+    "tests/ui/plugins.spec.ts": "c9946b9104242da94021b788986dac31a606b0649c6322942c7e726bee311c9b",
+    "tests/electron/plugins.spec.ts": "5ee796dbf510abdada4e0d97375351d6433a6b006d9dcb33721c7a79b45b464a"
+  },
+  "checks": [
+    {
+      "command": "npm run test:unit",
+      "result": "passed",
+      "testFiles": 99,
+      "tests": 847,
+      "durationSeconds": 15.07
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    {
+      "command": "npx playwright test tests/ui/plugins.spec.ts --project=ui --output=/tmp/sketchdraw-plugin-160/ui-results-final",
+      "result": "passed",
+      "tests": 16,
+      "durationSeconds": 15.8,
+      "source": "delegated Codex UI test run; reviewed by root",
+      "coverage": [
+        "bundled installed but disabled",
+        "save/reopen",
+        "independent drafts",
+        "error/retry",
+        "cancel save",
+        "tabs/focus",
+        "360/960/1280 light/dark with axe",
+        "deferred old/new project requests",
+        "DSL validation error"
+      ]
+    },
+    {
+      "command": "npx playwright test tests/ui/settings.spec.ts tests/ui/task-board-cards.spec.ts --project=ui --output=/tmp/sketchdraw-plugin-160/shared-focus-results",
+      "result": "passed",
+      "tests": 5,
+      "durationSeconds": 7.4
+    },
+    {
+      "command": "npx playwright test --config playwright.config.ts --project=electron tests/electron/plugins.spec.ts --output=/tmp/sketchdraw-plugin-160/native-results-final",
+      "result": "passed",
+      "tests": 1,
+      "durationSeconds": 2.2,
+      "coverage": [
+        "real built renderer/preload/main/persistence",
+        "native file-dialog result stub only",
+        "real Git initialization",
+        "Git/Jira persist",
+        "visible actual IPC validation failure",
+        "same folder reuse",
+        "different folder isolation",
+        "new document clears authority"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "previousFailedAttempts": [
+    {
+      "kind": "native test polling",
+      "result": "ENOENT escaped expect.poll before configuration file was written; fixed missing-file polling and passed subsequent runs; no product failure"
+    },
+    {
+      "kind": "UI expectation",
+      "result": "test attempted connection while plugin was disabled/dirty; corrected to assert disabled state then test valid saved active config"
+    },
+    {
+      "kind": "parallel Playwright output collision",
+      "result": "shared test-results directory removed another run artifacts; all final runs used distinct output directories"
+    },
+    {
+      "kind": "request race test locator",
+      "result": "reopened dialog correctly retained Jira selection; test now explicitly selects Git before checking Git fields"
+    },
+    {
+      "kind": "initial typecheck/i18n",
+      "result": "narrowed template ternary and two stale translation entries corrected; final full checks pass"
+    }
+  ],
+  "review": {
+    "fable": "actual read-only claude-fable-5-2/high session 2a9cc72f-5168-475f-a7ef-15c121774535; original report retained",
+    "implementation": "Codex root UI and native acceptance; Codex subagents backend/store, independent reviews and UI tests; Claude UI attempts interrupted without edits",
+    "independentBackend": "79 focused tests passed, failed-persistence request count independently confirmed 1 before / 0 after; no material unresolved scoped findings",
+    "independentUI": "three findings fixed, statically rereviewed and reproduced in final UI regression tests",
+    "visual": [
+      "160-plugins-light.png",
+      "160-plugins-dark.png",
+      "160-marketplace-light.png",
+      "160-marketplace-dark.png"
+    ]
+  },
+  "notExecuted": [
+    "live authenticated Jira/Confluence operations",
+    "live Git remote pull/push",
+    "Windows/Linux native acceptance",
+    "installer/release/main integration"
+  ],
+  "followupIssue": 161,
+  "graphify": {
+    "update": {
+      "command": "graphify update .",
+      "result": "refused safely",
+      "reason": "6021 new nodes versus 6128 existing; known #145 protective refusal; no force used, code graph not fully refreshed"
+    },
+    "traceability": {
+      "command": "python3 tools/graphify-links.py && python3 tools/graphify-links.py --check",
+      "result": "passed",
+      "nodes": 2488,
+      "links": 3371
+    },
+    "initialLedgerValidation": "run end timestamp without a measured start was rejected; both timestamps reset to null (unknown), then merge/check passed"
+  }
+}

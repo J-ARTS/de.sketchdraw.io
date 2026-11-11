@@ -264,3 +264,14 @@ Quelle: unabhängiger Codex-Audit `/root/plugin_configuration_audit`; tatsächli
 - **PL-160-05 — Vue-Proxy an Electron:** Fable H1 als Hypothese gemeldet; Codex reproduziert unabhängig mit tatsächlichem Electron44.9, Sandbox und Context Isolation: Plain-Objekt funktioniert, Proxy wirft `An object could not be cloned.` (`docs/reviews/160-electron-proxy-probe.json`). Entscheidung: explizite Plain-DTOs im Store vor beiden Konfigurationsaufrufen. Die neue reactive/structuredClone-Regression besteht; vollständiger nativer Produktlauf folgt.
 
 PL-160-04 unabhängig nach Korrektur bestätigt: gleicher EISDIR-Fall erzeugt keinen Remote-Request mehr (zuvor 1, nun 0); Konfiguration wird erst nach erfolgreicher Persistenz aktiviert. Unabhängiger Backend-Review: 79 fokussierte Tests, keine verbleibenden materiellen Befunde. Der vollständige Root-Unit-Lauf ohne die noch parallel bearbeitete Übersetzungssuite besteht mit 842 Tests. UI-/Electron-Abnahme steht noch aus. Unbekannte/beschädigte Konfigdateien bleiben als Folgefehler [#161](https://github.com/J-ARTS/de.sketchdraw.io/issues/161) abgegrenzt.
+
+
+### PL-160 final local review
+
+Actual Fable5.2/high read-only review completed; UI implementation attempts produced no edits and were interrupted. Codex root implemented the UI, Codex delegated agents implemented backend/store and test changes. Original report and exact execution metadata are in `docs/reviews/160-fable-sparring.*` and the interrupted-run JSON files.
+
+- **PL-160-06 — Disabled fieldset focus:** independent Codex UI review found inherited disabled controls still in focus traversal. `focusableWithin` now checks native `:disabled`; a reverse-Tab browser regression passes.
+- **PL-160-07 — Pending old project:** local pending flags survived project changes and old finally blocks could clear newer operations. Request ownership and context/dialog invalidation now isolate them; deferred A/B response regression passes.
+- **PL-160-08 — Draft validation presented as cancellation:** a failed DSL validation did not set persistence lastError. Save CTA now displays the newly emitted validation error; actual code-editor UI regression passes without opening the file dialog.
+
+PL-160-01 through PL-160-08 are locally addressed, with independent post-fix review. Both configurations persist through the real built Electron UI/preload/main path; folder reuse and separation pass. Final evidence: `docs/reviews/160-local-validation.json`. No live credentials, remote-service acceptance, or main integration claimed. #160 remains review until integration; #161 remains planned.

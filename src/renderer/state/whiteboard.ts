@@ -125,6 +125,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
+  let pluginGeneration = 0;
+  let pluginRefreshRequest = 0;
+  const currentPluginHandle = () => guest || state.roomGuest ? null : state.file.handle?.handleId ?? null;
+  const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
+  const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
+  function clearPluginContext(): void {
+    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false;
+    pendingExternalEvent = null; state.pendingExternalDocument = false;
+  }
   const actorId = options.actorId ?? ACTOR_ID;
   const authorNameOption = options.authorName?.trim();
   const localAuthor = (): string => authorNameOption || t('Lokaler Benutzer');
@@ -686,7 +695,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         ? { ...base, mode: 'save', handleId: handle.handleId, expectedVersionToken: handle.versionToken }
         : { ...base, mode: 'save-as' });
       if (activeSession() !== session) return false;
-      if (result.status === 'saved') { state.file.handle = result.file; state.file.savedRevision = snapshot.revision; if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(t('Gespeichert: {name}', { name: result.file.name })); return true; }
+      if (result.status === 'saved') {
+        if (state.file.handle?.handleId !== result.file.handleId) clearPluginContext();
+        state.file.handle = result.file; state.file.savedRevision = snapshot.revision;
+        const generation = pluginGeneration;
+        await store.refreshPluginSettings();
+        if (!pluginContextCurrent(generation) || activeSession() !== session) return false;
+        if (currentPluginHandle() === result.file.handleId) void bridge.plugins?.afterDocumentSaved?.(result.file.handleId).catch(() => undefined);
+        notice(t('Gespeichert: {name}', { name: result.file.name })); return true;
+      }
       if (result.status === 'download-initiated') { state.file.handedOffRevision = snapshot.revision; notice(t('Als Download übergeben: {name}', { name: result.name })); return true; }
       if (result.status === 'conflict') {
         state.file.conflict = true;
@@ -716,6 +733,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.roomGuest = room ? (access?.() ?? { role: roomRole ?? 'viewer', connected: true }) : null;
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
+    clearPluginContext();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
     state.selection = []; state.focusedId = null; state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; state.textEdit = null; state.gestureConflict = null; state.propertyDraft = null;
     state.activePageId = document.pages[0]!.id; pageViewports.clear();
@@ -725,6 +743,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     state.code = { text: formatDiagram(document), baseRevision: state.revision, dirty: false, diagnostics: [] };
     state.offscreenChanges = 0; state.dialog = null; state.transitioning = false; changedDraft(); bind();
     for (const listener of authorityListeners) listener(authority);
+    void store.refreshPluginSettings();
     store.fitAll(); settleTransition(true);
   }
   async function continueTransition(reason: 'new' | 'open' | 'close' | 'import' | 'join' | 'leave' | 'room', requestId?: string) {
@@ -747,11 +766,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       if (reason === 'new') { install(createDocument('Unbenannt')); return; }
       if (reason === 'open') {
+        clearPluginContext();
+        await bridge.plugins?.getSettings(null);
         const result = await bridge.openDocument();
         if (!lifecycle().isCurrent(active, draftGeneration)) throw new Error(t('Der Stand hat sich während des Öffnens geändert.'));
-        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); if (state.pluginSettings?.git.enabled) void bridge.plugins?.watchDocument(result.file.handleId); notice(t('Geöffnet: {name}', { name: result.file.name })); return; }
+        if (result.status === 'opened') { const document = deserializeDocument(result.text); install(document, { ...freshFile(), handle: result.file, savedRevision: 0 }); await store.refreshPluginSettings(); notice(t('Geöffnet: {name}', { name: result.file.name })); return; }
         if (result.status === 'error') throw new Error(result.message);
-        releaseTransition(); state.dialog = null; return;
+        releaseTransition(); state.dialog = null; await store.refreshPluginSettings(); return;
       }
       if (!requestId) throw new Error(t('Die Schließanfrage fehlt.'));
       await bridge.respondToClose(requestId, 'close');
@@ -759,6 +780,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       lifecycle().completeTransition(active.token); state.dialog = null;
     } catch (error) {
       releaseTransition(); state.dialog = null; fail(error);
+      if (reason === 'open') await store.refreshPluginSettings();
       if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(() => {});
     }
   }
@@ -817,6 +839,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     enterRoomGuest(role, connected = true, access) {
       roomAccess = access;
       state.roomGuest = { role, connected };
+      clearPluginContext(); void store.refreshPluginSettings();
       for (const listener of authorityListeners) listener(authority);
     },
     setRoomConnected(connected) {
@@ -826,6 +849,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.roomGuest) return;
       roomAccess = undefined;
       state.roomGuest = null;
+      clearPluginContext(); void store.refreshPluginSettings();
       for (const listener of authorityListeners) listener(authority);
     },
     getRoomGuest() { return state.roomGuest; },
@@ -1533,6 +1557,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       return ok;
     },
     async createTask(input) {
+      const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning) return false;
       const title = input.title.trim();
       if (!title) return false;
@@ -1548,34 +1573,40 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
+      if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe erstellt.');
-      if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
           if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
     async createTaskFromComment(threadId) {
+      const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning || (state.document.tasks ?? []).some((task) => task.sourceThreadId === threadId)) return false;
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId); const first = thread?.messages[0]; if (!thread || !first) return false;
       const now = new Date().toISOString(); const title = first.body.split(/\r?\n/)[0]!.slice(0, 120);
       const task: SketchTask = { id: uid('task'), sourceThreadId: threadId, title, description: first.body, status: 'todo', rank: (state.document.tasks ?? []).filter((entry) => entry.status === 'todo').length, createdAt: now, updatedAt: now };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
+      if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
-      if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
           if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
     async createTaskFromStickyNote(elementId) {
+      const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning || (state.document.tasks ?? []).some((task) => task.sourceElementId === elementId)) return false;
       const note = pageEls().find((element) => element.id === elementId && element.kind === 'sticky-note');
       if (!note) return false;
@@ -1590,17 +1621,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       };
       const ok = await dispatch({ type: 'set-tasks', tasks: [...(state.document.tasks ?? []), task] });
       if (!ok) return false;
+      if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Notiz erstellt.');
-      if (state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
           if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
     async moveTask(taskId, status, index) {
+      const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning) return false;
       const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
       const previous = task.status;
@@ -1613,17 +1647,20 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       task.updatedAt = new Date().toISOString();
       const ok = await dispatch({ type: 'set-tasks', tasks });
       if (!ok) return false;
+      if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe verschoben.');
-      if (previous !== status && task.external?.provider === 'jira' && bridge.plugins) {
+      if (previous !== status && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
           const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
+          if (!pluginContextCurrent(generation)) return true;
           const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
           if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
-        } catch (error) { notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
     async updateTask(taskId, value) {
+      const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning) return false;
       const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
       if (value.title !== undefined && value.title.trim()) task.title = value.title.trim();
@@ -1635,13 +1672,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       task.updatedAt = new Date().toISOString();
       const ok = await dispatch({ type: 'set-tasks', tasks });
       if (ok) {
+        if (!pluginContextCurrent(generation)) return true;
         state.liveMessage = t('Aufgabe aktualisiert.');
-        if (value.status !== undefined && task.external?.provider === 'jira' && bridge.plugins) {
+        if (value.status !== undefined && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
           try {
             const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
-            const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
+            if (!pluginContextCurrent(generation)) return true;
+          const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
             if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -1654,73 +1693,90 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     openTaskBoard() { state.workspaceView = 'tasks'; state.activeCommentId = null; state.commentComposerTarget = null; state.commentSidebarOpen = false; state.liveMessage = t('Aufgabenboard geöffnet.'); },
     showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = t('Zeichenfläche geöffnet.'); },
     async refreshPluginSettings() {
-      if (!bridge.plugins) { state.pluginSettings = { available: false, projectFolder: '', git: { installed: false, enabled: false, folderPath: '', autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { installed: false, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
-      try { state.pluginSettings = await bridge.plugins.getSettings(); if (state.file.handle && state.pluginSettings.git.enabled) void bridge.plugins.watchDocument(state.file.handle.handleId); }
-      catch (error) { fail(error); }
+      const generation = pluginGeneration; const request = ++pluginRefreshRequest;
+      if (!bridge.plugins) { state.pluginSettings = { available: false, projectFolder: '', git: { installed: true, enabled: false, folderPath: '', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
+      const handle = currentPluginHandle();
+      try {
+        const settings = await bridge.plugins.getSettings(handle);
+        if (!pluginContextCurrent(generation) || request !== pluginRefreshRequest || handle !== currentPluginHandle()) return;
+        state.pluginSettings = settings;
+        if (handle && settings.git.enabled) void bridge.plugins.watchDocument(handle).catch(() => undefined);
+      } catch (error) { if (pluginContextCurrent(generation) && request === pluginRefreshRequest) fail(error); }
     },
     async setPluginInstalled(id, installed) {
-      if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { state.pluginSettings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
-      if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { state.pluginSettings = await bridge.plugins.configureGit(input); if (input.enabled && state.file.handle) await bridge.plugins.watchDocument(state.file.handle.handleId); notice(t('Git-Plugin gespeichert.')); return true; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const payload: ConfigureGitPluginInput = { enabled: input.enabled, autoCommit: input.autoCommit, autoPush: input.autoPush, autoPull: input.autoPull, remote: input.remote, remoteUrl: input.remoteUrl, authMode: input.authMode, username: input.username, accessToken: input.accessToken, clearCredential: input.clearCredential }; const settings = await bridge.plugins.configureGit(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; const handle = currentPluginHandle(); if (input.enabled && handle) await bridge.plugins.watchDocument(handle); if (!pluginContextCurrent(generation)) return false; notice(t('Git-Plugin gespeichert.')); return true; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureAtlassianPlugin(input: ConfigureAtlassianPluginInput) {
-      if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { state.pluginSettings = await bridge.plugins.configureAtlassian(input); notice(t('Atlassian-Plugin gespeichert.')); return true; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t('Atlassian-Plugin gespeichert.')); return true; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
-      if (!bridge.plugins) return false; state.pluginBusy = true;
-      try { const result = await bridge.plugins.testAtlassian(); await store.refreshPluginSettings(); notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const result = await bridge.plugins.testAtlassian(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async refreshGitStatus() {
-      if (!bridge.plugins || !state.file.handle) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
-      state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !state.file.handle || !hasPluginProject()) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (!pluginContextCurrent(generation)) return false; if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async syncGit() {
-      if (!bridge.plugins || !state.file.handle) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !state.file.handle || !hasPluginProject()) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
       if (state.saveStatus === 'dirty') { notice(t('Speichere lokale Änderungen vor der Git-Synchronisation.'), 'error'); return false; }
-      state.pluginBusy = true; try { const result = await bridge.plugins.gitSync(state.file.handle.handleId); if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      state.pluginBusy = true; try { const result = await bridge.plugins.gitSync(state.file.handle.handleId); if (!pluginContextCurrent(generation)) return false; if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async searchConfluencePages(query) {
-      if (!bridge.plugins) return; state.pluginBusy = true;
-      try { state.confluencePages = await bridge.plugins.listConfluencePages(query); }
-      catch (error) { fail(error); } finally { state.pluginBusy = false; }
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !hasPluginProject()) return; state.pluginBusy = true;
+      try { const pages = await bridge.plugins.listConfluencePages(query); if (pluginContextCurrent(generation)) state.confluencePages = pages; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async insertConfluencePage(pageId) {
-      if (!bridge.plugins || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !hasPluginProject() || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
       try {
-        const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const p = currentCenter();
+        const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const p = currentCenter();
         const element = createElement('annotation', { x: p.x - 260, y: p.y - 180, width: 520, height: 360, label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageId': page.id, 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } });
         const ok = await dispatch({ type: 'add', elements: [element] }, state.revision, 'import'); if (ok) { setSelection([element.id]); state.workspaceView = 'canvas'; notice(t('Confluence-Seite „{title}“ eingebunden.', { title: page.title })); } return ok;
-      } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async syncConfluenceElement(elementId) {
-      if (!bridge.plugins) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !hasPluginProject()) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
       if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); if (!pluginContextCurrent(generation)) return false; const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async refreshConfluenceElement(elementId) {
-      if (!bridge.plugins) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !hasPluginProject()) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
       if (!element || !pageId) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
-      catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async syncJiraTasks() {
-      if (!bridge.plugins || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
+      const generation = pluginGeneration;
+      if (!bridge.plugins || !hasPluginProject() || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
       try {
-        const issues = await bridge.plugins.listJiraIssues(); const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
+        const issues = await bridge.plugins.listJiraIssues(); if (!pluginContextCurrent(generation)) return false; const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
         for (const issue of issues) { const existing = byKey.get(issue.key); if (existing) { existing.title = issue.title; existing.description = issue.description; existing.status = issue.status; existing.updatedAt = issue.updatedAt; existing.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; } else tasks.push({ id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((task) => task.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } }); }
         const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
-      } catch (error) { fail(error); return false; } finally { state.pluginBusy = false; }
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async acceptExternalDocument() {
       const event = pendingExternalEvent; if (!event) return false;

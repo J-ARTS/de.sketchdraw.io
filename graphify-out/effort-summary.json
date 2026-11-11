@@ -1587,26 +1587,59 @@
     "160": {
       "exclusiveRuns": {
         "costUsd": {
+          "knownRuns": 2,
+          "knownSubtotal": 10.4476776,
+          "total": null,
+          "unknownRuns": 2
+        },
+        "observedSeconds": {
+          "knownRuns": 3,
+          "knownSubtotal": 1497.641,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 4,
+        "runIds": [
+          "claude-160-fable-sparring",
+          "claude-160-ui-attempt",
+          "claude-160-ui-resume",
+          "codex-160-plugin-marketplace"
+        ],
+        "tokens": {
+          "knownRuns": 2,
+          "knownSubtotal": 2984143,
+          "total": null,
+          "unknownRuns": 2
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
+    "161": {
+      "exclusiveRuns": {
+        "costUsd": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 0
         },
         "observedSeconds": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 0
         },
-        "runCount": 1,
-        "runIds": [
-          "codex-160-plugin-marketplace"
-        ],
+        "runCount": 0,
+        "runIds": [],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 0
         }
       },
       "planning": {
@@ -4747,29 +4780,32 @@
     },
     "Claude Code CLI 2.1.321": {
       "costUsd": {
-        "knownRuns": 4,
-        "knownSubtotal": 10.6355521,
-        "total": 10.6355521,
-        "unknownRuns": 0
+        "knownRuns": 6,
+        "knownSubtotal": 21.0832297,
+        "total": null,
+        "unknownRuns": 1
       },
       "observedSeconds": {
-        "knownRuns": 4,
-        "knownSubtotal": 1336.023,
-        "total": 1336.023,
+        "knownRuns": 7,
+        "knownSubtotal": 2833.6639999999998,
+        "total": 2833.6639999999998,
         "unknownRuns": 0
       },
-      "runCount": 4,
+      "runCount": 7,
       "runIds": [
         "claude-149-fable-sparring-5db4e51b",
         "claude-153-fable-sparring",
         "claude-158-dropdowns-f2c30253",
-        "claude-159-theme-settings-c968ec15"
+        "claude-159-theme-settings-c968ec15",
+        "claude-160-fable-sparring",
+        "claude-160-ui-attempt",
+        "claude-160-ui-resume"
       ],
       "tokens": {
-        "knownRuns": 4,
-        "knownSubtotal": 3661994,
-        "total": 3661994,
-        "unknownRuns": 0
+        "knownRuns": 6,
+        "knownSubtotal": 6646137,
+        "total": null,
+        "unknownRuns": 1
       }
     },
     "OpenAI Codex": {
@@ -5192,18 +5228,18 @@
   },
   "observed": {
     "costUsd": {
-      "knownRuns": 4,
-      "knownSubtotal": 10.6355521,
+      "knownRuns": 6,
+      "knownSubtotal": 21.0832297,
       "total": null,
-      "unknownRuns": 234
+      "unknownRuns": 235
     },
     "observedSeconds": {
-      "knownRuns": 97,
-      "knownSubtotal": 49211.90226324896,
+      "knownRuns": 100,
+      "knownSubtotal": 50709.54326324896,
       "total": null,
       "unknownRuns": 141
     },
-    "runCount": 238,
+    "runCount": 241,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -5240,6 +5276,9 @@
       "claude-153-fable-sparring",
       "claude-158-dropdowns-f2c30253",
       "claude-159-theme-settings-c968ec15",
+      "claude-160-fable-sparring",
+      "claude-160-ui-attempt",
+      "claude-160-ui-resume",
       "claude-architecture-001",
       "claude-architecture-002",
       "claude-code-annotation-review-056",
@@ -5445,10 +5484,10 @@
       "github-actions-web-embed-39118323420"
     ],
     "tokens": {
-      "knownRuns": 8,
-      "knownSubtotal": 4053336,
+      "knownRuns": 10,
+      "knownSubtotal": 7037479,
       "total": null,
-      "unknownRuns": 230
+      "unknownRuns": 231
     }
   },
   "officialScoreClaimReady": false,
@@ -5458,9 +5497,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 123
+    "unknownIssues": 124
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:12:32.326526+00:00"
+  "updatedAt": "2026-11-11T21:35:56.402204+00:00"
 }

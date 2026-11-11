@@ -1,4 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { promises as fs, watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -35,6 +36,7 @@ interface PersistedGitConfig {
   authMode: 'system' | 'token';
   username: string;
   encryptedAccessToken?: string;
+  credentialRemoteUrl?: string;
 }
 
 interface PersistedAtlassianConfig {
@@ -75,8 +77,8 @@ export interface PluginServiceOptions {
 
 const DEFAULT_CONFIG: PersistedPluginConfig = {
   version: CONFIG_VERSION,
-  git: { installed: false, enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' },
-  atlassian: { installed: false, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' },
+  git: { installed: true, enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' },
+  atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' },
 };
 
 function boundedString(value: unknown, max: number, name: string, allowEmpty = false): string {
@@ -96,6 +98,7 @@ function normalizeSiteUrl(value: string): string {
 function normalizeGitRemoteUrl(value: unknown): string {
   const remoteUrl = boundedString(value, 2048, 'Git-Remote-URL', true);
   if (!remoteUrl) return '';
+  if (remoteUrl.startsWith('-')) throw new Error('Git-Remote-URL ist ungültig.');
   if (/^https?:\/\//i.test(remoteUrl)) {
     const parsed = new URL(remoteUrl);
     if (parsed.username || parsed.password) throw new Error('Die Git-Remote-URL darf keine eingebetteten Zugangsdaten enthalten.');
@@ -139,6 +142,8 @@ export class PluginService {
   private config: PersistedPluginConfig = structuredClone(DEFAULT_CONFIG);
   private projectFolder = '';
   private configPath = '';
+  private projectGeneration = 0;
+  private activation: Promise<void> = Promise.resolve();
   private readonly watchers = new Map<string, FSWatcher>();
   private readonly watcherTimers = new Map<string, NodeJS.Timeout>();
   private readonly pullTimers = new Map<string, NodeJS.Timeout>();
@@ -154,24 +159,41 @@ export class PluginService {
   }
 
   private defaultGitRuntime(): GitPluginSettings {
-    return { installed: false, enabled: false, folderPath: this.projectFolder, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Git-Plugin ist nicht installiert.' };
+    return { installed: true, enabled: false, folderPath: this.projectFolder, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Git-Plugin ist deaktiviert.' };
   }
 
   private defaultAtlassianRuntime(): AtlassianPluginSettings {
-    return { installed: false, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Jira-Plugin ist nicht installiert.' };
+    return { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Jira-Plugin ist deaktiviert.' };
+  }
+
+  private assertGeneration(generation: number): void {
+    if (generation !== this.projectGeneration) throw new Error('Der Projektordner hat sich geändert. Bitte die Aktion erneut starten.');
+  }
+
+  private resetProject(folder = ''): void {
+    this.projectGeneration++; this.clearWatchers(); this.projectFolder = folder;
+    this.configPath = folder ? path.join(folder, PROJECT_CONFIG_NAME) : '';
+    this.config = structuredClone(DEFAULT_CONFIG);
+    this.gitRuntime = this.defaultGitRuntime(); this.atlassianRuntime = this.defaultAtlassianRuntime();
   }
 
   public async activateDocument(handleId: string): Promise<PluginSettingsSnapshot> {
     const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle'));
     if (!location) throw new Error('Das Dokument muss zuerst gespeichert oder geöffnet werden.');
     const nextFolder = path.dirname(location.canonicalPath);
-    if (nextFolder === this.projectFolder) return this.getSettings();
-    this.clearWatchers(); this.projectFolder = nextFolder; this.configPath = path.join(nextFolder, PROJECT_CONFIG_NAME); this.config = structuredClone(DEFAULT_CONFIG);
-    try {
-      const raw = JSON.parse(await fs.readFile(this.configPath, 'utf8')) as Partial<PersistedPluginConfig>;
-      if (raw.version === CONFIG_VERSION && raw.git && raw.atlassian) this.config = { version: CONFIG_VERSION, git: { ...DEFAULT_CONFIG.git, ...raw.git }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...raw.atlassian } };
-    } catch { /* a new project starts with an empty marketplace */ }
-    this.refreshRuntime(); return this.getSettings();
+    if (nextFolder === this.projectFolder) { await this.activation; return this.getSettings(); }
+    this.resetProject(nextFolder);
+    const generation = this.projectGeneration; const configPath = this.configPath;
+    this.activation = (async () => {
+      let config = structuredClone(DEFAULT_CONFIG);
+      try {
+        const raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as Partial<PersistedPluginConfig>;
+        if (raw.version === CONFIG_VERSION && raw.git && raw.atlassian) config = { version: CONFIG_VERSION, git: { ...DEFAULT_CONFIG.git, ...raw.git }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...raw.atlassian } };
+      } catch { /* Bundled plugins start disabled; configuration is only written on explicit save. */ }
+      if (generation !== this.projectGeneration) return;
+      this.config = config; this.refreshRuntime();
+    })();
+    await this.activation; return this.getSettings();
   }
 
   private assertProject(): void {
@@ -181,56 +203,87 @@ export class PluginService {
   private refreshRuntime(): void {
     const gitCredentialStored = Boolean(this.config.git.encryptedAccessToken) && this.credentials.available();
     const gitEnabled = this.config.git.installed && this.config.git.enabled;
-    this.gitRuntime = { ...this.gitRuntime, ...this.config.git, installed: this.config.git.installed, enabled: gitEnabled, folderPath: this.projectFolder, credentialStored: gitCredentialStored, health: gitEnabled ? (this.gitRuntime.health === 'disabled' ? 'attention' : this.gitRuntime.health) : 'disabled', message: !this.config.git.installed ? 'Git-Plugin ist nicht installiert.' : gitEnabled ? 'Repository-Konfiguration noch nicht geprüft.' : 'Git-Plugin ist deaktiviert.' };
+    const { installed: gitInstalled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username } = this.config.git;
+    this.gitRuntime = { ...this.defaultGitRuntime(), installed: gitInstalled, enabled: gitEnabled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username, credentialStored: gitCredentialStored, health: gitEnabled ? 'attention' : 'disabled', message: !gitInstalled ? 'Git-Plugin ist nicht installiert.' : gitEnabled ? 'Repository-Konfiguration noch nicht geprüft.' : 'Git-Plugin ist deaktiviert.' };
     const atlassianCredentialStored = Boolean(this.config.atlassian.encryptedApiToken) && this.credentials.available();
     const atlassianEnabled = this.config.atlassian.installed && this.config.atlassian.enabled;
     const { installed, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter } = this.config.atlassian;
     this.atlassianRuntime = { installed, enabled: atlassianEnabled, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
   }
 
-  private async persist(): Promise<void> {
+  private async persist(config: PersistedPluginConfig): Promise<void> {
     this.assertProject();
+    const generation = this.projectGeneration; const folder = this.projectFolder; const configPath = this.configPath;
+    const contents = `${JSON.stringify(config, null, 2)}\n`;
     try {
-      const { stdout } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder);
-      if (stdout.trim()) await this.ensureLocalConfigExcluded(stdout.trim());
+      const { stdout } = await this.runGit(['rev-parse', '--show-toplevel'], folder);
+      this.assertGeneration(generation);
+      if (stdout.trim()) await this.ensureLocalConfigExcluded(stdout.trim(), configPath);
     } catch { /* a project without Git still keeps its local plugin file */ }
-    const temp = `${this.configPath}.${process.pid}.tmp`;
-    await fs.writeFile(temp, `${JSON.stringify(this.config, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }); await fs.rename(temp, this.configPath);
+    this.assertGeneration(generation);
+    const temp = `${configPath}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await fs.writeFile(temp, contents, { encoding: 'utf8', mode: 0o600 }); this.assertGeneration(generation);
+      await fs.rename(temp, configPath); this.assertGeneration(generation);
+    } finally { await fs.rm(temp, { force: true }); }
   }
 
-  public async getSettings(): Promise<PluginSettingsSnapshot> { return { available: true, projectFolder: this.projectFolder, git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } }; }
+  public async getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot> {
+    if (handleId === null) { this.resetProject(); this.activation = Promise.resolve(); }
+    else if (handleId !== undefined) return this.activateDocument(handleId);
+    return { available: true, projectFolder: this.projectFolder, git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
+  }
 
   public async installPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
     this.assertProject();
-    if (id === 'git') this.config.git.installed = true; else if (id === 'jira') this.config.atlassian.installed = true; else throw new Error('Unbekanntes Plugin.');
-    await this.persist(); this.refreshRuntime(); return this.getSettings();
+    const generation = this.projectGeneration;
+    const next = structuredClone(this.config);
+    if (id === 'git') next.git.installed = true; else if (id === 'jira') next.atlassian.installed = true; else throw new Error('Unbekanntes Plugin.');
+    await this.persist(next); this.assertGeneration(generation); this.config = next; this.refreshRuntime(); return this.getSettings();
   }
 
   public async uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
     this.assertProject();
-    if (id === 'git') { this.clearWatchers(); this.config.git = structuredClone(DEFAULT_CONFIG.git); } else if (id === 'jira') this.config.atlassian = structuredClone(DEFAULT_CONFIG.atlassian); else throw new Error('Unbekanntes Plugin.');
-    await this.persist(); this.refreshRuntime(); return this.getSettings();
+    const generation = this.projectGeneration;
+    const next = structuredClone(this.config);
+    if (id === 'git') next.git = { ...DEFAULT_CONFIG.git, installed: false }; else if (id === 'jira') next.atlassian = { ...DEFAULT_CONFIG.atlassian, installed: false }; else throw new Error('Unbekanntes Plugin.');
+    await this.persist(next); this.assertGeneration(generation); this.config = next; if (id === 'git') this.clearWatchers(); this.refreshRuntime(); return this.getSettings();
   }
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
-    this.assertProject(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.'); this.clearWatchers();
+    this.assertProject(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.');
+    if (!this.config.git.installed) throw new Error('Git-Plugin ist nicht installiert.');
+    const generation = this.projectGeneration; const folder = this.projectFolder; const configPath = this.configPath;
+    const remote = boundedString(input.remote || 'origin', 128, 'Git-Remote');
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(remote)) throw new Error('Git-Remote ist ungültig.');
+    const remoteUrl = normalizeGitRemoteUrl(input.remoteUrl ?? '');
     const authMode = input.authMode === 'token' ? 'token' : 'system'; const previousToken = this.config.git.encryptedAccessToken;
-    let encryptedAccessToken = input.clearCredential ? undefined : previousToken;
+    const changedRemote = remote !== this.config.git.remote || remoteUrl !== this.config.git.remoteUrl;
+    let encryptedAccessToken = input.clearCredential || changedRemote ? undefined : previousToken;
+    let credentialRemoteUrl = input.clearCredential || changedRemote ? undefined : this.config.git.credentialRemoteUrl;
     if (typeof input.accessToken === 'string' && input.accessToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Git-Token')); }
     const username = boundedString(input.username ?? '', 320, 'Git-Benutzername', authMode !== 'token' || !input.enabled);
     if (input.enabled && authMode === 'token' && !encryptedAccessToken) throw new Error('Für die Token-Anmeldung wird ein Git-Token benötigt.');
-    const next: PersistedGitConfig = { installed: true, enabled: Boolean(input.enabled), autoCommit: Boolean(input.autoCommit), autoPush: Boolean(input.autoPush), autoPull: Boolean(input.autoPull), remote: boundedString(input.remote || 'origin', 128, 'Git-Remote'), remoteUrl: normalizeGitRemoteUrl(input.remoteUrl ?? ''), authMode, username, ...(encryptedAccessToken ? { encryptedAccessToken } : {}) };
-    try { await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); } catch { await this.runGit(['init'], this.projectFolder); }
-    const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); const repositoryRoot = rootOutput.trim();
-    if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
-    this.config.git = next; await this.ensureLocalConfigExcluded(repositoryRoot); await this.persist(); this.refreshRuntime(); if (next.enabled) await this.readGitStatusForFolder(); return this.getSettings();
+    const next: PersistedGitConfig = { installed: true, enabled: Boolean(input.enabled), autoCommit: Boolean(input.autoCommit), autoPush: Boolean(input.autoPush), autoPull: Boolean(input.autoPull), remote, remoteUrl, authMode, username, ...(encryptedAccessToken ? { encryptedAccessToken } : {}) };
+    try { await this.runGit(['rev-parse', '--show-toplevel'], folder); } catch { this.assertGeneration(generation); await this.runGit(['init'], folder); }
+    this.assertGeneration(generation);
+    const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], folder); const repositoryRoot = rootOutput.trim(); this.assertGeneration(generation);
+    if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); this.assertGeneration(generation); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { this.assertGeneration(generation); await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
+    if (encryptedAccessToken && typeof input.accessToken === 'string' && input.accessToken.trim()) {
+      credentialRemoteUrl = remoteUrl;
+      if (!credentialRemoteUrl) { try { credentialRemoteUrl = (await this.runGit(['remote', 'get-url', remote], repositoryRoot)).stdout.trim(); } catch { /* No remote yet: network use requires entering a token after selecting one. */ } }
+    }
+    if (credentialRemoteUrl) next.credentialRemoteUrl = credentialRemoteUrl;
+    this.assertGeneration(generation); await this.ensureLocalConfigExcluded(repositoryRoot, configPath); this.assertGeneration(generation);
+    const nextConfig = { ...this.config, git: next };
+    await this.persist(nextConfig); this.assertGeneration(generation); this.config = nextConfig; this.clearWatchers(); this.refreshRuntime(); if (next.enabled) await this.readGitStatusForFolder(); return this.getSettings();
   }
 
-  private async ensureLocalConfigExcluded(repositoryRoot: string): Promise<void> {
+  private async ensureLocalConfigExcluded(repositoryRoot: string, configPath = this.configPath): Promise<void> {
     const { stdout: excludeOutput } = await this.runGit(['rev-parse', '--git-path', 'info/exclude'], repositoryRoot);
     const reportedExcludePath = excludeOutput.trim();
     const excludePath = path.isAbsolute(reportedExcludePath) ? reportedExcludePath : path.resolve(repositoryRoot, reportedExcludePath);
-    const relativeConfig = path.relative(repositoryRoot, this.configPath).split(path.sep).join('/');
+    const relativeConfig = path.relative(repositoryRoot, configPath).split(path.sep).join('/');
     if (!relativeConfig || relativeConfig.startsWith('../')) return;
     await fs.mkdir(path.dirname(excludePath), { recursive: true }); let existing = ''; try { existing = await fs.readFile(excludePath, 'utf8'); } catch { /* create below */ }
     const entries = new Set(existing.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean)); if (entries.has(relativeConfig)) return;
@@ -239,54 +292,72 @@ export class PluginService {
 
   public async configureAtlassian(input: ConfigureAtlassianPluginInput): Promise<PluginSettingsSnapshot> {
     this.assertProject(); if (!input || typeof input !== 'object') throw new Error('Ungültige Atlassian-Konfiguration.');
+    if (!this.config.atlassian.installed) throw new Error('Jira-Plugin ist nicht installiert.');
+    const generation = this.projectGeneration;
     const siteInput = typeof input.siteUrl === 'string' ? input.siteUrl : ''; const siteUrl = siteInput.trim() ? normalizeSiteUrl(siteInput) : '';
-    const previousToken = this.config.atlassian.encryptedApiToken; let encryptedApiToken = input.clearCredential ? undefined : previousToken;
+    const previousToken = this.config.atlassian.encryptedApiToken; let encryptedApiToken = input.clearCredential || siteUrl !== this.config.atlassian.siteUrl ? undefined : previousToken;
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
     const email = boundedString(input.email, 320, 'E-Mail', !input.enabled); const confluenceSpaceKey = boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true); const jiraProjectKey = boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !input.enabled).toUpperCase();
     if (input.enabled && (!siteUrl || !encryptedApiToken)) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    this.config.atlassian = { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}) };
-    await this.persist(); this.refreshRuntime(); return this.getSettings();
+    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}) } };
+    await this.persist(next); this.assertGeneration(generation); this.config = next; this.refreshRuntime(); return this.getSettings();
   }
 
   private jiraCredential(): string { const value = this.config.atlassian.encryptedApiToken; if (!value || !this.credentials.available()) throw new Error('Kein sicher gespeichertes Atlassian-Token vorhanden.'); return this.credentials.decrypt(value); }
 
-  private gitCredentialEnvironment(): GitEnvironment | undefined {
+  private gitCredentialEnvironment(remoteUrl: string): GitEnvironment | undefined {
     if (this.config.git.authMode !== 'token') return undefined;
     const encrypted = this.config.git.encryptedAccessToken; if (!encrypted || !this.credentials.available()) throw new Error('Kein sicher gespeichertes Git-Token vorhanden.');
+    const boundUrl = this.config.git.credentialRemoteUrl || this.config.git.remoteUrl;
+    if (!boundUrl || remoteUrl !== boundUrl || !remoteUrl.startsWith('https://')) throw new Error('Der Git-Remote hat sich geändert. Bitte den Token für diesen Remote erneut speichern.');
     const value = Buffer.from(`${this.config.git.username}:${this.credentials.decrypt(encrypted)}`, 'utf8').toString('base64');
-    return { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: `Authorization: Basic ${value}` };
+    return { GIT_CONFIG_COUNT: '2', GIT_CONFIG_KEY_0: `http.${remoteUrl}.extraHeader`, GIT_CONFIG_VALUE_0: `Authorization: Basic ${value}`, GIT_CONFIG_KEY_1: 'http.followRedirects', GIT_CONFIG_VALUE_1: 'false' };
   }
 
-  private async configuredGit(args: string[], cwd: string, authenticated = false): Promise<{ stdout: string; stderr: string }> { return this.runGit(args, cwd, authenticated ? this.gitCredentialEnvironment() : undefined); }
+  private async configuredGit(args: string[], cwd: string, authenticated = false): Promise<{ stdout: string; stderr: string }> {
+    if (!authenticated || this.config.git.authMode !== 'token') return this.runGit(args, cwd);
+    const generation = this.projectGeneration;
+    const remoteUrl = (await this.runGit(['remote', 'get-url', this.config.git.remote], cwd)).stdout.trim(); this.assertGeneration(generation);
+    return this.runGit(args, cwd, this.gitCredentialEnvironment(remoteUrl));
+  }
 
   private async atlassian(pathname: string, init: RequestInit = {}): Promise<unknown> {
+    const generation = this.projectGeneration;
     if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
     const base = normalizeSiteUrl(this.config.atlassian.siteUrl);
     const response = await this.fetchFn(`${base}${pathname}`, { ...init, redirect: 'error', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.atlassian.email}:${this.jiraCredential()}`, 'utf8').toString('base64')}`, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(20_000) });
-    const raw = await response.text(); if (Buffer.byteLength(raw, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Atlassian-Antwort ist zu groß.'); if (!response.ok) throw new Error(`Atlassian antwortete mit ${response.status}.`); return raw ? JSON.parse(raw) : {};
+    this.assertGeneration(generation);
+    const raw = await response.text(); this.assertGeneration(generation); if (Buffer.byteLength(raw, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Atlassian-Antwort ist zu groß.'); if (!response.ok) throw new Error(`Atlassian antwortete mit ${response.status}.`); return raw ? JSON.parse(raw) : {};
   }
 
   public async testAtlassian(): Promise<PluginOperationResult> {
+    const generation = this.projectGeneration;
     const checks: Array<Promise<unknown>> = [this.atlassian('/rest/api/3/myself')]; if (this.config.atlassian.confluenceSpaceKey) checks.push(this.atlassian('/wiki/api/v2/spaces?limit=1'));
-    const results = await Promise.allSettled(checks); const jira = results[0]; const confluence = results[1];
+    const results = await Promise.allSettled(checks); this.assertGeneration(generation); const jira = results[0]; const confluence = results[1];
     const details = [jira?.status === 'fulfilled' ? 'Jira: verbunden' : `Jira: ${jira?.status === 'rejected' && jira.reason instanceof Error ? jira.reason.message : 'Verbindung fehlgeschlagen'}`];
     if (confluence) details.push(confluence.status === 'fulfilled' ? 'Confluence: verbunden' : `Confluence: ${confluence.reason instanceof Error ? confluence.reason.message : 'Verbindung fehlgeschlagen'}`);
     const ok = results.every((entry) => entry.status === 'fulfilled'); const message = details.join(' · '); this.atlassianRuntime = { ...this.atlassianRuntime, health: ok ? 'ready' : 'error', message }; return { ok, message };
   }
 
   private async gitContext(handleId: string): Promise<{ filePath: string; cwd: string; relativePath: string }> {
+    const generation = this.projectGeneration;
     if (!this.config.git.installed || !this.config.git.enabled) throw new Error('Git-Plugin ist deaktiviert.');
     const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle')); if (!location) throw new Error('Das Dokument muss zuerst gespeichert oder geöffnet werden.');
-    if (path.dirname(location.canonicalPath) !== this.projectFolder) await this.activateDocument(handleId);
+    if (path.dirname(location.canonicalPath) !== this.projectFolder) throw new Error('Das Dokument gehört nicht zum aktuellen Projektordner.');
     const filePath = location.canonicalPath; const { stdout } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); const cwd = stdout.trim();
+    this.assertGeneration(generation);
     if (!cwd || path.relative(cwd, filePath).startsWith('..')) throw new Error('Das Dokument liegt nicht in einem Git-Repository.'); return { filePath, cwd, relativePath: path.relative(cwd, filePath) };
   }
 
   private async readGitStatusForFolder(): Promise<GitPluginSettings> {
+    const generation = this.projectGeneration;
     const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); const cwd = rootOutput.trim();
+    this.assertGeneration(generation);
     const [{ stdout: status }, { stdout: branch }] = await Promise.all([this.runGit(['status', '--porcelain=v1'], cwd), this.runGit(['branch', '--show-current'], cwd)]);
+    this.assertGeneration(generation);
     let ahead = 0; let behind = 0;
     try { const { stdout } = await this.runGit(['rev-list', '--left-right', '--count', `HEAD...${this.config.git.remote}/${branch.trim()}`], cwd); const [left, right] = stdout.trim().split(/\s+/).map(Number); ahead = left || 0; behind = right || 0; } catch { /* no upstream yet */ }
+    this.assertGeneration(generation);
     const settings: GitPluginSettings = { ...this.gitRuntime, installed: true, enabled: this.config.git.enabled, folderPath: this.projectFolder, health: 'ready', message: status.trim() ? 'Lokale Änderungen erkannt.' : 'Repository ist synchron.', repositoryName: path.basename(cwd), branch: branch.trim() || 'noch kein Commit', changedFiles: status.trim() ? status.trim().split(/\r?\n/).length : 0, ahead, behind };
     this.gitRuntime = settings; return settings;
   }
@@ -294,37 +365,47 @@ export class PluginService {
   private async readGitStatus(handleId: string): Promise<GitPluginSettings> { await this.gitContext(handleId); return this.readGitStatusForFolder(); }
 
   public async gitStatus(handleId: string): Promise<GitSyncResult> {
+    const generation = this.projectGeneration;
     try { await this.watchDocument(handleId); const settings = await this.readGitStatus(handleId); return { ok: true, message: settings.message, settings }; }
-    catch (error) { const message = error instanceof Error ? error.message : 'Git-Status konnte nicht gelesen werden.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
+    catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Status konnte nicht gelesen werden.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
   }
 
   private async commitDocument(handleId: string): Promise<void> {
+    const generation = this.projectGeneration;
     if (!this.config.git.autoCommit) return; const context = await this.gitContext(handleId); await this.runGit(['add', '--', context.relativePath], context.cwd);
-    const { stdout } = await this.runGit(['status', '--porcelain=v1', '--', context.relativePath], context.cwd); if (!stdout.trim()) return; await this.runGit(['commit', '-m', `Update ${path.basename(context.filePath)} via Sketchdraw`], context.cwd);
+    this.assertGeneration(generation);
+    const { stdout } = await this.runGit(['status', '--porcelain=v1', '--', context.relativePath], context.cwd); this.assertGeneration(generation); if (!stdout.trim()) return; await this.runGit(['commit', '-m', `Update ${path.basename(context.filePath)} via Sketchdraw`], context.cwd); this.assertGeneration(generation);
   }
 
   public async afterDocumentSaved(handleId: string): Promise<void> {
-    try { await this.activateDocument(handleId); } catch { return; } if (!this.config.git.installed || !this.config.git.enabled) return;
+    const generation = this.projectGeneration;
+    const location = this.persistence.getHandleLocation(handleId);
+    if (!location || path.dirname(location.canonicalPath) !== this.projectFolder) return;
+    if (!this.config.git.installed || !this.config.git.enabled) return;
     try { await this.watchDocument(handleId); await this.commitDocument(handleId); if (this.config.git.autoPush) { const context = await this.gitContext(handleId); await this.configuredGit(['push', this.config.git.remote], context.cwd, true); } await this.readGitStatus(handleId); }
-    catch (error) { this.gitRuntime = { ...this.gitRuntime, health: 'error', message: error instanceof Error ? error.message : 'Git-Autosync fehlgeschlagen.' }; }
+    catch (error) { if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'error', message: error instanceof Error ? error.message : 'Git-Autosync fehlgeschlagen.' }; }
   }
 
   public async gitSync(handleId: string): Promise<GitSyncResult> {
+    const generation = this.projectGeneration;
     try {
       const context = await this.gitContext(handleId); await this.commitDocument(handleId); const { stdout: dirty } = await this.runGit(['status', '--porcelain=v1'], context.cwd);
+      this.assertGeneration(generation);
       if (dirty.trim()) throw new Error('Git-Sync pausiert: Das Repository enthält weitere ungespeicherte Änderungen.');
-      if (this.config.git.autoPull) await this.configuredGit(['pull', '--ff-only', this.config.git.remote], context.cwd, true); if (this.config.git.autoPush) await this.configuredGit(['push', this.config.git.remote], context.cwd, true);
+      if (this.config.git.autoPull) await this.configuredGit(['pull', '--ff-only', this.config.git.remote], context.cwd, true); this.assertGeneration(generation); if (this.config.git.autoPush) await this.configuredGit(['push', this.config.git.remote], context.cwd, true); this.assertGeneration(generation);
       await this.emitReload(handleId); const settings = await this.readGitStatus(handleId); return { ok: true, message: 'Git-Synchronisation abgeschlossen.', settings };
-    } catch (error) { const message = error instanceof Error ? error.message : 'Git-Synchronisation fehlgeschlagen.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
+    } catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Synchronisation fehlgeschlagen.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
   }
 
   private async emitReload(handleId: string): Promise<void> { const before = this.persistence.getHandleLocation(handleId)?.versionToken; const result = await this.persistence.reloadDocument(handleId); if (result.status === 'opened' && result.file.versionToken !== before) this.emitEvent({ type: 'document-changed', text: result.text, file: result.file }); }
 
   public async watchDocument(handleId: string): Promise<PluginOperationResult> {
+    const generation = this.projectGeneration;
     if (!this.config.git.installed || !this.config.git.enabled) return { ok: false, message: 'Git-Plugin ist deaktiviert.' }; if (this.watchers.has(handleId)) return { ok: true, message: 'Dokument wird überwacht.' };
     this.clearWatchers(); const context = await this.gitContext(handleId);
+    this.assertGeneration(generation);
     const watcher = watch(context.filePath, { persistent: false }, () => { const previous = this.watcherTimers.get(handleId); if (previous) clearTimeout(previous); this.watcherTimers.set(handleId, setTimeout(() => { void this.emitReload(handleId); }, 250)); });
-    watcher.on('error', () => { this.watchers.delete(handleId); }); this.watchers.set(handleId, watcher); if (this.config.git.autoPull) this.pullTimers.set(handleId, setInterval(() => { void this.gitSync(handleId); }, 60_000)); return { ok: true, message: 'Dokument wird überwacht.' };
+    watcher.on('error', () => { this.watchers.delete(handleId); }); this.watchers.set(handleId, watcher); if (this.config.git.autoPull) this.pullTimers.set(handleId, setInterval(() => { void this.gitSync(handleId).catch(() => undefined); }, 60_000)); return { ok: true, message: 'Dokument wird überwacht.' };
   }
 
   private async confluenceSpaceId(): Promise<string | undefined> { const key = this.config.atlassian.confluenceSpaceKey; if (!key) return undefined; const response = await this.atlassian(`/wiki/api/v2/spaces?keys=${encodeURIComponent(key)}&limit=1`) as { results?: Array<{ id?: string }> }; return response.results?.[0]?.id; }
