@@ -7,6 +7,10 @@ import { prepareMermaidExport } from '../../src/interop/mermaid';
 async function menu(page: Page, kind: 'import' | 'export') {
   await page.getByTestId('file-menu-button').click(); await page.getByTestId(kind === 'import' ? 'file-menu-interopImport' : 'file-menu-interopExport').click();
 }
+async function select(page: Page, label: string, option: string) {
+  await page.getByRole('combobox', { name: label, exact: true }).click();
+  await page.getByRole('listbox', { name: label, exact: true }).getByRole('option', { name: option, exact: true }).click();
+}
 async function rectangle(page: Page) {
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click(); await page.mouse.move(340, 210); await page.mouse.down(); await page.mouse.move(520, 320); await page.mouse.up();
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
@@ -40,8 +44,14 @@ test('warning preview requires acceptance; dirty cancellation preserves canvas; 
 test('draw.io multi-page source requires explicit selection and unsafe XML never becomes live content', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('b', 'Zweite Seite')}</diagram></mxfile>`);
-  await expect(page.getByLabel('Seite auswählen')).toBeVisible(); await expect(page.getByRole('button', { name: 'Als neues Dokument öffnen' })).toHaveCount(0);
-  await page.getByLabel('Seite auswählen').selectOption('1');
+  const sourcePage = page.getByRole('combobox', { name: 'Seite auswählen', exact: true });
+  await expect(sourcePage).toHaveText('Bitte eine der 2 Seiten auswählen');
+  await expect(page.getByRole('button', { name: 'Als neues Dokument öffnen' })).toHaveCount(0);
+  await sourcePage.click();
+  await expect(page.getByRole('option', { name: 'Bitte eine der 2 Seiten auswählen', exact: true })).toHaveAttribute('aria-disabled', 'true');
+  await page.getByRole('option', { name: '1 · Erste', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Erste Seite');
+  await select(page, 'Seite auswählen', '2 · Zweite');
   await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Zweite Seite');
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-element-id]')).toHaveCount(0);
   const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
@@ -54,7 +64,7 @@ test('draw.io multi-page source requires explicit selection and unsafe XML never
 });
 
 test('SVG export uses real download and own metadata roundtrip; edits invalidate prepared export', async ({ page }) => {
-  await rectangle(page); await menu(page, 'export'); await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('svg');
+  await rectangle(page); await menu(page, 'export'); await select(page, 'Format', 'SVG');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   const output = page.getByRole('button', { name: 'Datei exportieren', exact: true });
   const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
@@ -78,14 +88,14 @@ test('export and import panels satisfy automated accessibility checks', async ({
   await menu(page, 'export');
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze(); expect(result.violations).toEqual([]);
   await menu(page, 'import');
-  await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('mermaid');
+  await select(page, 'Format', 'Mermaid (Flowchart)');
   const mermaid = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze(); expect(mermaid.violations).toEqual([]);
 });
 
 test('importing all pages of a draw.io file creates a document with those pages', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('a', 'Zweite Seite')}</diagram></mxfile>`);
-  await page.getByLabel('Seite auswählen').selectOption('all');
+  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren');
   await expect(page.getByTestId('interop-panel')).toContainText('2 Seiten');
   const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
   await page.getByRole('button', { name: 'Als neues Dokument öffnen' }).click();
@@ -101,7 +111,7 @@ for (const extension of ['mmd', 'mermaid']) {
   test(`Mermaid .${extension} files are detected and only applied after preview`, async ({ page }) => {
     await menu(page, 'import');
     await file(page, `flow.${extension}`, 'flowchart LR\n  A[Browser] --> B[Server]');
-    await expect(page.getByRole('combobox', { name: 'Format', exact: true })).toHaveValue('mermaid');
+    await expect(page.getByRole('combobox', { name: 'Format', exact: true })).toHaveText('Mermaid (Flowchart)');
     await expect(page.getByLabel('Mermaid-Code einfügen')).toHaveValue('flowchart LR\n  A[Browser] --> B[Server]');
     const preview = page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' });
     await expect(preview).toContainText('Browser'); await expect(preview).toContainText('Server');
@@ -117,7 +127,7 @@ for (const extension of ['mmd', 'mermaid']) {
 
 test('pasted Mermaid requires explicit preview; edits and unsupported diagrams cannot replace the canvas', async ({ page }) => {
   await rectangle(page); await menu(page, 'import');
-  await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('mermaid');
+  await select(page, 'Format', 'Mermaid (Flowchart)');
   const source = page.getByLabel('Mermaid-Code einfügen');
   const preview = page.getByRole('button', { name: 'Importvorschau erstellen', exact: true });
   const apply = page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true });
@@ -143,7 +153,7 @@ test('pasted Mermaid requires explicit preview; edits and unsupported diagrams c
 
 test('Mermaid exports a real .mmd download and roundtrips the embedded document', async ({ page }) => {
   await rectangle(page); await page.getByTestId('document-title').fill('Mermaid Roundtrip');
-  await menu(page, 'export'); await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('mermaid');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   await expect(page.getByTestId('interop-panel')).toContainText('Mermaid vorbereitet');
   await acceptConversion(page);
@@ -165,15 +175,15 @@ test('Mermaid exports a real .mmd download and roundtrips the embedded document'
 test('Mermaid defaults to the active page and exports the explicitly selected page', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('b', 'Zweite Seite')}</diagram></mxfile>`);
-  await page.getByLabel('Seite auswählen').selectOption('all'); await acceptConversion(page);
+  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren'); await acceptConversion(page);
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
   await page.getByTestId('page-switcher').click(); await page.getByRole('button', { name: /^Zweite/ }).click();
-  await menu(page, 'export'); await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('mermaid');
-  const selectedPage = page.getByLabel('Seite für den Mermaid-Export');
-  await expect(selectedPage.locator('option:checked')).toHaveText('Zweite');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
+  const selectedPage = page.getByRole('combobox', { name: 'Seite für den Mermaid-Export', exact: true });
+  await expect(selectedPage).toHaveText('Zweite');
   await page.getByRole('checkbox', { name: 'Vollständiges Sketchdraw-Modell einbetten' }).uncheck();
   for (const label of ['Zweite', 'Erste']) {
-    await selectedPage.selectOption({ label });
+    await select(page, 'Seite für den Mermaid-Export', label);
     await expect(page.getByRole('button', { name: 'Datei exportieren', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click(); await acceptConversion(page);
     const downloadEvent = page.waitForEvent('download');
@@ -187,10 +197,10 @@ test('Mermaid defaults to the active page and exports the explicitly selected pa
 test('a Mermaid roundtrip previews its exported second page and reports the restored pages', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('b', 'Zweite Seite')}</diagram></mxfile>`);
-  await page.getByLabel('Seite auswählen').selectOption('all'); await acceptConversion(page);
+  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren'); await acceptConversion(page);
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
-  await menu(page, 'export'); await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('mermaid');
-  await page.getByLabel('Seite für den Mermaid-Export').selectOption({ label: 'Zweite' });
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
+  await select(page, 'Seite für den Mermaid-Export', 'Zweite');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click(); await acceptConversion(page);
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
@@ -255,8 +265,7 @@ test('a multi-MiB Mermaid roundtrip keeps its image without putting the file in 
 
 test('changing format during a pending export snapshot discards the old preview', async ({ page }) => {
   await rectangle(page); await menu(page, 'export');
-  const format = page.getByRole('combobox', { name: 'Format', exact: true });
-  await format.selectOption('svg');
+  await select(page, 'Format', 'SVG');
   // Hold the next real document commit so prepareDocumentSnapshot awaits a draft.
   await page.evaluate(() => {
     const original = crypto.subtle.digest.bind(crypto.subtle);
@@ -281,7 +290,7 @@ test('changing format during a pending export snapshot discards the old preview'
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { exportGate: { held: boolean } }).exportGate.held)).toBe(true);
   await expect(page.getByTestId('interop-panel')).toContainText('Wird geprüft');
-  await format.selectOption('mermaid');
+  await select(page, 'Format', 'Mermaid (Flowchart)');
   await page.evaluate(() => (window as unknown as { exportGate: { release: () => Promise<void> } }).exportGate.release());
   await expect(page.getByTestId('document-title')).toHaveValue('Pending export');
   await expect(page.getByRole('button', { name: 'Datei exportieren', exact: true })).toHaveCount(0);

@@ -3,6 +3,7 @@ import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';
 import { useEventListener, useResizeObserver } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
+import AppSelect from './AppSelect.vue';
 import type { IconName } from './icons';
 import { useWhiteboard } from './use-whiteboard';
 import { useHorizontalOverflow } from './use-horizontal-overflow';
@@ -719,7 +720,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
 
     <template v-else-if="openSegment === 'more'">
       <template v-for="item in definition?.widgets" :key="item.key">
-        <label class="field">{{ t(item.label) }}<select v-if="item.kind === 'select'" class="ctx-input wide" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @change="widget(item.key, ($event.target as HTMLSelectElement).value); store.commitPropertyDraft()"><option value="" disabled>{{ t('Bitte auswählen') }}</option><option v-for="option in item.options" :key="option">{{ option }}</option></select><input v-else class="ctx-input wide" :type="item.kind === 'number' ? 'number' : 'text'" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @input="widget(item.key, ($event.target as HTMLInputElement).value)" @change="store.commitPropertyDraft()" /></label>
+        <AppSelect v-if="item.kind === 'select'" class="widget-select" compact :model-value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" :options="(item.options ?? []).map(option => ({ value: option, label: option }))" :label="t(item.label)" :placeholder="t('Bitte auswählen')" @update:model-value="widget(item.key, $event); store.commitPropertyDraft()" />
+        <label v-else class="field">{{ t(item.label) }}<input class="ctx-input wide" :type="item.kind === 'number' ? 'number' : 'text'" :value="single?.metadata?.[`widget:${single.componentType}:${item.key}`] ?? ''" @input="widget(item.key, ($event.target as HTMLInputElement).value)" @change="store.commitPropertyDraft()" /></label>
       </template>
     </template>
   </div>
@@ -1131,7 +1133,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
   opacity: 0.5;
 }
 
-.ctx-input.wide {
+.ctx-input.wide,
+.widget-select {
   min-width: 240px;
 }
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T20:22:06.744757+00:00",
+  "updatedAt": "2026-11-11T21:12:32.326526+00:00",
   "issues": [
     {
       "number": 1,
@@ -2168,6 +2168,51 @@
         153,
         156
       ]
+    },
+    {
+      "number": 158,
+      "title": "Einheitliche Custom-Dropdowns und verbindliche Komponenten-Wiederverwendung",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/158",
+      "owner": "Claude Code (ui), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "Claude Code CLI core; Codex migrations, reproduced review corrections and independent local validation complete; not integrated",
+      "phase": "UI / Accessibility / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 159,
+      "title": "Theme-Wechsel ausschließlich in den Einstellungen anbieten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/159",
+      "owner": "Claude Code (ui), OpenAI Codex (testing)",
+      "currentImplementer": "Claude Code CLI MainMenu; Codex existing test adaptation, validation and independent review",
+      "phase": "UI / Navigation",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 160,
+      "title": "Plugin-Marketplace überarbeiten und vorinstallierte Integrationen konfigurierbar machen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/160",
+      "owner": "Claude Code (ui), OpenAI Codex (architecture/testing), Antigravity (logic/interface responsibility)",
+      "currentImplementer": "Claude Code CLI Fable 5.2 high UI and sparring; Codex authorized backend/store implementation and tests",
+      "phase": "UI / Project configuration / Testing",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
     }
   ],
   "runs": [
@@ -8589,6 +8634,156 @@
         "nextStep": "Push corrected integration test and verify fresh remote CI. Issues remain review until cross-platform CI confirmed.",
         "result": "Only WebRTC product UI selectors updated; before timeout100s, after all3 native P2P tests passed in6.0s. Assertions/timeouts retained. Product code unchanged."
       }
+    },
+    {
+      "id": "codex-158-custom-dropdowns",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        158
+      ],
+      "status": "verified_local_integration_pending",
+      "startedAt": "2026-11-11T20:55:37.549242+00:00",
+      "endedAt": "2026-11-11T21:02:36.170490+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/158-custom-dropdowns.md",
+        "docs/reviews/158-dropdown-review.md",
+        "docs/reviews/158-local-validation.json",
+        "docs/reviews/158-claude-dropdowns.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/158#issuecomment-6806925220"
+      ],
+      "concerns": [
+        "docs/concerns.md"
+      ],
+      "authorization": "User requests custom dropdowns throughout app and explicit AGENTS.md reuse rules with dialog component locations. Existing authorized implementation fallback applies to delegated migrations.",
+      "measurementSource": "Local final typecheck/build, 830 unit, 47 UI (1 public-network skip), 7 Electron, 3 native P2P passed. Independent static follow-up has no unresolved finding. Codex token/cost/runtime measurements unavailable. Actual Claude measurements tracked separately.",
+      "delegation": [
+        {
+          "agent": "Claude Code CLI",
+          "scope": "AppSelect.vue,use-anchored-popover.ts,TaskBoard.vue",
+          "status": "completed_validated_by_root"
+        },
+        {
+          "agent": "/root/dropdown_interop_widgets",
+          "scope": "InteropPanel,SelectionToolbar,interop/desktop tests",
+          "status": "completed_validated_by_root"
+        },
+        {
+          "agent": "/root/dropdown_collaboration",
+          "scope": "CollaborationPanel,HdhtSession and related UI/Electron/P2P tests",
+          "status": "completed_validated_by_root"
+        }
+      ],
+      "independentReview": {
+        "agent": "/root/dropdown_collaboration",
+        "scope": "Read-only AppSelect/anchoring/Interop/widgets; root reviews collaboration migration",
+        "result": "One viewport finding confirmed and fixed; two further root regressions fixed; final independent review no further actionable finding."
+      }
+    },
+    {
+      "id": "claude-158-dropdowns-f2c30253",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-sonnet-5-5",
+      "issues": [
+        158
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 230.276,
+      "tokens": 1054614,
+      "costUsd": 0.6363182,
+      "artifacts": [
+        "docs/reviews/158-claude-dropdowns.json",
+        "docs/reviews/158-dropdown-review.md"
+      ],
+      "concerns": [
+        "docs/concerns.md"
+      ],
+      "authorization": "User custom dropdown request; existing Claude frontend role and CLI authorization, --effort high; only core UI files allowed.",
+      "measurementSource": "Actual result is_error=false, terminal_reason=completed, 22 turns. Exact start/end not measured. Tokens include input, output and both cache categories. Cost is CLI list-price estimate. CLI did not execute tests; root performed independent review, corrections and runtime validation."
+    },
+    {
+      "id": "codex-159-theme-settings",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        159
+      ],
+      "status": "verified_local_integration_pending",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/159-theme-settings.md",
+        "docs/reviews/159-theme-settings-validation.json"
+      ],
+      "authorization": "User requested removing navigation theme icon and allowing theme changes only in settings.",
+      "measurementSource": "Typecheck and 12 existing UI/layout tests passed; no timing/token/cost measurement for Codex.",
+      "delegation": {
+        "agent": "/root/theme_settings_review",
+        "scope": "Read-only theme entrypoints and MainMenu diff review; no writes",
+        "status": "completed",
+        "result": "No actionable final findings; compact-menu test caller also identified and adapted."
+      },
+      "concerns": []
+    },
+    {
+      "id": "claude-159-theme-settings-c968ec15",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-sonnet-5-5",
+      "issues": [
+        159
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 17.619,
+      "tokens": 207386,
+      "costUsd": 0.15790530000000003,
+      "artifacts": [
+        "docs/reviews/159-theme-settings-validation.json"
+      ],
+      "authorization": "Frontend role, existing Claude CLI authorization; narrow MainMenu.vue scope, high effort.",
+      "measurementSource": "Actual CLI result completed, is_error=false; CLI elapsed time and usage categories; cost is list-price estimate. Root independently reviewed and tested; exact wall endpoints not measured.",
+      "concerns": []
+    },
+    {
+      "id": "codex-160-plugin-marketplace",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        160
+      ],
+      "status": "in_progress",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/160-plugin-marketplace.md"
+      ],
+      "authorization": "User requested marketplace redesign, configurability and bundled Git/Jira; actual Claude Fable5.2 high sparring. Existing temporary Codex implementation authorization.",
+      "measurementSource": "No timing/token/cost measured; results pending.",
+      "delegation": {
+        "agents": [
+          "/root/plugin_configuration_audit",
+          "/root/plugin_ui_tests"
+        ],
+        "scope": "Exclusive backend/store with unit tests; separate UI acceptance tests",
+        "status": "in_progress"
+      },
+      "concerns": [
+        "PL-160-01",
+        "PL-160-02",
+        "PL-160-03"
+      ]
     }
   ],
   "evidencePolicy": {

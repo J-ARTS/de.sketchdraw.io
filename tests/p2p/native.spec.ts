@@ -115,7 +115,8 @@ test('two complete app pages pair through the UI, share canvas edits, and retain
     const ownerSession = ownerPanel.getByTestId('legacy-session'); const guestSession = guestPanel.getByTestId('legacy-session');
     for (const session of [ownerSession, guestSession]) await session.locator('summary').first().click();
     stage = 'start an editor session and obtain its share link';
-    await ownerSession.getByRole('combobox', { name: /Zugriff/ }).selectOption('editor');
+    await ownerSession.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
+    await owner!.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
     await ownerSession.getByTestId('session-start').click();
     const sessionLink = ownerSession.getByTestId('session-link');
     await expect(sessionLink).toHaveValue(/^https?:\/\/.+#sketchdraw-session=.{80,}/, { timeout: 25000 });

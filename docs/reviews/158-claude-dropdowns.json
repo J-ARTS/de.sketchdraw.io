@@ -1,0 +1,73 @@
+{
+  "session_id": "f2c30253-0bd4-48a7-9306-39d012be8bb6",
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 28211,
+      "cacheReadInputTokens": 961882,
+      "cacheCreationInputTokens": 64489,
+      "webSearchRequests": 0,
+      "costUSD": 0.6363182,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 13895,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 64489,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 64489,
+    "cache_read_input_tokens": 961882,
+    "output_tokens": 28211,
+    "output_tokens_details": {
+      "thinking_tokens": 13895
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 64489,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3001,
+        "cache_read_input_tokens": 77450,
+        "cache_creation_input_tokens": 208,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 208
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "duration_ms": 230276,
+  "duration_api_ms": 199476,
+  "total_cost_usd": 0.6363182,
+  "num_turns": 22,
+  "stop_reason": "end_turn",
+  "terminal_reason": "completed",
+  "is_error": false,
+  "result": "Der Code für #158 steht, aber ich habe nichts davon ausgeführt. Jeder Bash-Aufruf (`npx vue-tsc`, Tests) scheiterte an der Freigabeabfrage. Weder Typecheck, Unit- noch Playwright-Tests sind gelaufen, und die Änderungen habe ich nur per Code-Review geprüft.\n\n## Geänderte Dateien\n- `src/renderer/components/AppSelect.vue`: erweitert, nicht dupliziert.\n- `src/renderer/components/use-anchored-popover.ts`: kleine, abwärtskompatible Erweiterung.\n- `src/renderer/components/TaskBoard.vue`: Assignee-Feld auf `AppSelect editable` umgestellt.\n\n## API\nDie Props entsprechen dem vereinbarten Vertrag, ergänzt um:\n- `update:modelValue` mit `string`;\n- ein exportiertes Interface `AppSelectOption`.\n\n## Entscheidungen\n- **Select-only:**\n  - Der Accessible Name ist nur `label` (`aria-labelledby=labelId`); der Wert steckt im Inhalt des Buttons.\n  - Ein unbekannter Wert zeigt `placeholder` (sonst leer) statt Option 0.\n  - Leere Werte wie `''` bleiben auswählbar.\n- **Editable:**\n  - `<input role=\"combobox\" aria-autocomplete=\"list\">` plus Chevron-Button (`tabindex=-1`).\n  - Das Feld zeigt `modelValue` als freien Text und emittiert bei jeder Eingabe.\n  - Optionen sind Vorschläge, die beim Tippen nach \"enthält\" gefiltert werden. Pfeil nach unten oder Chevron öffnen die volle Liste.\n  - Ohne aktive Option beendet Enter die Liste und löst nativ das Absenden aus. Tipp- und Cursor-Tasten bleiben nativ.\n  - Beim Assignee bleiben `maxlength` 120 und der Platzhalter `Name` erhalten.\n- **Tastatur (Select-only):**\n  - Geschlossen: Pfeile, Home/End und Enter/Space öffnen. Alt+Pfeil öffnet ebenfalls.\n  - Geschlossen: Typeahead ändert den Wert direkt, gleiche Buchstaben wiederholt zyklieren durch passende Einträge.\n  - Offen: Navigation committet erst durch Enter, Space oder Klick. Disabled-Optionen werden übersprungen.\n  - Escape schließt nur das Popup, mit `preventDefault` und `stopPropagation`. Das Dialog-Cancel wird damit unterdrückt. Escape bei geschlossenem Popup läuft normal weiter.\n  - Tab wird nie abgefangen, damit `wrapTabFocus` im Dialog weiter greift.\n  - Alle anderen verarbeiteten Tasten stoppen die Propagation. Strg- und Meta-Kombinationen laufen durch. Space-keyup wird ebenfalls gestoppt.\n- **Fokus und Active-Descendant:** Der Fokus bleibt auf der Combobox. `aria-activedescendant` wird nur gesetzt, wenn die aktive Option existiert (leere Liste: kein Wert).\n- **Dynamik und Aufräumen:**\n  - Ändern sich die Optionen bei offener Liste, bleibt der aktive Eintrag per Wert erhalten, sonst fällt er auf den ersten aktivierten Eintrag zurück.\n  - Wird die Liste leer oder `disabled` gesetzt, schließt sie.\n  - Typeahead-Timer und Listener werden aufgeräumt.\n  - Ein Klick außerhalb schließt ohne Fokusraub, ein Blur schließt ebenfalls.\n- **Popover:** `<ul popover=\"manual\">` wird per `showPopover()` in den Top-Layer gehoben. Es bleibt im DOM der Komponente, also im Modal-Dialog und ohne Teleport.\n  - Die UA-Defaults (`inset`, `margin`, `width`) sind zurückgesetzt.\n  - Ohne Popover-Unterstützung greift das bisherige `position:fixed`.\n  - Es nutzt nur Panel-Tokens (`--menu-*`, `--shadow-panel`), keine festen Farben.\n  - Lange Labels brechen um (`overflow-wrap:anywhere`).\n  - `prefers-reduced-motion` schaltet Chevron-Transition und Einblend-Animation ab.\n  - Das Forced-Colors-Verhalten bleibt erhalten.\n- **`useAnchoredPopover`:**\n  - Neu sind `maxWidth` auf Viewport-Breite, `left`-Klemmung anhand der gerenderten Breite und `maxHeight` höchstens Viewport-Höhe.\n  - Der Datepicker bleibt kompatibel, bekommt aber dieselbe Klemmung.\n- **Compact:** `.compact` setzt Control und Zeilen auf 32 bzw. 30 px und die Schrift auf 13 px. Die Chrome-Leisten-Tokens aus CLAUDE.md gelten für Formularfelder nicht.\n- **TaskBoard:**\n  - Assignee-Optionen sind `knownAssignees` als `{value,label}`.\n  - Die CSS-Regel `.task-form label` gilt jetzt auch für `.task-fields>.app-field`. Dadurch bekommt auch das Status-Feld 12 px Abstand nach oben.\n  - Die übrige Logik ist unverändert.\n\n## Risiken (ungeprüft)\n1. Es gibt keine Typecheck- oder Testergebnisse. Das Fehlerrisiko liegt bei Typen wie `showPopover`/`:popover-open` und dem schreibbaren `computed`-Anchor.\n2. Das Verhalten von `popover=\"manual\"` im Modal-Dialog (Top-Layer-Reihenfolge, Fokus, Escape ohne Dialog-Cancel) braucht einen Playwright-Test im Electron-Build.\n3. Das Pflichtlabel ist immer sichtbar. Für dichte Widget-Property-Zeilen fehlt eine `hideLabel`-Option, das wäre eine Vertragsänderung.\n4. Die Select-only-Combobox ist weiter ein `<button role=\"combobox\">`. Wie Screenreader den Wert aus dem Inhalt vorlesen, ist ungeprüft.\n5. Die Tests und Aufrufer der alten Optik sind noch offen: Keiner referenziert `.app-select*`, aber Aufrufer mit unbekanntem Wert zeigen jetzt leer statt Option 0.\n\nNicht geschrieben: GitHub-Updates, Ledger, Graphify (`graphify update .` und `tools/graphify-links.py`), Commit/Push. Das liegt bei Root.",
+  "tool": "Claude Code CLI",
+  "requestedModel": "claude-sonnet-5-5",
+  "effort": "high",
+  "issue": 158,
+  "scope": [
+    "AppSelect.vue",
+    "use-anchored-popover.ts",
+    "TaskBoard.vue"
+  ],
+  "testExecution": "Not permitted in the narrowly scoped CLI run; Codex performs all runtime validation separately."
+}

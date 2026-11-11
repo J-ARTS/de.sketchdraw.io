@@ -13,12 +13,14 @@ import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import type { HelperStatus } from '@/collaboration/hdht/types';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
 import { normalizeWebAppUrl, ownWebAppUrl } from '@/collaboration/session-link';
+import AppSelect from './AppSelect.vue';
 
 const props = defineProps<{ disabled?: boolean; inviteLink?: string | null }>();
 const emit = defineEmits<{ active: [value: boolean]; 'link-consumed': [] }>();
 const store = inject(WHITEBOARD_KEY)!;
 const bridge = getDesktopBridge();
 const role = ref<'editor' | 'viewer'>('viewer');
+const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }, { value: 'editor', label: t('Gemeinsam bearbeiten') }]);
 const linkText = ref(''), pinText = ref(''), hostPin = ref(''), shareLink = ref('');
 const relayUrl = ref(''), webAppUrl = ref(ownWebAppUrl());
 const busy = ref(false), active = ref(false), joined = ref(false), hosting = ref(false);
@@ -200,7 +202,7 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
       <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App findet Gegenstellen und freiwillige Relay-Helfer dezentral. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt.') }}</p>
-      <label class="sd-field-label">{{ t('Zugriff für Eingeladene') }}<select v-model="role" class="sd-select" :disabled="busy || disabled"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+      <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy || disabled" @update:model-value="role = $event as 'viewer' | 'editor'" />
       <button class="sd-btn sd-btn--primary full" data-testid="hdht-start" :disabled="busy || disabled || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</button>
       <div class="separator">{{ t('oder beitreten') }}</div>
       <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="linkText" class="sd-input" :aria-label="t('Link für PIN-Beitritt')" autocomplete="off" spellcheck="false" maxlength="8192" :disabled="busy || disabled" /></label>
@@ -221,7 +223,7 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
         <button class="sd-btn full" @click="copy(shareLink)">{{ t('Link kopieren') }}</button>
         <label class="sd-field-label">{{ t('PIN getrennt teilen') }}<input class="sd-input pin" readonly :value="hostPin" data-testid="hdht-host-pin" :aria-label="t('PIN zum Teilen')" @focus="($event.target as HTMLInputElement).select()" /></label>
         <button class="sd-btn full" @click="renewPin">{{ t('Neue PIN') }}</button>
-        <label class="sd-field-label">{{ t('Zugriff für neue Beitritte') }}<select v-model="role" class="sd-select"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+        <AppSelect class="access-field" :label="t('Zugriff für neue Beitritte')" :model-value="role" :options="roleOptions" @update:model-value="role = $event as 'viewer' | 'editor'" />
         </template>
       </template>
       <template v-else-if="joined"><p>{{ store.state.roomGuest?.role === 'editor' ? t('Gemeinsam bearbeiten') : t('Nur ansehen') }} · {{ routeText }}</p></template>
@@ -247,5 +249,5 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-input,.sd-select{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.network{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}summary{font-size:12px;cursor:pointer;font-weight:600}.helper-switch{display:flex;align-items:center;gap:8px;font-size:12px;margin:16px 0 8px}.error{color:var(--status-error)!important}summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.network{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}summary{font-size:12px;cursor:pointer;font-weight:600}.helper-switch{display:flex;align-items:center;gap:8px;font-size:12px;margin:16px 0 8px}.error{color:var(--status-error)!important}summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 </style>

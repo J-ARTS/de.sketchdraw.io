@@ -22,6 +22,7 @@ import type { CrdtDocumentController } from '@/crdt';
 import type { DocumentAuthority } from '@/session';
 import type { DocumentSession } from '@/domain';
 import AppIcon from './AppIcon.vue';
+import AppSelect from './AppSelect.vue';
 import HdhtSession from './HdhtSession.vue';
 import { WHITEBOARD_KEY } from '@/renderer/state/contract';
 import { RoomConnection } from '@/renderer/state/room-connection';
@@ -40,6 +41,7 @@ const store = inject(WHITEBOARD_KEY)!;
 const hdhtActive = ref(false);
 let automaticRoom: RoomConnection | undefined;
 const mode = ref<'invite' | 'join'>('invite'), role = ref<'viewer' | 'editor'>('viewer');
+const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }, { value: 'editor', label: t('Gemeinsam bearbeiten') }]);
 const inviteText = ref(''), incoming = ref(''), answerText = ref('');
 const review = shallowRef<PairingReview | null>(null), status = shallowRef<CollaborationStatus | null>(null);
 const checked = ref(false), busy = ref(false), error = ref(''), note = ref('');
@@ -363,7 +365,7 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
         <template v-if="!automaticActive">
           <h3 id="session-title">{{ t('Session starten') }}</h3>
           <p>{{ t('Starte eine Session und teile den Link. Wer ihn im Browser öffnet, tritt direkt bei und sieht dein Diagramm live. Die Session ist Ende-zu-Ende verschlüsselt; die Zeichnung wird direkt zwischen den Geräten übertragen.') }}</p>
-          <label class="sd-field-label">{{ t('Zugriff für Eingeladene') }}<select v-model="automaticRole" class="sd-select" :disabled="busy"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+          <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="automaticRole" :options="roleOptions" :disabled="busy" @update:model-value="automaticRole = $event as 'viewer' | 'editor'" />
           <button class="sd-btn sd-btn--primary full" data-testid="session-start" :disabled="busy || !authority || !crdtController" @click="startAutomaticOwner">{{ t('Session starten') }}</button>
           <div class="automatic-separator"><span>{{ t('oder beitreten') }}</span></div>
           <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="joinLinkText" class="sd-input" type="text" :aria-label="t('Session-Link einfügen')" :placeholder="t('Link hier einfügen')" spellcheck="false" autocomplete="off" :disabled="busy" @keydown.enter.prevent="joinSession(joinLinkText)" /></label>
@@ -396,7 +398,7 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
         <p v-if="status?.hasUnresolvedOutcome" role="alert">{{ t('Eine gesendete Änderung ist noch nicht bestätigt. Bitte wieder verbinden und abgleichen, bevor du sie erneut ausführst.') }}</p>
         <div v-if="!owner && !guest" class="tabs" role="group" :aria-label="t('Verbindungsart')"><button class="sd-btn" :aria-pressed="mode === 'invite'" :disabled="busy || !!review" @click="mode = 'invite'; incoming = ''">{{ t('Einladen') }}</button><button class="sd-btn" :aria-pressed="mode === 'join'" :disabled="busy || !!review" @click="mode = 'join'; incoming = ''">{{ t('Beitreten') }}</button></div>
         <template v-if="mode === 'invite' && !guest">
-          <label class="sd-field-label">{{ t('Zugriff') }}<select v-model="role" class="sd-select" :disabled="busy || !!inviteText"><option value="viewer">{{ t('Nur ansehen') }}</option><option value="editor">{{ t('Gemeinsam bearbeiten') }}</option></select></label>
+          <AppSelect class="access-field" :label="t('Zugriff')" :model-value="role" :options="roleOptions" :disabled="busy || !!inviteText" @update:model-value="role = $event as 'viewer' | 'editor'" />
           <button class="sd-btn full" :disabled="busy || !authority || !!inviteText" @click="createInvitation()">{{ t('Einladung erstellen') }}</button>
           <template v-if="inviteText"><label class="sd-field-label">{{ t('Einladung') }}<textarea class="sd-textarea" :aria-label="t('Einladung zum Kopieren')" :value="inviteText" readonly spellcheck="false" /></label><button class="sd-btn full" @click="copy(inviteText)">{{ t('Einladung kopieren') }}</button><label class="sd-field-label">{{ t('Antwort der anderen Person') }}<textarea v-model="incoming" class="sd-textarea" :aria-label="t('Antwort einfügen')" maxlength="358400" spellcheck="false" :disabled="busy || !!review" /></label><button class="sd-btn full" :disabled="busy || !incoming.trim() || !!review" @click="inspectAnswer">{{ t('Antwort prüfen') }}</button></template>
         </template>
@@ -417,6 +419,7 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
 </template>
 
 <style scoped>
+.access-field{margin:12px 0 8px}
 .peer-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:360px;z-index:22;display:flex;flex-direction:column;overflow:hidden}header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle)}.body{padding:16px;overflow:auto}p{font-size:12px;line-height:1.7;margin:0 0 12px;color:var(--text-muted)}.network-note{font-size:11px}.tabs,.connection-modes{display:flex;gap:6px;margin-bottom:14px}.connection-modes .sd-btn{flex:1}.full{width:100%;margin-bottom:12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-textarea{height:80px;font:10px/1.5 var(--font-mono);resize:vertical}.sd-textarea.compact{height:56px}.automatic-separator{display:flex;align-items:center;gap:8px;margin:4px 0 12px;color:var(--text-muted);font-size:10px}.automatic-separator::before,.automatic-separator::after{content:"";height:1px;background:var(--border-subtle);flex:1}.automatic-endpoints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere;margin:12px 0}.automatic-endpoints dt{font-weight:700;margin-top:8px}.automatic-endpoints dd{margin:2px 0;color:var(--text-muted)}.comparison{padding:12px;border:1px solid var(--border-default);border-radius:6px;margin:16px 0}.fingerprints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere}.fingerprints dd{margin:4px 0 10px}.comparison summary{font-size:11px;cursor:pointer;margin-bottom:12px}.comparison h3{font-size:12px}.comparison output{display:block;font:14px/1.7 var(--font-mono);overflow-wrap:anywhere;margin:10px 0}.confirm-check{display:flex;gap:8px;font-size:12px;line-height:1.6;margin:12px 0}.connection-state{color:var(--text-primary);font-weight:600}.peers li{display:flex;gap:7px;flex-direction:column;padding:12px 0;border-top:1px solid var(--border-subtle);font-size:11px}.error{color:var(--status-error)}@media(max-width:860px){.peer-panel{width:min(360px,calc(100vw - 24px))}}
 .session h3{margin:0 0 8px;font-size:15px}.session .sd-input{width:100%}.copy-row{display:flex;gap:6px;margin-top:6px}.copy-row .sd-input{flex:1;min-width:0;font:11px var(--font-mono)}.copy-row .sd-btn{flex:none}.session-info{display:grid;gap:6px;margin:12px 0;font-size:12px}.session-info div{display:flex;justify-content:space-between;gap:12px}.session-info dt{color:var(--text-muted)}.session-info dd{margin:0;text-align:right}
 .advanced,.manual{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}.advanced summary,.manual summary{cursor:pointer;color:var(--text-muted);font-size:12px;font-weight:600}.advanced summary:focus-visible,.manual summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:4px}.manual[open]>summary{margin-bottom:12px}

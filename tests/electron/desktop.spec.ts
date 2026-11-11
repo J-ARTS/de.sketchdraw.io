@@ -121,7 +121,8 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
           }, destination);
           await page.getByTestId('file-menu-button').click();
           await page.getByTestId('file-menu-interopExport').click();
-          await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption(format);
+          await page.getByRole('combobox', { name: 'Format', exact: true }).click();
+          await page.getByRole('listbox', { name: 'Format', exact: true }).getByRole('option', { name: format === 'svg' ? 'SVG' : format === 'drawio' ? 'draw.io' : 'Mermaid (Flowchart)', exact: true }).click();
           await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
           const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ });
           if (await consent.isVisible()) await consent.check();

@@ -88,14 +88,15 @@ for (const [width, height] of [[320, 568], [480, 720], [1024, 768], [1280, 800],
   });
 }
 
-test('compact header moves objects, help and theme into the workspace menu (#76)', async ({ page }) => {
+test('compact header keeps objects and help in the menu and theme in settings (#76, #159)', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await expect(page.getByTestId('help-button')).toHaveCount(0);
   await page.getByTestId('workspace-menu-button').click();
   const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
   await expect(menu.getByRole('menuitemcheckbox', { name: 'Objekte' })).toBeFocused();
   await expect(menu.getByRole('menuitem', { name: 'Tastaturhilfe' })).toBeVisible();
-  await menu.getByRole('menuitemcheckbox', { name: 'Dunkles Design' }).click();
+  await menu.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Einstellungen' }).getByRole('radio', { name: 'Dunkel', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 

@@ -14,7 +14,8 @@ test('a guest opens the shared link and receives the host drawing live', async (
   await host.getByTestId('workspace-menu-button').click();
   await host.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
   await host.getByTestId('legacy-session').locator('summary').first().click();
-  await host.getByTestId('legacy-session').getByRole('combobox', { name: /Zugriff/ }).selectOption('editor');
+  await host.getByTestId('legacy-session').getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
+  await host.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
   await host.getByTestId('session-start').click();
   const link = await host.getByTestId('session-link').inputValue();
 

@@ -1,0 +1,110 @@
+{
+  "issue": 159,
+  "verifiedAt": "2026-11-11T21:05:39.186996+00:00",
+  "scope": "Local uncommitted follow-up on codex/158-custom-dropdowns; existing #158 changes preserved; no main integration claimed.",
+  "environment": "macOS-14.6.1-arm64-arm-64bit-Mach-O",
+  "files": {
+    "src/renderer/components/MainMenu.vue": "fab9e8784e5025fd10b28c6d35b9c299687c26e1d500f3d7b9a5f587c6a7e681",
+    "tests/ui/whiteboard.spec.ts": "28739becb9b4c5543e274d52f4ddccb35f8b6a949894a33358dfa40ae5a854c3",
+    "tests/ui/layout-review.spec.ts": "a59bb7d597f371c6f5d351000b8acbd561a16b685c65a917f42c4d91d32ee535"
+  },
+  "changes": [
+    "Removed navigation theme icon and compact menu entry, action/type/styles",
+    "Existing SettingsDialog theme controls unchanged",
+    "Adapted existing test interactions; no new test cases"
+  ],
+  "implementation": {
+    "tool": "Claude Code CLI 2.1.321",
+    "model": "claude-sonnet-5-5",
+    "effort": "high",
+    "session": "c968ec15-243e-4c54-a092-0655f6b18228",
+    "durationMs": 17619,
+    "usage": {
+      "input_tokens": 10,
+      "cache_creation_input_tokens": 28429,
+      "cache_read_input_tokens": 176293,
+      "output_tokens": 2654,
+      "output_tokens_details": {
+        "thinking_tokens": 41
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 28429,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 577,
+          "cache_read_input_tokens": 43151,
+          "cache_creation_input_tokens": 329,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 329
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-sonnet-5-5": {
+        "inputTokens": 10,
+        "outputTokens": 2654,
+        "cacheReadInputTokens": 176293,
+        "cacheCreationInputTokens": 28429,
+        "webSearchRequests": 0,
+        "costUSD": 0.15790530000000003,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 41,
+        "cacheCreationEphemeral5mInputTokens": 0,
+        "cacheCreationEphemeral1hInputTokens": 28429,
+        "canonicalModel": "claude-sonnet-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "is_error": false,
+    "terminal_reason": "completed"
+  },
+  "independentReview": {
+    "agent": "/root/theme_settings_review",
+    "mode": "read-only",
+    "result": "Both navigation entrypoints and obsolete type/action/styles removed. Settings remains the only UI entrypoint. No actionable findings. Found second existing compact-layout test which root updated."
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "status": "passed"
+    },
+    {
+      "command": "npx playwright test --project=ui tests/ui/settings.spec.ts tests/ui/layout-review.spec.ts tests/ui/whiteboard.spec.ts --grep 'canvas background|text focus|header|document card, workspace menu'",
+      "status": "passed",
+      "passed": 7,
+      "details": "Includes theme change and preference retention after page reload, compact menu, keyboard/focus and accessibility checks."
+    },
+    {
+      "command": "npx playwright test --project=ui tests/ui/layout-review.spec.ts --grep 'top chrome stays reachable'",
+      "status": "passed",
+      "passed": 5,
+      "details": "Header heights/targets and no overlap at widths 320,480,1024,1280,1600."
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "graphify update .",
+      "status": "blocked_existing_145",
+      "details": "Safely refuses smaller candidate (5967 vs6109); not forced. Traceability refresh/check separate."
+    }
+  ],
+  "next": "Integrate with local UI changes and confirm CI; keep issue open until main integration."
+}

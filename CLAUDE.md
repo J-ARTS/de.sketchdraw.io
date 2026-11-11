@@ -29,6 +29,7 @@ Entscheidungen und Implementierungen müssen sich an dieser Vision messen lassen
 
 - Antworten und Kommunikation auf Deutsch; Code, Bezeichner und Commit-Messages auf Englisch.
 - Bestehenden Code-Stil und Namensgebung beibehalten.
+- Die verbindlichen Regeln zur UI-Wiederverwendung in `AGENTS.md` beachten: Auswahlfelder mit `src/renderer/components/AppSelect.vue` (auch editierbare Vorschläge), keine nativen Select-/Datalist-Menüs. Gemeinsame Hilfe-/Speicher-/Konfliktdialoge in `src/renderer/components/AppDialog.vue` wiederverwenden; spezialisierte Dialogpfade und Komponentenverträge stehen dort ebenfalls.
 
 ## Verantwortlichkeiten
 

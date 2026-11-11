@@ -226,7 +226,10 @@ test('text focus protects native undo and keyboard navigation reaches help', asy
   await editor.fill('Beschriftung'); await editor.press('Escape'); await expect(editor).not.toBeVisible();
   await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('?'); await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByTestId('theme-toggle').click(); await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByRole('menuitem', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Einstellungen' }).getByRole('radio', { name: 'Dunkel', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
 test('keyboard and screen reader structure has no serious automated accessibility findings', async ({ page }) => {

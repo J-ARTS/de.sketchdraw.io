@@ -10,7 +10,7 @@ import { L, t } from '@/renderer/i18n';
 import { LANGUAGES, type LanguageCode } from '@/renderer/lib/preferences';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'theme' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
+type ViewItemId = 'objects' | 'help' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
@@ -84,7 +84,6 @@ const viewItems = computed<ViewItem[]>(() => [
   ...(compact.value ? [
     { id: 'objects', label: t('chrome.objects'), icon: 'objects', checked: s.objectsOpen },
     { id: 'help', label: t('chrome.help'), icon: 'help' },
-    { id: 'theme', label: t('chrome.theme'), icon: s.theme === 'dark' ? 'moon' : 'sun', checked: s.theme === 'dark' },
   ] satisfies ViewItem[] : []),
   { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen, separator: compact.value },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
@@ -186,7 +185,6 @@ function runView(id: ViewItemId): void {
   switch (id) {
     case 'objects': store.toggleObjects(); break;
     case 'help': store.openHelp(); break;
-    case 'theme': store.setTheme(s.theme === 'dark' ? 'light' : 'dark'); break;
     case 'collaboration': emit('collaboration'); break;
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
@@ -303,18 +301,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       @click="store.openHelp()"
     >
       <AppIcon name="help" />
-    </button>
-    <button
-      v-if="!compact"
-      type="button"
-      class="sd-icon-btn bar-btn theme-btn"
-      data-testid="theme-toggle"
-      :aria-pressed="s.theme === 'dark'"
-      :aria-label="t('chrome.theme')"
-      :title="t('chrome.theme')"
-      @click="store.setTheme(s.theme === 'dark' ? 'light' : 'dark')"
-    >
-      <AppIcon :name="s.theme === 'dark' ? 'moon' : 'sun'" />
     </button>
     <span v-if="!compact" class="bar-sep" aria-hidden="true" />
     <div class="view-wrap" @focusout="onFocusOut('view', $event)">
@@ -538,17 +524,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   background: var(--accent-soft);
   color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
-}
-
-/* The icon itself shows the active theme, so the toggle keeps a neutral surface. */
-.theme-btn[aria-pressed='true'] {
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-primary);
-}
-
-.theme-btn[aria-pressed='true']:hover {
-  background: var(--surface-raised);
 }
 
 .bar-sep {

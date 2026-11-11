@@ -17,9 +17,14 @@ test('manual pairing presents matching identities and requires explicit confirma
   }
   const ownerPanel = page.getByTestId('collaboration-panel');
   const guestPanel = guest.getByTestId('collaboration-panel');
+  const access = ownerPanel.getByRole('combobox', { name: 'Zugriff', exact: true });
+  await access.click();
+  await page.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
   await ownerPanel.getByRole('button', { name: 'Einladung erstellen' }).click();
   const invitation = ownerPanel.getByRole('textbox', { name: 'Einladung zum Kopieren' });
   await expect(invitation).not.toHaveValue('');
+  await expect(access).toHaveText('Gemeinsam bearbeiten');
+  await expect(access).toBeDisabled();
   await guestPanel.getByRole('button', { name: 'Beitreten', exact: true }).click();
   await guestPanel.getByRole('textbox', { name: 'Einladung einfügen' }).fill(await invitation.inputValue());
   await guestPanel.getByRole('button', { name: 'Einladung prüfen' }).click();
@@ -39,6 +44,7 @@ test('manual pairing presents matching identities and requires explicit confirma
   await expect(guestPanel.getByRole('button', { name: 'Identität bestätigen' })).toHaveCount(0);
   await ownerPanel.getByRole('button', { name: 'Sitzung für alle beenden' }).click();
   await expect(ownerPanel.getByRole('button', { name: 'Einladung erstellen' })).toBeEnabled();
+  await expect(access).toBeEnabled();
 });
 
 test('invalid invitation is rejected with a recoverable explanation', async ({ page }) => {

@@ -32,7 +32,8 @@ async function allowRelayLinkIfPending(page: Page) {
 async function hostSession(page: Page, role: 'editor' | 'viewer' = 'editor') {
   await page.goto('/'); await draw(page, 'Rechteck'); await openPanel(page);
   const panel = page.getByTestId('hdht-session');
-  await panel.getByRole('combobox', { name: 'Zugriff für Eingeladene' }).selectOption(role);
+  await panel.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
+  await page.getByRole('option', { name: role === 'editor' ? 'Gemeinsam bearbeiten' : 'Nur ansehen', exact: true }).click();
   await panel.getByTestId('hdht-network').locator('summary').click();
   await panel.getByRole('textbox', { name: 'Optionales WSS-Gateway', exact: true }).fill(relayUrl);
   await panel.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');
@@ -90,8 +91,13 @@ test('URL and separate PIN connect real browser clients; wrong PIN recovers, edi
   } finally { await context.close(); }
 });
 
-test('viewer stays read-only without MCP after host ends, until explicit local-copy leave', async ({ page, browser }) => {
-  const invitation = await hostSession(page, 'viewer');
+test('the updated role for new arrivals stays read-only without MCP after host ends, until explicit local-copy leave', async ({ page, browser }) => {
+  const invitation = await hostSession(page);
+  const access = page.getByRole('combobox', { name: 'Zugriff für neue Beitritte', exact: true });
+  await expect(access).toHaveText('Gemeinsam bearbeiten');
+  await access.click();
+  await page.getByRole('option', { name: 'Nur ansehen', exact: true }).click();
+  await expect(access).toHaveText('Nur ansehen');
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
     await agentFixture(guest); await guest.goto(invitation.link);
@@ -184,6 +190,7 @@ test('document change invalidates a host start while WebCrypto is pending', asyn
   await page.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');
   await page.getByTestId('hdht-start').click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __keyFixture: { pending: boolean } }).__keyFixture.pending)).toBe(true);
+  await expect(page.getByTestId('hdht-session').getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true })).toBeDisabled();
   await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-new').click();
   await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
   await expect(page.getByTestId('hdht-start')).toBeEnabled();
@@ -289,7 +296,8 @@ test('a valid diagram above 4 MiB synchronizes fully and remains editable', asyn
   await page.goto('/'); await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-open').click();
   await expect(page.getByTestId('document-title')).toHaveValue('Large local diagram');
   await openPanel(page);
-  await page.getByRole('combobox', { name: 'Zugriff für Eingeladene' }).selectOption('editor');
+  await page.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
+  await page.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
   await page.getByTestId('hdht-network').locator('summary').click();
   await page.getByRole('textbox', { name: 'Optionales WSS-Gateway', exact: true }).fill(relayUrl);
   await page.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');

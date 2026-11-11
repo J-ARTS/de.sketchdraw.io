@@ -353,3 +353,27 @@ test('a popover that does not fit above the bar opens completely below it', asyn
   const clipped = await popover.locator('xpath=..').evaluate((element) => element.scrollHeight > element.clientHeight + 1);
   expect(clipped).toBe(false);
 });
+
+test('component widget dropdown commits metadata and Escape closes only its own popup first', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const library = page.getByTestId('shape-library-sidebar');
+  await library.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('Service');
+  await library.getByRole('button', { name: 'Service GENERIC', exact: true }).dragTo(page.getByTestId('whiteboard-canvas'), { targetPosition: { x: 360, y: 350 } });
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: 'Komponenteneinstellungen' }).click();
+  const field = page.getByRole('combobox', { name: 'Protokoll', exact: true });
+  await expect(field).toContainText('Bitte auswählen');
+  await field.click(); await page.keyboard.press('Escape');
+  await expect(page.getByRole('listbox', { name: 'Protokoll' })).toHaveCount(0);
+  await expect(field).toBeVisible(); await expect(field).toContainText('Bitte auswählen');
+  await field.click(); await page.getByRole('option', { name: 'HTTPS', exact: true }).click();
+  await expect(field).toContainText('HTTPS');
+  await field.press('Escape'); await expect(field).toHaveCount(0);
+  await bar.getByRole('button', { name: 'Komponenteneinstellungen' }).click();
+  await expect(page.getByRole('combobox', { name: 'Protokoll', exact: true })).toContainText('HTTPS');
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByRole('menuitemcheckbox', { name: 'Code', exact: true }).click();
+  await expect(page.getByTestId('diagram-code')).toHaveValue(/"widget:generic.service:protocol":"HTTPS"/);
+  await expect(page.locator('select,datalist')).toHaveCount(0);
+});
