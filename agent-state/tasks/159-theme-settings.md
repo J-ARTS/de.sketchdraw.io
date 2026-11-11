@@ -7,4 +7,6 @@
 - Result: typecheck and 12 existing UI/layout cases passed, including theme persistence after page reload and header geometry 320–1600 px.
 - Evidence: docs/reviews/159-theme-settings-validation.json; no new tests or dependencies.
 - Graphify #145 retains previous codegraph; traceability refreshed separately.
-- Status: locally verified, uncommitted, main integration pending. Next: integrate with UI change set and confirm CI before closing #159.
+- Status: committed to local main in 3bd7ab9; remote publication and CI pending before closing #159.
+
+- Integration update: user requested all changes committed on main; local main contains 3bd7ab9 and 7224888. Source hashes match tested implementation. No push or remote CI performed in this commit task.

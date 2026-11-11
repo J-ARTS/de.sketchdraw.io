@@ -1515,7 +1515,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-158-160-main-commit"
+      ]
     },
     "159": {
       "exclusiveRuns": {
@@ -1548,7 +1550,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-158-160-main-commit"
+      ]
     },
     "16": {
       "exclusiveRuns": {
@@ -1617,7 +1621,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-158-160-main-commit"
+      ]
     },
     "161": {
       "exclusiveRuns": {
@@ -4813,19 +4819,20 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       },
       "observedSeconds": {
         "knownRuns": 1,
         "knownSubtotal": 2693.557,
         "total": null,
-        "unknownRuns": 5
+        "unknownRuns": 6
       },
-      "runCount": 6,
+      "runCount": 7,
       "runIds": [
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
         "codex-153-interop-implementation",
+        "codex-158-160-main-commit",
         "codex-158-custom-dropdowns",
         "codex-159-theme-settings",
         "codex-160-plugin-marketplace"
@@ -4834,7 +4841,7 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 6
+        "unknownRuns": 7
       }
     },
     "antigravity": {
@@ -5231,15 +5238,15 @@
       "knownRuns": 6,
       "knownSubtotal": 21.0832297,
       "total": null,
-      "unknownRuns": 235
+      "unknownRuns": 236
     },
     "observedSeconds": {
       "knownRuns": 100,
       "knownSubtotal": 50709.54326324896,
       "total": null,
-      "unknownRuns": 141
+      "unknownRuns": 142
     },
-    "runCount": 241,
+    "runCount": 242,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -5303,6 +5310,7 @@
       "codex-149-153-main-integration",
       "codex-149-fallback-review-fixes",
       "codex-153-interop-implementation",
+      "codex-158-160-main-commit",
       "codex-158-custom-dropdowns",
       "codex-159-theme-settings",
       "codex-160-plugin-marketplace",
@@ -5487,7 +5495,7 @@
       "knownRuns": 10,
       "knownSubtotal": 7037479,
       "total": null,
-      "unknownRuns": 231
+      "unknownRuns": 232
     }
   },
   "officialScoreClaimReady": false,
@@ -5501,5 +5509,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:35:56.402204+00:00"
+  "updatedAt": "2026-11-11T21:39:12.887643+00:00"
 }

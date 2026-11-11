@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:35:56.402204+00:00",
+  "updatedAt": "2026-11-11T21:39:12.887643+00:00",
   "issues": [
     {
       "number": 1,
@@ -2174,7 +2174,7 @@
       "title": "Einheitliche Custom-Dropdowns und verbindliche Komponenten-Wiederverwendung",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/158",
       "owner": "Claude Code (ui), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "Claude Code CLI core; Codex migrations, reproduced review corrections and independent local validation complete; not integrated",
+      "currentImplementer": "Claude Code CLI core; Codex migrations, reproduced review corrections and independent local validation complete; locally integrated; remote publication pending",
       "phase": "UI / Accessibility / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2182,7 +2182,13 @@
         "value": null,
         "kind": "planning_estimate"
       },
-      "dependencies": []
+      "dependencies": [],
+      "localIntegration": {
+        "branch": "main",
+        "commit": "3bd7ab9",
+        "publication": "pending",
+        "remoteCi": "not triggered"
+      }
     },
     {
       "number": 159,
@@ -2197,7 +2203,13 @@
         "value": null,
         "kind": "planning_estimate"
       },
-      "dependencies": []
+      "dependencies": [],
+      "localIntegration": {
+        "branch": "main",
+        "commit": "3bd7ab9",
+        "publication": "pending",
+        "remoteCi": "not triggered"
+      }
     },
     {
       "number": 160,
@@ -2212,7 +2224,13 @@
         "value": null,
         "kind": "planning_estimate"
       },
-      "dependencies": []
+      "dependencies": [],
+      "localIntegration": {
+        "branch": "main",
+        "commit": "7224888124094bb45685bfabc6d3f6cf66a32b7f",
+        "publication": "pending",
+        "remoteCi": "not triggered"
+      }
     },
     {
       "number": 161,
@@ -8872,6 +8890,38 @@
       ],
       "concerns": [],
       "measurementSource": "Actual duration_ms. Resume produced no edits/no new model output; emitted modelUsage/cost are cumulative prior Fable session and are deliberately not counted again."
+    },
+    {
+      "id": "codex-158-160-main-commit",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        158,
+        159,
+        160
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "git:7224888124094bb45685bfabc6d3f6cf66a32b7f",
+        "git:3bd7ab9",
+        "docs/reviews/160-local-validation.json"
+      ],
+      "concerns": [
+        "Remote main and remote CI pending; no release or push claimed."
+      ],
+      "authorization": "User explicitly requested committing all changes on main. Performed local commit integration without remote push.",
+      "measurementSource": "No duration/token/cost measured. Source hash check, staged diff check and traceability validation pass; prior product validation unchanged.",
+      "delegation": {
+        "agent": "/root/commit_validation",
+        "scope": "Read-only commit readiness, manifest hashes and expected files",
+        "status": "completed",
+        "result": "All 12 source/test hashes match; 29 expected staged files; no new findings."
+      }
     }
   ],
   "evidencePolicy": {
