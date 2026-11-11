@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { importDrawio, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
+import { importDrawio, importMermaid, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareMermaidExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
 import { getDesktopBridge } from '@/platform';
 import type { DocumentAuthority } from '@/session';
 import { useWhiteboard } from './use-whiteboard';
@@ -14,8 +14,10 @@ const props = defineProps<{ open: boolean; mode: 'import' | 'export' }>();
 const emit = defineEmits<{ close: [] }>();
 const store = useWhiteboard(); const bridge = getDesktopBridge();
 const format = ref<InteropFormat>('drawio'); const source = ref(''); const fileName = ref('');
+const sourceFileBytes = ref(0); const mermaidInput = ref<HTMLTextAreaElement | null>(null);
+const largeFileSource = computed(() => Boolean(fileName.value) && sourceFileBytes.value > 200 * 1024);
 const pages = ref<DrawioPageInfo[]>([]); const pageIndex = ref<number | 'all' | null>(null);
-const svgPageId = ref(store.state.activePageId);
+const exportPageId = ref(store.state.activePageId);
 const imported = shallowRef<InteropImportResult | null>(null);
 const exported = shallowRef<{ result: InteropExportResult; authority: DocumentAuthority | null; revision: number; title: string } | null>(null);
 const embedDocument = ref(true); const accepted = ref(false); const busy = ref(false); const error = ref(''); const status = ref('');
@@ -23,16 +25,23 @@ const failures = shallowRef<readonly InteropDiagnostic[]>([]); let serial = 0;
 const diagnostics = computed(() => failures.value.length ? failures.value : props.mode === 'import' ? imported.value?.diagnostics ?? [] : exported.value?.result.diagnostics ?? []);
 const warnings = computed(() => diagnostics.value.filter(item => item.severity === 'warning'));
 const requiresConfirmation = computed(() => props.mode === 'import' ? imported.value?.requiresConfirmation === true : exported.value?.result.requiresConfirmation === true);
-const staleExport = computed(() => exported.value !== null && (exported.value.authority !== store.getAuthority() || exported.value.revision !== store.state.revision || store.state.hasDraft));
-/** The preview shows the first page only; the summary counts every page of the import. */
-const previewElements = computed(() => { const doc = imported.value?.document; return doc ? doc.elements.filter((element) => element.pageId === doc.pages[0]!.id) : []; });
+const staleExport = computed(() => exported.value !== null && (exported.value.result.format !== format.value || exported.value.authority !== store.getAuthority() || exported.value.revision !== store.state.revision || store.state.hasDraft));
+const formatName = (value: InteropFormat) => value === 'svg' ? 'SVG' : value === 'mermaid' ? 'Mermaid' : 'draw.io';
+/** Show the verified source page when restoring an embedded multi-page document. */
+const previewElements = computed(() => {
+  const result = imported.value; if (!result) return [];
+  const page = result.document.pages.find(item => item.id === result.source.pageId) ?? result.document.pages[0]!;
+  return result.document.elements.filter(element => element.pageId === page.id);
+});
 const previewBounds = computed(() => {
   const rect = imported.value ? bounds(previewElements.value) : null;
   return rect ? `${rect.x - 20} ${rect.y - 20} ${Math.max(80, rect.width + 40)} ${Math.max(80, rect.height + 40)}` : '0 0 400 200';
 });
-function clear() { serial++; source.value = ''; fileName.value = ''; pages.value = []; pageIndex.value = null; imported.value = null; exported.value = null; accepted.value = false; busy.value = false; error.value = ''; status.value = ''; failures.value = []; }
+function clear() { serial++; source.value = ''; fileName.value = ''; sourceFileBytes.value = 0; pages.value = []; pageIndex.value = null; imported.value = null; exported.value = null; accepted.value = false; busy.value = false; error.value = ''; status.value = ''; failures.value = []; }
 function failure(value: unknown) {
-  error.value = value instanceof InteropError ? t('Die Datei konnte nicht verarbeitet werden ({code}). Das aktuelle Dokument bleibt erhalten.', { code: value.code }) : t('Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.');
+  error.value = value instanceof InteropError && value.code === 'MERMAID_DIAGRAM_UNSUPPORTED'
+    ? t('Dieser Mermaid-Diagrammtyp wird nicht unterstützt. Verwende ein Flowchart mit flowchart oder graph. Dein Dokument bleibt erhalten.')
+    : value instanceof InteropError ? t('Die Datei konnte nicht verarbeitet werden ({code}). Das aktuelle Dokument bleibt erhalten.', { code: value.code }) : t('Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.');
   failures.value = value instanceof InteropError ? value.diagnostics : [];
 }
 function inspect() {
@@ -40,24 +49,30 @@ function inspect() {
   if (!source.value) return;
   try {
     if (format.value === 'drawio') { pages.value = inspectDrawio(source.value); if (pages.value.length === 1) pageIndex.value = pages.value[0]!.index; }
-    if (format.value === 'svg' || pageIndex.value !== null) convert();
+    if (format.value !== 'drawio' || pageIndex.value !== null) convert();
   } catch (value) { failure(value); }
 }
 function convert() {
   accepted.value = false; error.value = ''; failures.value = []; imported.value = null;
   if (!source.value || (format.value === 'drawio' && pageIndex.value === null)) return;
-  try { imported.value = format.value === 'svg' ? importSvg(source.value) : importDrawio(source.value, { pageIndex: pageIndex.value! }); }
+  try { imported.value = format.value === 'svg' ? importSvg(source.value) : format.value === 'mermaid' ? importMermaid(source.value) : importDrawio(source.value, { pageIndex: pageIndex.value! }); }
   catch (value) { failure(value); }
 }
+function editSource(event: Event) {
+  serial++; busy.value = false; source.value = (event.target as HTMLTextAreaElement).value; fileName.value = ''; sourceFileBytes.value = 0;
+  imported.value = null; accepted.value = false; failures.value = []; error.value = ''; status.value = '';
+}
+async function startMermaidText() { clear(); await nextTick(); mermaidInput.value?.focus(); }
 async function readFile(event: Event) {
   const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = '';
   if (!file) return;
-  clear(); const own = serial; const authority = store.getAuthority(); busy.value = true;
+  clear(); format.value = /\.svg$/i.test(file.name) ? 'svg' : /\.(mmd|mermaid)$/i.test(file.name) ? 'mermaid' : 'drawio';
+  const own = serial; const authority = store.getAuthority(); busy.value = true;
   try {
     if (file.size > INTEROP_LIMITS.MAX_INPUT_BYTES) { error.value = t('Die Datei ist zu groß (maximal 96 MiB).'); return; }
     const contents = await file.text();
     if (own !== serial || authority !== store.getAuthority()) return;
-    fileName.value = file.name; source.value = contents; format.value = /\.svg$/i.test(file.name) ? 'svg' : 'drawio';
+    fileName.value = file.name; sourceFileBytes.value = file.size; source.value = contents;
     await nextTick(); if (own === serial) inspect();
   } catch (value) { if (own === serial) failure(value); }
   finally { if (own === serial) busy.value = false; }
@@ -69,10 +84,12 @@ async function applyImport() {
 }
 async function prepareExport() {
   const owner = store.getAuthority(); const own = ++serial; busy.value = true; error.value = ''; failures.value = []; accepted.value = false; exported.value = null; status.value = '';
+  const selectedFormat = format.value, selectedPage = exportPageId.value, activePage = store.state.activePageId, embed = embedDocument.value;
   try {
     const snapshot = await store.prepareDocumentSnapshot();
     if (!snapshot || own !== serial || owner !== store.getAuthority()) return;
-    const result = format.value === 'svg' ? prepareSvgExport(snapshot.document, { embedDocument: embedDocument.value, pageId: store.state.pages.some((item) => item.id === svgPageId.value) ? svgPageId.value : store.state.activePageId }) : prepareDrawioExport(snapshot.document, { embedDocument: embedDocument.value });
+    const options = { embedDocument: embed, pageId: snapshot.document.pages.some(item => item.id === selectedPage) ? selectedPage : activePage };
+    const result = selectedFormat === 'svg' ? prepareSvgExport(snapshot.document, options) : selectedFormat === 'mermaid' ? prepareMermaidExport(snapshot.document, options) : prepareDrawioExport(snapshot.document, { embedDocument: embed });
     exported.value = { result, authority: owner, revision: snapshot.revision, title: snapshot.document.title };
   } catch (value) { if (own === serial) failure(value); }
   finally { if (own === serial) busy.value = false; }
@@ -80,7 +97,7 @@ async function prepareExport() {
 async function writeExport() {
   const preview = exported.value;
   if (!preview || busy.value || requiresConfirmation.value && !accepted.value) return;
-  if (preview.authority !== store.getAuthority() || preview.revision !== store.state.revision || store.state.hasDraft) { error.value = t('Bitte die Exportvorschau für den aktuellen Stand neu erstellen.'); return; }
+  if (preview.result.format !== format.value || preview.authority !== store.getAuthority() || preview.revision !== store.state.revision || store.state.hasDraft) { error.value = t('Bitte die Exportvorschau für den aktuellen Stand neu erstellen.'); return; }
   const own = serial; busy.value = true; error.value = '';
   try {
     const name = suggestFileName(preview.title).replace(/\.sketchdraw\.json$/, preview.result.suggestedExtension);
@@ -94,8 +111,11 @@ async function writeExport() {
   finally { if (own === serial) busy.value = false; }
 }
 watch(() => props.mode, clear);
-watch(() => props.open, open => { if (!open) clear(); });
-watch([format, embedDocument, svgPageId], () => { accepted.value = false; exported.value = null; if (props.mode === 'import' && source.value && !busy.value) inspect(); });
+watch(() => props.open, open => { if (!open) clear(); else exportPageId.value = store.state.activePageId; });
+watch([format, embedDocument, exportPageId], () => {
+  serial++; busy.value = false; accepted.value = false; exported.value = null; imported.value = null; failures.value = []; error.value = ''; status.value = ''; pages.value = []; pageIndex.value = null;
+  if (props.mode === 'import' && source.value && format.value !== 'mermaid') inspect();
+}, { flush: 'sync' });
 const unsubscribe = store.subscribeAuthority(() => { clear(); emit('close'); });
 onBeforeUnmount(() => { unsubscribe(); clear(); });
 </script>
@@ -106,19 +126,28 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
     <div class="panel-body">
       <p class="intro">{{ mode === 'import' ? t('Prüfe die Vorschau und mögliche Änderungen. Dein aktuelles Dokument bleibt bis zur Übernahme erhalten.') : t('Erstelle eine Austauschdatei aus dem aktuellen Dokument. Vor der Ausgabe zeigen wir mögliche Verluste.') }}</p>
       <template v-if="mode === 'import'">
-        <label class="file-picker">{{ t('SVG- oder draw.io-Datei auswählen') }}<input type="file" accept=".svg,.drawio,.xml,image/svg+xml,application/xml,text/xml" :aria-label="t('Austauschdatei auswählen')" :disabled="busy || store.state.transitioning" @change="readFile" /></label>
+        <label class="file-picker">{{ t('SVG-, draw.io- oder Mermaid-Datei auswählen') }}<input type="file" accept=".svg,.drawio,.xml,.mmd,.mermaid,image/svg+xml,application/xml,text/xml,text/plain" :aria-label="t('Austauschdatei auswählen')" :disabled="busy || store.state.transitioning" @change="readFile" /></label>
         <p v-if="fileName" class="file-name">{{ fileName }}</p>
       </template>
-      <label class="sd-field-label" for="interop-format">{{ t('Format') }}<select id="interop-format" v-model="format" class="sd-select" :disabled="busy"><option value="drawio">{{ t('draw.io') }}</option><option value="svg">SVG</option></select></label>
+      <label class="sd-field-label" for="interop-format">{{ t('Format') }}<select id="interop-format" v-model="format" class="sd-select"><option value="drawio">{{ t('draw.io') }}</option><option value="svg">SVG</option><option value="mermaid">{{ t('Mermaid (Flowchart)') }}</option></select></label>
+      <p v-if="format === 'mermaid'" class="metadata-note">{{ t('Unterstützt werden Mermaid-Flowcharts mit flowchart oder graph. Andere Diagrammtypen werden nicht importiert.') }}</p>
       <template v-if="mode === 'import'">
+        <template v-if="format === 'mermaid'">
+          <template v-if="largeFileSource">
+            <p class="metadata-note">{{ t('Der Inhalt dieser großen Datei wird nicht im Textfeld angezeigt. Die vollständige Datei bleibt für Vorschau und Import erhalten.') }}</p>
+            <button class="sd-btn full" :disabled="busy || store.state.transitioning" @click="startMermaidText">{{ t('Eigenen Mermaid-Code eingeben') }}</button>
+          </template>
+          <label v-else class="sd-field-label" for="interop-mermaid-source">{{ t('Mermaid-Code einfügen') }}<textarea id="interop-mermaid-source" ref="mermaidInput" class="sd-input mermaid-source" :value="source" rows="7" spellcheck="false" autocapitalize="off" autocomplete="off" :disabled="busy || store.state.transitioning" @input="editSource" /></label>
+          <button class="sd-btn full" :disabled="busy || store.state.transitioning || !source.trim()" @click="inspect">{{ t('Importvorschau erstellen') }}</button>
+        </template>
         <label v-if="pages.length > 1" class="sd-field-label" for="interop-page">{{ t('Seite auswählen') }}<select id="interop-page" v-model="pageIndex" class="sd-select" @change="convert"><option :value="null" disabled>{{ t('Bitte eine der {count} Seiten auswählen', { count: pages.length }) }}</option><option value="all">{{ t('Alle {count} Seiten importieren', { count: pages.length }) }}</option><option v-for="item in pages" :key="item.index" :value="item.index">{{ item.index + 1 }} · {{ item.name }}</option></select></label>
         <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p v-if="imported.document.pages.length > 1">{{ t('{count} Seiten', { count: imported.document.pages.length }) }}</p><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in previewElements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
       </template>
       <template v-else>
-        <label v-if="format === 'svg' && store.state.pages.length > 1" class="sd-field-label" for="interop-svg-page">{{ t('Seite für den SVG-Export') }}<select id="interop-svg-page" v-model="svgPageId" class="sd-select" :disabled="busy"><option v-for="item in store.state.pages" :key="item.id" :value="item.id">{{ tm(item.name) }}</option></select></label>
+        <label v-if="format !== 'drawio' && store.state.pages.length > 1" class="sd-field-label" for="interop-export-page">{{ format === 'svg' ? t('Seite für den SVG-Export') : t('Seite für den Mermaid-Export') }}<select id="interop-export-page" v-model="exportPageId" class="sd-select" :disabled="busy"><option v-for="item in store.state.pages" :key="item.id" :value="item.id">{{ tm(item.name) }}</option></select></label>
         <label class="embed-option"><input v-model="embedDocument" type="checkbox" :disabled="busy" /><span>{{ t('Vollständiges Sketchdraw-Modell einbetten') }}</span></label><p class="metadata-note">{{ embedDocument ? t('Enthält auch nicht sichtbare Metadaten und ungenutzte Ressourcen. Damit kann ein unveränderter eigener Export vollständig zurückgelesen werden.') : t('Nur die sichtbare native Formatprojektion. Zusätzliche Sketchdraw-Informationen können verloren gehen.') }}</p>
         <button class="sd-btn full" :disabled="busy || store.state.transitioning" @click="prepareExport">{{ t('Exportvorschau erstellen') }}</button>
-        <p v-if="exported" class="summary">{{ exported.result.embedsDocument ? t('{format} vorbereitet · mit eingebettetem Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) : t('{format} vorbereitet · ohne eingebettetes Dokument.', { format: format === 'svg' ? 'SVG' : 'draw.io' }) }}</p>
+        <p v-if="exported" class="summary">{{ exported.result.embedsDocument ? t('{format} vorbereitet · mit eingebettetem Dokument.', { format: formatName(exported.result.format) }) : t('{format} vorbereitet · ohne eingebettetes Dokument.', { format: formatName(exported.result.format) }) }}</p>
         <p v-if="staleExport" class="error" role="status">{{ t('Das Dokument oder ein Entwurf wurde geändert. Bitte die Exportvorschau neu erstellen.') }}</p>
       </template>
       <section v-if="diagnostics.length" class="diagnostics" :aria-label="t('Konvertierungsbericht')"><h3>{{ warnings.length ? t('{count} Hinweise auf Verluste oder Annäherungen', { count: warnings.length }) : t('Hinweise zur Konvertierung') }}</h3><ul><li v-for="(item, index) in diagnostics" :key="index" :class="item.severity"><strong>{{ item.sourceId || item.elementId || item.property || item.code }}</strong><span>{{ item.message }}</span><small v-if="item.sourcePath">{{ item.sourcePath }}</small></li></ul></section>
@@ -131,5 +160,6 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
 </template>
 
 <style scoped>
+.mermaid-source{display:block;width:100%;margin-top:6px;min-height:150px;resize:vertical;font-family:var(--font-mono);font-size:12px;line-height:1.5;tab-size:2}
 .interop-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:420px;z-index:22;display:flex;flex-direction:column;overflow:hidden}.heading{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-subtle)}h3{font-size:12px}.panel-body{padding:16px;overflow:auto;flex:1}.intro,.metadata-note,.summary,.file-name{font-size:12px;line-height:1.7;color:var(--text-muted);margin-bottom:14px}.file-picker{font-size:12px;display:block;margin-bottom:12px;font-weight:600}.file-picker input{display:block;margin-top:8px;max-width:100%;font-size:11px}.sd-field-label{margin-top:14px}.sd-select{margin-top:5px}.embed-option,.loss-confirmation{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.6;margin:14px 0}.embed-option input,.loss-confirmation input{margin-top:3px;accent-color:var(--accent)}.metadata-note{font-size:11px}.full{width:100%;margin:8px 0}.import-summary{margin:16px 0}.import-summary p{font-size:11px;color:var(--text-muted);margin:6px 0}.preview{width:100%;height:180px;border:1px solid var(--border-subtle);border-radius:6px;background:var(--surface-canvas);margin-top:8px}.diagnostics{margin:16px 0;border-top:1px solid var(--border-subtle);padding-top:14px}.diagnostics ul{margin-top:8px;max-height:220px;overflow:auto}.diagnostics li{font-size:11px;padding:8px;border-left:2px solid var(--border-default);background:var(--surface-raised);margin-bottom:5px;overflow-wrap:anywhere}.diagnostics strong,.diagnostics span,.diagnostics small{display:block}.diagnostics span{margin-top:3px;line-height:1.6}.diagnostics small{color:var(--text-muted);margin-top:4px}.diagnostics .warning{border-color:var(--status-error)}.error{font-size:12px;color:var(--status-error);line-height:1.7;margin:12px 0}@media(max-width:860px){.interop-panel{width:min(420px,calc(100vw - 24px))}}
 </style>

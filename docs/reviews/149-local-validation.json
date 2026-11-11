@@ -1,0 +1,179 @@
+{
+  "issues": [
+    149,
+    150,
+    151
+  ],
+  "recordedAt": "2026-11-11T19:44:17.624641+00:00",
+  "baseRevision": "bd610f633c072899acedcda6b631419450eb3a2f",
+  "branch": "codex/149-hyperdht-relay",
+  "scope": "Local uncommitted macOS working tree; not integrated, released, or validated on public NAT/proxy networks",
+  "sourceFileSha256": {
+    "src/collaboration/crdt-transfer.ts": "eb7249ca78766ba8b0b32d0c0f7a89466a965741be30a427487ccb0de9b8499e",
+    "src/collaboration/crdt.ts": "da00c86fb1c68aaa2cbf250ed4a66700350c5fe3baddafcf5c68015cacc2f75a",
+    "src/collaboration/hdht/session.ts": "9f88db76d19d5defebcc5e37d76d611049ff40fe4b32f04adba8e708ff23436e",
+    "src/collaboration/hdht/peer-relay.ts": "1d0e4c89c43ed3f54dd3ca5a8854da634275f451993773aa5f91a35ae7565209",
+    "src/crdt/controller.ts": "77d50bcd87cc00dda39b2f937c29f8871b41f748a1d26c7b9d1a149ccd99e94b",
+    "src/crdt/types.ts": "55437c541cd3de796bb1b821e0a31cbbe59358d262186dbc2b5fdacd98336b01",
+    "src/crdt/index.ts": "7f262a0a715c35cc5ebed1efb3811614fc780e0d5a412db2b341a23aad2809b1",
+    "src/renderer/state/room-connection.ts": "b60dd4e7ac2373acd3f6dcf35a4929371b618a378f7042df96e79cb5193b7501",
+    "src/renderer/state/whiteboard.ts": "7bb2f10c9cd5dde15b5e01bb05b3cd80f8ff7158ff873c25ac6af64dd4a67bc4",
+    "src/renderer/components/HdhtSession.vue": "500d7465d00e24ce3ad4162c82db23e298ee3d4de72b6adea92195eee7a2583c",
+    "electron/direct-service.ts": "35b13ee655218de79d3b3f5fb826305fd306036de4667159d7faa90938dc779e",
+    "electron/peer-relay-service.ts": "6b7d4513a8eef3ca7b6e4dcf24a4eb80d908e90650e7342f691fc42554af578a",
+    "relay/hub.mjs": "5462f59e2f977c75937bbc3b1e1c8c1bf8b1ff7ef76734e1729b98b6c602d93e",
+    "tests/unit/collaboration/hdht/session-rich-document.spec.ts": "206f4fd6b6ea44c117aebfb7c1f70ff7926b2edc1b138af6161ff761ed24951b",
+    "tests/ui/hdht-session.spec.ts": "d1fb984b2da15d3d5a43d9cc0cb6c2803c6b43b68fc12f546cb35bebb7f39e17",
+    "tests/electron/hdht-native.spec.ts": "053476dcf338c297dbbf49dfb974c52eb80fb29f2a180fe15256b780f59571ff"
+  },
+  "unit": {
+    "command": "npm run test:unit",
+    "files": 96,
+    "passed": 751,
+    "failed": 0,
+    "log": "/tmp/sketchdraw-151-final-unit.log"
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "passed": true,
+    "log": "/tmp/sketchdraw-151-final-typecheck.log"
+  },
+  "build": {
+    "command": "npm run build",
+    "passed": true,
+    "log": "/tmp/sketchdraw-151-final-build.log"
+  },
+  "buildLifecycle": {
+    "command": "node --test tests/unit/*.test.mjs",
+    "passed": 61,
+    "failed": 0,
+    "log": "/tmp/sketchdraw-151-build-lifecycle.log"
+  },
+  "graphifyPython": {
+    "command": "python3 -m unittest discover -s tools/tests -v",
+    "passed": 22,
+    "failed": 0,
+    "log": "/tmp/sketchdraw-151-python-graphify.log"
+  },
+  "ui": {
+    "command": "npx playwright test tests/ui/hdht-session.spec.ts --config playwright.config.ts --project=ui",
+    "passed": 10,
+    "failed": 0,
+    "seconds": 21.5,
+    "log": "/tmp/sketchdraw-151-final-ui-confirmed.log"
+  },
+  "electron": {
+    "command": "npx playwright test --config playwright.config.ts --project=electron",
+    "passed": 7,
+    "failed": 0,
+    "seconds": 23.5,
+    "log": "/tmp/sketchdraw-151-final-electron.log"
+  },
+  "richDocument": {
+    "tests": "tests/unit/collaboration/hdht/session-rich-document.spec.ts",
+    "passed": 2,
+    "paths": [
+      "real local WebSocket relay with inner E2E, host/editor/viewer",
+      "real isolated native HyperDHT host/editor"
+    ],
+    "png": {
+      "width": 1024,
+      "height": 896,
+      "realPngWithCrcAndZlib": true,
+      "yjsSnapshotAbove4MiB": true,
+      "decodedBytesEqual": true,
+      "secondGuestImageEqual": true
+    },
+    "content": [
+      "image assets",
+      "shapes",
+      "sketch path",
+      "pages",
+      "sticky notes",
+      "text",
+      "annotations",
+      "comments",
+      "tasks"
+    ],
+    "viewerReconnectAndSubsequentDelta": true,
+    "sessionSuitesPassed": 53,
+    "sessionLog": "/tmp/sketchdraw-149-session-final.log"
+  },
+  "nativePackage": {
+    "packagedDependencies": true,
+    "arch": "arm64",
+    "hyperdht": "6.36.0",
+    "streamx": "2.28.1",
+    "isolatedDht": true,
+    "bytes": 8388608,
+    "exact": true
+  },
+  "packagedApplication": {
+    "source": "packaged-app",
+    "appIsPackaged": true,
+    "appVersion": "0.1.3",
+    "appArch": "arm64",
+    "sandbox": true,
+    "bundleHashes": {
+      "dist/index.html": "af55827b5cf9f1b8484a23a1cbbd99c18f2c2c58661b9a156fc9ce26903119f7",
+      "dist-electron/main.cjs": "ba47932e8c7671cd06fe2f9ba47471a7193e0793207ebf9d1a1474d989a1ff78",
+      "dist-electron/preload.cjs": "0e8f275996a88b42404c94c0c3c6c93f1e69f95637435d259c0408a5f993e37f",
+      "dist-mcp/server.cjs": "32830c599a20c961a4534084951414a460b93a1233219dbad17932b74c6a22b7"
+    },
+    "mcp": {
+      "initialized": true,
+      "deniedWithoutGrant": true,
+      "tools": [
+        "sketchdraw_analyze_document",
+        "sketchdraw_apply_code",
+        "sketchdraw_apply_commands",
+        "sketchdraw_find_elements",
+        "sketchdraw_read_code",
+        "sketchdraw_read_document"
+      ],
+      "stderrBytes": 0
+    }
+  },
+  "packageScope": {
+    "platform": "macOS",
+    "arch": "arm64",
+    "format": "local unsigned application directory",
+    "installerPublished": false,
+    "windowsLinuxVerifiedOnThisRevision": false,
+    "log": "/tmp/sketchdraw-151-package.log",
+    "smokeLog": "/tmp/sketchdraw-151-package-smoke.log"
+  },
+  "fableReview": {
+    "tool": "Claude Code CLI 2.1.321",
+    "model": "claude-fable-5-2",
+    "effort": "high",
+    "session": "5db4e51b-d87f-4bd2-a71a-44ca84903e8c",
+    "completed": true,
+    "readOnly": true,
+    "report": "docs/reviews/claude-149-fable-sparring.md",
+    "metrics": "docs/reviews/149-fable-metrics.json"
+  },
+  "graphify": {
+    "update": "refused overwrite by existing node-count guard",
+    "existingNodes": 6036,
+    "newNodes": 5801,
+    "forced": false,
+    "issue": 145,
+    "log": "/tmp/sketchdraw-151-graphify.log",
+    "traceability": {
+      "command": "python3 tools/graphify-links.py followed by python3 tools/graphify-links.py --check",
+      "passed": true,
+      "nodes": 2389,
+      "links": 3229,
+      "log": "/tmp/sketchdraw-151-final-traceability.log",
+      "scope": "Ledger projection only; full codegraph update remains refused under #145"
+    }
+  },
+  "remaining": [
+    "Target-branch integration pending",
+    "Public NAT/CGNAT/proxy and scale tests remain in #72",
+    "No existing public volunteer relay fleet proven",
+    "Relay discovery backoff and reachability hardening tracked in #152",
+    "No maximum-document stress or entire-process-memory guarantee"
+  ]
+}

@@ -56,6 +56,7 @@ test('invalid invitation is rejected with a recoverable explanation', async ({ p
 test('one click starts a session with a shareable link and no mode choice', async ({ page }) => {
   await page.goto('/');
   await openCollaboration(page);
+  await page.getByTestId('legacy-session').locator('summary').first().click();
   const panel = page.getByTestId('collaboration-panel');
   await expect(panel.getByRole('button', { name: 'Automatic P2P' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Strict Direct' })).toHaveCount(0);
@@ -73,6 +74,7 @@ test('one click starts a session with a shareable link and no mode choice', asyn
 test('an invalid session link is rejected with an explanation', async ({ page }) => {
   await page.goto('/');
   await openCollaboration(page);
+  await page.getByTestId('legacy-session').locator('summary').first().click();
   const panel = page.getByTestId('collaboration-panel');
   await panel.getByRole('textbox', { name: 'Session-Link einfügen' }).fill('hallo welt');
   await panel.getByRole('button', { name: 'Session beitreten' }).click();

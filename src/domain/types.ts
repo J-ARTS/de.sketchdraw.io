@@ -417,7 +417,7 @@ export interface DesktopBridge {
   readonly platform: 'electron' | 'browser';
   openDocument(): Promise<OpenDocumentResult>;
   saveDocument(request: SaveDocumentRequest): Promise<SaveDocumentResult>;
-  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'sketchdraw'): Promise<ExportFileResult>;
+  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw'): Promise<ExportFileResult>;
   openExternal(url: string): Promise<void>;
   /** Optional desktop capability: reports the UI language so native menus and dialogs follow it. */
   setLanguage?(language: 'de' | 'en'): Promise<void>;
@@ -426,4 +426,8 @@ export interface DesktopBridge {
   onMenuCommand(listener: (command: 'open' | 'save' | 'save-as' | 'undo' | 'redo') => void): () => void;
   /** Optional desktop-only capability. Browser builds intentionally omit it. */
   readonly plugins?: import('./plugins').PluginBridge;
+  /** Optional desktop-only capability: native direct (HyperDHT) connections for the session mode. */
+  readonly direct?: import('../collaboration/hdht/types').DirectBridge;
+  /** Optional desktop-only capability: opt-in relay helper (volunteer peer relay). */
+  readonly helper?: import('../collaboration/hdht/types').HelperBridge;
 }

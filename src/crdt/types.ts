@@ -10,6 +10,8 @@ import type {
 /** 2: pages (document schema v2) are part of the shared state. */
 export const CRDT_SCHEMA_VERSION = 2 as const;
 export const CRDT_UPDATE_LIMIT_BYTES = 4 * 1024 * 1024;
+/** Bounded, separately framed state transfers; ordinary delta messages retain their 4 MiB guard. */
+export const CRDT_SNAPSHOT_LIMIT_BYTES = 64 * 1024 * 1024;
 export const AWARENESS_UPDATE_LIMIT_BYTES = 64 * 1024;
 
 export type CrdtChangeSource = 'human' | 'code' | 'import' | 'agent' | 'peer' | 'persistence' | 'undo' | 'redo';
@@ -55,6 +57,8 @@ export interface CrdtDocumentController extends DocumentController, EmitterMixin
   encodeStateVector(): Uint8Array;
   encodeUpdate(remoteStateVector?: Uint8Array): Uint8Array;
   applyRemoteUpdate(update: Uint8Array, context: RemoteUpdateContext): DocumentSession;
+  /** Applies a fully assembled, bounded state transfer with the same role and schema checks as updates. */
+  applyRemoteSnapshot(update: Uint8Array, context: RemoteUpdateContext): DocumentSession;
   reportPersistence(event: CrdtPersistenceEvent): void;
   destroy(): void;
 }

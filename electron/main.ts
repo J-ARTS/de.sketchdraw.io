@@ -22,9 +22,13 @@ import { installElectronAgentBridge } from './agent-access/electron-bridge';
 import {
   IPC_CHANNELS,
   type MenuCommand,
+  validateDirectRequest,
   validateOpenExternalRequest,
   validateSetLanguageRequest,
 } from './ipc-contract';
+import { DirectService } from './direct-service';
+import { PeerRelayHelper } from './peer-relay-service';
+import { serviceAdTopic, sessionAdTopic } from '../relay/hub.mjs';
 import { DocumentPersistenceService } from './persistence';
 import { PluginService } from './plugin-service';
 import {
@@ -58,6 +62,23 @@ app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
 let mainWindow: BrowserWindow | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
 let activeTarget: RendererTarget | null = null;
+let directService: DirectService | null = null;
+let relayHelper: PeerRelayHelper | null = null;
+
+function sendDirectEvent(event: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.DIRECT_EVENT, event);
+}
+
+/** Ends every native direct connection and the DHT nodes of this window (close, reload, crash, quit). */
+function disposeDirectService(): void {
+  const service = directService;
+  directService = null;
+  if (service) void service.dispose().catch(() => undefined);
+  // The volunteer relay ends with the window as well; it is never restarted implicitly.
+  const helper = relayHelper;
+  relayHelper = null;
+  if (helper) void helper.stop().catch(() => undefined);
+}
 
 function getDistRootDir(): string {
   return path.resolve(__dirname, '../dist');
@@ -339,6 +360,28 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
     },
   );
 
+  ipcMain.handle(IPC_CHANNELS.DIRECT_INVOKE, async (event, rawPayload: unknown): Promise<unknown> => {
+    const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
+    if (!check.ok) throw new Error(check.reason);
+    const request = validateDirectRequest(rawPayload);
+    const service = directService ??= new DirectService({ emit: sendDirectEvent });
+    switch (request.action) {
+      case 'host-start': return service.hostStart();
+      case 'host-stop': await service.hostStop(); return undefined;
+      case 'connect': service.connect(request.hostPublicKey, request.channelId); return undefined;
+      case 'send': await service.send(request.channelId, request.data); return undefined;
+      case 'close': service.close(request.channelId); return undefined;
+      case 'discover': {
+        const topic = request.kind === 'service' ? serviceAdTopic() : sessionAdTopic(request.topic);
+        const own = relayHelper?.keyHex;
+        return (await service.lookup(topic)).filter(key => key !== own);
+      }
+      case 'helper-start': return (relayHelper ??= new PeerRelayHelper()).start();
+      case 'helper-stop': { const helper = relayHelper; relayHelper = null; await helper?.stop(); return undefined; }
+      case 'helper-status': return relayHelper?.status() ?? { running: false, announced: false, connections: 0, sessions: 0, guests: 0, forwardedRecords: 0 };
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.PLUGIN_INVOKE, async (event, rawPayload: unknown): Promise<unknown> => {
     const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
     if (!check.ok) throw new Error(check.reason);
@@ -407,7 +450,13 @@ async function createMainWindow(target: RendererTarget): Promise<BrowserWindow> 
     coordinator.onWindowCloseEvent(event);
   });
 
+  win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) disposeDirectService();
+  });
+  win.webContents.on('render-process-gone', disposeDirectService);
+
   win.on('closed', () => {
+    disposeDirectService();
     if (mainWindow === win) {
       mainWindow = null;
       closeCoordinator = null;
@@ -508,7 +557,7 @@ void app
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.PLUGIN_EVENT, event);
       },
     });
-    app.once('before-quit', () => plugins.dispose());
+    app.once('before-quit', () => { plugins.dispose(); disposeDirectService(); });
     registerIpcHandlers(persistence, plugins);
     Menu.setApplicationMenu(buildApplicationMenu());
 

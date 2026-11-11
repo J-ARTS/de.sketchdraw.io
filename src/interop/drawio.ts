@@ -1,5 +1,5 @@
 import { awsGroupByDrawioIcon, awsGroupById, GROUP_METADATA_KEY, type AwsGroup } from '../catalog/aws-groups';
-import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
+import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, MAX_TABLE_CELLS, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
 import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
@@ -100,10 +100,15 @@ function styleOf(cell: Cell, ctx: ImportContext) {
   const s = baseStyle(), v = cell.style, node = cell.node;
   s.fill = color(v['fillColor'], cell.edge ? 'transparent' : '#ffffff', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'fillColor', 'Unsupported fill replaced.'));
   s.stroke = color(v['strokeColor'], '#1e293b', () => warn(ctx, node, 'STYLE_APPROXIMATED', 'strokeColor', 'Unsupported stroke replaced.'));
+  // draw.io's theme foreground defaults independently of the outline color.
+  // Import uses its light-mode value; the foreign theme is not reconstructed.
+  s.textColor = '#000000';
   if(v['fontColor']) {
-    const ink=color(v['fontColor'],s.stroke,()=>warn(ctx,node,'STYLE_APPROXIMATED','fontColor','Unsupported text ink replaced.'));
+    const ink=color(v['fontColor'],s.textColor,()=>warn(ctx,node,'STYLE_APPROXIMATED','fontColor','Unsupported or theme-dependent text ink replaced with the light-mode default.'));
     s.textColor=ink;
     if(v['text']==='1'||v['shape']==='text')s.stroke=ink;
+  } else if (cell.value.trim()) {
+    warn(ctx, node, 'STYLE_APPROXIMATED', 'fontColor', 'Missing text ink uses the black light-mode default; the source theme is not reconstructed.');
   }
   const group = awsGroupOfStyle(v);
   // draw.io frames default to 1 px and `grStroke=0` leaves the frame out while the stroke color still colors the header tile.
@@ -155,6 +160,35 @@ function narrowToPage(doc: SketchDocument, index: number): SketchDocument {
   const page = doc.pages[index];
   return doc.pages.length > 1 && page ? extractPage(doc, page.id) : doc;
 }
+type EmbeddedModel = { node: XmlElementNode; value: string };
+function restoreEmbeddedModel(ctx: ImportContext, root: XmlElementNode, envelopes: EmbeddedModel[]): SketchDocument | undefined {
+  if (!envelopes.length) return;
+  try {
+    if (envelopes.length !== 1 || envelopes[0]!.node.attributes['id'] !== '0')
+      throw new Error('Duplicate or misplaced metadata');
+    const doc = decodeEnvelope(envelopes[0]!.value, 'drawio');
+    const expected = parseXmlDocument(prepareDrawioExport(doc).contents);
+    // Always compare every visible page, even when the caller imports only one.
+    if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
+      return doc;
+    warn(ctx, envelopes[0]!.node, 'EMBEDDED_MODEL_STALE', 'sketchdrawInterop', 'Visible native projection changed; embedded document ignored.');
+  }
+  catch (error) {
+    const code = error instanceof InteropError && error.code === 'EMBEDDED_MODEL_STALE' ? error.code : 'EMBEDDED_MODEL_INVALID';
+    warn(ctx, envelopes[0]!.node, code, 'sketchdrawInterop', 'Embedded model cannot be verified; native projection used.');
+  }
+}
+/** Own exports put the whole document envelope in the first, uncompressed page. */
+function firstPageEnvelopes(page: XmlElementNode): EmbeddedModel[] {
+  const models = children(page).filter(n => named(n, 'mxGraphModel'));
+  if (models.length !== 1) return [];
+  const roots = children(models[0]!).filter(n => named(n, 'root'));
+  if (roots.length !== 1) return [];
+  return children(roots[0]!).flatMap(node => {
+    const value = node.attributes['sketchdrawInterop'];
+    return value && children(node).filter(n => named(n, 'mxCell')).length === 1 ? [{ node, value }] : [];
+  });
+}
 function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropImportResult {
   const nodeBudget = { used: 0 };
   const { root, pages, infos } = outer(xml, nodeBudget);
@@ -182,7 +216,8 @@ function convertDrawio(xml: string, options: DrawioImportOptions = {}): InteropI
   if (new Set(infos.filter(p => p.id !== undefined).map(p => p.id)).size !== infos.filter(p => p.id !== undefined).length)
     warn(ctx, root, 'DUPLICATE_PAGE_ID', 'id', 'Repeated page IDs are disambiguated by page index.');
   ctx.diagnostics.add({ code: 'PAGE_SELECTED', severity: 'info', effect: 'normalized', pageIndex: index, message: `drawio: Selected page ${index + 1} of ${pages.length}; other pages are not imported.` });
-  const embedded = importPage(ctx, root, page, info, index, nodeBudget);
+  const embedded = (index > 0 ? restoreEmbeddedModel(ctx, root, firstPageEnvelopes(pages[0]!)) : undefined)
+    ?? importPage(ctx, root, page, info, index, nodeBudget);
   return finish(ctx, options, embedded ? narrowToPage(embedded, index) : undefined, info);
 }
 /** Converts one diagram into `ctx` (as page `ctx.pageId`). Returns the embedded model of an own export when it verifies. */
@@ -197,10 +232,7 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     fail('UNSUPPORTED_FORMAT', 'Graph model requires one root.');
   const graph = graphRoots[0]!, nodes = children(graph), cells: Cell[] = [], byId = new Map<string, Cell>();
   const definitions = children(model).filter(n => named(n, 'defs')).flatMap(n => children(n).filter(c => named(c, 'def')).map(n => n.attributes['data'] ?? ''));
-  const envelopes: {
-    node: XmlElementNode;
-    value: string;
-  }[] = [];
+  const envelopes: EmbeddedModel[] = [];
   for (const item of nodes) {
     let node: XmlElementNode, wrapper: XmlElementNode | undefined;
     if (named(item, 'mxCell'))
@@ -228,21 +260,8 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     cells.push(cell);
     byId.set(id, cell);
   }
-  if (envelopes.length) {
-    try {
-      if (envelopes.length !== 1 || envelopes[0]!.node.attributes['id'] !== '0')
-        throw new Error('Duplicate or misplaced metadata');
-      const doc = decodeEnvelope(envelopes[0]!.value, 'drawio');
-      const expected = parseXmlDocument(prepareDrawioExport(doc).contents);
-      if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
-        return doc;
-      warn(ctx, envelopes[0]!.node, 'EMBEDDED_MODEL_STALE', 'sketchdrawInterop', 'Visible native projection changed; embedded document ignored.');
-    }
-    catch (error) {
-      const code = error instanceof InteropError && error.code === 'EMBEDDED_MODEL_STALE' ? error.code : 'EMBEDDED_MODEL_INVALID';
-      warn(ctx, envelopes[0]!.node, code, 'sketchdrawInterop', 'Embedded model cannot be verified; native projection used.');
-    }
-  }
+  const embedded = restoreEmbeddedModel(ctx, root, envelopes);
+  if (embedded) return embedded;
   function world(cell: Cell, chain = new Set<string>()): {
     x: number;
     y: number;
@@ -306,11 +325,17 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
       ? importedLabel.split('\n').map(line => line.replace(/^•\s?/, '')).join('\n')
       : importedLabel;
     const outerStyle = styleOf(cell, ctx);
-    let table = kind === 'table' ? createTableDocument(Math.max(1, importedText.split('\n').length), Math.max(1, ...importedText.split('\n').map((row) => row.split('\t').length))) : undefined;
+    if (kind === 'table' && importedText.length > DOMAIN_LIMITS.MAX_TEXT_LENGTH)
+      fail('LIMIT_EXCEEDED', 'Table text exceeds the document text limit.');
+    const tableRows = kind === 'table' ? importedText.split('\n').map(row => row.split('\t')) : undefined;
+    const columnCount = tableRows?.reduce((maximum, row) => Math.max(maximum, row.length), 1) ?? 0;
+    if (tableRows && tableRows.length * columnCount > MAX_TABLE_CELLS)
+      fail('LIMIT_EXCEEDED', `Table exceeds the ${MAX_TABLE_CELLS}-cell limit.`);
+    const table = tableRows ? createTableDocument(tableRows.length, columnCount) : undefined;
     if (table) table.cells.forEach((entry, cellIndex) => {
-      const rowIndex = Math.floor(cellIndex / table!.columns.length); const columnIndex = cellIndex % table!.columns.length;
-      entry.text = importedText.split('\n')[rowIndex]?.split('\t')[columnIndex] ?? '';
-      entry.style = { fill: outerStyle.fill === 'transparent' ? '#ffffff' : outerStyle.fill, color: outerStyle.stroke, fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
+      const rowIndex = Math.floor(cellIndex / table.columns.length); const columnIndex = cellIndex % table.columns.length;
+      entry.text = tableRows![rowIndex]?.[columnIndex] ?? '';
+      entry.style = { fill: outerStyle.fill === 'transparent' ? '#ffffff' : outerStyle.fill, color: outerStyle.textColor ?? '#000000', fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
     });
     const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);

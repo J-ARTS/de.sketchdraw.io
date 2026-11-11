@@ -1,6 +1,8 @@
-# S3-Vertragsentwurf: draw.io und SVG
+# Interoperabilitätsvertrag: draw.io, SVG und Mermaid-Flowcharts
 
 Stand: 17.10.2026. **Von Codex für den reinen Interop-Adapterauftrag freigegeben; noch kein Implementierungs- oder Kompatibilitätsnachweis.** Architektur [#6](https://github.com/J-ARTS/de.sketchdraw.io/issues/6), Implementierung [#12](https://github.com/J-ARTS/de.sketchdraw.io/issues/12), Abnahme [#15](https://github.com/J-ARTS/de.sketchdraw.io/issues/15). Antigravity implementiert `src/interop/`, Claude Code die Bedienung, Codex verantwortet Vertragsabgleich und unabhängige Prüfungen.
+
+Ergänzung vom 11.11.2026 zu [#153](https://github.com/J-ARTS/de.sketchdraw.io/issues/153): API und Mermaid-Abschnitt beschreiben die aktuelle Implementierung in `src/interop/mermaid.ts`, einschließlich Datei-/Texteingabe und begrenztem Flowchart-Export. Die obige Freigabe und Abschnitt 9 dokumentieren den historischen S3-Auftrag; aktuelle Prüfnachweise stehen im jeweiligen Issue. Diese Ergänzung ist kein Nachweis vollständiger Mermaid-Kompatibilität oder identischer Darstellung in fremden Renderern. Die draw.io-Korrekturen [#154](https://github.com/J-ARTS/de.sketchdraw.io/issues/154), [#155](https://github.com/J-ARTS/de.sketchdraw.io/issues/155), [#156](https://github.com/J-ARTS/de.sketchdraw.io/issues/156) und [#157](https://github.com/J-ARTS/de.sketchdraw.io/issues/157) sind unten berücksichtigt.
 
 Grundlagen sind [S1](contracts.md), [S2](contracts-s2.md), [Schema 1](../src/domain/types.ts), [Architektur](architecture.md) und Bedenken C-004/DR-C07 sowie AG-01/02/06/10. Dieser Entwurf erweitert öffentliche Adapterfunktionen, **ändert aber keine persistenten Schema-1-Typen**. Verlustfrei bezeichnet unten ausdrücklich einen eigenen unveränderten Roundtrip oder die jeweils unterstützte Fremdformat-Teilmenge. Es bedeutet weder vollständige draw.io-Kompatibilität noch identische Textdarstellung auf jedem Rechner.
 
@@ -10,7 +12,7 @@ Alle Funktionen arbeiten ausschließlich mit übergebenen Strings/Dokumenten. Ke
 
 ```ts
 // src/interop/index.ts — neue Adaptertypen, keine Änderung von domain/types.ts
-export type InteropFormat = 'drawio' | 'svg';
+export type InteropFormat = 'drawio' | 'svg' | 'mermaid';
 export interface InteropDiagnostic extends ConversionWarning {
   code: string;
   severity: 'info' | 'warning' | 'error';
@@ -35,22 +37,23 @@ export interface ImportOptions {
   title?: string;      // explicit override; otherwise own title / page name / SVG title
 }
 export interface DrawioImportOptions extends ImportOptions {
-  pageIndex?: number;
+  pageIndex?: number | 'all';
 }
 export interface InteropImportResult extends ImportResult {
   diagnostics: InteropDiagnostic[];
   fidelity: 'own-roundtrip' | 'supported-subset' | 'approximate';
   requiresConfirmation: boolean;
-  source: { format: InteropFormat; page?: DrawioPageInfo };
+  source: { format: InteropFormat; page?: DrawioPageInfo; pageId?: string }; // verified visible document page, when restored
 }
 export interface InteropExportOptions {
+  pageId?: string;         // visible SVG/Mermaid page; default first; draw.io exports all
   embedDocument?: boolean; // default true; explicit false creates a portable projection
 }
 export interface InteropExportResult {
   format: InteropFormat;
   contents: string;
-  mimeType: 'application/xml' | 'image/svg+xml';
-  suggestedExtension: '.drawio' | '.svg';
+  mimeType: 'application/xml' | 'image/svg+xml' | 'text/plain';
+  suggestedExtension: '.drawio' | '.svg' | '.mmd';
   diagnostics: InteropDiagnostic[];
   requiresConfirmation: boolean;
   embedsDocument: boolean;
@@ -59,18 +62,21 @@ export interface InteropExportResult {
 export function inspectDrawio(xml: string): DrawioPageInfo[];
 export function importDrawio(xml: string, options?: DrawioImportOptions): InteropImportResult;
 export function importSvg(svg: string, options?: ImportOptions): InteropImportResult;
+export function importMermaid(source: string, options?: ImportOptions): InteropImportResult;
 export function prepareDrawioExport(doc: SketchDocument, options?: InteropExportOptions): InteropExportResult;
 export function prepareSvgExport(doc: SketchDocument, options?: InteropExportOptions): InteropExportResult;
+export function prepareMermaidExport(doc: SketchDocument, options?: InteropExportOptions): InteropExportResult;
 
 // Existing signatures retained for callers that require an unambiguous string.
 export function exportDrawio(doc: SketchDocument): string;
 export function exportSvg(doc: SketchDocument): string;
+export function exportMermaid(doc: SketchDocument, options?: InteropExportOptions): string;
 export const INTEROP_LIMITS: Readonly<Record<string, number>>;
 ```
 
-- `ImportResult.document` bleibt ein vollständiges, abgetrenntes, domänenvalidiertes Dokument. `warnings` ist die kompatible Projektion aller `warning`-Diagnosen auf `sourceId/property/message`; `diagnostics` ist die maßgebliche strukturierte Liste. Bei fatalen Fehlern wird `InteropError` geworfen; nie ein halbes Dokument zurückgeben. Ungültige Dokumente am Exporteingang liefern `DomainValidationError`.
+- `ImportResult.document` bleibt ein vollständiges, abgetrenntes, domänenvalidiertes Dokument. `warnings` ist die kompatible Projektion aller `warning`-Diagnosen auf `sourceId/property/message`; `diagnostics` ist die maßgebliche strukturierte Liste. Bei fatalen Fehlern wird `InteropError` geworfen; nie ein halbes Dokument zurückgeben. Ungültige Dokumente am SVG-/draw.io-Exporteingang liefern `DomainValidationError`; der Mermaid-Adapter fasst solche Validierungsfehler als `InteropError` mit `INVALID_DOCUMENT` zusammen.
 - `requiresConfirmation` ist genau dann wahr, wenn mindestens eine `warning` vorliegt. Die Konvertierung selbst ist eine lokale Vorschau. Der Renderer zeigt Anzahl, betroffene Objekte und Folgen vor Übernahme/Dateiausgabe. Keine Bestätigung pro einzelner Diagnose verlangen. `info` beschreibt beispielsweise eine ID-Umsetzung oder Semantik, die nur in Zusatzmetadaten verfügbar ist.
-- Die beiden String-Wrapper rufen die entsprechende `prepare…Export`-Funktion mit Standardeinstellungen auf. Bei `requiresConfirmation` werfen sie `InteropError` mit `LOSS_CONFIRMATION_REQUIRED` samt Diagnosen; sie verschweigen keinen Verlust. UI und MCP verwenden für Exporte die vorbereitenden Funktionen und deren Bericht. Ein Fehler liefert niemals einen bereits geschriebenen Export.
+- Die String-Wrapper rufen die entsprechende `prepare…Export`-Funktion auf; `exportMermaid` reicht zusätzlich seine Optionen weiter. Bei `requiresConfirmation` werfen sie `InteropError` mit `LOSS_CONFIRMATION_REQUIRED` samt Diagnosen; sie verschweigen keinen Verlust. UI und MCP verwenden für Exporte die vorbereitenden Funktionen und deren Bericht. Ein Fehler liefert niemals einen bereits geschriebenen Export.
 - `fidelity: 'own-roundtrip'` setzt den nach Abschnitt 6 bestätigten Metadatenpfad voraus. Ohne diesen Pfad ist `supported-subset` nur ohne approximierte oder ausgelassene Inhalte zulässig. Alle anderen erfolgreichen Importe heißen `approximate`. Explizite `documentId`-/`title`-Overrides werden nach Wiederherstellung angewendet und als `IDENTITY_OVERRIDDEN`/`TITLE_OVERRIDDEN` dokumentiert; die Gleichheitszusage gilt ohne Overrides.
 - Diagnosen sind deterministisch nach Quellreihenfolge/Attributpfad, dann Code sortiert. Gleiche Probleme nicht mehrfach pro Nachfahren melden, sofern ein klar referenzierter Subtree-Befund die Auswirkung vollständig beschreibt. Mindestens Format, Quellobjekt oder Pfad, Eigenschaft und verständliche Folge nennen. Quellenstrings sind Daten und werden in der UI als Text ausgegeben.
 
@@ -118,6 +124,7 @@ Akzeptierte Eingänge sind `<mxfile>` mit `<diagram>`-Seiten sowie ein einzelnes
 
 - `inspectDrawio` liest nur den begrenzten äußeren XML-Baum und meldet Seiten in Dateireihenfolge. Komprimierte Seiten werden dabei nicht entpackt und noch nicht als gültiges Modell bestätigt. Name ohne Inhalt: `Seite N`. Ein bloßes `<mxGraphModel>` erhält eine synthetische Seite mit Index 0.
 - Bei mehr als einer Seite ist `pageIndex` erforderlich; andernfalls `PAGE_SELECTION_REQUIRED` statt stiller Auswahl der ersten Seite. Ein falscher Index liefert `PAGE_NOT_FOUND`. Die Auswahl importiert genau diese Seite. Nicht ausgewählte Seiten bleiben unberührt und werden nicht unbemerkt zusammengeführt. Der Bericht nennt die Auswahl und Gesamtzahl; fehlende Auswertung anderer Seiten ist kein erfolgreicher Gesamtdatei-Test.
+- Bei unveränderten eigenen Exporten ist das Envelope der ersten Seite auch für die Auswahl einer späteren Seite nutzbar. Zuerst wird weiterhin die **gesamte sichtbare Datei mit allen Seiten** gegen das eingebettete Modell geprüft; erst danach wird die gewählte Seite mit ihren eigenen IDs und Metadaten extrahiert. Eine fremde Änderung auf einer nicht ausgewählten Seite verhindert ebenfalls die Wiederherstellung des alten Modells (`EMBEDDED_MODEL_STALE`, #154).
 - Seiten-ID und Zell-ID sind verschiedene Namespaces. Doppelte Seiten-IDs verhindern die indexbasierte Auswahl nicht und erzeugen eine Warnung. Doppelte Zell-IDs in der gewählten Seite sind ein Fehler. Parentzyklen, ungültige terminale Referenzen und widersprüchliche Wrapper-/Cell-IDs ebenfalls, sofern keine explizit unten beschriebene, sichtbare Entkopplung möglich ist.
 - XML-Attribute wie `modified`, `agent`, `host` oder behauptete Version sind Daten, keine Vertrauensentscheidung. Nicht ausgewählte Seiten und fremde Dokumente werden niemals durch einen Export des aktuellen Sketchdraw-Dokuments überschrieben.
 
@@ -136,6 +143,7 @@ Akzeptierte Eingänge sind `<mxfile>` mit `<diagram>`-Seiten sowie ein einzelnes
 | Automatischer Router / Perimeter | Gespeicherte Waypoints erhalten. Ohne ausreichende gerenderte Route eine deterministische gerade Verbindung zwischen Terminalmitten erzeugen, Anker `(0.5, 0.5)` und `ROUTING_APPROXIMATED`. Dies ist kein mxGraph-Router-Nachbau. |
 | Kantenbeschriftung / zusätzlicher Edge-Label-Vertex | Haupttext bleibt am Connector. Positionsabhängige Zusatzlabels als getrennte Texte mit berechenbarer Position; nicht darstellbare Relative-/Offsetsemantik im Bericht. |
 | Bilder | Eingebettete PNG/JPEG/WebP in `assets`, Deduplizierung nur bei identischem geprüften Inhalt/MIME. Unbekannte oder externe Bilder als beschriftete Rectangle-Platzhalter gleicher bekannter Bounds. |
+| Tabellen mit `sketchdrawKind=table` | Zeilenumbrüche und Tabulatoren des Klartextlabels bilden Zeilen und Spalten. Vor der Zellenanlage gelten höchstens 50.000 Textzeichen und `Zeilen × maximale Spaltenzahl ≤ 500`; sonst `LIMIT_EXCEEDED`. Fehlende Zellen werden leer aufgefüllt, ein leeres Label erzeugt eine Zelle (#155). `fontColor` bestimmt die Zellschriftfarbe unabhängig von `strokeColor` (#156). Ohne auflösbare eigene Schriftfarbe gilt der unabhängige Standard `#000000`, mit dem unten beschriebenen Themehinweis (#157). Das ist kein allgemeiner Import beliebiger verschachtelter draw.io-Tabellen. |
 | Fremde Cloud-/Stencil-/Custom-Shape | Keine erfundene Zuordnung zu einem Sketchdraw-Provider. Bekannte Bounds, Rotation, Text und sichere Stile als beschriftetes Rectangle erhalten, Quelltyp im Bericht/Metadaten. Die Silhouette wird als Verlust ausgewiesen. |
 | AWS-Gruppen (`shape=mxgraph.aws4.group`/`groupCenter` mit bekanntem `grIcon`, oder eigener Marker `sketchdrawGroup`) | `container` mit Metadatenschlüssel `sketchdraw.group` (siehe `docs/contracts.md`, AWS-Gruppenrahmen). Gruppenspezifische Stile (`grIcon`, `grStroke`, `grIconSize`, `spacingLeft/Top`, `pointerEvents`, `collapsible`, `recursiveResize`, `points`) sind abgedeckt und erzeugen keine `STYLE_APPROXIMATED`-Meldung; `grStroke=0` wird zu Strichbreite 0, fehlende Strichbreite zu 1 und fehlende Schriftgröße zu 12 (draw.io-Vorgaben). Private und Public Subnet teilen in draw.io das Icon `group_security_group`; die Rahmenfarbe entscheidet. Ein unbekanntes `grIcon` bleibt ein beschriftetes Rechteck mit `UNSUPPORTED_SHAPE`. |
 | Versteckte Layer/Zellen | Wirksame Unsichtbarkeit über `opacity: 0` und klare Elementlistennamen/Metadaten erhalten; `VISIBILITY_FLATTENED`, weil ursprüngliche Sichtbarkeitsumschaltung fehlt. Keine heimliche Löschung. |
@@ -145,11 +153,13 @@ Die Zuordnung von Vertex-, Port-, Kanten- und Labelkoordinaten richtet sich nach
 
 Styles werden als Daten mit begrenztem Parser gelesen. Unterstützt: Farbe/Füllung, Strichbreite, Deckkraft, Schriftgröße, links/zentriert/rechts, Rotation und die drei eigenen Strichmuster. Benannte/nicht aufgelöste Styles sind keine ausführbaren Ausdrücke. Unbekannte Stylekeys und Pfeilkopfvarianten erhalten Diagnosen; nur als begrenzte Quelldaten speichern. `html=1`-Beschriftungen werden mit einem inerten HTML-Tokenizer zu Klartext einschließlich nachvollziehbarer Block-/Zeilenumbrüche; Tags, eingebettete Bilder, Schriftmischung und Links erscheinen als Verluste. HTML niemals rendern. Ein `<` in einem reinen Textlabel bleibt Text. Attribute und Stylebedeutungen sind in [mxConstants](https://jgraph.github.io/mxgraph/docs/js-api/files/util/mxConstants-js.html) beschrieben; die unterstützte Teilmenge wird mit Fixtures fixiert.
 
+Die Schriftfarbe ist auch ohne ausdrückliches `fontColor` unabhängig von der Rahmenfarbe. draw.io verwendet als Theme-Vordergrund Schwarz im hellen und Weiß im dunklen Modus; dies ist keine Ableitung aus `strokeColor`. [draw.io: Styles, Colours and dark mode](https://github.com/jgraph/drawio/wiki/Styles#colours-and-dark-mode). Der begrenzte Import verwendet `#000000` als hellen Standard für Formen, Texte, Kantenlabels und Tabellen. Bei beschrifteten Zellen ohne eigene Schriftfarbe meldet `STYLE_APPROXIMATED` für `fontColor`, dass das fremde Theme nicht rekonstruiert wird; auch unaufgelöste Themeausdrücke wie `fontColor=default` werden mit Warnung auf diesen Standard abgebildet. Explizite unterstützte Farben und unveränderte eigene Metadatenroundtrips bleiben erhalten (#157); adaptive Dark-Mode-Farbtreue wird damit nicht zugesagt.
+
 `<defs>`/`def(n)` für komprimierte Styles darf ausschließlich auf einen begrenzten, lokalen Definitionseintrag aufgelöst werden. Mehrere Zellen dürfen denselben Definitionseintrag wiederverwenden. Bilder unterliegen erneut der Assetprüfung; Stencils werden nicht ausgeführt, sondern wie unbekannte Shapes behandelt. Zyklische oder außerhalb der Definitionstabelle liegende Verweise sind Fehler. Dynamische Platzhalter, Tags, Seitenlinks, Custom Actions, Animation und fremde Layoutregeln bleiben inerte Quelleninformationen mit Verlusthinweis.
 
 ### Native draw.io-Ausgabe
 
-Ausgabe ist immer eigenständiges, **unkomprimiertes** XML mit `<mxfile compressed="false">`, genau einer `<diagram>`-Seite, `<mxGraphModel>` und echten `<mxCell>`-/`<mxGeometry>`-Daten. Keine proprietäre JSON-Datei mit `.drawio`-Endung. Keine eingebetteten Skripte oder Abhängigkeit von Sketchdraw, um die sichtbare Projektion zu öffnen.
+Ausgabe ist immer eigenständiges, **unkomprimiertes** XML mit `<mxfile compressed="false">`, einer `<diagram>` je Dokumentseite, `<mxGraphModel>` und echten `<mxCell>`-/`<mxGeometry>`-Daten. Keine proprietäre JSON-Datei mit `.drawio`-Endung. Keine eingebetteten Skripte oder Abhängigkeit von Sketchdraw, um die sichtbare Projektion zu öffnen.
 
 - Root-/Layer-Zellen und Zell-ID-Mapping sind explizit und kollisionsfrei. Interne IDs `0`/`1` oder ungeeignete Quell-IDs werden deterministisch umgesetzt; native Verweise verwenden das Mapping. Das vollständige eigene Dokument liegt bei gewählter Metadateneinbettung separat vor.
 - Rechteck/Ellipse/Rhombus/Text/Bild erhalten native editierbare Zellen. Container-Parentbezüge werden in native Elterngeometrie umgerechnet. Wenn die flache Schema-1-Z-Reihenfolge nicht als mxGraph-Hierarchie darstellbar ist, bleibt die Hierarchie erhalten und `STACKING_ORDER_APPROXIMATED` benennt die geänderte sichtbare Überlagerung. Keine stillschweigende Neuordnung als „verlustfrei“ melden.
@@ -200,6 +210,50 @@ Wurzel muss SVG im Standardnamespace sein; namespacefreie historische SVG-Wurzel
 
 Die SVG-Darstellungsregeln für ganze Diagramme sind ausdrücklich breiter als das dekorative Iconprofil in S2. Keines der beiden Profile darf das andere still erweitern. Ein bereits gespeichertes `iconSvg` bleibt Daten; seine sichere Darstellung erfolgt weiterhin ausschließlich nach dem vereinbarten S2-Profil.
 
+## 4a. Mermaid: begrenzte Flowchart-Teilmenge
+
+`importMermaid` ist ein synchroner Datenparser für `flowchart` und `graph`, keine eingebettete Mermaid-Laufzeit. Die Oberfläche akzeptiert eingefügten Quelltext sowie UTF-8-Dateien mit `.mmd` oder `.mermaid`. Dateiinhalte über 200 KiB werden nicht ins Textfeld gespiegelt; die vollständigen Daten bleiben für Vorschau und Import erhalten. Auch ein einzelner vollständiger Mermaid-Codeblock ohne umgebenden Fließtext ist zulässig. Export ist lesbarer Text mit `format: 'mermaid'`, `mimeType: 'text/plain'` und vorgeschlagener Endung `.mmd`; Desktop und Browser führen den Ausgabeweg unter diesem Format.
+
+### Unterstützter Import
+
+- Der Header benötigt eine Richtung: `LR`, `RL`, `TB`, `TD` oder `BT`. Anweisungen werden durch Zeilenumbrüche oder Semikola außerhalb von Labels getrennt; normale `%%`-Kommentare sind zulässig.
+- Knoten können allein, innerhalb einer Kette oder zunächst implizit als Kantenendpunkt vorkommen. IDs bestehen aus Buchstaben, Ziffern, `_`, `.` und `-`, beginnen mit Buchstabe, Ziffer oder `_` und werden bei Bedarf auf Domänen-IDs abgebildet. `end` ist reserviert. Eine spätere ausdrückliche Knotendefinition aktualisiert Text und Form.
+- Klartextlabels sind unquoted oder vollständig in doppelten Anführungszeichen möglich, einschließlich Unicode und unterstützten Zeichenreferenzen (`#34;`, `#quot;`, `&amp;`, `&#x1f600;`). HTML und Markdown werden nicht gerendert. Beim Export werden steuernde Sonderzeichen als Zeichenreferenzen ausgegeben, damit sie Text bleiben.
+
+| Knotenform | Syntaxbeispiel | Sketchdraw-Form |
+| --- | --- | --- |
+| Rechteck | `A[Text]` | `square` |
+| Abgerundetes Rechteck | `A(Text)` | `rounded` |
+| Kreis | `A((Text))` | `circle` |
+| Entscheidung | `A{Text}` | `diamond` |
+| Zylinder | `A[(Text)]` | `cylinder` |
+| Unterprozess | `A[[Text]]` | `process` |
+| Sechseck | `A{{Text}}` | `hexagon` |
+
+Unterstützte Verbindungen sind `-->`, `---`, `-.->`, `-.-`, `==>`, `===` sowie `<-->`, `<-.->`, `<==>`. Pfeile werden zu gebundenen Connectoren, gepunktete und dicke Linien erhalten entsprechende Grundstile. Kantenlabels funktionieren als `A -->|"Text"| B` sowie `A -- Text --> B`, `A -. Text .-> B` und `A == Text ==> B`. Ketten, Zyklen und Selbstverbindungen sind zulässig. `subgraph ID["Titel"] … end` und einfache Subgraph-Titel werden zu verschachtelten Containern; mehrteilige Titel ohne ausdrückliche ID erhalten eine synthetische Identität, damit ihr erstes Wort nicht als Knoten-ID belegt wird. Dies übernimmt keine eigene Mermaid-Layoutengine.
+
+Der Import erzeugt eine deterministische Anfangsanordnung anhand von Reihenfolge, Gruppen und globaler Richtung (`MERMAID_LAYOUT_GENERATED`). Weder Mermaid-Rendererkoordinaten noch ein semantisch optimales Graphlayout sind zugesagt. Knoten, Text, Gruppen und Connectoren bleiben im Canvas bearbeitbar.
+
+### Klare Ablehnung und Grenzen
+
+Andere Diagrammtypen, etwa `sequenceDiagram`, Klassen-/ER-Diagramme, Gantt oder Pie, sowie YAML-Frontmatter liefern `MERMAID_DIAGRAM_UNSUPPORTED`. Nicht unterstützte Flowchart-Syntax liefert `MERMAID_SYNTAX_UNSUPPORTED`, fehlerhafte Syntax `MERMAID_SYNTAX_INVALID`; es wird kein unvollständiger Import übernommen. Zur ausdrücklich nicht unterstützten Menge gehören Konfigurationsdirektiven (`%%{…}%%`), `click`, `style`, `classDef`, `class`, `linkStyle`, lokale `direction`, `accTitle`/`accDescr`, HTML-/Markdown-Labels, `:::`-Klassen, `&`-Verzweigungen, Kreis-/Kreuz-Kantenenden und weitere Formdeklarationen wie Stadium oder die erweiterte `@{…}`-Syntax. Verlängerte/dekorierte Kanten und mehrdeutige unquotierte Kantenlabels werden ausdrücklich abgewiesen statt als andere Topologie importiert. Inline-Labels zwischen getrennten Kantenmarkern benötigen vollständige Anführungszeichen, wenn sie steuernde Tokens wie `--` oder `==` oder `-`, `=` beziehungsweise `.` am Rand enthalten. Es werden keine Callbacks ausgeführt oder externe Ressourcen nachgeladen.
+
+Es gelten 96 MiB UTF-8 für den gesamten Eingang/Ausgang, zusätzlich höchstens 8 MiB sichtbarer Mermaid-Quelltext ohne das eigene Envelope. Der Parser begrenzt Knoten einschließlich Gruppen plus Kanten auf 10.000, Anweisungen auf 30.000, Label-Verschachtelung auf 16 und Container-Verschachtelung auf 32. Vor Decodierung und weiterer Labelverarbeitung gilt eine Rohlängengrenze von 500.000 Zeichen; nach Decodierung höchstens 50.000 Zeichen je Label. Fence- und HTML-Prüfung dürfen pathologische Eingaben nicht durch quadratisches Regex-Backtracking verarbeiten. Domänen-, Koordinaten-, Asset- und 32-MiB-Dokument-/Envelopegrenzen gelten zusätzlich; die Zahlen sind keine Garantie, dass jede Kombination innerhalb eines anderen Limits liegt.
+
+### Exportseite, Verluste und optionale vollständige Zusatzdaten
+
+Die sichtbare Projektion ist immer ein `flowchart LR` der mit `pageId` ausgewählten Seite, standardmäßig der ersten. Container werden zu Subgraphs, unterstützte Formen zu Knoten und Verbindungen zu Kanten. Bilder, Notizen, Tabellen, Annotationen und andere reichhaltige Inhalte sind im portablen Flowchart nur beschriftete Knoten (`MERMAID_ELEMENT_APPROXIMATED`). Unbekannte Formen werden Rechtecke; freie Connectorenden erhalten ausdrückliche Ersatzknoten. Die Quelldatei enthält ohne Zusatzdaten weder Bildbytes noch native Notiz-/Tabellenfunktionen.
+
+Bei nicht leerer Seite melden `MERMAID_LAYOUT_LOSS` und `MERMAID_STYLE_LOSS`, dass Positionen, Maße, Routen, Farben, Fonts, Strichbreiten, Deckkraft und weitere Gestaltung nicht erhalten bleiben. Marker werden nötigenfalls zu gewöhnlichen Pfeilspitzen vereinfacht. Weitere Seiten, Kommentare und Tasks sind nicht Teil der sichtbaren Projektion und werden entsprechend diagnostiziert. Diese Verlusthinweise bleiben auch bei eingeschalteten Zusatzdaten sichtbar: fremde Mermaid-Werkzeuge stellen die Flowchart-Projektion dar.
+
+Leere Knoten-/Gruppenlabels werden als ein Leerzeichen ausgegeben, damit ein fremder Mermaid-Parser einen gültigen nichtleeren String erhält; dieser sichtbare Leere-Fall wird beim portablen Import zu leerem Text normalisiert. Syntaxrelevante Doppelpunkte und Schrägstriche werden als Zeichenreferenzen ausgegeben, auch in gewöhnlichem Labeltext. Zeilenumbrüche bleiben als Textzeichen erhalten, ihre Darstellung und der Umbruch in fremden Renderern werden mit `MERMAID_MULTILINE_LABEL_APPROXIMATED` ausdrücklich als mögliche Abweichung gemeldet.
+
+`embedDocument` ist standardmäßig `true`. Dann enthält eine eigene Kommentarzeile `%% sketchdraw-mermaid-v1 <Seitenindex> <Base64-Envelope>` das **vollständige** validierte Dokument, einschließlich anderer Seiten, Assets, Kommentare und Tasks; `MERMAID_EMBEDDED_DOCUMENT` weist ausdrücklich darauf hin. `embedDocument: false` entfernt diese Zusatzdaten und erzeugt die portable Projektion nur der ausgewählten Seite. Base64 ist weder Verschlüsselung noch Signatur.
+
+Beim eigenen Import werden Envelope, Projektionsversion und Domänendokument validiert. Die erneut erzeugte Projektion der angegebenen Seite muss dem sichtbaren Quelltext nach äußerem `trim()` und Normalisierung von CRLF zu LF exakt entsprechen. CR/LF in eigenen Labels sind als Zeichenreferenzen kodiert und werden dadurch nicht umgeschrieben. Es gibt keine allgemeine semantische Gleichheitsprüfung für beliebige Mermaid-Umformatierung. Nur dann wird das gesamte eigene Dokument als `own-roundtrip` wiederhergestellt. Die Info-Diagnose `EMBEDDED_MODEL_RESTORED` nennt Seitenzahl und verifizierte Seite; `source.pageId` bezeichnet diese Seite für die Vorschau. Die weiteren Seiten, Assets, Kommentare und Tasks stammen aus dem validierten nativen Envelope, nicht aus einer Prüfung gegen sichtbare Mermaid-Inhalte. Ungültige Zusatzdaten oder geänderter sichtbarer Quelltext führen zu `EMBEDDED_MODEL_INVALID` beziehungsweise `EMBEDDED_MODEL_STALE` und zum Import ausschließlich des aktuellen sichtbaren Flowcharts. Mehrere eigene Envelopes sind ein Syntaxfehler. Die vollständige Wiederherstellung ist eine Sketchdraw-Zusatzfähigkeit und keine Zusage, dass andere Mermaid-Werkzeuge diese Kommentare erhalten.
+
+Bei mehr als **50.000 Zeichen im gesamten Exporttext einschließlich Envelope** gibt der Adapter `MERMAID_RENDERER_SIZE_LIMIT` aus: empfangende Mermaid-Renderer können mit ihrem Standardlimit das Rendern ablehnen. Das ist eine Warnung und kein 50.000-Zeichen-Dateilimit dieses Adapters. Mögliche Maßnahmen sind Export ohne Zusatzdaten, eine kleinere sichtbare Seite oder eine ausdrücklich angepasste Konfiguration des empfangenden Renderers. Die App ändert keine fremde Renderer-Konfiguration. Verlust- und Größenwarnungen müssen vor Ausgabe geprüft werden; `exportMermaid` wirft andernfalls `LOSS_CONFIRMATION_REQUIRED`.
+
 ## 5. Herkunft, IDs und Verlustbericht
 
 Unterstützte eigene IDs bleiben erhalten, wenn eindeutig und domänenkonform. Fremde IDs werden nötigenfalls deterministisch anhand Quellreihenfolge auf gültige Element-IDs abgebildet; alle Referenzen benutzen dieselbe Tabelle. Original-ID, Quellformat, Seitenindex und ursprünglicher Typ werden im Bericht sowie bei Bedarf in einem **einzigen JSON-String** unter `metadata['sketchdraw.interop.source.v1']` aufbewahrt. Das enthält nur begrenzte inerte Informationen, keine echten Dateipfade. Bei bestehendem gleichnamigem Metadatenfeld nichts überschreiben; zusätzlicher freier Schlüssel mit numerischem Suffix und Diagnose.
@@ -210,7 +264,7 @@ Stabile Mindestcodes: `XML_SYNTAX`, `XML_FORBIDDEN_CONSTRUCT`, `UNSUPPORTED_FORM
 
 ## 6. Eigene Zusatzmetadaten und echte Roundtrips
 
-Standardexporte enthalten neben **vollständig nutzbaren nativen Zeichenobjekten** ein Envelope `format: 'sketchdraw-interop'`, `version: 1`, `projection: 'drawio-v1' | 'svg-v1'`, `encoding: 'base64-json'` und das vollständige kanonische Dokument. JSON wird UTF-8/Base64 kodiert, damit XML-Zeichenrestriktionen nicht die persistenten Strings verändern. Der Base64-Inhalt ist keine Kompression und keine Signatur.
+Standardexporte enthalten neben der sichtbaren Projektion ein Envelope `format: 'sketchdraw-interop'`, `version: 1`, `projection: 'drawio-v1' | 'svg-v1' | 'mermaid-v1'`, `encoding: 'base64-json'` und das kanonische Dokument. SVG enthält die ausgewählte Dokumentseite, draw.io und Mermaid das vollständige Dokument. JSON wird UTF-8/Base64 kodiert, damit XML-Zeichenrestriktionen nicht die persistenten Strings verändern. Der Base64-Inhalt ist keine Kompression und keine Signatur. Die folgenden XML-Vergleichsregeln gelten für SVG/draw.io; Mermaid verwendet den in Abschnitt 4a beschriebenen Quelltextvergleich.
 
 - SVG: genau ein eigenes Namespaceelement innerhalb eines rootnahen `<metadata>`, Namespace `https://sketchdraw.io/ns/interop/1`.
 - draw.io: Envelope als ausdrücklich benanntes, begrenztes Datenattribut `sketchdrawInterop` am User-Object-Wrapper der Rootzelle. Ob dieser konkrete Attributplatz in der geprüften draw.io-Version ohne Nebenwirkungen geladen wird, ist Teil der echten Abnahme; nicht voraussetzen, dass jeder Editor unbekannte Attribute beim Speichern erhält.
@@ -222,13 +276,17 @@ Standardexporte enthalten neben **vollständig nutzbaren nativen Zeichenobjekten
 Damit gilt innerhalb der Adapterlimits ohne Overrides für unveränderte eigene Exporte:
 
 ```ts
-serializeDocument(importDrawio(prepareDrawioExport(doc).contents).document)
+serializeDocument(importDrawio(prepareDrawioExport(doc).contents, { pageIndex: 'all' }).document)
   === serializeDocument(doc);
-serializeDocument(importSvg(prepareSvgExport(doc).contents).document)
+serializeDocument(importDrawio(prepareDrawioExport(doc).contents, { pageIndex: 1 }).document)
+  === serializeDocument(extractPage(doc, doc.pages[1].id)); // provided page 2 exists
+serializeDocument(importSvg(prepareSvgExport(doc, { pageId }).contents).document)
+  === serializeDocument(extractPage(doc, pageId));
+serializeDocument(importMermaid(prepareMermaidExport(doc, { pageId }).contents).document)
   === serializeDocument(doc);
 ```
 
-Diese Zusage braucht native Projektionstests **zusätzlich** zum Metadatenroundtrip: Ein leerer SVG-/mxGraph-Body plus JSON erfüllt sie nicht. Entfernen der Metadaten muss weiterhin erkennbare, bearbeitbare native Formen/Verbindungen/Bilder ergeben. Ein `embedDocument: false`-Export erhält nur die unterstützte native Semantik und einen passenden Bericht; ungenutzte Assets, Widgets oder Bindungen nicht fälschlich als erhalten ausgeben. Die UI benennt bei eingebetteten Metadaten, dass auch nicht sichtbare Dokumentinformationen einschließlich Metadaten/ungenutzter Ressourcen enthalten sein können.
+Diese Zusage braucht native Projektionstests **zusätzlich** zum Metadatenroundtrip: Ein leerer SVG-/mxGraph-Body plus JSON erfüllt sie nicht. Bei SVG/draw.io muss Entfernen der Metadaten weiterhin erkennbare, bearbeitbare native Formen/Verbindungen/Bilder ergeben; bei Mermaid gilt die ausdrücklich begrenzte Flowchart-Abbildung aus Abschnitt 4a. Ein `embedDocument: false`-Export erhält nur die unterstützte native Semantik und einen passenden Bericht; ungenutzte Assets, Widgets oder Bindungen nicht fälschlich als erhalten ausgeben. Die UI benennt bei eingebetteten Metadaten, dass auch nicht sichtbare Dokumentinformationen einschließlich Metadaten/ungenutzter Ressourcen enthalten sein können.
 
 ## 7. Anwendung, Renderer und Autorisierung
 
@@ -266,8 +324,13 @@ Fixtures dokumentieren Herkunft, getestete draw.io-/Browserversion, erwartete El
 | IO-18 Export abbrechen / Ausgabe fehlschlagen / Browserdownload | Richtiger Plattformstatus, keine falsche Speicherbestätigung, Ausgangsdokument unverändert. |
 | IO-19 Grenzwerte und XML-unzulässige Textzeichen | Eigener JSON-Roundtrip erhält Semantik, sichtbare Approximation benannt; keine übergroße kanonische Übernahme. |
 | IO-20 String-Wrapper bei warnendem Export | `LOSS_CONFIRMATION_REQUIRED`; vorbereitende API liefert denselben überprüfbaren Inhalt samt vollständigem Bericht. |
+| IO-21 Mermaid als `.mmd`, `.mermaid` und eingefügter Text | Flowchart-Teilmenge mit Richtungen, Formen, Ketten, Labels und Subgraphs erzeugt editierbare Elemente; Datei-/Textpfad verwendet dieselbe Konvertierung. Export liefert `.mmd` und `text/plain`. |
+| IO-22 Andere Mermaid-Diagramme, Direktiven, aktive oder nicht unterstützte Syntax | Strukturierter Fehler statt Teilimport; keine Skript-, Callback- oder Netzwerkaktivität. |
+| IO-23 Mermaid-Seitenprojektion mit/ohne vollständiges Envelope | Portabel nur gewählte Seite und ausgewiesene Verluste; unverändert eigenes vollständiges Dokument einschließlich Bilder und anderer Seiten nur über validiertes Envelope. Geänderte Projektion darf kein altes Modell restaurieren. |
+| IO-24 Mermaid-Ressourcengrenzen und Export über 50.000 Zeichen | Harte Adapter-/Domänengrenzen abbrechen; Renderergrößenhinweis als Warnung einschließlich zusätzlicher Envelopezeichen. Fremde Renderergröße nicht automatisch verändern. |
+| IO-25 draw.io-Regressionsfälle #154–#157 | Auswahl einer späteren Seite erhält eigene Metadaten nur nach globalem Projektionsvergleich; Änderungen auf jeder Seite verhindern stale Restore. Sparse Tabellen über 500 Zellen werden vor Allokation abgewiesen; 500 Zellen bleiben möglich. Explizite und fehlende Schriftfarbe bleiben bei Formen, Text und Tabellen unabhängig vom Rahmen; Themeapproximation wird gemeldet. |
 
-## 9. Vor Umsetzung zu bestätigende Entscheidungen
+## 9. Historischer Freigabestand des S3-Auftrags (17.10.2026)
 
 Codex muss die neuen Ergebnis-/Fehler-APIs, synchronen Dekompressionsgrenzen, SVG-Pfadteilmenge, Verlustbestätigung sowie das Envelope-/Projektionsvergleichsverfahren freigeben. Antigravity soll insbesondere Parser-/Inflatergrenzen, Path-Flattening und draw.io-Root-Wrapper kritisch prüfen; Claude soll Vorschau, Seitenauswahl, Verlustdarstellung und Textlayout gegen die einfache Oberfläche abgleichen. Bedenken werden in `docs/concerns.md` und den Tickets erfasst, statt behauptete Vollkompatibilität durch Platzhalter zu ersetzen.
 

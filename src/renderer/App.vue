@@ -5,6 +5,7 @@ import { useElementSize, useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '../agent-access/renderer-session';
 import type { DocumentAuthority } from '../session';
 import { extractSessionInvitation, SESSION_LINK_PARAM } from '../collaboration/session-link';
+import { isHdhtLink } from '../collaboration/hdht/invitation';
 import type { CrdtDocumentController } from '../crdt';
 import { createWhiteboardStore } from './state/whiteboard';
 import { WHITEBOARD_KEY, type KeyInput } from './state/contract';
@@ -34,7 +35,7 @@ const collaborationOpen = ref(false);
 const inviteLink = ref<string | null>(null);
 function readInviteFromLocation(): void {
   const hash = window.location.hash.slice(1);
-  if (!hash.includes(SESSION_LINK_PARAM) || !extractSessionInvitation(hash)) return;
+  if (!isHdhtLink(hash) && (!hash.includes(SESSION_LINK_PARAM) || !extractSessionInvitation(hash))) return;
   inviteLink.value = hash;
   collaborationOpen.value = true;
   window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -51,7 +52,8 @@ let agentSession: RendererAgentSession | undefined;
 function attachAgentAccess(value: DocumentAuthority | null) {
   agentSession?.dispose(); agentSession = undefined;
   const bridge = window.sketchdrawAgentAccess;
-  if (!value || !bridge?.isAvailable) return;
+  // A room guest holds a foreign document: no local agent (MCP) authority for it, editor or viewer, connected or not.
+  if (!value || store.getRoomGuest() || !bridge?.isAvailable) return;
   try {
     const session = attachRendererAgentSession(value, bridge);
     agentSession = session;

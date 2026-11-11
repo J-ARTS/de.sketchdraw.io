@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import {
   acceptInvitation,
   createOwnerSession,
@@ -14,7 +14,7 @@ import {
   type PairingReview,
   type SessionIdentity,
 } from '@/collaboration';
-import { bindCrdtTransport, bootstrapRoomDocument, type CrdtTransportBinding } from '@/collaboration/crdt';
+import { bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
 import {
   buildSessionLink, DEFAULT_SESSION_RELAYS, DEFAULT_SESSION_RTC_CONFIG, extractSessionInvitation, normalizeWebAppUrl, ownWebAppUrl,
 } from '@/collaboration/session-link';
@@ -22,6 +22,10 @@ import type { CrdtDocumentController } from '@/crdt';
 import type { DocumentAuthority } from '@/session';
 import type { DocumentSession } from '@/domain';
 import AppIcon from './AppIcon.vue';
+import HdhtSession from './HdhtSession.vue';
+import { WHITEBOARD_KEY } from '@/renderer/state/contract';
+import { RoomConnection } from '@/renderer/state/room-connection';
+import { isHdhtLink } from '@/collaboration/hdht/invitation';
 
 const props = defineProps<{
   open: boolean; authority: DocumentAuthority | null; crdtController: CrdtDocumentController | null;
@@ -32,6 +36,9 @@ const props = defineProps<{
   inviteLink?: string | null;
 }>();
 const emit = defineEmits<{ close: []; 'link-consumed': [] }>();
+const store = inject(WHITEBOARD_KEY)!;
+const hdhtActive = ref(false);
+let automaticRoom: RoomConnection | undefined;
 const mode = ref<'invite' | 'join'>('invite'), role = ref<'viewer' | 'editor'>('viewer');
 const inviteText = ref(''), incoming = ref(''), answerText = ref('');
 const review = shallowRef<PairingReview | null>(null), status = shallowRef<CollaborationStatus | null>(null);
@@ -49,8 +56,6 @@ const sessionLink = computed(() => automaticInvitation.value ? buildSessionLink(
 const joinLinkText = ref('');
 /** The joiner holds the room's document and is replicating it (not just searching for the host). */
 const joinedRoom = ref(false);
-/** True while the joiner swaps its document for the room's: the authority change must not end the room connection. */
-let adopting = false;
 const automaticInvitation = ref('');
 const automaticIncoming = ref('');
 const automaticStatus = shallowRef<CollaborationTransportStatus | null>(null);
@@ -73,7 +78,7 @@ function clearPairing() { pairing?.cancel(); pairing = undefined; inviteText.val
 function listen(session: OwnerSession | GuestSession) { offStatus(); status.value = session.getStatus(); offStatus = session.subscribeStatus(value => { status.value = value; }); }
 watch(() => props.authority, (next, previous) => {
   if (next === previous) return;
-  if (!adopting) void stopAutomatic(false);
+  if (!automaticRoom?.isAdopting) void stopAutomatic(false);
   generation++; clearPairing(); busy.value = false; error.value = ''; note.value = '';
   if (owner) { void owner.close().catch(() => {}); owner = undefined; }
   if (next && guest) { void guest.leave().catch(() => {}); guest = undefined; }
@@ -195,21 +200,18 @@ async function joinSession(text: string): Promise<void> {
     if (epoch !== automaticGeneration || disposed) { await transport.close(); return; }
     automaticTransport = transport;
     automaticActive.value = true;
-    listenAutomatic(transport);
     note.value = t('Session wird gesucht …');
-    let controller = props.crdtController;
-    if (!controller || controller.getSnapshot().document.id !== invitation.session.documentId) {
-      // This device has no copy yet: fetch the host's document and replace the open one with it.
-      const fetched = await bootstrapRoomDocument(transport, { documentId: invitation.session.documentId });
-      if (epoch !== automaticGeneration || disposed) { fetched.destroy(); return; }
-      adopting = true;
-      let accepted = false;
-      try { accepted = await props.adoptRoom(fetched); } finally { adopting = false; }
-      if (!accepted) { fetched.destroy(); await stopAutomatic(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); return; }
-      controller = fetched;
-    }
+    const attachment = new RoomConnection(store, transport, {
+      documentId: invitation.session.documentId, role: invitation.role,
+      onChange: (value, adopted) => {
+        if (epoch !== automaticGeneration) return;
+        automaticStatus.value = value; joinedRoom.value = adopted;
+      },
+    });
+    automaticRoom = attachment;
+    const accepted = await attachment.join();
+    if (!accepted) { await stopAutomatic(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); return; }
     if (epoch !== automaticGeneration || disposed) return;
-    automaticBinding = bindCrdtTransport(controller, transport, undefined, remoteOptions());
     joinedRoom.value = true;
     note.value = t('Du bist in der Session. Änderungen werden live abgeglichen.');
   } catch (value) {
@@ -223,7 +225,7 @@ async function joinSession(text: string): Promise<void> {
 }
 
 watch(() => [props.inviteLink, props.crdtController] as const, ([link, controller]) => {
-  if (!link || !controller || automaticTransport || busy.value) return;
+  if (!link || isHdhtLink(link) || !controller || automaticTransport || busy.value) return;
   emit('link-consumed');
   void joinSession(link);
 }, { immediate: true });
@@ -231,6 +233,7 @@ watch(() => [props.inviteLink, props.crdtController] as const, ([link, controlle
 async function stopAutomatic(showNote = true): Promise<void> {
   const binding = automaticBinding;
   const transport = automaticTransport;
+  const attachment = automaticRoom; automaticRoom = undefined;
   automaticGeneration += 1;
   automaticBinding = undefined;
   automaticTransport = undefined;
@@ -239,8 +242,9 @@ async function stopAutomatic(showNote = true): Promise<void> {
   automaticStatus.value = null;
   automaticInvitation.value = '';
   automaticIncoming.value = '';
-  await binding?.close().catch(() => undefined);
+  await attachment?.close(showNote).catch(() => undefined);
   await transport?.close().catch(() => undefined);
+  await binding?.close().catch(() => undefined);
   if (showNote && !disposed) note.value = 'Automatische P2P-Sitzung beendet.';
 }
 async function createInvitation(resumePeerId?: string) {
@@ -350,10 +354,11 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
 </script>
 
 <template>
-  <aside v-if="open" class="peer-panel sd-panel" :aria-label="t('Zusammenarbeiten')" data-testid="collaboration-panel">
+  <aside v-show="open" class="peer-panel sd-panel" :aria-label="t('Zusammenarbeiten')" data-testid="collaboration-panel">
     <header><h2 class="sd-panel-title">{{ t('Zusammenarbeiten') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Zusammenarbeit schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
     <div class="body">
-      <!-- One flow: start a session, share the link, or paste a link to join. -->
+      <HdhtSession :disabled="automaticActive || !!owner || !!guest || busy" :invite-link="inviteLink" @active="hdhtActive = $event" @link-consumed="emit('link-consumed')" />
+      <details v-if="!hdhtActive" class="manual" data-testid="legacy-session"><summary>{{ t('Alternative Verbindung (WebRTC)') }}</summary>
       <section v-if="!owner && !guest" class="session" aria-labelledby="session-title">
         <template v-if="!automaticActive">
           <h3 id="session-title">{{ t('Session starten') }}</h3>
@@ -373,7 +378,7 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
         </template>
         <template v-else>
           <h3 id="session-title">{{ automaticInvitation ? t('Session läuft') : joinedRoom ? t('Du bist in der Session') : t('Session wird gesucht …') }}</h3>
-          <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' ? (automaticStatus.peers.length ? t('Verbunden · {count} {unit}', { count: automaticStatus.peers.length, unit: automaticStatus.peers.length === 1 ? t('Person') : t('Personen') }) : t('Wartet auf Teilnehmende')) : automaticStatus.state === 'connecting' ? (automaticInvitation ? t('Wartet auf Teilnehmende') : t('Verbindung wird aufgebaut')) : automaticStatus.state === 'error' ? t('Verbindungsfehler') : t('Sitzung beendet') }}</p>
+          <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' && (automaticInvitation || joinedRoom) ? (automaticStatus.peers.length ? t('Verbunden · {count} {unit}', { count: automaticStatus.peers.length, unit: automaticStatus.peers.length === 1 ? t('Person') : t('Personen') }) : t('Wartet auf Teilnehmende')) : automaticStatus.state === 'connecting' ? (automaticInvitation ? t('Wartet auf Teilnehmende') : t('Verbindung wird aufgebaut')) : automaticStatus.state === 'error' ? t('Verbindungsfehler') : t('Sitzung beendet') }}</p>
           <template v-if="automaticInvitation">
             <label class="sd-field-label">{{ t('Link zum Teilen') }}<span class="copy-row"><input class="sd-input" type="text" readonly :aria-label="t('Session-Link zum Kopieren')" data-testid="session-link" :value="sessionLink" @focus="($event.target as HTMLInputElement).select()" /><button class="sd-btn sd-btn--primary" type="button" @click="copy(sessionLink)">{{ t('Link kopieren') }}</button></span></label>
             <dl class="session-info"><div><dt>{{ t('Zugriff') }}</dt><dd>{{ automaticRole === 'editor' ? t('Gemeinsam bearbeiten') : t('Nur ansehen') }}</dd></div><div><dt>{{ t('Gültig') }}</dt><dd>{{ t('bis die Session beendet wird (max. 12 Stunden)') }}</dd></div></dl>
@@ -382,7 +387,8 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
           <button class="sd-btn full" :disabled="busy" data-testid="session-stop" @click="stopAutomatic()">{{ automaticInvitation ? t('Session beenden') : t('Session verlassen') }}</button>
         </template>
       </section>
-      <details v-if="!automaticActive" class="manual" data-testid="manual-connection" :open="manualOpen || !!owner || !!guest" @toggle="manualOpen = ($event.target as HTMLDetailsElement).open">
+      </details>
+      <details v-if="!automaticActive && !hdhtActive" class="manual" data-testid="manual-connection" :open="manualOpen || !!owner || !!guest" @toggle="manualOpen = ($event.target as HTMLDetailsElement).open">
         <summary>{{ t('Manuell ohne Server verbinden') }}</summary>
         <p>{{ t('Verschlüsselt direkt zwischen euren Geräten. Einladungen und Antworten tauscht ihr selbst aus; es gibt keinen zentralen Speicher oder Vermittlungsserver.') }}</p>
         <p class="network-note">{{ t('Direkte Verbindungen funktionieren nicht in jedem Netzwerk. Beide Geräte müssen erreichbar und die App geöffnet bleiben.') }}</p>

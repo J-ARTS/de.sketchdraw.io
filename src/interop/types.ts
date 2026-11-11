@@ -1,6 +1,6 @@
 import type { ConversionWarning, ImportResult } from '../domain/types';
 
-export type InteropFormat = 'drawio' | 'svg';
+export type InteropFormat = 'drawio' | 'svg' | 'mermaid';
 
 export type InteropDiagnosticSeverity = 'info' | 'warning' | 'error';
 
@@ -74,11 +74,11 @@ export interface InteropImportResult extends ImportResult {
   diagnostics: InteropDiagnostic[];
   fidelity: InteropFidelity;
   requiresConfirmation: boolean;
-  source: { format: InteropFormat; page?: DrawioPageInfo };
+  source: { format: InteropFormat; page?: DrawioPageInfo; /** Verified document page shown by the source projection. */ pageId?: string };
 }
 
 export interface InteropExportOptions {
-  /** SVG shows one page: the page with this id (default: the first page). draw.io always exports every page. */
+  /** SVG and Mermaid show one page: the page with this id (default: the first page). draw.io always exports every page. */
   pageId?: string;
   /** Default true; explicit false creates a portable projection without embedded envelope. */
   embedDocument?: boolean;
@@ -87,8 +87,8 @@ export interface InteropExportOptions {
 export interface InteropExportResult {
   format: InteropFormat;
   contents: string;
-  mimeType: 'application/xml' | 'image/svg+xml';
-  suggestedExtension: '.drawio' | '.svg';
+  mimeType: 'application/xml' | 'image/svg+xml' | 'text/plain';
+  suggestedExtension: '.drawio' | '.svg' | '.mmd';
   diagnostics: InteropDiagnostic[];
   requiresConfirmation: boolean;
   embedsDocument: boolean;

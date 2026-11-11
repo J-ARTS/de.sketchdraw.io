@@ -1,0 +1,131 @@
+{
+  "issues": [
+    153,
+    154,
+    155,
+    156,
+    157
+  ],
+  "recordedAt": "2026-11-11T20:10:34.752121+00:00",
+  "baseRevision": "bd610f633c072899acedcda6b631419450eb3a2f",
+  "branch": "codex/149-hyperdht-relay",
+  "scope": "Local uncommitted macOS arm64 working tree. No integration, release, Windows/Linux execution or new draw.io visual acceptance claimed. Mermaid is an explicit flowchart subset.",
+  "environment": {
+    "system": "macOS-14.6.1-arm64-arm-64bit-Mach-O",
+    "node": "v22.16.0"
+  },
+  "sourceFileSha256": {
+    "src/interop/mermaid.ts": "3423ab724adc6b7f5092c604e65d9473be2d59ac95071c694e08eba1a13bf5c1",
+    "src/interop/drawio.ts": "94a4d3fab9471bd9a95ff0f0d83251c6b97034c3a41b22568d781e56899fcf81",
+    "src/interop/export.ts": "84101f6304934e22a8c47589b669c09718a848f5ee7d6753171a127067c39bc5",
+    "src/interop/index.ts": "a7d5d3dc1db6e10daa45b72fafef25b5288f2ee8aff360deb78a72af0c30fbb6",
+    "src/interop/types.ts": "d014ba368a410bbed7e66f363a8b808f0f54779697d91345fcc763a032c76d89",
+    "src/domain/types.ts": "dc9c806e6535d49fd341af0f38b0f18e0965085e2ace0e6d089a8e495506b7be",
+    "src/platform/browser-bridge.ts": "52af70c8c34f5ac05becdd1fee20fe568aa26861e3ef6d255d58cf2ba97e0147",
+    "src/renderer/components/InteropPanel.vue": "6ad4c7c801534b22b6c5eab6dc29a178b03317c984c1fb2e92d55c0f8953dfe3",
+    "src/renderer/state/contract.ts": "49f171db1a1bef59e9bce4ca1abe762f969945b23b5321a17fe2725745194743",
+    "src/renderer/i18n/en.ts": "a199037f682b842a3e49fa215aa51f4c18106d5ca073550360bcc816244d4f04",
+    "electron/ipc-contract.ts": "c7f5178353e19e93445e6549afd2eb8a67abd84b6203c7ed2ad7bfce00d33237",
+    "electron/persistence.ts": "e0386b97d1f2b6860f87323d980f9ba496504f1cd2171ab33cc78a0db0c42c83",
+    "tests/unit/interop/mermaid.spec.ts": "c8132a288b0efb9225fc0ca4db67474042977038b8872eb79b193aa4a91a0067",
+    "tests/unit/interop/153-review.spec.ts": "308eea31971077f6f4d77cec3cd651a223e9d0e67b53e1d5d13ea39692cf89d0",
+    "tests/unit/platform/mermaid-export.spec.ts": "2407ccc1fb600d1c5f94636c839f5226b53c4f0db983936c87a5fa5112f2b035",
+    "tests/ui/interop.spec.ts": "347a48e9f0c4ec7f31600e61d6bf5b71f3f3d969668302c6e4049545f318af3c",
+    "tests/electron/desktop.spec.ts": "cac26a4e00416670c755af839954a05fe8da86429e9166077bddf9bd3051bdba"
+  },
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "status": "passed",
+      "log": "/tmp/sketchdraw-153-post-review-typecheck.log"
+    },
+    {
+      "name": "unit",
+      "command": "npm run test:unit",
+      "status": "passed",
+      "files": 99,
+      "passed": 830,
+      "failed": 0,
+      "log": "/tmp/sketchdraw-153-post-review-unit.log"
+    },
+    {
+      "name": "ui",
+      "command": "npx playwright test --project=ui tests/ui/interop.spec.ts",
+      "status": "passed",
+      "passed": 13,
+      "failed": 0,
+      "log": "/tmp/sketchdraw-153-interop-fable-ui.log"
+    },
+    {
+      "name": "electron",
+      "command": "npx playwright test --project=electron",
+      "status": "passed",
+      "passed": 7,
+      "failed": 0,
+      "log": "/tmp/sketchdraw-153-post-review-electron.log"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "status": "passed",
+      "log": "/tmp/sketchdraw-153-post-review-build.log"
+    },
+    {
+      "name": "build-lifecycle",
+      "command": "node --test tests/unit/*.test.mjs",
+      "status": "passed",
+      "passed": 61,
+      "failed": 0,
+      "log": "/tmp/sketchdraw-153-lifecycle.log"
+    },
+    {
+      "name": "graphify-python",
+      "command": "python3 -m unittest discover -s tools/tests -v",
+      "status": "passed",
+      "passed": 22,
+      "failed": 0,
+      "log": "/tmp/sketchdraw-153-python.log"
+    },
+    {
+      "name": "official-mermaid-reference",
+      "command": "node docs/reviews/153-mermaid-reference-check.mjs /tmp/sketchdraw-153-mermaid-check",
+      "status": "passed",
+      "passed": 19,
+      "artifact": "docs/reviews/153-mermaid-reference.json",
+      "scope": "Official Mermaid12.3 parser/flowchart DB, import and re-export, literal labels, hierarchy. No pixel renderer/browser visualization claim."
+    },
+    {
+      "name": "diff-check",
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "review": {
+    "status": "completed",
+    "tool": "Claude Code CLI2.1.321",
+    "model": "claude-fable-5-2",
+    "effort": "high",
+    "sessionId": "a2327c2e-97f8-479d-b658-60aea0a73996",
+    "findings": "F1-F7 independently evaluated; confirmed defects fixed, speculative cases separately classified",
+    "artifact": "docs/reviews/claude-153-fable-sparring.md",
+    "metrics": "docs/reviews/153-fable-metrics.json"
+  },
+  "graphify": {
+    "codeRefresh": "refused by node protection; 5912 candidate nodes vs 6052 existing; no force",
+    "issue": 145,
+    "log": "/tmp/sketchdraw-153-post-review-graphify.log",
+    "traceability": "merge and --check passed; final confirmed GitHub references synchronized",
+    "traceabilityLogs": [
+      "/tmp/sketchdraw-153-links-final.log",
+      "/tmp/sketchdraw-153-links-final-check.log"
+    ]
+  },
+  "githubConfirmedReview": [
+    "https://github.com/J-ARTS/de.sketchdraw.io/issues/153#issuecomment-6806165260",
+    "https://github.com/J-ARTS/de.sketchdraw.io/issues/154#issuecomment-6806165583",
+    "https://github.com/J-ARTS/de.sketchdraw.io/issues/155#issuecomment-6806166050",
+    "https://github.com/J-ARTS/de.sketchdraw.io/issues/156#issuecomment-6806166217",
+    "https://github.com/J-ARTS/de.sketchdraw.io/issues/157#issuecomment-6806166845"
+  ]
+}

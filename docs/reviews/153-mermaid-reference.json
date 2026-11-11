@@ -1,0 +1,160 @@
+{
+  "runtime": "mermaid@12.3.0",
+  "dom": "jsdom@31.0.0",
+  "scope": "Official parser and flowchart DB, no external service and no pixel rendering claim",
+  "cases": [
+    {
+      "embedDocument": false,
+      "sha256": "f729adddd5182e6bce84dad7390f11d488fcdd3dcc5efb67327f07fe46e87703",
+      "bytes": 325,
+      "diagramType": "flowchart-v2",
+      "nodes": 5,
+      "edges": 4,
+      "ownFidelity": "supported-subset",
+      "fixture": "docs/reviews/fixtures/153-mermaid/portable.mmd",
+      "literalNodeAndEdgeLabels": true
+    },
+    {
+      "embedDocument": true,
+      "sha256": "2131614167d77348473817d0329a5fcfaebcda8a5086dd16e838e32ca7ccf224",
+      "bytes": 5469,
+      "diagramType": "flowchart-v2",
+      "nodes": 5,
+      "edges": 4,
+      "ownFidelity": "own-roundtrip",
+      "fixture": "docs/reviews/fixtures/153-mermaid/embedded.mmd",
+      "literalNodeAndEdgeLabels": true
+    },
+    {
+      "direction": "LR",
+      "nodes": 7,
+      "edges": 6,
+      "groups": 1,
+      "importAndExportParsed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-LR.mmd",
+      "sha256": "94a89cb935aa0fe7b4ce1aa1453d204fa98c7dfe0c35afabb432d84a9bd7402c"
+    },
+    {
+      "direction": "RL",
+      "nodes": 7,
+      "edges": 6,
+      "groups": 1,
+      "importAndExportParsed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-RL.mmd",
+      "sha256": "2537e6ed38ffb2e552d6de519995931f28d489d6ca7634a012b0c97805adb2f0"
+    },
+    {
+      "direction": "TB",
+      "nodes": 7,
+      "edges": 6,
+      "groups": 1,
+      "importAndExportParsed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-TB.mmd",
+      "sha256": "af44fe5a5fb35c55cc0d84b5e99f084bb510660a64b6b4f00d4f4b57432e498c"
+    },
+    {
+      "direction": "TD",
+      "nodes": 7,
+      "edges": 6,
+      "groups": 1,
+      "importAndExportParsed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-TD.mmd",
+      "sha256": "27abf8a110dc7f411b7852ba5dcc30967d54cc0ffd76c835c372f14a05e4e8df"
+    },
+    {
+      "direction": "BT",
+      "nodes": 7,
+      "edges": 6,
+      "groups": 1,
+      "importAndExportParsed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-BT.mmd",
+      "sha256": "d776830ffd50a8461d180c88435735e1fd0c760b7737635c867afc80514ff32d"
+    },
+    {
+      "case": "forward-membership",
+      "nodes": 2,
+      "edges": 1,
+      "groups": 1,
+      "membershipMatchesOfficial": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/foreign-forward-membership.mmd",
+      "sha256": "ee7642ce19d4dd57d777bc2102b9da37e0fd3304e17cff6f609f5ba9f8de4bb9"
+    },
+    {
+      "case": "empty-document",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-0.mmd",
+      "sha256": "0388d4f73d3ef2992a8ab9ea5acea6194aabde83d6b9653d67023b00fadefdcd"
+    },
+    {
+      "case": "empty-node",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-1.mmd",
+      "sha256": "27af3018cea77121b443ac1dc7bc347df11fb31c9221525957d16c2d64fd1ee0"
+    },
+    {
+      "case": "empty-group",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-2.mmd",
+      "sha256": "6415331e297c93f7288c91abfdaadc77b67f762d28c66b281b00d78cd4d1f4ad"
+    },
+    {
+      "case": "fa:fa-home",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-3.mmd",
+      "sha256": "f97caaef3ed86c6f853d08df0cc62fb8c7f1983457b7dcea3a106bdf3cec6127"
+    },
+    {
+      "case": "stylesheet https://a.b/c?x=1",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-4.mmd",
+      "sha256": "5405fe708e43693fe78ae62c5679ddc1a2f0e32fb58ccf8345a6bc20cbda345f"
+    },
+    {
+      "case": "style:x(y)",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-5.mmd",
+      "sha256": "aeef9b5a7f2dcf230a3ad4810b764dd7340e2801981d503f2da1669229a71081"
+    },
+    {
+      "case": "First\nSecond",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-6.mmd",
+      "sha256": "bd804e790b57f90edf6f08b6d01a9d4f78f41e470bbf02f330b09161c4e02a4a"
+    },
+    {
+      "case": "Unicode 日本語",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-7.mmd",
+      "sha256": "921ad864ae09c15be901c912709e818c9e0b1eb041f988c14892565fd61604fa"
+    },
+    {
+      "case": "self-link",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-8.mmd",
+      "sha256": "fb95c250b4db5a7555ba43a1910b8f81e3cbbfe70a5346e52a97aa2b3e2e2fa8"
+    },
+    {
+      "case": "free-endpoint",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-9.mmd",
+      "sha256": "3066a5bb0ab8fabc4a88d6b5a9a1917a409889c726ece78c4f90e764c2efc691"
+    },
+    {
+      "case": "container-child",
+      "officialParserPassed": true,
+      "ownImporterPassed": true,
+      "fixture": "docs/reviews/fixtures/153-mermaid/edge-case-10.mmd",
+      "sha256": "da62e3bd4fe204f48ddb7811e96d46635a2227e0f465b03827e3edd495c0fcb9"
+    }
+  ]
+}

@@ -294,6 +294,8 @@ export interface WhiteboardState {
   catalogOpen: boolean;
   hasDraft: boolean;
   collaboration: CollaborationStatus | null;
+  /** Set while this device is a guest of a session room (HyperDHT/relay or automatic). */
+  roomGuest: { role: 'editor' | 'viewer'; connected: boolean } | null;
   canWrite: boolean;
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
@@ -448,7 +450,15 @@ export interface WhiteboardStore {
   joinGuestSession(guest: GuestSession): Promise<boolean>;
   leaveGuestSession(): Promise<boolean>;
   /** Replaces the open document by one fetched from a room host (asks about unsaved work first). Takes ownership of the controller. */
-  adoptRoomDocument(controller: CrdtDocumentController): Promise<boolean>;
+  adoptRoomDocument(controller: CrdtDocumentController, options?: { role: 'editor' | 'viewer'; access?: () => { role: 'editor' | 'viewer'; connected: boolean } }): Promise<boolean>;
+  cancelRoomAdoption(controller: CrdtDocumentController): void;
+  /** Marks the open document as a room guest (same document id: nothing is replaced). Blocks local writes and local agent access. */
+  enterRoomGuest(role: 'editor' | 'viewer', connected?: boolean, access?: () => { role: 'editor' | 'viewer'; connected: boolean }): void;
+  /** Transport connectivity; a lost connection keeps the guest marker and the write block. */
+  setRoomConnected(connected: boolean): void;
+  /** Explicit leave: the local copy stays and local authority is restored. */
+  leaveRoomGuest(): void;
+  getRoomGuest(): { role: 'editor' | 'viewer'; connected: boolean } | null;
   getGuestSession(): GuestSession | null;
   resolvePendingWrite(): Promise<void>;
   newDocument(): Promise<void>;
@@ -457,7 +467,7 @@ export interface WhiteboardStore {
   prepareDocumentSnapshot(): Promise<DocumentSession | null>;
   save(): Promise<void>;
   saveAs(): Promise<void>;
-  exportDocument(format: 'svg' | 'drawio' | 'sketchdraw'): Promise<void>;
+  exportDocument(format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw'): Promise<void>;
   toggleCode(): void;
   setCodeDraft(text: string): void;
   applyCode(): Promise<boolean>;

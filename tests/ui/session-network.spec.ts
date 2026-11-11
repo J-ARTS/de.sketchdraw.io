@@ -13,7 +13,8 @@ test('a guest opens the shared link and receives the host drawing live', async (
   await host.mouse.move(300, 300); await host.mouse.down(); await host.mouse.move(500, 420, { steps: 6 }); await host.mouse.up();
   await host.getByTestId('workspace-menu-button').click();
   await host.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
-  await host.getByRole('combobox', { name: /Zugriff/ }).selectOption('editor');
+  await host.getByTestId('legacy-session').locator('summary').first().click();
+  await host.getByTestId('legacy-session').getByRole('combobox', { name: /Zugriff/ }).selectOption('editor');
   await host.getByTestId('session-start').click();
   const link = await host.getByTestId('session-link').inputValue();
 

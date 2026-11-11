@@ -4,6 +4,7 @@ import {
   type IpcRendererEvent,
 } from 'electron';
 import { createAgentAccessPreload } from './agent-access/preload';
+import type { DirectEvent, HelperStatus } from '../src/collaboration/hdht/types';
 import type {
   DesktopBridge,
   ExportFileResult,
@@ -33,6 +34,8 @@ import {
   isValidCloseRequestId,
   type MenuCommand,
   validateExportFileRequest,
+  parseDirectEvent,
+  validateDirectRequest,
   validateExternalHttpUrl,
   validateRespondToCloseRequest,
   validateSaveDocumentRequest,
@@ -106,8 +109,47 @@ export function createPreloadDesktopBridge(
     options.isUserActivationActive ?? (() => hasRecentTrustedUserGesture());
   const pluginInvoke = <T>(action: string, payload?: unknown): Promise<T> => ipc.invoke(IPC_CHANNELS.PLUGIN_INVOKE, { action, payload }) as Promise<T>;
 
+  const directInvoke = (request: unknown): Promise<unknown> => ipc.invoke(IPC_CHANNELS.DIRECT_INVOKE, validateDirectRequest(request));
+  const directListeners = new Set<(event: DirectEvent) => void>();
+  let directWrapped: ((event: IpcRendererEvent, value: unknown) => void) | null = null;
+
   const bridge: DesktopBridge = {
     platform: 'electron',
+
+    helper: Object.freeze({
+      async start() { return await directInvoke({ action: 'helper-start' }) as HelperStatus; },
+      async stop() { await directInvoke({ action: 'helper-stop' }); },
+      async status() { return await directInvoke({ action: 'helper-status' }) as HelperStatus; },
+    }),
+
+    direct: Object.freeze({
+      async hostStart() { return await directInvoke({ action: 'host-start' }) as { publicKey: string }; },
+      async hostStop() { await directInvoke({ action: 'host-stop' }); },
+      async connect(hostPublicKey: string, channelId: string) { await directInvoke({ action: 'connect', hostPublicKey, channelId }); },
+      async send(channelId: string, data: Uint8Array) { await directInvoke({ action: 'send', channelId, data }); },
+      async close(channelId: string) { await directInvoke({ action: 'close', channelId }); },
+      async discover(request: { kind: 'service' } | { kind: 'session'; topic: string }) {
+        const result = await directInvoke({ action: 'discover', ...request });
+        return Array.isArray(result) ? result.filter((value): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)).slice(0, 16) : [];
+      },
+      onEvent(listener: (event: DirectEvent) => void): () => void {
+        if (typeof listener !== 'function') throw new Error('onEvent requires a listener function.');
+        directListeners.add(listener);
+        if (!directWrapped) {
+          directWrapped = (_event, value) => {
+            const parsed = parseDirectEvent(value);
+            if (!parsed) return;
+            for (const each of Array.from(directListeners)) each(parsed as DirectEvent);
+          };
+          ipc.on(IPC_CHANNELS.DIRECT_EVENT, directWrapped);
+        }
+        return () => {
+          directListeners.delete(listener);
+          if (!directListeners.size && directWrapped) { ipc.removeListener(IPC_CHANNELS.DIRECT_EVENT, directWrapped); directWrapped = null; }
+        };
+      },
+    }),
+
 
     async openDocument(): Promise<OpenDocumentResult> {
       const result = await ipc.invoke(IPC_CHANNELS.OPEN_DOCUMENT);

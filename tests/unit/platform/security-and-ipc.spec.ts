@@ -53,6 +53,21 @@ describe('Electron security, protocol handler, IPC sender verification, and clos
     expect(PRIVILEGED_APP_SCHEME_CONFIG.privileges.bypassCSP).toBe(false);
   });
 
+  it('permits plain WebSockets only at loopback hosts on any port in both renderer modes', () => {
+    for (const mode of ['dev', 'bundled'] as const) {
+      const policy = buildContentSecurityPolicy(mode);
+      const sources = policy.split('; ').find(value => value.startsWith('connect-src '))!.split(' ').slice(1);
+      expect(sources).toEqual([
+        "'self'", 'wss:', 'ws://127.0.0.1:*', 'ws://localhost:*',
+        ...(mode === 'dev' ? ['http://127.0.0.1:5173'] : []),
+      ]);
+      // Chromium ignores bracketed IPv6 sources; use localhost for an IPv6 loopback listener.
+      expect(policy).not.toContain('ws://[::1]');
+      expect(sources).not.toContain('ws:');
+      expect(sources).not.toContain('*');
+    }
+  });
+
   it('allows sandboxed HTTP(S) frames while applying app CSP headers only to trusted renderer resources', () => {
     const bundled = resolveRendererTarget({ isPackaged: true, env: {} });
     const dev = resolveRendererTarget({ isPackaged: false, env: { SKETCHDRAW_DEV_SERVER_URL: DEV_SERVER_ENTRY_URL } });

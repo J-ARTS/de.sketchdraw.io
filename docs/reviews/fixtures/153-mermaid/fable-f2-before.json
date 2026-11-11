@@ -1,0 +1,108 @@
+{
+  "scope": "Root executed against actual Mermaid12.3.0 before F2 fix. Parser/DB only, not pixel rendering.",
+  "cases": [
+    {
+      "name": "empty-document",
+      "ok": true,
+      "source": "flowchart LR\n",
+      "texts": [],
+      "groups": []
+    },
+    {
+      "name": "empty-node",
+      "ok": false,
+      "error": "Parse error on line 2:\nflowchart LR  n0[\"\"]\n-------------------^\nExpecting 'TAGEND', 'STR', 'MD_STR', 'UNICODE_TEXT', 'TEXT', 'TAGSTART', got 'SQE'",
+      "source": "flowchart LR\n  n0[\"\"]\n"
+    },
+    {
+      "name": "empty-group",
+      "ok": false,
+      "error": "Parse error on line 2:\n... LR  subgraph n0[\"\"]  end\n----------------------^\nExpecting 'TAGEND', 'STR', 'MD_STR', 'UNICODE_TEXT', 'TEXT', 'TAGSTART', got 'SQE'",
+      "source": "flowchart LR\n  subgraph n0[\"\"]\n  end\n"
+    },
+    {
+      "name": "fa:fa-home",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"fa:fa-home\"]\n",
+      "texts": [
+        "fa:fa-home"
+      ],
+      "groups": []
+    },
+    {
+      "name": "stylesheet https://a.b/c?x=1",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"stylesheet https://a.b/c?x#61;1\"]\n",
+      "texts": [
+        "stylesheet https://a.b/c?x#611"
+      ],
+      "groups": []
+    },
+    {
+      "name": "style:x(y)",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"style:x#40;y#41;\"]\n",
+      "texts": [
+        "style:x(y#41"
+      ],
+      "groups": []
+    },
+    {
+      "name": "First\nSecond",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"First#10;Second\"]\n",
+      "texts": [
+        "First\nSecond"
+      ],
+      "groups": []
+    },
+    {
+      "name": "Unicode 日本語",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"Unicode 日本語\"]\n",
+      "texts": [
+        "Unicode 日本語"
+      ],
+      "groups": []
+    },
+    {
+      "name": "self-link",
+      "ok": true,
+      "source": "flowchart LR\n  n0[\"A\"]\n  n0 --> n0\n",
+      "texts": [
+        "A"
+      ],
+      "groups": []
+    },
+    {
+      "name": "free-endpoint",
+      "ok": true,
+      "source": "flowchart LR\n  endpoint0[\"Endpoint\"]\n  endpoint1[\"Endpoint\"]\n  endpoint0 --> endpoint1\n",
+      "texts": [
+        "Endpoint",
+        "Endpoint"
+      ],
+      "groups": []
+    },
+    {
+      "name": "container-child",
+      "ok": true,
+      "source": "flowchart LR\n  subgraph n0[\"Group\"]\n    n1[\"Child\"]\n  end\n  n0 --> n1\n",
+      "texts": [
+        "Child",
+        "n0"
+      ],
+      "groups": [
+        {
+          "id": "n0",
+          "nodes": [
+            "n1"
+          ],
+          "title": "Group",
+          "classes": [],
+          "labelType": "string"
+        }
+      ]
+    }
+  ]
+}

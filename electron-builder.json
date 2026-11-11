@@ -75,5 +75,9 @@
   "deb": {
     "artifactName": "${productName}-${version}-linux-x64.${ext}",
     "priority": "optional"
-  }
+  },
+  "asarUnpack": [
+    "node_modules/sodium-native/**",
+    "node_modules/udx-native/**"
+  ]
 }

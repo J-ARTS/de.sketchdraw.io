@@ -33,7 +33,8 @@ export async function buildElectronBundles() {
     platform: 'node',
     target: 'node22',
     format: 'cjs',
-    external: ['electron'],
+    // Native modules cannot be bundled: they are loaded from node_modules (unpacked from the asar when packaged).
+    external: ['electron', 'hyperdht'],
     sourcemap: true,
     logLevel: 'info',
   };

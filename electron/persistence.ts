@@ -124,7 +124,7 @@ export function sanitizeSuggestedFileName(
   suggestedName: string,
   format: ExportFormat = 'sketchdraw',
 ): string {
-  const requiredExt = `.${format}`;
+  const requiredExt = format === 'mermaid' ? '.mmd' : `.${format}`;
   const rawSegments = suggestedName
     .split(/[/\\]+/)
     .map((part) => part.trim())
@@ -220,6 +220,8 @@ function getDialogFiltersForFormat(
       return [{ name: 'SVG Vector Image', extensions: ['svg'] }];
     case 'drawio':
       return [{ name: 'draw.io Diagram', extensions: ['drawio', 'xml'] }];
+    case 'mermaid':
+      return [{ name: 'Mermaid Flowchart', extensions: ['mmd', 'mermaid'] }];
     case 'sketchdraw':
       return [{ name: 'Sketchdraw Document', extensions: ['sketchdraw', 'json'] }];
   }

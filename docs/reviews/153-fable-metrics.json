@@ -1,0 +1,71 @@
+{
+  "session_id": "a2327c2e-97f8-479d-b658-60aea0a73996",
+  "duration_ms": 579882,
+  "duration_api_ms": 579516,
+  "total_cost_usd": 5.1385784,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 171959,
+    "cache_read_input_tokens": 790252,
+    "output_tokens": 55726,
+    "output_tokens_details": {
+      "thinking_tokens": 44630
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 171959,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 14338,
+        "cache_read_input_tokens": 170751,
+        "cache_creation_input_tokens": 7563,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7563
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 18,
+      "outputTokens": 55726,
+      "cacheReadInputTokens": 790252,
+      "cacheCreationInputTokens": 171959,
+      "webSearchRequests": 0,
+      "costUSD": 5.1385784,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 44630,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 171959,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "is_error": false,
+  "num_turns": 40,
+  "terminal_reason": "completed",
+  "invocation": {
+    "tool": "Claude Code CLI 2.1.321",
+    "model": "claude-fable-5-2",
+    "effort": "high",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob"
+    ]
+  }
+}

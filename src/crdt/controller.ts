@@ -14,6 +14,7 @@ import { areDocumentsEqual, cloneDocument } from '../domain/geometry';
 import { cloneCrdtDocument, getCrdtRoot, readDocumentFromCrdt, writeDocumentToCrdt } from './projection';
 import {
   CRDT_UPDATE_LIMIT_BYTES,
+  CRDT_SNAPSHOT_LIMIT_BYTES,
   type CrdtChangeSource,
   type CrdtDocumentController,
   type CrdtEvents,
@@ -82,13 +83,17 @@ export function createCrdtController(
   initialRevision = 0,
   initialUpdate?: Uint8Array,
 ): CrdtDocumentController {
+  return createController(document, initialRevision, initialUpdate, CRDT_UPDATE_LIMIT_BYTES);
+}
+
+function createController(document: SketchDocument, initialRevision: number, initialUpdate: Uint8Array | undefined, initialLimit: number): CrdtDocumentController {
   let revision = validateInitialRevision(initialRevision);
   const ydoc = new Y.Doc({ gc: true });
   const bootstrap: TransactionOrigin = { kind: 'sketchdraw', source: 'import', actorId: 'system:bootstrap' };
   if (initialUpdate === undefined) {
     ydoc.transact(() => writeDocumentToCrdt(ydoc, document), bootstrap);
   } else {
-    if (!(initialUpdate instanceof Uint8Array) || initialUpdate.byteLength === 0 || initialUpdate.byteLength > CRDT_UPDATE_LIMIT_BYTES) {
+    if (!(initialUpdate instanceof Uint8Array) || initialUpdate.byteLength === 0 || initialUpdate.byteLength > initialLimit) {
       throw new DomainValidationError([{ path: 'initialUpdate', code: 'CRDT_UPDATE_INVALID', message: 'Initial CRDT update is empty or exceeds the update limit.' }]);
     }
     Y.applyUpdateV2(ydoc, initialUpdate, bootstrap);
@@ -231,6 +236,49 @@ export function createCrdtController(
     }
   }
 
+  function applyRemote(update: Uint8Array, context: RemoteUpdateContext, maxBytes: number): DocumentSession {
+    if (!(update instanceof Uint8Array) || update.byteLength === 0 || update.byteLength > maxBytes) {
+      throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_INVALID', message: 'CRDT update is empty or exceeds the update limit.' }]);
+    }
+    const actorId = validateActorId(context.actorId);
+    if (context.source === 'peer' && context.role === 'viewer') {
+      throw new DomainConflictError('ACCESS_DENIED', 'Viewer updates are not allowed.', revision);
+    }
+    const standalone = new Y.Doc({ gc: false });
+    try {
+      try {
+        Y.applyUpdateV2(standalone, update);
+      } catch (error) {
+        throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_REJECTED', message: error instanceof Error ? error.message : 'Malformed CRDT update.' }]);
+      }
+      try {
+        const incoming = readDocumentFromCrdt(standalone);
+        if (incoming.id !== current.id) throw new Error('DOCUMENT_MISMATCH');
+      } catch (error) {
+        if (error instanceof Error && error.message === 'DOCUMENT_MISMATCH') {
+          throw new DomainValidationError([{ path: 'update', code: 'DOCUMENT_MISMATCH', message: 'CRDT update belongs to a different document.' }]);
+        }
+        // Incremental updates are valid without forming a standalone document.
+      }
+    } finally {
+      standalone.destroy();
+    }
+    const shadow = cloneCrdtDocument(ydoc);
+    try {
+      Y.applyUpdateV2(shadow, update);
+      if (readDocumentFromCrdt(shadow).id !== current.id) throw new Error('DOCUMENT_MISMATCH');
+    } catch (error) {
+      throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_REJECTED', message: error instanceof Error ? error.message : 'CRDT update violates the document schema.' }]);
+    } finally {
+      shadow.destroy();
+    }
+    const origin = originFor(actorId, context.source, true);
+    if (context.peerId !== undefined) origin.excludePeerId = context.peerId;
+    Y.applyUpdateV2(ydoc, update, origin);
+    delete origin.excludePeerId;
+    return snapshot();
+  }
+
   const controller: CrdtDocumentController = {
     ydoc,
     on: events.on,
@@ -283,48 +331,8 @@ export function createCrdtController(
       if (remoteStateVector !== undefined && !(remoteStateVector instanceof Uint8Array)) throw new TypeError('State vector must be a Uint8Array.');
       return Y.encodeStateAsUpdateV2(ydoc, remoteStateVector);
     },
-    applyRemoteUpdate(update: Uint8Array, context: RemoteUpdateContext): DocumentSession {
-      if (!(update instanceof Uint8Array) || update.byteLength === 0 || update.byteLength > CRDT_UPDATE_LIMIT_BYTES) {
-        throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_INVALID', message: 'CRDT update is empty or exceeds the update limit.' }]);
-      }
-      const actorId = validateActorId(context.actorId);
-      if (context.source === 'peer' && context.role === 'viewer') {
-        throw new DomainConflictError('ACCESS_DENIED', 'Viewer updates are not allowed.', revision);
-      }
-      const standalone = new Y.Doc({ gc: false });
-      try {
-        try {
-          Y.applyUpdateV2(standalone, update);
-        } catch (error) {
-          throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_REJECTED', message: error instanceof Error ? error.message : 'Malformed CRDT update.' }]);
-        }
-        try {
-          const incoming = readDocumentFromCrdt(standalone);
-          if (incoming.id !== current.id) throw new Error('DOCUMENT_MISMATCH');
-        } catch (error) {
-          if (error instanceof Error && error.message === 'DOCUMENT_MISMATCH') {
-            throw new DomainValidationError([{ path: 'update', code: 'DOCUMENT_MISMATCH', message: 'CRDT update belongs to a different document.' }]);
-          }
-          // Incremental updates are valid without forming a standalone document.
-        }
-      } finally {
-        standalone.destroy();
-      }
-      const shadow = cloneCrdtDocument(ydoc);
-      try {
-        Y.applyUpdateV2(shadow, update);
-        readDocumentFromCrdt(shadow);
-      } catch (error) {
-        throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_REJECTED', message: error instanceof Error ? error.message : 'CRDT update violates the document schema.' }]);
-      } finally {
-        shadow.destroy();
-      }
-      const origin = originFor(actorId, context.source, true);
-      if (context.peerId !== undefined) origin.excludePeerId = context.peerId;
-      Y.applyUpdateV2(ydoc, update, origin);
-      delete origin.excludePeerId;
-      return snapshot();
-    },
+    applyRemoteUpdate(update, context) { return applyRemote(update, context, CRDT_UPDATE_LIMIT_BYTES); },
+    applyRemoteSnapshot(update, context) { return applyRemote(update, context, CRDT_SNAPSHOT_LIMIT_BYTES); },
     reportPersistence(event): void {
       events.emit('persistence', structuredClone(event));
     },
@@ -343,14 +351,22 @@ export function createCrdtController(
 }
 
 export function createCrdtControllerFromUpdate(update: Uint8Array, initialRevision = 0): CrdtDocumentController {
-  if (!(update instanceof Uint8Array) || update.byteLength === 0 || update.byteLength > CRDT_UPDATE_LIMIT_BYTES) {
+  return controllerFromState(update, initialRevision, CRDT_UPDATE_LIMIT_BYTES);
+}
+
+export function createCrdtControllerFromSnapshot(update: Uint8Array, initialRevision = 0): CrdtDocumentController {
+  return controllerFromState(update, initialRevision, CRDT_SNAPSHOT_LIMIT_BYTES);
+}
+
+function controllerFromState(update: Uint8Array, initialRevision: number, limit: number): CrdtDocumentController {
+  if (!(update instanceof Uint8Array) || update.byteLength === 0 || update.byteLength > limit) {
     throw new DomainValidationError([{ path: 'update', code: 'CRDT_UPDATE_INVALID', message: 'CRDT update is empty or exceeds the update limit.' }]);
   }
   const shadow = new Y.Doc({ gc: false });
   try {
     Y.applyUpdateV2(shadow, update);
     const document = readDocumentFromCrdt(shadow);
-    return createCrdtController(document, initialRevision, update);
+    return createController(document, initialRevision, update, limit);
   } finally {
     shadow.destroy();
   }

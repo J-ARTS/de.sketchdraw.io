@@ -46,22 +46,35 @@ export interface CollaborationTransportMessage {
   peer: AutomaticPeer;
 }
 
+export type CollaborationTransportMode = 'automatic-p2p' | 'hyperdht-relay';
+
 export interface CollaborationTransportStatus {
-  mode: 'automatic-p2p';
-  state: 'connecting' | 'ready' | 'closed' | 'error';
+  mode: CollaborationTransportMode;
+  state: 'connecting' | 'ready' | 'reconnecting' | 'closed' | 'error';
   peers: readonly AutomaticPeer[];
   relayUrls: readonly string[];
   iceServers: readonly string[];
   error?: string;
+  /** hyperdht-relay only: route of the current connection and what the connection attempt is doing. */
+  route?: 'direct' | 'relay';
+  phase?: 'connecting' | 'authenticating';
+  attempt?: number;
+  /** Role the host granted to this device; set by guests after authentication. */
+  grantedRole?: 'editor' | 'viewer';
+  retryAfterMs?: number;
+  attemptsLeft?: number;
+  /** hyperdht-relay host: number of volunteer helpers currently carrying this session. */
+  helpers?: number;
 }
 
 export interface CollaborationTransport {
-  readonly mode: 'automatic-p2p';
+  readonly mode: CollaborationTransportMode;
   getStatus(): CollaborationTransportStatus;
   subscribeStatus(listener: (status: CollaborationTransportStatus) => void): () => void;
   subscribeMessage(listener: (message: CollaborationTransportMessage) => void | Promise<void>): () => void;
   send(channel: CollaborationTransportChannel, data: Uint8Array, targetPeerIds?: readonly string[]): Promise<void>;
-  close(): Promise<void>;
+  /** Optional application failure token; transports may send it to authenticated peers before closing. */
+  close(reason?: string): Promise<void>;
 }
 
 export interface AutomaticInvitation {

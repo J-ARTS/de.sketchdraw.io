@@ -14,10 +14,12 @@ export const IPC_CHANNELS = Object.freeze({
   PLUGIN_INVOKE: 'sketchdraw:plugins:invoke',
   PLUGIN_EVENT: 'sketchdraw:plugins:event',
   SET_LANGUAGE: 'sketchdraw:app:set-language',
+  DIRECT_INVOKE: 'sketchdraw:direct:invoke',
+  DIRECT_EVENT: 'sketchdraw:direct:event',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
-export type ExportFormat = 'svg' | 'drawio' | 'sketchdraw';
+export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw';
 export type CloseDecision = 'close' | 'cancel';
 export type AppLanguage = 'de' | 'en';
 
@@ -32,6 +34,7 @@ export const MENU_COMMANDS: readonly MenuCommand[] = Object.freeze([
 export const EXPORT_FORMATS: readonly ExportFormat[] = Object.freeze([
   'svg',
   'drawio',
+  'mermaid',
   'sketchdraw',
 ]);
 
@@ -306,7 +309,7 @@ export function validateExportFileRequest(
       error: {
         status: 'error',
         code: 'INVALID_FORMAT',
-        message: 'Export format must be one of "svg", "drawio", or "sketchdraw".',
+        message: 'Export format must be one of "svg", "drawio", "mermaid", or "sketchdraw".',
       },
     };
   }
@@ -417,4 +420,99 @@ export function validateExternalHttpUrl(rawUrl: unknown): URL {
   }
 
   return parsed;
+}
+
+export const DIRECT_CHANNEL_ID_PATTERN = /^[0-9a-f]{32}$/;
+export const DIRECT_KEY_PATTERN = /^[0-9a-f]{64}$/;
+export const DIRECT_MAX_MESSAGE_BYTES = 8 * 1024 * 1024 + 1;
+
+export type DirectRequest =
+  | { action: 'host-start' }
+  | { action: 'host-stop' }
+  | { action: 'connect'; hostPublicKey: string; channelId: string }
+  | { action: 'send'; channelId: string; data: Uint8Array }
+  | { action: 'close'; channelId: string }
+  | { action: 'discover'; kind: 'service' }
+  | { action: 'discover'; kind: 'session'; topic: string }
+  | { action: 'helper-start' }
+  | { action: 'helper-stop' }
+  | { action: 'helper-status' };
+
+/** The only commands the renderer may give the native direct route; everything else is rejected before it reaches main. */
+export function validateDirectRequest(input: unknown): DirectRequest {
+  if (!isPlainRecord(input)) throw new Error('Invalid direct request.');
+  const action = input['action'];
+  const only = (...keys: string[]) => {
+    if (!hasOnlyAllowedKeys(input, new Set(['action', ...keys]))) throw new Error('Invalid direct request.');
+  };
+  const channelId = (): string => {
+    const value = input['channelId'];
+    if (typeof value !== 'string' || !DIRECT_CHANNEL_ID_PATTERN.test(value)) throw new Error('Invalid direct channel id.');
+    return value;
+  };
+  switch (action) {
+    case 'host-start':
+    case 'host-stop':
+    case 'helper-start':
+    case 'helper-stop':
+    case 'helper-status':
+      only();
+      return { action };
+    case 'discover': {
+      only('kind', 'topic');
+      if (input['kind'] === 'service') {
+        if ('topic' in input) throw new Error('Invalid direct request.');
+        return { action, kind: 'service' };
+      }
+      const topic = input['topic'];
+      if (input['kind'] !== 'session' || typeof topic !== 'string' || !DIRECT_KEY_PATTERN.test(topic)) throw new Error('Invalid discovery request.');
+      return { action, kind: 'session', topic };
+    }
+    case 'connect': {
+      only('hostPublicKey', 'channelId');
+      const key = input['hostPublicKey'];
+      if (typeof key !== 'string' || !DIRECT_KEY_PATTERN.test(key)) throw new Error('Invalid direct host key.');
+      return { action, hostPublicKey: key, channelId: channelId() };
+    }
+    case 'send': {
+      only('channelId', 'data');
+      const data = input['data'];
+      if (!(data instanceof Uint8Array) || data.byteLength < 1 || data.byteLength > DIRECT_MAX_MESSAGE_BYTES) throw new Error('Invalid direct message.');
+      return { action, channelId: channelId(), data };
+    }
+    case 'close':
+      only('channelId');
+      return { action, channelId: channelId() };
+    default:
+      throw new Error('Unknown direct action.');
+  }
+}
+
+export type DirectEventPayload =
+  | { type: 'incoming' | 'open'; channelId: string; binding: Uint8Array }
+  | { type: 'message'; channelId: string; data: Uint8Array }
+  | { type: 'close'; channelId: string; reason: string };
+
+/** Validates an event main sent to the renderer; anything malformed is dropped by the preload. */
+export function parseDirectEvent(value: unknown): DirectEventPayload | null {
+  if (!isPlainRecord(value)) return null;
+  const channelId = value['channelId'];
+  if (typeof channelId !== 'string' || !DIRECT_CHANNEL_ID_PATTERN.test(channelId)) return null;
+  switch (value['type']) {
+    case 'incoming':
+    case 'open': {
+      const binding = value['binding'];
+      return binding instanceof Uint8Array && binding.byteLength === 32 ? { type: value['type'], channelId, binding } : null;
+    }
+    case 'message': {
+      const data = value['data'];
+      return data instanceof Uint8Array && data.byteLength >= 1 && data.byteLength <= DIRECT_MAX_MESSAGE_BYTES ? { type: 'message', channelId, data } : null;
+    }
+    case 'close': {
+      const reason = value['reason'];
+      return typeof reason === 'string' ? { type: 'close', channelId, reason: reason.slice(0, 64) } : null;
+    }
+    default:
+      return null;
+  }
 }

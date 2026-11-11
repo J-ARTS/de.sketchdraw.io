@@ -91,12 +91,13 @@ const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/;
 const ENCODED_SLASH_OR_NULL_PATTERN = /%(?:2f|5c|00)/i;
 
 export function buildContentSecurityPolicy(mode: 'dev' | 'bundled'): string {
-  // `wss:` lets the session transport reach the MQTT signaling endpoints; the adapter only accepts credential-free
-  // wss:// URLs, and scripts stay restricted to the app itself.
+  // Remote transports require TLS. Plain WebSockets are restricted to local relay development.
+  // Chromium rejects IPv6 literals in CSP host sources; localhost also reaches an IPv6-only ::1 listener.
+  const loopbackSockets = 'ws://127.0.0.1:* ws://localhost:*';
   const connectSrc =
     mode === 'dev'
-      ? "'self' wss: ws://127.0.0.1:5173 http://127.0.0.1:5173"
-      : "'self' wss:";
+      ? `'self' wss: ${loopbackSockets} http://127.0.0.1:5173`
+      : `'self' wss: ${loopbackSockets}`;
 
   return [
     "default-src 'self'",

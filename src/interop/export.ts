@@ -362,7 +362,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   out.append('</mxfile>');
   return out.toString();
 }
-export function prepareExport(document: SketchDocument, format: InteropFormat, options: InteropExportOptions = {}): InteropExportResult {
+export function prepareExport(document: SketchDocument, format: Exclude<InteropFormat, 'mermaid'>, options: InteropExportOptions = {}): InteropExportResult {
   const full = validateDocument(document);
   serializeDocument(full);
   const d = new DiagnosticCollector(), embed = options.embedDocument !== false;

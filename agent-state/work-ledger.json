@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-10T12:24:33Z",
+  "updatedAt": "2026-11-11T20:14:25.674976+00:00",
   "issues": [
     {
       "number": 1,
@@ -2019,6 +2019,155 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 149,
+      "title": "HyperDHT und verschlüsselter Relay-Fallback für URL-/PIN-Beitritt",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/149",
+      "owner": "Google Antigravity (logic/interface/iam/devops), Claude Code (ui), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "phase": "Collaboration / IAM / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 150,
+      "title": "P2P-Gastrolle im lokalen Store und MCP-Zugriff durchsetzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/150",
+      "owner": "Claude Code (ui), Google Antigravity (iam), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "phase": "Collaboration / IAM / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": []
+    },
+    {
+      "number": 151,
+      "title": "Große gültige Dokumente scheitern still am CRDT-Vollabgleichlimit",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/151",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
+      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "phase": "Collaboration / Images / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        149
+      ]
+    },
+    {
+      "number": 152,
+      "title": "Dezentrale Relay-Suche: Backoff und tatsächliche Erreichbarkeit prüfen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/152",
+      "owner": "OpenAI Codex (architecture/testing), Google Antigravity (logic/interface)",
+      "phase": "Collaboration / Resilience",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        149
+      ]
+    },
+    {
+      "number": 153,
+      "title": "SVG, Mermaid und draw.io: Import/Export ergänzen und erneut abnehmen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/153",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
+      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "phase": "Interoperability / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        12
+      ]
+    },
+    {
+      "number": 154,
+      "title": "draw.io: Eigene Metadaten gehen beim Import einer späteren Seite verloren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/154",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
+      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "phase": "Interoperability / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        153
+      ]
+    },
+    {
+      "number": 155,
+      "title": "draw.io: Tabellenbudget wird erst nach der Zellallokation geprüft",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/155",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
+      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "phase": "Interoperability / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        153
+      ]
+    },
+    {
+      "number": 156,
+      "title": "draw.io: Tabellenimport verwechselt Schrift- und Konturfarbe",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/156",
+      "owner": "OpenAI Codex (architecture/testing), Google Antigravity (logic/interface)",
+      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "phase": "Interoperability / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        153
+      ]
+    },
+    {
+      "number": 157,
+      "title": "draw.io: Fehlende Schriftfarbe darf nicht die Rahmenfarbe übernehmen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/157",
+      "owner": "OpenAI Codex architecture/testing; Google Antigravity logic/interface",
+      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "phase": "Interoperability / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        153,
+        156
+      ]
     }
   ],
   "runs": [
@@ -8237,6 +8386,197 @@
       ],
       "authorization": "The user explicitly requested the UI alignment change and previously authorized completion and integration of project work.",
       "measurementSource": "GitHub Actions timestamps report 985 seconds. Governance/Graphify, direct P2P and Build & Verify on Ubuntu, macOS and Windows all passed on exact commit bd65d7e."
+    },
+    {
+      "id": "claude-149-hyperdht-relay-7fcd65b3",
+      "tool": "Claude Code CLI 2.1.185",
+      "model": "claude-sonnet-5-5",
+      "issues": [
+        149,
+        150
+      ],
+      "status": "blocked",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/149-hyperdht-relay.md",
+        "docs/reviews/claude-149-hyperdht-relay.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/149#issuecomment-6803742998",
+        "docs/reviews/149-decentralized-relay-decision.md",
+        "docs/reviews/codex-149-validation.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/149#issuecomment-6804494814"
+      ],
+      "concerns": [
+        "docs/concerns.md HD-01 through HD-08. Decentralized native helper scope per explicit user steering; optional WSS only. No proven external NAT/proxy or public community relay capacity."
+      ],
+      "authorization": "User explicitly requested Claude CLI with Sonnet 5.5 and high reasoning for implementation; Codex independently validates.",
+      "measurementSource": "Same session Sonnet5.5/high segments1–5 interrupted at review checkpoints; segment6 API429 session limit, reset00:40 Europe/Berlin. is_error=true despite result subtype success; implementation NOT complete. Raw metrics retained separately; no combined cost/token assertion. Completion observation was 2026-11-11T19:01:09.498345+00:00; exact initial start is unmeasured, so both time endpoints remain null per ledger validation."
+    },
+    {
+      "id": "codex-149-fallback-review-fixes",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        149,
+        150,
+        151,
+        152,
+        145
+      ],
+      "status": "completed_local_pending_integration",
+      "startedAt": "2026-11-11T19:01:09.498345+00:00",
+      "endedAt": "2026-11-11T19:46:03.054904+00:00",
+      "observedSeconds": 2693.557,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/149-hyperdht-relay.md",
+        "docs/reviews/codex-149-validation.md",
+        "docs/reviews/149-local-validation.json",
+        "docs/reviews/claude-149-fable-sparring.md",
+        "tests/unit/collaboration/hdht/session-rich-document.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/149#issuecomment-6805630473",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/150#issuecomment-6805631636",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/151#issuecomment-6805632850",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/152",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/145#issuecomment-6805512537"
+      ],
+      "authorization": "Standing AGENTS.md authorization from 2026-10-17 allows Codex to finish implementation when external quotas block other agents; actual Claude Sonnet5.5/high attempted and now API429 session limit.",
+      "measurementSource": "Observed UTC wall-clock start/end of Codex fallback and review run. Duration counted once across linked issues. Model/token/cost unknown and null. Final local tests: 751 unit, 10 UI, 7 Electron, 61 build-lifecycle, 22 Python; typecheck/build and local macOS arm64 package smoke passed. Not integrated or released. Graphify codegraph update refused by node-count guard (#145); separate traceability projection checked.",
+      "concerns": [
+        "docs/concerns.md"
+      ]
+    },
+    {
+      "id": "claude-149-fable-sparring-5db4e51b",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-fable-5-2",
+      "issues": [
+        149,
+        150,
+        151,
+        152
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 508.246,
+      "tokens": 1382039,
+      "costUsd": 4.7027502000000005,
+      "artifacts": [
+        "docs/reviews/claude-149-fable-sparring.md",
+        "docs/reviews/149-fable-metrics.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/152"
+      ],
+      "authorization": "Explicit user request for another critical sparring using Claude Code Fable5.2 with high reasoning. Read-only review; --effort high.",
+      "measurementSource": "Actual CLI result is_error=false, terminal_reason=completed; model claude-fable-5-2, --effort high, 50 turns. Tokens include input/cache-creation/cache-read/output as separately recorded in docs/reviews/149-fable-metrics.json. Cost is CLI list-price estimate. Exact wall-clock endpoints unknown; elapsed duration measured by CLI. Findings are read-only review, not tests.",
+      "concerns": [
+        "docs/concerns.md"
+      ]
+    },
+    {
+      "id": "codex-153-interop-implementation",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        153,
+        154,
+        155,
+        156,
+        157
+      ],
+      "status": "verified_local_integration_pending",
+      "startedAt": "2026-11-11T19:50:12.187974+00:00",
+      "endedAt": "2026-11-11T20:10:34.752121+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/153-interop.md",
+        "docs/contracts-interop.md",
+        "docs/reviews/153-local-validation.json",
+        "docs/reviews/claude-153-fable-sparring.md",
+        "docs/reviews/153-mermaid-reference.json",
+        "docs/reviews/153-mermaid-adversarial.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/153#issuecomment-6806165260",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/154#issuecomment-6806165583",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/155#issuecomment-6806166050",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/156#issuecomment-6806166217",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/157#issuecomment-6806166845"
+      ],
+      "concerns": [
+        "docs/concerns.md"
+      ],
+      "authorization": "User requested all three import/export formats and actual Fable5.2 sparring; Codex implementation under documented fallback. Existing uncommitted P2P work preserved.",
+      "measurementSource": "Local macOS arm64 tests after all confirmed Fable findings: 830 Unit,13 UI,7 Electron,61 build-lifecycle,22 Python; typecheck/build/diff-check;19 cases actual Mermaid12.3 parser. Coordinator timestamps only; no Codex duration/token/cost/model claim. GitHub integration pending."
+    },
+    {
+      "id": "claude-153-fable-sparring",
+      "tool": "Claude Code CLI 2.1.321",
+      "model": "claude-fable-5-2",
+      "issues": [
+        153,
+        154,
+        155,
+        156,
+        157
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-11T19:55:40.193031+00:00",
+      "endedAt": "2026-11-11T20:07:30.462639+00:00",
+      "observedSeconds": 579.882,
+      "tokens": 1017955,
+      "costUsd": 5.1385784,
+      "artifacts": [
+        "docs/reviews/claude-153-fable-sparring.md",
+        "docs/reviews/153-fable-metrics.json",
+        "docs/reviews/153-fable-prompt.md"
+      ],
+      "authorization": "Explicit user request for actual Fable5.2/high sparring; invoked --effort high; Read/Grep/Glob only.",
+      "measurementSource": "Actual CLI result is_error=false, terminal_reason=completed; Fable5.2 and high invocation confirmed, 40 turns. Elapsed duration and token categories from CLI; cost is list-price estimate. Wall-clock endpoints are coordinator observations, not exact runtime endpoints. Read-only review; no tests executed by Fable.",
+      "concerns": [
+        "docs/concerns.md"
+      ]
+    },
+    {
+      "id": "codex-149-153-main-integration",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        149,
+        150,
+        151,
+        153,
+        154,
+        155,
+        156,
+        157
+      ],
+      "status": "integration_in_progress",
+      "startedAt": "2026-11-11T20:14:25.674976+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/149-local-validation.json",
+        "docs/reviews/153-local-validation.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/153#issuecomment-6806218950"
+      ],
+      "authorization": "Explicit user request to merge all changes into main and push. Portable .claude and .idea project settings inspected, no credentials found.",
+      "measurementSource": "33/33 source hashes match final local validation; git diff --check and Graphify traceability --check passed. Remote main unchanged at bd610f6. No new runtime/model/cost measurement.",
+      "delegation": {
+        "agent": "/root/integration_scope_review",
+        "scope": "Read-only staging scope, local configuration, generated graph deletion and integration hazards; no modifications or ticket closure",
+        "status": "completed",
+        "result": "No integration blocker. Lockfiles consistent, no secret scan matches, portable project configuration. Restored accidentally removed graph.html from last committed revision under documented stale-view policy; code graph refresh remains issue145."
+      },
+      "concerns": [
+        "docs/concerns.md"
+      ]
     }
   ],
   "evidencePolicy": {

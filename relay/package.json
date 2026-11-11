@@ -1,0 +1,12 @@
+{
+  "name": "sketchdraw-session-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stateless relay for end-to-end encrypted Sketchdraw session records. Self-hosted; no storage.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
+  "main": "server.mjs",
+  "engines": { "node": "^22.12.0 || ^24.0.0 || >=26.0.0" },
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "ws": "8.22.2" }
+}

@@ -118,6 +118,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let pendingGuest: GuestSession | null = null;
   /** A room's document, fetched from the host, waiting to replace the local one. */
   let pendingRoom: CrdtDocumentController | null = null;
+  let pendingRoomRole: 'editor' | 'viewer' | null = null;
+  type RoomAccess = () => { role: 'editor' | 'viewer'; connected: boolean };
+  let pendingRoomAccess: RoomAccess | undefined;
+  let roomAccess: RoomAccess | undefined;
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
@@ -171,8 +175,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const selected = () => pageEls().filter((e) => state.selection.includes(e.id));
   const changedDraft = () => { draftGeneration += 1; state.draftVersion = draftGeneration; };
   const state = reactive({
-    draftVersion: 0, collaboration: null as CollaborationStatus | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
-    get canWrite() { return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
+    draftVersion: 0, collaboration: null as CollaborationStatus | null, roomGuest: null as { role: 'editor' | 'viewer'; connected: boolean } | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
+    get canWrite() { if (this.roomGuest) { const access = roomAccess?.() ?? this.roomGuest; return access.role === 'editor' && access.connected; } return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
     connectorDefaults: loadConnectorDefaults(),
@@ -360,7 +364,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       return;
     }
     state.collaboration = null;
-    bindings = Object.fromEntries((['human', 'code', 'import'] as const).map((source) => [source, authority!.bindActor({ actorId, source, grantId: `local:${source}`, grantGeneration: 0, guard: () => ({ allowed: true }) })])) as typeof bindings;
+    bindings = Object.fromEntries((['human', 'code', 'import'] as const).map((source) => [source, authority!.bindActor({ actorId, source, grantId: `local:${source}`, grantGeneration: 0, guard: check => check.permission === 'read' || state.canWrite ? { allowed: true } : { allowed: false, code: 'ACCESS_DENIED' } })])) as typeof bindings;
     unsubscribe = snapshotSource().subscribe(sync);
   }
   bind();
@@ -694,12 +698,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     } catch (error) { state.file.lastError = error instanceof Error ? error.message : t('Speichern fehlgeschlagen'); fail(error); return false; }
     finally { if (activeSession() === session) state.file.saving = false; }
   }
-  function settleTransition(success: boolean) { const resolve = transitionResult; transitionResult = null; pendingGuest = null; if (!success && pendingRoom) { pendingRoom.destroy(); } pendingRoom = null; resolve?.(success); }
+  function settleTransition(success: boolean) { const resolve = transitionResult; transitionResult = null; pendingGuest = null; if (!success && pendingRoom) { pendingRoom.destroy(); } pendingRoom = null; pendingRoomRole = null; pendingRoomAccess = undefined; resolve?.(success); }
   function releaseTransition() {
     if (barrier) lifecycle().cancelTransition(barrier.token);
     barrier = null; pendingImport = null; state.transitioning = false; settleTransition(false);
   }
-  function install(document: SketchDocument, file = freshFile(), nextGuest: GuestSession | null = null, room: CrdtDocumentController | null = null) {
+  function install(document: SketchDocument, file = freshFile(), nextGuest: GuestSession | null = null, room: CrdtDocumentController | null = null, roomRole: 'editor' | 'viewer' | null = null, access?: RoomAccess) {
     unsubscribe(); unsubscribeStatus();
     const nextSnapshot = nextGuest?.source.getSnapshot();
     if (barrier) lifecycle().completeTransition(barrier.token);
@@ -707,6 +711,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (nextGuest) releaseLocalCrdt();
     guest = nextGuest; authority = nextGuest ? null : factory(managedController(document, room ?? undefined));
     if (room) pendingRoom = null;
+    // The room-guest marker changes together with the authority, before any authority listener (e.g. local MCP access) runs.
+    roomAccess = room ? access : undefined;
+    state.roomGuest = room ? (access?.() ?? { role: roomRole ?? 'viewer', connected: true }) : null;
     unknownWrite = null; state.pendingPeerWrite = null;
     bindings = {} as typeof bindings; pendingWrites = 0; lastWrite = Promise.resolve();
     state.document = Object.freeze(document); state.revision = nextSnapshot?.revision ?? 0; state.file = file;
@@ -731,7 +738,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (reason === 'room') {
         const room = pendingRoom;
         if (!room) throw new Error(t('Das Dokument der Session ist nicht mehr verfügbar.'));
-        install(room.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, null, room); notice(t('Session beigetreten. Das Dokument kommt vom Gastgeber; speichere eine Kopie, um es zu behalten.')); return;
+        install(room.getSnapshot().document, { ...freshFile(), requiresInitialSave: true }, null, room, pendingRoomRole, pendingRoomAccess); notice(t('Session beigetreten. Das Dokument kommt vom Gastgeber; speichere eine Kopie, um es zu behalten.')); return;
       }
       if (reason === 'leave') { install(active.snapshot.document, { ...freshFile(), requiresInitialSave: true }); notice(t('Sitzung verlassen. Die lokale Kopie enthält nur den zuletzt bestätigten Stand.')); return; }
       if (reason === 'import') {
@@ -795,14 +802,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
       void requestTransition('join'); return result;
     },
-    async adoptRoomDocument(controller) {
+    async adoptRoomDocument(controller, options) {
       if (state.transitioning) return false;
       try { deserializeDocument(serializeDocument(controller.getSnapshot().document)); }
       catch (error) { fail(error); return false; }
-      pendingRoom = controller;
+      pendingRoom = controller; pendingRoomRole = options?.role ?? 'viewer'; pendingRoomAccess = options?.access;
       const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
       void requestTransition('room'); return result;
     },
+    cancelRoomAdoption(controller) {
+      if (pendingRoom !== controller) return;
+      releaseTransition(); state.dialog = null;
+    },
+    enterRoomGuest(role, connected = true, access) {
+      roomAccess = access;
+      state.roomGuest = { role, connected };
+      for (const listener of authorityListeners) listener(authority);
+    },
+    setRoomConnected(connected) {
+      if (state.roomGuest && state.roomGuest.connected !== connected) state.roomGuest = { ...state.roomGuest, connected };
+    },
+    leaveRoomGuest() {
+      if (!state.roomGuest) return;
+      roomAccess = undefined;
+      state.roomGuest = null;
+      for (const listener of authorityListeners) listener(authority);
+    },
+    getRoomGuest() { return state.roomGuest; },
     async leaveGuestSession() {
       if (!guest || state.transitioning) return false;
       const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
