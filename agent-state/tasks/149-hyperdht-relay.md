@@ -54,3 +54,7 @@ Segment6 endet mit API429/is_error=true: „session limit“, Reset00:40 Europe/
 - Offene Folgearbeit: #152 Backoff/Eignung/Weiterleitungsprüfung für Helfersuche geplant; #72 reale NAT-/CGNAT-/Proxy-/Skalierungsabnahme offen. Keine öffentliche Helferflotte belegt. Windows/Linux/Signierung/Installer/Release dieser Revision nicht geprüft.
 - Graphify: letztes Codeupdate verweigert durch Knotenschutz (5.801 neu / 6.036 vorhanden), #145 mit Repro aktualisiert; nicht erzwungen. Ledger-/Traceability-Projektion getrennt regeneriert und geprüft, kein frischer vollständiger Codegraph behauptet.
 - Nächster konkreter Schritt: lokalen Stand von `codex/149-hyperdht-relay` auf Basis `bd610f6` integrieren; CI-/Plattformprüfungen und Release gesondert ausführen. Vor Fortsetzung aktuelle Issues und Quell-/Pakethashes abgleichen. Keine Dateien aus fremden `.claude/`-/`.idea/`-Änderungen übernehmen.
+
+## Main integration (2026-11-11)
+
+User-authorized commit, fast-forward merge and push completed at `bdfbb20`. Initial CI: Linux product checks/package passed; direct P2P product-UI test still used controls hidden by the new layout. Test-only selector correction independently reproduced and verified: all3 native P2P tests passed. Final CI pending after correction; tickets remain review. Durable evidence: `docs/reviews/149-153-main-integration.json`. No release published. Earlier local-only entries are historical.

@@ -37,3 +37,7 @@ GitHub-Abgleich bestätigt: #153–#157 tatsächlich offen mit ausschließlich `
 - https://github.com/J-ARTS/de.sketchdraw.io/issues/157#issuecomment-6806166845
 
 Traceability-Merge und --check bestanden; Codegraphschutz #145 separat als https://github.com/J-ARTS/de.sketchdraw.io/issues/145#issuecomment-6806166944 dokumentiert.
+
+## Main integration (2026-11-11)
+
+User-authorized commit, fast-forward merge and push completed at `bdfbb20`. Initial CI: Linux product checks/package passed; direct P2P product-UI test still used controls hidden by the new layout. Test-only selector correction independently reproduced and verified: all3 native P2P tests passed. Final CI pending after correction; tickets remain review. Durable evidence: `docs/reviews/149-153-main-integration.json`. No release published. Earlier local-only entries are historical.

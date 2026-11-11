@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T20:14:25.674976+00:00",
+  "updatedAt": "2026-11-11T20:22:06.744757+00:00",
   "issues": [
     {
       "number": 1,
@@ -2025,7 +2025,7 @@
       "title": "HyperDHT und verschlüsselter Relay-Fallback für URL-/PIN-Beitritt",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/149",
       "owner": "Google Antigravity (logic/interface/iam/devops), Claude Code (ui), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Collaboration / IAM / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2040,7 +2040,7 @@
       "title": "P2P-Gastrolle im lokalen Store und MCP-Zugriff durchsetzen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/150",
       "owner": "Claude Code (ui), Google Antigravity (iam), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Collaboration / IAM / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2055,7 +2055,7 @@
       "title": "Große gültige Dokumente scheitern still am CRDT-Vollabgleichlimit",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/151",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; local implementation validated, target-branch integration pending; actual Claude Fable5.2/high read-only sparring completed",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Collaboration / Images / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2088,7 +2088,7 @@
       "title": "SVG, Mermaid und draw.io: Import/Export ergänzen und erneut abnehmen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/153",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Interoperability / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2105,7 +2105,7 @@
       "title": "draw.io: Eigene Metadaten gehen beim Import einer späteren Seite verloren",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/154",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Interoperability / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2122,7 +2122,7 @@
       "title": "draw.io: Tabellenbudget wird erst nach der Zellallokation geprüft",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/155",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Interoperability / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2139,7 +2139,7 @@
       "title": "draw.io: Tabellenimport verwechselt Schrift- und Konturfarbe",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/156",
       "owner": "OpenAI Codex (architecture/testing), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Interoperability / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -2156,7 +2156,7 @@
       "title": "draw.io: Fehlende Schriftfarbe darf nicht die Rahmenfarbe übernehmen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/157",
       "owner": "OpenAI Codex architecture/testing; Google Antigravity logic/interface",
-      "currentImplementer": "OpenAI Codex authorized implementation fallback; independent actual Claude Code Fable5.2/high review completed and validated",
+      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
       "phase": "Interoperability / Testing",
       "status": "review",
       "estimatedEffort": {
@@ -8555,16 +8555,20 @@
         156,
         157
       ],
-      "status": "integration_in_progress",
+      "status": "integrated_ci_pending",
       "startedAt": "2026-11-11T20:14:25.674976+00:00",
-      "endedAt": null,
+      "endedAt": "2026-11-11T20:22:06.744757+00:00",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
       "artifacts": [
         "docs/reviews/149-local-validation.json",
         "docs/reviews/153-local-validation.json",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/153#issuecomment-6806218950"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/153#issuecomment-6806218950",
+        "https://github.com/J-ARTS/de.sketchdraw.io/commit/bdfbb20ba646da505d05abe8cc04cabb924f5341",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43094755859",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/149#issuecomment-6806329788",
+        "docs/reviews/149-153-main-integration.json"
       ],
       "authorization": "Explicit user request to merge all changes into main and push. Portable .claude and .idea project settings inspected, no credentials found.",
       "measurementSource": "33/33 source hashes match final local validation; git diff --check and Graphify traceability --check passed. Remote main unchanged at bd610f6. No new runtime/model/cost measurement.",
@@ -8576,7 +8580,15 @@
       },
       "concerns": [
         "docs/concerns.md"
-      ]
+      ],
+      "ciCorrection": {
+        "agent": "/root/integration_scope_review",
+        "status": "verified_local",
+        "scope": "Only tests/p2p/native.spec.ts; reproduce outdated product UI selectors, preserve real sync and independent copy checks",
+        "cause": "Direct P2P CI step failed; complete runner logs pending",
+        "nextStep": "Push corrected integration test and verify fresh remote CI. Issues remain review until cross-platform CI confirmed.",
+        "result": "Only WebRTC product UI selectors updated; before timeout100s, after all3 native P2P tests passed in6.0s. Assertions/timeouts retained. Product code unchanged."
+      }
     }
   ],
   "evidencePolicy": {
