@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
 import { useEventListener, useMediaQuery } from '@vueuse/core';
 import AppIcon from './AppIcon.vue';
+import AppSelect from './AppSelect.vue';
 import PageSwitcher from './PageSwitcher.vue';
 import type { IconName } from './icons';
 import { isMacPlatform, modHint } from './platform';
@@ -15,7 +16,7 @@ interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
 
 const props = defineProps<{ collaborationOpen: boolean; pluginsOpen: boolean }>();
-const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: []; plugins: []; settings: [] }>();
+const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: []; plugins: []; settings: []; profiles: [] }>();
 
 const store = useWhiteboard();
 const s = store.state;
@@ -94,7 +95,14 @@ const viewItems = computed<ViewItem[]>(() => [
 
 /** Profiles exist only where plugins run (desktop app). */
 const pluginProfiles = computed(() => s.pluginSettings?.available ? s.pluginSettings.profiles : []);
-function chooseProfile(id: string): void { closeMenu(true); void store.selectPluginProfile(id); }
+const profileOptions = computed(() => pluginProfiles.value.map((profile) => ({ value: profile.id, label: profile.name })));
+/** The menu stays open so the dropdown shows the result; the control is not disabled while busy, which would drop its focus. */
+function chooseProfile(id: string): void { void store.selectPluginProfile(id); }
+function manageProfiles(): void { closeMenu(true); emit('profiles'); }
+/** Dropdown and manage button above the menu entries; they are form controls, so they are not part of the arrow-key list. */
+function profileStops(): HTMLElement[] {
+  return Array.from(viewList.value?.querySelectorAll<HTMLElement>('.profile-row [role="combobox"], .profile-row .profile-edit') ?? []);
+}
 
 type MenuName = 'file' | 'view';
 const openMenuName = ref<MenuName | null>(null);
@@ -135,14 +143,34 @@ function onTriggerKeydown(name: MenuName, event: KeyboardEvent): void {
 function onMenuKeydown(name: MenuName, event: KeyboardEvent): void {
   const items = itemsOf(name);
   const current = items.findIndex((item) => item === document.activeElement);
+  const stops = name === 'view' ? profileStops() : [];
+  const stop = stops.findIndex((item) => item === document.activeElement);
   let next: number;
   switch (event.key) {
     case 'ArrowDown': next = (current + 1) % items.length; break;
-    case 'ArrowUp': next = (current - 1 + items.length) % items.length; break;
+    case 'ArrowUp':
+      // The profile row sits above the first entry: ArrowUp walks into it instead of wrapping past it.
+      if (stops.length && (current === 0 || stop > 0)) {
+        event.preventDefault();
+        event.stopPropagation();
+        stops[current === 0 ? stops.length - 1 : stop - 1]?.focus();
+        return;
+      }
+      next = current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length;
+      break;
     case 'Home': next = 0; break;
     case 'End': next = items.length - 1; break;
+    case 'Tab': {
+      // Tab order inside the panel: profile dropdown, manage button, menu entries. Leaving either end closes the menu.
+      const order = [...stops, items[Math.max(current, 0)]];
+      const at = current >= 0 ? stops.length : stop;
+      const target = stops.length && at >= 0 && !event.altKey && !event.ctrlKey && !event.metaKey ? order[at + (event.shiftKey ? -1 : 1)] : undefined;
+      event.preventDefault();
+      event.stopPropagation();
+      if (target) target.focus(); else closeMenu(true);
+      return;
+    }
     case 'Escape':
-    case 'Tab':
       event.preventDefault();
       event.stopPropagation();
       closeMenu(true);
@@ -324,52 +352,52 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       </button>
       <div
         v-if="openMenuName === 'view'"
-        :id="viewMenuId"
         ref="viewList"
         class="menu view-menu sd-panel"
-        role="menu"
         data-focus-scope
-        :aria-label="t('menu.workspace')"
         @keydown="onMenuKeydown('view', $event)"
       >
-        <template v-for="item in viewItems" :key="item.id">
-          <span v-if="item.separator" class="rule" role="separator" />
-          <!-- The plugin profile of the editor is switched right above "Zusammenarbeiten" (#168). -->
-          <template v-if="item.id === 'collaboration' && pluginProfiles.length">
-            <div role="group" :aria-label="t('Plugin-Profil')" class="profile-group" data-testid="workspace-menu-profiles">
-              <span class="group-label" aria-hidden="true">{{ t('Profil') }}</span>
-              <button
-                v-for="profile in pluginProfiles"
-                :key="profile.id"
-                type="button"
-                role="menuitemradio"
-                tabindex="-1"
-                class="menu-item"
-                :aria-checked="profile.id === s.pluginSettings?.activeProfileId"
-                :aria-disabled="s.pluginBusy || undefined"
-                @click="chooseProfile(profile.id)"
-              >
-                <AppIcon name="component" :size="18" />
-                <span class="menu-label">{{ profile.name }}</span>
-                <AppIcon v-if="profile.id === s.pluginSettings?.activeProfileId" class="menu-check" name="check" :size="16" />
-              </button>
-            </div>
-            <span class="rule" role="separator" />
-          </template>
-          <button
-            type="button"
-            :role="item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
-            tabindex="-1"
-            class="menu-item"
-            :data-testid="`workspace-menu-${item.id}`"
-            :aria-checked="item.checked"
-            @click="runView(item.id)"
-          >
-            <AppIcon :name="item.icon" :size="18" />
-            <span class="menu-label">{{ t(item.label) }}</span>
-            <AppIcon v-if="item.checked" class="menu-check" name="check" :size="16" />
-          </button>
+        <!-- The plugin profile of the editor is switched above "Zusammenarbeiten"; the pen opens its management (#168, #169). -->
+        <template v-if="pluginProfiles.length && s.pluginSettings">
+          <div role="group" :aria-label="t('Plugin-Profil')" class="profile-row" data-testid="workspace-menu-profiles">
+            <AppSelect
+              class="profile-select"
+              :label="t('Profil')"
+              :model-value="s.pluginSettings.activeProfileId"
+              :options="profileOptions"
+              @update:model-value="chooseProfile($event)"
+            />
+            <button
+              type="button"
+              class="sd-icon-btn profile-edit"
+              data-testid="workspace-menu-profiles-edit"
+              :aria-label="t('Profile verwalten')"
+              :title="t('Profile verwalten')"
+              @click="manageProfiles"
+            >
+              <AppIcon name="rename" :size="18" />
+            </button>
+          </div>
+          <span class="rule" aria-hidden="true" />
         </template>
+        <div :id="viewMenuId" role="menu" :aria-label="t('menu.workspace')">
+          <template v-for="item in viewItems" :key="item.id">
+            <span v-if="item.separator" class="rule" role="separator" />
+            <button
+              type="button"
+              :role="item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
+              tabindex="-1"
+              class="menu-item"
+              :data-testid="`workspace-menu-${item.id}`"
+              :aria-checked="item.checked"
+              @click="runView(item.id)"
+            >
+              <AppIcon :name="item.icon" :size="18" />
+              <span class="menu-label">{{ t(item.label) }}</span>
+              <AppIcon v-if="item.checked" class="menu-check" name="check" :size="16" />
+            </button>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -638,14 +666,41 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 .menu-item[aria-disabled='true']{color:var(--text-muted);cursor:not-allowed}
 .menu-item[aria-disabled='true']:hover{background:transparent}
 
-.group-label {
-  display: block;
-  padding: 6px 12px 4px;
-  color: var(--text-muted);
-  font-size: 11px;
+/* Profile dropdown with its manage button; the button lines up with the control, not with the label above it. */
+.profile-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 4px 4px 2px 12px;
+}
+
+.profile-select {
+  flex: 1;
+}
+
+.profile-select :deep(.app-field-label) {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* Same height and radius as the menu entries below. */
+.profile-select :deep(.app-select) {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.profile-edit {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--text-muted);
+}
+
+.profile-edit:hover {
+  color: var(--text-primary);
 }
 
 .rule {

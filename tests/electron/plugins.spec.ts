@@ -33,7 +33,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     const chooseSavePath = async (filePath: string) => desktop.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, filePath);
     let dialog = await openPlugins();
     await expect(dialog.getByRole('tab', { name: /Installiert.*2/ })).toHaveAttribute('aria-selected', 'true');
-    await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Standard/);
+    await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
 
     // The profile is configured before any diagram is saved.
     await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
@@ -61,12 +61,18 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     expect(await exists(path.join(folderA, '.sketchdraw-plugins.json'))).toBe(false);
     expect(await exists(path.join(folderA, '.git', 'HEAD'))).toBe(false);
 
-    // A second profile starts empty and keeps its own settings.
-    const bar = dialog.getByRole('region', { name: 'Plugin-Profil' });
-    await bar.getByRole('button', { name: 'Neues Profil', exact: true }).click();
-    await dialog.getByRole('textbox', { name: 'Name des neuen Profils' }).fill('Kunde');
+    // A second profile is created in the profile dialog behind the pen of the workspace menu; it starts empty and keeps its own settings.
+    await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+    await page.getByTestId('workspace-menu-button').click();
+    await page.getByTestId('workspace-menu-profiles-edit').click();
+    const manager = page.getByRole('dialog', { name: 'Profile', exact: true });
+    await manager.getByRole('button', { name: 'Neues Profil', exact: true }).click();
+    await manager.getByRole('textbox', { name: 'Name des neuen Profils' }).fill('Kunde');
     await page.keyboard.press('Enter');
-    await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Kunde/);
+    await expect(manager.getByRole('listitem').filter({ hasText: 'Kunde' })).toHaveAttribute('aria-current', 'true');
+    await manager.getByRole('button', { name: 'Fertig', exact: true }).click();
+    dialog = await openPlugins();
+    await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde“');
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
     await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('');
     await expect(dialog.getByLabel('Username oder E-Mail', { exact: true })).toHaveValue('');
@@ -85,19 +91,23 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect.poll(() => exists(path.join(folderB, 'different.sketchdraw.json'))).toBe(true);
     dialog = await openPlugins();
     await expect(dialog).toContainText(folderB);
-    await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Kunde/);
+    await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde“');
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
     await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
     expect(await exists(path.join(folderB, '.sketchdraw-plugins.json'))).toBe(false);
 
-    // The workspace menu switches the profile above "Zusammenarbeiten".
+    // The dropdown of the workspace menu switches the profile above "Zusammenarbeiten".
     await page.getByTestId('workspace-menu-button').click();
-    const profiles = page.getByRole('menu', { name: 'Arbeitsbereich' }).getByRole('group', { name: 'Plugin-Profil' });
-    await expect(profiles.getByRole('menuitemradio')).toHaveText(['Standard', 'Kunde']);
-    await expect(profiles.getByRole('menuitemradio', { name: 'Kunde' })).toHaveAttribute('aria-checked', 'true');
-    await profiles.getByRole('menuitemradio', { name: 'Standard' }).click();
+    const profileSelect = page.getByTestId('workspace-menu-profiles').getByRole('combobox', { name: 'Profil', exact: true });
+    await expect(profileSelect).toHaveText('Kunde');
+    await profileSelect.click();
+    const profileOptions = page.getByRole('listbox', { name: 'Profil', exact: true }).getByRole('option');
+    await expect(profileOptions).toHaveText(['Standard', 'Kunde']);
+    await profileOptions.filter({ hasText: 'Standard' }).click();
+    await expect(profileSelect).toHaveText('Standard');
     await expect.poll(async () => (await store()).activeProfileId).toBe('default');
+    await page.keyboard.press('Escape');
     dialog = await openPlugins();
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
     await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH');
@@ -121,12 +131,14 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     page.on('pageerror', error => errors.push(error.message));
     await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
     await page.getByTestId('workspace-menu-button').click();
-    const restored = page.getByRole('menu', { name: 'Arbeitsbereich' }).getByRole('group', { name: 'Plugin-Profil' });
-    await expect(restored.getByRole('menuitemradio')).toHaveText(['Standard', 'Kunde']);
-    await expect(restored.getByRole('menuitemradio', { name: 'Standard' })).toHaveAttribute('aria-checked', 'true');
+    const restored = page.getByTestId('workspace-menu-profiles').getByRole('combobox', { name: 'Profil', exact: true });
+    await expect(restored).toHaveText('Standard');
+    await restored.click();
+    await expect(page.getByRole('listbox', { name: 'Profil', exact: true }).getByRole('option')).toHaveText(['Standard', 'Kunde']);
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     expect(errors).toEqual([]);
-    await testInfo.attach('native-plugin-evidence', { body: JSON.stringify({ platform: process.platform, realBuiltRendererPreloadMainAndPersistence: true, nativeFileDialogResultStubbed: true, profileStoreInUserData: true, profilesIndependentOfFolder: true, profileSwitchInMenu: true, profilesSurviveRestart: true, noConfigurationInProjectFolder: true, jiraNetwork: 'not contacted; disabled configuration persistence tested' }), contentType: 'application/json' });
+    await testInfo.attach('native-plugin-evidence', { body: JSON.stringify({ platform: process.platform, realBuiltRendererPreloadMainAndPersistence: true, nativeFileDialogResultStubbed: true, profileStoreInUserData: true, profilesIndependentOfFolder: true, profileSwitchInMenuDropdown: true, profileManagementInOwnDialog: true, profilesSurviveRestart: true, noConfigurationInProjectFolder: true, jiraNetwork: 'not contacted; disabled configuration persistence tested' }), contentType: 'application/json' });
   } finally {
     if (app) await stopElectron(app);
     await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });

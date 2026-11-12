@@ -221,7 +221,7 @@ test('bundled plugins start installed, are configurable in the profile right awa
   await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('2');
   await expect(dialog.getByRole('button', { name: 'Installieren', exact: true })).toHaveCount(0);
   // Settings belong to the editor profile (#168): no saved diagram is needed to edit them.
-  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Standard/);
+  await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
   await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
   await expect(dialog.getByLabel('Remote-URL', { exact: true })).toBeEnabled();
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
@@ -499,148 +499,280 @@ test('browser shows the bundled plugins but explains why native configuration is
   expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
 
-async function pickProfile(page: Page, dialog: Locator, name: string): Promise<void> {
-  await dialog.getByRole('combobox', { name: 'Profil', exact: true }).click();
-  await page.getByRole('listbox', { name: 'Profil', exact: true }).getByRole('option', { name, exact: true }).click();
-  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(new RegExp(name.replace(/[()]/g, '\\$&')));
+async function closePlugins(dialog: Locator): Promise<void> {
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await expect(dialog).toBeHidden();
 }
 
-test('profiles are created, copied, renamed and deleted in the plugin dialog and keep their own plugin settings', async ({ page }) => {
-  await desktop(page);
-  const dialog = await openPlugins(page);
-  const bar = dialog.getByRole('region', { name: 'Plugin-Profil' });
-  const select = dialog.getByRole('combobox', { name: 'Profil', exact: true });
-  await expect(select).toHaveText(/Standard/);
-  // The only profile cannot be deleted.
-  await expect(bar.getByRole('button', { name: 'Löschen', exact: true })).toBeDisabled();
+/** The profile is chosen in the dropdown of the workspace menu (#169). */
+async function switchProfile(page: Page, name: string): Promise<void> {
+  await page.getByTestId('workspace-menu-button').click();
+  const select = page.getByTestId('workspace-menu-profiles').getByRole('combobox', { name: 'Profil', exact: true });
+  await select.click();
+  await page.getByRole('listbox', { name: 'Profil', exact: true }).getByRole('option', { name, exact: true }).click();
+  await expect(select).toHaveText(name);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu', { name: 'Arbeitsbereich' })).toBeHidden();
+}
 
-  // Configure Jira in the default profile – no saved diagram needed.
-  await fillJira(dialog);
-  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
-  await expect(dialog.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+/** Profiles are managed in their own dialog behind the pen next to that dropdown (#169). */
+async function openProfiles(page: Page): Promise<Locator> {
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-profiles-edit').click();
+  const dialog = page.getByRole('dialog', { name: 'Profile', exact: true });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function closeProfiles(dialog: Locator): Promise<void> {
+  await dialog.getByRole('button', { name: 'Fertig', exact: true }).click();
+  await expect(dialog).toBeHidden();
+}
+
+test('profiles are created, copied, renamed, activated and deleted in their own dialog and keep their own plugin settings', async ({ page }) => {
+  await desktop(page);
+  // Configure Jira in the default profile – no saved diagram needed. The plugin dialog names the profile but no longer manages it.
+  let plugins = await openPlugins(page);
+  await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
+  await expect(plugins.getByRole('combobox', { name: 'Profil', exact: true })).toHaveCount(0);
+  await expect(plugins.getByRole('button', { name: 'Neues Profil', exact: true })).toHaveCount(0);
+  await fillJira(plugins);
+  await plugins.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(plugins.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+  await closePlugins(plugins);
+
+  let profiles = await openProfiles(page);
+  await expect(page.getByRole('menu', { name: 'Arbeitsbereich' })).toBeHidden();
+  const rows = profiles.getByRole('listitem');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('Standard');
+  await expect(rows.first()).toContainText('Aktiv');
+  await expect(rows.first()).toHaveAttribute('aria-current', 'true');
+  // The only profile cannot be deleted.
+  await expect(profiles.getByRole('button', { name: 'Profil „Standard“ löschen', exact: true })).toBeDisabled();
 
   // A new profile starts empty and becomes active.
-  await bar.getByRole('button', { name: 'Neues Profil', exact: true }).click();
-  const name = dialog.getByRole('textbox', { name: 'Name des neuen Profils' });
+  const create = profiles.getByRole('button', { name: 'Neues Profil', exact: true });
+  await create.click();
+  const name = profiles.getByRole('textbox', { name: 'Name des neuen Profils' });
   await expect(name).toBeFocused();
-  await expect(bar.getByRole('button', { name: 'Profil anlegen', exact: true })).toBeDisabled();
+  await expect(profiles.getByRole('button', { name: 'Profil anlegen', exact: true })).toBeDisabled();
   await name.fill('Kunde A'); await page.keyboard.press('Enter');
-  await expect(select).toHaveText(/Kunde A/);
-  await expect(dialog.locator('.plugin-feedback')).toHaveText('Profil „Kunde A“ angelegt.');
-  await selectPlugin(dialog, 'Jira');
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('');
-  await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
-  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('KUNDE');
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
-  await expect(dialog.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(1)).toContainText('Kunde A');
+  await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+  await expect(rows.first()).not.toHaveAttribute('aria-current', 'true');
+  await expect(profiles.getByRole('status')).toHaveText('Profil „Kunde A“ angelegt.');
+  await expect(name).toBeHidden();
+  await expect(create).toBeFocused();
+  await closeProfiles(profiles);
+  await expect(page.getByTestId('workspace-menu-button')).toBeFocused();
 
-  // Switching brings each profile's own settings back; tokens are never refilled.
-  await pickProfile(page, dialog, 'Standard');
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
-  await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).toBeChecked();
-  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('');
-  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
+  plugins = await openPlugins(page);
+  await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde A“');
+  await selectPlugin(plugins, 'Jira');
+  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('');
+  await expect(plugins.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
+  await plugins.getByLabel('Jira-Projekt', { exact: true }).fill('KUNDE');
+  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(plugins.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+  await closePlugins(plugins);
 
+  // Switching in the menu brings each profile's own settings back; tokens are never refilled.
+  await switchProfile(page, 'Standard');
+  plugins = await openPlugins(page);
+  await selectPlugin(plugins, 'Jira');
+  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(plugins.getByRole('checkbox', { name: 'Aktiv', exact: true })).toBeChecked();
+  await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveValue('');
+  await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
   // An unsaved draft does not travel to another profile.
-  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('DRAFT');
-  await pickProfile(page, dialog, 'Kunde A');
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
-  await pickProfile(page, dialog, 'Standard');
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await plugins.getByLabel('Jira-Projekt', { exact: true }).fill('DRAFT');
+  await closePlugins(plugins);
+  await switchProfile(page, 'Kunde A');
+  plugins = await openPlugins(page);
+  await selectPlugin(plugins, 'Jira');
+  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
+  await closePlugins(plugins);
+  await switchProfile(page, 'Standard');
 
-  // A copy takes the settings along, including the stored token.
-  await bar.getByRole('button', { name: 'Kopieren', exact: true }).click();
-  const copyName = dialog.getByRole('textbox', { name: 'Name der Kopie von „Standard“' });
+  // A copy takes the settings along, including the stored token, and becomes active.
+  profiles = await openProfiles(page);
+  await profiles.getByRole('button', { name: 'Profil „Standard“ kopieren', exact: true }).click();
+  const copyName = profiles.getByRole('textbox', { name: 'Name der Kopie von „Standard“' });
+  await expect(copyName).toBeFocused();
   await expect(copyName).toHaveValue('Standard (Kopie)');
-  await bar.getByRole('button', { name: 'Kopie anlegen', exact: true }).click();
-  await expect(select).toHaveText(/Standard \(Kopie\)/);
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
-  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
+  await profiles.getByRole('button', { name: 'Kopie anlegen', exact: true }).click();
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(2)).toContainText('Standard (Kopie)');
+  await expect(rows.nth(2)).toHaveAttribute('aria-current', 'true');
 
   // A name that is taken is reported inside the dialog; Escape leaves the form, not the dialog.
-  await bar.getByRole('button', { name: 'Umbenennen', exact: true }).click();
-  const rename = dialog.getByRole('textbox', { name: 'Neuer Name für „Standard (Kopie)“' });
+  await profiles.getByRole('button', { name: 'Profil „Standard (Kopie)“ umbenennen', exact: true }).click();
+  const rename = profiles.getByRole('textbox', { name: 'Neuer Name für „Standard (Kopie)“' });
   await expect(rename).toHaveValue('Standard (Kopie)');
   await rename.fill('kunde a'); await page.keyboard.press('Enter');
-  await expect(dialog.getByRole('alert')).toContainText('Ein Profil mit diesem Namen existiert bereits.');
+  await expect(profiles.getByRole('alert')).toContainText('Ein Profil mit diesem Namen existiert bereits.');
   await expect(rename).toBeVisible();
+  await expect(rename).toBeFocused();
   await rename.fill('Kunde B'); await page.keyboard.press('Enter');
-  await expect(select).toHaveText(/Kunde B/);
-  await bar.getByRole('button', { name: 'Umbenennen', exact: true }).click();
+  await expect(rows.nth(2)).toContainText('Kunde B');
+  await expect(profiles.getByRole('status')).toHaveText('Profil umbenannt.');
+  const renameB = profiles.getByRole('button', { name: 'Profil „Kunde B“ umbenennen', exact: true });
+  await expect(renameB).toBeFocused();
+  await renameB.click();
+  await expect(profiles.getByTestId('profile-form')).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(dialog).toBeVisible();
-  await expect(select).toBeVisible();
+  await expect(profiles.getByTestId('profile-form')).toBeHidden();
+  await expect(profiles).toBeVisible();
+  await expect(renameB).toBeFocused();
 
-  expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  expect((await new AxeBuilder({ page }).include('.profile-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 
-  // Deleting asks first and moves on to the first remaining profile.
-  await bar.getByRole('button', { name: 'Löschen', exact: true }).click();
-  await expect(bar.getByRole('alert')).toContainText('Profil „Kunde B“ mit seinen Plugin-Einstellungen und Tokens löschen?');
-  await bar.getByRole('button', { name: 'Abbrechen', exact: true }).click();
-  await expect(select).toHaveText(/Kunde B/);
-  await bar.getByRole('button', { name: 'Löschen', exact: true }).click();
-  await bar.getByRole('button', { name: 'Profil löschen', exact: true }).click();
-  await expect(select).toHaveText(/Standard/);
-  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  // Another profile is activated right here.
+  await profiles.getByRole('button', { name: 'Profil „Kunde A“ aktivieren', exact: true }).click();
+  await expect(rows.nth(1)).toHaveAttribute('aria-current', 'true');
+  await expect(profiles.getByRole('status')).toHaveText('Profil „Kunde A“ ist aktiv.');
+  await expect(profiles.getByRole('button', { name: 'Profil „Kunde A“ umbenennen', exact: true })).toBeFocused();
+  await profiles.getByRole('button', { name: 'Profil „Kunde B“ aktivieren', exact: true }).click();
+  await expect(rows.nth(2)).toHaveAttribute('aria-current', 'true');
+  await closeProfiles(profiles);
+  plugins = await openPlugins(page);
+  await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde B“');
+  await selectPlugin(plugins, 'Jira');
+  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
+  await closePlugins(plugins);
+
+  // Deleting asks first; deleting the active profile moves on to the first remaining one.
+  profiles = await openProfiles(page);
+  const removeB = profiles.getByRole('button', { name: 'Profil „Kunde B“ löschen', exact: true });
+  await removeB.click();
+  await expect(profiles.getByRole('alert')).toContainText('Profil „Kunde B“ mit seinen Plugin-Einstellungen und Tokens löschen?');
+  await expect(profiles.getByRole('button', { name: 'Profil löschen', exact: true })).toBeFocused();
+  await profiles.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+  await expect(rows).toHaveCount(3);
+  await expect(removeB).toBeFocused();
+  await removeB.click();
+  await profiles.getByRole('button', { name: 'Profil löschen', exact: true }).click();
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toHaveAttribute('aria-current', 'true');
+  await expect(profiles.getByRole('status')).toHaveText('Profil gelöscht.');
+  await closeProfiles(profiles);
+  plugins = await openPlugins(page);
+  await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
+  await selectPlugin(plugins, 'Jira');
+  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
 
   const calls = (await state(page)).calls.profiles;
-  expect(calls.map(call => call.action)).toEqual(['create', 'select', 'select', 'select', 'create', 'rename', 'rename', 'delete']);
+  expect(calls.map(call => call.action)).toEqual(['create', 'select', 'select', 'select', 'create', 'rename', 'rename', 'select', 'select', 'delete']);
   expect(calls[4]).toMatchObject({ action: 'create', name: 'Standard (Kopie)', copyFrom: 'default' });
   expect((await state(page)).settings.profiles.map(profile => profile.name)).toEqual(['Standard', 'Kunde A']);
   // Nothing of this is part of the diagram.
   expect((await state(page)).calls.saves).toEqual([]);
 });
 
-test('the workspace menu switches the profile right above Zusammenarbeiten', async ({ page }) => {
-  await desktop(page);
-  let dialog = await openPlugins(page);
-  const bar = dialog.getByRole('region', { name: 'Plugin-Profil' });
-  for (const name of ['Arbeit', 'Privat']) {
-    await bar.getByRole('button', { name: 'Neues Profil', exact: true }).click();
-    await dialog.getByRole('textbox', { name: 'Name des neuen Profils' }).fill(name);
-    await bar.getByRole('button', { name: 'Profil anlegen', exact: true }).click();
-    await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(new RegExp(name));
-  }
-  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+for (const theme of ['light', 'dark'] as const) {
+  test(`the workspace menu switches the profile in a dropdown above Zusammenarbeiten and opens the profile dialog (${theme})`, async ({ page }) => {
+    await desktop(page, { theme });
+    let profiles = await openProfiles(page);
+    for (const name of ['Arbeit', 'Privat']) {
+      await profiles.getByRole('button', { name: 'Neues Profil', exact: true }).click();
+      await profiles.getByRole('textbox', { name: 'Name des neuen Profils' }).fill(name);
+      await profiles.getByRole('button', { name: 'Profil anlegen', exact: true }).click();
+      await expect(profiles.getByRole('listitem').filter({ hasText: name })).toHaveAttribute('aria-current', 'true');
+    }
+    expect((await new AxeBuilder({ page }).include('.profile-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(profiles).toBeHidden();
+    const trigger = page.getByTestId('workspace-menu-button');
+    await expect(trigger).toBeFocused();
 
-  await page.getByTestId('workspace-menu-button').click();
-  const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
-  const group = menu.getByRole('group', { name: 'Plugin-Profil' });
-  await expect(group.getByRole('menuitemradio')).toHaveText(['Standard', 'Arbeit', 'Privat']);
-  await expect(group.getByRole('menuitemradio', { name: 'Privat' })).toHaveAttribute('aria-checked', 'true');
-  await expect(group.getByRole('menuitemradio', { name: 'Standard' })).toHaveAttribute('aria-checked', 'false');
-  // Directly above "Zusammenarbeiten": the group is the first thing in the menu and the next item is the collaboration entry.
-  const order = await menu.locator('[role^="menuitem"]').evaluateAll(items => items.map(item => item.textContent?.trim() ?? ''));
-  expect(order.slice(0, 4)).toEqual(['Standard', 'Arbeit', 'Privat', 'Zusammenarbeiten']);
-  const last = (await group.getByRole('menuitemradio', { name: 'Privat' }).boundingBox())!;
-  const collaboration = (await menu.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten' }).boundingBox())!;
-  expect(collaboration.y).toBeGreaterThan(last.y + last.height - 1);
-  // Arrow keys walk through the profiles like through every other entry.
-  await expect(group.getByRole('menuitemradio', { name: 'Standard' })).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await expect(group.getByRole('menuitemradio', { name: 'Arbeit' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(menu).toBeHidden();
-  await expect(page.getByRole('region', { name: 'Meldungen' })).toContainText('Profil „Arbeit“ ist aktiv.');
-  expect((await state(page)).settings.activeProfileId).toBe((await state(page)).settings.profiles[1]!.id);
+    await trigger.click();
+    const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
+    const row = page.getByTestId('workspace-menu-profiles');
+    const select = row.getByRole('combobox', { name: 'Profil', exact: true });
+    const edit = row.getByRole('button', { name: 'Profile verwalten', exact: true });
+    const collaboration = menu.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten' });
+    await expect(select).toHaveText('Privat');
+    // Directly above "Zusammenarbeiten", which stays the first menu entry; the pen is as tall as the dropdown next to it.
+    expect((await menu.locator('[role^="menuitem"]').first().textContent())?.trim()).toBe('Zusammenarbeiten');
+    const selectBox = (await select.boundingBox())!; const editBox = (await edit.boundingBox())!; const firstBox = (await collaboration.boundingBox())!;
+    expect(firstBox.y).toBeGreaterThan(selectBox.y + selectBox.height - 1);
+    expect(firstBox.y - (selectBox.y + selectBox.height)).toBeLessThan(24);
+    expect(Math.abs(editBox.y - selectBox.y)).toBeLessThan(1);
+    expect(Math.abs(editBox.height - selectBox.height)).toBeLessThan(1);
+    expect(editBox.x).toBeGreaterThan(selectBox.x + selectBox.width - 1);
+    const colors = await select.evaluate(element => { const style = getComputedStyle(element); return { background: style.backgroundColor, color: style.color }; });
+    const luminance = (value: string): number => { const [r, g, b] = value.match(/[\d.]+/g)!.map(Number) as [number, number, number]; return (r * 299 + g * 587 + b * 114) / 255000; };
+    if (theme === 'light') expect(luminance(colors.background)).toBeGreaterThan(0.85); else expect(luminance(colors.background)).toBeLessThan(0.3);
 
-  await page.getByTestId('workspace-menu-button').click();
-  await expect(group.getByRole('menuitemradio', { name: 'Arbeit' })).toHaveAttribute('aria-checked', 'true');
-  expect((await new AxeBuilder({ page }).include('[role=menu]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
-  await page.keyboard.press('Escape');
-  // The dialog follows the choice made in the menu.
-  dialog = await openPlugins(page);
-  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Arbeit/);
-});
+    // Keyboard: the menu opens on its first entry; ArrowUp walks into the profile row, Tab walks back down.
+    await expect(collaboration).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(edit).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(select).toBeFocused();
+    await page.keyboard.press('Enter');
+    const list = page.getByRole('listbox', { name: 'Profil', exact: true });
+    await expect(list.getByRole('option')).toHaveText(['Standard', 'Arbeit', 'Privat']);
+    // Escape closes the list only, not the menu around it.
+    await page.keyboard.press('Escape');
+    await expect(list).toBeHidden();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
+    await expect(select).toHaveText('Arbeit');
+    await expect(menu).toBeVisible();
+    await expect(select).toBeFocused();
+    await expect(page.getByRole('region', { name: 'Meldungen' })).toContainText('Profil „Arbeit“ ist aktiv.');
+    expect((await state(page)).settings.activeProfileId).toBe((await state(page)).settings.profiles[1]!.id);
+    await page.keyboard.press('Tab');
+    await expect(edit).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(collaboration).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(edit).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(collaboration).toBeFocused();
+    expect((await new AxeBuilder({ page }).include('.view-menu').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    // Pointer: pick in the dropdown, then the pen closes the menu and opens the dialog with the same profile marked.
+    await trigger.click();
+    await select.click();
+    await list.getByRole('option', { name: 'Standard', exact: true }).click();
+    await expect(select).toHaveText('Standard');
+    await edit.click();
+    await expect(menu).toBeHidden();
+    profiles = page.getByRole('dialog', { name: 'Profile', exact: true });
+    await expect(profiles.getByRole('listitem').filter({ hasText: 'Standard' })).toHaveAttribute('aria-current', 'true');
+    await closeProfiles(profiles);
+    // The plugin dialog follows the choice made in the menu.
+    const plugins = await openPlugins(page);
+    await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
+  });
+}
 
 test('the browser preview has no profiles in the menu or the plugin dialog', async ({ page }) => {
   await start(page);
   await page.getByTestId('workspace-menu-button').click();
   const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
-  await expect(menu.getByRole('group', { name: 'Plugin-Profil' })).toHaveCount(0);
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(0);
+  await expect(page.getByTestId('workspace-menu-profiles')).toHaveCount(0);
+  await expect(page.getByTestId('workspace-menu-profiles-edit')).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'Profil', exact: true })).toHaveCount(0);
+  // Without the profile row the menu keeps its plain keyboard model: ArrowUp wraps, Tab closes.
+  await expect(menu.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten' })).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(menu.getByRole('menuitem', { name: 'Einstellungen', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(menu).toBeHidden();
+  await page.getByTestId('workspace-menu-button').click();
   await menu.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
   const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
-  await expect(dialog.getByRole('region', { name: 'Plugin-Profil' })).toHaveCount(0);
+  await expect(dialog.getByTestId('plugin-active-profile')).toHaveCount(0);
 });

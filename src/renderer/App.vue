@@ -24,6 +24,7 @@ import TaskBoard from './components/TaskBoard.vue';
 import FrameSidebar from './components/FrameSidebar.vue';
 import PresenterMode from './components/PresenterMode.vue';
 import PluginSettings from './components/PluginSettings.vue';
+import ProfileDialog from './components/ProfileDialog.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
 import { resolveCanvasBackground } from './lib/preferences';
 
@@ -67,6 +68,7 @@ const feedbackClearance = computed(() => Math.ceil(Math.max(
 )));
 const pluginsOpen = ref(false);
 const settingsOpen = ref(false);
+const profilesOpen = ref(false);
 const authority = shallowRef(store.getAuthority());
 let agentSession: RendererAgentSession | undefined;
 function attachAgentAccess(value: DocumentAuthority | null) {
@@ -121,7 +123,7 @@ onBeforeUnmount(() => { offInviteLink?.(); agentSession?.dispose(); offAuthority
 <template>
   <main class="workspace" :aria-label="t('Sketchdraw Arbeitsbereich')">
     <div class="workspace-content" :inert="s.transitioning || s.presenterOpen || undefined" :style="{ '--feedback-height': `${feedbackClearance}px` }">
-      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" @settings="settingsOpen = true" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :invite-link="inviteLink" @link-consumed="inviteLink = null" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" /><SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" @settings="settingsOpen = true" @profiles="profilesOpen = true" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :invite-link="inviteLink" @link-consumed="inviteLink = null" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" /><SettingsDialog :open="settingsOpen" @close="settingsOpen = false" /><ProfileDialog :open="profilesOpen" @close="profilesOpen = false" />
       <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" :aria-label="t('Ansicht und Verlauf')">
         <button class="sd-icon-btn zoom-btn" :aria-label="t('Verkleinern')" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" :aria-label="t('Zoom auf 100 Prozent')" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" :aria-label="t('Vergrößern')" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Alles anzeigen')" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Rückgängig')" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" :aria-label="t('Wiederholen')" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>
