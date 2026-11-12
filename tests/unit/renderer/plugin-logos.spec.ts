@@ -13,7 +13,9 @@ describe('plugin logos', () => {
     expect(Object.fromEntries(logos)).toEqual({ git: '/assets/git-1.svg', jira: '/assets/jira-1.png' });
   });
 
-  it('ships no third-party artwork: without a file the tile keeps its letter', () => {
+  it('resolves the bundled Git and Jira files and nothing for an unknown plugin', () => {
+    expect(pluginLogoUrl('git')).toEqual(expect.any(String));
+    expect(pluginLogoUrl('jira')).toEqual(expect.any(String));
     expect(pluginLogoUrl('unknown-plugin')).toBeNull();
   });
 });

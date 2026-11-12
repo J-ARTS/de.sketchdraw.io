@@ -416,18 +416,25 @@ for (const width of [360, 960, 1280]) {
 }
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`plugin tiles stay white in the ${theme} theme and fall back to a letter while no official logo file is present`, async ({ page }) => {
+  test(`plugin tiles show the vendor logos on white in the ${theme} theme`, async ({ page }) => {
     await desktop(page, { theme });
     await start(page);
     const dialog = await openPlugins(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     const tiles = dialog.locator('.plugin-list-item .plugin-logo');
-    await expect(tiles).toHaveText(['G', 'J']);
+    await expect(tiles).toHaveCount(2);
     for (const tile of await tiles.all()) {
-      expect(await tile.evaluate(element => { const style = getComputedStyle(element); return [style.backgroundColor, style.backgroundImage, style.color]; })).toEqual(['rgb(255, 255, 255)', 'none', 'rgb(31, 35, 48)']);
+      expect(await tile.evaluate(element => { const style = getComputedStyle(element); return [style.backgroundColor, style.backgroundImage]; })).toEqual(['rgb(255, 255, 255)', 'none']);
+      // The logo replaces the letter, is decorative (the name stands next to it) and keeps its proportions.
+      await expect(tile).toHaveText('');
+      const image = tile.locator('img');
+      await expect(image).toHaveAttribute('alt', '');
+      expect(await image.evaluate((element: HTMLImageElement) => element.complete && element.naturalWidth > 0 && getComputedStyle(element).objectFit)).toBe('contain');
     }
-    // The repository ships no vendor artwork (#165); a dropped-in file would replace the letter.
-    await expect(dialog.locator('.plugin-logo img')).toHaveCount(0);
+    // List, detail header and overview use the same file.
+    const sources = await dialog.locator('.plugin-logo img').evaluateAll(images => images.map(image => (image as HTMLImageElement).src));
+    expect(new Set(sources).size).toBe(2);
+    expect(sources.length).toBeGreaterThanOrEqual(3);
   });
 }
 

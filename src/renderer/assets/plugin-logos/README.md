@@ -1,6 +1,6 @@
 # Plugin-Logos
 
-Die Plugin-Einstellungen zeigen für jedes Plugin eine weiße Kachel. Liegt hier eine Datei mit der Plugin-ID als Namen, erscheint sie in der Kachel; sonst zeigt die Kachel den Anfangsbuchstaben.
+Die Plugin-Einstellungen zeigen für jedes Plugin eine weiße Kachel. Liegt hier eine Datei mit der Plugin-ID als Namen, erscheint sie in der Kachel; sonst zeigt die Kachel den Anfangsbuchstaben. Aktuell liegen `git.svg` und `jira.svg` hier; Herkunft und Bedingungen stehen in `THIRD_PARTY_ICONS.md`.
 
 | Plugin | Dateiname |
 | --- | --- |

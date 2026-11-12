@@ -51,9 +51,11 @@ The curated SVG strings are stored in `src/catalog/official-icons.ts`. `src/cata
 
 ## Plugin-Logos (Git, Jira)
 
-Das Repository enthält keine Logodateien für die Plugins. Die Kacheln in den Plugin-Einstellungen zeigen eine weiße Fläche mit Anfangsbuchstaben, bis der Projektinhaber die offiziellen, unveränderten Herstellerdateien unter `src/renderer/assets/plugin-logos/` ablegt (`git.svg`, `jira.svg`; siehe README dort, #165). Beim Ablegen hier Quelle, Lizenz bzw. Markenrichtlinie und Abrufdatum eintragen.
+Die Kacheln in den Plugin-Einstellungen zeigen die unveränderten Herstellerdateien aus `src/renderer/assets/plugin-logos/` auf weißer Fläche (#165). Ohne Datei zeigt eine Kachel den Anfangsbuchstaben.
 
 | Plugin | Datei | Quelle | Bedingungen | Abgerufen |
 | --- | --- | --- | --- | --- |
-| Git | – | – | – | – |
-| Jira | – | – | – | – |
+| Git | `git.svg` (SHA-256 `1080a5430edb6278…`) | https://git-scm.com/images/logos/downloads/Git-Icon-1788C.svg, genannt auf https://git-scm.com/community/logos | „Git Logo by Jason Long is licensed under the Creative Commons Attribution 3.0 Unported License.“ (https://creativecommons.org/licenses/by/3.0/) – Namensnennung erforderlich | 12.11.2026 |
+| Jira | `jira.svg` (SHA-256 `ad20a13973de9ff9…`) | Vom Projektinhaber am 12.11.2026 als `Jira_icon.svg` bereitgestellt | Marke von Atlassian; keine offene Lizenz. Nutzung nach den Marken- und Designrichtlinien von Atlassian; Prüfung durch den Projektinhaber, hier nicht belegt | 12.11.2026 |
+
+Beide Dateien sind unverändert übernommen. Git und das Git-Logo sind Marken der Software Freedom Conservancy; Jira und Atlassian sind Marken von Atlassian. Sketchdraw ist mit keinem der Hersteller verbunden.

@@ -1,6 +1,6 @@
 /**
- * Vendor logos for the plugin tiles. The repository ships none: a file named after the plugin id in
- * `assets/plugin-logos` is shown when the project owner adds the official artwork; otherwise the tile keeps its letter.
+ * Vendor logos for the plugin tiles: a file named after the plugin id in `assets/plugin-logos` is shown unmodified;
+ * a plugin without a file keeps its letter. Sources and terms are recorded in THIRD_PARTY_ICONS.md.
  */
 const files = import.meta.glob<string>('../assets/plugin-logos/*.{svg,png}', { import: 'default', eager: true });
 
