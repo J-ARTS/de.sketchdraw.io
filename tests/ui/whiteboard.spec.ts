@@ -317,3 +317,15 @@ test('free text grows with every line break and its box can be resized afterward
   await page.mouse.down(); await page.mouse.move(handle.x + 160, handle.y + 40, { steps: 6 }); await page.mouse.up();
   await expect.poll(width).toBeGreaterThan(widthBefore + 100);
 });
+
+test('the browser tab shows the app icon (#171)', async ({ page }) => {
+  await page.goto('/');
+  const href = await page.locator('link[rel="icon"]').getAttribute('href');
+  expect(href).toBe('./app-icon.png');
+  const response = await page.request.get(new URL(href!, page.url()).toString());
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/png');
+  // The content security policy must let the page itself load it as well.
+  const size = await page.evaluate(async (source) => { const image = new Image(); image.src = source; await image.decode(); return [image.naturalWidth, image.naturalHeight]; }, href!);
+  expect(size).toEqual([256, 256]);
+});

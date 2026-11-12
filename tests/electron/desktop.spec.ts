@@ -51,6 +51,8 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         expect(metadata).toMatchObject({ appPath: root, userData: path.join(root, 'profile'), sessionData: path.join(root, 'session'), minimum: [960, 640] });
         expect(metadata.bounds.width).toBeGreaterThanOrEqual(960); expect(metadata.bounds.height).toBeGreaterThanOrEqual(640);
         if (process.platform === 'darwin' || process.platform === 'win32') expect(metadata.sandboxed).toBe(true);
+        // The window icon (#171) ships with the renderer build and is a readable image for the main process.
+        expect(await electronApp.evaluate(({ app, nativeImage }) => nativeImage.createFromPath(`${app.getAppPath()}/dist/app-icon.png`).getSize())).toEqual({ width: 256, height: 256 });
 
         // Unlike page.evaluate, executeJavaScript(..., false) does not manufacture user activation.
         // Assert the precondition before any user interaction and never intentionally open an external URL.

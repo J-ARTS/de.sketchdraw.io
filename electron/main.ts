@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   app,
@@ -119,6 +120,15 @@ function getDistRootDir(): string {
 
 function getPreloadScriptPath(): string {
   return path.join(__dirname, 'preload.cjs');
+}
+
+/**
+ * Window and taskbar icon on Windows and Linux (#171); macOS takes the icon of the app bundle. The file ships with the
+ * renderer build; a development start without a build falls back to the source in public/.
+ */
+function getWindowIconPath(): string | undefined {
+  if (process.platform === 'darwin') return undefined;
+  return [path.join(getDistRootDir(), 'app-icon.png'), path.resolve(__dirname, '../public/app-icon.png')].find((file) => existsSync(file));
 }
 
 function getCurrentSecurityContext(): IpcSecurityContext {
@@ -456,7 +466,9 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
 }
 
 async function createMainWindow(target: RendererTarget): Promise<BrowserWindow> {
+  const icon = getWindowIconPath();
   const win = new BrowserWindow({
+    ...(icon ? { icon } : {}),
     width: WINDOW_DIMENSIONS.width,
     height: WINDOW_DIMENSIONS.height,
     minWidth: WINDOW_DIMENSIONS.minWidth,

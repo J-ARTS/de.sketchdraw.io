@@ -5,7 +5,8 @@
   "asar": true,
   "publish": null,
   "directories": {
-    "output": "release"
+    "output": "release",
+    "buildResources": "build"
   },
   "files": [
     "dist/**/*",
@@ -28,6 +29,7 @@
   },
   "mac": {
     "category": "public.app-category.developer-tools",
+    "icon": "build/icon.icns",
     "darkModeSupport": true,
     "hardenedRuntime": true,
     "gatekeeperAssess": false,
@@ -47,6 +49,7 @@
     "writeUpdateInfo": false
   },
   "win": {
+    "icon": "build/icon.ico",
     "artifactName": "${productName}-${version}-windows-${arch}.${ext}",
     "target": [
       {
@@ -68,6 +71,7 @@
   },
   "linux": {
     "category": "Development",
+    "icon": "build/icons",
     "maintainer": "J-ARTS",
     "synopsis": "Visual Workspace for Architecture, Diagrams, and P2P Collaboration",
     "artifactName": "${productName}-${version}-linux-x64.${ext}",
