@@ -5,6 +5,7 @@ import {
 } from 'electron';
 import { createAgentAccessPreload } from './agent-access/preload';
 import type { DirectEvent, HelperStatus } from '../src/collaboration/hdht/types';
+import { isAppLinkFragment } from '../src/collaboration/hdht/app-link';
 import type {
   DesktopBridge,
   ExportFileResult,
@@ -206,6 +207,21 @@ export function createPreloadDesktopBridge(
         url: validatedUrl.toString(),
         userInitiated: true,
       });
+    },
+
+    onInviteLink(listener: (link: string) => void): () => void {
+      if (typeof listener !== 'function') throw new Error('onInviteLink requires a listener function.');
+      let active = true;
+      // Main keeps the validated link until it is taken, so a link that arrives before this listener is not lost.
+      const take = (): void => {
+        void ipc.invoke(IPC_CHANNELS.INVITE_LINK_TAKE).then((value) => {
+          if (active && isAppLinkFragment(value)) listener(value);
+        }).catch(() => undefined);
+      };
+      const wrapped = (): void => take();
+      ipc.on(IPC_CHANNELS.INVITE_LINK_EVENT, wrapped);
+      take();
+      return () => { active = false; ipc.removeListener(IPC_CHANNELS.INVITE_LINK_EVENT, wrapped); };
     },
 
     onCloseRequested(listener: (requestId: string) => void): () => void {

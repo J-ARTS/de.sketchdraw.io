@@ -1,4 +1,4 @@
-import { normalizeWebAppUrl } from '../session-link';
+import { APP_LINK_BASE } from './app-link';
 import {
   base64UrlToBytes, bytesToBase64Url, bytesToHex, concatBytes, constantTimeEqual, hexToBytes, randomBytes, SESSION_ID_BYTES, utf8,
 } from './codec';
@@ -47,10 +47,11 @@ export function optionalRelayUrl(value: string): string | null {
 
 export function createSessionId(): string { return bytesToHex(randomBytes(SESSION_ID_BYTES)); }
 
-export function buildHdhtLink(invitation: HdhtInvitation, webAppUrl: string): string {
+/** The shareable link opens the desktop app; it has no web address and never carries the PIN. */
+export function buildHdhtLink(invitation: HdhtInvitation): string {
   const payload = { v: 1, s: invitation.sessionId, h: invitation.hostKey, d: invitation.directKey, r: invitation.relayUrl, i: invitation.documentId, e: invitation.expiresAt };
   const text = bytesToBase64Url(utf8.encode(JSON.stringify(payload)));
-  return `${normalizeWebAppUrl(webAppUrl)}#${HDHT_LINK_PARAM}=${text}`;
+  return `${APP_LINK_BASE}#${HDHT_LINK_PARAM}=${text}`;
 }
 
 /** The raw fragment value of a link of this mode, or null when the text carries none. */

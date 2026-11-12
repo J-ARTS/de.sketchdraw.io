@@ -49,7 +49,7 @@ export interface HelperStatus {
   error?: string;
 }
 
-/** Opt-in volunteer relay of this device (Electron main). Off by default; never started implicitly. */
+/** Volunteer relay of this device (Electron main). It runs while a session of this device is active (#162). */
 export interface HelperBridge {
   start(): Promise<HelperStatus>;
   stop(): Promise<void>;

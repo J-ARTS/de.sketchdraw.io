@@ -22,9 +22,9 @@ Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert.
 - SVG- und draw.io-Austausch mit einer Vorschau möglicher Konvertierungsverluste.
 - Automatischer lokaler MCP-Zugriff auf das aktuell geöffnete Desktop-Dokument, ohne Freigabe-Tab.
 - Yjs-basierte kollaborative Dokumente mit lokaler IndexedDB-Wiederherstellung und actor-lokalem Undo/Redo.
-- Zwei sichtbare Kollaborationsmodi: Strict Direct mit manuellem Einladungsaustausch sowie Automatic P2P über ausdrücklich konfigurierte Trystero-MQTT/WSS- und ICE/TURN-Endpunkte.
+- Gemeinsame Sessions zwischen Desktop-Apps: ein `sketchdraw://`-Link und eine getrennt geteilte PIN. Die Geräte verbinden sich über HyperDHT direkt, sonst über freiwillige Relay-Helfer. Als letzter Ausweg bleibt der manuelle Einladungsaustausch ohne Server.
 
-Dokumente werden lokal gespeichert. **Strict Direct** verwendet keine zentralen Dokument-, Signaling-, STUN-, TURN- oder Relay-Dienste; direkte Erreichbarkeit ist deshalb nicht in jedem Netzwerk gegeben. **Automatic P2P** ist ein ausdrücklicher Opt-in und zeigt seine externen Signaling- und ICE/TURN-Endpunkte an. Signaling speichert oder transportiert keine Diagrammdaten. Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.
+Dokumente werden lokal gespeichert. Sessions brauchen keinen festen Server und kein Gateway; die Inhalte sind Ende-zu-Ende verschlüsselt. Solange eine Session läuft, leitet die App als Relay-Helfer mit begrenzter Bandbreite auch verschlüsselte Daten anderer Sessions weiter. Eine Verbindung ist nicht in jedem Netzwerk möglich: Ist UDP vollständig gesperrt, kommt keine zustande. Details stehen in [ADR 0007](docs/decisions/0007-app-link-and-session-relay-helper.md). Eine Agentenänderung wird nicht automatisch auf die Festplatte gespeichert.
 
 ## Lizenz
 

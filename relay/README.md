@@ -4,13 +4,13 @@
 
 Die Desktop-App sucht Teilnehmer über HyperDHT. Eine Sitzung versucht zuerst den direkten Weg; bei Bedarf findet der Gast über ein sitzungsspezifisches DHT-Topic Helfer, bei denen der Gastgeber seinen Sitzungsschlüssel bereits nachgewiesen hat. Der Gastgeber registriert sich möglichst bei zwei Helfern. Beim Ausfall wird neu verbunden und Yjs gleicht den Dokumentstand ab.
 
-Unter **Zusammenarbeiten → Netzwerk und Relay-Hilfe → Dieses Gerät als Relay-Helfer anbieten** können Desktop-Nutzer die Weiterleitung ausdrücklich einschalten. Standard ist aus. Der Helfer benutzt einen eigenen flüchtigen Schlüssel, bleibt bei Dokumentwechsel oder Ende der eigenen Sitzung aktiv und endet beim Ausschalten oder Schließen des App-Fensters. Es gibt keine gespeicherten Fremddokumente. Die angebotene Anwendungsweiterleitung ist auf 48 Verbindungen, 8 Sitzungen, 24 Gäste je Sitzung und insgesamt 12 MiB/s (24-MiB-Burst) begrenzt. Grenzen der darunterliegenden HyperDHT-Handshakes sind davon getrennt.
+Solange eine Session dieses Geräts läuft, bietet die Desktop-App die Weiterleitung automatisch an; es gibt keinen Schalter (ADR 0007, #162). Der Helfer benutzt einen eigenen flüchtigen Schlüssel, endet mit der eigenen Sitzung oder beim Schließen des App-Fensters. Es gibt keine gespeicherten Fremddokumente. Die angebotene Anwendungsweiterleitung ist auf 48 Verbindungen, 8 Sitzungen, 24 Gäste je Sitzung und insgesamt 12 MiB/s (24-MiB-Burst) begrenzt. Grenzen der darunterliegenden HyperDHT-Handshakes sind davon getrennt.
 
 Das ist ein implementiertes Protokoll, keine vorhandene öffentliche Relay-Flotte. Es braucht tatsächlich erreichbare und eingeschaltete Helfer. Bei ungünstigem NAT oder vollständig blockiertem UDP kann auch ein Helfer unerreichbar bleiben. Die lokale DHT-Testumgebung belegt keine Internet-NAT-/Proxy-Abdeckung; siehe Issue #72 und `docs/reviews/149-decentralized-relay-decision.md`.
 
 ## Optionales WSS-Gateway
 
-Der folgende eigenständig betreibbare Dienst ist für Browser und Netzwerke mit UDP-Sperren vorgesehen. Er ist keine Voraussetzung für native Discovery oder native Helfer und wird nicht automatisch bereitgestellt.
+**Seit #162 hat die App keine Gateway-Einstellung mehr.** Der folgende eigenständig betreibbare Dienst bleibt als Bibliothek und für die Browser-UI-Tests erhalten (Entwicklungsschlüssel `localStorage['sketchdraw.hdht-relay-url.v1']`); er ist kein Produktweg.
 
 Leitet **ausschließlich Ende-zu-Ende-verschlüsselte Datensätze** zwischen einem Gastgeber und seinen Gästen weiter, wenn eine direkte HyperDHT-Verbindung (UDP) nicht zustande kommt oder ein Browser teilnimmt. Der Relay
 
@@ -20,7 +20,7 @@ Leitet **ausschließlich Ende-zu-Ende-verschlüsselte Datensätze** zwischen ein
 - erlaubt die Registrierung eines Gastgebers nur mit Besitznachweis: der Topic ist `SHA-256(Label ‖ Gastgeber-Schlüssel)`, und der Gastgeber signiert eine frische, pro Verbindung erzeugte Challenge mit seinem Ed25519-Schlüssel. Link-Inhaber ohne privaten Schlüssel können einen laufenden Gastgeber weder verdrängen noch einen Topic vorab belegen,
 - sieht Metadaten: IP-Adressen, Verbindungszeitpunkte, einen aus dem öffentlichen Sitzungsschlüssel abgeleiteten Topic-Hash und Datenmengen.
 
-**Es gibt keinen mitgelieferten oder öffentlichen Produktiv-Endpunkt.** Wer zusätzlich ein WSS-Gateway nutzen will, betreibt eines selbst oder nutzt einen ausdrücklich gewählten unabhängigen Betreiber und trägt dessen `wss://`-Adresse in der App unter *Netzwerk* ein. Der Relay garantiert nicht, dass jede Firewall oder jeder Proxy durchlässig ist; ein Netzwerk, das WebSockets nach außen blockiert, bleibt ohne Verbindung.
+**Es gibt keinen mitgelieferten oder öffentlichen Produktiv-Endpunkt.** Die App bietet dafür keine Einstellung mehr; ein selbst betriebenes Gateway lässt sich nur über den Entwicklungsschlüssel ansprechen. Der Relay garantiert nicht, dass jede Firewall oder jeder Proxy durchlässig ist; ein Netzwerk, das WebSockets nach außen blockiert, bleibt ohne Verbindung.
 
 ## Starten
 
@@ -61,7 +61,7 @@ server {
 }
 ```
 
-Hinter einem Proxy `RELAY_TRUST_PROXY=1` setzen, damit das Verbindungslimit pro IP die echte Client-Adresse nutzt (nur wenn der Proxy `X-Forwarded-For` selbst setzt und nicht durchreicht). Trage die Adresse `wss://relay.example.org/` in der App ein.
+Hinter einem Proxy `RELAY_TRUST_PROXY=1` setzen, damit das Verbindungslimit pro IP die echte Client-Adresse nutzt (nur wenn der Proxy `X-Forwarded-For` selbst setzt und nicht durchreicht).
 
 ## Konfiguration (Umgebungsvariablen)
 

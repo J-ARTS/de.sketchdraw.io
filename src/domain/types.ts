@@ -428,6 +428,8 @@ export interface DesktopBridge {
   readonly plugins?: import('./plugins').PluginBridge;
   /** Optional desktop-only capability: native direct (HyperDHT) connections for the session mode. */
   readonly direct?: import('../collaboration/hdht/types').DirectBridge;
-  /** Optional desktop-only capability: opt-in relay helper (volunteer peer relay). */
+  /** Optional desktop-only capability: session links (`sketchdraw://join#…`) the app was opened with, as link fragments. */
+  onInviteLink?(listener: (link: string) => void): () => void;
+  /** Optional desktop-only capability: volunteer relay helper; the session mode runs it while a session is active. */
   readonly helper?: import('../collaboration/hdht/types').HelperBridge;
 }

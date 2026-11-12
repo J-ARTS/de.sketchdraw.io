@@ -11,7 +11,7 @@ const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.
 // Invitations, PINs and the local MCP runtime capability must not be captured in artifacts.
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
 
-test('built Electron peers use real native IPC and isolated HyperDHT for URL/PIN, Yjs and opt-in helpers', async ({}, testInfo) => {
+test('built Electron peers use real native IPC and isolated HyperDHT for app-link/PIN, Yjs and the session relay helper', async ({}, testInfo) => {
   test.setTimeout(90_000);
   const net = await require('hyperdht/testnet')(3);
   const roots: string[] = [], apps: ElectronApplication[] = [], errors: string[] = [];
@@ -50,11 +50,15 @@ require('./dist-electron/main.cjs');`);
     await panel.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
     await owner.page.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
     await panel.getByTestId('hdht-network').locator('summary').click();
-    const helper = panel.getByTestId('hdht-helper'); await expect(helper).not.toBeChecked();
-    await helper.check(); await expect(helper).toBeChecked();
-    expect(await owner.page.evaluate(() => window.sketchdraw!.helper!.status())).toMatchObject({ running: true, announced: true });
+    // The relay helper has no switch: it runs exactly while a session of this device runs (#162).
+    const helperStatus = (page: Page) => page.evaluate(() => window.sketchdraw!.helper!.status());
+    await expect(panel.getByTestId('hdht-helper')).toHaveCount(0);
+    expect(await helperStatus(owner.page)).toMatchObject({ running: false });
     await panel.getByTestId('hdht-start').click();
     await expect(panel.getByTestId('hdht-link')).toBeVisible({ timeout: 20_000 });
+    await expect(panel.getByTestId('hdht-link')).toHaveValue(/^sketchdraw:\/\/join#sketchdraw-hdht=[A-Za-z0-9_-]+$/);
+    await expect.poll(() => helperStatus(owner.page), { timeout: 20_000 }).toMatchObject({ running: true, announced: true });
+    await expect(panel.getByTestId('hdht-helper-status')).toContainText('Relay-Helfer aktiv');
     // The invitation can initially describe only helper discovery. Wait for the actual native listen result.
     await expect.poll(async () => {
       const link = await panel.getByTestId('hdht-link').inputValue();
@@ -70,6 +74,7 @@ require('./dist-electron/main.cjs');`);
     await expect(guest.page.getByTestId('hdht-session')).toContainText('Direktverbindung');
     await expect(guest.page.locator('.whiteboard-canvas [data-kind=rectangle]')).toHaveCount(1);
     await expect.poll(guest.hasLocalAgent).toBe(false);
+    await expect.poll(() => helperStatus(guest.page), { timeout: 20_000 }).toMatchObject({ running: true });
     await draw(guest.page, 'Ellipse', 460);
     await expect(owner.page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
     // Actual native IPC validates arguments and rejects them before opening sockets.
@@ -78,13 +83,12 @@ require('./dist-electron/main.cjs');`);
     await expect(guest.page.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat deine Verbindung beendet');
     await expect(guest.page.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
     expect(await guest.hasLocalAgent()).toBe(false);
-    await expect(helper).toBeChecked();
+    await expect.poll(() => helperStatus(owner.page)).toMatchObject({ running: false, connections: 0, sessions: 0 });
     await guest.page.getByTestId('hdht-stop').click();
     await expect.poll(guest.hasLocalAgent).toBe(true);
-    await helper.uncheck();
-    await expect.poll(() => owner.page.evaluate(() => window.sketchdraw!.helper!.status())).toMatchObject({ running: false, connections: 0, sessions: 0 });
+    await expect.poll(() => helperStatus(guest.page)).toMatchObject({ running: false, connections: 0, sessions: 0 });
     expect(errors).toEqual([]);
-    await testInfo.attach('native-session-evidence', { body: JSON.stringify({ platform: process.platform, builtProduct: true, isolatedLoopbackDht: true, realNativeIpc: true, directUrlPin: true, editorSync: true, guestMcpRevoked: true, disconnectedGuestReadOnly: true, explicitCopyRestoresMcp: true, helperOptIn: true, noPublicNatClaim: true }), contentType: 'application/json' });
+    await testInfo.attach('native-session-evidence', { body: JSON.stringify({ platform: process.platform, builtProduct: true, isolatedLoopbackDht: true, realNativeIpc: true, directUrlPin: true, editorSync: true, guestMcpRevoked: true, disconnectedGuestReadOnly: true, explicitCopyRestoresMcp: true, helperRunsWithSession: true, appLinkFormat: true, noPublicNatClaim: true }), contentType: 'application/json' });
   } finally {
     for (const app of apps.reverse()) await stopElectron(app);
     await net.destroy();

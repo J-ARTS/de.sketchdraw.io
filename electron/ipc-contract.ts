@@ -16,6 +16,10 @@ export const IPC_CHANNELS = Object.freeze({
   SET_LANGUAGE: 'sketchdraw:app:set-language',
   DIRECT_INVOKE: 'sketchdraw:direct:invoke',
   DIRECT_EVENT: 'sketchdraw:direct:event',
+  /** Main announces a pending `sketchdraw://join` link; the payload-free event keeps one source of truth. */
+  INVITE_LINK_EVENT: 'sketchdraw:collaboration:invite-link',
+  /** The renderer takes (and thereby clears) the pending validated link fragment. */
+  INVITE_LINK_TAKE: 'sketchdraw:collaboration:take-invite-link',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';

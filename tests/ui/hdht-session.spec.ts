@@ -12,6 +12,15 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => { await relay.close(); });
 
+/**
+ * Browser pages have no native HyperDHT. The product offers no gateway setting, so the tests point the renderer at
+ * the local relay through its development override; desktop peers connect directly or through volunteer helpers.
+ */
+async function useTestRelay(page: Page) {
+  await page.evaluate(url => localStorage.setItem('sketchdraw.hdht-relay-url.v1', url), relayUrl);
+}
+/** A browser cannot follow `sketchdraw://join`; it opens the same invitation fragment on the web preview. */
+const webLink = (link: string) => `/#${link.split('#')[1]}`;
 async function openPanel(page: Page) {
   await page.getByTestId('workspace-menu-button').click();
   await page.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten', exact: true }).click();
@@ -34,13 +43,13 @@ async function hostSession(page: Page, role: 'editor' | 'viewer' = 'editor') {
   const panel = page.getByTestId('hdht-session');
   await panel.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
   await page.getByRole('option', { name: role === 'editor' ? 'Gemeinsam bearbeiten' : 'Nur ansehen', exact: true }).click();
-  await panel.getByTestId('hdht-network').locator('summary').click();
-  await panel.getByRole('textbox', { name: 'Optionales WSS-Gateway', exact: true }).fill(relayUrl);
-  await panel.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');
+  await useTestRelay(page);
   await panel.getByTestId('hdht-start').click();
   await allowRelayLinkIfPending(page);
   const link = panel.getByTestId('hdht-link');
-  await expect(link).toHaveValue(/^http:\/\/127\.0\.0\.1:5173\/#sketchdraw-hdht=.+/);
+  await expect(link).toHaveValue(/^sketchdraw:\/\/join#sketchdraw-hdht=[A-Za-z0-9_-]+$/);
+  await expect(panel.getByRole('textbox', { name: 'Optionales WSS-Gateway' })).toHaveCount(0);
+  await expect(panel.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' })).toHaveCount(0);
   return { link: await link.inputValue(), pin: await panel.getByTestId('hdht-host-pin').inputValue() };
 }
 
@@ -71,7 +80,7 @@ test('URL and separate PIN connect real browser clients; wrong PIN recovers, edi
   expect(invitation.pin).toMatch(/^\d{6}$/); expect(invitation.link).not.toContain(invitation.pin);
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
-    await agentFixture(guest); await guest.goto(invitation.link);
+    await agentFixture(guest); await guest.goto(webLink(invitation.link));
     await expect(guest.getByTestId('collaboration-panel')).toBeVisible();
     expect(await guest.evaluate(() => window.location.hash)).toBe('');
     await expect(guest.getByTestId('hdht-join')).toBeVisible();
@@ -100,7 +109,7 @@ test('the updated role for new arrivals stays read-only without MCP after host e
   await expect(access).toHaveText('Nur ansehen');
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
-    await agentFixture(guest); await guest.goto(invitation.link);
+    await agentFixture(guest); await guest.goto(webLink(invitation.link));
     await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
     await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
@@ -134,7 +143,7 @@ test('unsaved adoption can be cancelled without losing local work or local MCP',
   } finally { await context.close(); }
 });
 
-test('native startup may remain pending while WSS connects; helper is opt-in and survives document changes', async ({ page, browser }) => {
+test('native startup may remain pending while the relay connects; the relay helper runs exactly while a session runs', async ({ page, browser }) => {
   await page.addInitScript(() => {
     const state = { starts: 0, stops: 0, running: false };
     const status = () => ({ running: state.running, announced: state.running, connections: 0, sessions: 0, guests: 0, forwardedRecords: 0 });
@@ -145,27 +154,81 @@ test('native startup may remain pending while WSS connects; helper is opt-in and
       direct: { hostStart: () => new Promise(() => {}), hostStop: async () => {}, connect: async () => {}, close: async () => {}, send: async () => {}, discover: async () => [], onEvent: () => () => {} },
     } });
   });
+  const helperState = () => page.evaluate(() => { const state = (window as unknown as { __helperFixture: { starts: number; stops: number; running: boolean } }).__helperFixture; return { starts: state.starts, stops: state.stops, running: state.running }; });
+  await page.goto('/');
+  expect(await helperState()).toEqual({ starts: 0, stops: 0, running: false });
   const invitation = await hostSession(page);
-  const helperToggle = page.getByTestId('hdht-helper'); await expect(helperToggle).not.toBeChecked();
-  expect(await page.evaluate(() => (window as unknown as { __helperFixture: { starts: number } }).__helperFixture.starts)).toBe(0);
+  await expect.poll(helperState).toEqual({ starts: 1, stops: 0, running: true });
+  // There is no switch: the helper belongs to the running session.
+  await expect(page.getByTestId('hdht-helper')).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Dieses Gerät als Relay-Helfer anbieten' })).toHaveCount(0);
+  await page.getByTestId('hdht-network').locator('summary').click();
+  await expect(page.getByTestId('hdht-helper-status')).toContainText('Relay-Helfer aktiv');
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
-    await guest.goto(invitation.link); await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
+    await guest.goto(webLink(invitation.link)); await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
-    await helperToggle.check(); await expect(helperToggle).toBeChecked();
+    // Closing the sidebar keeps session and helper.
     await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
-    expect(await page.evaluate(() => (window as unknown as { __helperFixture: { stops: number } }).__helperFixture.stops)).toBe(0);
-    await openPanel(page); await expect(helperToggle).toBeChecked();
+    expect(await helperState()).toEqual({ starts: 1, stops: 0, running: true });
+    await openPanel(page); await expect(page.getByTestId('hdht-helper-status')).toBeVisible();
+    // A document change ends the session and with it the helper.
     await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-new').click(); await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
     await expect(page.getByTestId('hdht-start')).toBeVisible();
-    await expect(helperToggle).toBeChecked();
-    expect(await page.evaluate(() => (window as unknown as { __helperFixture: { stops: number } }).__helperFixture.stops)).toBe(0);
+    await expect.poll(helperState).toEqual({ starts: 1, stops: 1, running: false });
+    await expect(page.getByTestId('hdht-helper-status')).toHaveCount(0);
     await page.getByTestId('hdht-start').click(); await allowRelayLinkIfPending(page); await expect(page.getByTestId('hdht-link')).toBeVisible();
-    await page.getByTestId('hdht-stop').click(); await expect(helperToggle).toBeChecked();
-    expect(await page.evaluate(() => (window as unknown as { __helperFixture: { stops: number } }).__helperFixture.stops)).toBe(0);
-    await helperToggle.uncheck();
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __helperFixture: { stops: number } }).__helperFixture.stops)).toBe(1);
+    await expect.poll(helperState).toEqual({ starts: 2, stops: 1, running: true });
+    await page.getByTestId('hdht-stop').click();
+    await expect.poll(helperState).toEqual({ starts: 2, stops: 2, running: false });
+    await expect(page.getByTestId('hdht-start')).toBeEnabled();
   } finally { await context.close(); }
+});
+
+test('a relay helper that cannot start is reported without ending the session', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'sketchdraw', { value: {
+      platform: 'electron', openDocument: async () => ({ status: 'cancelled' }), saveDocument: async () => ({ status: 'cancelled' }), exportFile: async () => ({ status: 'cancelled' }), openExternal: async () => {}, onCloseRequested: () => () => {}, respondToClose: async () => {}, onMenuCommand: () => () => {},
+      helper: { start: async () => { throw new Error('DHT unavailable'); }, stop: async () => {}, status: async () => ({ running: false, announced: false, connections: 0, sessions: 0, guests: 0, forwardedRecords: 0 }) },
+      direct: { hostStart: () => new Promise(() => {}), hostStop: async () => {}, connect: async () => {}, close: async () => {}, send: async () => {}, discover: async () => [], onEvent: () => () => {} },
+    } });
+  });
+  await hostSession(page);
+  await page.getByTestId('hdht-network').locator('summary').click();
+  await expect(page.getByTestId('hdht-network').getByRole('alert')).toContainText('Deine Session läuft ohne ihn weiter');
+  await expect(page.getByTestId('hdht-link')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Session läuft' })).toBeVisible();
+});
+
+test('the browser preview explains that sessions need the desktop app', async ({ page }) => {
+  await page.goto('/'); await draw(page, 'Rechteck'); await openPanel(page);
+  const panel = page.getByTestId('hdht-session');
+  await panel.getByTestId('hdht-start').click();
+  await expect(panel.getByRole('alert')).toContainText('Gemeinsame Sessions laufen in der Desktop-App');
+  await expect(panel.getByTestId('hdht-start')).toBeEnabled();
+  await expect(page.getByTestId('legacy-session')).toHaveCount(0);
+  await expect(page.getByTestId('manual-connection')).toBeVisible();
+});
+
+test('an app link forwarded by the desktop shell opens the panel with the link prefilled and no PIN', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'sketchdraw', { value: {
+      platform: 'electron', openDocument: async () => ({ status: 'cancelled' }), saveDocument: async () => ({ status: 'cancelled' }), exportFile: async () => ({ status: 'cancelled' }), openExternal: async () => {}, onCloseRequested: () => () => {}, respondToClose: async () => {}, onMenuCommand: () => () => {},
+      onInviteLink: (listener: (link: string) => void) => { Object.defineProperty(window, '__inviteLink', { value: listener, configurable: true }); return () => {}; },
+    } });
+  });
+  await page.goto('/');
+  await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+  await expect(page.getByTestId('collaboration-panel')).toBeHidden();
+  const fragment = 'sketchdraw-hdht=' + Buffer.from(JSON.stringify({ v: 1, s: 'ab'.repeat(32), h: Buffer.alloc(32, 7).toString('base64url'), d: 'cd'.repeat(32), r: '', i: 'document:app-link', e: Date.now() + 60_000 })).toString('base64url');
+  await page.evaluate(link => (window as unknown as { __inviteLink: (link: string) => void }).__inviteLink(link), fragment);
+  await expect(page.getByTestId('collaboration-panel')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Link für PIN-Beitritt' })).toHaveValue(fragment);
+  await expect(page.getByRole('textbox', { name: 'Sechsstellige PIN' })).toHaveValue('');
+  // Anything that is not a session link is ignored.
+  await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+  await page.evaluate(() => (window as unknown as { __inviteLink: (link: string) => void }).__inviteLink('https://example.org/'));
+  await expect(page.getByTestId('collaboration-panel')).toBeHidden();
 });
 
 test('document change invalidates a host start while WebCrypto is pending', async ({ page }) => {
@@ -185,9 +248,7 @@ test('document change invalidates a host start while WebCrypto is pending', asyn
     }) as typeof crypto.subtle.generateKey;
   });
   await page.goto('/'); await draw(page, 'Rechteck'); await openPanel(page);
-  await page.getByTestId('hdht-network').locator('summary').click();
-  await page.getByRole('textbox', { name: 'Optionales WSS-Gateway', exact: true }).fill(relayUrl);
-  await page.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');
+  await useTestRelay(page);
   await page.getByTestId('hdht-start').click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __keyFixture: { pending: boolean } }).__keyFixture.pending)).toBe(true);
   await expect(page.getByTestId('hdht-session').getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true })).toBeDisabled();
@@ -261,7 +322,7 @@ test('session end flushes before native sockets stop so guests receive the termi
   const invitation = await hostSession(page);
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
-    await guest.goto(invitation.link);
+    await guest.goto(webLink(invitation.link));
     await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
     await page.evaluate(() => { (window as unknown as { __flushFixture: { armed: boolean } }).__flushFixture.armed = true; });
@@ -298,14 +359,12 @@ test('a valid diagram above 4 MiB synchronizes fully and remains editable', asyn
   await openPanel(page);
   await page.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
   await page.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
-  await page.getByTestId('hdht-network').locator('summary').click();
-  await page.getByRole('textbox', { name: 'Optionales WSS-Gateway', exact: true }).fill(relayUrl);
-  await page.getByRole('textbox', { name: 'Adresse der Web-App für PIN-Links' }).fill('http://127.0.0.1:5173/');
+  await useTestRelay(page);
   await page.getByTestId('hdht-start').click(); await allowRelayLinkIfPending(page);
   const link = await page.getByTestId('hdht-link').inputValue(), pin = await page.getByTestId('hdht-host-pin').inputValue();
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
-    await guest.goto(link); await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(pin); await guest.getByTestId('hdht-join').click();
+    await guest.goto(webLink(link)); await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(pin); await guest.getByTestId('hdht-join').click();
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden', { timeout: 20_000 });
     await expect(guest.getByTestId('document-title')).toHaveValue('Large local diagram');
     await expect(guest.locator('.whiteboard-canvas [data-kind=text]')).toHaveCount(100);
@@ -330,7 +389,7 @@ for (const failingSide of ['host', 'guest'] as const) test(`a transient ${failin
   try {
     await agentFixture(guest);
     const invitation = await hostSession(page);
-    await guest.goto(invitation.link);
+    await guest.goto(webLink(invitation.link));
     await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
     await guest.evaluate(() => {

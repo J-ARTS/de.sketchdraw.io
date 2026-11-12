@@ -1,70 +1,37 @@
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
-import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import {
   acceptInvitation,
   createOwnerSession,
   createSessionIdentity,
   type CollaborationStatus,
-  type CollaborationTransport,
-  type CollaborationTransportStatus,
   type GuestPairing,
   type GuestSession,
   type OwnerSession,
   type PairingReview,
   type SessionIdentity,
 } from '@/collaboration';
-import { bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
-import {
-  buildSessionLink, DEFAULT_SESSION_RELAYS, DEFAULT_SESSION_RTC_CONFIG, extractSessionInvitation, normalizeWebAppUrl, ownWebAppUrl,
-} from '@/collaboration/session-link';
-import type { CrdtDocumentController } from '@/crdt';
 import type { DocumentAuthority } from '@/session';
-import type { DocumentSession } from '@/domain';
 import AppIcon from './AppIcon.vue';
 import AppSelect from './AppSelect.vue';
 import HdhtSession from './HdhtSession.vue';
-import { WHITEBOARD_KEY } from '@/renderer/state/contract';
-import { RoomConnection } from '@/renderer/state/room-connection';
-import { isHdhtLink } from '@/collaboration/hdht/invitation';
 
 const props = defineProps<{
-  open: boolean; authority: DocumentAuthority | null; crdtController: CrdtDocumentController | null;
+  open: boolean; authority: DocumentAuthority | null;
   joinGuest: (session: GuestSession) => Promise<boolean>; leaveGuest: () => Promise<boolean>;
-  /** Replaces the open document with the one of a room (the joiner starts without a copy). */
-  adoptRoom: (controller: CrdtDocumentController) => Promise<boolean>;
-  /** A session link the app was opened with; joined automatically once. */
+  /** A session link the app was opened with; it is prefilled for the PIN join. */
   inviteLink?: string | null;
 }>();
 const emit = defineEmits<{ close: []; 'link-consumed': [] }>();
-const store = inject(WHITEBOARD_KEY)!;
 const hdhtActive = ref(false);
-let automaticRoom: RoomConnection | undefined;
 const mode = ref<'invite' | 'join'>('invite'), role = ref<'viewer' | 'editor'>('viewer');
 const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }, { value: 'editor', label: t('Gemeinsam bearbeiten') }]);
 const inviteText = ref(''), incoming = ref(''), answerText = ref('');
 const review = shallowRef<PairingReview | null>(null), status = shallowRef<CollaborationStatus | null>(null);
 const checked = ref(false), busy = ref(false), error = ref(''), note = ref('');
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-const WEB_APP_URL_KEY = 'sketchdraw.web-app-url.v1';
 const manualOpen = ref(false);
-const automaticRole = ref<'viewer' | 'editor'>('viewer');
-const relayUrlsText = ref(DEFAULT_SESSION_RELAYS.join('\n'));
-const rtcConfigText = ref(JSON.stringify(DEFAULT_SESSION_RTC_CONFIG));
-const storedWebAppUrl = (() => { try { return localStorage.getItem(WEB_APP_URL_KEY); } catch { return null; } })();
-const webAppUrl = ref(storedWebAppUrl ? normalizeWebAppUrl(storedWebAppUrl) : ownWebAppUrl());
-function saveWebAppUrl(): void { webAppUrl.value = normalizeWebAppUrl(webAppUrl.value); try { localStorage.setItem(WEB_APP_URL_KEY, webAppUrl.value); } catch { /* optional preference */ } }
-const sessionLink = computed(() => automaticInvitation.value ? buildSessionLink(automaticInvitation.value, webAppUrl.value) : '');
-const joinLinkText = ref('');
-/** The joiner holds the room's document and is replicating it (not just searching for the host). */
-const joinedRoom = ref(false);
-const automaticInvitation = ref('');
-const automaticIncoming = ref('');
-const automaticStatus = shallowRef<CollaborationTransportStatus | null>(null);
-const automaticActive = ref(false);
 let owner: OwnerSession | undefined, guest: GuestSession | undefined, pairing: GuestPairing | undefined;
-let automaticTransport: CollaborationTransport | undefined, automaticBinding: CrdtTransportBinding | undefined;
-let automaticOffStatus = () => {}, automaticGeneration = 0;
 let identity: Promise<SessionIdentity> | undefined, offStatus = () => {}, generation = 0, disposed = false;
 const identityForSession = () => identity ??= createSessionIdentity();
 const states: Record<CollaborationStatus['state'], string> = { pairing: t('Einladung vorbereiten'), 'awaiting-confirmation': t('Code bestätigen'), syncing: 'Diagramm abgleichen', ready: t('Verbunden'), disconnected: 'Verbindung unterbrochen', 'resync-required': t('Neuer Abgleich erforderlich'), revoked: 'Freigabe beendet', closed: 'Sitzung beendet' };
@@ -80,175 +47,12 @@ function clearPairing() { pairing?.cancel(); pairing = undefined; inviteText.val
 function listen(session: OwnerSession | GuestSession) { offStatus(); status.value = session.getStatus(); offStatus = session.subscribeStatus(value => { status.value = value; }); }
 watch(() => props.authority, (next, previous) => {
   if (next === previous) return;
-  if (!automaticRoom?.isAdopting) void stopAutomatic(false);
   generation++; clearPairing(); busy.value = false; error.value = ''; note.value = '';
   if (owner) { void owner.close().catch(() => {}); owner = undefined; }
   if (next && guest) { void guest.leave().catch(() => {}); guest = undefined; }
   if (!guest) { offStatus(); offStatus = () => {}; status.value = null; }
 });
 
-function automaticRelays(): string[] {
-  const values = relayUrlsText.value.split(/[\n,]/).map(value => value.trim()).filter(Boolean);
-  if (!values.length) throw new Error('AUTOMATIC_RELAY_REQUIRED');
-  return values;
-}
-
-function automaticRtcConfig(): RTCConfiguration {
-  let value: unknown;
-  try { value = JSON.parse(rtcConfigText.value); } catch { throw new Error('AUTOMATIC_RTC_CONFIG_INVALID'); }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('AUTOMATIC_RTC_CONFIG_INVALID');
-  return value as RTCConfiguration;
-}
-
-/** Remote updates go through the document authority so the session layer and the open diagram stay consistent. */
-function remoteOptions() { return { applyRemote: (apply: () => DocumentSession) => props.authority?.applyExternalUpdate(apply) }; }
-
-function reportAutomatic(value: unknown): void {
-  const code = value instanceof Error ? value.message : String(value);
-  error.value = code.includes('AUTOMATIC_RELAY_REQUIRED')
-    ? t('Trage mindestens einen ausdrücklich gewählten MQTT-Endpunkt mit wss:// ein.')
-    : code.includes('DOCUMENT_MISMATCH')
-      ? t('Der Link gehört zu einem anderen Dokument als die Session liefert. Bitte einen neuen Link anfordern.')
-      : /DIRECT_CONNECTION_TIMEOUT/.test(code)
-        ? t('Die Session konnte nicht erreicht werden. Läuft sie noch, und ist der Gastgeber online?')
-        : /INVITATION_EXPIRED/.test(code)
-          ? t('Dieser Link ist abgelaufen. Bitte einen neuen Link anfordern.')
-      : code.includes('RTC_CONFIG')
-        ? t('Die ICE-/TURN-Konfiguration ist kein gültiges JSON-Objekt.')
-        : t('Die Session-Verbindung konnte nicht sicher aufgebaut werden.');
-}
-
-function listenAutomatic(transport: CollaborationTransport): void {
-  automaticOffStatus();
-  automaticStatus.value = transport.getStatus();
-  automaticOffStatus = transport.subscribeStatus(value => { automaticStatus.value = value; });
-}
-
-async function startAutomaticOwner(): Promise<void> {
-  if (busy.value || !props.authority || !props.crdtController || automaticTransport) return;
-  const epoch = ++automaticGeneration;
-  busy.value = true; error.value = ''; note.value = '';
-  try {
-    const automatic = await import('@/collaboration/automatic');
-    const identity = await identityForSession();
-    const relays = automaticRelays();
-    const rtcConfig = automaticRtcConfig();
-    const credentials = automatic.createAutomaticRoomCredentials();
-    const expiresAt = Date.now() + SESSION_TTL_MS;
-    const session = {
-      ...props.authority.session,
-      sessionId: credentials.roomId.slice(0, 32),
-      permissionEpoch: 0,
-    };
-    const ownerGrant = { role: 'owner' as const, grantId: `auto-owner:${credentials.invitationId}`, grantGeneration: 0 };
-    const transport = await automatic.createAutomaticTransport({
-      appId: 'io.sketchdraw.desktop.v1',
-      ...credentials,
-      relayUrls: relays,
-      rtcConfig,
-      session,
-      identity,
-      localGrant: ownerGrant,
-      authorizePeer: request => request.invitationId === credentials.invitationId && Date.now() <= expiresAt
-        ? { role: automaticRole.value, grantId: `auto-guest:${credentials.invitationId}:${request.keyHash.slice(0, 16)}`, grantGeneration: 0 }
-        : null,
-    });
-    if (epoch !== automaticGeneration || disposed) { await transport.close(); return; }
-    const invitation = await automatic.createAutomaticInvitation(identity, {
-      appId: 'io.sketchdraw.desktop.v1',
-      ...credentials,
-      relayUrls: relays,
-      rtcConfig,
-      session,
-      role: automaticRole.value,
-      ttlMs: SESSION_TTL_MS,
-    });
-    automaticTransport = transport;
-    automaticActive.value = true;
-    automaticBinding = bindCrdtTransport(props.crdtController, transport, undefined, remoteOptions());
-    automaticInvitation.value = invitation;
-    listenAutomatic(transport);
-    note.value = t('Session läuft. Teile den Link; wer ihn im Browser öffnet, tritt direkt bei. Die Zeichnung wird nur direkt zwischen den Geräten übertragen.');
-  } catch (value) { if (epoch === automaticGeneration) reportAutomatic(value); }
-  finally { if (epoch === automaticGeneration) busy.value = false; }
-}
-
-async function joinSession(text: string): Promise<void> {
-  const invitationText = extractSessionInvitation(text);
-  if (busy.value || automaticTransport) return;
-  if (!invitationText) { error.value = t('Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.'); return; }
-  const epoch = ++automaticGeneration;
-  busy.value = true; error.value = ''; note.value = '';
-  let transport: CollaborationTransport | undefined;
-  try {
-    const automatic = await import('@/collaboration/automatic');
-    const { invitation, ownerKeyHash } = await automatic.parseAutomaticInvitation(invitationText);
-    const identity = await identityForSession();
-    const localGrant = { role: invitation.role, grantId: `auto-guest:${invitation.invitationId}:${identity.keyHash.slice(0, 16)}`, grantGeneration: 0 };
-    transport = await automatic.createAutomaticTransport({
-      appId: invitation.appId,
-      roomId: invitation.roomId,
-      password: invitation.password,
-      invitationId: invitation.invitationId,
-      relayUrls: invitation.relayUrls,
-      rtcConfig: invitation.rtcConfig,
-      session: invitation.session,
-      identity,
-      localGrant,
-      authorizePeer: request => request.keyHash === ownerKeyHash
-        ? { role: 'owner', grantId: `auto-owner:${invitation.invitationId}`, grantGeneration: 0 }
-        : null,
-    });
-    if (epoch !== automaticGeneration || disposed) { await transport.close(); return; }
-    automaticTransport = transport;
-    automaticActive.value = true;
-    note.value = t('Session wird gesucht …');
-    const attachment = new RoomConnection(store, transport, {
-      documentId: invitation.session.documentId, role: invitation.role,
-      onChange: (value, adopted) => {
-        if (epoch !== automaticGeneration) return;
-        automaticStatus.value = value; joinedRoom.value = adopted;
-      },
-    });
-    automaticRoom = attachment;
-    const accepted = await attachment.join();
-    if (!accepted) { await stopAutomatic(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); return; }
-    if (epoch !== automaticGeneration || disposed) return;
-    joinedRoom.value = true;
-    note.value = t('Du bist in der Session. Änderungen werden live abgeglichen.');
-  } catch (value) {
-    if (epoch === automaticGeneration) {
-      reportAutomatic(value);
-      if (automaticTransport === transport) await stopAutomatic(false); else await transport?.close().catch(() => undefined);
-      // stopAutomatic invalidated this attempt; the failure still has to release the panel.
-      note.value = ''; busy.value = false;
-    }
-  } finally { if (epoch === automaticGeneration) busy.value = false; }
-}
-
-watch(() => [props.inviteLink, props.crdtController] as const, ([link, controller]) => {
-  if (!link || isHdhtLink(link) || !controller || automaticTransport || busy.value) return;
-  emit('link-consumed');
-  void joinSession(link);
-}, { immediate: true });
-
-async function stopAutomatic(showNote = true): Promise<void> {
-  const binding = automaticBinding;
-  const transport = automaticTransport;
-  const attachment = automaticRoom; automaticRoom = undefined;
-  automaticGeneration += 1;
-  automaticBinding = undefined;
-  automaticTransport = undefined;
-  automaticActive.value = false; joinedRoom.value = false;
-  automaticOffStatus(); automaticOffStatus = () => {};
-  automaticStatus.value = null;
-  automaticInvitation.value = '';
-  automaticIncoming.value = '';
-  await attachment?.close(showNote).catch(() => undefined);
-  await transport?.close().catch(() => undefined);
-  await binding?.close().catch(() => undefined);
-  if (showNote && !disposed) note.value = 'Automatische P2P-Sitzung beendet.';
-}
 async function createInvitation(resumePeerId?: string) {
   if (busy.value || !props.authority || inviteText.value) return;
   const authority = props.authority, epoch = generation;
@@ -352,45 +156,15 @@ async function copy(value: string) {
   try { await navigator.clipboard.writeText(value); note.value = t('Verbindungstext kopiert.'); }
   catch { note.value = t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'); }
 }
-onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus(); void owner?.close().catch(() => {}); void guest?.leave().catch(() => {}); void stopAutomatic(false); });
+onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus(); void owner?.close().catch(() => {}); void guest?.leave().catch(() => {}); });
 </script>
 
 <template>
   <aside v-show="open" class="peer-panel sd-panel" :aria-label="t('Zusammenarbeiten')" data-testid="collaboration-panel">
     <header><h2 class="sd-panel-title">{{ t('Zusammenarbeiten') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Zusammenarbeit schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
     <div class="body">
-      <HdhtSession :disabled="automaticActive || !!owner || !!guest || busy" :invite-link="inviteLink" @active="hdhtActive = $event" @link-consumed="emit('link-consumed')" />
-      <details v-if="!hdhtActive" class="manual" data-testid="legacy-session"><summary>{{ t('Alternative Verbindung (WebRTC)') }}</summary>
-      <section v-if="!owner && !guest" class="session" aria-labelledby="session-title">
-        <template v-if="!automaticActive">
-          <h3 id="session-title">{{ t('Session starten') }}</h3>
-          <p>{{ t('Starte eine Session und teile den Link. Wer ihn im Browser öffnet, tritt direkt bei und sieht dein Diagramm live. Die Session ist Ende-zu-Ende verschlüsselt; die Zeichnung wird direkt zwischen den Geräten übertragen.') }}</p>
-          <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="automaticRole" :options="roleOptions" :disabled="busy" @update:model-value="automaticRole = $event as 'viewer' | 'editor'" />
-          <button class="sd-btn sd-btn--primary full" data-testid="session-start" :disabled="busy || !authority || !crdtController" @click="startAutomaticOwner">{{ t('Session starten') }}</button>
-          <div class="automatic-separator"><span>{{ t('oder beitreten') }}</span></div>
-          <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="joinLinkText" class="sd-input" type="text" :aria-label="t('Session-Link einfügen')" :placeholder="t('Link hier einfügen')" spellcheck="false" autocomplete="off" :disabled="busy" @keydown.enter.prevent="joinSession(joinLinkText)" /></label>
-          <button class="sd-btn full" :disabled="busy || !crdtController || !joinLinkText.trim()" @click="joinSession(joinLinkText)">{{ t('Session beitreten') }}</button>
-          <details class="advanced" data-testid="session-advanced">
-            <summary>{{ t('Netzwerk und Link-Adresse') }}</summary>
-            <p class="network-note">{{ t('Zum Finden der Gegenstelle nutzt die Session die unten gelisteten MQTT/WSS-Endpunkte; für Verbindungen hinter NAT ist ein STUN-Server eingetragen. Es gibt kein Datenrelay, und beide Listen sind änderbar.') }}</p>
-            <label class="sd-field-label">{{ t('MQTT/WSS-Endpunkte') }}<textarea v-model="relayUrlsText" class="sd-textarea compact" :aria-label="t('MQTT WSS Endpunkte')" spellcheck="false" /></label>
-            <label class="sd-field-label">{{ t('ICE-/TURN-Konfiguration') }}<textarea v-model="rtcConfigText" class="sd-textarea compact" :aria-label="t('ICE und TURN Konfiguration')" spellcheck="false" /></label>
-            <label class="sd-field-label">{{ t('Adresse der Web-App für Einladungslinks') }}<input v-model="webAppUrl" class="sd-input" type="url" :aria-label="t('Adresse der Web-App')" spellcheck="false" @change="saveWebAppUrl" /></label>
-          </details>
-        </template>
-        <template v-else>
-          <h3 id="session-title">{{ automaticInvitation ? t('Session läuft') : joinedRoom ? t('Du bist in der Session') : t('Session wird gesucht …') }}</h3>
-          <p v-if="automaticStatus" role="status" class="connection-state">{{ automaticStatus.state === 'ready' && (automaticInvitation || joinedRoom) ? (automaticStatus.peers.length ? t('Verbunden · {count} {unit}', { count: automaticStatus.peers.length, unit: automaticStatus.peers.length === 1 ? t('Person') : t('Personen') }) : t('Wartet auf Teilnehmende')) : automaticStatus.state === 'connecting' ? (automaticInvitation ? t('Wartet auf Teilnehmende') : t('Verbindung wird aufgebaut')) : automaticStatus.state === 'error' ? t('Verbindungsfehler') : t('Sitzung beendet') }}</p>
-          <template v-if="automaticInvitation">
-            <label class="sd-field-label">{{ t('Link zum Teilen') }}<span class="copy-row"><input class="sd-input" type="text" readonly :aria-label="t('Session-Link zum Kopieren')" data-testid="session-link" :value="sessionLink" @focus="($event.target as HTMLInputElement).select()" /><button class="sd-btn sd-btn--primary" type="button" @click="copy(sessionLink)">{{ t('Link kopieren') }}</button></span></label>
-            <dl class="session-info"><div><dt>{{ t('Zugriff') }}</dt><dd>{{ automaticRole === 'editor' ? t('Gemeinsam bearbeiten') : t('Nur ansehen') }}</dd></div><div><dt>{{ t('Gültig') }}</dt><dd>{{ t('bis die Session beendet wird (max. 12 Stunden)') }}</dd></div></dl>
-          </template>
-          <details v-if="automaticStatus" class="advanced"><summary>{{ t('Verwendete Endpunkte') }}</summary><dl class="automatic-endpoints"><dt>{{ t('Signaling') }}</dt><dd v-for="url in automaticStatus.relayUrls" :key="url">{{ url }}</dd><dt>ICE/TURN</dt><dd v-if="!automaticStatus.iceServers.length">{{ t('Keine externen ICE-Server') }}</dd><dd v-for="url in automaticStatus.iceServers" :key="url">{{ url }}</dd></dl></details>
-          <button class="sd-btn full" :disabled="busy" data-testid="session-stop" @click="stopAutomatic()">{{ automaticInvitation ? t('Session beenden') : t('Session verlassen') }}</button>
-        </template>
-      </section>
-      </details>
-      <details v-if="!automaticActive && !hdhtActive" class="manual" data-testid="manual-connection" :open="manualOpen || !!owner || !!guest" @toggle="manualOpen = ($event.target as HTMLDetailsElement).open">
+      <HdhtSession :disabled="!!owner || !!guest || busy" :invite-link="inviteLink" @active="hdhtActive = $event" @link-consumed="emit('link-consumed')" />
+      <details v-if="!hdhtActive" class="manual" data-testid="manual-connection" :open="manualOpen || !!owner || !!guest" @toggle="manualOpen = ($event.target as HTMLDetailsElement).open">
         <summary>{{ t('Manuell ohne Server verbinden') }}</summary>
         <p>{{ t('Verschlüsselt direkt zwischen euren Geräten. Einladungen und Antworten tauscht ihr selbst aus; es gibt keinen zentralen Speicher oder Vermittlungsserver.') }}</p>
         <p class="network-note">{{ t('Direkte Verbindungen funktionieren nicht in jedem Netzwerk. Beide Geräte müssen erreichbar und die App geöffnet bleiben.') }}</p>
@@ -420,7 +194,6 @@ onBeforeUnmount(() => { disposed = true; generation++; clearPairing(); offStatus
 
 <style scoped>
 .access-field{margin:12px 0 8px}
-.peer-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:360px;z-index:22;display:flex;flex-direction:column;overflow:hidden}header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle)}.body{padding:16px;overflow:auto}p{font-size:12px;line-height:1.7;margin:0 0 12px;color:var(--text-muted)}.network-note{font-size:11px}.tabs,.connection-modes{display:flex;gap:6px;margin-bottom:14px}.connection-modes .sd-btn{flex:1}.full{width:100%;margin-bottom:12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-textarea{height:80px;font:10px/1.5 var(--font-mono);resize:vertical}.sd-textarea.compact{height:56px}.automatic-separator{display:flex;align-items:center;gap:8px;margin:4px 0 12px;color:var(--text-muted);font-size:10px}.automatic-separator::before,.automatic-separator::after{content:"";height:1px;background:var(--border-subtle);flex:1}.automatic-endpoints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere;margin:12px 0}.automatic-endpoints dt{font-weight:700;margin-top:8px}.automatic-endpoints dd{margin:2px 0;color:var(--text-muted)}.comparison{padding:12px;border:1px solid var(--border-default);border-radius:6px;margin:16px 0}.fingerprints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere}.fingerprints dd{margin:4px 0 10px}.comparison summary{font-size:11px;cursor:pointer;margin-bottom:12px}.comparison h3{font-size:12px}.comparison output{display:block;font:14px/1.7 var(--font-mono);overflow-wrap:anywhere;margin:10px 0}.confirm-check{display:flex;gap:8px;font-size:12px;line-height:1.6;margin:12px 0}.connection-state{color:var(--text-primary);font-weight:600}.peers li{display:flex;gap:7px;flex-direction:column;padding:12px 0;border-top:1px solid var(--border-subtle);font-size:11px}.error{color:var(--status-error)}@media(max-width:860px){.peer-panel{width:min(360px,calc(100vw - 24px))}}
-.session h3{margin:0 0 8px;font-size:15px}.session .sd-input{width:100%}.copy-row{display:flex;gap:6px;margin-top:6px}.copy-row .sd-input{flex:1;min-width:0;font:11px var(--font-mono)}.copy-row .sd-btn{flex:none}.session-info{display:grid;gap:6px;margin:12px 0;font-size:12px}.session-info div{display:flex;justify-content:space-between;gap:12px}.session-info dt{color:var(--text-muted)}.session-info dd{margin:0;text-align:right}
-.advanced,.manual{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}.advanced summary,.manual summary{cursor:pointer;color:var(--text-muted);font-size:12px;font-weight:600}.advanced summary:focus-visible,.manual summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:4px}.manual[open]>summary{margin-bottom:12px}
+.peer-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:360px;z-index:22;display:flex;flex-direction:column;overflow:hidden}header{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle)}.body{padding:16px;overflow:auto}p{font-size:12px;line-height:1.7;margin:0 0 12px;color:var(--text-muted)}.network-note{font-size:11px}.tabs{display:flex;gap:6px;margin-bottom:14px}.full{width:100%;margin-bottom:12px}.sd-field-label{display:block;margin:12px 0 8px}.sd-textarea{height:80px;font:10px/1.5 var(--font-mono);resize:vertical}.comparison{padding:12px;border:1px solid var(--border-default);border-radius:6px;margin:16px 0}.fingerprints{font:10px/1.5 var(--font-mono);overflow-wrap:anywhere}.fingerprints dd{margin:4px 0 10px}.comparison summary{font-size:11px;cursor:pointer;margin-bottom:12px}.comparison h3{font-size:12px}.comparison output{display:block;font:14px/1.7 var(--font-mono);overflow-wrap:anywhere;margin:10px 0}.confirm-check{display:flex;gap:8px;font-size:12px;line-height:1.6;margin:12px 0}.connection-state{color:var(--text-primary);font-weight:600}.peers li{display:flex;gap:7px;flex-direction:column;padding:12px 0;border-top:1px solid var(--border-subtle);font-size:11px}.error{color:var(--status-error)}@media(max-width:860px){.peer-panel{width:min(360px,calc(100vw - 24px))}}
+.manual{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}.manual summary{cursor:pointer;color:var(--text-muted);font-size:12px;font-weight:600}.manual summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;border-radius:4px}.manual[open]>summary{margin-bottom:12px}
 </style>

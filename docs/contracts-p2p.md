@@ -507,7 +507,7 @@ Die Oberfläche kennt keinen Moduswechsel mehr: „Session starten“ erstellt e
 - **Autorität:** Eingehende Yjs-Updates laufen über `DocumentAuthority.applyExternalUpdate`; direkte Controller-Änderungen führen weiter zu `AUTHORITY_DIVERGED`.
 - **CSP:** `connect-src` erlaubt `wss:` (Signaling), `worker-src` erlaubt `blob:` (Trystero). Der Adapter akzeptiert nur credential-freie `wss://`-Endpunkte.
 - **Empfangene Binärdaten:** Trystero liefert `Uint8Array`; der Transport akzeptiert `ArrayBuffer` und `ArrayBufferView`.
-- **Prüfung:** `tests/ui/session-network.spec.ts` (mit `SKETCHDRAW_NETWORK_E2E=1`) startet zwei Browser über die öffentlichen Broker und prüft Beitritt und Live-Sync in beide Richtungen. Nicht geprüft: Unternehmensproxys, TURN, Last, Viewer-Durchsetzung im Gast-Browser.
+- **Prüfung (historisch):** `tests/ui/session-network.spec.ts` prüfte bis #162 zwei Browser über die öffentlichen Broker. Mit [ADR 0007](decisions/0007-app-link-and-session-relay-helper.md) hat dieser WebRTC-Weg keine Oberfläche mehr; der Test ist entfernt. Nicht geprüft: Unternehmensproxys, TURN, Last, Viewer-Durchsetzung im Gast-Browser.
 
 ## Seiten im gemeinsamen Zustand (Schema v2)
 

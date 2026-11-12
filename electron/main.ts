@@ -28,6 +28,7 @@ import {
 } from './ipc-contract';
 import { DirectService } from './direct-service';
 import { PeerRelayHelper } from './peer-relay-service';
+import { APP_LINK_SCHEME, findAppLink, parseAppLink } from '../src/collaboration/hdht/app-link';
 import { serviceAdTopic, sessionAdTopic } from '../relay/hub.mjs';
 import { DocumentPersistenceService } from './persistence';
 import { PluginService } from './plugin-service';
@@ -64,6 +65,38 @@ let closeCoordinator: CloseHandshakeCoordinator | null = null;
 let activeTarget: RendererTarget | null = null;
 let directService: DirectService | null = null;
 let relayHelper: PeerRelayHelper | null = null;
+/** A validated session link fragment the app was opened with, kept until the renderer takes it. */
+let pendingInviteLink: string | null = null;
+
+function focusMainWindow(): void {
+  const win = mainWindow;
+  if (!win || win.isDestroyed()) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+/** Accepts only a strictly validated `sketchdraw://join#sketchdraw-hdht=…` link; the PIN is never part of it. */
+function deliverInviteLink(fragment: string | null): void {
+  if (!fragment) return;
+  pendingInviteLink = fragment;
+  const win = mainWindow;
+  if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
+    focusMainWindow();
+    win.webContents.send(IPC_CHANNELS.INVITE_LINK_EVENT);
+  } else if (app.isReady() && activeTarget) {
+    void createMainWindow(activeTarget);
+  }
+}
+
+// macOS hands a link to the running app through this event, possibly before the app is ready.
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  deliverInviteLink(parseAppLink(url));
+});
+// Windows and Linux start a process with the link as an argument. The app keeps allowing several instances, so a link
+// opens its own window there and the document of a running instance stays untouched.
+deliverInviteLink(findAppLink(process.argv));
 
 function sendDirectEvent(event: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.DIRECT_EVENT, event);
@@ -357,6 +390,14 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
     },
   );
 
+  ipcMain.handle(IPC_CHANNELS.INVITE_LINK_TAKE, async (event): Promise<string | null> => {
+    const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
+    if (!check.ok) throw new Error(check.reason);
+    const link = pendingInviteLink;
+    pendingInviteLink = null;
+    return link;
+  });
+
   ipcMain.handle(IPC_CHANNELS.DIRECT_INVOKE, async (event, rawPayload: unknown): Promise<unknown> => {
     const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
     if (!check.ok) throw new Error(check.reason);
@@ -495,6 +536,8 @@ app.on('web-contents-created', (_event, contents) => {
 void app
   .whenReady()
   .then(async () => {
+    // Only the installed app owns the link scheme; development and test runs register nothing.
+    if (app.isPackaged) app.setAsDefaultProtocolClient(APP_LINK_SCHEME);
     const target = resolveRendererTarget({
       isPackaged: app.isPackaged,
       env: process.env,

@@ -14,6 +14,14 @@
     "package.json",
     "LICENSE"
   ],
+  "protocols": [
+    {
+      "name": "Sketchdraw Session",
+      "schemes": [
+        "sketchdraw"
+      ]
+    }
+  ],
   "extraMetadata": {
     "main": "dist-electron/main.cjs",
     "homepage": "https://github.com/J-ARTS/de.sketchdraw.io"

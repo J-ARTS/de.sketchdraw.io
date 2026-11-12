@@ -14,8 +14,10 @@ function invitation(overrides: Partial<HdhtInvitation> = {}): HdhtInvitation {
 describe('session link', () => {
   it('round trips through the URL fragment and carries no PIN', () => {
     const value = invitation();
-    const link = buildHdhtLink(value, 'https://de.sketchdraw.io/');
-    expect(link.startsWith('https://de.sketchdraw.io/#' + HDHT_LINK_PARAM + '=')).toBe(true);
+    const link = buildHdhtLink(value);
+    expect(link.startsWith('sketchdraw://join#' + HDHT_LINK_PARAM + '=')).toBe(true);
+    // Links of earlier versions carried a web address; only the fragment ever mattered.
+    expect(parseHdhtInvitation('https://de.sketchdraw.io/#' + link.split('#')[1])).toEqual(value);
     expect(link).not.toMatch(/pin/i);
     expect(isHdhtLink(link)).toBe(true);
     expect(parseHdhtInvitation(link)).toEqual(value);
@@ -23,16 +25,16 @@ describe('session link', () => {
 
   it('rejects expired, malformed and unsafe links', () => {
     const now = Date.now();
-    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ expiresAt: now - 1 }), 'https://x.example/'), now)).toThrow('INVITATION_EXPIRED');
+    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ expiresAt: now - 1 })), now)).toThrow('INVITATION_EXPIRED');
     expect(() => parseHdhtInvitation('https://x.example/#sketchdraw-hdht=%%%')).toThrow('INVITATION_INVALID');
     expect(() => parseHdhtInvitation('https://x.example/')).toThrow('INVITATION_INVALID');
-    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ relayUrl: 'ws://evil.example/' }), 'https://x.example/'))).toThrow('RELAY_URL_INSECURE');
-    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ expiresAt: now + 30 * 3600_000 }), 'https://x.example/'), now)).toThrow('INVITATION_INVALID');
+    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ relayUrl: 'ws://evil.example/' })))).toThrow('RELAY_URL_INSECURE');
+    expect(() => parseHdhtInvitation(buildHdhtLink(invitation({ expiresAt: now + 30 * 3600_000 })), now)).toThrow('INVITATION_INVALID');
   });
 
   it('accepts a link without any fixed endpoint: helpers are discovered through the DHT', () => {
     const value = invitation({ directKey: '', relayUrl: '' });
-    expect(parseHdhtInvitation(buildHdhtLink(value, 'https://x.example/'))).toEqual(value);
+    expect(parseHdhtInvitation(buildHdhtLink(value))).toEqual(value);
   });
 
   it('relay URLs must be wss without credentials, query or fragment; ws only on loopback', () => {

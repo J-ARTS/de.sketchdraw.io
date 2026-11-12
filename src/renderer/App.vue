@@ -4,9 +4,8 @@ import { onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
 import { useElementSize, useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '../agent-access/renderer-session';
 import type { DocumentAuthority } from '../session';
-import { extractSessionInvitation, SESSION_LINK_PARAM } from '../collaboration/session-link';
 import { isHdhtLink } from '../collaboration/hdht/invitation';
-import type { CrdtDocumentController } from '../crdt';
+import { getDesktopBridge } from '../platform';
 import { createWhiteboardStore } from './state/whiteboard';
 import { WHITEBOARD_KEY, type KeyInput } from './state/contract';
 import MainMenu from './components/MainMenu.vue';
@@ -31,23 +30,26 @@ import { resolveCanvasBackground } from './lib/preferences';
 const store = createWhiteboardStore(); const s = store.state;
 provide(WHITEBOARD_KEY, store);
 const collaborationOpen = ref(false);
-/** A session link the app was opened with (`#sketchdraw-session=…`); the panel joins it once and the fragment is removed. */
+/** A session link the app was opened with (`#sketchdraw-hdht=…` or a `sketchdraw://join` app link); the panel prefills it and the fragment is removed. */
 const inviteLink = ref<string | null>(null);
+function openInvite(link: string): void {
+  if (!isHdhtLink(link)) return;
+  interopOpen.value = false; pluginsOpen.value = false;
+  inviteLink.value = link;
+  collaborationOpen.value = true;
+}
 function readInviteFromLocation(): void {
   const hash = window.location.hash.slice(1);
-  if (!isHdhtLink(hash) && (!hash.includes(SESSION_LINK_PARAM) || !extractSessionInvitation(hash))) return;
-  inviteLink.value = hash;
-  collaborationOpen.value = true;
+  if (!isHdhtLink(hash)) return;
+  openInvite(hash);
   window.history.replaceState(null, '', window.location.pathname + window.location.search);
 }
-readInviteFromLocation();
 /** Notices grow upward from the bottom; floating comment UI keeps clear of them via --feedback-height (#88). */
 const feedbackStack = ref<HTMLElement | null>(null);
 const { height: feedbackHeight } = useElementSize(feedbackStack, undefined, { box: 'border-box' });
 const pluginsOpen = ref(false);
 const settingsOpen = ref(false);
 const authority = shallowRef(store.getAuthority());
-const crdtController = shallowRef<CrdtDocumentController | null>(store.getCrdtController());
 let agentSession: RendererAgentSession | undefined;
 function attachAgentAccess(value: DocumentAuthority | null) {
   agentSession?.dispose(); agentSession = undefined;
@@ -61,7 +63,7 @@ function attachAgentAccess(value: DocumentAuthority | null) {
   } catch { agentSession = undefined; }
 }
 attachAgentAccess(authority.value);
-const offAuthority = store.subscribeAuthority(value => { authority.value = value; crdtController.value = store.getCrdtController(); attachAgentAccess(value); });
+const offAuthority = store.subscribeAuthority(value => { authority.value = value; attachAgentAccess(value); });
 const interopOpen = ref(false); const interopMode = ref<'import' | 'export'>('import');
 function openInterop(mode: 'import' | 'export') { collaborationOpen.value = false; if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); interopMode.value = mode; interopOpen.value = true; }
 function toggleCollaboration() { interopOpen.value = false; if (!collaborationOpen.value) { if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); } collaborationOpen.value = !collaborationOpen.value; }
@@ -92,13 +94,16 @@ useEventListener(window, 'keydown', keydown);
 useEventListener(window, 'keyup', keyup);
 useEventListener(window, 'beforeunload', beforeUnload);
 useEventListener(window, 'hashchange', readInviteFromLocation);
-onBeforeUnmount(() => { agentSession?.dispose(); offAuthority(); store.dispose(); });
+readInviteFromLocation();
+/** The desktop app forwards `sketchdraw://join` links it is opened with while it is already running. */
+const offInviteLink = getDesktopBridge().onInviteLink?.(openInvite);
+onBeforeUnmount(() => { offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
 </script>
 
 <template>
   <main class="workspace" :aria-label="t('Sketchdraw Arbeitsbereich')">
     <div class="workspace-content" :inert="s.transitioning || s.presenterOpen || undefined" :style="{ '--feedback-height': `${Math.ceil(feedbackHeight)}px` }">
-      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" @settings="settingsOpen = true" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :crdt-controller="crdtController" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" :adopt-room="store.adoptRoomDocument" :invite-link="inviteLink" @link-consumed="inviteLink = null" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" /><SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" @settings="settingsOpen = true" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :authority="authority" :join-guest="store.joinGuestSession" :leave-guest="store.leaveGuestSession" :invite-link="inviteLink" @link-consumed="inviteLink = null" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" /><SettingsDialog :open="settingsOpen" @close="settingsOpen = false" />
       <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" :aria-label="t('Ansicht und Verlauf')">
         <button class="sd-icon-btn zoom-btn" :aria-label="t('Verkleinern')" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" :aria-label="t('Zoom auf 100 Prozent')" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" :aria-label="t('Vergrößern')" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Alles anzeigen')" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Rückgängig')" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" :aria-label="t('Wiederholen')" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>

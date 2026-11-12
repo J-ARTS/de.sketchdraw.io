@@ -44,7 +44,7 @@ Jeder Test ist mit App-Version und Commit, Betriebssystem samt Version, Netzaufb
 
 | ID | Szenario | Aufbau | Durchführung | Erwartung | Status |
 | --- | --- | --- | --- | --- | --- |
-| R1 | Zwei Geräte, direkte Verbindung | Zwei Geräte im selben LAN, öffentliche Broker oder eigener WSS-Broker | Session starten, per Link beitreten, in beide Richtungen zeichnen | Beitritt, Dokumentabruf, Live-Sync | offen (Browser-Browser über öffentliche Broker am 18.10.2026 belegt, `tests/ui/session-network.spec.ts`) |
+| R1 | Zwei Geräte, direkte Verbindung | Zwei Geräte im selben LAN, öffentliche Broker oder eigener WSS-Broker | Session starten, per Link beitreten, in beide Richtungen zeichnen | Beitritt, Dokumentabruf, Live-Sync | offen (Browser-Browser über öffentliche Broker am 18.10.2026 belegt; dieser WebRTC-Weg und sein Test sind seit #162 / ADR 0007 aus der Oberfläche entfernt) |
 | R2 | Systemproxy ohne Anmeldung | Unternehmens- oder Testproxy (zum Beispiel Squid), HTTP CONNECT, manuell im Betriebssystem eingestellt | App als Electron-Anwendung und im Browser; Session starten und beitreten | WSS-Signaling läuft über den Proxy; Ergebnis je Plattform (macOS, Windows, Linux) | offen |
 | R3 | PAC-Datei | Proxy-Konfiguration über PAC-URL | Wie R2 | Chromium wertet die PAC-Regeln aus; ein PAC mit `DIRECT` für den Broker funktioniert ebenso | offen |
 | R4 | Manueller Proxy-Login | Proxy mit Basic-Authentifizierung | Wie R2 | Die Anmeldung erfolgt über den Betriebssystem- oder Browserdialog; ein abgelehnter Login ergibt einen verständlichen Verbindungsfehler. Die Electron-Anwendung registriert keinen eigenen `login`-Handler (`electron/main.ts`); das Verhalten ist zu klären | offen |

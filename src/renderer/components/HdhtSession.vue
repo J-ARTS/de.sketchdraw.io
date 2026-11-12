@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { useIntervalFn } from '@vueuse/core';
 import { t } from '@/renderer/i18n';
 import { WHITEBOARD_KEY } from '@/renderer/state/contract';
@@ -12,7 +12,6 @@ import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTranspo
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import type { HelperStatus } from '@/collaboration/hdht/types';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
-import { normalizeWebAppUrl, ownWebAppUrl } from '@/collaboration/session-link';
 import AppSelect from './AppSelect.vue';
 
 const props = defineProps<{ disabled?: boolean; inviteLink?: string | null }>();
@@ -22,16 +21,15 @@ const bridge = getDesktopBridge();
 const role = ref<'editor' | 'viewer'>('viewer');
 const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }, { value: 'editor', label: t('Gemeinsam bearbeiten') }]);
 const linkText = ref(''), pinText = ref(''), hostPin = ref(''), shareLink = ref('');
-const relayUrl = ref(''), webAppUrl = ref(ownWebAppUrl());
 const busy = ref(false), active = ref(false), joined = ref(false), hosting = ref(false);
 const stopping = ref(false);
 const nativePending = ref(false), relayShareAllowed = ref(false);
 const error = ref(''), note = ref('');
 const status = shallowRef<CollaborationTransportStatus | null>(null);
-const helper = shallowRef<HelperStatus | null>(null), helperBusy = ref(false), helperError = ref('');
+const helper = shallowRef<HelperStatus | null>(null), helperError = ref('');
 let host: HdhtHostTransport | undefined, room: RoomConnection | undefined, native: DirectLink | undefined;
 let binding: CrdtTransportBinding | undefined, offStatus = () => {};
-let generation = 0, disposed = false, helperGeneration = 0;
+let generation = 0, disposed = false;
 let stopPromise: Promise<void> | undefined;
 let ownerAuthority = store.getAuthority();
 const isNative = !!bridge.direct;
@@ -53,21 +51,53 @@ function fail(value: unknown): void {
     : /PIN_INVALID/.test(code) ? t('Die PIN stimmt nicht. Bitte erneut eingeben.')
     : /PIN_LOCKED|PIN_RETIRED/.test(code) ? t('Zu viele PIN-Versuche. Bitte warten oder vom Gastgeber eine neue PIN anfordern.')
     : /INVITATION_EXPIRED/.test(code) ? t('Dieser Link ist abgelaufen. Bitte einen neuen Link anfordern.')
-    : /INVITATION_INVALID/.test(code) ? t('Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.')
     : /HOST_KEY_MISMATCH|DOCUMENT_MISMATCH/.test(code) ? t('Die Identität oder das Dokument stimmt nicht mit dem Link überein.')
-    : /RELAY_URL/.test(code) ? t('Verwende eine gültige wss://-Adresse ohne Zugangsdaten, Parameter oder Fragment.')
-    : /BROWSER_RELAY_REQUIRED/.test(code) ? t('Für den Browser muss der Gastgeber ein erreichbares WSS-Gateway anbieten. Öffne diesen Link sonst in der Desktop-App.')
+    : /INVITATION_INVALID|RELAY_URL/.test(code) ? t('Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.')
+    : /DESKTOP_REQUIRED/.test(code) ? t('Gemeinsame Sessions laufen in der Desktop-App. Öffne den Link dort.')
     : /SESSION_ENDED|KICKED/.test(code) ? t('Der Gastgeber hat deine Verbindung beendet.')
     : /ROOM_FULL/.test(code) ? t('Diese Session ist voll. Bitte später erneut versuchen.')
     : /ABORTED/.test(code) ? ''
-    : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Wenn UDP gesperrt ist, wird ein erreichbares WSS-Gateway benötigt.');
+    : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
 }
 function setActive(value: boolean) { active.value = value; emit('active', value); }
 function updateLink(): void {
   if (!host) return;
-  shareLink.value = buildHdhtLink({ version: 1, sessionId: sessionId, hostKey: host.hostKey, directKey: host.directKey, relayUrl: host.relayUrl, documentId: ownerAuthority!.session.documentId, expiresAt: host.expiresAt }, webAppUrl.value);
+  shareLink.value = buildHdhtLink({ version: 1, sessionId: sessionId, hostKey: host.hostKey, directKey: host.directKey, relayUrl: host.relayUrl, documentId: ownerAuthority!.session.documentId, expiresAt: host.expiresAt });
 }
 let sessionId = '';
+/**
+ * Development and test override only: a self-run relay endpoint for clients without native HyperDHT (browser preview).
+ * The product has no gateway setting; desktop peers connect directly or through volunteer helpers.
+ */
+const RELAY_OVERRIDE_KEY = 'sketchdraw.hdht-relay-url.v1';
+function relayOverride(): string { try { return localStorage.getItem(RELAY_OVERRIDE_KEY) ?? ''; } catch { return ''; } }
+
+/**
+ * While a session of this device runs, the device also offers its bounded relay capacity to other sessions (#162).
+ * Calls are serialized so a stop always follows the start it belongs to; a failing helper never ends the session.
+ */
+let helperWanted = false, helperChain: Promise<void> = Promise.resolve();
+function setHelper(enabled: boolean): Promise<void> {
+  const api = bridge.helper;
+  if (!api || helperWanted === enabled) return helperChain;
+  helperWanted = enabled;
+  helperChain = helperChain.then(async () => {
+    try {
+      if (enabled) {
+        helperError.value = '';
+        const value = await api.start();
+        if (!disposed && helperWanted) { helper.value = value; helperPolling.resume(); }
+      } else {
+        helperPolling.pause();
+        await api.stop();
+        if (!disposed && !helperWanted) helper.value = null;
+      }
+    } catch {
+      if (enabled && !disposed && helperWanted) helperError.value = t('Der Relay-Helfer konnte nicht gestartet werden. Deine Session läuft ohne ihn weiter.');
+    }
+  });
+  return helperChain;
+}
 
 async function start(): Promise<void> {
   if (busy.value || active.value || props.disabled || store.getRoomGuest()) return;
@@ -77,9 +107,8 @@ async function start(): Promise<void> {
   ownerAuthority = authority;
   try {
     assertCollaborationDocumentSize(controller);
-    const relay = optionalRelayUrl(relayUrl.value);
-    if (!isNative && !relay) throw new Error('BROWSER_RELAY_REQUIRED');
-    webAppUrl.value = normalizeWebAppUrl(webAppUrl.value);
+    const relay = optionalRelayUrl(relayOverride());
+    if (!isNative && !relay) throw new Error('DESKTOP_REQUIRED');
     const keys = await createHostKeys();
     if (disposed || generation !== epoch || store.getAuthority() !== authority || store.getCrdtController() !== controller) return;
     sessionId = createSessionId();
@@ -102,6 +131,7 @@ async function start(): Promise<void> {
       },
     });
     hostPin.value = current.getPin(); updateLink();
+    void setHelper(true);
     // WSS registration and helper discovery already run; blocked native startup cannot hold them up.
     if (bridge.direct && native) {
       const link = native;
@@ -109,7 +139,7 @@ async function start(): Promise<void> {
         if (disposed || generation !== epoch || host !== current) return;
         current.attachDirect(link, result.publicKey); nativePending.value = false; updateLink(); inspect();
       }).catch(() => {
-        if (generation === epoch) { nativePending.value = false; note.value = t('Direktverbindung nicht verfügbar. Erreichbare Helfer oder das WSS-Gateway werden weiter genutzt.'); }
+        if (generation === epoch) { nativePending.value = false; note.value = t('Direktverbindung nicht verfügbar. Erreichbare Relay-Helfer werden weiter genutzt.'); }
       });
     }
   } catch (value) { if (generation === epoch) { fail(value); await stop(false); } }
@@ -123,7 +153,7 @@ async function join(): Promise<void> {
     const invitation = parseHdhtInvitation(linkText.value);
     const pin = normalizePin(pinText.value);
     if (!pin) { error.value = t('Bitte die sechsstellige PIN eingeben.'); return; }
-    if (!isNative && !invitation.relayUrl) throw new Error('BROWSER_RELAY_REQUIRED');
+    if (!isNative && !invitation.relayUrl) throw new Error('DESKTOP_REQUIRED');
     busy.value = true;
     native = bridge.direct ? new DirectLink(bridge.direct) : undefined;
     const transport = createHdhtGuestTransport({ invitation, pin, ...(native ? { direct: native } : {}) });
@@ -133,6 +163,7 @@ async function join(): Promise<void> {
       if (value.state === 'error') fail(new Error(value.error ?? 'CONNECTION_LOST'));
     } });
     room = current; hosting.value = false; setActive(true); pinText.value = '';
+    void setHelper(true);
     const accepted = await current.join();
     if (generation !== epoch || disposed) return;
     if (!accepted) { await stop(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); }
@@ -155,6 +186,7 @@ function stop(keepLocalCopy: boolean, reason?: string): Promise<void> {
       await bridge.direct?.hostStop().catch(() => undefined);
       currentNative?.dispose();
       await currentBinding?.close().catch(() => undefined);
+      await setHelper(false);
       if (disposed || generation !== epoch) return;
       hosting.value = false; joined.value = false; setActive(false); busy.value = false; status.value = null; shareLink.value = ''; hostPin.value = '';
       nativePending.value = false; relayShareAllowed.value = false;
@@ -169,23 +201,8 @@ async function copy(value: string) {
 }
 
 const helperPolling = useIntervalFn(async () => {
-  const epoch = helperGeneration;
-  try { const value = await bridge.helper?.status(); if (!disposed && epoch === helperGeneration && value) helper.value = value; } catch { /* next poll retries */ }
+  try { const value = await bridge.helper?.status(); if (!disposed && helperWanted && value) helper.value = value; } catch { /* next poll retries */ }
 }, 3000, { immediate: false });
-async function toggleHelper(event: Event) {
-  const enabled = (event.target as HTMLInputElement).checked;
-  if (!bridge.helper || helperBusy.value) return;
-  const epoch = ++helperGeneration; helperBusy.value = true; helperError.value = '';
-  try {
-    if (enabled) helper.value = await bridge.helper.start();
-    else { helperPolling.pause(); await bridge.helper.stop(); helper.value = await bridge.helper.status(); }
-    if (!disposed && epoch === helperGeneration && helper.value?.running) helperPolling.resume();
-  } catch { helperError.value = t('Der Relay-Helfer konnte nicht gestartet werden. Bitte erneut versuchen.'); }
-  finally { if (epoch === helperGeneration) helperBusy.value = false; }
-}
-onMounted(async () => {
-  try { const value = await bridge.helper?.status(); if (!disposed && value) { helper.value = value; if (value.running) helperPolling.resume(); } } catch { /* native capability is optional */ }
-});
 const offAuthority = store.subscribeAuthority(next => {
   if (room?.isAdopting) return;
   if ((active.value || busy.value) && next !== ownerAuthority && (!room?.isAdopted || !store.getRoomGuest())) void stop(false);
@@ -194,7 +211,7 @@ watch(() => props.inviteLink, link => {
   if (!link || !isHdhtLink(link) || active.value) return;
   linkText.value = link; pinText.value = ''; emit('link-consumed');
 }, { immediate: true });
-onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); helperPolling.pause(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
+onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); helperPolling.pause(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
 </script>
 
 <template>
@@ -215,8 +232,8 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
       <template v-if="hosting && status?.state === 'ready'">
         <template v-if="nativePending && !relayShareAllowed">
           <p>{{ t('Direktverbindung wird noch vorbereitet …') }}</p>
-          <p>{{ t('Du kannst bereits über Relay einladen. Dieser Link enthält den Direktweg noch nicht.') }}</p>
-          <button class="sd-btn full" data-testid="hdht-share-relay" @click="relayShareAllowed = true">{{ t('Link jetzt über Relay teilen') }}</button>
+          <p>{{ t('Du kannst bereits über Relay-Helfer einladen. Dieser Link enthält den Direktweg noch nicht.') }}</p>
+          <button class="sd-btn full" data-testid="hdht-share-relay" @click="relayShareAllowed = true">{{ t('Link jetzt über Relay-Helfer teilen') }}</button>
         </template>
         <template v-else>
         <label class="sd-field-label">{{ t('Link zum Teilen') }}<input class="sd-input" readonly :value="shareLink" data-testid="hdht-link" :aria-label="t('Session-Link zum Kopieren')" @focus="($event.target as HTMLInputElement).select()" /></label>
@@ -231,16 +248,13 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
     </template>
     <details class="network" data-testid="hdht-network">
       <summary>{{ t('Netzwerk und Relay-Hilfe') }}</summary>
-      <p>{{ t('Freiwillige Desktop-Geräte können verschlüsselte Daten weiterleiten. Es wird kein fester Relay-Server benötigt. Wenn UDP vollständig gesperrt ist, hilft nur ein zusätzlich erreichbares WSS-Gateway.') }}</p>
-      <label class="sd-field-label">{{ t('Optionales WSS-Gateway') }}<input v-model="relayUrl" class="sd-input" :aria-label="t('Optionales WSS-Gateway')" placeholder="wss://" spellcheck="false" :disabled="active || busy" /></label>
-      <label class="sd-field-label">{{ t('Adresse der Web-App für Einladungslinks') }}<input v-model="webAppUrl" class="sd-input" :aria-label="t('Adresse der Web-App für PIN-Links')" type="url" :disabled="active || busy" /></label>
+      <p>{{ t('Die Desktop-App verbindet eure Geräte direkt. Gelingt das nicht, leiten freiwillige Desktop-Geräte die verschlüsselten Daten weiter. Es gibt keinen festen Server; ist UDP in einem Netzwerk vollständig gesperrt, kommt keine Verbindung zustande.') }}</p>
       <template v-if="bridge.helper">
-        <label class="helper-switch"><input type="checkbox" :checked="helper?.running === true" :disabled="helperBusy" data-testid="hdht-helper" @change="toggleHelper" />{{ t('Dieses Gerät als Relay-Helfer anbieten') }}</label>
-        <p>{{ t('Standardmäßig aus. Nutzt während der Laufzeit begrenzte Bandbreite für andere Sessions; deren Inhalte und PINs bleiben verschlüsselt.') }}</p>
-        <p v-if="helper?.running" role="status">{{ t('Relay-Helfer aktiv · {sessions} Sessions · {connections} Verbindungen', { sessions: helper.sessions, connections: helper.connections }) }}</p>
+        <p>{{ t('Solange deine Session läuft, hilft dieses Gerät als Relay-Helfer auch anderen Sessions – mit begrenzter Bandbreite. Deren Inhalte und PINs bleiben verschlüsselt.') }}</p>
+        <p v-if="helper?.running" role="status" data-testid="hdht-helper-status">{{ t('Relay-Helfer aktiv · {sessions} Sessions · {connections} Verbindungen', { sessions: helper.sessions, connections: helper.connections }) }}</p>
         <p v-if="helperError" role="alert" class="error">{{ helperError }}</p>
       </template>
-      <p v-else>{{ t('Dezentrale Suche und Relay-Hilfe sind in der Desktop-App verfügbar. Im Browser wird ein WSS-Gateway aus dem Link verwendet.') }}</p>
+      <p v-else>{{ t('Gemeinsame Sessions laufen in der Desktop-App. Öffne den Link dort.') }}</p>
       <p v-if="hosting">{{ t('Erreichbare Relay-Helfer: {count}', { count: status?.helpers ?? 0 }) }}</p>
       <p v-if="status?.route">{{ routeText }}</p>
     </details>
@@ -249,5 +263,5 @@ onBeforeUnmount(() => { disposed = true; helperGeneration++; offAuthority(); hel
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.network{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}summary{font-size:12px;cursor:pointer;font-weight:600}.helper-switch{display:flex;align-items:center;gap:8px;font-size:12px;margin:16px 0 8px}.error{color:var(--status-error)!important}summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.network{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}summary{font-size:12px;cursor:pointer;font-weight:600}.error{color:var(--status-error)!important}summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 </style>

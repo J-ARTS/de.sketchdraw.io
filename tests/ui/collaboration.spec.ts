@@ -58,39 +58,3 @@ test('invalid invitation is rejected with a recoverable explanation', async ({ p
   await expect(panel.getByRole('button', { name: 'Einladung prüfen' })).toBeEnabled();
   await expect(panel.getByRole('button', { name: 'Identität bestätigen' })).toHaveCount(0);
 });
-
-test('one click starts a session with a shareable link and no mode choice', async ({ page }) => {
-  await page.goto('/');
-  await openCollaboration(page);
-  await page.getByTestId('legacy-session').locator('summary').first().click();
-  const panel = page.getByTestId('collaboration-panel');
-  await expect(panel.getByRole('button', { name: 'Automatic P2P' })).toHaveCount(0);
-  await expect(panel.getByRole('button', { name: 'Strict Direct' })).toHaveCount(0);
-  await panel.getByTestId('session-start').click();
-  const link = panel.getByTestId('session-link');
-  await expect(link).toHaveValue(/^https?:\/\/.+#sketchdraw-session=.{80,}/);
-  await expect(panel.getByRole('button', { name: 'Link kopieren' })).toBeVisible();
-  await expect(panel.getByRole('heading', { name: 'Session läuft' })).toBeVisible();
-  await panel.getByText('Verwendete Endpunkte', { exact: true }).click();
-  await expect(panel.locator('.automatic-endpoints')).toContainText('wss://');
-  await panel.getByTestId('session-stop').click();
-  await expect(panel.getByTestId('session-start')).toBeEnabled();
-});
-
-test('an invalid session link is rejected with an explanation', async ({ page }) => {
-  await page.goto('/');
-  await openCollaboration(page);
-  await page.getByTestId('legacy-session').locator('summary').first().click();
-  const panel = page.getByTestId('collaboration-panel');
-  await panel.getByRole('textbox', { name: 'Session-Link einfügen' }).fill('hallo welt');
-  await panel.getByRole('button', { name: 'Session beitreten' }).click();
-  await expect(panel.getByRole('alert')).toContainText('kein gültiger Session-Link');
-});
-
-test('opening a session link starts the app, removes the fragment and tries to join', async ({ page }) => {
-  await page.goto('/#sketchdraw-session=' + encodeURIComponent('A'.repeat(120)));
-  const panel = page.getByTestId('collaboration-panel');
-  await expect(panel).toBeVisible();
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('');
-  await expect(panel.getByRole('alert')).toBeVisible();
-});
