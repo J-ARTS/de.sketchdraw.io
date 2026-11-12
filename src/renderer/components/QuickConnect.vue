@@ -6,8 +6,8 @@ import { useWhiteboard } from './use-whiteboard';
 import { t } from '@/renderer/i18n';
 import { createElement, type Point, type SketchElement } from '@/domain';
 import { DEFAULT_STYLE, QUICK_CONNECT_KINDS } from '@/renderer/lib/constants';
-import { bounds, center, hitElement, normalizedRect, rotatePoint } from '@/renderer/lib/geometry';
-import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_DIRECTIONS, QUICK_HANDLE_OFFSET, QUICK_SIDES, quickConnectCopy } from '@/renderer/lib/quick-connect';
+import { bounds, center, DOCK_POINTS, endpointAt, hitElement, normalizedRect, rotatePoint } from '@/renderer/lib/geometry';
+import { anchorPoint, planQuickConnect, QUICK_DIRECTIONS, QUICK_HANDLE_OFFSET, QUICK_SIDES, quickConnectCopy } from '@/renderer/lib/quick-connect';
 import { docToScreen, screenToDoc } from '@/renderer/lib/viewport';
 import type { QuickDirection } from '@/renderer/state/contract';
 
@@ -101,7 +101,7 @@ function onHandleUp(event: PointerEvent): void {
   if (!current?.active) return; // a plain click creates a connected copy
   suppressClick = true;
   setTimeout(() => { suppressClick = false; }, 0);
-  if (current.targetId) store.quickConnectTo(current.direction, current.targetId);
+  if (current.targetId) store.quickConnectTo(current.direction, current.targetId, current.point);
 }
 function endLink(event?: PointerEvent): void {
   const target = event?.currentTarget;
@@ -117,15 +117,29 @@ function onLinkKeydown(event: KeyboardEvent): void {
 }
 onBeforeUnmount(() => endLink());
 
-/** Preview line from the handle's side to the pointer, snapping to the nearest side of a hovered target. */
+/**
+ * While dragging, the preview is the connection itself: routed and tipped like the one that will be created. Over a
+ * target its twelve dock points are shown and the end snaps to the one nearest to the pointer (#167).
+ */
 const linkPreview = computed(() => {
   const current = link.value;
   const element = source.value;
   if (!current?.active || !element) return null;
-  const start = anchorPoint(element, QUICK_SIDES[current.direction].from);
-  const target = current.targetId ? s.document.elements.find((entry) => entry.id === current.targetId) : null;
-  const end = target ? anchorPoint(target, nearestSideAnchor(target, start)) : current.point;
-  return { start, end, target: target ? bounds([target]) : null };
+  const fromAnchor = QUICK_SIDES[current.direction].from;
+  const start = anchorPoint(element, fromAnchor);
+  const target = current.targetId ? s.document.elements.find((entry) => entry.id === current.targetId) ?? null : null;
+  const toAnchor = target ? endpointAt(target, current.point) : null;
+  const end = target && toAnchor ? anchorPoint(target, toAnchor) : current.point;
+  const rect = normalizedRect(start, end);
+  let arrow: SketchElement | null = null;
+  try {
+    arrow = createElement('connector', {
+      id: 'quick-preview:link', ...rect, points: [start, end].map((p) => ({ x: p.x - rect.x, y: p.y - rect.y })),
+      from: { elementId: element.id, anchor: fromAnchor }, ...(target && toAnchor ? { to: { elementId: target.id, anchor: toAnchor } } : {}),
+      connectorRouting: s.connectorDefaults.routing, endMarker: s.connectorDefaults.endMarker, style: { ...DEFAULT_STYLE },
+    });
+  } catch { arrow = null; }
+  return { arrow, target, toAnchor, frame: target ? bounds([target]) : null };
 });
 </script>
 
@@ -138,9 +152,11 @@ const linkPreview = computed(() => {
     </svg>
     <svg v-if="linkPreview" class="link-preview" aria-hidden="true" data-testid="quick-connect-link">
       <g :transform="transform">
-        <rect v-if="linkPreview.target" class="link-target" :x="linkPreview.target.x - 6 / s.viewport.zoom" :y="linkPreview.target.y - 6 / s.viewport.zoom" :width="linkPreview.target.width + 12 / s.viewport.zoom" :height="linkPreview.target.height + 12 / s.viewport.zoom" :rx="10 / s.viewport.zoom" :stroke-width="2 / s.viewport.zoom" />
-        <line class="link-line" :x1="linkPreview.start.x" :y1="linkPreview.start.y" :x2="linkPreview.end.x" :y2="linkPreview.end.y" :stroke-width="2 / s.viewport.zoom" :stroke-dasharray="`${6 / s.viewport.zoom} ${4 / s.viewport.zoom}`" />
-        <circle class="link-end" :cx="linkPreview.end.x" :cy="linkPreview.end.y" :r="4 / s.viewport.zoom" />
+        <rect v-if="linkPreview.frame" class="link-target" :x="linkPreview.frame.x - 6 / s.viewport.zoom" :y="linkPreview.frame.y - 6 / s.viewport.zoom" :width="linkPreview.frame.width + 12 / s.viewport.zoom" :height="linkPreview.frame.height + 12 / s.viewport.zoom" :rx="10 / s.viewport.zoom" :stroke-width="2 / s.viewport.zoom" />
+        <ElementView v-if="linkPreview.arrow" :element="linkPreview.arrow" :document="s.document" :theme="s.theme" />
+        <g v-if="linkPreview.target" data-testid="quick-connect-docks" :transform="`rotate(${linkPreview.target.rotation} ${linkPreview.target.x + linkPreview.target.width / 2} ${linkPreview.target.y + linkPreview.target.height / 2})`">
+          <circle v-for="dock in DOCK_POINTS" :key="`${dock.side}-${dock.slot}`" class="link-dock" :class="{ chosen: linkPreview.toAnchor?.x === dock.x && linkPreview.toAnchor?.y === dock.y }" :data-side="dock.side" :data-slot="dock.slot" :cx="linkPreview.target.x + linkPreview.target.width * dock.x" :cy="linkPreview.target.y + linkPreview.target.height * dock.y" :r="6 / s.viewport.zoom" :stroke-width="2 / s.viewport.zoom" />
+        </g>
       </g>
     </svg>
     <button
@@ -189,13 +205,13 @@ const linkPreview = computed(() => {
   pointer-events: none;
 }
 
-.link-line {
-  stroke: var(--accent);
-  stroke-linecap: round;
+.link-dock {
+  fill: var(--surface-panel);
+  stroke: #0d99ff;
 }
 
-.link-end {
-  fill: var(--accent);
+.link-dock.chosen {
+  fill: #0d99ff;
 }
 
 .link-target {

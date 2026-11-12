@@ -361,7 +361,8 @@ export interface WhiteboardStore {
   /** Creates a same-shaped copy next to the single selected shape and an arrow to it (#36). */
   quickConnect(direction: QuickDirection): void;
   /** Connects the single selected shape from its `direction` side to an existing element, without a copy (#107). */
-  quickConnectTo(direction: QuickDirection, targetId: string): void;
+  /** Connects the selected shape to `targetId`; `near` picks the target's dock point closest to it, else the nearest side. */
+  quickConnectTo(direction: QuickDirection, targetId: string, near?: Point): void;
   /** Changes selected geometric elements in place; IDs and connector references stay stable (#39/#40). */
   replaceShape(variant: ShapeVariant): void;
   applyPatch(patch: ElementPatch): void;

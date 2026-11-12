@@ -1330,14 +1330,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!targets.length) return;
       void dispatch({ type: 'update', changes: targets.map((element) => ({ id: element.id, patch: { shapeVariant: variant } })) });
     },
-    quickConnectTo(direction, targetId) {
+    quickConnectTo(direction, targetId, near) {
       if (!state.canWrite || state.transitioning || state.selection.length !== 1) return;
       const source = selected()[0];
       const target = pageEls().find((element) => element.id === targetId);
       if (!source || !target || target.id === source.id || target.kind === 'connector' || !QUICK_CONNECT_KINDS.has(source.kind)) return;
       const fromAnchor = QUICK_SIDES[direction].from;
       const start = anchorPoint(source, fromAnchor);
-      const toAnchor = nearestSideAnchor(target, start);
+      const toAnchor = near && Number.isFinite(near.x) && Number.isFinite(near.y) ? endpointAt(target, near) : nearestSideAnchor(target, start);
       const end = anchorPoint(target, toAnchor);
       try {
         const rect = normalizedRect(start, end);

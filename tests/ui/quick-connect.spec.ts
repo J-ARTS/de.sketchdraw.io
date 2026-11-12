@@ -106,15 +106,51 @@ test('dragging the quick-connect arrow onto another shape connects both without 
   const handle = (await page.getByTestId('quick-connect-right').boundingBox())!;
   await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2); await page.mouse.down();
   await page.mouse.move(880, 300, { steps: 10 });
-  await expect(page.getByTestId('quick-connect-link')).toBeVisible();
-  await expect(page.getByTestId('quick-connect-link').locator('.link-target')).toHaveCount(1);
+  const link = page.getByTestId('quick-connect-link');
+  await expect(link).toBeVisible();
+  await expect(link.locator('.link-target')).toHaveCount(1);
   await expect(page.getByTestId('quick-connect-preview')).toHaveCount(0);
+  // The preview is the connection itself (solid, routed like the result), not a dashed helper line (#167).
+  await expect(link.locator('line')).toHaveCount(0);
+  const previewPath = link.locator('[data-kind=connector] path[marker-end]');
+  await expect(previewPath).toHaveCount(1);
+  await expect(previewPath).toHaveAttribute('d', /^M .* [QAC] /);
+  expect(await link.locator('[data-kind=connector] [stroke-dasharray]').evaluateAll(nodes => nodes.map(node => node.getAttribute('stroke-dasharray')).filter(value => value && value !== 'none'))).toEqual([]);
+  // All twelve dock points of the target are offered; the nearest one is marked.
+  await expect(link.getByTestId('quick-connect-docks').locator('circle')).toHaveCount(12);
+  await expect(link.locator('.link-dock.chosen')).toHaveCount(1);
+  await expect(link.locator('.link-dock.chosen')).toHaveAttribute('data-side', 'left');
   await page.mouse.up();
   await expect(page.locator(shapes)).toHaveCount(2);
   await expect(page.locator(arrows)).toHaveCount(1);
   const code = await documentCode(page);
   expect(code).toContain(`"from":{"anchor":{"x":1,"y":0.5},"elementId":"${sourceId}"}`);
   expect(code).toContain(`"to":{"anchor":{"x":0,"y":0.5},"elementId":"${targetId}"}`);
+
+  // Any dock point can be chosen: the end snaps to the one nearest to the pointer and the connection keeps it.
+  await page.keyboard.press('ControlOrMeta+Z');
+  await expect(page.locator(arrows)).toHaveCount(0);
+  await page.mouse.click(400, 260);
+  const top = (await page.getByTestId('quick-connect-top').boundingBox())!;
+  await page.mouse.move(top.x + top.width / 2, top.y + top.height / 2); await page.mouse.down();
+  await page.mouse.move(925, 246, { steps: 10 }); // near the right third of the target's top edge
+  await expect(link.locator('.link-dock.chosen')).toHaveAttribute('data-side', 'top');
+  const chosen = (await link.locator('.link-dock.chosen').boundingBox())!;
+  expect(chosen.x + chosen.width / 2).toBeGreaterThan(880);
+  await page.mouse.move(954, 330, { steps: 6 }); // now the lower part of the right edge
+  await expect(link.locator('.link-dock.chosen')).toHaveAttribute('data-side', 'right');
+  await page.mouse.up();
+  await expect(page.locator(arrows)).toHaveCount(1);
+  const snapped = await documentCode(page);
+  expect(snapped).toContain(`"from":{"anchor":{"x":0.5,"y":0},"elementId":"${sourceId}"}`);
+  expect(snapped).toMatch(new RegExp(`"to":\\{"anchor":\\{"x":1,"y":0\\.75\\},"elementId":"${targetId}"\\}`));
+  await page.keyboard.press('ControlOrMeta+Z');
+  await expect(page.locator(arrows)).toHaveCount(0);
+  await page.mouse.click(400, 260);
+  const right = (await page.getByTestId('quick-connect-right').boundingBox())!;
+  await page.mouse.move(right.x + right.width / 2, right.y + right.height / 2); await page.mouse.down();
+  await page.mouse.move(880, 300, { steps: 10 }); await page.mouse.up();
+  await expect(page.locator(arrows)).toHaveCount(1);
 
   // Releasing on empty canvas or pressing Escape creates nothing.
   await page.mouse.click(400, 260);
