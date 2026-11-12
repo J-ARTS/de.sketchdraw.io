@@ -72,7 +72,16 @@ export interface KeyInput {
   repeat: boolean; isComposing: boolean;
   /** Chosen by the component from the event target: canvas, text editor, or anything else (toolbar, panels). */
   scope: 'canvas' | 'text' | 'other';
+  /**
+   * Set where copy and paste arrive as clipboard events of the document (#174): the key press is then left alone, so the
+   * event that follows it can carry the data.
+   */
+  clipboardEvents?: boolean;
 }
+/** The part of a clipboard event's DataTransfer the store writes to. */
+export interface ClipboardSink { setData(format: string, value: string): void }
+/** What a paste event offered: its plain text and the first image file, if any. */
+export interface ClipboardContent { text: string; image: File | null }
 
 export type HandleId =
   | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate'
@@ -349,6 +358,10 @@ export interface WhiteboardStore {
   deleteSelection(): void;
   copySelection(): Promise<void>;
   pasteSelection(): Promise<void>;
+  /** Copy event: puts the selection into the event's clipboard data. False when there is nothing to copy (native copy proceeds). */
+  copyToClipboardData(data: ClipboardSink): boolean;
+  /** Paste event: Sketchdraw elements from its text, otherwise its image, at the pointer. */
+  pasteClipboardData(content: ClipboardContent): Promise<void>;
   duplicateSelection(): void;
   nudge(dx: number, dy: number): void;
   endNudge(): void;

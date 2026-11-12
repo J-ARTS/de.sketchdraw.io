@@ -769,7 +769,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Radierer-Radius: {eraserRadius} Pixel': 'Eraser radius: {eraserRadius} pixels',
   'Web-Embed {label} hinzugefügt.': 'Web embed {label} added.',
   'Frame in der Folienleiste zum Umbenennen ausgewählt.': 'Frame selected in the slide bar for renaming.',
-  'Die Zwischenablage enthält keine Sketchdraw-Elemente.': 'The clipboard contains no Sketchdraw elements.',
+  'Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.': 'The clipboard contains neither Sketchdraw elements nor an image.',
   'Bitte den offenen Eigenschaftenentwurf zuerst übernehmen oder verwerfen.': 'Please apply or discard the open property draft first.',
   'Gesamte Tabelle ausgewählt.': 'Entire table selected.',
   'Kommentar an Element schreiben.': 'Write comment on element.',

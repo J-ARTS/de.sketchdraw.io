@@ -104,7 +104,7 @@ describe('element clipboard', () => {
     store.select([container.id]);
     await store.pasteSelection();
     expect(store.state.document.elements).toHaveLength(5);
-    expect(store.state.notices.at(-1)?.text).toContain('keine Sketchdraw-Elemente');
+    expect(store.state.notices.at(-1)?.text).toBe('Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.');
 
     expect(resolveShortcut(key('c', 'canvas'), false)).toBe('edit.copy');
     expect(resolveShortcut(key('v', 'canvas'), false)).toBe('edit.paste');
@@ -128,5 +128,113 @@ describe('element clipboard', () => {
     expect(store.state.document.elements).toHaveLength(2);
     expect(clipboard.readText).not.toHaveBeenCalled();
     expect(store.state.notices.some((notice) => notice.text === '1 Element intern kopiert.')).toBe(true);
+  });
+
+  // Clipboard events (#174): copy and paste through the event's data, which needs no permission and carries images.
+  test('a copy event receives the selection and a paste event with that text pastes it at the pointer', async () => {
+    const { document, container, target } = fixture();
+    const clipboard: TextClipboard = { writeText: vi.fn(async () => { throw new Error('permission denied'); }), readText: vi.fn(async () => { throw new Error('permission denied'); }) };
+    const store = createWhiteboardStore({ bridge, clipboard, controller: createController(document), isMac: false });
+    stores.push(store);
+    const written = new Map<string, string>();
+    const sink = { setData: (format: string, value: string) => { written.set(format, value); } };
+
+    // Nothing selected: the event stays with the browser.
+    expect(store.copyToClipboardData(sink)).toBe(false);
+    expect(written.size).toBe(0);
+
+    store.select([container.id, target.id]);
+    store.pointerMove(pointer(820, 610));
+    expect(store.copyToClipboardData(sink)).toBe(true);
+    expect([...written.keys()]).toEqual(['text/plain']);
+    expect(JSON.parse(written.get('text/plain')!)).toMatchObject({ format: 'sketchdraw.elements', version: 1 });
+    expect(store.state.notices.at(-1)?.text).toBe('5 Elemente kopiert.');
+
+    await store.pasteClipboardData({ text: written.get('text/plain')!, image: null });
+    await store.whenIdle();
+    const sourceIds = new Set(document.elements.map((element) => element.id));
+    const copies = store.state.document.elements.filter((element) => !sourceIds.has(element.id));
+    expect(copies).toHaveLength(5);
+    expect(store.state.selection).toEqual(copies.map((element) => element.id));
+    const copyBounds = bounds(copies)!;
+    expect(copyBounds.x + copyBounds.width / 2).toBeCloseTo(820);
+    expect(copyBounds.y + copyBounds.height / 2).toBeCloseTo(610);
+    // The permission-bound clipboard API was never needed.
+    expect(clipboard.writeText).not.toHaveBeenCalled();
+    expect(clipboard.readText).not.toHaveBeenCalled();
+  });
+
+  test('a paste event with an image inserts it at the pointer; Sketchdraw elements in the text win over an image', async () => {
+    const { document, target } = fixture();
+    const clipboard: TextClipboard = { writeText: vi.fn(async () => {}), readText: vi.fn(async () => '') };
+    const store = createWhiteboardStore({ bridge, clipboard, controller: createController(document), isMac: false });
+    stores.push(store);
+    const insert = vi.spyOn(store, 'insertImageFile').mockResolvedValue();
+    const image = new File([new Uint8Array([1, 2, 3])], 'image.png', { type: 'image/png' });
+    store.pointerMove(pointer(300, 200));
+
+    await store.pasteClipboardData({ text: 'Tabellentext aus einer anderen App', image });
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(insert.mock.calls[0]![0]).toBe(image);
+    expect(insert.mock.calls[0]![1]).toEqual({ x: 300, y: 200 });
+    expect(store.state.document.elements).toHaveLength(5);
+
+    // Without a pointer position yet, the image lands in the middle of the view.
+    const fresh = createWhiteboardStore({ bridge, clipboard, controller: createController(createDocument('Leer')), isMac: false });
+    stores.push(fresh);
+    fresh.setViewportSize(1000, 600);
+    const insertFresh = vi.spyOn(fresh, 'insertImageFile').mockResolvedValue();
+    await fresh.pasteClipboardData({ text: '', image });
+    expect(insertFresh.mock.calls[0]![1]).toEqual({ x: 500, y: 300 });
+
+    const written = new Map<string, string>();
+    store.select([target.id]);
+    store.copyToClipboardData({ setData: (format, value) => { written.set(format, value); } });
+    await store.pasteClipboardData({ text: written.get('text/plain')!, image });
+    await store.whenIdle();
+    expect(insert).toHaveBeenCalledTimes(1);
+    expect(store.state.document.elements).toHaveLength(6);
+
+    // Neither elements nor an image: nothing changes and the notice says so.
+    await store.pasteClipboardData({ text: 'nur Text', image: null });
+    expect(store.state.document.elements).toHaveLength(6);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'error', text: 'Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.' });
+  });
+
+  test('an internal copy that could not reach the system clipboard is pasted before stale event content', async () => {
+    const document = createDocument('Fallback');
+    document.elements = [createElement('rectangle', { id: 'rectangle:source', x: 100, y: 100 })];
+    const clipboard: TextClipboard = { writeText: vi.fn(async () => { throw new Error('permission denied'); }), readText: vi.fn(async () => '') };
+    const store = createWhiteboardStore({ bridge, clipboard, controller: createController(document) });
+    stores.push(store);
+    const insert = vi.spyOn(store, 'insertImageFile').mockResolvedValue();
+    const stale = new File([new Uint8Array([1])], 'alt.png', { type: 'image/png' });
+    store.select(['rectangle:source']);
+    await store.copySelection();
+    await store.pasteClipboardData({ text: '', image: stale });
+    await store.whenIdle();
+    expect(store.state.document.elements).toHaveLength(2);
+    expect(insert).not.toHaveBeenCalled();
+    // That preference holds once; afterwards the event content counts again.
+    await store.pasteClipboardData({ text: '', image: stale });
+    expect(insert).toHaveBeenCalledTimes(1);
+  });
+
+  test('the key press is left to the clipboard event where the component announces such events', async () => {
+    const { document, container } = fixture();
+    const clipboard: TextClipboard = { writeText: vi.fn(async () => {}), readText: vi.fn(async () => '') };
+    const store = createWhiteboardStore({ bridge, clipboard, controller: createController(document), isMac: false });
+    stores.push(store);
+    store.select([container.id]);
+    expect(store.handleKeyDown({ ...key('c', 'canvas'), clipboardEvents: true })).toBe(false);
+    expect(store.handleKeyDown({ ...key('v', 'canvas'), clipboardEvents: true })).toBe(false);
+    await store.whenIdle();
+    expect(clipboard.writeText).not.toHaveBeenCalled();
+    expect(clipboard.readText).not.toHaveBeenCalled();
+    // Other shortcuts are unaffected, and without the announcement the key still copies.
+    expect(store.handleKeyDown({ ...key('a', 'canvas'), clipboardEvents: true })).toBe(true);
+    expect(store.handleKeyDown(key('c', 'canvas'))).toBe(true);
+    await store.whenIdle();
+    expect(clipboard.writeText).toHaveBeenCalledTimes(1);
   });
 });

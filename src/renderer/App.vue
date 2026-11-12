@@ -105,13 +105,35 @@ watch(() => [s.canvasBackground, s.theme] as const, ([value, theme]) => {
 }, { immediate: true });
 function key(event: KeyboardEvent): KeyInput {
   const target = event.target as Element;
-  return { key: event.key, code: event.code, shiftKey: event.shiftKey, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, repeat: event.repeat, isComposing: event.isComposing, scope: target?.closest('input,textarea,[contenteditable=true]') ? 'text' : target?.closest('[data-testid=whiteboard-canvas]') ? 'canvas' : 'other' };
+  return { key: event.key, code: event.code, shiftKey: event.shiftKey, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, repeat: event.repeat, isComposing: event.isComposing, clipboardEvents: true, scope: target?.closest('input,textarea,[contenteditable=true]') ? 'text' : target?.closest('[data-testid=whiteboard-canvas]') ? 'canvas' : 'other' };
 }
 function keydown(event: KeyboardEvent) { if (!event.defaultPrevented && store.handleKeyDown(key(event))) event.preventDefault(); }
 function keyup(event: KeyboardEvent) { store.handleKeyUp(key(event)); }
+/**
+ * Copy and paste on the workspace arrive as clipboard events (#174): they carry image files and need no clipboard
+ * permission, which the desktop app denies. Text fields, editors and dialogs keep their native behaviour.
+ */
+function ownsClipboard(event: ClipboardEvent): boolean {
+  const target = event.target instanceof Element ? event.target : null;
+  return !event.defaultPrevented && Boolean(event.clipboardData) && !s.dialog && !s.transitioning && !s.presenterOpen
+    && !target?.closest('input,textarea,[contenteditable]:not([contenteditable=false]),dialog');
+}
+function copy(event: ClipboardEvent) {
+  // Text marked in a panel is copied as text.
+  if (!ownsClipboard(event) || window.getSelection()?.toString()) return;
+  if (store.copyToClipboardData(event.clipboardData!)) event.preventDefault();
+}
+function paste(event: ClipboardEvent) {
+  if (!ownsClipboard(event)) return;
+  event.preventDefault();
+  const data = event.clipboardData!;
+  void store.pasteClipboardData({ text: data.getData('text/plain'), image: Array.from(data.files).find((file) => file.type.startsWith('image/')) ?? null });
+}
 function beforeUnload(event: BeforeUnloadEvent) { if (s.bridgePlatform === 'browser' && store.needsCloseWarning()) { event.preventDefault(); event.returnValue = ''; } }
 useEventListener(window, 'keydown', keydown);
 useEventListener(window, 'keyup', keyup);
+useEventListener(document, 'copy', copy);
+useEventListener(document, 'paste', paste);
 useEventListener(window, 'beforeunload', beforeUnload);
 useEventListener(window, 'hashchange', readInviteFromLocation);
 readInviteFromLocation();

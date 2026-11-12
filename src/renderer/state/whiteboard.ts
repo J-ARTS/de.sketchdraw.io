@@ -193,6 +193,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
   };
 
+  /** Pastes Sketchdraw elements from clipboard text, otherwise the clipboard image, at the pointer (#174). */
+  async function pasteContent(text: string | null, image: File | null, revision: number): Promise<void> {
+    const payload = text ? parseElementClipboard(text) : null;
+    const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
+    if (!payload) {
+      if (image) await store.insertImageFile(image, at);
+      else notice(t('Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.'), 'error');
+      return;
+    }
+    try {
+      const plan = planElementPaste(payload, state.document, at, uid);
+      if (await dispatch(plan.command, revision)) {
+        setSelection(plan.selection);
+        state.tool = 'select';
+        state.liveMessage = tn(plan.selection.length, '{count} Element eingefügt.', '{count} Elemente eingefügt.');
+      }
+    } catch (error) { fail(error); }
+  }
+
   // The canvas shows one page at a time: everything that works on "the elements" uses the active page.
   const pageViewports = new Map<string, WhiteboardState['viewport']>();
   let pageCache: { doc: SketchDocument; page: string; elements: SketchElement[] } | null = null;
@@ -1194,6 +1213,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (input.scope === 'canvas' && input.code === 'Space') { spaceHeld = true; return true; }
       const action = resolveShortcut(input, options.isMac ?? (typeof navigator !== 'undefined' && /Mac/.test(navigator.platform)));
       if (!action) return false;
+      // The copy or paste event that follows this key press does the work (#174); handling the key would suppress it.
+      if (input.clipboardEvents && (action === 'edit.copy' || action === 'edit.paste')) return false;
       if (action.startsWith('tool.')) { store.setTool(action.slice(5) as Tool); return true; }
       const actions: Record<string, () => void> = {
         'file.open': () => { void store.openDocument(); }, 'file.save': () => { void store.save(); }, 'file.save-as': () => { void store.saveAs(); },
@@ -1258,17 +1279,34 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         catch { text = internalElementClipboard; }
       }
       if (owner !== activeSession() || state.transitioning || !state.canWrite) return;
-      const payload = text ? parseElementClipboard(text) : null;
-      if (!payload) { notice(t('Die Zwischenablage enthält keine Sketchdraw-Elemente.'), 'error'); return; }
-      try {
-        const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
-        const plan = planElementPaste(payload, state.document, at, uid);
-        if (await dispatch(plan.command, revision)) {
-          setSelection(plan.selection);
-          state.tool = 'select';
-          state.liveMessage = tn(plan.selection.length, '{count} Element eingefügt.', '{count} Elemente eingefügt.');
-        }
-      } catch (error) { fail(error); }
+      await pasteContent(text, null, revision);
+    },
+    copyToClipboardData(data) {
+      if (state.transitioning) return false;
+      const payload = elementClipboardPayload(state.document, state.selection);
+      if (!payload) return false;
+      const text = JSON.stringify(payload);
+      // The event writes synchronously and needs no permission, so the system clipboard is the single source afterwards.
+      try { data.setData('text/plain', text); } catch { return false; }
+      internalElementClipboard = text;
+      internalClipboardFallbackPending = false;
+      clipboardWrite = Promise.resolve(true);
+      notice(tn(payload.elements.length, '{count} Element kopiert.', '{count} Elemente kopiert.'));
+      return true;
+    },
+    async pasteClipboardData(content) {
+      if (!state.canWrite || state.transitioning) return;
+      const owner = activeSession();
+      const revision = state.revision;
+      // A copy through the clipboard API that could not be written (button, no permission) is still the newest content.
+      const lastWriteSucceeded = clipboardWrite ? await clipboardWrite : null;
+      if (owner !== activeSession() || state.transitioning || !state.canWrite) return;
+      if (lastWriteSucceeded === false && internalClipboardFallbackPending) {
+        internalClipboardFallbackPending = false;
+        await pasteContent(internalElementClipboard, null, revision);
+        return;
+      }
+      await pasteContent(content.text, content.image, revision);
     },
     duplicateSelection() {
       if (!state.canWrite || state.transitioning || !state.selection.length) return;
