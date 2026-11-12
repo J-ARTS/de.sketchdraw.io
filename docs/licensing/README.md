@@ -1,6 +1,6 @@
 # Lizenzierung von Sketchdraw
 
-Sketchdraw steht, soweit einzelne Bestandteile nicht anders gekennzeichnet sind, unter der **PolyForm Noncommercial License 1.0.0**. Maßgeblich ist der unveränderte englische Text in [LICENSE](../../LICENSE). Diese Übersicht erläutert die Bedingungen und ersetzt den Lizenztext nicht.
+Sketchdraw steht, soweit einzelne Bestandteile nicht anders gekennzeichnet sind, unter der **PolyForm Noncommercial License 1.0.0**. Maßgeblich ist der unveränderte englische Text in [LICENSE](../../LICENSE). Hinter dem Lizenztext steht dort, durch eine Linie getrennt, der Abschnitt „Third-Party Notices“ mit der Namensnennung für das Git-Logo (CC BY 3.0, Jason Long) und dem Markenhinweis zum Jira-Icon (#165); er ändert die Lizenzbedingungen nicht und wird mit `LICENSE` im Installer ausgeliefert. Diese Übersicht erläutert die Bedingungen und ersetzt den Lizenztext nicht.
 
 Die maschinenlesbare [SPDX-Kennung](https://spdx.org/licenses/PolyForm-Noncommercial-1.0.0.html) lautet `PolyForm-Noncommercial-1.0.0`. Der Quellcode ist verfügbar; PolyForm ist eine Lizenz mit eingeschränkten Nutzungsrechten und [keine Open-Source-Lizenz](https://polyformproject.org/about).
 

@@ -129,3 +129,25 @@ software under these terms.
 
 **Use** means anything you do with the software requiring one
 of your licenses.
+
+---
+
+# Third-Party Notices
+
+The license terms above end at the line above this section and are
+unchanged. They cover Sketchdraw itself. The following artwork is
+bundled with Sketchdraw and is not licensed under those terms:
+
+- **Git logo** (shown for the Git plugin): Git Logo by Jason Long is
+  licensed under the Creative Commons Attribution 3.0 Unported License
+  <https://creativecommons.org/licenses/by/3.0/>. Source:
+  <https://git-scm.com/community/logos>. The file is used unmodified.
+  Git and the Git logo are either registered trademarks or trademarks
+  of Software Freedom Conservancy, Inc.
+
+- **Jira icon** (shown for the Jira plugin): Jira and Atlassian are
+  trademarks of Atlassian. The icon is used unmodified and only to
+  identify the Jira integration; no license to it is granted here.
+
+Sketchdraw is not affiliated with, sponsored by or endorsed by the Git
+project, Software Freedom Conservancy or Atlassian.
