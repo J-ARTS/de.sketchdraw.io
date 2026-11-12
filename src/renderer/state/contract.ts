@@ -419,6 +419,12 @@ export interface WhiteboardStore {
   openTaskBoard(): void;
   showCanvas(): void;
   refreshPluginSettings(): Promise<void>;
+  /** Switches the editor to another plugin profile. */
+  selectPluginProfile(id: string): Promise<boolean>;
+  /** Creates a profile (a copy of `copyFrom` when given) and switches to it. */
+  createPluginProfile(name: string, copyFrom?: string): Promise<boolean>;
+  renamePluginProfile(id: string, name: string): Promise<boolean>;
+  deletePluginProfile(id: string): Promise<boolean>;
   setPluginInstalled(id: PluginId, installed: boolean): Promise<boolean>;
   configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
   configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;

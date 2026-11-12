@@ -39,9 +39,22 @@ export interface AtlassianPluginSettings {
   message: string;
 }
 
+/** A named set of plugin settings of the editor. Diagrams never store plugin configuration (#168). */
+export interface PluginProfileSummary {
+  id: string;
+  name: string;
+}
+
+export const PLUGIN_PROFILE_LIMIT = 12;
+export const PLUGIN_PROFILE_NAME_MAX = 40;
+
 export interface PluginSettingsSnapshot {
   available: boolean;
+  /** Folder of the open local diagram; Git works there. Empty for unsaved, imported and guest diagrams. */
   projectFolder: string;
+  profiles: PluginProfileSummary[];
+  /** `git` and `atlassian` below are the settings of this profile. */
+  activeProfileId: string;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
 }
@@ -109,6 +122,13 @@ export type PluginExternalEvent = {
 };
 
 export interface PluginBridge {
+  /** Switches the editor to another profile; its plugin settings apply at once. */
+  selectProfile(id: string): Promise<PluginSettingsSnapshot>;
+  /** Creates a profile, empty or as a copy of `copyFrom` including its stored tokens, and switches to it. */
+  createProfile(input: { name: string; copyFrom?: string }): Promise<PluginSettingsSnapshot>;
+  renameProfile(input: { id: string; name: string }): Promise<PluginSettingsSnapshot>;
+  /** The last remaining profile cannot be deleted. */
+  deleteProfile(id: string): Promise<PluginSettingsSnapshot>;
   /** A handle selects the current local project; null releases it. Omission only reads the snapshot. */
   getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot>;
   /** Run autosync only after the renderer accepted a save in its current local document. */

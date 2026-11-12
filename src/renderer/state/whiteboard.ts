@@ -132,6 +132,24 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const currentPluginHandle = () => guest || state.roomGuest ? null : state.file.handle?.handleId ?? null;
   const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
   const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
+  /**
+   * A profile change replaces the plugin settings of the editor. Work that started under the previous profile is
+   * dropped; the open document and its project folder stay as they are.
+   */
+  async function runProfileChange(action: () => Promise<NonNullable<WhiteboardState['pluginSettings']>>, message: (settings: NonNullable<WhiteboardState['pluginSettings']>) => string): Promise<boolean> {
+    const generation = pluginGeneration; state.pluginBusy = true;
+    try {
+      const settings = await action();
+      if (!pluginContextCurrent(generation)) return false;
+      pluginGeneration++; state.confluencePages = [];
+      state.pluginSettings = settings; state.pluginBusy = false;
+      const handle = currentPluginHandle();
+      if (handle && settings.git.enabled) void bridge.plugins?.watchDocument(handle).catch(() => undefined);
+      notice(message(settings));
+      return true;
+    } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; }
+    finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+  }
   function clearPluginContext(): void {
     pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false;
     pendingExternalEvent = null; state.pendingExternalDocument = false;
@@ -1712,7 +1730,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     showCanvas() { state.workspaceView = 'canvas'; state.liveMessage = t('Zeichenfläche geöffnet.'); },
     async refreshPluginSettings() {
       const generation = pluginGeneration; const request = ++pluginRefreshRequest;
-      if (!bridge.plugins) { state.pluginSettings = { available: false, projectFolder: '', git: { installed: true, enabled: false, folderPath: '', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
+      if (!bridge.plugins) { state.pluginSettings = { available: false, projectFolder: '', profiles: [], activeProfileId: '', git: { installed: true, enabled: false, folderPath: '', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' }, atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Plugins sind in der Desktop-App verfügbar.' } }; return; }
       const handle = currentPluginHandle();
       try {
         const settings = await bridge.plugins.getSettings(handle);
@@ -1721,26 +1739,44 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         if (handle && settings.git.enabled) void bridge.plugins.watchDocument(handle).catch(() => undefined);
       } catch (error) { if (pluginContextCurrent(generation) && request === pluginRefreshRequest) fail(error); }
     },
+    /** Profiles belong to the editor: they can be managed without an open project, and a switch applies at once (#168). */
+    async selectPluginProfile(id) {
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
+      if (state.pluginSettings.activeProfileId === id) return true;
+      return runProfileChange(() => bridge.plugins!.selectProfile(id), (settings) => t('Profil „{name}“ ist aktiv.', { name: settings.profiles.find((profile) => profile.id === settings.activeProfileId)?.name ?? '' }));
+    },
+    async createPluginProfile(name, copyFrom) {
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
+      return runProfileChange(() => bridge.plugins!.createProfile(copyFrom === undefined ? { name } : { name, copyFrom }), (settings) => t(copyFrom === undefined ? 'Profil „{name}“ angelegt.' : 'Profil „{name}“ kopiert.', { name: settings.profiles.find((profile) => profile.id === settings.activeProfileId)?.name ?? name }));
+    },
+    async renamePluginProfile(id, name) {
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
+      return runProfileChange(() => bridge.plugins!.renameProfile({ id, name }), () => t('Profil umbenannt.'));
+    },
+    async deletePluginProfile(id) {
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
+      return runProfileChange(() => bridge.plugins!.deleteProfile(id), () => t('Profil gelöscht.'));
+    },
     async setPluginInstalled(id, installed) {
-      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
-      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const payload: ConfigureGitPluginInput = { enabled: input.enabled, autoCommit: input.autoCommit, autoPush: input.autoPush, autoPull: input.autoPull, remote: input.remote, remoteUrl: input.remoteUrl, authMode: input.authMode, username: input.username, accessToken: input.accessToken, clearCredential: input.clearCredential }; const settings = await bridge.plugins.configureGit(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; const handle = currentPluginHandle(); if (input.enabled && handle) await bridge.plugins.watchDocument(handle); if (!pluginContextCurrent(generation)) return false; notice(t('Git-Plugin gespeichert.')); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureAtlassianPlugin(input: ConfigureAtlassianPluginInput) {
-      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t('Atlassian-Plugin gespeichert.')); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
-      if (!bridge.plugins || !hasPluginProject() || state.pluginBusy) return false;
+      if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const result = await bridge.plugins.testAtlassian(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }

@@ -432,6 +432,10 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
         return plugins.getSettings(request.payload as string | null | undefined);
       }
       case 'after-document-saved': return plugins.afterDocumentSaved(String(request.payload ?? ''));
+      case 'select-profile': return plugins.selectProfile(String(request.payload ?? ''));
+      case 'create-profile': return plugins.createProfile(payload);
+      case 'rename-profile': return plugins.renameProfile(payload);
+      case 'delete-profile': return plugins.deleteProfile(String(request.payload ?? ''));
       case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as 'git' | 'jira');
       case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as 'git' | 'jira');
       case 'configure-git': return plugins.configureGit(payload);

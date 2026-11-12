@@ -7,7 +7,8 @@ import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 async function setup(document: SketchDocument = createDocument('Plugins'), open = true) {
   let pluginListener: ((event: PluginExternalEvent) => void) | undefined;
   const plugins: PluginBridge = {
-    getSettings: vi.fn(async () => ({ available: true, projectFolder: '/project', git: { installed: true, enabled: true, folderPath: '/project', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system' as const, username: '', credentialStored: false, health: 'ready' as const, message: 'Bereit' }, atlassian: { installed: true, enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '', credentialStored: true, health: 'ready' as const, message: 'Bereit' } })),
+    getSettings: vi.fn(async () => ({ available: true, projectFolder: '/project', profiles: [{ id: 'default', name: 'Standard' }, { id: 'work', name: 'Arbeit' }], activeProfileId: 'default', git: { installed: true, enabled: true, folderPath: '/project', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system' as const, username: '', credentialStored: false, health: 'ready' as const, message: 'Bereit' }, atlassian: { installed: true, enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '', credentialStored: true, health: 'ready' as const, message: 'Bereit' } })),
+    selectProfile: vi.fn(), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(),
     afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
     listConfluencePages: vi.fn(async () => []),
     getConfluencePage: vi.fn(async () => ({ id: '7', title: 'Live Architecture', version: 4, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: '<h2>Architecture</h2><p>Editable page</p>' })),
@@ -27,6 +28,9 @@ async function setup(document: SketchDocument = createDocument('Plugins'), open 
   }
   return { store, plugins, bridge, emit: (event: PluginExternalEvent) => pluginListener?.(event) };
 }
+
+/** Reactive state cannot be structured-cloned; snapshots are plain JSON. */
+const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 describe('plugin store integration', () => {
   it('creates a Jira issue from a comment and keeps the safe reference in the task', async () => {
@@ -174,6 +178,80 @@ describe('plugin store integration', () => {
     expect(plugins.getSettings).toHaveBeenLastCalledWith(null); expect(store.state.pluginSettings?.projectFolder).toBe('');
     store.leaveRoomGuest(); await store.refreshPluginSettings();
     expect(plugins.getSettings).toHaveBeenLastCalledWith(store.state.file.handle!.handleId); expect(store.state.pluginSettings?.projectFolder).toBe('/project');
+    store.dispose();
+  });
+
+
+  it('switches, creates, copies, renames and deletes editor profiles without touching the document', async () => {
+    const { store, plugins } = await setup();
+    const base = plain(store.state.pluginSettings!);
+    const revision = store.state.revision; const serialized = serializeDocument(store.state.document);
+    const work = { ...plain(base), activeProfileId: 'work', atlassian: { ...base.atlassian, jiraProjectKey: 'WORK' } };
+    vi.mocked(plugins.selectProfile).mockResolvedValue(work);
+    expect(await store.selectPluginProfile('work')).toBe(true);
+    expect(plugins.selectProfile).toHaveBeenCalledWith('work');
+    expect(store.state.pluginSettings).toMatchObject({ activeProfileId: 'work', atlassian: { jiraProjectKey: 'WORK' } });
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'info', text: 'Profil „Arbeit“ ist aktiv.' });
+    // The Git watcher of the open document follows the new profile.
+    expect(plugins.watchDocument).toHaveBeenLastCalledWith('hdl_0123456789abcdef0123456789abcdef');
+    // Selecting the active profile again asks nothing.
+    expect(await store.selectPluginProfile('work')).toBe(true);
+    expect(plugins.selectProfile).toHaveBeenCalledTimes(1);
+
+    const created = { ...plain(work), profiles: [...work.profiles, { id: 'p3', name: 'Privat' }], activeProfileId: 'p3' };
+    vi.mocked(plugins.createProfile).mockResolvedValue(created);
+    expect(await store.createPluginProfile('Privat')).toBe(true);
+    expect(plugins.createProfile).toHaveBeenLastCalledWith({ name: 'Privat' });
+    expect(await store.createPluginProfile('Privat 2', 'work')).toBe(true);
+    expect(plugins.createProfile).toHaveBeenLastCalledWith({ name: 'Privat 2', copyFrom: 'work' });
+    expect(store.state.notices.at(-1)?.text).toBe('Profil „Privat“ kopiert.');
+
+    vi.mocked(plugins.renameProfile).mockResolvedValue({ ...created, profiles: created.profiles.map((profile) => profile.id === 'p3' ? { ...profile, name: 'Zuhause' } : profile) });
+    expect(await store.renamePluginProfile('p3', 'Zuhause')).toBe(true);
+    expect(plugins.renameProfile).toHaveBeenCalledWith({ id: 'p3', name: 'Zuhause' });
+    expect(store.state.pluginSettings?.profiles.at(-1)).toEqual({ id: 'p3', name: 'Zuhause' });
+
+    vi.mocked(plugins.deleteProfile).mockRejectedValue(new Error('Das letzte Profil kann nicht gelöscht werden.'));
+    expect(await store.deletePluginProfile('p3')).toBe(false);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'error', text: 'Das letzte Profil kann nicht gelöscht werden.' });
+    expect(store.state.pluginBusy).toBe(false);
+    vi.mocked(plugins.deleteProfile).mockResolvedValue(work);
+    expect(await store.deletePluginProfile('p3')).toBe(true);
+    expect(store.state.pluginSettings).toMatchObject({ activeProfileId: 'work', profiles: [{ id: 'default' }, { id: 'work' }] });
+
+    // Profiles are editor state: the diagram is neither changed nor does it mention them.
+    expect(store.state.revision).toBe(revision);
+    expect(serializeDocument(store.state.document)).toBe(serialized);
+    expect(serialized).not.toMatch(/profile|Standard|Arbeit/i);
+    store.dispose();
+  });
+
+  it('configures the active profile without a saved diagram but sends no task to Jira from it', async () => {
+    const { store, plugins } = await setup(createDocument('Unsaved'), false);
+    await store.refreshPluginSettings();
+    expect(store.state.pluginSettings).toMatchObject({ available: true, projectFolder: '' });
+    const saved = { ...plain(store.state.pluginSettings!), atlassian: { ...store.state.pluginSettings!.atlassian, enabled: true, jiraProjectKey: 'NEW' } };
+    vi.mocked(plugins.configureAtlassian).mockResolvedValue(saved);
+    expect(await store.configureAtlassianPlugin({ enabled: true, siteUrl: 'https://example.atlassian.net', email: 'a@example.com', apiToken: 'secret', confluenceSpaceKey: '', jiraProjectKey: 'NEW', jiraIssueType: 'Task', jqlFilter: '' })).toBe(true);
+    expect(plugins.configureAtlassian).toHaveBeenCalledTimes(1);
+    expect(store.state.pluginSettings?.atlassian).toMatchObject({ enabled: true, jiraProjectKey: 'NEW' });
+    vi.mocked(plugins.selectProfile).mockResolvedValue({ ...saved, activeProfileId: 'work' });
+    expect(await store.selectPluginProfile('work')).toBe(true);
+    expect(plugins.watchDocument).not.toHaveBeenCalled();
+    expect(await store.createTask({ title: 'Local only', description: '' })).toBe(true);
+    expect(plugins.createJiraIssue).not.toHaveBeenCalled();
+    store.dispose();
+  });
+
+  it('ignores a profile change that returns after the document context changed', async () => {
+    const { store, plugins } = await setup();
+    let release!: (value: Awaited<ReturnType<PluginBridge['selectProfile']>>) => void;
+    vi.mocked(plugins.selectProfile).mockImplementation(() => new Promise((resolve) => { release = resolve; }));
+    const pending = store.selectPluginProfile('work');
+    await store.newDocument();
+    release({ ...structuredClone(await plugins.getSettings()), activeProfileId: 'work' });
+    expect(await pending).toBe(false);
+    expect(store.state.notices.some((entry) => entry.text.includes('ist aktiv'))).toBe(false);
     store.dispose();
   });
 

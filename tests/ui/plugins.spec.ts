@@ -14,18 +14,21 @@ type PluginTestState = {
     git: ConfigureGitPluginInput[];
     jira: ConfigureAtlassianPluginInput[];
     jiraTests: number;
+    profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
   settings: PluginSettingsSnapshot;
 };
 type TestWindow = Window & { __pluginTest: PluginTestState; __resolvePluginRequest: (plugin: 'git' | 'jira') => void };
 
-/** The mock keeps actual per-project settings and only exposes a folder after a file was saved. */
+/** The mock keeps plugin settings per editor profile and only exposes a project folder after a file was saved. */
 async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'light' | 'dark' } = {}): Promise<void> {
   await page.addInitScript(({ cancelSave, theme }) => {
     localStorage.setItem('sketchdraw.preferences.v1', JSON.stringify({ theme, language: 'de', canvasBackground: null }));
     const defaults = (): PluginSettingsSnapshot => ({
       available: true,
       projectFolder: '',
+      profiles: [{ id: 'default', name: 'Standard' }],
+      activeProfileId: 'default',
       git: { installed: true, enabled: false, folderPath: '', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Git-Plugin ist deaktiviert.' },
       atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Jira-Plugin ist deaktiviert.' },
     });
@@ -35,11 +38,27 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       jiraFailure: '',
       holdGit: false,
       holdJira: false,
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0 },
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, profiles: [] },
       settings: defaults(),
     };
-    const projects = new Map<string, PluginSettingsSnapshot>();
+    const folders = new Map<string, string>();
     const files = new Map<string, FileReference>();
+    // The settings object of a profile stays the same object while the profile exists, like the real service keeps
+    // one configuration per profile; `control.settings` always is the snapshot of the active profile.
+    const configs = new Map<string, Pick<PluginSettingsSnapshot, 'git' | 'atlassian'>>([['default', { git: control.settings.git, atlassian: control.settings.atlassian }]]);
+    let profiles: PluginSettingsSnapshot['profiles'] = [{ id: 'default', name: 'Standard' }];
+    let activeProfileId = 'default'; let folder = ''; let profileCounter = 0;
+    const compose = (): void => {
+      const config = configs.get(activeProfileId)!;
+      config.git.folderPath = folder;
+      control.settings = { available: true, projectFolder: folder, profiles: profiles.map(profile => ({ ...profile })), activeProfileId, git: config.git, atlassian: config.atlassian };
+    };
+    const profileName = (value: string, exceptId?: string): string => {
+      const name = String(value ?? '').trim();
+      if (!name || name.length > 40) throw new Error('Profilname ist ungültig.');
+      if (profiles.some(profile => profile.id !== exceptId && profile.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('Ein Profil mit diesem Namen existiert bereits.');
+      return name;
+    };
     const delayed: Record<'git' | 'jira', Array<() => void>> = { git: [], jira: [] };
     Object.defineProperty(window, '__resolvePluginRequest', { value: (plugin: 'git' | 'jira') => {
       const resolve = delayed[plugin].shift();
@@ -47,9 +66,6 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       resolve();
     } });
     const snapshot = () => structuredClone(control.settings);
-    const assertProject = () => {
-      if (!control.settings.projectFolder) throw new Error('Öffne oder speichere zuerst ein Diagramm.');
-    };
     Object.defineProperty(window, '__pluginTest', { value: control });
     Object.defineProperty(window, 'sketchdraw', { value: {
       platform: 'electron',
@@ -61,12 +77,9 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
         if (!file) {
           const index = files.size + 1;
           file = { handleId: index === 1 ? 'architecture-file' : `architecture-file-${index}`, name: `Architecture-${index}.sketchdraw`, versionToken: `version-${index}` };
-          const project = defaults();
-          project.projectFolder = index === 1 ? '/Users/demo/architecture' : `/Users/demo/architecture-${index}`;
-          project.git.folderPath = project.projectFolder;
-          files.set(file.handleId, file); projects.set(file.handleId, project);
+          files.set(file.handleId, file); folders.set(file.handleId, index === 1 ? '/Users/demo/architecture' : `/Users/demo/architecture-${index}`);
         }
-        control.settings = projects.get(file.handleId)!;
+        folder = folders.get(file.handleId)!; compose();
         return { status: 'saved', file: structuredClone(file) };
       },
       exportFile: async () => ({ status: 'cancelled' }), openExternal: async () => {},
@@ -74,28 +87,53 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       plugins: {
         getSettings: async (handleId?: string | null) => {
           control.calls.contexts.push(handleId);
-          if (handleId === null) control.settings = defaults();
+          if (handleId === null) folder = '';
           else if (handleId !== undefined) {
-            const project = projects.get(handleId);
-            if (!project) throw new Error('Unbekanntes Dokument.');
-            control.settings = project;
+            const known = folders.get(handleId);
+            if (known === undefined) throw new Error('Unbekanntes Dokument.');
+            folder = known;
           }
+          compose();
           return snapshot();
         },
+        selectProfile: async (id: string) => {
+          control.calls.profiles.push({ action: 'select', id });
+          if (!configs.has(id)) throw new Error('Unbekanntes Profil.');
+          activeProfileId = id; compose(); return snapshot();
+        },
+        createProfile: async (input: { name: string; copyFrom?: string }) => {
+          control.calls.profiles.push({ action: 'create', name: input.name, ...(input.copyFrom === undefined ? {} : { copyFrom: input.copyFrom }) });
+          if (profiles.length >= 12) throw new Error('Es sind höchstens zwölf Profile möglich.');
+          const name = profileName(input.name); const source = input.copyFrom === undefined ? null : configs.get(input.copyFrom);
+          if (source === undefined) throw new Error('Unbekanntes Profil.');
+          const id = `profile-${++profileCounter}`; const fresh = defaults();
+          configs.set(id, source ? structuredClone({ git: source.git, atlassian: source.atlassian }) : { git: fresh.git, atlassian: fresh.atlassian });
+          profiles = [...profiles, { id, name }]; activeProfileId = id; compose(); return snapshot();
+        },
+        renameProfile: async (input: { id: string; name: string }) => {
+          control.calls.profiles.push({ action: 'rename', id: input.id, name: input.name });
+          const name = profileName(input.name, input.id);
+          profiles = profiles.map(profile => profile.id === input.id ? { ...profile, name } : profile); compose(); return snapshot();
+        },
+        deleteProfile: async (id: string) => {
+          control.calls.profiles.push({ action: 'delete', id });
+          if (profiles.length <= 1) throw new Error('Das letzte Profil kann nicht gelöscht werden.');
+          profiles = profiles.filter(profile => profile.id !== id); configs.delete(id);
+          if (activeProfileId === id) activeProfileId = profiles[0]!.id;
+          compose(); return snapshot();
+        },
         installPlugin: async (id: 'git' | 'jira') => {
-          assertProject();
           (id === 'git' ? control.settings.git : control.settings.atlassian).installed = true;
           return snapshot();
         },
         uninstallPlugin: async (id: 'git' | 'jira') => {
-          assertProject();
           const settings = id === 'git' ? control.settings.git : control.settings.atlassian;
           settings.installed = false; settings.enabled = false;
           return snapshot();
         },
         configureGit: async (input: ConfigureGitPluginInput) => {
-          assertProject(); control.calls.git.push(structuredClone(input));
-          const project = control.settings;
+          control.calls.git.push(structuredClone(input));
+          const project = configs.get(activeProfileId)!;
           if (control.holdGit) await new Promise<void>(resolve => delayed.git.push(resolve));
           if (control.gitFailure) throw new Error(control.gitFailure);
           const { accessToken, clearCredential, ...fields } = input;
@@ -105,11 +143,11 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
             health: input.enabled ? 'ready' : 'disabled',
             message: input.enabled ? 'Git ist eingerichtet.' : 'Git-Plugin ist deaktiviert.',
           });
-          return structuredClone(project);
+          return snapshot();
         },
         configureAtlassian: async (input: ConfigureAtlassianPluginInput) => {
-          assertProject(); control.calls.jira.push(structuredClone(input));
-          const project = control.settings;
+          control.calls.jira.push(structuredClone(input));
+          const project = configs.get(activeProfileId)!;
           if (control.holdJira) await new Promise<void>(resolve => delayed.jira.push(resolve));
           if (control.jiraFailure) throw new Error(control.jiraFailure);
           const { apiToken, clearCredential, ...fields } = input;
@@ -119,9 +157,9 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
             health: input.enabled ? 'ready' : 'disabled',
             message: input.enabled ? 'Jira ist eingerichtet.' : 'Jira-Plugin ist deaktiviert.',
           });
-          return structuredClone(project);
+          return snapshot();
         },
-        testAtlassian: async () => { assertProject(); control.calls.jiraTests += 1; return { ok: true, message: 'Jira: verbunden' }; },
+        testAtlassian: async () => { control.calls.jiraTests += 1; return { ok: true, message: 'Jira: verbunden' }; },
         gitStatus: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         gitSync: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         watchDocument: async () => ({ ok: true, message: 'watching' }),
@@ -176,14 +214,20 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { throw error; });
 });
 
-test('bundled plugins start installed and saving the diagram unlocks project configuration', async ({ page }) => {
+test('bundled plugins start installed, are configurable in the profile right away, and saving the diagram gives Git its folder', async ({ page }) => {
   await desktop(page);
   const dialog = await openPlugins(page);
   await expect(dialog.getByRole('tab', { name: /Installiert/ })).toHaveAttribute('aria-selected', 'true');
   await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('2');
   await expect(dialog.getByRole('button', { name: 'Installieren', exact: true })).toHaveCount(0);
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
-  await expect(dialog.getByLabel('Remote-URL', { exact: true })).toBeDisabled();
+  // Settings belong to the editor profile (#168): no saved diagram is needed to edit them.
+  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Standard/);
+  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByLabel('Remote-URL', { exact: true })).toBeEnabled();
+  await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
+  // Git itself still needs the folder of a saved diagram.
+  await expect(dialog.getByRole('button', { name: 'Status prüfen', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Jetzt synchronisieren', exact: true })).toBeDisabled();
   expect((await state(page)).calls.git).toEqual([]);
   expect((await state(page)).calls.jira).toEqual([]);
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
@@ -271,19 +315,21 @@ test('save errors are visible inside the dialog and preserve the draft for a suc
   await expect(dialog.getByRole('alert')).toHaveCount(0);
 });
 
-test('cancelling the document save keeps configuration safely unavailable and allows retry', async ({ page }) => {
+test('cancelling the document save leaves Git without a folder and allows retry', async ({ page }) => {
   await desktop(page, { cancelSave: true });
   const dialog = await openPlugins(page);
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).calls.saves.length).toBe(1);
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('status').filter({ hasText: 'Speichern abgebrochen' })).toBeVisible();
+  await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
+  await expect(dialog.getByRole('button', { name: 'Status prüfen', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Diagramm speichern', exact: true })).toBeEnabled();
   expect((await state(page)).settings.projectFolder).toBe('');
   expect((await state(page)).calls.git).toHaveLength(0);
   await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.cancelSave = false; });
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('/Users/demo/architecture');
 });
 
 test('marketplace configuration and keyboard tabs lead to the installed form and return focus on Escape', async ({ page }) => {
@@ -313,8 +359,9 @@ test('marketplace configuration and keyboard tabs lead to the installed form and
   await expect(page.getByTestId('workspace-menu-button')).toBeFocused();
 });
 
-test('disabled project fields do not trap reverse Tab navigation', async ({ page }) => {
-  await desktop(page);
+test('disabled configuration fields do not trap reverse Tab navigation', async ({ page }) => {
+  // Without the desktop app the whole configuration is disabled.
+  await start(page);
   const dialog = await openPlugins(page);
   const installed = dialog.getByRole('tab', { name: /Installiert/ });
   const jira = dialog.getByRole('complementary').getByRole('button', { name: /^Jira\b/ });
@@ -325,7 +372,7 @@ test('disabled project fields do not trap reverse Tab navigation', async ({ page
   await expect(installed).toBeFocused();
 });
 
-test('an old project request neither blocks a new project nor clears its pending operation', async ({ page }) => {
+test('a request from the previous document neither blocks the next one nor clears its pending operation', async ({ page }) => {
   await desktop(page);
   let dialog = await prepareProject(page);
   await fillJira(dialog);
@@ -354,7 +401,8 @@ test('an old project request neither blocks a new project nor clears its pending
   await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('git'));
   await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
   expect((await state(page)).settings.git.remote).toBe('project-b');
-  expect((await state(page)).settings.atlassian.email).toBe('');
+  // Both saves belong to the same profile, whichever document was open when they started.
+  expect((await state(page)).settings.atlassian.email).toBe('demo@example.test');
 });
 
 test('the project save action reports an invalid code draft instead of a cancelled file dialog', async ({ page }) => {
@@ -369,7 +417,7 @@ test('the project save action reports an invalid code draft instead of a cancell
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText(/Code|Entwurf|ungültig/i);
   await expect(dialog).not.toContainText('Speichern abgebrochen');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
   expect((await state(page)).calls.saves).toHaveLength(0);
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
   await expect(code).toHaveValue('sketchdraw broken');
@@ -449,4 +497,150 @@ test('browser shows the bundled plugins but explains why native configuration is
   await expect(dialog.getByRole('button', { name: 'Jira speichern', exact: true })).toBeDisabled();
   await expect(dialog.getByLabel('API-Token', { exact: true })).toBeDisabled();
   expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+async function pickProfile(page: Page, dialog: Locator, name: string): Promise<void> {
+  await dialog.getByRole('combobox', { name: 'Profil', exact: true }).click();
+  await page.getByRole('listbox', { name: 'Profil', exact: true }).getByRole('option', { name, exact: true }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(new RegExp(name.replace(/[()]/g, '\\$&')));
+}
+
+test('profiles are created, copied, renamed and deleted in the plugin dialog and keep their own plugin settings', async ({ page }) => {
+  await desktop(page);
+  const dialog = await openPlugins(page);
+  const bar = dialog.getByRole('region', { name: 'Plugin-Profil' });
+  const select = dialog.getByRole('combobox', { name: 'Profil', exact: true });
+  await expect(select).toHaveText(/Standard/);
+  // The only profile cannot be deleted.
+  await expect(bar.getByRole('button', { name: 'Löschen', exact: true })).toBeDisabled();
+
+  // Configure Jira in the default profile – no saved diagram needed.
+  await fillJira(dialog);
+  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+
+  // A new profile starts empty and becomes active.
+  await bar.getByRole('button', { name: 'Neues Profil', exact: true }).click();
+  const name = dialog.getByRole('textbox', { name: 'Name des neuen Profils' });
+  await expect(name).toBeFocused();
+  await expect(bar.getByRole('button', { name: 'Profil anlegen', exact: true })).toBeDisabled();
+  await name.fill('Kunde A'); await page.keyboard.press('Enter');
+  await expect(select).toHaveText(/Kunde A/);
+  await expect(dialog.locator('.plugin-feedback')).toHaveText('Profil „Kunde A“ angelegt.');
+  await selectPlugin(dialog, 'Jira');
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('');
+  await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
+  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('KUNDE');
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
+
+  // Switching brings each profile's own settings back; tokens are never refilled.
+  await pickProfile(page, dialog, 'Standard');
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).toBeChecked();
+  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('');
+  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
+
+  // An unsaved draft does not travel to another profile.
+  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('DRAFT');
+  await pickProfile(page, dialog, 'Kunde A');
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
+  await pickProfile(page, dialog, 'Standard');
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+
+  // A copy takes the settings along, including the stored token.
+  await bar.getByRole('button', { name: 'Kopieren', exact: true }).click();
+  const copyName = dialog.getByRole('textbox', { name: 'Name der Kopie von „Standard“' });
+  await expect(copyName).toHaveValue('Standard (Kopie)');
+  await bar.getByRole('button', { name: 'Kopie anlegen', exact: true }).click();
+  await expect(select).toHaveText(/Standard \(Kopie\)/);
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
+
+  // A name that is taken is reported inside the dialog; Escape leaves the form, not the dialog.
+  await bar.getByRole('button', { name: 'Umbenennen', exact: true }).click();
+  const rename = dialog.getByRole('textbox', { name: 'Neuer Name für „Standard (Kopie)“' });
+  await expect(rename).toHaveValue('Standard (Kopie)');
+  await rename.fill('kunde a'); await page.keyboard.press('Enter');
+  await expect(dialog.getByRole('alert')).toContainText('Ein Profil mit diesem Namen existiert bereits.');
+  await expect(rename).toBeVisible();
+  await rename.fill('Kunde B'); await page.keyboard.press('Enter');
+  await expect(select).toHaveText(/Kunde B/);
+  await bar.getByRole('button', { name: 'Umbenennen', exact: true }).click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(select).toBeVisible();
+
+  expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // Deleting asks first and moves on to the first remaining profile.
+  await bar.getByRole('button', { name: 'Löschen', exact: true }).click();
+  await expect(bar.getByRole('alert')).toContainText('Profil „Kunde B“ mit seinen Plugin-Einstellungen und Tokens löschen?');
+  await bar.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+  await expect(select).toHaveText(/Kunde B/);
+  await bar.getByRole('button', { name: 'Löschen', exact: true }).click();
+  await bar.getByRole('button', { name: 'Profil löschen', exact: true }).click();
+  await expect(select).toHaveText(/Standard/);
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+
+  const calls = (await state(page)).calls.profiles;
+  expect(calls.map(call => call.action)).toEqual(['create', 'select', 'select', 'select', 'create', 'rename', 'rename', 'delete']);
+  expect(calls[4]).toMatchObject({ action: 'create', name: 'Standard (Kopie)', copyFrom: 'default' });
+  expect((await state(page)).settings.profiles.map(profile => profile.name)).toEqual(['Standard', 'Kunde A']);
+  // Nothing of this is part of the diagram.
+  expect((await state(page)).calls.saves).toEqual([]);
+});
+
+test('the workspace menu switches the profile right above Zusammenarbeiten', async ({ page }) => {
+  await desktop(page);
+  let dialog = await openPlugins(page);
+  const bar = dialog.getByRole('region', { name: 'Plugin-Profil' });
+  for (const name of ['Arbeit', 'Privat']) {
+    await bar.getByRole('button', { name: 'Neues Profil', exact: true }).click();
+    await dialog.getByRole('textbox', { name: 'Name des neuen Profils' }).fill(name);
+    await bar.getByRole('button', { name: 'Profil anlegen', exact: true }).click();
+    await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(new RegExp(name));
+  }
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+
+  await page.getByTestId('workspace-menu-button').click();
+  const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
+  const group = menu.getByRole('group', { name: 'Plugin-Profil' });
+  await expect(group.getByRole('menuitemradio')).toHaveText(['Standard', 'Arbeit', 'Privat']);
+  await expect(group.getByRole('menuitemradio', { name: 'Privat' })).toHaveAttribute('aria-checked', 'true');
+  await expect(group.getByRole('menuitemradio', { name: 'Standard' })).toHaveAttribute('aria-checked', 'false');
+  // Directly above "Zusammenarbeiten": the group is the first thing in the menu and the next item is the collaboration entry.
+  const order = await menu.locator('[role^="menuitem"]').evaluateAll(items => items.map(item => item.textContent?.trim() ?? ''));
+  expect(order.slice(0, 4)).toEqual(['Standard', 'Arbeit', 'Privat', 'Zusammenarbeiten']);
+  const last = (await group.getByRole('menuitemradio', { name: 'Privat' }).boundingBox())!;
+  const collaboration = (await menu.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten' }).boundingBox())!;
+  expect(collaboration.y).toBeGreaterThan(last.y + last.height - 1);
+  // Arrow keys walk through the profiles like through every other entry.
+  await expect(group.getByRole('menuitemradio', { name: 'Standard' })).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(group.getByRole('menuitemradio', { name: 'Arbeit' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(menu).toBeHidden();
+  await expect(page.getByRole('region', { name: 'Meldungen' })).toContainText('Profil „Arbeit“ ist aktiv.');
+  expect((await state(page)).settings.activeProfileId).toBe((await state(page)).settings.profiles[1]!.id);
+
+  await page.getByTestId('workspace-menu-button').click();
+  await expect(group.getByRole('menuitemradio', { name: 'Arbeit' })).toHaveAttribute('aria-checked', 'true');
+  expect((await new AxeBuilder({ page }).include('[role=menu]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await page.keyboard.press('Escape');
+  // The dialog follows the choice made in the menu.
+  dialog = await openPlugins(page);
+  await expect(dialog.getByRole('combobox', { name: 'Profil', exact: true })).toHaveText(/Arbeit/);
+});
+
+test('the browser preview has no profiles in the menu or the plugin dialog', async ({ page }) => {
+  await start(page);
+  await page.getByTestId('workspace-menu-button').click();
+  const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
+  await expect(menu.getByRole('group', { name: 'Plugin-Profil' })).toHaveCount(0);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(0);
+  await menu.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
+  await expect(dialog.getByRole('region', { name: 'Plugin-Profil' })).toHaveCount(0);
 });

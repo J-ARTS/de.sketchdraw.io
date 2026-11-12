@@ -92,6 +92,10 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
 ]);
 
+/** Profiles exist only where plugins run (desktop app). */
+const pluginProfiles = computed(() => s.pluginSettings?.available ? s.pluginSettings.profiles : []);
+function chooseProfile(id: string): void { closeMenu(true); void store.selectPluginProfile(id); }
+
 type MenuName = 'file' | 'view';
 const openMenuName = ref<MenuName | null>(null);
 const fileTrigger = ref<HTMLButtonElement | null>(null), viewTrigger = ref<HTMLButtonElement | null>(null);
@@ -330,6 +334,28 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       >
         <template v-for="item in viewItems" :key="item.id">
           <span v-if="item.separator" class="rule" role="separator" />
+          <!-- The plugin profile of the editor is switched right above "Zusammenarbeiten" (#168). -->
+          <template v-if="item.id === 'collaboration' && pluginProfiles.length">
+            <div role="group" :aria-label="t('Plugin-Profil')" class="profile-group" data-testid="workspace-menu-profiles">
+              <span class="group-label" aria-hidden="true">{{ t('Profil') }}</span>
+              <button
+                v-for="profile in pluginProfiles"
+                :key="profile.id"
+                type="button"
+                role="menuitemradio"
+                tabindex="-1"
+                class="menu-item"
+                :aria-checked="profile.id === s.pluginSettings?.activeProfileId"
+                :aria-disabled="s.pluginBusy || undefined"
+                @click="chooseProfile(profile.id)"
+              >
+                <AppIcon name="component" :size="18" />
+                <span class="menu-label">{{ profile.name }}</span>
+                <AppIcon v-if="profile.id === s.pluginSettings?.activeProfileId" class="menu-check" name="check" :size="16" />
+              </button>
+            </div>
+            <span class="rule" role="separator" />
+          </template>
           <button
             type="button"
             :role="item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
@@ -611,6 +637,16 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 .menu-item[aria-disabled='true']{color:var(--text-muted);cursor:not-allowed}
 .menu-item[aria-disabled='true']:hover{background:transparent}
+
+.group-label {
+  display: block;
+  padding: 6px 12px 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 .rule {
   display: block;

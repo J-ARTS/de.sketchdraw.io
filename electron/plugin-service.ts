@@ -15,14 +15,20 @@ import type {
   PluginExternalEvent,
   PluginId,
   PluginOperationResult,
+  PluginProfileSummary,
   PluginSettingsSnapshot,
   TaskStatus,
 } from '../src/domain/index';
+import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } from '../src/domain/plugins';
 import type { DocumentPersistenceService } from './persistence';
 
 const execFile = promisify(execFileCallback);
 const CONFIG_VERSION = 2;
-const PROJECT_CONFIG_NAME = '.sketchdraw-plugins.json';
+/** Profiles of the editor (#168). Version 2 was one configuration file per diagram folder. */
+const STORE_VERSION = 3;
+const LEGACY_PROJECT_CONFIG_NAME = '.sketchdraw-plugins.json';
+const DEFAULT_PROFILE_ID = 'default';
+const DEFAULT_PROFILE_NAME = 'Standard';
 const MAX_REMOTE_BODY_BYTES = 2_000_000;
 
 interface PersistedGitConfig {
@@ -57,6 +63,19 @@ interface PersistedPluginConfig {
   atlassian: PersistedAtlassianConfig;
 }
 
+interface PersistedProfile {
+  id: string;
+  name: string;
+  git: PersistedGitConfig;
+  atlassian: PersistedAtlassianConfig;
+}
+
+interface PersistedProfileStore {
+  version: 3;
+  activeProfileId: string;
+  profiles: PersistedProfile[];
+}
+
 interface CredentialAdapter {
   encrypt(value: string): string;
   decrypt(value: string): string;
@@ -66,7 +85,7 @@ interface CredentialAdapter {
 type GitEnvironment = Readonly<Record<string, string | undefined>>;
 
 export interface PluginServiceOptions {
-  /** Kept for source compatibility. Project configuration is stored next to the active document. */
+  /** File in the app data that holds the editor's plugin profiles. Without it profiles live in memory only. */
   configPath?: string;
   persistence: DocumentPersistenceService;
   credentials: CredentialAdapter;
@@ -80,6 +99,41 @@ const DEFAULT_CONFIG: PersistedPluginConfig = {
   git: { installed: true, enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' },
   atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' },
 };
+
+function defaultProfile(): PersistedProfile {
+  return { id: DEFAULT_PROFILE_ID, name: DEFAULT_PROFILE_NAME, git: { ...DEFAULT_CONFIG.git }, atlassian: { ...DEFAULT_CONFIG.atlassian } };
+}
+
+function sameFields(left: object, right: object): boolean {
+  const a = left as Record<string, unknown>; const b = right as Record<string, unknown>;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) if (a[key] !== b[key]) return false;
+  return true;
+}
+
+/** A profile nobody configured yet; only such a profile adopts an old per-folder configuration. */
+function isPristine(config: PersistedPluginConfig): boolean {
+  return sameFields(config.git, DEFAULT_CONFIG.git) && sameFields(config.atlassian, DEFAULT_CONFIG.atlassian);
+}
+
+function parseProfileStore(value: unknown): PersistedProfileStore {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
+  const record = value as Record<string, unknown>;
+  if (record.version !== STORE_VERSION || !Array.isArray(record.profiles) || record.profiles.length < 1 || record.profiles.length > PLUGIN_PROFILE_LIMIT) throw new Error('PROFILE_STORE_INVALID');
+  const ids = new Set<string>();
+  const profiles = record.profiles.map((entry): PersistedProfile => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('PROFILE_STORE_INVALID');
+    const profile = entry as Record<string, unknown>;
+    const id = profile.id; const name = profile.name;
+    if (typeof id !== 'string' || !/^[a-z0-9-]{1,64}$/.test(id) || ids.has(id)) throw new Error('PROFILE_STORE_INVALID');
+    if (typeof name !== 'string' || !name.trim() || name.length > PROFILE_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name)) throw new Error('PROFILE_STORE_INVALID');
+    if (!profile.git || typeof profile.git !== 'object' || !profile.atlassian || typeof profile.atlassian !== 'object') throw new Error('PROFILE_STORE_INVALID');
+    ids.add(id);
+    return { id, name: name.trim(), git: { ...DEFAULT_CONFIG.git, ...(profile.git as PersistedGitConfig) }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...(profile.atlassian as PersistedAtlassianConfig) } };
+  });
+  const active = typeof record.activeProfileId === 'string' && ids.has(record.activeProfileId) ? record.activeProfileId : profiles[0]!.id;
+  return { version: STORE_VERSION, activeProfileId: active, profiles };
+}
 
 function boundedString(value: unknown, max: number, name: string, allowEmpty = false): string {
   if (typeof value !== 'string') throw new Error(`${name} muss Text sein.`);
@@ -139,9 +193,15 @@ export class PluginService {
   private readonly emitEvent: (event: PluginExternalEvent) => void;
   private readonly fetchFn: typeof fetch;
   private readonly runGit: NonNullable<PluginServiceOptions['runGit']>;
+  /** The configuration of the active profile. */
   private config: PersistedPluginConfig = structuredClone(DEFAULT_CONFIG);
+  private readonly storePath: string;
+  private profiles: PersistedProfile[] = [defaultProfile()];
+  private activeProfileId = DEFAULT_PROFILE_ID;
+  private loaded: Promise<void> | null = null;
+  private storeQueue: Promise<void> = Promise.resolve();
   private projectFolder = '';
-  private configPath = '';
+  /** Changes with the project folder and with the active profile; pending work of the old context stops. */
   private projectGeneration = 0;
   private activation: Promise<void> = Promise.resolve();
   private readonly watchers = new Map<string, FSWatcher>();
@@ -152,6 +212,7 @@ export class PluginService {
 
   constructor(options: PluginServiceOptions) {
     this.persistence = options.persistence; this.credentials = options.credentials; this.emitEvent = options.emitEvent; this.fetchFn = options.fetchFn ?? fetch;
+    this.storePath = options.configPath ?? '';
     this.runGit = options.runGit ?? (async (args, cwd, environment) => {
       const result = await execFile('git', args, { cwd, timeout: 30_000, maxBuffer: 2_000_000, windowsHide: true, env: { ...process.env, ...(environment ?? {}) } });
       return { stdout: result.stdout, stderr: result.stderr };
@@ -170,35 +231,168 @@ export class PluginService {
     if (generation !== this.projectGeneration) throw new Error('Der Projektordner hat sich geändert. Bitte die Aktion erneut starten.');
   }
 
+  private ensureLoaded(): Promise<void> { return this.loaded ??= this.loadStore(); }
+
+  private async loadStore(): Promise<void> {
+    if (!this.storePath) return;
+    let text: string;
+    try { text = await fs.readFile(this.storePath, 'utf8'); } catch { return; }
+    try {
+      const store = parseProfileStore(JSON.parse(text));
+      this.profiles = store.profiles; this.activeProfileId = store.activeProfileId;
+      this.config = this.configOf(this.activeProfile()); this.refreshRuntime();
+    } catch {
+      // An unreadable file is kept beside the store so that the next save cannot destroy it.
+      await fs.copyFile(this.storePath, `${this.storePath}.unreadable`).catch(() => undefined);
+    }
+  }
+
+  private activeProfile(): PersistedProfile { return this.profiles.find((profile) => profile.id === this.activeProfileId) ?? this.profiles[0]!; }
+
+  private configOf(profile: PersistedProfile): PersistedPluginConfig { return { version: CONFIG_VERSION, git: { ...profile.git }, atlassian: { ...profile.atlassian } }; }
+
+  private profileSummaries(): PluginProfileSummary[] { return this.profiles.map(({ id, name }) => ({ id, name })); }
+
+  /** All changes of the profile file run one after another and start from the latest state in memory. */
+  private mutateStore(mutate: (profiles: PersistedProfile[], activeProfileId: string) => { profiles: PersistedProfile[]; activeProfileId: string }): Promise<void> {
+    const run = this.storeQueue.then(async () => {
+      const next = mutate(this.profiles, this.activeProfileId);
+      if (this.storePath) {
+        const contents = `${JSON.stringify({ version: STORE_VERSION, activeProfileId: next.activeProfileId, profiles: next.profiles } satisfies PersistedProfileStore, null, 2)}\n`;
+        const temp = `${this.storePath}.${process.pid}.${randomUUID()}.tmp`;
+        try {
+          await fs.mkdir(path.dirname(this.storePath), { recursive: true });
+          await fs.writeFile(temp, contents, { encoding: 'utf8', mode: 0o600 });
+          await fs.rename(temp, this.storePath);
+        } finally { await fs.rm(temp, { force: true }); }
+      }
+      this.profiles = next.profiles; this.activeProfileId = next.activeProfileId;
+    });
+    this.storeQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  /** Stores the configuration in its profile; it becomes the running configuration only while that profile is active. */
+  private async saveConfig(next: PersistedPluginConfig, profileId: string): Promise<void> {
+    await this.mutateStore((profiles, activeProfileId) => ({ activeProfileId, profiles: profiles.map((profile) => profile.id === profileId ? { ...profile, git: { ...next.git }, atlassian: { ...next.atlassian } } : profile) }));
+    if (profileId === this.activeProfileId) this.config = next;
+  }
+
+  private profileName(value: unknown, exceptId?: string): string {
+    const name = boundedString(value, PROFILE_NAME_MAX, 'Profilname');
+    const key = name.toLocaleLowerCase();
+    if (this.profiles.some((profile) => profile.id !== exceptId && profile.name.toLocaleLowerCase() === key)) throw new Error('Ein Profil mit diesem Namen existiert bereits.');
+    return name;
+  }
+
+  private knownProfile(value: unknown): PersistedProfile {
+    const profile = typeof value === 'string' ? this.profiles.find((entry) => entry.id === value) : undefined;
+    if (!profile) throw new Error('Unbekanntes Profil.');
+    return profile;
+  }
+
+  /** The running configuration follows the active profile; work that started under another profile stops. */
+  private async adoptActiveProfile(): Promise<void> {
+    this.projectGeneration++; this.clearWatchers();
+    this.config = this.configOf(this.activeProfile()); this.refreshRuntime();
+    await this.refreshFolderStatus();
+  }
+
+  private async refreshFolderStatus(): Promise<void> {
+    if (!this.projectFolder || !this.config.git.installed || !this.config.git.enabled) return;
+    const generation = this.projectGeneration;
+    try { await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); }
+    catch { if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'attention', message: 'Der Projektordner ist noch kein Git-Repository.' }; return; }
+    if (generation !== this.projectGeneration) return;
+    try { await this.readGitStatusForFolder(); }
+    catch { if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'error', message: 'Git-Status konnte nicht gelesen werden.' }; }
+  }
+
+  public async selectProfile(id: string): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
+    const profile = this.knownProfile(id);
+    if (profile.id !== this.activeProfileId) {
+      await this.mutateStore((profiles) => ({ profiles, activeProfileId: profiles.some((entry) => entry.id === profile.id) ? profile.id : this.activeProfileId }));
+      await this.adoptActiveProfile();
+    }
+    return this.getSettings();
+  }
+
+  /** A new profile starts empty or as a copy (including its encrypted tokens) and becomes the active one. */
+  public async createProfile(input: { name: string; copyFrom?: string }): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Profil.');
+    if (this.profiles.length >= PLUGIN_PROFILE_LIMIT) throw new Error('Es sind höchstens zwölf Profile möglich.');
+    const name = this.profileName(input.name);
+    const source = input.copyFrom === undefined ? null : this.knownProfile(input.copyFrom);
+    const created: PersistedProfile = source
+      ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...source.atlassian } }
+      : { ...defaultProfile(), id: randomUUID(), name };
+    await this.mutateStore((profiles) => {
+      if (profiles.length >= PLUGIN_PROFILE_LIMIT) throw new Error('Es sind höchstens zwölf Profile möglich.');
+      return { profiles: [...profiles, created], activeProfileId: created.id };
+    });
+    await this.adoptActiveProfile();
+    return this.getSettings();
+  }
+
+  public async renameProfile(input: { id: string; name: string }): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Profil.');
+    const profile = this.knownProfile(input.id); const name = this.profileName(input.name, profile.id);
+    await this.mutateStore((profiles, activeProfileId) => ({ activeProfileId, profiles: profiles.map((entry) => entry.id === profile.id ? { ...entry, name } : entry) }));
+    return this.getSettings();
+  }
+
+  public async deleteProfile(id: string): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
+    const profile = this.knownProfile(id);
+    if (this.profiles.length <= 1) throw new Error('Das letzte Profil kann nicht gelöscht werden.');
+    const wasActive = profile.id === this.activeProfileId;
+    await this.mutateStore((profiles, activeProfileId) => {
+      const remaining = profiles.filter((entry) => entry.id !== profile.id);
+      if (!remaining.length) throw new Error('Das letzte Profil kann nicht gelöscht werden.');
+      return { profiles: remaining, activeProfileId: remaining.some((entry) => entry.id === activeProfileId) ? activeProfileId : remaining[0]!.id };
+    });
+    if (wasActive) await this.adoptActiveProfile();
+    return this.getSettings();
+  }
+
+  /** The folder only decides where Git works; the configuration belongs to the active profile. */
   private resetProject(folder = ''): void {
     this.projectGeneration++; this.clearWatchers(); this.projectFolder = folder;
-    this.configPath = folder ? path.join(folder, PROJECT_CONFIG_NAME) : '';
-    this.config = structuredClone(DEFAULT_CONFIG);
-    this.gitRuntime = this.defaultGitRuntime(); this.atlassianRuntime = this.defaultAtlassianRuntime();
+    this.refreshRuntime();
   }
 
   public async activateDocument(handleId: string): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
     const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle'));
     if (!location) throw new Error('Das Dokument muss zuerst gespeichert oder geöffnet werden.');
     const nextFolder = path.dirname(location.canonicalPath);
     if (nextFolder === this.projectFolder) { await this.activation; return this.getSettings(); }
     this.resetProject(nextFolder);
-    const generation = this.projectGeneration; const configPath = this.configPath;
-    this.activation = (async () => {
-      let config = structuredClone(DEFAULT_CONFIG);
-      try {
-        const raw = JSON.parse(await fs.readFile(configPath, 'utf8')) as Partial<PersistedPluginConfig>;
-        if (raw.version === CONFIG_VERSION && raw.git && raw.atlassian) config = { version: CONFIG_VERSION, git: { ...DEFAULT_CONFIG.git, ...raw.git }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...raw.atlassian } };
-      } catch { /* Bundled plugins start disabled; configuration is only written on explicit save. */ }
-      if (generation !== this.projectGeneration) return;
-      this.config = config; this.refreshRuntime();
-    })();
+    this.activation = this.adoptLegacyProjectConfig(nextFolder, this.projectGeneration);
     await this.activation; return this.getSettings();
   }
 
-  private assertProject(): void {
-    if (!this.projectFolder || !this.configPath) throw new Error('Speichere oder öffne zuerst ein Diagramm in diesem Projektordner.');
+  /**
+   * Before profiles existed the configuration lay next to the diagram. It is taken over once, into a profile nobody
+   * configured yet; the old file stays where it is.
+   */
+  private async adoptLegacyProjectConfig(folder: string, generation: number): Promise<void> {
+    if (!isPristine(this.config)) return;
+    const profileId = this.activeProfileId;
+    let legacy: PersistedPluginConfig;
+    try {
+      const raw = JSON.parse(await fs.readFile(path.join(folder, LEGACY_PROJECT_CONFIG_NAME), 'utf8')) as Partial<PersistedPluginConfig>;
+      if (raw.version !== CONFIG_VERSION || !raw.git || !raw.atlassian) return;
+      legacy = { version: CONFIG_VERSION, git: { ...DEFAULT_CONFIG.git, ...raw.git }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...raw.atlassian } };
+    } catch { return; }
+    if (generation !== this.projectGeneration || profileId !== this.activeProfileId || !isPristine(this.config)) return;
+    try { await this.saveConfig(legacy, profileId); } catch { return; }
+    if (generation === this.projectGeneration && profileId === this.activeProfileId) this.refreshRuntime();
   }
+
 
   private refreshRuntime(): void {
     const gitCredentialStored = Boolean(this.config.git.encryptedAccessToken) && this.credentials.available();
@@ -211,49 +405,33 @@ export class PluginService {
     this.atlassianRuntime = { installed, enabled: atlassianEnabled, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
   }
 
-  private async persist(config: PersistedPluginConfig): Promise<void> {
-    this.assertProject();
-    const generation = this.projectGeneration; const folder = this.projectFolder; const configPath = this.configPath;
-    const contents = `${JSON.stringify(config, null, 2)}\n`;
-    try {
-      const { stdout } = await this.runGit(['rev-parse', '--show-toplevel'], folder);
-      this.assertGeneration(generation);
-      if (stdout.trim()) await this.ensureLocalConfigExcluded(stdout.trim(), configPath);
-    } catch { /* a project without Git still keeps its local plugin file */ }
-    this.assertGeneration(generation);
-    const temp = `${configPath}.${process.pid}.${randomUUID()}.tmp`;
-    try {
-      await fs.writeFile(temp, contents, { encoding: 'utf8', mode: 0o600 }); this.assertGeneration(generation);
-      await fs.rename(temp, configPath); this.assertGeneration(generation);
-    } finally { await fs.rm(temp, { force: true }); }
-  }
-
   public async getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded();
     if (handleId === null) { this.resetProject(); this.activation = Promise.resolve(); }
     else if (handleId !== undefined) return this.activateDocument(handleId);
-    return { available: true, projectFolder: this.projectFolder, git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
   }
 
   public async installPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
-    this.assertProject();
-    const generation = this.projectGeneration;
+    await this.ensureLoaded();
+    const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
     if (id === 'git') next.git.installed = true; else if (id === 'jira') next.atlassian.installed = true; else throw new Error('Unbekanntes Plugin.');
-    await this.persist(next); this.assertGeneration(generation); this.config = next; this.refreshRuntime(); return this.getSettings();
+    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
   public async uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
-    this.assertProject();
-    const generation = this.projectGeneration;
+    await this.ensureLoaded();
+    const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
     if (id === 'git') next.git = { ...DEFAULT_CONFIG.git, installed: false }; else if (id === 'jira') next.atlassian = { ...DEFAULT_CONFIG.atlassian, installed: false }; else throw new Error('Unbekanntes Plugin.');
-    await this.persist(next); this.assertGeneration(generation); this.config = next; if (id === 'git') this.clearWatchers(); this.refreshRuntime(); return this.getSettings();
+    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
   }
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
-    this.assertProject(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.');
+    await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.');
     if (!this.config.git.installed) throw new Error('Git-Plugin ist nicht installiert.');
-    const generation = this.projectGeneration; const folder = this.projectFolder; const configPath = this.configPath;
+    const generation = this.projectGeneration; const folder = this.projectFolder; const profileId = this.activeProfileId;
     const remote = boundedString(input.remote || 'origin', 128, 'Git-Remote');
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(remote)) throw new Error('Git-Remote ist ungültig.');
     const remoteUrl = normalizeGitRemoteUrl(input.remoteUrl ?? '');
@@ -261,46 +439,44 @@ export class PluginService {
     const changedRemote = remote !== this.config.git.remote || remoteUrl !== this.config.git.remoteUrl;
     let encryptedAccessToken = input.clearCredential || changedRemote ? undefined : previousToken;
     let credentialRemoteUrl = input.clearCredential || changedRemote ? undefined : this.config.git.credentialRemoteUrl;
-    if (typeof input.accessToken === 'string' && input.accessToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Git-Token')); }
+    const newToken = typeof input.accessToken === 'string' && input.accessToken.trim() !== '';
+    if (newToken) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Git-Token')); }
     const username = boundedString(input.username ?? '', 320, 'Git-Benutzername', authMode !== 'token' || !input.enabled);
     if (input.enabled && authMode === 'token' && !encryptedAccessToken) throw new Error('Für die Token-Anmeldung wird ein Git-Token benötigt.');
     const next: PersistedGitConfig = { installed: true, enabled: Boolean(input.enabled), autoCommit: Boolean(input.autoCommit), autoPush: Boolean(input.autoPush), autoPull: Boolean(input.autoPull), remote, remoteUrl, authMode, username, ...(encryptedAccessToken ? { encryptedAccessToken } : {}) };
-    try { await this.runGit(['rev-parse', '--show-toplevel'], folder); } catch { this.assertGeneration(generation); await this.runGit(['init'], folder); }
-    this.assertGeneration(generation);
-    const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], folder); const repositoryRoot = rootOutput.trim(); this.assertGeneration(generation);
-    if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); this.assertGeneration(generation); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { this.assertGeneration(generation); await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
-    if (encryptedAccessToken && typeof input.accessToken === 'string' && input.accessToken.trim()) {
-      credentialRemoteUrl = remoteUrl;
-      if (!credentialRemoteUrl) { try { credentialRemoteUrl = (await this.runGit(['remote', 'get-url', remote], repositoryRoot)).stdout.trim(); } catch { /* No remote yet: network use requires entering a token after selecting one. */ } }
+    if (encryptedAccessToken && newToken) credentialRemoteUrl = remoteUrl || undefined;
+    // The profile is stored for the editor. Only an enabled plugin with an open project folder touches a repository.
+    if (folder && next.enabled) {
+      try { await this.runGit(['rev-parse', '--show-toplevel'], folder); } catch { this.assertGeneration(generation); await this.runGit(['init'], folder); }
+      this.assertGeneration(generation);
+      const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], folder); const repositoryRoot = rootOutput.trim(); this.assertGeneration(generation);
+      if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); this.assertGeneration(generation); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { this.assertGeneration(generation); await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
+      if (encryptedAccessToken && newToken && !credentialRemoteUrl) { try { credentialRemoteUrl = (await this.runGit(['remote', 'get-url', remote], repositoryRoot)).stdout.trim() || undefined; } catch { /* No remote yet: network use requires entering a token after selecting one. */ } }
+      this.assertGeneration(generation);
     }
     if (credentialRemoteUrl) next.credentialRemoteUrl = credentialRemoteUrl;
-    this.assertGeneration(generation); await this.ensureLocalConfigExcluded(repositoryRoot, configPath); this.assertGeneration(generation);
-    const nextConfig = { ...this.config, git: next };
-    await this.persist(nextConfig); this.assertGeneration(generation); this.config = nextConfig; this.clearWatchers(); this.refreshRuntime(); if (next.enabled) await this.readGitStatusForFolder(); return this.getSettings();
-  }
-
-  private async ensureLocalConfigExcluded(repositoryRoot: string, configPath = this.configPath): Promise<void> {
-    const { stdout: excludeOutput } = await this.runGit(['rev-parse', '--git-path', 'info/exclude'], repositoryRoot);
-    const reportedExcludePath = excludeOutput.trim();
-    const excludePath = path.isAbsolute(reportedExcludePath) ? reportedExcludePath : path.resolve(repositoryRoot, reportedExcludePath);
-    const relativeConfig = path.relative(repositoryRoot, configPath).split(path.sep).join('/');
-    if (!relativeConfig || relativeConfig.startsWith('../')) return;
-    await fs.mkdir(path.dirname(excludePath), { recursive: true }); let existing = ''; try { existing = await fs.readFile(excludePath, 'utf8'); } catch { /* create below */ }
-    const entries = new Set(existing.split(/\r?\n/).map((entry) => entry.trim()).filter(Boolean)); if (entries.has(relativeConfig)) return;
-    await fs.appendFile(excludePath, `${existing && !existing.endsWith('\n') ? '\n' : ''}${relativeConfig}\n`, 'utf8');
+    const nextConfig: PersistedPluginConfig = { ...this.config, git: next };
+    await this.saveConfig(nextConfig, profileId);
+    if (profileId === this.activeProfileId && generation === this.projectGeneration) { this.clearWatchers(); this.refreshRuntime(); await this.refreshFolderStatus(); }
+    return this.getSettings();
   }
 
   public async configureAtlassian(input: ConfigureAtlassianPluginInput): Promise<PluginSettingsSnapshot> {
-    this.assertProject(); if (!input || typeof input !== 'object') throw new Error('Ungültige Atlassian-Konfiguration.');
+    await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Atlassian-Konfiguration.');
     if (!this.config.atlassian.installed) throw new Error('Jira-Plugin ist nicht installiert.');
-    const generation = this.projectGeneration;
+    const profileId = this.activeProfileId;
     const siteInput = typeof input.siteUrl === 'string' ? input.siteUrl : ''; const siteUrl = siteInput.trim() ? normalizeSiteUrl(siteInput) : '';
     const previousToken = this.config.atlassian.encryptedApiToken; let encryptedApiToken = input.clearCredential || siteUrl !== this.config.atlassian.siteUrl ? undefined : previousToken;
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
     const email = boundedString(input.email, 320, 'E-Mail', !input.enabled); const confluenceSpaceKey = boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true); const jiraProjectKey = boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !input.enabled).toUpperCase();
     if (input.enabled && (!siteUrl || !encryptedApiToken)) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
     const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}) } };
-    await this.persist(next); this.assertGeneration(generation); this.config = next; this.refreshRuntime(); return this.getSettings();
+    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+  }
+
+  /** Jira and Confluence work on behalf of an open local diagram; unsaved, imported and guest diagrams never trigger them. */
+  private assertDocumentProject(): void {
+    if (!this.projectFolder) throw new Error('Speichere oder öffne zuerst ein lokales Diagramm.');
   }
 
   private jiraCredential(): string { const value = this.config.atlassian.encryptedApiToken; if (!value || !this.credentials.available()) throw new Error('Kein sicher gespeichertes Atlassian-Token vorhanden.'); return this.credentials.decrypt(value); }
@@ -322,6 +498,7 @@ export class PluginService {
   }
 
   private async atlassian(pathname: string, init: RequestInit = {}): Promise<unknown> {
+    await this.ensureLoaded();
     const generation = this.projectGeneration;
     if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
     const base = normalizeSiteUrl(this.config.atlassian.siteUrl);
@@ -340,6 +517,7 @@ export class PluginService {
   }
 
   private async gitContext(handleId: string): Promise<{ filePath: string; cwd: string; relativePath: string }> {
+    await this.ensureLoaded();
     const generation = this.projectGeneration;
     if (!this.config.git.installed || !this.config.git.enabled) throw new Error('Git-Plugin ist deaktiviert.');
     const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle')); if (!location) throw new Error('Das Dokument muss zuerst gespeichert oder geöffnet werden.');
@@ -378,6 +556,7 @@ export class PluginService {
   }
 
   public async afterDocumentSaved(handleId: string): Promise<void> {
+    await this.ensureLoaded();
     const generation = this.projectGeneration;
     const location = this.persistence.getHandleLocation(handleId);
     if (!location || path.dirname(location.canonicalPath) !== this.projectFolder) return;
@@ -400,6 +579,7 @@ export class PluginService {
   private async emitReload(handleId: string): Promise<void> { const before = this.persistence.getHandleLocation(handleId)?.versionToken; const result = await this.persistence.reloadDocument(handleId); if (result.status === 'opened' && result.file.versionToken !== before) this.emitEvent({ type: 'document-changed', text: result.text, file: result.file }); }
 
   public async watchDocument(handleId: string): Promise<PluginOperationResult> {
+    await this.ensureLoaded();
     const generation = this.projectGeneration;
     if (!this.config.git.installed || !this.config.git.enabled) return { ok: false, message: 'Git-Plugin ist deaktiviert.' }; if (this.watchers.has(handleId)) return { ok: true, message: 'Dokument wird überwacht.' };
     this.clearWatchers(); const context = await this.gitContext(handleId);
@@ -411,18 +591,21 @@ export class PluginService {
   private async confluenceSpaceId(): Promise<string | undefined> { const key = this.config.atlassian.confluenceSpaceKey; if (!key) return undefined; const response = await this.atlassian(`/wiki/api/v2/spaces?keys=${encodeURIComponent(key)}&limit=1`) as { results?: Array<{ id?: string }> }; return response.results?.[0]?.id; }
 
   public async listConfluencePages(query: string): Promise<ConfluencePageSummary[]> {
+    this.assertDocumentProject();
     const spaceId = await this.confluenceSpaceId(); const params = new URLSearchParams({ limit: '100', sort: '-modified-date' }); if (spaceId) params.set('space-id', spaceId);
     const response = await this.atlassian(`/wiki/api/v2/pages?${params}`) as { results?: Array<Record<string, unknown>> }; const needle = query.trim().toLocaleLowerCase('de'); const base = this.config.atlassian.siteUrl;
     return (response.results ?? []).map((page) => ({ id: String(page.id ?? ''), title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), url: `${base}/wiki/spaces/${encodeURIComponent(this.config.atlassian.confluenceSpaceKey)}/pages/${encodeURIComponent(String(page.id ?? ''))}` })).filter((page) => page.id && (!needle || page.title.toLocaleLowerCase('de').includes(needle))).slice(0, 100);
   }
 
   public async getConfluencePage(pageId: string): Promise<ConfluencePage> {
+    this.assertDocumentProject();
     const id = boundedString(pageId, 128, 'Confluence-Seiten-ID'); const page = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(id)}?body-format=storage`) as Record<string, unknown>;
     const body = page.body as Record<string, unknown> | undefined; const storage = body?.storage as Record<string, unknown> | undefined;
     return { id, title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), storageBody: String(storage?.value ?? ''), url: `${this.config.atlassian.siteUrl}/wiki/pages/viewpage.action?pageId=${encodeURIComponent(id)}` };
   }
 
   public async updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number }): Promise<ConfluencePage> {
+    this.assertDocumentProject();
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID'); const title = boundedString(input.title, 500, 'Seitentitel');
     if (!Number.isSafeInteger(input.version) || input.version < 1 || Buffer.byteLength(input.storageBody, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Ungültiger Seiteninhalt.');
     await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(pageId)}`, { method: 'PUT', body: JSON.stringify({ id: pageId, status: 'current', title, body: { representation: 'storage', value: input.storageBody }, version: { number: input.version + 1, message: 'Updated from Sketchdraw' } }) }); return this.getConfluencePage(pageId);
@@ -430,16 +613,18 @@ export class PluginService {
 
   private jiraIssue(value: Record<string, unknown>): JiraIssueSummary { const fields = (value.fields ?? {}) as Record<string, unknown>; const status = (fields.status ?? {}) as Record<string, unknown>; const remoteStatus = String(status.name ?? 'To Do'); const key = String(value.key ?? ''); return { id: String(value.id ?? key), key, title: String(fields.summary ?? key), description: adfText(fields.description), status: jiraStatus(remoteStatus), remoteStatus, url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated) }; }
 
-  public async createJiraIssue(input: { title: string; description: string }): Promise<JiraIssueSummary> { const title = boundedString(input.title, 255, 'Jira-Titel'); const description = boundedString(input.description, 50_000, 'Jira-Beschreibung', true); const created = await this.atlassian('/rest/api/3/issue', { method: 'POST', body: JSON.stringify({ fields: { project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') }, issuetype: { name: this.config.atlassian.jiraIssueType }, summary: title, description: descriptionAdf(description) } }) }) as Record<string, unknown>; return this.getJiraIssue(String(created.key ?? created.id ?? '')); }
+  public async createJiraIssue(input: { title: string; description: string }): Promise<JiraIssueSummary> { this.assertDocumentProject(); const title = boundedString(input.title, 255, 'Jira-Titel'); const description = boundedString(input.description, 50_000, 'Jira-Beschreibung', true); const created = await this.atlassian('/rest/api/3/issue', { method: 'POST', body: JSON.stringify({ fields: { project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') }, issuetype: { name: this.config.atlassian.jiraIssueType }, summary: title, description: descriptionAdf(description) } }) }) as Record<string, unknown>; return this.getJiraIssue(String(created.key ?? created.id ?? '')); }
 
   private async getJiraIssue(key: string): Promise<JiraIssueSummary> { const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=summary,description,status,updated`) as Record<string, unknown>; return this.jiraIssue(issue); }
 
   public async listJiraIssues(): Promise<JiraIssueSummary[]> {
+    this.assertDocumentProject();
     const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'); const configuredFilter = boundedString(this.config.atlassian.jqlFilter, 2000, 'Jira-Filter', true); const baseFilter = configuredFilter || `project = "${project.replaceAll('"', '')}"`; const jql = /\border\s+by\b/i.test(baseFilter) ? baseFilter : `${baseFilter} ORDER BY updated DESC`;
     const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> }; return (response.issues ?? []).map((issue) => this.jiraIssue(issue));
   }
 
   public async transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary> {
+    this.assertDocumentProject();
     const key = boundedString(input.key, 128, 'Jira-Key'); const desired: Record<TaskStatus, string[]> = { todo: ['to do', 'open', 'offen'], doing: ['in progress', 'doing', 'in arbeit'], review: ['review', 'in review', 'prüfung'], done: ['done', 'closed', 'resolved', 'erledigt'] };
     const response = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`) as { transitions?: Array<{ id?: string; name?: string; to?: { name?: string } }> }; const transition = (response.transitions ?? []).find((item) => desired[input.status].some((name) => `${item.name ?? ''} ${item.to?.name ?? ''}`.toLocaleLowerCase('en').includes(name)));
     if (!transition?.id) throw new Error('Für diesen Jira-Workflow wurde kein passender Statusübergang gefunden.'); await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, { method: 'POST', body: JSON.stringify({ transition: { id: transition.id } }) }); return this.getJiraIssue(key);
