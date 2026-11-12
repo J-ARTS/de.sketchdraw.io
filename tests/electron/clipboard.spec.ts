@@ -67,6 +67,7 @@ test('the desktop app pastes a clipboard image and copies elements without clipb
     await testInfo.attach('desktop-clipboard-evidence', { contentType: 'application/json', body: Buffer.from(JSON.stringify({ clipboardApi: 'denied', imagePasteByKey: true, imagePasteByMenuRole: true, elementCopyOnSystemClipboard: true })) });
   } finally {
     if (app) await stopElectron(app);
-    await rm(root, { recursive: true, force: true });
+    // Windows releases the session files a moment after the app has stopped.
+    await rm(root, { recursive: true, force: true, maxRetries: 8, retryDelay: 150 });
   }
 });
