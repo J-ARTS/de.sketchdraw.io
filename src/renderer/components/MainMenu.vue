@@ -7,7 +7,6 @@ import type { IconName } from './icons';
 import { isMacPlatform, modHint } from './platform';
 import { useWhiteboard } from './use-whiteboard';
 import { L, t } from '@/renderer/i18n';
-import { LANGUAGES, type LanguageCode } from '@/renderer/lib/preferences';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
 type ViewItemId = 'objects' | 'help' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
@@ -79,7 +78,6 @@ const fileItems: readonly FileItem[] = [
   { id: 'interopExport', label: t('menu.interopExport'), icon: 'download', hint: '' },
 ];
 
-function chooseLanguage(code: LanguageCode): void { closeMenu(true); store.setLanguage(code); }
 const viewItems = computed<ViewItem[]>(() => [
   ...(compact.value ? [
     { id: 'objects', label: t('chrome.objects'), icon: 'objects', checked: s.objectsOpen },
@@ -346,27 +344,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             <AppIcon v-if="item.checked" class="menu-check" name="check" :size="16" />
           </button>
         </template>
-        <span class="rule" role="separator" />
-        <div role="group" :aria-label="t('Sprache')" class="language-group">
-          <span class="group-label" aria-hidden="true">{{ t('Sprache') }}</span>
-          <button
-            v-for="language in LANGUAGES"
-            :key="language.code"
-            type="button"
-            role="menuitemradio"
-            tabindex="-1"
-            class="menu-item"
-            :data-testid="`language-${language.code}`"
-            :aria-checked="s.language === language.code"
-            :aria-disabled="language.available ? undefined : true"
-            @click="language.available && chooseLanguage(language.code)"
-          >
-            <AppIcon name="globe" :size="18" />
-            <span class="menu-label">{{ language.label }}</span>
-            <span v-if="!language.available" class="menu-hint">{{ t('folgt') }}</span>
-            <AppIcon v-else-if="s.language === language.code" class="menu-check" name="check" :size="16" />
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -632,7 +609,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   font-size: 11px;
 }
 
-.group-label{display:block;padding:4px 12px 2px;color:var(--text-muted);font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase}
 .menu-item[aria-disabled='true']{color:var(--text-muted);cursor:not-allowed}
 .menu-item[aria-disabled='true']:hover{background:transparent}
 

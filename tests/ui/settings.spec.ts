@@ -51,23 +51,36 @@ test('the canvas background is chosen in the settings, follows the theme and per
   expect(await canvasColor(page)).not.toBe('rgb(17, 26, 38)');
 });
 
-test('the language sits in the user menu and switches the whole interface live and persistently', async ({ page }) => {
+test('the language is chosen in the settings, switches the whole interface live and persists', async ({ page }) => {
   await page.getByTestId('workspace-menu-button').click();
   const menu = page.getByRole('menu', { name: 'Arbeitsbereich' });
-  const languages = menu.getByRole('group', { name: 'Sprache' });
-  await expect(languages.getByRole('menuitemradio', { name: 'Deutsch' })).toHaveAttribute('aria-checked', 'true');
-  const english = languages.getByRole('menuitemradio', { name: /English/ });
+  // The menu holds views and actions only (#164).
+  await expect(menu.getByRole('group', { name: 'Sprache' })).toHaveCount(0);
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(0);
+  await menu.getByRole('menuitem', { name: 'Einstellungen' }).click();
+  const dialog = page.getByTestId('settings-dialog');
+  const languages = dialog.getByRole('radiogroup', { name: 'Sprache' });
+  await expect(languages.getByRole('radio')).toHaveText(['Deutsch', 'English']);
+  await expect(languages.getByRole('radio', { name: 'Deutsch' })).toHaveAttribute('aria-checked', 'true');
+  const english = languages.getByRole('radio', { name: 'English' });
   await expect(english).not.toHaveAttribute('aria-disabled', 'true');
   await english.click();
+  // The open dialog relabels itself; nothing closes.
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await page.getByTestId('workspace-menu-button').click();
-  const englishMenu = page.getByRole('menu', { name: 'Workspace' });
-  await expect(englishMenu.getByRole('group', { name: 'Language' }).getByRole('menuitemradio', { name: 'English' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+  await expect(dialog.getByRole('radiogroup', { name: 'Language' }).getByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'true');
+  expect((await new AxeBuilder({ page }).include('[data-testid=settings-dialog]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('toolbar', { name: 'Tools' })).toBeVisible();
   await page.getByTestId('workspace-menu-button').click();
-  await page.getByRole('menu', { name: 'Workspace' }).getByRole('group', { name: 'Language' }).getByRole('menuitemradio', { name: 'Deutsch' }).click();
+  await page.getByRole('menu', { name: 'Workspace' }).getByRole('menuitem', { name: 'Settings' }).click();
+  // Arrow keys move and select like in the other setting groups.
+  const group = page.getByRole('radiogroup', { name: 'Language' });
+  await group.getByRole('radio', { name: 'English' }).focus();
+  await page.keyboard.press('ArrowLeft');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('radiogroup', { name: 'Sprache' }).getByRole('radio', { name: 'Deutsch' })).toBeFocused();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('toolbar', { name: 'Werkzeuge' })).toBeVisible();
 });

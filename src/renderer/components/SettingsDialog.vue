@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { CANVAS_BACKGROUNDS, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
+import { CANVAS_BACKGROUNDS, LANGUAGES, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import AppIcon from './AppIcon.vue';
 import ColorPicker from './ColorPicker.vue';
 import { useWhiteboard } from './use-whiteboard';
 
-/** Modal settings: canvas background and design. Language lives in the user menu. */
+/** Modal settings: canvas background, design and language. All of them are personal and not stored in the document. */
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const store = useWhiteboard();
@@ -99,6 +99,23 @@ function onRadioKeydown(event: KeyboardEvent): void {
         </div>
       </section>
 
+      <section class="setting" aria-labelledby="language-title">
+        <h3 id="language-title">{{ t('Sprache') }}</h3>
+        <div class="segmented" role="radiogroup" aria-labelledby="language-title" @keydown="onRadioKeydown">
+          <button
+            v-for="language in LANGUAGES"
+            :key="language.code"
+            type="button"
+            role="radio"
+            :data-testid="`language-${language.code}`"
+            :aria-checked="s.language === language.code"
+            :aria-disabled="language.available ? undefined : true"
+            :tabindex="s.language === language.code ? 0 : -1"
+            @click="language.available && store.setLanguage(language.code)"
+          ><span :lang="language.code">{{ language.label }}</span><span v-if="!language.available" class="soon">{{ t('folgt') }}</span></button>
+        </div>
+      </section>
+
       <footer><button type="button" class="sd-btn sd-btn--primary" @click="emit('close')">{{ t('Fertig') }}</button></footer>
     </div>
   </dialog>
@@ -125,6 +142,8 @@ h3{margin:0 0 10px;font-size:14px;font-weight:650}
 .segmented button{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;color:var(--text-primary);font:inherit;cursor:pointer}
 .segmented button[aria-checked='true']{background:var(--surface-panel);box-shadow:0 0 0 1px var(--accent);color:var(--accent-ink)}
 .segmented button:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.segmented button[aria-disabled='true']{color:var(--text-muted);cursor:default}
+.soon{font-size:12px;color:var(--text-muted)}
 footer{display:flex;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border-subtle)}
 @media(forced-colors:active){.swatch[aria-checked='true'],.segmented button[aria-checked='true']{outline:2px solid Highlight}}
 </style>
