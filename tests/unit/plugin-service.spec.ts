@@ -67,6 +67,27 @@ describe('PluginService', () => {
     service.dispose();
   });
 
+  it('keeps watching when a reload triggered by the file watcher fails (#163)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-watch-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+    const base = await projectPersistence({ project: documentPath });
+    const reloadDocument = vi.fn(async () => { throw new Error('file is being replaced'); });
+    const persistence = { getHandleLocation: base.getHandleLocation, reloadDocument } as unknown as DocumentPersistenceService;
+    const rejections: unknown[] = []; const onRejection = (reason: unknown) => { rejections.push(reason); };
+    process.on('unhandledRejection', onRejection);
+    const service = new PluginService({ persistence, credentials: credentials(), emitEvent: vi.fn() });
+    try {
+      await service.activateDocument('project'); await service.installPlugin('git');
+      await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+      expect(await service.watchDocument('project')).toMatchObject({ ok: true });
+      await writeFile(documentPath, '{"version":2}\n');
+      await vi.waitFor(() => { expect(reloadDocument).toHaveBeenCalled(); }, { timeout: 8_000, interval: 50 });
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(rejections).toEqual([]);
+      expect(await service.watchDocument('project')).toMatchObject({ ok: true, message: 'Dokument wird überwacht.' });
+    } finally { service.dispose(); process.off('unhandledRejection', onRejection); }
+  });
+
   it('keeps installations and encrypted Git tokens isolated per diagram folder', async () => {
     const first = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-project-a-')); const second = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-project-b-')); cleanup.push(first, second);
     const firstDocument = path.join(first, 'one.sketchdraw.json'); const firstSibling = path.join(first, 'another.sketchdraw.json'); const secondDocument = path.join(second, 'two.sketchdraw.json');
