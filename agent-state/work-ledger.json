@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-12T19:48:40Z",
+  "updatedAt": "2026-11-12T20:07:54Z",
   "issues": [
     {
       "number": 1,
@@ -2251,9 +2251,9 @@
       "title": "Referenzdiagramme als editierbare SketchDraw-Dokumente nachbauen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/170",
       "owner": "OpenAI Codex (architecture/testing; temporary UI artifact execution)",
-      "currentImplementer": "OpenAI Codex; native SketchDraw document and two validation screenshots completed locally in the user-started npm dev:electron instance",
+      "currentImplementer": "OpenAI Codex; artifacts integrated and published on main",
       "phase": "UI artifact / Native document validation",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2262,9 +2262,9 @@
       "dependencies": [],
       "localIntegration": {
         "branch": "main",
-        "commit": null,
-        "publication": "local artifacts pending user decision",
-        "remoteCi": "not applicable; no product-code change"
+        "commit": "67e4794395bd68a174f02e598b753f3daae77b97",
+        "publication": "pushed to origin/main",
+        "remoteCi": "passed on descendant 672c20bdd0b8b7daf920e5d7a894fe3ef9c3953d: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43294536322"
       }
     },
     {
@@ -2272,9 +2272,9 @@
       "title": "Git-Status meldet 0 voraus / 0 zurück trotz neuerem origin/main",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/175",
       "owner": "Google Antigravity (logic/interface responsibility), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "OpenAI Codex temporary implementation and validation; local main integration pending publication",
+      "currentImplementer": "OpenAI Codex temporary implementation and validation; integrated and published on main",
       "phase": "Git integration / Testing",
-      "status": "review",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2285,9 +2285,9 @@
       ],
       "localIntegration": {
         "branch": "main",
-        "commit": null,
-        "publication": "pending",
-        "remoteCi": "not triggered"
+        "commit": "8739929537ecad1c771925973024627aacaa2ad1",
+        "publication": "pushed to origin/main",
+        "remoteCi": "passed on descendant 672c20bdd0b8b7daf920e5d7a894fe3ef9c3953d: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43294536322"
       }
     }
   ],
@@ -8995,11 +8995,10 @@
         }
       ],
       "concerns": [
-        "Reference logos and the Traefik mascot are approximated with editable native shapes and text glyphs; no raster logo assets were embedded.",
-        "Artifacts are local and uncommitted; no repository publication or remote CI is claimed."
+        "Reference logos and the Traefik mascot are approximated with editable native shapes and text glyphs; no raster logo assets were embedded."
       ],
       "authorization": "User explicitly requested both reference diagrams in the already running npm-run SketchDraw instance, a saved file, and a screenshot.",
-      "measurementSource": "Duration, token and cost metrics were not measured. Validation evidence: SketchDraw status Saved, both pages opened in the npm dev:electron instance, native JSON counts 47 plus 71 elements, and two 3024x1890 screenshots."
+      "measurementSource": "Duration, token and cost metrics were not measured. Validation evidence: SketchDraw status Saved, both pages opened in the npm dev:electron instance, native JSON counts 47 plus 71 elements, two PNG screenshots at 3024x1890, commit 67e4794 published on main, and descendant CI run 43294536322 passed all jobs."
     },
     {
       "id": "codex-175-git-remote-status",
@@ -9022,11 +9021,9 @@
         "https://github.com/J-ARTS/sketchdraw-integration-test",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/175"
       ],
-      "concerns": [
-        "Implementation is validated locally on main but remains unpublished until the requested main push completes."
-      ],
+      "concerns": [],
       "authorization": "User requested a new repository for integration testing and a fix for the reproduced Git remote-status bug, then explicitly requested pushing all changes to main.",
-      "measurementSource": "No duration, token or cost metrics measured. Based on origin/main ed8c9d0; full unit suite passed 870/870, full Electron suite passed 11/11, typecheck and git diff check passed. Private GitHub live probe reproduced stale 0/0 and confirmed refreshed 0/1 without worktree changes."
+      "measurementSource": "No duration, token or cost metrics measured. Full local unit suite passed 870/870, full Electron suite passed 11/11, typecheck and git diff check passed. Private GitHub live probe reproduced stale 0/0 and confirmed refreshed 0/1 without worktree changes. Commit 8739929 is published on main and descendant CI run 43294536322 passed Governance/Graphify, Direct P2P and Build & Verify on Ubuntu, macOS and Windows."
     }
   ],
   "evidencePolicy": {
