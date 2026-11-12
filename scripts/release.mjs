@@ -1431,11 +1431,19 @@ export function verifyRemoteReleaseAssets({
   return true;
 }
 
+// GitHub lists a draft a moment after creating it; reads of a release this run already knows wait this long at most.
+export const RELEASE_READ_ATTEMPTS = 10;
+export const RELEASE_READ_DELAY_MS = 3_000;
+
+function defaultSleepSync(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
 export function publishGitHubRelease({
   artifactsDir, rawTag, expectedCommitSha, repository = DEFAULT_REPOSITORY,
   rootDir = PROJECT_ROOT, minSizeBytes = DEFAULT_MIN_INSTALLER_SIZE_BYTES,
   env = process.env, runGit = defaultRunGit, runGh = defaultRunGh,
-  downloadAsset = defaultDownloadRemoteAsset,
+  downloadAsset = defaultDownloadRemoteAsset, sleep = defaultSleepSync,
 }) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) throw new Error('Invalid repository.');
   const pkg = readPackageJson(rootDir);
@@ -1451,6 +1459,18 @@ export function publishGitHubRelease({
       expectedCommitSha: revision.commitSha, allowPartial, repository, downloadAsset, env });
   };
   const read = () => fetchReleaseByTag({ repository, tag: revision.tag, runGh, env });
+  // Once this run has created or seen the release, an empty answer is listing lag (v0.1.3: the draft was missing from
+  // the list right after `gh release create`), not absence. It is only waited for, never worked around by a write.
+  const readKnown = () => {
+    for (let attempt = 1; ; attempt++) {
+      const found = read();
+      if (found) return found;
+      if (attempt >= RELEASE_READ_ATTEMPTS) {
+        throw new Error(`Release for tag "${revision.tag}" exists but GitHub does not list it yet; re-run this job to continue with the existing draft.`);
+      }
+      sleep(RELEASE_READ_DELAY_MS);
+    }
+  };
   const verifyTag = () => verifyRemoteTag({ ...ownership, runGh, env });
   const outcome = (status, release) => ({ status, tag: revision.tag, version: revision.version,
     commitSha: revision.commitSha, releaseUrl: release.html_url ?? `https://github.com/${repository}/releases/tag/${revision.tag}`,
@@ -1472,7 +1492,7 @@ export function publishGitHubRelease({
       if (revision.isPrerelease) args.push('--prerelease');
       runGh(args, { cwd: rootDir, env });
     } finally { rmSync(directory, { recursive: true, force: true }); }
-    release = read();
+    release = readKnown();
     verify(release, true);
     if (!release.draft) throw new Error('New draft unexpectedly became public.');
   }
@@ -1480,7 +1500,7 @@ export function publishGitHubRelease({
   for (const artifact of artifacts) {
     // Re-read before each upload: a competing release replacement or foreign asset must not be edited.
     verifyTag();
-    release = read();
+    release = readKnown();
     verify(release, release.draft);
     if (release.id !== releaseId) throw new Error('Release identity changed during upload.');
     if (!release.draft) return outcome('already-published-idempotent', release);
@@ -1491,13 +1511,13 @@ export function publishGitHubRelease({
       '--header', 'Content-Type: application/octet-stream', '--input', artifact.filePath], { cwd: rootDir, env, timeoutMs: 600_000 });
   }
   verifyTag();
-  release = read();
+  release = readKnown();
   verify(release, false);
   if (release.id !== releaseId) throw new Error('Release identity changed before publication.');
   if (!release.draft) return outcome('already-published-idempotent', release);
   runGh(['api', '--method', 'PATCH', `repos/${repository}/releases/${releaseId}`,
     '--field', 'draft=false', '--field', `prerelease=${revision.isPrerelease}`], { cwd: rootDir, env });
-  const published = read();
+  const published = readKnown();
   verify(published, false);
   if (published.id !== releaseId || published.draft) throw new Error('Publication could not be verified.');
   return outcome('published', published);

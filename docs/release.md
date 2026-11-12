@@ -57,7 +57,7 @@ Der Tag-Endpunkt kann für ein vorhandenes Draft mit HTTP 404 antworten. Nur dan
 
 Jedes bereits vorhandene Asset muss einen erwarteten, eindeutigen Namen, die exakte Größe, Zustand `uploaded` und die richtigen Bytes haben. Falls GitHub einen gültigen SHA-256-Digest liefert, wird er verglichen. Andernfalls wird das echte Asset über seine ID in eine eigene temporäre Datei heruntergeladen und gehasht. Release-Notes oder Dateigröße ersetzen diesen Inhaltsnachweis nicht.
 
-- Kein Release: neues Draft mit Marker am verifizierten vorhandenen Tag anlegen und zurücklesen.
+- Kein Release: neues Draft mit Marker am verifizierten vorhandenen Tag anlegen und zurücklesen. GitHub listet ein eben angelegtes Draft nicht immer sofort; der Publisher wartet darauf bis zu zehn Leseversuche im Abstand von drei Sekunden, ebenso bei späteren Lesezugriffen desselben Laufs (#173). Bleibt das Draft unsichtbar, bricht er mit genau diesem Hinweis ab; „Re-run failed jobs“ setzt dann mit dem vorhandenen Draft fort.
 - Eigenes passendes Draft: bereits identische Assets erhalten; ausschließlich fehlende Assets hochladen. Vor jedem Upload Zustand, Release-ID, Tag und vorhandene Bytes erneut prüfen.
 - Bereits öffentliches identisches Release: ohne Schreibzugriff erfolgreich beenden.
 - Fremder Autor, fehlender Marker, abweichende Revision, zusätzliche Datei oder abweichender Inhalt: vor Änderungen abbrechen.

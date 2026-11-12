@@ -24,6 +24,8 @@ import {
   packagePlatformInstaller,
   parseReleaseTag,
   publishGitHubRelease,
+  RELEASE_READ_ATTEMPTS,
+  RELEASE_READ_DELAY_MS,
   resolveSigningConfiguration,
   validateCollectedReleaseArtifacts,
   verifyGitTagRevision,
@@ -754,6 +756,46 @@ test('publishes a verified draft once; repeat is read-only and partial upload re
   assert.equal(f.state.mutations.filter(args => args[0] === 'release' && args[1] === 'create').length, 1);
   assert.ok(f.state.draftListReads > 1, 'Created and resumed drafts are retrieved through the list endpoint');
   assert.equal(f.state.publishedTagReads, 2, 'Publication verification and repeat use the direct tag endpoint');
+});
+
+test('a draft that GitHub does not list right after creating it is waited for, not mistaken for a foreign release (#173)', t => {
+  const f = publishFixture(t);
+  const pauses = [];
+  let hidden = 0;
+  // The list answers empty for the first reads after `gh release create`, as in the v0.1.3 run.
+  const laggingGh = (args, options) => {
+    if (args[0] === 'api' && args[1].endsWith('/releases?per_page=100') && f.state.release?.draft && hidden > 0) {
+      hidden--;
+      return JSON.stringify([[]]);
+    }
+    const result = f.runGh(args, options);
+    if (args[0] === 'release' && args[1] === 'create') hidden = 3;
+    return result;
+  };
+  const outcome = f.publish({ runGh: laggingGh, sleep: milliseconds => pauses.push(milliseconds) });
+  assert.equal(outcome.status, 'published');
+  assert.deepEqual(pauses, [RELEASE_READ_DELAY_MS, RELEASE_READ_DELAY_MS, RELEASE_READ_DELAY_MS]);
+  assert.equal(f.state.mutations.filter(args => args[0] === 'release' && args[1] === 'create').length, 1, 'Waiting never creates a second draft');
+  assert.equal(f.state.uploads.length, 3);
+});
+
+test('a created draft that stays unlisted stops with a message that names the lag and the re-run (#173)', t => {
+  const f = publishFixture(t);
+  const pauses = [];
+  let created = false;
+  const blindGh = (args, options) => {
+    if (created && args[0] === 'api' && args[1].endsWith('/releases?per_page=100')) return JSON.stringify([[]]);
+    const result = f.runGh(args, options);
+    if (args[0] === 'release' && args[1] === 'create') created = true;
+    return result;
+  };
+  assert.throws(() => f.publish({ runGh: blindGh, sleep: milliseconds => pauses.push(milliseconds) }),
+    /exists but GitHub does not list it yet; re-run this job/);
+  assert.equal(pauses.length, RELEASE_READ_ATTEMPTS - 1);
+  assert.equal(f.state.mutations.length, 1, 'Only the draft creation happened; no upload, no second draft');
+  // The re-run finds the draft and finishes without creating another one.
+  assert.equal(f.publish({ sleep: () => assert.fail('A listed draft needs no waiting') }).status, 'published');
+  assert.equal(f.state.mutations.filter(args => args[0] === 'release' && args[1] === 'create').length, 1);
 });
 
 test('publisher grants ten minutes only to installer uploads and leaves metadata timeouts at the default', t => {
