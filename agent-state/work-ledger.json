@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-12T20:17:00+01:00",
+  "updatedAt": "2026-11-12T19:48:40Z",
   "issues": [
     {
       "number": 1,
@@ -2265,6 +2265,29 @@
         "commit": null,
         "publication": "local artifacts pending user decision",
         "remoteCi": "not applicable; no product-code change"
+      }
+    },
+    {
+      "number": 175,
+      "title": "Git-Status meldet 0 voraus / 0 zurück trotz neuerem origin/main",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/175",
+      "owner": "Google Antigravity (logic/interface responsibility), OpenAI Codex (architecture/testing)",
+      "currentImplementer": "OpenAI Codex temporary implementation and validation; local main integration pending publication",
+      "phase": "Git integration / Testing",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        160
+      ],
+      "localIntegration": {
+        "branch": "main",
+        "commit": null,
+        "publication": "pending",
+        "remoteCi": "not triggered"
       }
     }
   ],
@@ -8977,6 +9000,33 @@
       ],
       "authorization": "User explicitly requested both reference diagrams in the already running npm-run SketchDraw instance, a saved file, and a screenshot.",
       "measurementSource": "Duration, token and cost metrics were not measured. Validation evidence: SketchDraw status Saved, both pages opened in the npm dev:electron instance, native JSON counts 47 plus 71 elements, and two 3024x1890 screenshots."
+    },
+    {
+      "id": "codex-175-git-remote-status",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        175
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "electron/plugin-service.ts",
+        "src/renderer/i18n/en.ts",
+        "tests/unit/plugin-service.spec.ts",
+        "tests/electron/plugins.spec.ts",
+        "https://github.com/J-ARTS/sketchdraw-integration-test",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/175"
+      ],
+      "concerns": [
+        "Implementation is validated locally on main but remains unpublished until the requested main push completes."
+      ],
+      "authorization": "User requested a new repository for integration testing and a fix for the reproduced Git remote-status bug, then explicitly requested pushing all changes to main.",
+      "measurementSource": "No duration, token or cost metrics measured. Based on origin/main ed8c9d0; full unit suite passed 870/870, full Electron suite passed 11/11, typecheck and git diff check passed. Private GitHub live probe reproduced stale 0/0 and confirmed refreshed 0/1 without worktree changes."
     }
   ],
   "evidencePolicy": {

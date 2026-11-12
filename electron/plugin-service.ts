@@ -527,24 +527,59 @@ export class PluginService {
     if (!cwd || path.relative(cwd, filePath).startsWith('..')) throw new Error('Das Dokument liegt nicht in einem Git-Repository.'); return { filePath, cwd, relativePath: path.relative(cwd, filePath) };
   }
 
-  private async readGitStatusForFolder(): Promise<GitPluginSettings> {
+  private async refreshRemoteTrackingBranch(cwd: string, branch: string): Promise<void> {
+    const remote = this.config.git.remote;
+    try {
+      await this.configuredGit([
+        'fetch',
+        '--no-tags',
+        '--no-recurse-submodules',
+        '--no-write-fetch-head',
+        remote,
+        `+refs/heads/${branch}:refs/remotes/${remote}/${branch}`,
+      ], cwd, true);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unbekannter Git-Fehler.';
+      throw new Error(`Remote „${remote}“ konnte nicht aktualisiert werden: ${detail}`);
+    }
+  }
+
+  private async readGitStatusForFolder(refreshRemote = false): Promise<GitPluginSettings> {
     const generation = this.projectGeneration;
     const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); const cwd = rootOutput.trim();
     this.assertGeneration(generation);
     const [{ stdout: status }, { stdout: branch }] = await Promise.all([this.runGit(['status', '--porcelain=v1'], cwd), this.runGit(['branch', '--show-current'], cwd)]);
     this.assertGeneration(generation);
+    const branchName = branch.trim();
+    if (refreshRemote && branchName) { await this.refreshRemoteTrackingBranch(cwd, branchName); this.assertGeneration(generation); }
     let ahead = 0; let behind = 0;
-    try { const { stdout } = await this.runGit(['rev-list', '--left-right', '--count', `HEAD...${this.config.git.remote}/${branch.trim()}`], cwd); const [left, right] = stdout.trim().split(/\s+/).map(Number); ahead = left || 0; behind = right || 0; } catch { /* no upstream yet */ }
+    try { const { stdout } = await this.runGit(['rev-list', '--left-right', '--count', `HEAD...refs/remotes/${this.config.git.remote}/${branchName}`], cwd); const [left, right] = stdout.trim().split(/\s+/).map(Number); ahead = left || 0; behind = right || 0; }
+    catch (error) {
+      if (refreshRemote && branchName) {
+        const detail = error instanceof Error ? error.message : 'Unbekannter Git-Fehler.';
+        throw new Error(`Remote-Status für „${this.config.git.remote}/${branchName}“ konnte nicht berechnet werden: ${detail}`);
+      }
+      // A local repository can legitimately have no remote-tracking branch yet.
+    }
     this.assertGeneration(generation);
-    const settings: GitPluginSettings = { ...this.gitRuntime, installed: true, enabled: this.config.git.enabled, folderPath: this.projectFolder, health: 'ready', message: status.trim() ? 'Lokale Änderungen erkannt.' : 'Repository ist synchron.', repositoryName: path.basename(cwd), branch: branch.trim() || 'noch kein Commit', changedFiles: status.trim() ? status.trim().split(/\r?\n/).length : 0, ahead, behind };
+    const message = !refreshRemote
+      ? (status.trim() ? 'Lokale Änderungen erkannt.' : 'Lokaler Git-Status gelesen; Remote-Stand noch nicht aktualisiert.')
+      : ahead > 0 && behind > 0
+        ? 'Repository und Remote sind auseinanderentwickelt.'
+        : behind > 0
+          ? 'Repository liegt hinter dem Remote.'
+          : ahead > 0
+            ? 'Repository liegt vor dem Remote.'
+            : status.trim() ? 'Lokale Änderungen erkannt.' : 'Repository ist synchron.';
+    const settings: GitPluginSettings = { ...this.gitRuntime, installed: true, enabled: this.config.git.enabled, folderPath: this.projectFolder, health: refreshRemote ? 'ready' : 'attention', message, repositoryName: path.basename(cwd), branch: branchName || 'noch kein Commit', changedFiles: status.trim() ? status.trim().split(/\r?\n/).length : 0, ahead, behind };
     this.gitRuntime = settings; return settings;
   }
 
-  private async readGitStatus(handleId: string): Promise<GitPluginSettings> { await this.gitContext(handleId); return this.readGitStatusForFolder(); }
+  private async readGitStatus(handleId: string, refreshRemote = false): Promise<GitPluginSettings> { await this.gitContext(handleId); return this.readGitStatusForFolder(refreshRemote); }
 
   public async gitStatus(handleId: string): Promise<GitSyncResult> {
     const generation = this.projectGeneration;
-    try { await this.watchDocument(handleId); const settings = await this.readGitStatus(handleId); return { ok: true, message: settings.message, settings }; }
+    try { await this.watchDocument(handleId); const settings = await this.readGitStatus(handleId, true); return { ok: true, message: settings.message, settings }; }
     catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Status konnte nicht gelesen werden.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
   }
 
@@ -572,7 +607,7 @@ export class PluginService {
       this.assertGeneration(generation);
       if (dirty.trim()) throw new Error('Git-Sync pausiert: Das Repository enthält weitere ungespeicherte Änderungen.');
       if (this.config.git.autoPull) await this.configuredGit(['pull', '--ff-only', this.config.git.remote], context.cwd, true); this.assertGeneration(generation); if (this.config.git.autoPush) await this.configuredGit(['push', this.config.git.remote], context.cwd, true); this.assertGeneration(generation);
-      await this.emitReload(handleId); const settings = await this.readGitStatus(handleId); return { ok: true, message: 'Git-Synchronisation abgeschlossen.', settings };
+      await this.emitReload(handleId); const settings = await this.readGitStatus(handleId, true); return { ok: true, message: 'Git-Synchronisation abgeschlossen.', settings };
     } catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Synchronisation fehlgeschlagen.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
   }
 

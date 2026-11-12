@@ -1,11 +1,78 @@
+import { execFile as execFileCallback } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { _electron as electron, expect, test, type ElectronApplication } from '@playwright/test';
 import { stopElectron } from './helpers/stop-electron';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const execFile = promisify(execFileCallback);
+
+test('Git status refreshes a stale remote-tracking branch without changing the worktree (#175)', async ({}, testInfo) => {
+  test.setTimeout(120_000);
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-product-')));
+  let app: ElectronApplication | undefined;
+  try {
+    for (const dir of ['dist', 'dist-electron', 'dist-mcp']) await cp(path.join(projectRoot, dir), path.join(root, dir), { recursive: true });
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'sketchdraw-git-status-test', version: '0.0.0', main: 'entry.cjs' }));
+    await writeFile(path.join(root, 'entry.cjs'), "const {app}=require('electron');const path=require('node:path');app.setPath('userData',path.join(__dirname,'profile'));app.setPath('sessionData',path.join(__dirname,'session'));require('./dist-electron/main.cjs');");
+    const project = path.join(root, 'project'); const remote = path.join(root, 'remote.git'); const updater = path.join(root, 'updater');
+    await mkdir(project);
+    const documentPath = path.join(project, 'status.sketchdraw.json');
+    const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(entry[0])));
+    app = await electron.launch({ args: [root], env: environment, chromiumSandbox: true });
+    const page = await app.firstWindow();
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+    await app.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, documentPath);
+    await page.getByTestId('workspace-menu-button').click();
+    await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
+    await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
+    await expect.poll(() => readFile(documentPath, 'utf8').then(() => true).catch(() => false)).toBe(true);
+
+    await execFile('git', ['init', '--bare', remote]);
+    await execFile('git', ['init', '-b', 'main'], { cwd: project });
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: project });
+    await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: project });
+    await execFile('git', ['add', path.basename(documentPath)], { cwd: project });
+    await execFile('git', ['commit', '-m', 'Initial diagram'], { cwd: project });
+    await execFile('git', ['remote', 'add', 'origin', remote], { cwd: project });
+    await execFile('git', ['push', '-u', 'origin', 'main'], { cwd: project });
+    await execFile('git', ['clone', '--branch', 'main', remote, updater]);
+    await execFile('git', ['config', 'user.email', 'remote@example.com'], { cwd: updater });
+    await execFile('git', ['config', 'user.name', 'Remote Test'], { cwd: updater });
+    await writeFile(path.join(updater, 'remote-change.txt'), 'remote-only commit\n');
+    await execFile('git', ['add', 'remote-change.txt'], { cwd: updater });
+    await execFile('git', ['commit', '-m', 'Remote change'], { cwd: updater });
+    await execFile('git', ['push', 'origin', 'main'], { cwd: updater });
+    expect((await execFile('git', ['rev-list', '--left-right', '--count', 'HEAD...origin/main'], { cwd: project })).stdout.trim()).toBe('0\t0');
+    const worktreeBefore = (await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout;
+
+    await dialog.getByRole('button', { name: /Git Versionierung/ }).click();
+    await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+    await dialog.getByLabel('Remote', { exact: true }).fill('origin');
+    await dialog.getByRole('checkbox', { name: /Automatisch committen/ }).uncheck();
+    await dialog.getByRole('checkbox', { name: /Automatisch abrufen/ }).uncheck();
+    await dialog.getByRole('checkbox', { name: /Automatisch pushen/ }).uncheck();
+    await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+    await expect(dialog).toContainText('Remote-Stand noch nicht aktualisiert');
+    await expect(dialog.locator('.status-grid')).toContainText('↑ 0 · ↓ 0');
+
+    await dialog.getByRole('button', { name: 'Status prüfen', exact: true }).click();
+    await expect(dialog).toContainText('Repository liegt hinter dem Remote.');
+    await expect(dialog.locator('.status-grid')).toContainText('↑ 0 · ↓ 1');
+    expect((await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout).toBe(worktreeBefore);
+    expect((await execFile('git', ['rev-list', '--left-right', '--count', 'HEAD...origin/main'], { cwd: project })).stdout.trim()).toBe('0\t1');
+    expect(errors).toEqual([]);
+    await testInfo.attach('git-remote-status-evidence', { body: JSON.stringify({ platform: process.platform, staleBefore: { ahead: 0, behind: 0 }, refreshedAfter: { ahead: 0, behind: 1 }, worktreeUnchanged: true }), contentType: 'application/json' });
+  } finally {
+    if (app) await stopElectron(app);
+    await rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 });
+  }
+});
 
 test('bundled plugins configure through the real desktop bridge and stay with the editor profile, not the document folder', async ({}, testInfo) => {
   test.setTimeout(120_000);

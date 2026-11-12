@@ -80,6 +80,88 @@ describe('PluginService', () => {
     service.dispose();
   });
 
+  it('refreshes a stale remote-tracking branch before calculating ahead and behind (#175)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-')); cleanup.push(root);
+    const remote = path.join(root, 'remote.git'); const project = path.join(root, 'project'); const updater = path.join(root, 'updater');
+    await mkdir(project);
+    await execFile('git', ['init', '--bare', remote]);
+    await execFile('git', ['init', '-b', 'main'], { cwd: project });
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: project });
+    await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: project });
+    const documentPath = path.join(project, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+    await execFile('git', ['add', 'board.sketchdraw.json'], { cwd: project });
+    await execFile('git', ['commit', '-m', 'Initial diagram'], { cwd: project });
+    await execFile('git', ['remote', 'add', 'origin', remote], { cwd: project });
+    await execFile('git', ['push', '-u', 'origin', 'main'], { cwd: project });
+
+    await execFile('git', ['clone', '--branch', 'main', remote, updater]);
+    await execFile('git', ['config', 'user.email', 'remote@example.com'], { cwd: updater });
+    await execFile('git', ['config', 'user.name', 'Remote Test'], { cwd: updater });
+    await writeFile(path.join(updater, 'remote-change.txt'), 'new remote commit\n');
+    await execFile('git', ['add', 'remote-change.txt'], { cwd: updater });
+    await execFile('git', ['commit', '-m', 'Remote change'], { cwd: updater });
+    await execFile('git', ['push', 'origin', 'main'], { cwd: updater });
+    expect((await execFile('git', ['rev-list', '--left-right', '--count', 'HEAD...origin/main'], { cwd: project })).stdout.trim()).toBe('0\t0');
+
+    const service = new PluginService({ persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn() });
+    await service.getSettings('project');
+    const configured = await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+    expect(configured.git).toMatchObject({ health: 'attention', ahead: 0, behind: 0 });
+    expect(configured.git.message).toContain('Remote-Stand noch nicht aktualisiert');
+    const beforeStatus = (await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout;
+
+    const result = await service.gitStatus('project');
+    expect(result).toMatchObject({ ok: true, settings: { health: 'ready', ahead: 0, behind: 1 }, message: 'Repository liegt hinter dem Remote.' });
+    expect((await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout).toBe(beforeStatus);
+    expect((await execFile('git', ['rev-list', '--left-right', '--count', 'HEAD...origin/main'], { cwd: project })).stdout.trim()).toBe('0\t1');
+    service.dispose();
+  });
+
+  it('reports a remote refresh failure instead of returning a misleading zero count (#175)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-error-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+    await execFile('git', ['init', '-b', 'main'], { cwd: dir });
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: dir });
+    await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: dir });
+    await execFile('git', ['add', 'board.sketchdraw.json'], { cwd: dir });
+    await execFile('git', ['commit', '-m', 'Initial diagram'], { cwd: dir });
+    await execFile('git', ['remote', 'add', 'origin', path.join(dir, 'unreachable.git')], { cwd: dir });
+    const service = new PluginService({ persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn() });
+    await service.getSettings('project');
+    await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+
+    const result = await service.gitStatus('project');
+    expect(result.ok).toBe(false);
+    expect(result.settings).toMatchObject({ health: 'error' });
+    expect(result.message).toContain('Remote „origin“ konnte nicht aktualisiert werden');
+    service.dispose();
+  });
+
+  it('reports an authenticated fetch failure without exposing or reusing a stale count (#175)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-auth-error-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+    const fetchEnvironment: Array<Readonly<Record<string, string | undefined>> | undefined> = [];
+    const runGit = async (args: string[], cwd: string, environment?: Readonly<Record<string, string | undefined>>) => {
+      if (args[0] === 'fetch') { fetchEnvironment.push(environment); throw new Error('authentication failed'); }
+      return execFile('git', args, { cwd });
+    };
+    const service = new PluginService({ persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit });
+    await service.getSettings('project');
+    await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: 'https://example.invalid/repo.git', authMode: 'token', username: 'alice', accessToken: 'secret' });
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: dir });
+    await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: dir });
+    await execFile('git', ['add', 'board.sketchdraw.json'], { cwd: dir });
+    await execFile('git', ['commit', '-m', 'Initial diagram'], { cwd: dir });
+
+    const result = await service.gitStatus('project');
+    expect(result).toMatchObject({ ok: false, settings: { health: 'error' } });
+    expect(result.message).toContain('Remote „origin“ konnte nicht aktualisiert werden: authentication failed');
+    expect(fetchEnvironment).toHaveLength(1);
+    expect(fetchEnvironment[0]).toMatchObject({ GIT_CONFIG_KEY_0: 'http.https://example.invalid/repo.git.extraHeader', GIT_CONFIG_KEY_1: 'http.followRedirects', GIT_CONFIG_VALUE_1: 'false' });
+    expect(result.message).not.toContain('secret');
+    service.dispose();
+  });
+
   it('keeps watching when a reload triggered by the file watcher fails (#163)', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-watch-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
