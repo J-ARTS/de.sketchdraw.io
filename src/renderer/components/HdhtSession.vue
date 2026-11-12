@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { useIntervalFn } from '@vueuse/core';
 import { t } from '@/renderer/i18n';
 import { WHITEBOARD_KEY } from '@/renderer/state/contract';
 import { RoomConnection } from '@/renderer/state/room-connection';
@@ -10,12 +9,11 @@ import { buildHdhtLink, createSessionId, HDHT_MAX_TTL_MS, isHdhtLink, normalizeP
 import { createHostKeys } from '@/collaboration/hdht/relay-channel';
 import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTransport } from '@/collaboration/hdht/session';
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
-import type { HelperStatus } from '@/collaboration/hdht/types';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
 import AppSelect from './AppSelect.vue';
 
-const props = defineProps<{ disabled?: boolean; inviteLink?: string | null }>();
-const emit = defineEmits<{ active: [value: boolean]; 'link-consumed': [] }>();
+const props = defineProps<{ inviteLink?: string | null }>();
+const emit = defineEmits<{ 'link-consumed': [] }>();
 const store = inject(WHITEBOARD_KEY)!;
 const bridge = getDesktopBridge();
 const role = ref<'editor' | 'viewer'>('viewer');
@@ -26,7 +24,7 @@ const stopping = ref(false);
 const nativePending = ref(false), relayShareAllowed = ref(false);
 const error = ref(''), note = ref('');
 const status = shallowRef<CollaborationTransportStatus | null>(null);
-const helper = shallowRef<HelperStatus | null>(null), helperError = ref('');
+const helperError = ref('');
 let host: HdhtHostTransport | undefined, room: RoomConnection | undefined, native: DirectLink | undefined;
 let binding: CrdtTransportBinding | undefined, offStatus = () => {};
 let generation = 0, disposed = false;
@@ -59,7 +57,7 @@ function fail(value: unknown): void {
     : /ABORTED/.test(code) ? ''
     : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
 }
-function setActive(value: boolean) { active.value = value; emit('active', value); }
+function setActive(value: boolean) { active.value = value; }
 function updateLink(): void {
   if (!host) return;
   shareLink.value = buildHdhtLink({ version: 1, sessionId: sessionId, hostKey: host.hostKey, directKey: host.directKey, relayUrl: host.relayUrl, documentId: ownerAuthority!.session.documentId, expiresAt: host.expiresAt });
@@ -85,12 +83,9 @@ function setHelper(enabled: boolean): Promise<void> {
     try {
       if (enabled) {
         helperError.value = '';
-        const value = await api.start();
-        if (!disposed && helperWanted) { helper.value = value; helperPolling.resume(); }
+        await api.start();
       } else {
-        helperPolling.pause();
         await api.stop();
-        if (!disposed && !helperWanted) helper.value = null;
       }
     } catch {
       if (enabled && !disposed && helperWanted) helperError.value = t('Der Relay-Helfer konnte nicht gestartet werden. Deine Session läuft ohne ihn weiter.');
@@ -100,7 +95,7 @@ function setHelper(enabled: boolean): Promise<void> {
 }
 
 async function start(): Promise<void> {
-  if (busy.value || active.value || props.disabled || store.getRoomGuest()) return;
+  if (busy.value || active.value || store.getRoomGuest()) return;
   const authority = store.getAuthority(), controller = store.getCrdtController();
   if (!authority || !controller) return;
   const epoch = ++generation; busy.value = true; error.value = ''; note.value = '';
@@ -147,7 +142,7 @@ async function start(): Promise<void> {
 }
 
 async function join(): Promise<void> {
-  if (busy.value || active.value || props.disabled) return;
+  if (busy.value || active.value) return;
   const epoch = ++generation; error.value = ''; note.value = '';
   try {
     const invitation = parseHdhtInvitation(linkText.value);
@@ -200,9 +195,6 @@ async function copy(value: string) {
   catch { note.value = t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'); }
 }
 
-const helperPolling = useIntervalFn(async () => {
-  try { const value = await bridge.helper?.status(); if (!disposed && helperWanted && value) helper.value = value; } catch { /* next poll retries */ }
-}, 3000, { immediate: false });
 const offAuthority = store.subscribeAuthority(next => {
   if (room?.isAdopting) return;
   if ((active.value || busy.value) && next !== ownerAuthority && (!room?.isAdopted || !store.getRoomGuest())) void stop(false);
@@ -211,20 +203,20 @@ watch(() => props.inviteLink, link => {
   if (!link || !isHdhtLink(link) || active.value) return;
   linkText.value = link; pinText.value = ''; emit('link-consumed');
 }, { immediate: true });
-onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); helperPolling.pause(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
+onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
 </script>
 
 <template>
   <section class="hdht-session" data-testid="hdht-session" :aria-label="t('Session mit Link und PIN')">
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
-      <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App findet Gegenstellen und freiwillige Relay-Helfer dezentral. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt.') }}</p>
-      <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy || disabled" @update:model-value="role = $event as 'viewer' | 'editor'" />
-      <button class="sd-btn sd-btn--primary full" data-testid="hdht-start" :disabled="busy || disabled || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</button>
+      <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
+      <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy" @update:model-value="role = $event as 'viewer' | 'editor'" />
+      <button class="sd-btn sd-btn--primary full" data-testid="hdht-start" :disabled="busy || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</button>
       <div class="separator">{{ t('oder beitreten') }}</div>
-      <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="linkText" class="sd-input" :aria-label="t('Link für PIN-Beitritt')" autocomplete="off" spellcheck="false" maxlength="8192" :disabled="busy || disabled" /></label>
-      <label class="sd-field-label">{{ t('PIN') }}<input v-model="pinText" class="sd-input pin" :aria-label="t('Sechsstellige PIN')" inputmode="numeric" autocomplete="off" maxlength="8" :disabled="busy || disabled" @keydown.enter.prevent="join" /></label>
-      <button class="sd-btn full" data-testid="hdht-join" :disabled="busy || disabled || !linkText.trim()" @click="join">{{ t('Mit PIN beitreten') }}</button>
+      <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="linkText" class="sd-input" :aria-label="t('Link für PIN-Beitritt')" autocomplete="off" spellcheck="false" maxlength="8192" :disabled="busy" /></label>
+      <label class="sd-field-label">{{ t('PIN') }}<input v-model="pinText" class="sd-input pin" :aria-label="t('Sechsstellige PIN')" inputmode="numeric" autocomplete="off" maxlength="8" :disabled="busy" @keydown.enter.prevent="join" /></label>
+      <button class="sd-btn full" data-testid="hdht-join" :disabled="busy || !linkText.trim()" @click="join">{{ t('Mit PIN beitreten') }}</button>
     </template>
     <template v-else>
       <h3>{{ hosting ? t('Session läuft') : joined ? t('Du bist in der Session') : t('Session beitreten') }}</h3>
@@ -246,22 +238,11 @@ onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); h
       <template v-else-if="joined"><p>{{ store.state.roomGuest?.role === 'editor' ? t('Gemeinsam bearbeiten') : t('Nur ansehen') }} · {{ routeText }}</p></template>
       <button class="sd-btn full" data-testid="hdht-stop" :disabled="stopping" @click="stop(joined)">{{ hosting ? t('Session beenden') : joined ? t('Sitzung verlassen und Kopie behalten') : t('Verbindungsaufbau abbrechen') }}</button>
     </template>
-    <details class="network" data-testid="hdht-network">
-      <summary>{{ t('Netzwerk und Relay-Hilfe') }}</summary>
-      <p>{{ t('Die Desktop-App verbindet eure Geräte direkt. Gelingt das nicht, leiten freiwillige Desktop-Geräte die verschlüsselten Daten weiter. Es gibt keinen festen Server; ist UDP in einem Netzwerk vollständig gesperrt, kommt keine Verbindung zustande.') }}</p>
-      <template v-if="bridge.helper">
-        <p>{{ t('Solange deine Session läuft, hilft dieses Gerät als Relay-Helfer auch anderen Sessions – mit begrenzter Bandbreite. Deren Inhalte und PINs bleiben verschlüsselt.') }}</p>
-        <p v-if="helper?.running" role="status" data-testid="hdht-helper-status">{{ t('Relay-Helfer aktiv · {sessions} Sessions · {connections} Verbindungen', { sessions: helper.sessions, connections: helper.connections }) }}</p>
-        <p v-if="helperError" role="alert" class="error">{{ helperError }}</p>
-      </template>
-      <p v-else>{{ t('Gemeinsame Sessions laufen in der Desktop-App. Öffne den Link dort.') }}</p>
-      <p v-if="hosting">{{ t('Erreichbare Relay-Helfer: {count}', { count: status?.helpers ?? 0 }) }}</p>
-      <p v-if="status?.route">{{ routeText }}</p>
-    </details>
+    <p v-if="helperError" role="alert" class="error" data-testid="hdht-helper-error">{{ helperError }}</p>
     <p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="note" role="status">{{ note }}</p>
   </section>
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.network{margin:12px 0;padding-top:12px;border-top:1px solid var(--border-subtle)}summary{font-size:12px;cursor:pointer;font-weight:600}.error{color:var(--status-error)!important}summary:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
 </style>

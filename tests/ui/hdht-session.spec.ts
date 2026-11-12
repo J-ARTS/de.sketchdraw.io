@@ -162,8 +162,6 @@ test('native startup may remain pending while the relay connects; the relay help
   // There is no switch: the helper belongs to the running session.
   await expect(page.getByTestId('hdht-helper')).toHaveCount(0);
   await expect(page.getByRole('checkbox', { name: 'Dieses Gerät als Relay-Helfer anbieten' })).toHaveCount(0);
-  await page.getByTestId('hdht-network').locator('summary').click();
-  await expect(page.getByTestId('hdht-helper-status')).toContainText('Relay-Helfer aktiv');
   const context = await browser.newContext(); const guest = await context.newPage();
   try {
     await guest.goto(webLink(invitation.link)); await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
@@ -171,12 +169,11 @@ test('native startup may remain pending while the relay connects; the relay help
     // Closing the sidebar keeps session and helper.
     await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
     expect(await helperState()).toEqual({ starts: 1, stops: 0, running: true });
-    await openPanel(page); await expect(page.getByTestId('hdht-helper-status')).toBeVisible();
+    await openPanel(page); await expect(page.getByTestId('hdht-link')).toBeVisible();
     // A document change ends the session and with it the helper.
     await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-new').click(); await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
     await expect(page.getByTestId('hdht-start')).toBeVisible();
     await expect.poll(helperState).toEqual({ starts: 1, stops: 1, running: false });
-    await expect(page.getByTestId('hdht-helper-status')).toHaveCount(0);
     await page.getByTestId('hdht-start').click(); await allowRelayLinkIfPending(page); await expect(page.getByTestId('hdht-link')).toBeVisible();
     await expect.poll(helperState).toEqual({ starts: 2, stops: 1, running: true });
     await page.getByTestId('hdht-stop').click();
@@ -194,8 +191,7 @@ test('a relay helper that cannot start is reported without ending the session', 
     } });
   });
   await hostSession(page);
-  await page.getByTestId('hdht-network').locator('summary').click();
-  await expect(page.getByTestId('hdht-network').getByRole('alert')).toContainText('Deine Session läuft ohne ihn weiter');
+  await expect(page.getByTestId('hdht-helper-error')).toContainText('Deine Session läuft ohne ihn weiter');
   await expect(page.getByTestId('hdht-link')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Session läuft' })).toBeVisible();
 });
@@ -206,8 +202,16 @@ test('the browser preview explains that sessions need the desktop app', async ({
   await panel.getByTestId('hdht-start').click();
   await expect(panel.getByRole('alert')).toContainText('Gemeinsame Sessions laufen in der Desktop-App');
   await expect(panel.getByTestId('hdht-start')).toBeEnabled();
-  await expect(page.getByTestId('legacy-session')).toHaveCount(0);
-  await expect(page.getByTestId('manual-connection')).toBeVisible();
+});
+
+test('the panel offers only the link-and-PIN session and discloses the relay help', async ({ page }) => {
+  await page.goto('/'); await openPanel(page);
+  const panel = page.getByTestId('collaboration-panel');
+  // No collapsible extras: network settings, the WebRTC alternative and manual pairing are gone (#162).
+  await expect(panel.locator('details')).toHaveCount(0);
+  for (const id of ['hdht-network', 'legacy-session', 'manual-connection', 'hdht-helper']) await expect(page.getByTestId(id)).toHaveCount(0);
+  await expect(panel.getByRole('button')).toHaveText(['', 'Session starten', 'Mit PIN beitreten']);
+  await expect(panel.getByTestId('hdht-session')).toContainText('leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter');
 });
 
 test('an app link forwarded by the desktop shell opens the panel with the link prefilled and no PIN', async ({ page }) => {

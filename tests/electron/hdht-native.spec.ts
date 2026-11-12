@@ -49,7 +49,6 @@ require('./dist-electron/main.cjs');`);
     const panel = owner.page.getByTestId('hdht-session');
     await panel.getByRole('combobox', { name: 'Zugriff für Eingeladene', exact: true }).click();
     await owner.page.getByRole('option', { name: 'Gemeinsam bearbeiten', exact: true }).click();
-    await panel.getByTestId('hdht-network').locator('summary').click();
     // The relay helper has no switch: it runs exactly while a session of this device runs (#162).
     const helperStatus = (page: Page) => page.evaluate(() => window.sketchdraw!.helper!.status());
     await expect(panel.getByTestId('hdht-helper')).toHaveCount(0);
@@ -58,7 +57,7 @@ require('./dist-electron/main.cjs');`);
     await expect(panel.getByTestId('hdht-link')).toBeVisible({ timeout: 20_000 });
     await expect(panel.getByTestId('hdht-link')).toHaveValue(/^sketchdraw:\/\/join#sketchdraw-hdht=[A-Za-z0-9_-]+$/);
     await expect.poll(() => helperStatus(owner.page), { timeout: 20_000 }).toMatchObject({ running: true, announced: true });
-    await expect(panel.getByTestId('hdht-helper-status')).toContainText('Relay-Helfer aktiv');
+    await expect(owner.page.getByTestId('collaboration-panel').locator('details')).toHaveCount(0);
     // The invitation can initially describe only helper discovery. Wait for the actual native listen result.
     await expect.poll(async () => {
       const link = await panel.getByTestId('hdht-link').inputValue();
