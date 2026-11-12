@@ -415,6 +415,22 @@ for (const width of [360, 960, 1280]) {
   }
 }
 
+for (const theme of ['light', 'dark'] as const) {
+  test(`plugin tiles stay white in the ${theme} theme and fall back to a letter while no official logo file is present`, async ({ page }) => {
+    await desktop(page, { theme });
+    await start(page);
+    const dialog = await openPlugins(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    const tiles = dialog.locator('.plugin-list-item .plugin-logo');
+    await expect(tiles).toHaveText(['G', 'J']);
+    for (const tile of await tiles.all()) {
+      expect(await tile.evaluate(element => { const style = getComputedStyle(element); return [style.backgroundColor, style.backgroundImage, style.color]; })).toEqual(['rgb(255, 255, 255)', 'none', 'rgb(31, 35, 48)']);
+    }
+    // The repository ships no vendor artwork (#165); a dropped-in file would replace the letter.
+    await expect(dialog.locator('.plugin-logo img')).toHaveCount(0);
+  });
+}
+
 test('browser shows the bundled plugins but explains why native configuration is unavailable', async ({ page }) => {
   await start(page);
   const dialog = await openPlugins(page);

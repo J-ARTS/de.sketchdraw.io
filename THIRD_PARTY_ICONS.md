@@ -48,3 +48,12 @@ The import keeps geometry and colors. It only removes what the strict parser rej
 ## Implementation
 
 The curated SVG strings are stored in `src/catalog/official-icons.ts`. `src/catalog/icon.ts` parses them into an allowlisted element tree and rejects scripts, event handlers, remote resources, external paint references, unsafe namespaces, and malformed geometry before any icon reaches the renderer or export path.
+
+## Plugin-Logos (Git, Jira)
+
+Das Repository enthält keine Logodateien für die Plugins. Die Kacheln in den Plugin-Einstellungen zeigen eine weiße Fläche mit Anfangsbuchstaben, bis der Projektinhaber die offiziellen, unveränderten Herstellerdateien unter `src/renderer/assets/plugin-logos/` ablegt (`git.svg`, `jira.svg`; siehe README dort, #165). Beim Ablegen hier Quelle, Lizenz bzw. Markenrichtlinie und Abrufdatum eintragen.
+
+| Plugin | Datei | Quelle | Bedingungen | Abgerufen |
+| --- | --- | --- | --- | --- |
+| Git | – | – | – | – |
+| Jira | – | – | – | – |
