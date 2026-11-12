@@ -1689,6 +1689,38 @@
         "codex-ticket-closure-004"
       ]
     },
+    "170": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-170-reference-diagrams"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "18": {
       "exclusiveRuns": {
         "costUsd": {
@@ -4844,6 +4876,30 @@
         "unknownRuns": 7
       }
     },
+    "OpenAI Codex + SketchDraw npm dev:electron": {
+      "costUsd": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "observedSeconds": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "runCount": 1,
+      "runIds": [
+        "codex-170-reference-diagrams"
+      ],
+      "tokens": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      }
+    },
     "antigravity": {
       "costUsd": {
         "knownRuns": 0,
@@ -5238,15 +5294,15 @@
       "knownRuns": 6,
       "knownSubtotal": 21.0832297,
       "total": null,
-      "unknownRuns": 236
+      "unknownRuns": 237
     },
     "observedSeconds": {
       "knownRuns": 100,
       "knownSubtotal": 50709.54326324896,
       "total": null,
-      "unknownRuns": 142
+      "unknownRuns": 143
     },
-    "runCount": 242,
+    "runCount": 243,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -5314,6 +5370,7 @@
       "codex-158-custom-dropdowns",
       "codex-159-theme-settings",
       "codex-160-plugin-marketplace",
+      "codex-170-reference-diagrams",
       "codex-annotation-056",
       "codex-annotation-list-markers-98",
       "codex-auto-agent-access-030",
@@ -5495,7 +5552,7 @@
       "knownRuns": 10,
       "knownSubtotal": 7037479,
       "total": null,
-      "unknownRuns": 232
+      "unknownRuns": 233
     }
   },
   "officialScoreClaimReady": false,
@@ -5505,9 +5562,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 124
+    "unknownIssues": 125
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:39:12.887643+00:00"
+  "updatedAt": "2026-11-12T20:17:00+01:00"
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-11T21:39:12.887643+00:00",
+  "updatedAt": "2026-11-12T20:17:00+01:00",
   "issues": [
     {
       "number": 1,
@@ -2245,6 +2245,27 @@
         "kind": "planning_estimate"
       },
       "dependencies": []
+    },
+    {
+      "number": 170,
+      "title": "Referenzdiagramme als editierbare SketchDraw-Dokumente nachbauen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/170",
+      "owner": "OpenAI Codex (architecture/testing; temporary UI artifact execution)",
+      "currentImplementer": "OpenAI Codex; native SketchDraw document and two validation screenshots completed locally in the user-started npm dev:electron instance",
+      "phase": "UI artifact / Native document validation",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "localIntegration": {
+        "branch": "main",
+        "commit": null,
+        "publication": "local artifacts pending user decision",
+        "remoteCi": "not applicable; no product-code change"
+      }
     }
   ],
   "runs": [
@@ -8922,6 +8943,40 @@
         "status": "completed",
         "result": "All 12 source/test hashes match; 29 expected staged files; no new findings."
       }
+    },
+    {
+      "id": "codex-170-reference-diagrams",
+      "tool": "OpenAI Codex + SketchDraw npm dev:electron",
+      "model": null,
+      "issues": [
+        170
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        {
+          "path": "referenzdiagramme.sketchdraw",
+          "summary": "Native schema-v2 document with two pages and 118 editable elements; SHA-256 a754b82eac27e177ce3f7fcffc1509e1911fd3b53165345e7296d94d535a6605"
+        },
+        {
+          "path": "referenzdiagramme-traefik.png",
+          "summary": "Native dev-app validation screenshot, PNG 3024x1890; SHA-256 7c9c443e4c8902eca8b5e86f4d170c5aa9fc0ef855e5faf1621580df2df6c81a"
+        },
+        {
+          "path": "referenzdiagramme-workflow.png",
+          "summary": "Native dev-app validation screenshot, PNG 3024x1890; SHA-256 1a905334fa4b8cc57504b580c19126d02ee0b19c0fef8d193bea9fc181cac329"
+        }
+      ],
+      "concerns": [
+        "Reference logos and the Traefik mascot are approximated with editable native shapes and text glyphs; no raster logo assets were embedded.",
+        "Artifacts are local and uncommitted; no repository publication or remote CI is claimed."
+      ],
+      "authorization": "User explicitly requested both reference diagrams in the already running npm-run SketchDraw instance, a saved file, and a screenshot.",
+      "measurementSource": "Duration, token and cost metrics were not measured. Validation evidence: SketchDraw status Saved, both pages opened in the npm dev:electron instance, native JSON counts 47 plus 71 elements, and two 3024x1890 screenshots."
     }
   ],
   "evidencePolicy": {
