@@ -63,3 +63,54 @@ test('a shared style draft replaces a mixed value and commits to both elements',
   await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
   await expect(size).toHaveAttribute('placeholder', 'Verschieden');
 });
+
+test('hints appear at the bottom right above the minimap, replace a repeated one and leave after three seconds (#166)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(300, 260); await page.mouse.down();
+  await page.mouse.move(420, 350); await page.mouse.up();
+  const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+  const notices = page.getByRole('region', { name: 'Meldungen' }).locator('.notice');
+  await page.keyboard.press(`${modifier}+C`);
+  await expect(notices).toHaveCount(1);
+  const shownAt = Date.now();
+  // The same message again replaces the visible one.
+  await page.keyboard.press(`${modifier}+C`);
+  await expect(notices).toHaveCount(1);
+  const notice = await notices.boundingBox();
+  const minimap = await page.getByTestId('minimap').boundingBox();
+  expect(notice).not.toBeNull(); expect(minimap).not.toBeNull();
+  // Right aligned with the minimap and directly above it.
+  expect(Math.abs((notice!.x + notice!.width) - (minimap!.x + minimap!.width))).toBeLessThanOrEqual(1);
+  expect(notice!.y + notice!.height).toBeLessThanOrEqual(minimap!.y);
+  expect(minimap!.y - (notice!.y + notice!.height)).toBeLessThanOrEqual(12);
+  expect(notice!.x).toBeGreaterThan(1280 / 2);
+  // Hovering holds the hint; leaving restarts the three seconds.
+  await notices.hover();
+  await page.waitForTimeout(3400);
+  await expect(notices).toHaveCount(1);
+  await page.mouse.move(200, 500);
+  await page.waitForTimeout(2000);
+  await expect(notices).toHaveCount(1);
+  await expect(notices).toHaveCount(0, { timeout: 2500 });
+  expect(Date.now() - shownAt).toBeGreaterThan(6000);
+});
+
+test('without a minimap hints rest above the bottom bar on the right', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 720 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(200, 260); await page.mouse.down();
+  await page.mouse.move(320, 350); await page.mouse.up();
+  await page.keyboard.press(`${process.platform === 'darwin' ? 'Meta' : 'Control'}+C`);
+  const notice = page.getByRole('region', { name: 'Meldungen' }).locator('.notice');
+  await expect(notice).toHaveCount(1);
+  await expect(page.getByTestId('minimap')).toBeHidden();
+  const box = await notice.boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(700 - 12 + 1);
+  expect(box!.x + box!.width).toBeGreaterThan(700 - 20);
+  // Above the bottom bar (inset + bar height + gap).
+  expect(box!.y + box!.height).toBeLessThanOrEqual(720 - 76 + 1);
+  await expect(notice).toHaveCount(0, { timeout: 4500 });
+});

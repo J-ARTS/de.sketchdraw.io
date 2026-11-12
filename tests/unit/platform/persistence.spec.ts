@@ -56,6 +56,17 @@ describe('DocumentPersistenceService (real temp directory persistence)', () => {
     );
   });
 
+  it('keeps the renderer suggestion <title>.sketchdraw.json instead of appending a second extension (#166)', () => {
+    expect(sanitizeSuggestedFileName('Unbenannt.sketchdraw.json', 'sketchdraw')).toBe('Unbenannt.sketchdraw.json');
+    expect(sanitizeSuggestedFileName('Unbenannt.sketchdraw.json')).toBe('Unbenannt.sketchdraw.json');
+    expect(sanitizeSuggestedFileName('Plan.SKETCHDRAW.JSON', 'sketchdraw')).toBe('Plan.sketchdraw.json');
+    expect(sanitizeSuggestedFileName('Plan.sketchdraw', 'sketchdraw')).toBe('Plan.sketchdraw');
+    expect(sanitizeSuggestedFileName(`${'a'.repeat(400)}.sketchdraw.json`, 'sketchdraw')).toMatch(/^a+\.sketchdraw\.json$/);
+    expect(sanitizeSuggestedFileName(`${'a'.repeat(400)}.sketchdraw.json`, 'sketchdraw').length).toBeLessThanOrEqual(255);
+    // Other formats never inherit the document suffix.
+    expect(sanitizeSuggestedFileName('Plan.sketchdraw.json', 'svg')).toBe('Plan.sketchdraw.json.svg');
+  });
+
   it('opens a valid document, issues an opaque handle and content hash, and saves updates atomically', async () => {
     const targetFile = path.join(tempDir, 'architecture.sketchdraw');
     const initialText = buildValidDocumentText('Initial Architecture', 10);

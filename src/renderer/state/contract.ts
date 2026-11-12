@@ -499,6 +499,10 @@ export interface WhiteboardStore {
   setCanvasBackground(value: string | null): void;
   setLanguage(language: LanguageCode): void;
   dismissNotice(id: number): void;
+  /** Pauses the automatic dismissal of a hint while it is hovered or focused. */
+  holdNotice(id: number): void;
+  /** Restarts the dismissal countdown of a hint; errors never leave on their own. */
+  releaseNotice(id: number): void;
   openDocumentationLink(url: string): Promise<void>;
   dispose(): void;
 }

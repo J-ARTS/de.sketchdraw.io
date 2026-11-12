@@ -75,6 +75,8 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const uid = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
+/** How long a hint stays on screen before it leaves on its own. */
+export const NOTICE_DURATION_MS = 3000;
 
 /** Owns presentation drafts. Canonical writes exclusively use the injected/shared session authority. */
 export function createWhiteboardStore(options: CreateStoreOptions = {}): WhiteboardStore {
@@ -343,9 +345,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     for (const key of Object.keys(edit.style) as Array<keyof ElementStyle>) if (!same(edit.style[key], edit.initialStyle[key])) changes[key] = edit.style[key];
     return changes as Partial<ElementStyle>;
   }
+  /** Hints leave on their own; errors stay until they are closed so they can be read and acted on (#166). */
+  const noticeTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  function holdNotice(id: number): void { const timer = noticeTimers.get(id); if (timer !== undefined) { clearTimeout(timer); noticeTimers.delete(id); } }
+  function dismissNotice(id: number): void { holdNotice(id); state.notices = state.notices.filter((entry) => entry.id !== id); }
+  function releaseNotice(id: number): void {
+    holdNotice(id);
+    if (!state.notices.some((entry) => entry.id === id && entry.kind === 'info')) return;
+    const timer = setTimeout(() => dismissNotice(id), NOTICE_DURATION_MS);
+    (timer as { unref?: () => void }).unref?.();
+    noticeTimers.set(id, timer);
+  }
   function notice(text: string, kind: 'info' | 'error' = 'info') {
     state.liveMessage = text;
-    state.notices = [...state.notices.slice(-3), { id: ++noticeId, kind, text }];
+    // A repeated message replaces the one still on screen (with a fresh id) instead of stacking.
+    const kept = state.notices.filter((entry) => entry.text !== text || entry.kind !== kind).slice(-3);
+    for (const entry of state.notices) if (!kept.includes(entry)) holdNotice(entry.id);
+    const id = ++noticeId;
+    state.notices = [...kept, { id, kind, text }];
+    releaseNotice(id);
   }
   function fail(error: unknown) { notice(error instanceof Error ? tm(error.message) : t('Die Aktion konnte nicht ausgeführt werden.'), 'error'); }
   function sync(snapshot: DocumentSession) {
@@ -1978,7 +1996,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (language === state.language || !LANGUAGES.some((entry) => entry.code === language && entry.available)) return;
       state.language = language; setLocale(language); persistPreferences(); void bridge.setLanguage?.(language)?.catch(() => undefined);
     },
-    dismissNotice(id) { state.notices = state.notices.filter((notice) => notice.id !== id); },
+    dismissNotice, holdNotice, releaseNotice,
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
     toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; } },
     setCodeDraft(text) { if (state.canWrite && !state.transitioning) { state.code.text = text; state.code.dirty = text !== formatDiagram(codeBase); state.code.diagnostics = []; changedDraft(); } },
@@ -2009,7 +2027,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     whenIdle() { return lastWrite; },
     needsCloseWarning() { return needsClosePrompt(state.file, state.revision, state.hasDraft) || pendingWrites > 0 || Boolean(unknownWrite) || guest?.getStatus().hasUnresolvedOutcome === true; },
-    dispose() { disposed = true; settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } releaseLocalCrdt(); },
+    dispose() { disposed = true; for (const timer of noticeTimers.values()) clearTimeout(timer); noticeTimers.clear(); settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } releaseLocalCrdt(); },
   };
   const unsubscribeClose = bridge.onCloseRequested((requestId) => { void requestTransition('close', requestId); });
   const unsubscribeMenu = bridge.onMenuCommand((command) => {

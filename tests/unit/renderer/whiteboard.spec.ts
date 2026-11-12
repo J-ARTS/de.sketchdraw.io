@@ -422,3 +422,51 @@ test('converted import starts unsaved at revision zero and cancellation preserve
   expect(store.state.saveStatusText).not.toBe('Neues Dokument');
   await store.save(); expect(bridge.saveDocument).toHaveBeenCalled(); expect(store.needsCloseWarning()).toBe(false);
 });
+
+describe('notices (#166)', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  test('lets hints leave after three seconds, keeps errors, and replaces a repeated message instead of stacking it', async () => {
+    vi.useFakeTimers();
+    const { store } = setup();
+    await store.save();
+    expect(store.state.notices.map((entry) => entry.text)).toEqual(['Gespeichert: test.sketchdraw.json']);
+    const first = store.state.notices[0]!.id;
+    await vi.advanceTimersByTimeAsync(2000);
+    await store.save();
+    // Same text: one notice, with a new id and a fresh countdown.
+    expect(store.state.notices).toHaveLength(1);
+    expect(store.state.notices[0]!.id).not.toBe(first);
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(store.state.notices).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(store.state.notices).toEqual([]);
+
+    store.startPresentation();
+    expect(store.state.notices).toMatchObject([{ kind: 'error' }]);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(store.state.notices).toMatchObject([{ kind: 'error' }]);
+    store.dismissNotice(store.state.notices[0]!.id);
+    expect(store.state.notices).toEqual([]);
+  });
+
+  test('pauses the countdown while a hint is held and restarts it on release', async () => {
+    vi.useFakeTimers();
+    const { store } = setup();
+    await store.save();
+    const id = store.state.notices[0]!.id;
+    await vi.advanceTimersByTimeAsync(2500);
+    store.holdNotice(id);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(store.state.notices).toHaveLength(1);
+    store.releaseNotice(id);
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(store.state.notices).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(store.state.notices).toEqual([]);
+    // Releasing an unknown or closed notice is harmless.
+    store.releaseNotice(id); store.holdNotice(9999);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(store.state.notices).toEqual([]);
+  });
+});

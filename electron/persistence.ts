@@ -120,11 +120,13 @@ export function redactFilesystemPaths(message: string): string {
   return message.replace(UNIX_OR_WIN_PATH_PATTERN, '[redacted-path]');
 }
 
+const SKETCHDRAW_JSON_EXTENSION = '.sketchdraw.json';
+
 export function sanitizeSuggestedFileName(
   suggestedName: string,
   format: ExportFormat = 'sketchdraw',
 ): string {
-  const requiredExt = format === 'mermaid' ? '.mmd' : `.${format}`;
+  let requiredExt = format === 'mermaid' ? '.mmd' : `.${format}`;
   const rawSegments = suggestedName
     .split(/[/\\]+/)
     .map((part) => part.trim())
@@ -138,6 +140,10 @@ export function sanitizeSuggestedFileName(
     .trim();
 
   let stem = cleaned.length > 0 ? cleaned : 'untitled';
+  // The renderer suggests `<title>.sketchdraw.json`; that name is complete and must not gain a second extension (#166).
+  if (format === 'sketchdraw' && stem.toLowerCase().endsWith(SKETCHDRAW_JSON_EXTENSION)) {
+    requiredExt = SKETCHDRAW_JSON_EXTENSION;
+  }
   if (stem.toLowerCase().endsWith(requiredExt)) {
     stem = stem.slice(0, stem.length - requiredExt.length);
   }
