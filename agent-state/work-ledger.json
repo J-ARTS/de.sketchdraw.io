@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:33:37Z",
+  "updatedAt": "2026-11-13T09:35:47Z",
   "issues": [
     {
       "number": 1,
@@ -2497,8 +2497,8 @@
       "title": "Jira-Aufgaben alle fünf Sekunden automatisch synchronisieren",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/184",
       "owner": "OpenAI Codex",
-      "phase": "Implementation 2026-11-13: locally verified, integration pending",
-      "status": "in_review",
+      "phase": "Implementation 2026-11-13: integrated and locally verified",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -8766,7 +8766,7 @@
         152,
         145
       ],
-      "status": "completed_local_pending_integration",
+      "status": "passed_and_integrated",
       "startedAt": "2026-11-11T19:01:09.498345+00:00",
       "endedAt": "2026-11-11T19:46:03.054904+00:00",
       "observedSeconds": 2693.557,
@@ -9774,11 +9774,12 @@
         "tests/unit/renderer/plugin-store.spec.ts",
         "tests/unit/plugin-service.spec.ts",
         "tests/ui/plugins.spec.ts",
+        "commit:55ee386",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/184"
       ],
       "concerns": [],
       "parentRunId": null,
-      "measurementSource": "Local Codex implementation with no timing, token or cost measurement. Verified by typecheck, 984 unit tests, 26 plugin UI tests and 2 focused Electron plugin tests; integration into main still pending at snapshot time."
+      "measurementSource": "Local Codex implementation with no timing, token or cost measurement. Verified on rebased main by typecheck and 985 unit tests; the feature revision also passed 26 plugin UI tests and 2 focused Electron plugin tests before integration. Commit 55ee386 is published on origin/main."
     }
   ],
   "evidencePolicy": {
