@@ -95,8 +95,40 @@
     "upstreamImplementation": "b524af87dd5887af4f28d55cc6fdbbe7a4ba4355 retained; independent follow-up in 2026-11-13-mcp-b524af8-codex.md"
   },
   "publication": {
-    "status": "pending",
-    "target": "main"
+    "status": "published",
+    "branch": "main",
+    "commit": "7014c7dddd5bdbedbd0c0a46b70fe73610e58496",
+    "ciRun": 43397816181,
+    "ciStatus": "completed",
+    "ciConclusion": "success",
+    "ciUrl": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181",
+    "jobs": [
+      {
+        "name": "Governance & Graphify Tests",
+        "conclusion": "success",
+        "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181/job/131792956461"
+      },
+      {
+        "name": "Direct P2P (Chromium + sandboxed Electron)",
+        "conclusion": "success",
+        "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181/job/131792956876"
+      },
+      {
+        "name": "Build & Verify (windows-2025)",
+        "conclusion": "success",
+        "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181/job/131793043405"
+      },
+      {
+        "name": "Build & Verify (macos-15)",
+        "conclusion": "success",
+        "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181/job/131793043423"
+      },
+      {
+        "name": "Build & Verify (ubuntu-24.04)",
+        "conclusion": "success",
+        "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181/job/131793043505"
+      }
+    ]
   },
   "remaining": {
     "162": "Installed app-link click on macOS/Windows/Linux not performed.",
@@ -110,13 +142,41 @@
     "elements": 119,
     "kinesisPage": "page:traefik",
     "file": "referenzdiagramme.sketchdraw",
-    "gitUiStatus": "pending after publication",
+    "gitUiStatus": "Repository is in sync; Changes 0; Remote ↑ 0 · ↓ 0",
     "screenshots": "Previous final screenshots do not visually prove successful sync and are excluded from publication.",
-    "description": "Test description repeated three times by UI-driving agent; no independently reproduced product duplication bug."
+    "description": "Test description repeated three times by UI-driving agent; no independently reproduced product duplication bug.",
+    "gitUiVerification": {
+      "method": "Root independently observed native CUA Accessibility UI in actual Electron app, profile Standard, repository de.sketchdraw.io, branch main",
+      "checkedAt": "2026-11-13T09:08:39.539283+00:00",
+      "sourceThread": "01a1d11e-e4c4-7571-8831-b97c2541e5e7",
+      "screenEvidence": "Accessibility observation is authoritative; previous screenshots rejected, no visual screenshot-success claim."
+    }
   },
   "limits": [
     "Local directory package is unsigned; no new release published.",
-    "Public v0.1.3 remains c45e892; independent public-asset audit in 2026-11-13-release-122-audit.json.",
-    "No final-source cross-platform CI result claimed until remote run completes."
-  ]
+    "Public v0.1.3 remains c45e892; independent public-asset audit in 2026-11-13-release-122-audit.json."
+  ],
+  "finalStatus": {
+    "confirmedAt": "2026-11-13T09:18:31.006262+00:00",
+    "originalTicketsReviewed": 19,
+    "originalTicketsClosed": 17,
+    "additionalFixedTicketsClosed": [
+      179,
+      180,
+      181,
+      182
+    ],
+    "remainingOriginalTickets": [
+      162,
+      72
+    ],
+    "additionalPlannedTicket": 183,
+    "outcomes": "2026-11-13-ticket-audit-outcomes.json"
+  },
+  "metadataFollowup": "Subsequent status/ledger/graph-projection commit contains no product-source changes. Full five-job CI binds 7014c7d; local JSON parsing, diff check and graphify-links --check validate the metadata-only follow-up.",
+  "subsequentLocalChange": {
+    "file": "referenzdiagramme.sketchdraw",
+    "scope": "Amazon Kinesis x/y position changed after confirmed live sync",
+    "handling": "Preserved locally; excluded from final audit-metadata commit. No author inferred and no fresh synchronization claimed after this edit."
+  }
 }

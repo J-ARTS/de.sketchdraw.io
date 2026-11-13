@@ -1175,7 +1175,8 @@
         "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "15": {
@@ -1263,7 +1264,8 @@
         "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "151": {
@@ -1301,7 +1303,8 @@
         "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "152": {
@@ -1338,7 +1341,8 @@
         "claude-code-2026-11-13-p2p-fable-final",
         "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-fallback-review-fixes",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "153": {
@@ -1375,7 +1379,8 @@
         "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
         "codex-153-interop-implementation",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "154": {
@@ -1412,7 +1417,8 @@
         "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
         "codex-153-interop-implementation",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "155": {
@@ -1449,7 +1455,8 @@
         "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
         "codex-153-interop-implementation",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "156": {
@@ -1486,7 +1493,8 @@
         "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
         "codex-153-interop-implementation",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "157": {
@@ -1523,7 +1531,8 @@
         "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
         "codex-153-interop-implementation",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "158": {
@@ -1699,7 +1708,8 @@
         "claude-code-2026-11-13-plugins-fable",
         "claude-code-2026-11-13-plugins-fable-final",
         "claude-code-2026-11-13-plugins-fable-followup",
-        "codex-2026-11-13-ticket-audit-plugins"
+        "codex-2026-11-13-ticket-audit-plugins",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "162": {
@@ -1734,7 +1744,8 @@
         "claude-code-2026-11-13-p2p-fable",
         "claude-code-2026-11-13-p2p-fable-final",
         "claude-code-2026-11-13-p2p-fable-followup",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "165": {
@@ -1769,7 +1780,8 @@
         "claude-code-2026-11-13-plugins-fable",
         "claude-code-2026-11-13-plugins-fable-final",
         "claude-code-2026-11-13-plugins-fable-followup",
-        "codex-2026-11-13-ticket-audit-plugins"
+        "codex-2026-11-13-ticket-audit-plugins",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "168": {
@@ -1804,7 +1816,8 @@
         "claude-code-2026-11-13-plugins-fable",
         "claude-code-2026-11-13-plugins-fable-final",
         "claude-code-2026-11-13-plugins-fable-followup",
-        "codex-2026-11-13-ticket-audit-plugins"
+        "codex-2026-11-13-ticket-audit-plugins",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "17": {
@@ -1943,23 +1956,24 @@
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
         "observedSeconds": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         },
-        "runCount": 1,
+        "runCount": 2,
         "runIds": [
+          "claude-code-cloud-2026-11-13-176-integration-validation",
           "codex-2026-11-13-mcp-upstream-review"
         ],
         "tokens": {
           "knownRuns": 0,
           "knownSubtotal": 0,
           "total": null,
-          "unknownRuns": 1
+          "unknownRuns": 2
         }
       },
       "planning": {
@@ -2077,7 +2091,8 @@
         "claude-code-2026-11-13-p2p-fable",
         "claude-code-2026-11-13-p2p-fable-final",
         "claude-code-2026-11-13-p2p-fable-followup",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "18": {
@@ -2146,7 +2161,8 @@
       "sharedUnallocatedRunIds": [
         "claude-code-2026-11-13-interop-fable",
         "claude-code-2026-11-13-interop-fable-followup",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "181": {
@@ -2181,7 +2197,8 @@
         "claude-code-2026-11-13-plugins-fable",
         "claude-code-2026-11-13-plugins-fable-final",
         "claude-code-2026-11-13-plugins-fable-followup",
-        "codex-2026-11-13-ticket-audit-plugins"
+        "codex-2026-11-13-ticket-audit-plugins",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "182": {
@@ -2216,7 +2233,8 @@
         "claude-code-2026-11-13-p2p-fable",
         "claude-code-2026-11-13-p2p-fable-final",
         "claude-code-2026-11-13-p2p-fable-followup",
-        "codex-2026-11-13-ticket-audit-p2p"
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "183": {
@@ -2250,7 +2268,8 @@
       "sharedUnallocatedRunIds": [
         "claude-code-2026-11-13-interop-fable",
         "claude-code-2026-11-13-interop-fable-followup",
-        "codex-2026-11-13-ticket-audit-interop"
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "19": {
@@ -4371,6 +4390,7 @@
         "claude-code-2026-11-13-p2p-fable-final",
         "claude-code-2026-11-13-p2p-fable-followup",
         "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-root",
         "codex-yjs-openpencil-architecture-70-72",
         "codex-yjs-trystero-implementation-71-72"
       ]
@@ -5381,6 +5401,30 @@
         "unknownRuns": 1
       }
     },
+    "Claude Code cloud": {
+      "costUsd": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "observedSeconds": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "runCount": 1,
+      "runIds": [
+        "claude-code-cloud-2026-11-13-176-integration-validation"
+      ],
+      "tokens": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      }
+    },
     "OpenAI Codex": {
       "costUsd": {
         "knownRuns": 0,
@@ -5882,15 +5926,15 @@
       "knownRuns": 17,
       "knownSubtotal": 56.3667389,
       "total": null,
-      "unknownRuns": 244
+      "unknownRuns": 245
     },
     "observedSeconds": {
       "knownRuns": 111,
       "knownSubtotal": 53867.057263248964,
       "total": null,
-      "unknownRuns": 150
+      "unknownRuns": 151
     },
-    "runCount": 261,
+    "runCount": 262,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -5944,6 +5988,7 @@
       "claude-code-2026-11-13-root-fable-final",
       "claude-code-2026-11-13-root-fable-followup-limited",
       "claude-code-annotation-review-056",
+      "claude-code-cloud-2026-11-13-176-integration-validation",
       "claude-code-connector-ui-review-047",
       "claude-code-element-actions-review-055",
       "claude-code-font-ui-attempt-043",
@@ -6158,7 +6203,7 @@
       "knownRuns": 21,
       "knownSubtotal": 14045982,
       "total": null,
-      "unknownRuns": 240
+      "unknownRuns": 241
     }
   },
   "officialScoreClaimReady": false,
@@ -6172,5 +6217,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:00:57.011551+00:00"
+  "updatedAt": "2026-11-13T09:18:31.006262+00:00"
 }

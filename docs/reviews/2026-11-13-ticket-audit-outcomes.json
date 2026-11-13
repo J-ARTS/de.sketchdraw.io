@@ -1,0 +1,370 @@
+{
+  "repository": "J-ARTS/de.sketchdraw.io",
+  "sourceCommit": "c2988e1",
+  "integrationCommit": "7014c7d",
+  "ciRun": 43397816181,
+  "ciConclusion": "success",
+  "issueOutcomes": [
+    {
+      "number": 178,
+      "title": "Live-Schreibtest für Jira-Aufgabe und Git-Diagrammsynchronisation",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/178",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "interface",
+        "devops",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:10:22Z",
+      "result": "Reales Jira-Testticket SCRUM-1 über SketchDraw erstellt und erneut synchronisiert; gespeicherte Referenzdatei enthält genau eine Jira-Aufgabe mit Remote-ID 10000, Status To Do und Jira-URL. Amazon Kinesis auf page:traefik, insgesamt 119 Elemente. Datei in main 7014c7d veröffentlicht. Nach Push zeigt die tatsächliche SketchDraw-UI Repository is in sync, Changes 0, Remote ↑0/↓0; von Root unabhängig über die native Accessibility-Oberfläche bestätigt."
+    },
+    {
+      "number": 177,
+      "title": "AWS-Komponente erzeugt fehlende Seitenreferenz und leeren Verlauf",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/177",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "ui",
+        "logic",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:16:33Z",
+      "result": "Katalog-Fallback verwendet die erste tatsächlich vorhandene Seite; Renderer übergibt die aktive Seite vor Validierung. Regression für nicht-erste Seite, benutzerdefinierte Seiten-IDs und Undo bestanden. Live-Datei enthält Amazon Kinesis auf page:traefik; Verlaufseintrag und Speichern im koordinierten Live-Test bestätigt."
+    },
+    {
+      "number": 176,
+      "title": "MCP und Skill: Befunde aus dem Praxistest und Verbesserungen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/176",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "enhancement",
+        "interface"
+      ],
+      "closedAt": "2026-11-13T09:14:39Z",
+      "result": "Alle Befunde 1–8 in docs/concerns.md entschieden. Selbstbeschreibende Tools, Textantworten, verpflichtende documentId für Schreiben, begrenzte Requestqueue, sichere parallele Neuverbindung, aktuelle Batch-Geometrie, menschenbedienbares Undo/Redo und gemeinsame Code-Connector-Ergänzung geprüft. Explizit ungültige Connectorfelder werden abgewiesen. Skill liegt bytegleich im tatsächlich gebauten macOS-App-Paket (SHA-256 5b2335a2ca95319d0a433ad7b3e79be6c8308637204977d8611001a2a1ed0cf9)."
+    },
+    {
+      "number": 168,
+      "title": "Plugin-Konfiguration als Editor-Profile: umschalten, anlegen, kopieren, umbenennen, löschen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/168",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "enhancement",
+        "ui",
+        "logic",
+        "interface"
+      ],
+      "closedAt": "2026-11-13T09:16:27Z",
+      "result": "Editorweite Profile einschließlich Umschalten, Anlegen, Kopieren, Umbenennen und Löschen sowie getrennte Git-/Jira-Einstellungen erneut abgenommen. Profil-/Dokumentwechsel-Race im Renderer behoben; Konfigurationsschutz #161 und Mehrinstanzkonflikte #181 integriert."
+    },
+    {
+      "number": 165,
+      "title": "Plugin-Kacheln: weißer Hintergrund und Platz für offizielle Git-/Jira-Logodateien",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/165",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "enhancement",
+        "ui"
+      ],
+      "closedAt": "2026-11-13T08:46:01Z",
+      "result": "Integrated tile styling/logos verified; logo evidence explicitly attested by user."
+    },
+    {
+      "number": 162,
+      "title": "Session-Link als sketchdraw://-App-Link, Relay-Helfer automatisch, Gateway- und WebRTC-Oberfläche entfernen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/162",
+      "state": "open",
+      "stateReason": null,
+      "labels": [
+        "enhancement",
+        "ui",
+        "logic",
+        "status: review"
+      ],
+      "closedAt": null,
+      "result": "Installed app-link click evidence on all three target platforms remains missing."
+    },
+    {
+      "number": 161,
+      "title": "Unbekannte oder beschädigte Plugin-Konfiguration vor Überschreiben schützen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/161",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "ui",
+        "logic"
+      ],
+      "closedAt": "2026-11-13T09:16:23Z",
+      "result": "Fehlende, nicht lesbare, beschädigte und unbekannte Plugin-Konfigurationen werden getrennt behandelt. Ungültige Originaldateien bleiben erhalten, Mutationen blockieren vor Nebenwirkungen und bestehende Dialoge zeigen einen Wiederherstellungsweg; gültige v2-Migration und verschlüsselte Zugangsdaten erhalten."
+    },
+    {
+      "number": 157,
+      "title": "draw.io: Fehlende Schriftfarbe darf nicht die Rahmenfarbe übernehmen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/157",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:53Z",
+      "result": "Fehlende Schriftfarbe bleibt unabhängig von der Rahmenfarbe mit dokumentierter Standardtinte; explizite Farben und native Rundläufe bleiben erhalten."
+    },
+    {
+      "number": 156,
+      "title": "draw.io: Tabellenimport verwechselt Schrift- und Konturfarbe",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/156",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:49Z",
+      "result": "Importierte Tabellen verwenden Zellschriftfarbe statt Konturfarbe; CSS-Farben werden in gültige sechsstellige Hexwerte normalisiert und Alpha-Verluste diagnostiziert."
+    },
+    {
+      "number": 155,
+      "title": "draw.io: Tabellenbudget wird erst nach der Zellallokation geprüft",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/155",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:44Z",
+      "result": "Zeilen-/Spalten-/Zellprodukt- und Textbudget vor Tabellenallokation geprüft. Zusätzlich sparse/padded Textvergrößerung vor Factory abgesichert; ungültige große Importe ändern kein Dokument."
+    },
+    {
+      "number": 154,
+      "title": "draw.io: Eigene Metadaten gehen beim Import einer späteren Seite verloren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/154",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:40Z",
+      "result": "Gesamte native draw.io-Projektion wird vor Seitenauswahl verifiziert; spätere Seiten behalten eigene Metadaten, fremde Änderungen verwerfen den alten Umschlag. Neue v2-Projektion und strikt geprüfte historische v1-Fixture erhalten."
+    },
+    {
+      "number": 153,
+      "title": "SVG, Mermaid und draw.io: Import/Export ergänzen und erneut abnehmen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/153",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "enhancement",
+        "ui",
+        "architecture",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:35Z",
+      "result": "SVG, Mermaid-Flowchart und draw.io einschließlich Datei-/Textpfad, Rundlauf, Metadaten, Verlustdiagnosen, Gastschutz und atomarer Fehlerbehandlung erneut abgenommen. Bestätigte Tabellenfarb-/Budgetfehler und #180 korrigiert; tatsächliches Fable-Sparring mit Gegenprüfung dokumentiert."
+    },
+    {
+      "number": 152,
+      "title": "Dezentrale Relay-Suche: Backoff und tatsächliche Erreichbarkeit prüfen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/152",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "architecture",
+        "logic",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:29Z",
+      "result": "Exponentieller Backoff mit Jitter, Mindestabstand auch nach Wake-Ereignissen, begrenzter Fehlercache und Neustart korrigiert. Authentisierte Helferregistrierung, externes Adresssignal und bestätigte Weiterleitung getrennt. Lokal bestätigte Auth-/Heartbeat-Timeouts führen zu begrenztem Helferwechsel; keine zusätzliche irreführende Selbstprobe."
+    },
+    {
+      "number": 151,
+      "title": "Große gültige Dokumente scheitern still am CRDT-Vollabgleichlimit",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/151",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "architecture",
+        "logic",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:15:25Z",
+      "result": "Begrenzter exakter Snapshottransfer für große gültige Dokumente und Bilder sowie anschließende Deltas erneut bestätigt. Peerbezogene Fehler/Timeouts durch #179 isoliert; gleichzeitige bereits verifizierende Snapshots zählen weiter zum globalen Speicherbudget."
+    },
+    {
+      "number": 150,
+      "title": "P2P-Gastrolle im lokalen Store und MCP-Zugriff durchsetzen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/150",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "ui",
+        "testing",
+        "iam"
+      ],
+      "closedAt": "2026-11-13T09:15:11Z",
+      "result": "Viewer-Schreibschutz in Store/Canvas/Code/Import/Undo und fehlende lokale MCP-Autorität für Gastdokumente erneut bestätigt. Editor-, Disconnect- und lokale Kopie-/Dokumentwechselpfade abgenommen."
+    },
+    {
+      "number": 149,
+      "title": "HyperDHT und verschlüsselter Relay-Fallback für URL-/PIN-Beitritt",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/149",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "enhancement",
+        "ui",
+        "architecture",
+        "logic",
+        "interface",
+        "devops",
+        "testing",
+        "iam"
+      ],
+      "closedAt": "2026-11-13T09:14:59Z",
+      "result": "Native HyperDHT-Verbindung und verschlüsselter dezentraler Relay-Fallback einschließlich Rollen, PIN, Failover und großer Dokumente erneut abgenommen. Folgefehler #152/#179/#182 behoben; aktuelle Nutzerentscheidung #162 zu automatischen Helfern und entfernter Gateway-/WebRTC-Oberfläche berücksichtigt."
+    },
+    {
+      "number": 145,
+      "title": "Graphify verweigert Aktualisierung bei reduzierter Knotenzahl",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/145",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "architecture",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:05:47Z",
+      "result": "Historische Differenz 5201→5174 exakt reproduziert und in 272 eigene Ledger-Knoten, 79 fehlende AST-IDs und 324 neue AST-IDs aufgelöst. Sicherer Update-Wrapper trennt ausschließlich eigene Ledgerprojektionen, isoliert Upstream-Schreibpfade, prüft alle bisherigen Nicht-Ledger-IDs und Eingaberennen. Finaler realer Update: 4177 Quellknoten, kein Nicht-Ledger-Verlust, kein Force; Links und --check bestanden."
+    },
+    {
+      "number": 122,
+      "title": "Release v0.1.3 bauen, prüfen und veröffentlichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/122",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "documentation",
+        "enhancement",
+        "devops",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:03:27Z",
+      "result": "Release v0.1.3 ist bereits veröffentlicht, exakt auf c45e892a192e7cc2ae9c86c5096cad9f219ac315. #126 und #127 sind enthalten. Alle drei öffentlichen Installer unabhängig heruntergeladen und mit Release-Manifesten/Smoke-Nachweisen auf Format, Architektur, Größe und SHA-256 geprüft; macOS-DMG zusätzlich readonly eingehängt und arm64 geprüft, Linux-Paketmetadaten/ELF geprüft. Kein Tag verschoben und kein neues Release erzeugt."
+    },
+    {
+      "number": 72,
+      "title": "Trystero-Transportadapter und proxyfreundlicher Automatic-P2P-Modus",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/72",
+      "state": "open",
+      "stateReason": null,
+      "labels": [
+        "enhancement",
+        "architecture",
+        "logic",
+        "interface",
+        "devops",
+        "testing",
+        "iam",
+        "status: blocked"
+      ],
+      "closedAt": null,
+      "result": "Real external network/load matrix unavailable."
+    },
+    {
+      "number": 179,
+      "title": "P2P: Fehler eines einzelnen Peers kann die gesamte Host-Sitzung abbrechen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/179",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "testing",
+        "iam"
+      ],
+      "closedAt": "2026-11-13T09:16:37Z",
+      "result": "Hostweiter Abbruch durch vier Byte kurzen fehlerhaften SCY1-Frame unabhängig reproduziert und behoben. Fehler an authentisierte Peer-Generation gebunden, Sendewarteschlangen pro Peer, begrenzte Sync-Anfragen; temporär belegtes Empfangsbudget führt zu SYNC_BUSY mit Wiederbeitritt. Echter verschlüsselter Zweigasttest bestätigt Weiterbetrieb gesunder Peers."
+    },
+    {
+      "number": 180,
+      "title": "draw.io: Portabler Tabellenexport verwendet Rahmenfarbe als Schriftfarbe",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/180",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "interface",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:16:43Z",
+      "result": "Portable draw.io-Tabellenprojektion verwendet Zellschrift-/Füllfarbe; Mischfarbenverluste korrekt diagnostiziert. V2-Umschlag schützt neue Projektion; historische v1-Exporte werden ausdrücklich gegen ihre alte Projektion verifiziert, ohne unsicheren allgemeinen Fallback."
+    },
+    {
+      "number": 181,
+      "title": "Plugin-Profile: Parallele App-Instanzen können Änderungen gegenseitig überschreiben",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/181",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "logic",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:16:48Z",
+      "result": "Veralteter Profilsnapshot unabhängig reproduziert. Optimistischer Dateihashvergleich vor Nebenwirkungen und vor atomarem Rename bewahrt zwischenzeitliche Änderungen; eindeutiger Neuladehinweis. Bestehende Zugangsdaten, normale Serialisierung und echter Rename-Fehler geprüft."
+    },
+    {
+      "number": 182,
+      "title": "Relay-Gesamtbudget trennt eine unbeteiligte Hostsession",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/182",
+      "state": "closed",
+      "stateReason": "completed",
+      "labels": [
+        "bug",
+        "architecture",
+        "logic",
+        "testing"
+      ],
+      "closedAt": "2026-11-13T09:16:52Z",
+      "result": "Fremde Sessiontrennung durch 373 nicht routbare Frames unabhängig reproduziert. Globales Nutzdatenbudget erst nach Zielprüfung; Kontrollverkehr unabhängig, begrenzte faire Senderwarteschlangen, Verursacher statt zufälligem Folgesender begrenzen. Zählerfehler beim Queue-Shedding zusätzlich rot reproduziert und korrigiert."
+    },
+    {
+      "number": 183,
+      "title": "Graphify extrahiert bestehende Vue-SFC-Symbole nicht zuverlässig",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/183",
+      "state": "open",
+      "stateReason": null,
+      "labels": [
+        "bug",
+        "architecture",
+        "testing"
+      ],
+      "closedAt": null,
+      "result": "Separate confirmed Vue SFC extraction defect; planned outside original 19-ticket scope."
+    }
+  ]
+}

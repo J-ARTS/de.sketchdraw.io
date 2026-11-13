@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:00:57.011551+00:00",
+  "updatedAt": "2026-11-13T09:18:31.006262+00:00",
   "issues": [
     {
       "number": 1,
@@ -1157,7 +1157,7 @@
       "title": "Trystero-Transportadapter und proxyfreundlicher Automatic-P2P-Modus",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/72",
       "owner": "Google Antigravity (logic/interface/IAM/devops), OpenAI Codex (architecture/testing), Claude Code (future UI)",
-      "phase": "Automatic P2P implemented; real proxy, TURN and load validation blocked by external environments",
+      "phase": "Ticket audit 2026-11-13: real network/load matrix blocked",
       "status": "blocked",
       "estimatedEffort": {
         "unit": "story_points",
@@ -1860,8 +1860,8 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/122",
       "owner": "Google Antigravity (devops), OpenAI Codex (testing/scrum)",
       "currentImplementer": "OpenAI Codex (temporary)",
-      "phase": "Release",
-      "status": "in_progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -1994,8 +1994,8 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/145",
       "owner": "OpenAI Codex (architecture/testing)",
       "currentImplementer": "OpenAI Codex",
-      "phase": "Architecture / Testing",
-      "status": "planned",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2025,9 +2025,9 @@
       "title": "HyperDHT und verschlüsselter Relay-Fallback für URL-/PIN-Beitritt",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/149",
       "owner": "Google Antigravity (logic/interface/iam/devops), Claude Code (ui), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Collaboration / IAM / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2040,9 +2040,9 @@
       "title": "P2P-Gastrolle im lokalen Store und MCP-Zugriff durchsetzen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/150",
       "owner": "Claude Code (ui), Google Antigravity (iam), OpenAI Codex (architecture/testing)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Collaboration / IAM / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2055,9 +2055,9 @@
       "title": "Große gültige Dokumente scheitern still am CRDT-Vollabgleichlimit",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/151",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Collaboration / Images / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2072,8 +2072,8 @@
       "title": "Dezentrale Relay-Suche: Backoff und tatsächliche Erreichbarkeit prüfen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/152",
       "owner": "OpenAI Codex (architecture/testing), Google Antigravity (logic/interface)",
-      "phase": "Collaboration / Resilience",
-      "status": "planned",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2088,9 +2088,9 @@
       "title": "SVG, Mermaid und draw.io: Import/Export ergänzen und erneut abnehmen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/153",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Interoperability / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2105,9 +2105,9 @@
       "title": "draw.io: Eigene Metadaten gehen beim Import einer späteren Seite verloren",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/154",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Interoperability / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2122,9 +2122,9 @@
       "title": "draw.io: Tabellenbudget wird erst nach der Zellallokation geprüft",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/155",
       "owner": "OpenAI Codex (architecture/testing), Claude Code (ui), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Interoperability / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2139,9 +2139,9 @@
       "title": "draw.io: Tabellenimport verwechselt Schrift- und Konturfarbe",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/156",
       "owner": "OpenAI Codex (architecture/testing), Google Antigravity (logic/interface)",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Interoperability / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2156,9 +2156,9 @@
       "title": "draw.io: Fehlende Schriftfarbe darf nicht die Rahmenfarbe übernehmen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/157",
       "owner": "OpenAI Codex architecture/testing; Google Antigravity logic/interface",
-      "currentImplementer": "OpenAI Codex; integrated in main; final CI pending after locally verified P2P test selector correction",
-      "phase": "Interoperability / Testing",
-      "status": "review",
+      "currentImplementer": "OpenAI Codex; integrated in main, five-job CI 43397816181 passed; final audit completed",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2237,8 +2237,8 @@
       "title": "Unbekannte oder beschädigte Plugin-Konfiguration vor Überschreiben schützen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/161",
       "owner": "Antigravity (logic), Claude Code (ui), OpenAI Codex (testing)",
-      "phase": "Project configuration follow-up",
-      "status": "planned",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2321,8 +2321,8 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/177",
       "owner": "OpenAI Codex (reproduction/testing/diagnosis), Claude Code (UI fix responsibility)",
       "currentImplementer": "OpenAI Codex completed reproduction and diagnosis; implementation pending",
-      "phase": "Component library / Multi-page logic / Testing",
-      "status": "in_progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2343,8 +2343,8 @@
       "title": "Live-Schreibtest für Jira-Aufgabe und Git-Diagrammsynchronisation",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/178",
       "owner": "OpenAI Codex (audit coordination)",
-      "phase": "validation",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "dependencies": [],
       "estimatedEffort": {
         "kind": "planning_estimate",
@@ -2357,8 +2357,8 @@
       "title": "MCP und Skill: Befunde aus dem Praxistest und Verbesserungen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/176",
       "owner": "OpenAI Codex (audit coordination)",
-      "phase": "validation",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "dependencies": [],
       "estimatedEffort": {
         "kind": "planning_estimate",
@@ -2371,8 +2371,8 @@
       "title": "Plugin-Konfiguration als Editor-Profile: umschalten, anlegen, kopieren, umbenennen, löschen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/168",
       "owner": "OpenAI Codex (audit coordination)",
-      "phase": "validation",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "dependencies": [],
       "estimatedEffort": {
         "kind": "planning_estimate",
@@ -2385,7 +2385,7 @@
       "title": "Plugin-Kacheln: weißer Hintergrund und Platz für offizielle Git-/Jira-Logodateien",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/165",
       "owner": "OpenAI Codex (audit coordination)",
-      "phase": "validation",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
       "status": "completed",
       "dependencies": [],
       "estimatedEffort": {
@@ -2399,8 +2399,8 @@
       "title": "Session-Link als sketchdraw://-App-Link, Relay-Helfer automatisch, Gateway- und WebRTC-Oberfläche entfernen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/162",
       "owner": "OpenAI Codex (audit coordination)",
-      "phase": "validation",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: installed app-link evidence pending",
+      "status": "review",
       "dependencies": [],
       "estimatedEffort": {
         "kind": "planning_estimate",
@@ -2413,8 +2413,8 @@
       "title": "P2P: Fehler eines einzelnen Peers kann die gesamte Host-Sitzung abbrechen",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/179",
       "owner": "Codex",
-      "phase": "Ticket audit 2026-11-13",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2430,8 +2430,8 @@
       "title": "draw.io: Portabler Tabellenexport verwendet Rahmenfarbe als Schriftfarbe",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/180",
       "owner": "Codex",
-      "phase": "Ticket audit 2026-11-13",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2447,8 +2447,8 @@
       "title": "Plugin-Profile: Parallele App-Instanzen können Änderungen gegenseitig überschreiben",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/181",
       "owner": "Codex",
-      "phase": "Ticket audit 2026-11-13",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2464,8 +2464,8 @@
       "title": "Relay-Gesamtbudget trennt eine unbeteiligte Hostsession",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/182",
       "owner": "Codex",
-      "phase": "Ticket audit 2026-11-13",
-      "status": "in-progress",
+      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "status": "completed",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -2481,7 +2481,7 @@
       "title": "Graphify extrahiert bestehende Vue-SFC-Symbole nicht zuverlässig",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/183",
       "owner": "Codex",
-      "phase": "Ticket audit 2026-11-13",
+      "phase": "Ticket audit 2026-11-13: separate Vue extractor follow-up",
       "status": "planned",
       "estimatedEffort": {
         "unit": "story_points",
@@ -9260,27 +9260,48 @@
       "tool": "OpenAI Codex",
       "model": null,
       "issues": [
+        72,
         122,
         145,
+        149,
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        161,
+        162,
+        165,
+        168,
         176,
         177,
-        178
+        178,
+        179,
+        180,
+        181,
+        182,
+        183
       ],
-      "status": "in-progress",
+      "status": "completed",
       "startedAt": "2026-11-13T08:15:40.934090+00:00",
-      "endedAt": null,
+      "endedAt": "2026-11-13T09:18:31.006262+00:00",
       "observedSeconds": null,
       "tokens": null,
       "costUsd": null,
       "artifacts": [
         "agent-state/tasks/2026-11-13-ticket-audit.md",
         "docs/reviews/2026-11-13-ticket-audit-validation.json",
-        "docs/reviews/2026-11-13-mcp-b524af8-codex.md"
+        "docs/reviews/2026-11-13-mcp-b524af8-codex.md",
+        "docs/reviews/2026-11-13-ticket-audit-outcomes.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43397816181"
       ],
       "concerns": [],
       "parentRunId": null,
       "scope": "root",
-      "nextStep": "Validate criteria, reproduce and fix defects, obtain actual Fable review; root coordinates integration and GitHub closure."
+      "nextStep": "No remaining implementation in accepted audit scope. #162 requires installed app-link click evidence on three OSes; #72 requires external network/load environments; #183 is a separately planned Vue extractor defect."
     },
     {
       "id": "codex-2026-11-13-ticket-audit-interop",
@@ -9694,6 +9715,26 @@
       ],
       "parentRunId": "codex-2026-11-13-ticket-audit-root",
       "measurementSource": "Independent Codex review of actual upstream Fable implementation b524af8; no timing/token/cost measurement. Source changes included in c2988e1."
+    },
+    {
+      "id": "claude-code-cloud-2026-11-13-176-integration-validation",
+      "tool": "Claude Code cloud",
+      "model": "claude-fable-5-2",
+      "issues": [
+        176
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/176#issuecomment-6848917186"
+      ],
+      "concerns": [],
+      "parentRunId": null,
+      "measurementSource": "Independent cloud validation reported in GitHub: typecheck, 978 units, 69 lifecycle tests, 3 focused Electron tests on 7014c7d; no run metrics available. This is separate from local read-only sparring runs."
     }
   ],
   "evidencePolicy": {
