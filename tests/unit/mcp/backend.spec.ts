@@ -135,6 +135,65 @@ describe('Real local agent host and renderer authority', () => {
     await expect(connectAgent({ ...f.grant.env, SKETCHDRAW_MCP_ENDPOINT: `tcp:127.0.0.1:${address.port}` })).rejects.toMatchObject({ code: 'ACCESS_DENIED' });
     expect(received).not.toContain(f.grant.capability);
   });
+  it('completes lean agent commands, routes bound connectors and explains rejections field by field (#176)', async () => {
+    const f = await fixture();
+    const send = (commandId: string, expectedRevision: number, command: unknown) => f.client.request('sketchdraw_apply_commands', { documentId: 'doc:mcp', expectedRevision, commandId, command } as never);
+    expect(await send('lean', 0, { type: 'add', elements: [
+      { id: 'box:api', kind: 'rectangle', x: 100, y: 100, width: 160, height: 80, text: 'API' },
+      { id: 'box:db', kind: 'rectangle', x: 420, y: 100, width: 160, height: 80, text: 'DB' },
+      { id: 'link:api-db', kind: 'connector', from: { elementId: 'box:api' }, to: { elementId: 'box:db' } },
+    ] })).toMatchObject({ revision: 1, changed: true, elementCount: 3 });
+    const elements = f.controller.getSnapshot().document.elements;
+    expect(elements[0]).toMatchObject({ id: 'box:api', pageId: 'page:1', rotation: 0, style: { textAlign: 'center' } });
+    expect(elements[2]).toMatchObject({ kind: 'connector', x: 260, y: 140, width: 160, height: 0, from: { elementId: 'box:api', anchor: { x: 1, y: 0.5 } }, to: { elementId: 'box:db', anchor: { x: 0, y: 0.5 } }, connectorRouting: 'elbowed' });
+    // The connector is a bound one: it follows the element it is attached to.
+    expect(await send('move', 1, { type: 'update', changes: [{ id: 'box:db', patch: { y: 300 } }] })).toMatchObject({ revision: 2 });
+    expect(f.controller.getSnapshot().document.elements[2]!.points!.at(-1)).toEqual({ x: 160, y: 200 });
+
+    // Search results say what a connector joins, and the analysis does not flag arrows for having no caption.
+    expect(await f.client.request('sketchdraw_find_elements', { documentId: 'doc:mcp', query: 'link:api-db' })).toMatchObject({ matches: [{ id: 'link:api-db', fromElementId: 'box:api', toElementId: 'box:db' }] });
+    expect(await f.client.request('sketchdraw_analyze_document', { documentId: 'doc:mcp' })).toMatchObject({ pages: [{ id: 'page:1', name: expect.any(String), elementCount: 3 }], summary: { boundConnectorCount: 1 }, findings: [] });
+    // Completion problems are reported before anything is submitted; the revision does not move.
+    await expect(send('no-id', 2, { type: 'add', elements: [{ kind: 'rectangle', x: 0, y: 0 }] })).rejects.toMatchObject({ code: 'VALIDATION_FAILED', message: expect.stringContaining('elements[0].id'), issues: [{ path: 'elements[0].id', code: 'MISSING_ID' }] });
+    // A rejection by the document authority is explained with the domain's own issues.
+    await expect(send('unknown', 2, { type: 'update', changes: [{ id: 'nope', patch: { text: 'x' } }] })).rejects.toMatchObject({ code: 'VALIDATION_FAILED', message: expect.stringMatching(/^Command rejected: .*nope/), issues: [expect.objectContaining({ path: expect.stringContaining('changes[0]') })] });
+    await expect(send('bad-type', 2, { type: 'create_box' })).rejects.toMatchObject({ code: 'VALIDATION_FAILED', issues: expect.arrayContaining([expect.objectContaining({ message: expect.any(String) })]) });
+    await expect(send('duplicate', 2, { type: 'add', elements: [{ id: 'box:api', kind: 'rectangle', x: 0, y: 0 }] })).rejects.toMatchObject({ code: 'VALIDATION_FAILED', issues: [expect.objectContaining({ message: expect.stringContaining('box:api') })] });
+    // A rejected call has used up its commandId; the message says so instead of only naming the clash.
+    await expect(send('unknown', 2, { type: 'rename', title: 'Korrigiert' })).rejects.toMatchObject({ code: 'REQUEST_ID_REUSED', message: expect.stringContaining('new commandId') });
+    await expect(send('stale', 0, { type: 'rename', title: 'Alt' })).rejects.toMatchObject({ code: 'REVISION_CONFLICT', currentRevision: 2, message: expect.stringContaining('new commandId') });
+    expect(f.controller.getSnapshot().revision).toBe(2);
+  });
+  it('tells an SDK client what each tool is for and returns results and errors as text too (#176)', async () => {
+    const f = await fixture();
+    const sdk = new Client({ name: 'sketchdraw-text-only', version: '1.0.0' });
+    cleanup.push(() => sdk.close());
+    await sdk.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('dist-mcp/server.cjs')], env: { ...f.grant.env }, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 }));
+    expect(sdk.getInstructions()).toContain('sketchdraw_apply_commands');
+    expect(sdk.getServerVersion()?.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(sdk.getServerVersion()?.version).not.toBe('0.0.0');
+    const tools = (await sdk.listTools()).tools;
+    expect(new Set(tools.map(tool => tool.description)).size).toBe(6);
+    const command = (tools.find(tool => tool.name === 'sketchdraw_apply_commands')!.inputSchema.properties as Record<string, { properties?: Record<string, { enum?: string[] }> }>).command!;
+    expect(command.properties!.type!.enum).toContain('add');
+    // A client that hands its model only the text still gets the whole result.
+    const text = (result: Awaited<ReturnType<typeof sdk.callTool>>) => (result.content as Array<{ type: string; text: string }>)[0]!.text;
+    const read = await sdk.callTool({ name: 'sketchdraw_read_document', arguments: {} });
+    expect(JSON.parse(text(read))).toMatchObject({ documentId: 'doc:mcp', revision: 0, document: { title: 'Original' } });
+    expect(JSON.parse(text(read))).toEqual(read.structuredContent);
+    const added = await sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { documentId: 'doc:mcp', expectedRevision: 0, commandId: 'text-add', command: { type: 'add', elements: [{ id: 'box:1', kind: 'rectangle', x: 0, y: 0, text: 'Eins' }] } } });
+    expect(added.isError).not.toBe(true);
+    expect(text(added).split('\n')[0]).toBe('Change applied to the open document; it is not saved to a file.');
+    expect(JSON.parse(text(added).split('\n')[1]!)).toMatchObject({ revision: 1, elementCount: 1 });
+    const failed = await sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { expectedRevision: 1, commandId: 'text-bad', command: { type: 'delete', ids: ['box:missing'] } } });
+    expect(failed.isError).toBe(true);
+    expect(text(failed)).toContain('VALIDATION_FAILED: Command rejected:');
+    expect(text(failed)).toContain('box:missing');
+    expect(JSON.parse(text(failed).split('\n')[1]!)).toMatchObject({ error: { code: 'VALIDATION_FAILED', issues: [expect.objectContaining({ code: 'UNKNOWN_DELETE_ID' })] } });
+    // Six reads at once: the adapter queues what the app would refuse as BUSY.
+    const parallel = await Promise.all(Array.from({ length: 6 }, () => sdk.callTool({ name: 'sketchdraw_read_code', arguments: {} })));
+    expect(parallel.map(result => result.isError === true)).toEqual([false, false, false, false, false, false]);
+  }, 20_000);
   it('serves a genuine SDK stdio client and preserves the grant after EOF', async () => {
     const f = await fixture();
     const sdk = new Client({ name: 'sketchdraw-test', version: '1.0.0' });

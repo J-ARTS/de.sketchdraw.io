@@ -44,6 +44,20 @@ Alle Tools liefern strukturierte Resultate und verständliche Fehlermeldungen. S
 
 Fehlercodes mindestens: `ACCESS_DENIED`, `ACCESS_REVOKED`, `DOCUMENT_MISMATCH`, `SESSION_CHANGED`, `REVISION_CONFLICT`, `VALIDATION_FAILED`, `REQUEST_TOO_LARGE`, `BUSY`, `REQUEST_TIMEOUT`, `OUTCOME_UNKNOWN`. Schemafehler nennen Pfad/Code, aber keine Capability oder lokalen Dateipfade. Konflikte enthalten nur nach erfolgreicher Rechteprüfung die aktuelle Revision.
 
+## Agentenergonomie (#176, 13.11.2026)
+
+Ergänzung nach einem Praxistest mit einem SDK-Client und mit Sonnet-Subagenten, die nur Tool-Liste, Server-Anweisungen und Textantworten sahen. Die Sicherheitsgrenzen oben bleiben unverändert; alle Punkte liegen im Adapter oder im Renderer-Handler, nicht in `DocumentAuthority` oder im Host.
+
+1. **Ergebnis doppelt.** Jedes Ergebnis steht in `structuredContent` und als identisches JSON im ersten Textblock; Schreibergebnisse und Fehler tragen davor eine Klartextzeile. Ein Platzhaltertext ist unzulässig.
+2. **Entdeckbarkeit.** Jedes Werkzeug hat eine eigene Beschreibung; der Server liefert `instructions` (unter 4000 Zeichen). Das öffentliche Schema von `command` ist ein flaches, offenes Objekt mit `type`-Enum und beschriebenen Feldern, ohne `oneOf`/`anyOf`. Es validiert nur Grundform und IDs; maßgeblich bleibt die Domain.
+3. **Vervollständigung.** Der Renderer-Handler ergänzt `add`-Elemente eines Agenten über `createElement` (Drehung, Größe, Stil, Tabellen-/Annotationsstruktur); einfache Formen erhalten ohne Angabe zentrierten Text. Die Seite ergänzt er nicht: Bei mehreren Seiten verlangt die Domain weiter eine Angabe. Eine Verbindung mit beiden Enden und ohne `points` erhält Lage, Punkte und Anker aus den Elementen (einander zugewandte Seitenmitten, Routing `elbowed`). `id` bleibt Pflicht; `web-embed` ohne `embedUrl` und `image` ohne `assetId` werden abgelehnt statt mit Platzhaltern gefüllt. Der Fingerprint der Mutation wird weiter über die unveränderte Nutzlast gebildet.
+4. **Begründete Ablehnung.** Meldet die Authority `VALIDATION_FAILED`, wendet der Handler den Befehl ohne Commit erneut auf den aktuellen Snapshot an (`applyCommand`) und gibt höchstens 20 `issues` der Domain zurück. Der Vertrag von `WriteOutcome` ist unverändert.
+5. **Kein Mitnehmen von Schreibzugriffen.** Der Adapter merkt sich die Dokument-ID des letzten Ergebnisses. Ein Schreibaufruf geht nur an dieses Dokument oder an das ausdrücklich in `documentId` genannte; sonst `SESSION_CHANGED` ohne Übertragung. Lesezugriffe werden nach dem Neuverbinden wiederholt.
+6. **Warteschlange.** Der Adapter lässt zwei Aufrufe gleichzeitig laufen und reiht bis zu 64 weitere ein; erst darüber `BUSY`.
+7. **Lesehilfen.** `sketchdraw_find_elements` nennt für Verbindungen `fromElementId`/`toElementId`. `sketchdraw_analyze_document` meldet `UNLABELED_ELEMENT` nicht mehr für Verbindungen und Pfade. Eine Wiederholung mit bekannter `commandId` wird im Text als Wiederholung ausgewiesen.
+
+Bekannte Grenzen: Der Code-Pfad ergänzt keine Verbindungsgeometrie. Agentenänderungen sind für den Menschen nicht rückgängig zu machen (History pro Actor, CL-03). Es gibt keinen Seitenfilter und keine Feldauswahl für große Dokumente und kein `outputSchema`.
+
 ## Seiten (Schema v2)
 
 `sketchdraw_read_document` liefert `document.pages` und je Element `pageId`; `sketchdraw_find_elements` nennt `pageId` je Treffer; `sketchdraw_analyze_document` enthält `summary.pageCount`; `sketchdraw_read_code` liefert `formatVersion: 2` (Abschnitte `page "id" {"name":…}`), `sketchdraw_apply_code` liest auch Skripte mit `sketchdraw 1`. `sketchdraw_apply_commands` kennt `add-page`, `rename-page`, `delete-page`, `reorder-pages`; ein `add` ohne `pageId` ist bei mehreren Seiten ein Fehler (`VALIDATION_FAILED`) statt einer stillen Wahl der ersten Seite. Die aktive Seite der Oberfläche ist kein Dokumentzustand.
@@ -56,7 +70,7 @@ Primärquellen: [MCP-Transportmodell2026-07-28](https://modelcontextprotocol.io/
 
 ## Skills und Nachweise
 
-Ein projektspezifischer Skill erklärt die automatisch verwaltete Verbindung, Lesen→Planen→CAS-Command, Revisionskonflikte und die Grenze zwischen Diagrammdaten und Agentenanweisungen. Die einmalige Installation in eine fremde globale Toolkonfiguration ist kein stiller Nebeneffekt des Produktbuilds.
+Ein projektspezifischer Skill erklärt die automatisch verwaltete Verbindung, Lesen→Planen→CAS-Command, den Befehlskatalog mit Verbindungsrezept, die Fehlercodes und die Grenze zwischen Diagrammdaten und Agentenanweisungen. Die einmalige Installation in eine fremde globale Toolkonfiguration ist kein stiller Nebeneffekt des Produktbuilds.
 
 Pflichtnachweise: Ein echter stdio-Client liest und verändert die laufende App ohne UI-Freigabe, ein Mensch editiert weiter, Dokumentwechsel und App-Neustart verbinden automatisch neu; Gastmodus besitzt keinen lokalen Host. Falsche Tokens, stale Revision, doppelte Command-ID, Timeout und übergroße Frames bleiben abgesichert; stdout bleibt parsebar. Zusätzlich Cross-Platform-Socket-/Loopback-Tests. In-memory-Tests allein erfüllen die App-Integration nicht.
 

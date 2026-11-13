@@ -156,6 +156,9 @@ export interface ElementMatchSummary {
   y: number;
   width: number;
   height: number;
+  /** Connectors only: the elements the two ends are attached to. */
+  fromElementId?: string;
+  toElementId?: string;
   matchedFields: string[];
 }
 
@@ -187,6 +190,8 @@ export interface AnalyzeDocumentOutput {
   documentId: string;
   revision: number;
   title: string;
+  /** Every page with its ID, in order. */
+  pages: Array<{ id: string; name: string; elementCount: number }>;
   summary: {
     pageCount: number;
     totalElements: number;

@@ -506,7 +506,7 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
           makeDiag(
             'EXPECTED_HEADER',
             keywordSpan,
-            'First declaration must be the "sketchdraw 1" header.',
+            'First declaration must be the "sketchdraw 2" header.',
           ),
         );
         continue;
@@ -518,7 +518,7 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
           makeDiag(
             'FORMAT_VERSION',
             lineSpan,
-            'Missing format version in header; expected "sketchdraw 1".',
+            'Missing format version in header; expected "sketchdraw 2".',
           ),
         );
         continue;
@@ -1397,7 +1397,7 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
       makeDiag(
         'EXPECTED_HEADER',
         defaultTopSpan,
-        'Missing "sketchdraw 1" header in script.',
+        'Missing "sketchdraw 2" header in script.',
       ),
     );
   } else if (!seenDocument) {

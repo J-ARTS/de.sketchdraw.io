@@ -2,6 +2,7 @@ import { formatDiagram, parseDiagram } from '../codec';
 import type { DocumentCommand, ElementKind } from '../domain';
 import { SessionAccessError, type ActorBinding, type DocumentAuthority } from '../session';
 import { AgentAccessError, mapDomainErrorToPayload } from './errors';
+import { explainCommandRejection, prepareAgentCommand, summarizeIssues } from './agent-commands';
 import { canonicalizeMutationRequest } from './fingerprint';
 import { parseOperationInput } from './schema';
 import {
@@ -94,7 +95,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       const matches = document.elements.flatMap(element => {
         const fields: Record<string, string> = { id: element.id, kind: element.kind, shapeVariant: element.shapeVariant ?? '', label: element.label ?? '', description: element.description ?? '', text: element.text ?? '', author: element.author ?? '', componentType: element.componentType ?? '', embedUrl: element.embedUrl ?? '', metadata: JSON.stringify(element.metadata ?? {}) };
         const matchedFields = Object.keys(fields).filter(key => fields[key]!.toLocaleLowerCase().includes(query));
-        return matchedFields.length ? [{ id: element.id, pageId: element.pageId, kind: element.kind, ...(element.shapeVariant ? { shapeVariant: element.shapeVariant } : {}), x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), matchedFields }] : [];
+        return matchedFields.length ? [{ id: element.id, pageId: element.pageId, kind: element.kind, ...(element.shapeVariant ? { shapeVariant: element.shapeVariant } : {}), x: element.x, y: element.y, width: element.width, height: element.height, ...(element.label ? { label: element.label } : {}), ...(element.text ? { text: element.text } : {}), ...(element.parentId ? { parentId: element.parentId } : {}), ...(element.componentType ? { componentType: element.componentType } : {}), ...(element.from ? { fromElementId: element.from.elementId } : {}), ...(element.to ? { toElementId: element.to.elementId } : {}), matchedFields }] : [];
       });
       const limit = input.limit ?? L.DEFAULT_FIND_LIMIT;
       return { ...base, query: input.query, totalMatches: matches.length, truncated: matches.length > limit, matches: matches.slice(0, limit) };
@@ -115,9 +116,12 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
           if (endpoints === 2) bound++; else if (endpoints === 1) { partial++; findings.push({ code: 'PARTIALLY_BOUND_CONNECTOR', severity: 'info', elementId: element.id, message: 'One endpoint is unbound.' }); } else { unbound++; findings.push({ code: 'UNBOUND_CONNECTOR', severity: 'info', elementId: element.id, message: 'Both endpoints are unbound.' }); }
         }
         if (element.kind === 'container' && !parents.has(element.id)) findings.push({ code: 'EMPTY_CONTAINER', severity: 'info', elementId: element.id, message: 'Container has no children.' });
-        if (!element.label && !element.text) findings.push({ code: 'UNLABELED_ELEMENT', severity: 'info', elementId: element.id, message: 'Element has no human-readable label.' });
+        // Lines and arrows usually carry no caption; reporting each of them would bury the findings that matter.
+        if (!element.label && !element.text && element.kind !== 'connector' && element.kind !== 'path') findings.push({ code: 'UNLABELED_ELEMENT', severity: 'info', elementId: element.id, message: 'Element has no human-readable label.' });
       }
-      return { ...base, title: document.title, summary: { pageCount: document.pages.length, totalElements: document.elements.length, countsByKind: counts, containerCount: counts.container, maxContainerDepth: maxDepth, connectorCount: counts.connector, boundConnectorCount: bound, unboundConnectorCount: unbound, partiallyBoundConnectorCount: partial, assetCount: Object.keys(document.assets).length, totalAssetDataUrlBytes: Object.values(document.assets).reduce((total, asset) => total + new TextEncoder().encode(asset.dataUrl).length, 0), componentSetCount: document.componentSets.length, totalComponentDefinitions: document.componentSets.reduce((total, set) => total + set.components.length, 0) }, findings };
+      // Page IDs are needed to add to a document with several pages; the analysis is the cheap place to learn them.
+      const pages = document.pages.map(page => ({ id: page.id, name: page.name, elementCount: document.elements.filter(element => element.pageId === page.id).length }));
+      return { ...base, title: document.title, pages, summary: { pageCount: document.pages.length, totalElements: document.elements.length, countsByKind: counts, containerCount: counts.container, maxContainerDepth: maxDepth, connectorCount: counts.connector, boundConnectorCount: bound, unboundConnectorCount: unbound, partiallyBoundConnectorCount: partial, assetCount: Object.keys(document.assets).length, totalAssetDataUrlBytes: Object.values(document.assets).reduce((total, asset) => total + new TextEncoder().encode(asset.dataUrl).length, 0), componentSetCount: document.componentSets.length, totalComponentDefinitions: document.componentSets.reduce((total, set) => total + set.components.length, 0) }, findings };
     }
     if (!('commandId' in input) || request.commandId !== input.commandId || request.expectedRevision !== input.expectedRevision) throw new AgentAccessError('VALIDATION_FAILED', 'Mutation metadata mismatch.');
     let command: DocumentCommand;
@@ -127,7 +131,12 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       if (!parsed.ok) throw new AgentAccessError('VALIDATION_FAILED', 'Diagram code is invalid.', { diagnostics: parsed.diagnostics });
       if (parsed.document.id !== document.id) throw new AgentAccessError('DOCUMENT_MISMATCH', 'Code cannot replace a different document.');
       diagnostics = parsed.diagnostics; command = { type: 'replace', document: parsed.document };
-    } else command = input.command;
+    } else {
+      // Lean `add` commands are completed here; what cannot be completed is reported before anything is submitted (#176).
+      const prepared = prepareAgentCommand(input.command, document);
+      if (prepared.issues.length) throw new AgentAccessError('VALIDATION_FAILED', summarizeIssues(prepared.issues), { issues: prepared.issues });
+      command = prepared.command;
+    }
     check(request, true);
     const requestId = grant.binding.gateway.nextRequestId();
     if (!requestId) throw new AgentAccessError('BUSY', 'A previous agent change is unresolved.');
@@ -135,7 +144,11 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
     if (outcome.status === 'outcome-unknown') throw new AgentAccessError('OUTCOME_UNKNOWN', 'The mutation outcome is not confirmed.');
     if (outcome.status === 'rejected') {
       const code = ['ACCESS_DENIED', 'ACCESS_REVOKED', 'SESSION_CHANGED', 'DOCUMENT_MISMATCH', 'REVISION_CONFLICT', 'REQUEST_TOO_LARGE', 'BUSY', 'REQUEST_TIMEOUT', 'REQUEST_ID_REUSED'].includes(outcome.code) ? outcome.code as import('./types').AgentAccessErrorCode : 'VALIDATION_FAILED';
-      throw new AgentAccessError(code, 'Change was rejected by the shared document authority.', { currentRevision: outcome.currentRevision });
+      // The authority reports only a code. For a validation failure the domain is asked again, without committing, so the
+      // agent learns which field is wrong instead of guessing (#176).
+      const issues = code === 'VALIDATION_FAILED' ? explainCommandRejection(grant.binding.source.getSnapshot().document, command) : [];
+      const message = code === 'REVISION_CONFLICT' ? 'The document changed since the revision you read. Read it again and apply the change to the current revision with a new commandId.' : summarizeIssues(issues);
+      throw new AgentAccessError(code, message, { currentRevision: outcome.currentRevision, ...(issues.length ? { issues } : {}) });
     }
     check(request, true);
     return { documentId: document.id, commandId: input.commandId, previousRevision: input.expectedRevision, revision: outcome.revision, changed: outcome.status === 'committed', saved: false, persistence: 'unsaved-open-document', deduplicated: false, elementCount: grant.binding.source.getSnapshot().document.elements.length, ...('code' in input ? { diagnostics } : {}) };
@@ -153,7 +166,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
         const canonical = canonicalizeMutationRequest({ operation: request.operation, documentId: payload.documentId, expectedRevision: payload.expectedRevision, canonicalPayload: payload });
         const previous = grant.journal.get(payload.commandId);
         if (previous) {
-          if (previous.canonical !== undefined ? previous.canonical !== canonical : previous.fingerprint !== await digest(canonical)) throw new AgentAccessError('REQUEST_ID_REUSED', 'Command ID has a different payload.');
+          if (previous.canonical !== undefined ? previous.canonical !== canonical : previous.fingerprint !== await digest(canonical)) throw new AgentAccessError('REQUEST_ID_REUSED', 'This commandId was already used for different arguments (a rejected call uses up its ID too). Send the corrected change with a new commandId.');
           result = { ...await previous.result, deduplicated: true };
         } else {
           if (grant.journal.size >= L.MAX_JOURNAL_ENTRIES_PER_GRANT) throw new AgentAccessError('JOURNAL_FULL', 'Create a new grant to continue.');

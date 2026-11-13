@@ -188,7 +188,7 @@ export class AgentHost {
     if (mutation) {
       const entry = grant.journal.get(mutation.commandId);
       if (entry) {
-        if (entry.fingerprint !== fingerprint) throw new AgentAccessError('REQUEST_ID_REUSED', 'Command ID already has a different payload.');
+        if (entry.fingerprint !== fingerprint) throw new AgentAccessError('REQUEST_ID_REUSED', 'This commandId was already used for different arguments (a rejected call uses up its ID too). Send the corrected change with a new commandId.');
         return entry.result.then(result => ({ ...result, deduplicated: true }));
       }
       if (grant.journal.size >= L.MAX_JOURNAL_ENTRIES_PER_GRANT) throw new AgentAccessError('JOURNAL_FULL', 'Create a new grant to continue.');
