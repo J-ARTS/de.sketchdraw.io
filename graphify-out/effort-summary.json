@@ -720,6 +720,10 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited",
+        "codex-2026-11-13-ticket-audit-root",
         "codex-p2p-session-link-ui-120",
         "codex-v0.1.3-final-candidate-local",
         "codex-v0.1.3-merge-latest-main-131",
@@ -1090,8 +1094,15 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited",
         "codex-144-plugin-marketplace-project-config",
-        "codex-149-fallback-review-fixes"
+        "codex-149-fallback-review-fixes",
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-root"
       ]
     },
     "147": {
@@ -1159,8 +1170,12 @@
       "sharedUnallocatedRunIds": [
         "claude-149-fable-sparring-5db4e51b",
         "claude-149-hyperdht-relay-7fcd65b3",
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
-        "codex-149-fallback-review-fixes"
+        "codex-149-fallback-review-fixes",
+        "codex-2026-11-13-ticket-audit-p2p"
       ]
     },
     "15": {
@@ -1243,8 +1258,12 @@
       "sharedUnallocatedRunIds": [
         "claude-149-fable-sparring-5db4e51b",
         "claude-149-hyperdht-relay-7fcd65b3",
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
-        "codex-149-fallback-review-fixes"
+        "codex-149-fallback-review-fixes",
+        "codex-2026-11-13-ticket-audit-p2p"
       ]
     },
     "151": {
@@ -1277,8 +1296,12 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-149-fable-sparring-5db4e51b",
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
         "codex-149-153-main-integration",
-        "codex-149-fallback-review-fixes"
+        "codex-149-fallback-review-fixes",
+        "codex-2026-11-13-ticket-audit-p2p"
       ]
     },
     "152": {
@@ -1311,7 +1334,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-149-fable-sparring-5db4e51b",
-        "codex-149-fallback-review-fixes"
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "codex-149-fallback-review-fixes",
+        "codex-2026-11-13-ticket-audit-p2p"
       ]
     },
     "153": {
@@ -1344,8 +1371,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-153-fable-sparring",
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
-        "codex-153-interop-implementation"
+        "codex-153-interop-implementation",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "154": {
@@ -1378,8 +1408,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-153-fable-sparring",
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
-        "codex-153-interop-implementation"
+        "codex-153-interop-implementation",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "155": {
@@ -1412,8 +1445,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-153-fable-sparring",
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
-        "codex-153-interop-implementation"
+        "codex-153-interop-implementation",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "156": {
@@ -1446,8 +1482,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-153-fable-sparring",
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
-        "codex-153-interop-implementation"
+        "codex-153-interop-implementation",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "157": {
@@ -1480,8 +1519,11 @@
       },
       "sharedUnallocatedRunIds": [
         "claude-153-fable-sparring",
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
         "codex-149-153-main-integration",
-        "codex-153-interop-implementation"
+        "codex-153-interop-implementation",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "158": {
@@ -1653,7 +1695,117 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-plugins-fable",
+        "claude-code-2026-11-13-plugins-fable-final",
+        "claude-code-2026-11-13-plugins-fable-followup",
+        "codex-2026-11-13-ticket-audit-plugins"
+      ]
+    },
+    "162": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "codex-2026-11-13-ticket-audit-p2p"
+      ]
+    },
+    "165": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-plugins-fable",
+        "claude-code-2026-11-13-plugins-fable-final",
+        "claude-code-2026-11-13-plugins-fable-followup",
+        "codex-2026-11-13-ticket-audit-plugins"
+      ]
+    },
+    "168": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-plugins-fable",
+        "claude-code-2026-11-13-plugins-fable-final",
+        "claude-code-2026-11-13-plugins-fable-followup",
+        "codex-2026-11-13-ticket-audit-plugins"
+      ]
     },
     "17": {
       "exclusiveRuns": {
@@ -1721,6 +1873,38 @@
       },
       "sharedUnallocatedRunIds": []
     },
+    "172": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "codex-172-177-live-integrations-and-page-reference-diagnosis"
+      ]
+    },
     "175": {
       "exclusiveRuns": {
         "costUsd": {
@@ -1752,6 +1936,149 @@
         "value": null
       },
       "sharedUnallocatedRunIds": []
+    },
+    "176": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-2026-11-13-mcp-upstream-review"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited",
+        "codex-2026-11-13-ticket-audit-root"
+      ]
+    },
+    "177": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited",
+        "codex-172-177-live-integrations-and-page-reference-diagnosis",
+        "codex-2026-11-13-ticket-audit-root"
+      ]
+    },
+    "178": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited",
+        "codex-2026-11-13-ticket-audit-root"
+      ]
+    },
+    "179": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "codex-2026-11-13-ticket-audit-p2p"
+      ]
     },
     "18": {
       "exclusiveRuns": {
@@ -1786,6 +2113,144 @@
         "codex-domain-review-001",
         "codex-github-ticket-audit-057",
         "codex-ticket-closure-004"
+      ]
+    },
+    "180": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
+        "codex-2026-11-13-ticket-audit-interop"
+      ]
+    },
+    "181": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-plugins-fable",
+        "claude-code-2026-11-13-plugins-fable-final",
+        "claude-code-2026-11-13-plugins-fable-followup",
+        "codex-2026-11-13-ticket-audit-plugins"
+      ]
+    },
+    "182": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "codex-2026-11-13-ticket-audit-p2p"
+      ]
+    },
+    "183": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        },
+        "runCount": 0,
+        "runIds": [],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 0
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
+        "codex-2026-11-13-ticket-audit-interop"
       ]
     },
     "19": {
@@ -3902,6 +4367,10 @@
         "value": null
       },
       "sharedUnallocatedRunIds": [
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "codex-2026-11-13-ticket-audit-p2p",
         "codex-yjs-openpencil-architecture-70-72",
         "codex-yjs-trystero-implementation-71-72"
       ]
@@ -4824,6 +5293,40 @@
     }
   },
   "byTool": {
+    "Claude Code": {
+      "costUsd": {
+        "knownRuns": 11,
+        "knownSubtotal": 35.2835092,
+        "total": 35.2835092,
+        "unknownRuns": 0
+      },
+      "observedSeconds": {
+        "knownRuns": 11,
+        "knownSubtotal": 3157.514,
+        "total": 3157.514,
+        "unknownRuns": 0
+      },
+      "runCount": 11,
+      "runIds": [
+        "claude-code-2026-11-13-interop-fable",
+        "claude-code-2026-11-13-interop-fable-followup",
+        "claude-code-2026-11-13-p2p-fable",
+        "claude-code-2026-11-13-p2p-fable-final",
+        "claude-code-2026-11-13-p2p-fable-followup",
+        "claude-code-2026-11-13-plugins-fable",
+        "claude-code-2026-11-13-plugins-fable-final",
+        "claude-code-2026-11-13-plugins-fable-followup",
+        "claude-code-2026-11-13-root-fable",
+        "claude-code-2026-11-13-root-fable-final",
+        "claude-code-2026-11-13-root-fable-followup-limited"
+      ],
+      "tokens": {
+        "knownRuns": 11,
+        "knownSubtotal": 7008503,
+        "total": 7008503,
+        "unknownRuns": 0
+      }
+    },
     "Claude Code CLI 2.1.185": {
       "costUsd": {
         "knownRuns": 0,
@@ -4883,15 +5386,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       },
       "observedSeconds": {
         "knownRuns": 1,
         "knownSubtotal": 2693.557,
         "total": null,
-        "unknownRuns": 7
+        "unknownRuns": 8
       },
-      "runCount": 8,
+      "runCount": 9,
       "runIds": [
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
@@ -4900,13 +5403,38 @@
         "codex-158-custom-dropdowns",
         "codex-159-theme-settings",
         "codex-160-plugin-marketplace",
-        "codex-175-git-remote-status"
+        "codex-175-git-remote-status",
+        "codex-2026-11-13-ticket-audit-root"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
+      }
+    },
+    "OpenAI Codex + Chrome + SketchDraw npm dev:electron": {
+      "costUsd": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "observedSeconds": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
+      },
+      "runCount": 1,
+      "runIds": [
+        "codex-172-177-live-integrations-and-page-reference-diagnosis"
+      ],
+      "tokens": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 1
       }
     },
     "OpenAI Codex + SketchDraw npm dev:electron": {
@@ -4931,6 +5459,33 @@
         "knownSubtotal": 0,
         "total": null,
         "unknownRuns": 1
+      }
+    },
+    "OpenAI Codex subagent": {
+      "costUsd": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 4
+      },
+      "observedSeconds": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 4
+      },
+      "runCount": 4,
+      "runIds": [
+        "codex-2026-11-13-mcp-upstream-review",
+        "codex-2026-11-13-ticket-audit-interop",
+        "codex-2026-11-13-ticket-audit-p2p",
+        "codex-2026-11-13-ticket-audit-plugins"
+      ],
+      "tokens": {
+        "knownRuns": 0,
+        "knownSubtotal": 0,
+        "total": null,
+        "unknownRuns": 4
       }
     },
     "antigravity": {
@@ -5324,18 +5879,18 @@
   },
   "observed": {
     "costUsd": {
-      "knownRuns": 6,
-      "knownSubtotal": 21.0832297,
+      "knownRuns": 17,
+      "knownSubtotal": 56.3667389,
       "total": null,
-      "unknownRuns": 238
+      "unknownRuns": 244
     },
     "observedSeconds": {
-      "knownRuns": 100,
-      "knownSubtotal": 50709.54326324896,
+      "knownRuns": 111,
+      "knownSubtotal": 53867.057263248964,
       "total": null,
-      "unknownRuns": 144
+      "unknownRuns": 150
     },
-    "runCount": 244,
+    "runCount": 261,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -5377,6 +5932,17 @@
       "claude-160-ui-resume",
       "claude-architecture-001",
       "claude-architecture-002",
+      "claude-code-2026-11-13-interop-fable",
+      "claude-code-2026-11-13-interop-fable-followup",
+      "claude-code-2026-11-13-p2p-fable",
+      "claude-code-2026-11-13-p2p-fable-final",
+      "claude-code-2026-11-13-p2p-fable-followup",
+      "claude-code-2026-11-13-plugins-fable",
+      "claude-code-2026-11-13-plugins-fable-final",
+      "claude-code-2026-11-13-plugins-fable-followup",
+      "claude-code-2026-11-13-root-fable",
+      "claude-code-2026-11-13-root-fable-final",
+      "claude-code-2026-11-13-root-fable-followup-limited",
       "claude-code-annotation-review-056",
       "claude-code-connector-ui-review-047",
       "claude-code-element-actions-review-055",
@@ -5404,7 +5970,13 @@
       "codex-159-theme-settings",
       "codex-160-plugin-marketplace",
       "codex-170-reference-diagrams",
+      "codex-172-177-live-integrations-and-page-reference-diagnosis",
       "codex-175-git-remote-status",
+      "codex-2026-11-13-mcp-upstream-review",
+      "codex-2026-11-13-ticket-audit-interop",
+      "codex-2026-11-13-ticket-audit-p2p",
+      "codex-2026-11-13-ticket-audit-plugins",
+      "codex-2026-11-13-ticket-audit-root",
       "codex-annotation-056",
       "codex-annotation-list-markers-98",
       "codex-auto-agent-access-030",
@@ -5583,10 +6155,10 @@
       "github-actions-web-embed-39118323420"
     ],
     "tokens": {
-      "knownRuns": 10,
-      "knownSubtotal": 7037479,
+      "knownRuns": 21,
+      "knownSubtotal": 14045982,
       "total": null,
-      "unknownRuns": 234
+      "unknownRuns": 240
     }
   },
   "officialScoreClaimReady": false,
@@ -5596,9 +6168,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 126
+    "unknownIssues": 138
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-12T20:07:54Z"
+  "updatedAt": "2026-11-13T09:00:57.011551+00:00"
 }

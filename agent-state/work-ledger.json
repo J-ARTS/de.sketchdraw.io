@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-12T20:07:54Z",
+  "updatedAt": "2026-11-13T09:00:57.011551+00:00",
   "issues": [
     {
       "number": 1,
@@ -2289,6 +2289,208 @@
         "publication": "pushed to origin/main",
         "remoteCi": "passed on descendant 672c20bdd0b8b7daf920e5d7a894fe3ef9c3953d: https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43294536322"
       }
+    },
+    {
+      "number": 172,
+      "title": "Live-Abnahme der GitHub- und Jira-Integration",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/172",
+      "owner": "OpenAI Codex (testing and coordination)",
+      "currentImplementer": "OpenAI Codex live acceptance with Chrome and SketchDraw npm dev:electron",
+      "phase": "Git/Jira integration / Testing",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        66,
+        160,
+        175
+      ],
+      "localIntegration": {
+        "branch": "main",
+        "commit": "0d5089899a5871d1c3f0a5f507e008028780be68",
+        "publication": "no repository source changes",
+        "remoteCi": "not applicable to read-only live acceptance"
+      }
+    },
+    {
+      "number": 177,
+      "title": "AWS-Komponente erzeugt fehlende Seitenreferenz und leeren Verlauf",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/177",
+      "owner": "OpenAI Codex (reproduction/testing/diagnosis), Claude Code (UI fix responsibility)",
+      "currentImplementer": "OpenAI Codex completed reproduction and diagnosis; implementation pending",
+      "phase": "Component library / Multi-page logic / Testing",
+      "status": "in_progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        170
+      ],
+      "localIntegration": {
+        "branch": "main",
+        "commit": "0d5089899a5871d1c3f0a5f507e008028780be68",
+        "publication": "local diagnostic evidence only; no source fix",
+        "remoteCi": "not triggered"
+      }
+    },
+    {
+      "number": 178,
+      "title": "Live-Schreibtest für Jira-Aufgabe und Git-Diagrammsynchronisation",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/178",
+      "owner": "OpenAI Codex (audit coordination)",
+      "phase": "validation",
+      "status": "in-progress",
+      "dependencies": [],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      }
+    },
+    {
+      "number": 176,
+      "title": "MCP und Skill: Befunde aus dem Praxistest und Verbesserungen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/176",
+      "owner": "OpenAI Codex (audit coordination)",
+      "phase": "validation",
+      "status": "in-progress",
+      "dependencies": [],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      }
+    },
+    {
+      "number": 168,
+      "title": "Plugin-Konfiguration als Editor-Profile: umschalten, anlegen, kopieren, umbenennen, löschen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/168",
+      "owner": "OpenAI Codex (audit coordination)",
+      "phase": "validation",
+      "status": "in-progress",
+      "dependencies": [],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      }
+    },
+    {
+      "number": 165,
+      "title": "Plugin-Kacheln: weißer Hintergrund und Platz für offizielle Git-/Jira-Logodateien",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/165",
+      "owner": "OpenAI Codex (audit coordination)",
+      "phase": "validation",
+      "status": "completed",
+      "dependencies": [],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      }
+    },
+    {
+      "number": 162,
+      "title": "Session-Link als sketchdraw://-App-Link, Relay-Helfer automatisch, Gateway- und WebRTC-Oberfläche entfernen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/162",
+      "owner": "OpenAI Codex (audit coordination)",
+      "phase": "validation",
+      "status": "in-progress",
+      "dependencies": [],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      }
+    },
+    {
+      "number": 179,
+      "title": "P2P: Fehler eines einzelnen Peers kann die gesamte Host-Sitzung abbrechen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/179",
+      "owner": "Codex",
+      "phase": "Ticket audit 2026-11-13",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        149,
+        151
+      ]
+    },
+    {
+      "number": 180,
+      "title": "draw.io: Portabler Tabellenexport verwendet Rahmenfarbe als Schriftfarbe",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/180",
+      "owner": "Codex",
+      "phase": "Ticket audit 2026-11-13",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        153,
+        156
+      ]
+    },
+    {
+      "number": 181,
+      "title": "Plugin-Profile: Parallele App-Instanzen können Änderungen gegenseitig überschreiben",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/181",
+      "owner": "Codex",
+      "phase": "Ticket audit 2026-11-13",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        161,
+        168
+      ]
+    },
+    {
+      "number": 182,
+      "title": "Relay-Gesamtbudget trennt eine unbeteiligte Hostsession",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/182",
+      "owner": "Codex",
+      "phase": "Ticket audit 2026-11-13",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        149,
+        152
+      ]
+    },
+    {
+      "number": 183,
+      "title": "Graphify extrahiert bestehende Vue-SFC-Symbole nicht zuverlässig",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/183",
+      "owner": "Codex",
+      "phase": "Ticket audit 2026-11-13",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        145
+      ]
     }
   ],
   "runs": [
@@ -9024,6 +9226,474 @@
       "concerns": [],
       "authorization": "User requested a new repository for integration testing and a fix for the reproduced Git remote-status bug, then explicitly requested pushing all changes to main.",
       "measurementSource": "No duration, token or cost metrics measured. Full local unit suite passed 870/870, full Electron suite passed 11/11, typecheck and git diff check passed. Private GitHub live probe reproduced stale 0/0 and confirmed refreshed 0/1 without worktree changes. Commit 8739929 is published on main and descendant CI run 43294536322 passed Governance/Graphify, Direct P2P and Build & Verify on Ubuntu, macOS and Windows."
+    },
+    {
+      "id": "codex-172-177-live-integrations-and-page-reference-diagnosis",
+      "tool": "OpenAI Codex + Chrome + SketchDraw npm dev:electron",
+      "model": null,
+      "issues": [
+        172,
+        177
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/172",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/177",
+        "artifacts/issue-177-aws-missing-page-reference.png",
+        "src/catalog/index.ts",
+        "src/renderer/state/whiteboard.ts",
+        "src/domain/controller.ts"
+      ],
+      "concerns": [
+        "Issue #177 remains open: component insertion validates DEFAULT_PAGE_ID before renderer normalization and still requires a source fix plus regression tests."
+      ],
+      "authorization": "User requested live Git/Jira integration testing through Chrome, authorized creation of the required Jira API token, and requested reproduction of the AWS component bug in the running SketchDraw instance.",
+      "measurementSource": "No duration/token/cost measured. Confirmed Git in-sync status, Jira connected status and read-only 0-issue synchronization. Reproduced MISSING_PAGE_REFERENCE in Electron at revision 0d5089899a5871d1c3f0a5f507e008028780be68. Relevant existing unit suites passed 45/45; the missing non-default-page regression case is documented in issue #177. Secrets were not logged or stored in this ledger."
+    },
+    {
+      "id": "codex-2026-11-13-ticket-audit-root",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        122,
+        145,
+        176,
+        177,
+        178
+      ],
+      "status": "in-progress",
+      "startedAt": "2026-11-13T08:15:40.934090+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/2026-11-13-ticket-audit.md",
+        "docs/reviews/2026-11-13-ticket-audit-validation.json",
+        "docs/reviews/2026-11-13-mcp-b524af8-codex.md"
+      ],
+      "concerns": [],
+      "parentRunId": null,
+      "scope": "root",
+      "nextStep": "Validate criteria, reproduce and fix defects, obtain actual Fable review; root coordinates integration and GitHub closure."
+    },
+    {
+      "id": "codex-2026-11-13-ticket-audit-interop",
+      "tool": "OpenAI Codex subagent",
+      "model": null,
+      "issues": [
+        145,
+        153,
+        154,
+        155,
+        156,
+        157,
+        180,
+        183
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-13T08:15:40.934266+00:00",
+      "endedAt": "2026-11-13T08:43:44.993505+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/2026-11-13-interop-audit.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "scope": "interop",
+      "nextStep": "Root validates the integrated source, publishes main and reconciles GitHub/ledger; local implementation and targeted verification complete."
+    },
+    {
+      "id": "codex-2026-11-13-ticket-audit-p2p",
+      "tool": "OpenAI Codex subagent",
+      "model": null,
+      "issues": [
+        72,
+        149,
+        150,
+        151,
+        152,
+        162,
+        179,
+        182
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-13T08:15:40.934279+00:00",
+      "endedAt": "2026-11-13T08:55:44.320083+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/2026-11-13-p2p-audit.md",
+        "docs/reviews/2026-11-13-p2p-validation.json"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "scope": "p2p",
+      "nextStep": "Root integrated source; complete Electron/UI/package/CI and close eligible issues. External network/platform evidence remains open."
+    },
+    {
+      "id": "codex-2026-11-13-ticket-audit-plugins",
+      "tool": "OpenAI Codex subagent",
+      "model": null,
+      "issues": [
+        161,
+        165,
+        168,
+        181
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-13T08:15:40.934291+00:00",
+      "endedAt": "2026-11-13T08:43:44.993702+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/2026-11-13-plugins-audit.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "scope": "plugins",
+      "nextStep": "Root validates the integrated source, publishes main and reconciles GitHub/ledger; local implementation and targeted verification complete."
+    },
+    {
+      "id": "claude-code-2026-11-13-interop-fable-followup",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        145,
+        153,
+        154,
+        155,
+        156,
+        157,
+        180,
+        183
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 386.089,
+      "tokens": 1052629,
+      "costUsd": 4.0630112,
+      "artifacts": [
+        "docs/reviews/2026-11-13-interop-fable-followup.json",
+        "docs/reviews/2026-11-13-interop-fable-followup.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-interop",
+      "sessionId": "0741b543-de19-44b1-bfc6-99048bffebdf",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-interop-fable",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        145,
+        153,
+        154,
+        155,
+        156,
+        157,
+        180,
+        183
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 474.973,
+      "tokens": 1689503,
+      "costUsd": 5.8534772,
+      "artifacts": [
+        "docs/reviews/2026-11-13-interop-fable.json",
+        "docs/reviews/2026-11-13-interop-fable.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-interop",
+      "sessionId": "f9c4893e-d23e-4684-8a7b-76dd039d34c1",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-p2p-fable-followup",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        72,
+        149,
+        150,
+        151,
+        152,
+        162,
+        179,
+        182
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 262.562,
+      "tokens": 223678,
+      "costUsd": 2.0998376,
+      "artifacts": [
+        "docs/reviews/2026-11-13-p2p-fable-followup.json",
+        "docs/reviews/2026-11-13-p2p-fable-followup.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-p2p",
+      "sessionId": "7d0455c4-8411-4824-b1e8-fccaf5e6b560",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-p2p-fable",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        72,
+        149,
+        150,
+        151,
+        152,
+        162,
+        179,
+        182
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 491.578,
+      "tokens": 1417076,
+      "costUsd": 5.733746600000001,
+      "artifacts": [
+        "docs/reviews/2026-11-13-p2p-fable.json",
+        "docs/reviews/2026-11-13-p2p-fable.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-p2p",
+      "sessionId": "229e8e15-6741-4795-9c00-68c163e80ad0",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-plugins-fable-final",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        161,
+        165,
+        168,
+        181
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 58.201,
+      "tokens": 40483,
+      "costUsd": 0.5086246,
+      "artifacts": [
+        "docs/reviews/2026-11-13-plugins-fable-final.json",
+        "docs/reviews/2026-11-13-plugins-fable-final.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-plugins",
+      "sessionId": "f59808c1-9522-4c32-9b1e-8733cc27d025",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-plugins-fable-followup",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        161,
+        165,
+        168,
+        181
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 157.986,
+      "tokens": 110844,
+      "costUsd": 1.4519848,
+      "artifacts": [
+        "docs/reviews/2026-11-13-plugins-fable-followup.json",
+        "docs/reviews/2026-11-13-plugins-fable-followup.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-plugins",
+      "sessionId": "a80a2de0-6e8a-4c93-a28c-36dc30e4917b",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-plugins-fable",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        161,
+        165,
+        168,
+        181
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 418.713,
+      "tokens": 915798,
+      "costUsd": 4.8656558,
+      "artifacts": [
+        "docs/reviews/2026-11-13-plugins-fable.json",
+        "docs/reviews/2026-11-13-plugins-fable.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-plugins",
+      "sessionId": "e7a58913-67d8-4d7b-98e0-3d99d1c76c79",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-root-fable-followup-limited",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        122,
+        145,
+        176,
+        177,
+        178
+      ],
+      "status": "failed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 153.069,
+      "tokens": 340735,
+      "costUsd": 1.8302433999999999,
+      "artifacts": [
+        "docs/reviews/2026-11-13-root-fable-followup-limited.json"
+      ],
+      "concerns": [
+        "Tool-turn limit reached; no completed review result."
+      ],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "sessionId": "5ebb2351-c098-42d1-b8e8-b762979a6a2b",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-root-fable",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        122,
+        145,
+        176,
+        177,
+        178
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 392.654,
+      "tokens": 951375,
+      "costUsd": 3.7514486,
+      "artifacts": [
+        "docs/reviews/2026-11-13-root-fable.json",
+        "docs/reviews/2026-11-13-root-fable.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "sessionId": "21281372-8e31-4498-b40f-a31b0057ff2c",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI result and verified claude-fable-5-2 model usage. Each invocation counted once. Token total includes input, cache creation/read and output; thinking is already part of output. Reported cost is list-price estimate, not payment. No tests run by Fable."
+    },
+    {
+      "id": "claude-code-2026-11-13-p2p-fable-final",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        72,
+        149,
+        150,
+        151,
+        152,
+        162,
+        179,
+        182
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 238.413,
+      "tokens": 179667,
+      "costUsd": 1.6365222000000001,
+      "artifacts": [
+        "docs/reviews/2026-11-13-p2p-fable-final.json",
+        "docs/reviews/2026-11-13-p2p-fable-final.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-p2p",
+      "sessionId": "82f46d16-b688-4b06-8402-fb76d2916648",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI invocation result; actual claude-fable-5-2 model verified. Each invocation counted once. Token sum includes input/cache creation/cache read/output, thinking not counted again. CLI list-price estimate, no payment assertion. Fable did not execute tests."
+    },
+    {
+      "id": "claude-code-2026-11-13-root-fable-final",
+      "tool": "Claude Code",
+      "model": "claude-fable-5-2",
+      "issues": [
+        122,
+        145,
+        176,
+        177,
+        178
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 123.276,
+      "tokens": 86715,
+      "costUsd": 3.4889571999999998,
+      "artifacts": [
+        "docs/reviews/2026-11-13-root-fable-final.json",
+        "docs/reviews/2026-11-13-root-fable-final.md"
+      ],
+      "concerns": [],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "sessionId": "5ebb2351-c098-42d1-b8e8-b762979a6a2b",
+      "mode": "read-only / high",
+      "measurementSource": "Actual CLI invocation result; actual claude-fable-5-2 model verified. Each invocation counted once. Token sum includes input/cache creation/cache read/output, thinking not counted again. CLI list-price estimate, no payment assertion. Fable did not execute tests."
+    },
+    {
+      "id": "codex-2026-11-13-mcp-upstream-review",
+      "tool": "OpenAI Codex subagent",
+      "model": null,
+      "issues": [
+        176
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/2026-11-13-mcp-b524af8-codex.md"
+      ],
+      "concerns": [
+        "Explicit malformed connector fields were silently repaired; independently reproduced and fixed with ten regressions."
+      ],
+      "parentRunId": "codex-2026-11-13-ticket-audit-root",
+      "measurementSource": "Independent Codex review of actual upstream Fable implementation b524af8; no timing/token/cost measurement. Source changes included in c2988e1."
     }
   ],
   "evidencePolicy": {
