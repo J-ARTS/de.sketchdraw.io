@@ -2056,6 +2056,7 @@
         "claude-code-2026-11-13-root-fable",
         "claude-code-2026-11-13-root-fable-final",
         "claude-code-2026-11-13-root-fable-followup-limited",
+        "codex-2026-11-13-live-sync-artifacts-178",
         "codex-2026-11-13-ticket-audit-root"
       ]
     },
@@ -2302,7 +2303,9 @@
         "unit": "story_points",
         "value": null
       },
-      "sharedUnallocatedRunIds": []
+      "sharedUnallocatedRunIds": [
+        "codex-2026-11-13-live-sync-artifacts-178"
+      ]
     },
     "19": {
       "exclusiveRuns": {
@@ -5462,15 +5465,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       },
       "observedSeconds": {
         "knownRuns": 1,
         "knownSubtotal": 2693.557,
         "total": null,
-        "unknownRuns": 9
+        "unknownRuns": 10
       },
-      "runCount": 10,
+      "runCount": 11,
       "runIds": [
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
@@ -5481,13 +5484,14 @@
         "codex-160-plugin-marketplace",
         "codex-175-git-remote-status",
         "codex-2026-11-13-jira-autosync-184",
+        "codex-2026-11-13-live-sync-artifacts-178",
         "codex-2026-11-13-ticket-audit-root"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 10
+        "unknownRuns": 11
       }
     },
     "OpenAI Codex + Chrome + SketchDraw npm dev:electron": {
@@ -5959,15 +5963,15 @@
       "knownRuns": 17,
       "knownSubtotal": 56.3667389,
       "total": null,
-      "unknownRuns": 246
+      "unknownRuns": 247
     },
     "observedSeconds": {
       "knownRuns": 111,
       "knownSubtotal": 53867.057263248964,
       "total": null,
-      "unknownRuns": 152
+      "unknownRuns": 153
     },
-    "runCount": 263,
+    "runCount": 264,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -6051,6 +6055,7 @@
       "codex-172-177-live-integrations-and-page-reference-diagnosis",
       "codex-175-git-remote-status",
       "codex-2026-11-13-jira-autosync-184",
+      "codex-2026-11-13-live-sync-artifacts-178",
       "codex-2026-11-13-mcp-upstream-review",
       "codex-2026-11-13-ticket-audit-interop",
       "codex-2026-11-13-ticket-audit-p2p",
@@ -6237,7 +6242,7 @@
       "knownRuns": 21,
       "knownSubtotal": 14045982,
       "total": null,
-      "unknownRuns": 242
+      "unknownRuns": 243
     }
   },
   "officialScoreClaimReady": false,
@@ -6251,5 +6256,5 @@
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:35:47Z"
+  "updatedAt": "2026-11-13T09:38:46Z"
 }

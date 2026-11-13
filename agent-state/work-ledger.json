@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:35:47Z",
+  "updatedAt": "2026-11-13T09:38:46Z",
   "issues": [
     {
       "number": 1,
@@ -2342,14 +2342,20 @@
       "number": 178,
       "title": "Live-Schreibtest für Jira-Aufgabe und Git-Diagrammsynchronisation",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/178",
-      "owner": "OpenAI Codex (audit coordination)",
-      "phase": "Ticket audit 2026-11-13: verified and closed in GitHub",
+      "owner": "OpenAI Codex (integration and testing)",
+      "phase": "Live sync follow-up 2026-11-13: integrated and verified on main",
       "status": "completed",
       "dependencies": [],
       "estimatedEffort": {
         "kind": "planning_estimate",
         "unit": "story_points",
         "value": null
+      },
+      "localIntegration": {
+        "branch": "main",
+        "commit": "a8f949d282facd513488f03e4c4de48fbc650510",
+        "publication": "published on origin/main",
+        "remoteCi": "not required for data-only SketchDraw document changes"
       }
     },
     {
@@ -9760,7 +9766,7 @@
       "issues": [
         184
       ],
-      "status": "completed_local_pending_integration",
+      "status": "completed",
       "startedAt": null,
       "endedAt": null,
       "observedSeconds": null,
@@ -9780,6 +9786,30 @@
       "concerns": [],
       "parentRunId": null,
       "measurementSource": "Local Codex implementation with no timing, token or cost measurement. Verified on rebased main by typecheck and 985 unit tests; the feature revision also passed 26 plugin UI tests and 2 focused Electron plugin tests before integration. Commit 55ee386 is published on origin/main."
+    },
+    {
+      "id": "codex-2026-11-13-live-sync-artifacts-178",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        178,
+        184
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "referenzdiagramme.sketchdraw",
+        "test.json",
+        "commit:a8f949d282facd513488f03e4c4de48fbc650510",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/178"
+      ],
+      "concerns": [],
+      "parentRunId": null,
+      "measurementSource": "User-authorized publication of two local SketchDraw documents. Both files passed JSON parsing and schema metadata inspection; the pushed commit and origin/main were independently compared by full commit SHA. No timing, token or cost measurement is available."
     }
   ],
   "evidencePolicy": {
