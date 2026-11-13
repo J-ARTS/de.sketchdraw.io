@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:38:46Z",
+  "updatedAt": "2026-11-13T10:23:43Z",
   "issues": [
     {
       "number": 1,
@@ -2514,6 +2514,27 @@
         69
       ],
       "currentImplementer": "Codex (temporary user-authorized takeover)"
+    },
+    {
+      "number": 186,
+      "title": "Release v0.1.4 bauen, prüfen und veröffentlichen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/186",
+      "owner": "OpenAI Codex",
+      "phase": "Release 2026-11-13: published and verified",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "currentImplementer": "Codex (temporary user-authorized takeover)",
+      "localIntegration": {
+        "branch": "main",
+        "commit": "f455b6c8849e87866eafd8b50ffdd04c710be0a7",
+        "publication": "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4",
+        "remoteCi": "GitHub Actions release run 43404154496 passed all 10 jobs"
+      }
     }
   ],
   "runs": [
@@ -9810,6 +9831,59 @@
       "concerns": [],
       "parentRunId": null,
       "measurementSource": "User-authorized publication of two local SketchDraw documents. Both files passed JSON parsing and schema metadata inspection; the pushed commit and origin/main were independently compared by full commit SHA. No timing, token or cost measurement is available."
+    },
+    {
+      "id": "codex-2026-11-13-release-v0.1.4-186",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        186
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "README.md",
+        "package.json",
+        "package-lock.json",
+        "docs/reviews/2026-11-13-release-186-audit.json",
+        "commit:f455b6c8849e87866eafd8b50ffdd04c710be0a7",
+        "tag:v0.1.4",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/186",
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4"
+      ],
+      "concerns": [],
+      "parentRunId": null,
+      "measurementSource": "User-authorized release coordination. Local typechecks, 69 Node release/lifecycle tests, 985 unit tests, 195 browser UI tests, 11 Electron tests and the production build passed. No local timing, token or cost measurement is available."
+    },
+    {
+      "id": "github-actions-v0.1.4-release-43404154496",
+      "tool": "GitHub Actions",
+      "model": null,
+      "issues": [
+        186
+      ],
+      "status": "completed",
+      "startedAt": "2026-11-13T09:46:47Z",
+      "endedAt": "2026-11-13T10:22:44Z",
+      "observedSeconds": 2157,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43404154496",
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4",
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe",
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg",
+        "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb"
+      ],
+      "concerns": [
+        "GitHub emitted non-blocking deprecation annotations for action dependencies targeting Node.js 20 while forcing Node.js 24."
+      ],
+      "parentRunId": "codex-2026-11-13-release-v0.1.4-186",
+      "measurementSource": "Actual GitHub Actions timestamps and outcome for release run 43404154496. All 10 jobs passed; native Windows x64, macOS arm64 and Linux x64 installers were extracted and started, then published as exactly three assets. Tokens and cost are not applicable or unavailable."
     }
   ],
   "evidencePolicy": {

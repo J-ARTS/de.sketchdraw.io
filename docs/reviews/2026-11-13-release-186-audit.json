@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "issue": 186,
+  "tag": "v0.1.4",
+  "version": "0.1.4",
+  "releaseCommit": "f455b6c8849e87866eafd8b50ffdd04c710be0a7",
+  "releaseUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4",
+  "workflow": {
+    "id": 43404154496,
+    "url": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43404154496",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-11-13T09:46:47Z",
+    "completedAt": "2026-11-13T10:22:44Z",
+    "jobCount": 10
+  },
+  "release": {
+    "id": 444088763,
+    "name": "Sketchdraw v0.1.4",
+    "draft": false,
+    "prerelease": false,
+    "author": "github-actions[bot]",
+    "publishedAt": "2026-11-13T10:22:40Z"
+  },
+  "assets": [
+    {
+      "name": "Sketchdraw-0.1.4-windows-x64.exe",
+      "size": 115518427,
+      "sha256": "8eb81bb589136776f46ee0ae56f9a145adc7957b0b6b24eed1780a5e35522646",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe"
+    },
+    {
+      "name": "Sketchdraw-0.1.4-macos-arm64.dmg",
+      "size": 164249666,
+      "sha256": "e4b7fa789546750adce9ed80e194913f4b9d087c737f890788d52d0c452b7707",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg"
+    },
+    {
+      "name": "Sketchdraw-0.1.4-linux-x64.deb",
+      "size": 118809968,
+      "sha256": "23818a008dc31fd68a7edb48c50fd9d8efb07ea25402a956fdae7fbabaff3363",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb"
+    }
+  ],
+  "localValidation": {
+    "environment": "macOS arm64, Node.js 22.16.0",
+    "typecheckConfig": "passed",
+    "typecheck": "passed",
+    "nodeReleaseAndLifecycleTests": 69,
+    "unitTests": 985,
+    "browserUiTests": 195,
+    "electronTests": 11,
+    "productionBuild": "passed"
+  },
+  "nativeValidation": {
+    "windowsX64": "passed",
+    "macosArm64": "passed",
+    "linuxX64": "passed",
+    "installerExtractionStartAndMcpSmoke": "passed on all three native runners"
+  },
+  "signingLimits": {
+    "windows": "unsigned",
+    "macos": "ad-hoc signed, not notarized",
+    "linux": "unsigned Debian package"
+  }
+}
