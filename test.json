@@ -1,0 +1,81 @@
+{
+  "assets": {},
+  "commentThreads": [],
+  "componentSets": [],
+  "elements": [
+    {
+      "height": 130.234375,
+      "id": "ellipse:b8f962b1-aee5-459b-a22f-2881ba971a61",
+      "kind": "ellipse",
+      "pageId": "page:1",
+      "rotation": 0,
+      "shapeVariant": "circle",
+      "style": {
+        "fill": "transparent",
+        "fontFamily": "sans",
+        "fontSize": 20,
+        "opacity": 1,
+        "stroke": "#1e1e1e",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "center"
+      },
+      "width": 126.5390625,
+      "x": 440.60546875,
+      "y": 283.5859375
+    },
+    {
+      "height": 130.234375,
+      "id": "ellipse:bd5cbb03-2f8c-4dde-a151-0428b6f370bb",
+      "kind": "ellipse",
+      "pageId": "page:1",
+      "rotation": 0,
+      "shapeVariant": "circle",
+      "style": {
+        "fill": "transparent",
+        "fontFamily": "sans",
+        "fontSize": 20,
+        "opacity": 1,
+        "stroke": "#1e1e1e",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "center"
+      },
+      "width": 126.5390625,
+      "x": 792.70703125,
+      "y": 348.79296875
+    },
+    {
+      "height": 130.234375,
+      "id": "ellipse:f0e54de7-971a-431d-ae1b-36e94ea24645",
+      "kind": "ellipse",
+      "pageId": "page:1",
+      "rotation": 0,
+      "shapeVariant": "circle",
+      "style": {
+        "fill": "transparent",
+        "fontFamily": "sans",
+        "fontSize": 20,
+        "opacity": 1,
+        "stroke": "#1e1e1e",
+        "strokeDash": "solid",
+        "strokeWidth": 2,
+        "textAlign": "center"
+      },
+      "width": 126.5390625,
+      "x": 684.44140625,
+      "y": 532.87890625
+    }
+  ],
+  "id": "document:723cf549-b163-44ee-9ae3-a31001e7c689",
+  "metadata": {},
+  "pages": [
+    {
+      "id": "page:1",
+      "name": "Seite 1"
+    }
+  ],
+  "schemaVersion": 2,
+  "tasks": [],
+  "title": "Unbenannt"
+}

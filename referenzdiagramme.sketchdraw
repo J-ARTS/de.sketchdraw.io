@@ -2050,8 +2050,8 @@
       },
       "text": "Amazon Kinesis",
       "width": 168,
-      "x": 726,
-      "y": 323.5
+      "x": 206.97222222222217,
+      "y": 652.9991319444443
     },
     {
       "height": 210,
@@ -4111,15 +4111,35 @@
         "key": "SCRUM-1",
         "provider": "jira",
         "remoteId": "10000",
-        "remoteStatus": "To Do",
-        "updatedAt": "2026-11-13T08:40:14.361Z",
+        "remoteStatus": "In Review",
+        "updatedAt": "2026-11-13T09:21:46.164Z",
         "url": "https://j-art.atlassian.net/browse/SCRUM-1"
       },
       "id": "task:2e74e3f3-5a50-43c8-9899-6165fa97d629",
       "rank": 0,
-      "status": "todo",
+      "status": "review",
       "title": "SketchDraw Synchronisationstest 2026-11-13",
-      "updatedAt": "2026-11-13T08:40:14.361Z"
+      "updatedAt": "2026-11-13T09:21:46.164Z"
+    },
+    {
+      "assignee": "Jeremy Teichmann",
+      "createdAt": "2026-11-13T09:19:30.613Z",
+      "description": "helo",
+      "dueDate": "2026-11-27",
+      "external": {
+        "key": "SCRUM-2",
+        "provider": "jira",
+        "remoteId": "10001",
+        "remoteStatus": "To Do",
+        "updatedAt": "2026-11-13T09:19:30.613Z",
+        "url": "https://j-art.atlassian.net/browse/SCRUM-2"
+      },
+      "id": "task:2b1187c5-d6c5-450c-8718-22efa2ffaba2",
+      "rank": 0,
+      "status": "todo",
+      "title": "test",
+      "type": "docs",
+      "updatedAt": "2026-11-13T09:19:30.613Z"
     }
   ],
   "title": "Referenzdiagramme – Traefik & Workflow"
