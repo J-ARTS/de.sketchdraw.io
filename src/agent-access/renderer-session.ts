@@ -10,7 +10,7 @@ export interface RendererAgentSession {
 }
 
 /** Attach once per authority, including when a document with the same ID is reopened. */
-export function attachRendererAgentSession(authority: DocumentAuthority, bridge: SketchdrawAgentAccessBridge): RendererAgentSession {
+export function attachRendererAgentSession(authority: DocumentAuthority, bridge: SketchdrawAgentAccessBridge, options: { historyActorId?: string } = {}): RendererAgentSession {
   if (!bridge.isAvailable || nextSessionEpoch >= Number.MAX_SAFE_INTEGER) throw new AgentAccessError('ACCESS_DENIED', 'Agent access is unavailable.');
   const sessionEpoch = ++nextSessionEpoch;
   const documentId = authority.session.documentId;
@@ -24,7 +24,7 @@ export function attachRendererAgentSession(authority: DocumentAuthority, bridge:
     if (!handler) {
       if (message.type !== 'sync-session' || !Number.isSafeInteger(message.webContentsGeneration) || message.webContentsGeneration < 0) return rejected;
       generation = message.webContentsGeneration;
-      handler = createRendererAgentHandler(authority, { documentId, sessionEpoch, webContentsGeneration: generation });
+      handler = createRendererAgentHandler(authority, { documentId, sessionEpoch, webContentsGeneration: generation }, options);
     }
     return handler.handleControl(message);
   });

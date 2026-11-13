@@ -77,7 +77,8 @@ function attachAgentAccess(value: DocumentAuthority | null) {
   // A room guest holds a foreign document: no local agent (MCP) authority for it, editor or viewer, connected or not.
   if (!value || store.getRoomGuest() || !bridge?.isAvailable) return;
   try {
-    const session = attachRendererAgentSession(value, bridge);
+    // A local agent works on the user's behalf: its changes go into the user's undo history (#176).
+    const session = attachRendererAgentSession(value, bridge, { historyActorId: store.getLocalActorId() });
     agentSession = session;
     void session.ready.catch(() => { if (agentSession === session) agentSession = undefined; });
   } catch { agentSession = undefined; }

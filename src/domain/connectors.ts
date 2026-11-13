@@ -314,3 +314,70 @@ export function connectorPathData(element: Pick<SketchElement, 'points' | 'conne
   const controlB = points.at(-2)!;
   return `M ${point(start)} C ${point(controlA)} ${point(controlB)} ${point(end)}`;
 }
+
+type ConnectorTarget = Pick<SketchElement, 'x' | 'y' | 'width' | 'height'> & { rotation?: number };
+const SIDE_ANCHORS: readonly Point[] = [{ x: 1, y: 0.5 }, { x: 0, y: 0.5 }, { x: 0.5, y: 1 }, { x: 0.5, y: 0 }];
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function isFinitePoint(value: unknown): value is Point {
+  return isPlainObject(value) && typeof value.x === 'number' && Number.isFinite(value.x) && typeof value.y === 'number' && Number.isFinite(value.y);
+}
+/** Whether `value` has the finite position and size a connector end can be attached to. */
+export function isConnectorTarget(value: unknown): value is ConnectorTarget {
+  return isPlainObject(value) && [value.x, value.y, value.width, value.height].every((part) => typeof part === 'number' && Number.isFinite(part));
+}
+/** Point on the bounding rectangle of `element` for a normalized anchor, honouring rotation. */
+function targetAnchorPoint(element: ConnectorTarget, anchor: Point): Point {
+  const point = { x: element.x + anchor.x * element.width, y: element.y + anchor.y * element.height };
+  const angle = ((element.rotation ?? 0) * Math.PI) / 180;
+  if (!angle) return point;
+  const cx = element.x + element.width / 2;
+  const cy = element.y + element.height / 2;
+  const dx = point.x - cx;
+  const dy = point.y - cy;
+  return { x: cx + dx * Math.cos(angle) - dy * Math.sin(angle), y: cy + dx * Math.sin(angle) + dy * Math.cos(angle) };
+}
+/** The pair of side midpoints of two elements that lie closest to each other. */
+function facingAnchors(from: ConnectorTarget, to: ConnectorTarget): [Point, Point] {
+  let best: [Point, Point] = [SIDE_ANCHORS[0]!, SIDE_ANCHORS[1]!];
+  let distance = Number.POSITIVE_INFINITY;
+  for (const a of SIDE_ANCHORS) {
+    for (const b of SIDE_ANCHORS) {
+      const start = targetAnchorPoint(from, a);
+      const end = targetAnchorPoint(to, b);
+      const next = Math.hypot(end.x - start.x, end.y - start.y);
+      if (next < distance - 1e-9) { best = [a, b]; distance = next; }
+    }
+  }
+  return best;
+}
+/**
+ * Gives a connector that names both ends but no route its geometry (#176): position, size, the two points and the
+ * anchors come from the elements it joins, like a connector drawn between them in the app. Anchors, routing and
+ * markers that are already given are kept; computed connectors default to elbowed routing. Returns `raw` itself when
+ * there is nothing to compute: not a connector, a route is present, or an end is missing or unknown to `lookup`.
+ */
+export function routeBoundConnector(raw: Record<string, unknown>, lookup: (elementId: string) => unknown): Record<string, unknown> {
+  // Only omitted fields get defaults; explicit malformed values must reach domain validation unchanged.
+  if (raw.kind !== 'connector' || Object.prototype.hasOwnProperty.call(raw, 'points')) return raw;
+  const from = isPlainObject(raw.from) ? raw.from : null;
+  const to = isPlainObject(raw.to) ? raw.to : null;
+  const source = from && typeof from.elementId === 'string' ? lookup(from.elementId) : undefined;
+  const target = to && typeof to.elementId === 'string' ? lookup(to.elementId) : undefined;
+  if (!from || !to || !isConnectorTarget(source) || !isConnectorTarget(target)) return raw;
+  const facing = facingAnchors(source, target);
+  const fromAnchor = Object.prototype.hasOwnProperty.call(from, 'anchor') ? from.anchor : facing[0];
+  const toAnchor = Object.prototype.hasOwnProperty.call(to, 'anchor') ? to.anchor : facing[1];
+  if (!isFinitePoint(fromAnchor) || !isFinitePoint(toAnchor)) return raw;
+  const start = targetAnchorPoint(source, fromAnchor);
+  const end = targetAnchorPoint(target, toAnchor);
+  const x = Math.min(start.x, end.x);
+  const y = Math.min(start.y, end.y);
+  return {
+    ...raw, x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y),
+    points: [{ x: start.x - x, y: start.y - y }, { x: end.x - x, y: end.y - y }],
+    from: { ...from, anchor: fromAnchor }, to: { ...to, anchor: toAnchor },
+    connectorRouting: Object.prototype.hasOwnProperty.call(raw, 'connectorRouting') ? raw.connectorRouting : 'elbowed',
+  };
+}

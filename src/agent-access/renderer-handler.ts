@@ -25,7 +25,7 @@ export interface RendererAgentHandler {
   dispose(): void;
 }
 /** Uses the actual shared authority; it never creates a private document/controller. */
-export function createRendererAgentHandler(authority: DocumentAuthority, session: AgentSessionDescriptor): RendererAgentHandler {
+export function createRendererAgentHandler(authority: DocumentAuthority, session: AgentSessionDescriptor, options: { historyActorId?: string } = {}): RendererAgentHandler {
   if (authority.session.documentId !== session.documentId) throw new AgentAccessError('DOCUMENT_MISMATCH', 'Invalid document authority.');
   const grants = new Map<string, LocalGrant>();
   let closed = false;
@@ -63,7 +63,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       } else if (message.type === 'install-grant') {
         const summary = { ...message.grant, active: true, revoked: false };
         if (summary.documentId !== session.documentId || summary.sessionEpoch !== session.sessionEpoch || grants.has(summary.grantId) || revoked.has(summary.grantId) || grants.size >= L.MAX_ACTIVE_GRANTS || !['read', 'write'].includes(summary.permission) || summary.actorId !== `agent:${summary.grantId}`) throw new AgentAccessError('ACCESS_DENIED', 'Invalid grant.');
-        const binding = authority.bindActor({ actorId: summary.actorId, source: 'agent', grantId: summary.grantId, grantGeneration: summary.grantGeneration, guard: request => {
+        const binding = authority.bindActor({ actorId: summary.actorId, source: 'agent', grantId: summary.grantId, grantGeneration: summary.grantGeneration, ...(options.historyActorId ? { historyActorId: options.historyActorId } : {}), guard: request => {
           const local = grants.get(summary.grantId);
           if (closed || local?.summary !== summary || !summary.active || summary.revoked || request.grantGeneration !== summary.grantGeneration || request.grantId !== summary.grantId || request.actorId !== summary.actorId || request.session.controllerEpoch !== authority.session.controllerEpoch || request.bindingId !== local.binding.bindingId || request.bindingGeneration !== local.binding.bindingGeneration || request.source !== 'agent') return { allowed: false, code: 'ACCESS_REVOKED' };
           return request.permission === 'read' || summary.permission === 'write' ? { allowed: true } : { allowed: false, code: 'ACCESS_DENIED' };

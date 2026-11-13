@@ -104,6 +104,31 @@ describe('transport-neutral relay ownership and limits (R20/R21)', () => {
     f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('keeps the shared queue counter exact when shedding also removes the current source destination', async () => {
+    vi.useFakeTimers();
+    const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100, maxAggregateQueuedBytes: 250 });
+    const host = f.client(); f.register(host);
+    const flood = f.client(); flood.send({ t: 'guest', topic: f.topic });
+    const survivor = f.client(); survivor.send({ t: 'guest', topic: f.topic });
+    const ids = host.texts.filter(value => value.t === 'guest-join').map(value => Buffer.from(value.id as string, 'hex'));
+    const sendTo = (id: Buffer, value: number) => host.handler.message(Buffer.concat([id, Buffer.alloc(30, value)]), true);
+    for (let index = 0; index < 3; index++) flood.handler.message(new Uint8Array(84), true);
+    sendTo(ids[0]!, 8); // This pending record is removed together with the biggest producer below.
+    sendTo(ids[1]!, 9);
+    expect(flood.closes).toEqual([{ code: 4429, reason: 'aggregate-queue-full' }]);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(survivor.frames.map(frame => frame[0])).toEqual([9]);
+    const next = f.client(); next.send({ t: 'guest', topic: f.topic });
+    for (let index = 0; index < 3; index++) next.handler.message(new Uint8Array(84), true);
+    sendTo(ids[1]!, 10); sendTo(ids[1]!, 11);
+    // Actual queued payloads again exceed 250 bytes. No stale negative accounting may grant extra capacity.
+    expect(next.closes).toEqual([{ code: 4429, reason: 'aggregate-queue-full' }]);
+    expect(survivor.closes).toEqual([]); expect(host.closes).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(survivor.frames.map(frame => frame[0])).toEqual([9, 10, 11]);
+    f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each(['bytes', 'records'] as const)('bounds each producer queue by %s with an explicit disconnect', bound => {
     vi.useFakeTimers();
     const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100,

@@ -14,7 +14,7 @@ Geprüft gegen die gebaute Desktop-App (`0d50898`, Linux, xvfb, unprivilegiert, 
 | 4 | Der Adapter verband nach einem Dokumentwechsel neu und sendete auch Schreibaufrufe erneut; Revisionen beginnen je Dokument bei 0. | Ein Umbenennen mit `expectedRevision: 0` landete im neu geöffneten Dokument. |
 | 5 | Mehr als zwei gleichzeitige Aufrufe endeten mit `BUSY`. | Vier von sechs parallelen Lesezugriffen schlugen fehl. |
 | 6 | Verbindungen verlangten vollständige Geometrie. | Die häufigste Aufgabe bei Architekturdiagrammen war nur mit Rechenarbeit lösbar. |
-| 7 | Agentenänderungen sind für den Menschen nicht rückgängig zu machen (CL-03, gewollt). | Kein Schutz gegen ein fehlerhaftes `apply_code`. Offen. |
+| 7 | Agentenänderungen sind für den Menschen nicht rückgängig zu machen (CL-03, gewollt). | Kein Schutz gegen ein fehlerhaftes `apply_code`. Behoben, siehe Nachtrag. |
 | 8 | 300 Elemente: `read_document` 93 481 Zeichen, `read_code` 83 649 Zeichen; kein Filter. | Hoher Kontextverbrauch. Offen. |
 
 Skill: formal gültig, aber in keinem Skill-Verzeichnis eines Clients und nicht im Installer; ohne Befehlskatalog, Elementfelder und Verbindungsrezept.
@@ -52,7 +52,17 @@ Fünf Subagenten (Modell Sonnet 5.5) arbeiteten gegen laufende Instanzen der geb
 
 Aus den Berichten übernommen: Verbindungsenden in Suchtreffern, eigener Text für eine Wiederholung, Standardgrößen und Seitenregel in Anweisungen und Schema, Seitenliste in der Analyse, deutlichere Meldung bei verbrauchter `commandId`, Hinweis, dass der Code-Pfad keine Verbindungen berechnet. Die beiden Lücken des Bestätigungslaufs (Seiten-ID nicht auffindbar, verbrauchte `commandId` nach Ablehnung) wurden danach behoben; dieser letzte Stand ist durch Unit- und Integrationstests belegt, aber nicht durch einen weiteren Subagentenlauf.
 
-Nicht übernommen und offen: IDs der angelegten Elemente im Schreibergebnis, Seiten- und Feldfilter für große Dokumente, berechnete Verbindungen im Code-Pfad, einheitliche Form für Schemafehler der SDK-Schicht, Bedeutung von `retryable`.
+Nicht übernommen und offen: IDs der angelegten Elemente im Schreibergebnis, Seiten- und Feldfilter für große Dokumente, einheitliche Form für Schemafehler der SDK-Schicht, Bedeutung von `retryable`. (Berechnete Verbindungen im Code-Pfad: siehe Nachtrag.)
+
+## Nachtrag: offene Punkte 7, Code-Verbindungen und Skill im Installer
+
+Auf Wunsch des Nutzers am selben Tag umgesetzt.
+
+- **Rückgängig durch den Nutzer.** Fehlerfall: Strg+Z nach einer Agentenänderung blieb wirkungslos; ein fehlerhaftes `apply_code` war nicht zurückzunehmen. Lösung: `ActorBindingOptions.historyActorId` (nur für `source: 'agent'`); der Renderer bindet lokale Agenten mit dem Actor des Nutzers, die Authority legt deren Änderungen in dessen Verlauf ab. Peers können keinen fremden Verlauf benennen, CL-03 gilt für sie unverändert. Folge: Eine Agentenänderung leert wie jede neue Änderung den Wiederherstellen-Stapel des Nutzers, und ein Agentenaufruf ist genau ein Undo-Schritt. Das ist eine Änderung an `src/session` und gehört in den Review durch Codex.
+- **Verbindungen im Diagrammcode.** `parseDiagram` berechnet eine `connector`-Zeile mit beiden Enden und ohne `points` wie der Befehlspfad; die Berechnung liegt jetzt in `src/domain/connectors.ts` (`routeBoundConnector`). Das gilt auch für das Code-Panel der App.
+- **Skill im Installer.** `extraResources` legt `skills/**/SKILL.md` neben `app.asar`; der Installer-Smoke prüft Vorhandensein und Hash; der Adapter nennt den gefundenen Pfad am Ende der Server-Anweisungen.
+
+Geprüft: Unit-Tests für Authority (gemeinsamer Verlauf, Ablehnung für Peers und andere Quellen), Handler und Parser; `tests/electron/agent-product.spec.ts` drückt in der echten App Strg+Z nach einer Agentenänderung, stellt sie wieder her und fügt eine Verbindung als Codezeile ein. Ein lokaler Paketbau bis zum entpackten Linux-Verzeichnis enthielt `resources/skills/sketchdraw-desktop/SKILL.md`; der vollständige Installer-Bau und der Installer-Smoke laufen erst im nächsten Release. Ein weiterer Sonnet-Subagent (blind, 13 Aufrufe, ein provozierter Fehler) schrieb die Verbindungszeile im ersten Versuch nur mit `from`/`to` und stellte nach zwei simulierten Strg+Z des Nutzers fest, dass erst die Code-Änderung und dann der ganze erste Stapelaufruf zurückgenommen war; der Dokumentzustand in der App bestätigte das. Sein Hinweis, dass ein Undo die Revision erhöht und einen ganzen Aufruf entfernt, steht jetzt in Anweisungen und Skill.
 
 ## Prüfungen
 
@@ -64,3 +74,4 @@ Cloud-Linux, Node 22, Stand vor dem Commit.
 - `npx playwright test --project=electron` (xvfb, unprivilegiert, Sandbox aktiv): 11 von 11.
 - `npx playwright test --project=ui`: 189 von 190 auf dem Stand vor den letzten Textänderungen; der eine Fehlschlag (`whiteboard.spec.ts`, Rendern aller Grundformen) trat auf, während parallel eine App-Instanz mit Subagent lief, und bestand im Einzellauf (15 von 15). Auf dem Endstand lief davon nur `agent-access.spec.ts` (2 von 2); die vollständige Suite läuft in der CI.
 - Nicht geprüft: echte Clients (Claude Code, Codex, Antigravity), Windows und macOS von Hand, Laufzeitkosten. Zeit, Tokens und Kosten der Subagenten: unbekannt bis auf die vom Werkzeug gemeldeten Tokenzahlen je Lauf (rund 93 000 bis 101 000).
+- Nachtrag (Stand nach den drei Ergänzungen): `npx vitest run` 898 von 898 in 103 Dateien, `node --test` 69 von 69, Electron 11 von 11. Vollständige UI-Suite 189 von 190; der Fehlschlag (`comments-tasks.spec.ts`, Kommentare mit Pins) bestand im Einzellauf mit und ohne die Änderungen (5 von 5). In beiden vollständigen Läufen dieses Tages fiel je ein anderer Test aus, bei rund 9,5 Minuten Laufzeit; die CI auf drei Plattformen ist maßgeblich.

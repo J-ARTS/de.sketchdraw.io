@@ -101,8 +101,9 @@ export function createRelayHub(options = {}) {
       const remaining = source === conn ? [] : queue.records.filter(record => record.target !== conn);
       const bytes = remaining.reduce((sum, record) => sum + record.frame.length, 0);
       queuedBytes -= queue.bytes - bytes;
+      // paceForwarding may still own this object while shedding one of its destinations.
+      queue.records = remaining; queue.bytes = bytes;
       if (!remaining.length) forwarding.delete(source);
-      else { queue.records = remaining; queue.bytes = bytes; }
     }
     if (!forwarding.size && forwardingTimer) { clearTimeout(forwardingTimer); forwardingTimer = null; }
   }

@@ -1,6 +1,6 @@
-import { applyCommand, createElement } from '../domain';
+import { applyCommand, createElement, isConnectorTarget, routeBoundConnector } from '../domain';
 import { DomainConflictError, DomainValidationError } from '../domain/errors';
-import type { DocumentCommand, ElementKind, Point, SketchDocument, SketchElement, ValidationIssue } from '../domain';
+import type { DocumentCommand, ElementKind, SketchDocument, SketchElement, ValidationIssue } from '../domain';
 
 /**
  * Agent-facing leniency for `sketchdraw_apply_commands` (#176). The domain stays the only authority: this module only
@@ -8,65 +8,17 @@ import type { DocumentCommand, ElementKind, Point, SketchDocument, SketchElement
  */
 export const MAX_REPORTED_ISSUES = 20;
 const CENTERED_KINDS: ReadonlySet<string> = new Set(['rectangle', 'ellipse', 'diamond']);
-const SIDES: readonly Point[] = [{ x: 1, y: 0.5 }, { x: 0, y: 0.5 }, { x: 0.5, y: 1 }, { x: 0.5, y: 0 }];
 
 type Box = Pick<SketchElement, 'x' | 'y' | 'width' | 'height' | 'rotation'>;
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-function isPoint(value: unknown): value is Point {
-  return isRecord(value) && typeof value.x === 'number' && Number.isFinite(value.x) && typeof value.y === 'number' && Number.isFinite(value.y);
-}
-function isBox(value: unknown): value is Box {
-  return isRecord(value) && [value.x, value.y, value.width, value.height].every(part => typeof part === 'number' && Number.isFinite(part));
-}
-/** Point on the element's bounding rectangle for a normalized anchor, honouring rotation. */
-function anchorPoint(element: Box, anchor: Point): Point {
-  const point = { x: element.x + anchor.x * element.width, y: element.y + anchor.y * element.height };
-  const angle = ((element.rotation ?? 0) * Math.PI) / 180;
-  if (!angle) return point;
-  const cx = element.x + element.width / 2; const cy = element.y + element.height / 2;
-  const dx = point.x - cx; const dy = point.y - cy;
-  return { x: cx + dx * Math.cos(angle) - dy * Math.sin(angle), y: cy + dx * Math.sin(angle) + dy * Math.cos(angle) };
-}
-/** The pair of side midpoints of two elements that lie closest to each other. */
-function facingAnchors(from: Box, to: Box): [Point, Point] {
-  let best: [Point, Point] = [SIDES[0]!, SIDES[1]!]; let distance = Number.POSITIVE_INFINITY;
-  for (const a of SIDES) for (const b of SIDES) {
-    const start = anchorPoint(from, a); const end = anchorPoint(to, b);
-    const next = Math.hypot(end.x - start.x, end.y - start.y);
-    if (next < distance - 1e-9) { best = [a, b]; distance = next; }
-  }
-  return best;
-}
-/**
- * A connector that names both ends but no route gets its geometry from the two elements, like a connector drawn between
- * them in the app. Anything the agent did specify (anchors, routing, markers) is kept.
- */
-function routeBoundConnector(raw: Record<string, unknown>, known: ReadonlyMap<string, Box>): Record<string, unknown> {
-  if (raw.kind !== 'connector' || (Array.isArray(raw.points) && raw.points.length >= 2)) return raw;
-  const from = isRecord(raw.from) ? raw.from : null; const to = isRecord(raw.to) ? raw.to : null;
-  const source = from && typeof from.elementId === 'string' ? known.get(from.elementId) : undefined;
-  const target = to && typeof to.elementId === 'string' ? known.get(to.elementId) : undefined;
-  if (!from || !to || !source || !target) return raw;
-  const facing = facingAnchors(source, target);
-  const fromAnchor = isPoint(from.anchor) ? from.anchor : facing[0];
-  const toAnchor = isPoint(to.anchor) ? to.anchor : facing[1];
-  const start = anchorPoint(source, fromAnchor); const end = anchorPoint(target, toAnchor);
-  const x = Math.min(start.x, end.x); const y = Math.min(start.y, end.y);
-  return {
-    ...raw, x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y),
-    points: [{ x: start.x - x, y: start.y - y }, { x: end.x - x, y: end.y - y }],
-    from: { ...from, anchor: fromAnchor }, to: { ...to, anchor: toAnchor },
-    connectorRouting: raw.connectorRouting ?? 'elbowed',
-  };
 }
 function completeElement(raw: unknown, path: string, known: Map<string, Box>, issues: ValidationIssue[]): unknown {
   if (!isRecord(raw)) return raw;
   if (typeof raw.id !== 'string' || !raw.id) { issues.push({ path: `${path}.id`, code: 'MISSING_ID', message: 'Every added element needs an "id" you choose, for example "box:api".' }); return raw; }
   if (raw.kind === 'web-embed' && raw.embedUrl === undefined) { issues.push({ path: `${path}.embedUrl`, code: 'MISSING_EMBED_URL', message: 'A web-embed needs "embedUrl".' }); return raw; }
   if (raw.kind === 'image' && raw.assetId === undefined) { issues.push({ path: `${path}.assetId`, code: 'MISSING_ASSET', message: 'An image needs "assetId" of an asset in the document or in this command\'s "assets".' }); return raw; }
-  const routed = routeBoundConnector(raw, known);
+  const routed = routeBoundConnector(raw, id => known.get(id));
   if (routed === raw && raw.kind === 'connector' && !Array.isArray(raw.points)) {
     // Bound ends without a route, but nothing to compute it from: say which element is missing instead of "points required".
     for (const side of ['from', 'to'] as const) {
@@ -130,7 +82,7 @@ function completeCommand(command: unknown, path: string, known: Map<string, Box>
  */
 export function prepareAgentCommand(command: DocumentCommand, document: SketchDocument): { command: DocumentCommand; issues: ValidationIssue[] } {
   const known = new Map<string, Box>();
-  for (const element of document.elements) if (element.kind !== 'connector' && isBox(element)) known.set(element.id, element);
+  for (const element of document.elements) if (element.kind !== 'connector' && isConnectorTarget(element)) known.set(element.id, element);
   const issues: ValidationIssue[] = [];
   const completed = completeCommand(command, '', known, issues) as DocumentCommand;
   return { command: issues.length ? command : completed, issues: issues.slice(0, MAX_REPORTED_ISSUES) };

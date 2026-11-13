@@ -268,6 +268,10 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
       }
     }
   }
+  /** The actor under which the controller files a binding's changes for undo; an agent may share the local user's. */
+  function historyActor(binding: BindingState): string {
+    return binding.options.historyActorId ?? binding.options.actorId;
+  }
   function process(entry: Entry): void {
     if (entry.outcome || !entry.intent) return;
     const intent = entry.intent;
@@ -279,10 +283,10 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
       const action = intent.action;
       const result = action.kind === 'dispatch'
         ? controller.dispatch(action.command, {
-          actorId: entry.binding.options.actorId, source: entry.binding.options.source,
+          actorId: historyActor(entry.binding), source: entry.binding.options.source,
           expectedRevision: intent.expectedRevision,
         })
-        : controller[action.kind](entry.binding.options.actorId);
+        : controller[action.kind](historyActor(entry.binding));
       if (stopped) return;
       const notification = observed as DocumentSession | undefined;
       if (result.document.id !== session.documentId
@@ -511,7 +515,8 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
       if (transition) throw new SessionAccessError('TRANSITION_PENDING');
       if (!input || typeof input !== 'object' || !validId(input.actorId) || !validId(input.grantId)
         || !SOURCES.has(input.source) || !validInteger(input.grantGeneration) || typeof input.guard !== 'function'
-        || (input.source === 'peer' ? !validHex(input.peerSessionId) : input.peerSessionId !== undefined)) {
+        || (input.source === 'peer' ? !validHex(input.peerSessionId) : input.peerSessionId !== undefined)
+        || (input.historyActorId !== undefined && (input.source !== 'agent' || !validId(input.historyActorId)))) {
         throw new SessionAccessError('VALIDATION_FAILED');
       }
       if (input.peerSessionId && endedPeerSessions.has(input.peerSessionId)) throw new SessionAccessError('ACCESS_REVOKED');
@@ -524,6 +529,7 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
         options: Object.freeze({
           actorId: input.actorId, source: input.source, grantId: input.grantId,
           grantGeneration: input.grantGeneration, guard: input.guard, peerSessionId: input.peerSessionId,
+          historyActorId: input.historyActorId,
         }),
         revoked: false, highWater: 0, listeners: new Set(),
       };
@@ -533,7 +539,7 @@ export function createDocumentAuthority(options: DocumentAuthorityOptions): Docu
         actorId: binding.options.actorId,
         source: Object.freeze({
           getSnapshot() { readCheck(binding); return clone(snapshot); },
-          getHistoryState() { readCheck(binding); return clone(controller.getHistoryState(binding.options.actorId)); },
+          getHistoryState() { readCheck(binding); return clone(controller.getHistoryState(historyActor(binding))); },
           subscribe(listener: (value: DocumentSession) => void) { return subscribe(binding, listener); },
         }),
         gateway: Object.freeze({

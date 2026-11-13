@@ -94,7 +94,7 @@ export function createCrdtTransferReceiver(options: { onError(error: Error, peer
         || (offset + chunk.length < total && chunk.length !== CHUNK_BYTES)) return fail(peerKey, key);
       let entry = transfers.get(key);
       if (!entry) {
-        if (offset !== 0 || [...reservations].some(value => value.peerKey === peerKey)) return fail(peerKey, key, 'SYNC_TRANSFER_LIMIT');
+        if (offset !== 0 || [...reservations].some(value => value.peerKey === peerKey && !value.verifying)) return fail(peerKey, key, 'SYNC_TRANSFER_LIMIT');
         // Capacity held by other connections is temporary pressure, not evidence against this sender.
         if (reservations.size >= MAX_TRANSFERS || allocated + total > CRDT_TRANSFER_LIMIT_BYTES) return fail(peerKey, key, 'SYNC_TRANSFER_BUSY');
         const expire = () => fail(peerKey, key, 'SYNC_TRANSFER_TIMEOUT');

@@ -69,6 +69,23 @@ describe('bounded CRDT state transfer', () => {
     } finally { receiver.close(); }
   });
 
+  it('accepts the next ordered transfer while the preceding complete transfer is still being hashed', async () => {
+    const { chunks } = await frames();
+    let finishHash!: (value: ArrayBuffer) => void;
+    const hashing = vi.spyOn(crypto.subtle, 'digest').mockImplementation(() => new Promise(resolve => { finishHash = resolve; }));
+    const onError = vi.fn(), receiver = createCrdtTransferReceiver({ onError });
+    let final: Promise<Uint8Array | null> | undefined;
+    try {
+      for (const frame of chunks.slice(0, -1)) await receiver.accept('peer:key', frame);
+      final = receiver.accept('peer:key', chunks.at(-1)!);
+      const next = chunks[0]!.slice(); next[4] = next[4]! ^ 1;
+      await receiver.accept('peer:key', next);
+      expect(onError).not.toHaveBeenCalled();
+    } finally {
+      receiver.close(); finishHash(new ArrayBuffer(32)); await final; hashing.mockRestore();
+    }
+  });
+
   it('bounds idle reservations and stops sending after cancellation', async () => {
     const { data, chunks } = await frames();
     vi.useFakeTimers();

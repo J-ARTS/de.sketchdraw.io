@@ -1,5 +1,5 @@
 {
-  "base": "8df3006",
+  "base": "92d56c7 plus final working-tree corrections and coordinated integration",
   "environment": {
     "node": "v22.16.0",
     "platform": "darwin",
@@ -8,14 +8,14 @@
   "command": "npx vitest run tests/unit/collaboration tests/unit/crdt tests/unit/crdt.spec.ts tests/unit/session tests/unit/renderer/room-connection.spec.ts",
   "result": "passed",
   "files": 34,
-  "tests": 316,
-  "duration_seconds": 15.07,
-  "log": "\n RUN  v5.0.5 /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io\n\n\n Test Files  34 passed (34)\n      Tests  316 passed (316)\n   Start at  09:44:51\n   Duration  15.07s (tests 94%, import 4%, transform 2%)\n\n",
+  "tests": 320,
+  "duration_seconds": 15.16,
+  "log": "\n RUN  v5.0.5 /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io\n\n\n Test Files  34 passed (34)\n      Tests  320 passed (320)\n   Start at  09:51:47\n   Duration  15.16s (tests 94%, import 4%, transform 2%)\n\n",
   "source_sha256": {
-    "relay/hub.mjs": "f1e6bd8df9b3c28b4a51689ab8b41dea409e60433378b604d3ed243b56a235f2",
+    "relay/hub.mjs": "3dc593be5b0fafb37e2ad4515ab29b633014c16ceeda1f0026f952c7043ca2c9",
     "relay/hub.d.mts": "3ff3d1a8c82eb3f89fb4eb539a14fb284f8f73646f8ae9eb385bdfe3a3d98888",
     "src/collaboration/crdt.ts": "301dd826db5b696c20b0ebdd1a0edbad3765d678217822e5e9b400d108a39fb5",
-    "src/collaboration/crdt-transfer.ts": "39d7aae1a7484709b48e796ef25338014d96aed0960d70c4ee187fb4845b24e5",
+    "src/collaboration/crdt-transfer.ts": "c7c9d53a5009744556fcc5b508fdbb913ba202d78fb09e6c93beead5a049ee88",
     "src/collaboration/hdht/peer-relay.ts": "bbf8a820e1978e0749d547d71246685dc6fc3292631099a2b266d2c4510c8bb0",
     "src/collaboration/hdht/session.ts": "d2605b8f2f553d52ec39d43b569e0a30e26c02fc0051bcf79f25717121b784e6",
     "src/renderer/components/HdhtSession.vue": "b2bb5ea6165ee626e09d19865653c5040a56c1b5cabc7b696f48dce5e58f7e7f"
@@ -24,5 +24,13 @@
   "real_network_field_tests": "not run",
   "installed_protocol_clicks": "not run",
   "ui_electron": "root-coordinated, not claimed here",
-  "typecheck": "root pending final shared source check"
+  "typecheck": {
+    "result": "passed",
+    "command": "npm run typecheck",
+    "log": "\n> de.sketchdraw.io@0.1.3 typecheck\n> node scripts/verify-entrypoints.mjs --mode=typecheck && vue-tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.mcp.json --noEmit\n\n"
+  },
+  "final_review_regressions_before_fix": {
+    "result": "2 expected failures, 30 passes",
+    "log": "\n RUN  v5.0.5 /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io\n\n ❯ |unit| tests/unit/collaboration/hdht/relay-hub.spec.ts (24 tests | 1 failed) 36ms\n   ❯ transport-neutral relay ownership and limits (R20/R21) (16)\n     × keeps the shared queue counter exact when shedding also removes the current source destination 7ms\n ❯ |unit| tests/unit/collaboration/crdt-transfer.spec.ts (8 tests | 1 failed) 75ms\n   ❯ bounded CRDT state transfer (8)\n     × accepts the next ordered transfer while the preceding complete transfer is still being hashed 9ms\n\n⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯\n\n FAIL  |unit| tests/unit/collaboration/crdt-transfer.spec.ts > bounded CRDT state transfer > accepts the next ordered transfer while the preceding complete transfer is still being hashed\nAssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      [Error: SYNC_TRANSFER_LIMIT],\n      \"peer:key\",\n    ]\n\n\nNumber of calls: 1\n\n ❯ tests/unit/collaboration/crdt-transfer.spec.ts:83:27\n     81|       const next = chunks[0]!.slice(); next[4] = next[4]! ^ 1;\n     82|       await receiver.accept('peer:key', next);\n     83|       expect(onError).not.toHaveBeenCalled();\n       |                           ^\n     84|     } finally {\n     85|       receiver.close(); finishHash(new ArrayBuffer(32)); await final; …\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯\n\n FAIL  |unit| tests/unit/collaboration/hdht/relay-hub.spec.ts > transport-neutral relay ownership and limits (R20/R21) > keeps the shared queue counter exact when shedding also removes the current source destination\nAssertionError: expected [] to deeply equal [ { code: 4429, …(1) } ]\n\n- Expected\n+ Received\n\n- [\n-   {\n-     \"code\": 4429,\n-     \"reason\": \"aggregate-queue-full\",\n-   },\n- ]\n+ []\n\n ❯ tests/unit/collaboration/hdht/relay-hub.spec.ts:125:25\n    123|     sendTo(ids[1]!, 10); sendTo(ids[1]!, 11);\n    124|     // Actual queued payloads again exceed 250 bytes. No stale negativ…\n    125|     expect(next.closes).toEqual([{ code: 4429, reason: 'aggregate-queu…\n       |                         ^\n    126|     expect(survivor.closes).toEqual([]); expect(host.closes).toEqual([…\n    127|     await vi.advanceTimersByTimeAsync(1000);\n\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯\n\n\n Test Files  2 failed (2)\n      Tests  2 failed | 30 passed (32)\n   Start at  09:51:35\n   Duration  191ms (tests 56%, transform 33%, import 9%, worker 2%)\n\n"
+  }
 }

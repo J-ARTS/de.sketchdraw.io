@@ -300,4 +300,41 @@ describe('DocumentAuthority public contract', () => {
       .toEqual({ status: 'outcome-unknown', requestId: first.requestId });
     expect(authority.source.getSnapshot().revision).toBe(0);
   });
+
+  // #176: a local agent works on the user's behalf, so the user's undo covers its changes.
+  it('files the changes of an agent binding in the history of the local actor it names', async () => {
+    const { authority, controller } = setup();
+    const human = bind(authority);
+    const agent = bind(authority, { actorId: 'agent:1', source: 'agent', grantId: 'grant:1', historyActorId: 'human' });
+    expect(human.source.getHistoryState().canUndo).toBe(false);
+    expect(await human.gateway.submit(rename(human, 'Vom Menschen'))).toMatchObject({ status: 'committed', revision: 1 });
+    expect(await agent.gateway.submit(rename(agent, 'Vom Agenten', 1))).toMatchObject({ status: 'committed', revision: 2 });
+    // One shared history in the order the changes happened: the agent's change is undone first, then the user's own.
+    expect(human.source.getHistoryState()).toMatchObject({ canUndo: true, canRedo: false });
+    expect(await human.gateway.submit(intent(human, { kind: 'undo' }, 2))).toMatchObject({ status: 'committed', revision: 3 });
+    expect(controller.getSnapshot().document.title).toBe('Vom Menschen');
+    expect(await human.gateway.submit(intent(human, { kind: 'undo' }, 3))).toMatchObject({ status: 'committed', revision: 4 });
+    expect(controller.getSnapshot().document.title).toBe('Original');
+    // Redo brings both back; a new agent change afterwards ends the redo chain like any new edit.
+    expect(await human.gateway.submit(intent(human, { kind: 'redo' }, 4))).toMatchObject({ status: 'committed' });
+    expect(await human.gateway.submit(intent(human, { kind: 'redo' }, 5))).toMatchObject({ status: 'committed' });
+    expect(controller.getSnapshot().document.title).toBe('Vom Agenten');
+    expect(await human.gateway.submit(intent(human, { kind: 'undo' }, 6))).toMatchObject({ status: 'committed' });
+    expect(await agent.gateway.submit(rename(agent, 'Neu vom Agenten', 7))).toMatchObject({ status: 'committed' });
+    expect(human.source.getHistoryState()).toMatchObject({ canUndo: true, canRedo: false });
+  });
+
+  it('keeps an agent without a named history owner, and every peer, out of the local history', async () => {
+    const { authority, controller } = setup();
+    const human = bind(authority);
+    const loner = bind(authority, { actorId: 'agent:2', source: 'agent', grantId: 'grant:2' });
+    expect(await loner.gateway.submit(rename(loner, 'Eigener Verlauf'))).toMatchObject({ status: 'committed' });
+    expect(human.source.getHistoryState().canUndo).toBe(false);
+    expect(await human.gateway.submit(intent(human, { kind: 'undo' }, 1))).toMatchObject({ status: 'rejected', code: 'HISTORY_EMPTY' });
+    expect(controller.getSnapshot().document.title).toBe('Eigener Verlauf');
+    // The history owner is trusted composition for agents only: a peer can never be filed under the local user.
+    expectCode(() => bind(authority, { actorId: 'peer:1:human', source: 'peer', grantId: 'peer:1', peerSessionId: 'a'.repeat(32), historyActorId: 'human' }), 'VALIDATION_FAILED');
+    expectCode(() => bind(authority, { actorId: 'code', source: 'code', grantId: 'code', historyActorId: 'human' }), 'VALIDATION_FAILED');
+    expectCode(() => bind(authority, { actorId: 'agent:3', source: 'agent', grantId: 'grant:3', historyActorId: '' }), 'VALIDATION_FAILED');
+  });
 });

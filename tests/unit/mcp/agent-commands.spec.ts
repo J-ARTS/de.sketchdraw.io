@@ -85,6 +85,22 @@ describe('prepareAgentCommand', () => {
     expect(manual.connectorRouting).toBe('straight');
   });
 
+  it.each([
+    ['points with the wrong type', { points: 'invalid' }, 'points'],
+    ['a route with only one point', { points: [{ x: 4, y: 5 }] }, 'points'],
+    ['an explicit invalid anchor', { from: { elementId: 'box:a', anchor: 'invalid' } }, 'from.anchor'],
+    ['an explicit null anchor', { to: { elementId: 'box:b', anchor: null } }, 'to.anchor'],
+    ['an explicit null routing', { connectorRouting: null }, 'connectorRouting'],
+  ])('reports %s without silently repairing the command', (_name, fields, field) => {
+    const document = base();
+    const before = structuredClone(document);
+    const original = lean({ type: 'add', elements: [{ id: 'link:invalid', kind: 'connector', from: { elementId: 'box:a' }, to: { elementId: 'box:b' }, ...fields }] });
+    const { command, issues } = prepareAgentCommand(original, document);
+    expect(command).toBe(original);
+    expect(issues).toContainEqual(expect.objectContaining({ path: `elements[0].${field}` }));
+    expect(document).toEqual(before);
+  });
+
   it('the domain aligns a new connector with a target moved earlier in the same batch', () => {
     const document = base();
     const { command, issues } = prepareAgentCommand(lean({ type: 'batch', commands: [
