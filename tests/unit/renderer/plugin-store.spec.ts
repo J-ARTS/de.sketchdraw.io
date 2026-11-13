@@ -13,8 +13,9 @@ async function setup(document: SketchDocument = createDocument('Plugins'), open 
     listConfluencePages: vi.fn(async () => []),
     getConfluencePage: vi.fn(async () => ({ id: '7', title: 'Live Architecture', version: 4, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: '<h2>Architecture</h2><p>Editable page</p>' })),
     updateConfluencePage: vi.fn(async (input) => ({ id: input.pageId, title: input.title, version: input.version + 1, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: input.storageBody })),
-    createJiraIssue: vi.fn(async () => ({ id: '100', key: 'SK-1', title: 'Review', description: 'Review', status: 'todo' as const, remoteStatus: 'To Do', url: 'https://example.atlassian.net/browse/SK-1', updatedAt: '2026-10-18T10:00:00.000Z' })),
-    listJiraIssues: vi.fn(async () => [{ id: '101', key: 'SK-2', title: 'Remote task', description: 'From Jira', status: 'doing' as const, remoteStatus: 'In Progress', url: 'https://example.atlassian.net/browse/SK-2', updatedAt: '2026-10-18T10:00:00.000Z' }]),
+    createJiraIssue: vi.fn(async (input) => ({ id: '100', key: 'SK-1', title: input.title, description: input.description, status: 'todo' as const, remoteStatus: 'To Do', ...(input.assignee ? { assignee: input.assignee } : {}), ...(input.dueDate ? { dueDate: input.dueDate } : {}), url: 'https://example.atlassian.net/browse/SK-1', updatedAt: '2026-10-18T10:00:00.000Z' })),
+    listJiraIssues: vi.fn(async () => [{ id: '101', key: 'SK-2', title: 'Remote task', description: 'From Jira', status: 'doing' as const, remoteStatus: 'In Progress', assignee: 'Mara Muster', dueDate: '2026-11-20', url: 'https://example.atlassian.net/browse/SK-2', updatedAt: '2026-10-18T10:00:00.000Z' }]),
+    updateJiraIssue: vi.fn(async ({ key, assignee, dueDate }) => ({ id: '100', key, title: 'Review', description: 'Review', status: 'todo' as const, remoteStatus: 'To Do', ...(assignee ? { assignee } : {}), ...(dueDate ? { dueDate } : {}), url: `https://example.atlassian.net/browse/${key}`, updatedAt: '2026-10-18T10:01:00.000Z' })),
     transitionJiraIssue: vi.fn(async ({ key, status }) => ({ id: '100', key, title: 'Review', description: 'Review', status, remoteStatus: status === 'done' ? 'Done' : 'In Progress', url: `https://example.atlassian.net/browse/${key}`, updatedAt: '2026-10-18T10:01:00.000Z' })),
     onEvent: (listener) => { pluginListener = listener; return () => { pluginListener = undefined; }; },
   };
@@ -43,6 +44,14 @@ describe('plugin store integration', () => {
     store.dispose();
   });
 
+  it('creates a Jira issue with the assignee and due date of a new Sketchdraw task', async () => {
+    const { store, plugins } = await setup();
+    expect(await store.createTask({ title: 'Release review', description: 'Check release', assignee: 'Mara Muster', dueDate: '2026-11-20' })).toBe(true);
+    expect(plugins.createJiraIssue).toHaveBeenCalledWith({ title: 'Release review', description: 'Check release', assignee: 'Mara Muster', dueDate: '2026-11-20' });
+    expect(store.state.document.tasks?.[0]).toMatchObject({ assignee: 'Mara Muster', dueDate: '2026-11-20', external: { key: 'SK-1' } });
+    store.dispose();
+  });
+
   it('embeds a Confluence page as a safe annotation and synchronizes Jira tasks', async () => {
     const { store } = await setup(); await store.refreshPluginSettings();
     expect(await store.insertConfluencePage('7')).toBe(true);
@@ -50,7 +59,36 @@ describe('plugin store integration', () => {
     expect(page).toMatchObject({ kind: 'annotation', label: 'Live Architecture', metadata: { 'sketchdraw.atlassian.pageId': '7', 'sketchdraw.atlassian.pageVersion': '4' } });
     expect(page?.text).toContain('Editable page');
     expect(await store.syncJiraTasks()).toBe(true);
-    expect(store.state.document.tasks?.find((task) => task.external?.key === 'SK-2')?.status).toBe('doing');
+    expect(store.state.document.tasks?.find((task) => task.external?.key === 'SK-2')).toMatchObject({ status: 'doing', assignee: 'Mara Muster', dueDate: '2026-11-20' });
+    store.dispose();
+  });
+
+  it('keeps automatic Jira polling silent when a request fails', async () => {
+    const { store, plugins } = await setup();
+    vi.mocked(plugins.listJiraIssues).mockRejectedValueOnce(new Error('offline'));
+    const noticeCount = store.state.notices.length;
+    expect(await store.syncJiraTasks({ announce: false })).toBe(false);
+    expect(store.state.notices).toHaveLength(noticeCount);
+    expect(store.state.pluginBusy).toBe(false);
+    store.dispose();
+  });
+
+  it('pushes changed assignee and due date from a linked Sketchdraw task to Jira', async () => {
+    const document = createDocument('Jira fields');
+    document.tasks = [{
+      id: 'task:jira', title: 'Review', description: '', status: 'todo', rank: 0,
+      createdAt: '2026-10-18T09:00:00.000Z', updatedAt: '2026-10-18T09:00:00.000Z',
+      external: { provider: 'jira', remoteId: '100', key: 'SK-1', url: 'https://example.atlassian.net/browse/SK-1', remoteStatus: 'To Do', updatedAt: '2026-10-18T09:00:00.000Z' },
+    }];
+    const { store, plugins } = await setup(document);
+    expect(await store.updateTask('task:jira', { assignee: 'Mara Muster', dueDate: '2026-11-20' })).toBe(true);
+    expect(plugins.updateJiraIssue).toHaveBeenCalledWith({ key: 'SK-1', assignee: 'Mara Muster', dueDate: '2026-11-20' });
+    expect(store.state.document.tasks?.[0]).toMatchObject({ assignee: 'Mara Muster', dueDate: '2026-11-20' });
+
+    expect(await store.updateTask('task:jira', { assignee: null, dueDate: null })).toBe(true);
+    expect(plugins.updateJiraIssue).toHaveBeenLastCalledWith({ key: 'SK-1', assignee: null, dueDate: null });
+    expect(store.state.document.tasks?.[0]).not.toHaveProperty('assignee');
+    expect(store.state.document.tasks?.[0]).not.toHaveProperty('dueDate');
     store.dispose();
   });
 

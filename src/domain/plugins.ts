@@ -120,8 +120,23 @@ export interface JiraIssueSummary {
   description: string;
   status: TaskStatus;
   remoteStatus: string;
+  assignee?: string;
+  dueDate?: string;
   url: string;
   updatedAt: string;
+}
+
+export interface CreateJiraIssueInput {
+  title: string;
+  description: string;
+  assignee?: string;
+  dueDate?: string;
+}
+
+export interface UpdateJiraIssueInput {
+  key: string;
+  assignee?: string | null;
+  dueDate?: string | null;
 }
 
 export type PluginExternalEvent = {
@@ -152,8 +167,9 @@ export interface PluginBridge {
   listConfluencePages(query: string): Promise<ConfluencePageSummary[]>;
   getConfluencePage(pageId: string): Promise<ConfluencePage>;
   updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number }): Promise<ConfluencePage>;
-  createJiraIssue(input: { title: string; description: string }): Promise<JiraIssueSummary>;
+  createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary>;
   listJiraIssues(): Promise<JiraIssueSummary[]>;
+  updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary>;
   transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;
   onEvent(listener: (event: PluginExternalEvent) => void): () => void;

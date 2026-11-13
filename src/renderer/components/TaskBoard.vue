@@ -207,7 +207,7 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
 
 <template>
   <section ref="board" class="task-board" data-testid="task-board" aria-labelledby="task-board-title">
-    <header class="board-head"><div><span class="eyebrow">SKETCHDRAW WORKSPACE</span><h1 id="task-board-title">{{ t('Aufgaben') }}</h1></div><div class="head-actions"><label class="board-search"><AppIcon name="search" :size="18" /><input ref="searchInput" v-model="query" type="search" :placeholder="t('Aufgaben suchen')" :aria-label="t('Aufgaben suchen')" /></label><button v-if="s.pluginSettings?.atlassian.enabled" type="button" class="sd-btn" :disabled="s.pluginBusy" @click="store.syncJiraTasks()">{{ t('Jira synchronisieren') }}</button></div></header>
+    <header class="board-head"><div><span class="eyebrow">SKETCHDRAW WORKSPACE</span><h1 id="task-board-title">{{ t('Aufgaben') }}</h1></div><div class="head-actions"><label class="board-search"><AppIcon name="search" :size="18" /><input ref="searchInput" v-model="query" type="search" :placeholder="t('Aufgaben suchen')" :aria-label="t('Aufgaben suchen')" /></label></div></header>
     <div class="columns" :aria-label="t('Kanban-Board')">
       <section v-for="column in columns" :key="column.status" class="task-column" :class="{ 'drop-target': drag?.over === column.status }" :data-status="column.status" :aria-label="t(column.label)">
         <header><h2><span class="status-dot" aria-hidden="true" />{{ t(column.label) }}</h2><span>{{ tasksFor(column.status).length }}</span></header>

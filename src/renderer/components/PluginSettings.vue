@@ -24,7 +24,7 @@ let opener: HTMLElement | null = null;
 
 const catalog = computed(() => [
   { id: 'git' as const, title: 'Git', category: t('Versionierung'), summary: t('Diagramme im Projektordner versionieren und automatisch synchronisieren.'), badge: 'G' },
-  { id: 'jira' as const, title: 'Jira', category: t('Aufgaben & Dokumentation'), summary: t('Jira-Tickets laden, erstellen und mit dem Aufgabenboard synchronisieren.'), badge: 'J' },
+  { id: 'jira' as const, title: 'Jira', category: t('Aufgaben & Dokumentation'), summary: t('Jira-Tickets laden, erstellen und automatisch mit dem Aufgabenboard synchronisieren.'), badge: 'J' },
 ]);
 const installedIds = computed<PluginId[]>(() => {
   const ids: PluginId[] = [];
@@ -227,7 +227,7 @@ async function searchPages(): Promise<void> { await runOperation(() => store.sea
               <template v-else>
                 <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren Jira-Filter. Neue Aufgaben werden im Jira-Projekt des aktiven Profils erstellt.') }}</p>
                 <h4>{{ t('Funktionen') }}</h4>
-                <ul><li>{{ t('Jira-Vorgänge per JQL laden') }}</li><li>{{ t('Aufgaben und Kommentare als Jira-Tickets erstellen') }}</li><li>{{ t('Statusänderungen zwischen Board und Jira synchronisieren') }}</li><li>{{ t('Confluence-Seiten optional als Live Docs einbinden') }}</li></ul>
+                <ul><li>{{ t('Jira-Vorgänge per JQL laden') }}</li><li>{{ t('Aufgaben und Kommentare als Jira-Tickets erstellen') }}</li><li>{{ t('Zuständigkeit, Fälligkeit und Status zwischen Board und Jira synchronisieren') }}</li><li>{{ t('Confluence-Seiten optional als Live Docs einbinden') }}</li></ul>
               </template>
               <div class="security-panel"><AppIcon name="info" /><span>{{ t('Zugangstokens werden verschlüsselt im Profil auf diesem Gerät gespeichert und niemals an das Diagramm oder die Oberfläche zurückgegeben.') }}</span></div>
             </section>
@@ -268,7 +268,7 @@ async function searchPages(): Promise<void> { await runOperation(() => store.sea
                 <label class="wide">{{ t('Confluence-Space (optional)') }}<input v-model="atlassian.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
               </div>
               <p class="security-copy">{{ t('Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen.') }}</p>
-              <p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.pluginSettings?.atlassian.enabled || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn" :disabled="busy || !s.pluginSettings?.atlassian.enabled || jiraDirty" @click="runOperation(() => store.syncJiraTasks(), t('Synchronisierung abgeschlossen.'))">{{ t('Jira-Board synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Jira speichern') }}</button></footer>
+              <p class="security-copy">{{ t('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.') }}</p><p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.pluginSettings?.atlassian.enabled || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Jira speichern') }}</button></footer>
 
               <div class="integration-section"><h3>{{ t('Confluence Live Docs') }}</h3><form class="search-row" @submit.prevent="searchPages"><input v-model="confluenceQuery" type="search" :placeholder="t('Seiten suchen')" :aria-label="t('Confluence-Seiten suchen')" /><button class="sd-btn" :disabled="busy || !s.pluginSettings?.atlassian.enabled || jiraDirty">{{ t('Suchen') }}</button></form>
                 <ul v-if="s.confluencePages.length" class="result-list"><li v-for="page in s.confluencePages" :key="page.id"><div><strong>{{ page.title }}</strong><span>{{ t('Version {version}', { version: page.version }) }}</span></div><button class="sd-btn" @click="runOperation(() => store.insertConfluencePage(page.id), t('Confluence-Seite eingebunden.'))">{{ t('Einbinden') }}</button></li></ul>

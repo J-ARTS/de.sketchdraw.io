@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:18:31.006262+00:00",
+  "updatedAt": "2026-11-13T09:33:37Z",
   "issues": [
     {
       "number": 1,
@@ -2491,6 +2491,23 @@
       "dependencies": [
         145
       ]
+    },
+    {
+      "number": 184,
+      "title": "Jira-Aufgaben alle fünf Sekunden automatisch synchronisieren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/184",
+      "owner": "OpenAI Codex",
+      "phase": "Implementation 2026-11-13: locally verified, integration pending",
+      "status": "in_review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        69
+      ],
+      "currentImplementer": "Codex (temporary user-authorized takeover)"
     }
   ],
   "runs": [
@@ -9735,6 +9752,33 @@
       "concerns": [],
       "parentRunId": null,
       "measurementSource": "Independent cloud validation reported in GitHub: typecheck, 978 units, 69 lifecycle tests, 3 focused Electron tests on 7014c7d; no run metrics available. This is separate from local read-only sparring runs."
+    },
+    {
+      "id": "codex-2026-11-13-jira-autosync-184",
+      "tool": "OpenAI Codex",
+      "model": null,
+      "issues": [
+        184
+      ],
+      "status": "completed_local_pending_integration",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "src/renderer/state/jira-auto-sync.ts",
+        "electron/plugin-service.ts",
+        "src/renderer/state/whiteboard.ts",
+        "tests/unit/renderer/jira-auto-sync.spec.ts",
+        "tests/unit/renderer/plugin-store.spec.ts",
+        "tests/unit/plugin-service.spec.ts",
+        "tests/ui/plugins.spec.ts",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/184"
+      ],
+      "concerns": [],
+      "parentRunId": null,
+      "measurementSource": "Local Codex implementation with no timing, token or cost measurement. Verified by typecheck, 984 unit tests, 26 plugin UI tests and 2 focused Electron plugin tests; integration into main still pending at snapshot time."
     }
   ],
   "evidencePolicy": {

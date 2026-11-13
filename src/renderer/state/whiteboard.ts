@@ -14,7 +14,7 @@ import {
   parseWebEmbedUrl, webEmbedLabel,
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
-  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type PluginExternalEvent,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type JiraIssueSummary, type PluginExternalEvent,
 } from '@/domain';
 import {
   attachIndexedDbPersistence,
@@ -72,6 +72,18 @@ type Gesture = {
   eraserRadius?: number;
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: boolean): void {
+  if (pullContent) {
+    task.title = issue.title;
+    task.description = issue.description;
+    task.status = issue.status;
+    task.updatedAt = issue.updatedAt;
+  }
+  if (issue.assignee) task.assignee = issue.assignee; else delete task.assignee;
+  if (issue.dueDate) task.dueDate = issue.dueDate; else delete task.dueDate;
+  task.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt };
+}
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const uid = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
@@ -1655,10 +1667,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.liveMessage = t('Aufgabe erstellt.');
       if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
         try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
+          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
           if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
         } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
@@ -1678,7 +1690,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
         } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
@@ -1706,7 +1718,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           if (!pluginContextCurrent(generation)) return true;
           const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { stored.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
+          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
         } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
@@ -1732,7 +1744,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
           if (!pluginContextCurrent(generation)) return true;
           const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-          if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
+          if (synced?.external) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
         } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
@@ -1752,13 +1764,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (ok) {
         if (!pluginContextCurrent(generation)) return true;
         state.liveMessage = t('Aufgabe aktualisiert.');
-        if (value.status !== undefined && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+        const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined;
+        if ((value.status !== undefined || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
           try {
-            const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
+            let issue: JiraIssueSummary | undefined;
+            if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
+            if (value.status !== undefined) issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
             if (!pluginContextCurrent(generation)) return true;
-          const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-            if (synced?.external) { synced.external.remoteStatus = issue.remoteStatus; synced.external.updatedAt = issue.updatedAt; await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+            const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
+            if (synced?.external && issue) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
+          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe gespeichert; Jira-Felder konnten nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -1865,14 +1880,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
-    async syncJiraTasks() {
+    async syncJiraTasks(options) {
       const generation = pluginGeneration;
-      if (!bridge.plugins || !hasPluginProject() || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
+      if (!bridge.plugins || !hasPluginProject() || !state.pluginSettings?.atlassian.enabled || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
       try {
         const issues = await bridge.plugins.listJiraIssues(); if (!pluginContextCurrent(generation)) return false; const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
-        for (const issue of issues) { const existing = byKey.get(issue.key); if (existing) { existing.title = issue.title; existing.description = issue.description; existing.status = issue.status; existing.updatedAt = issue.updatedAt; existing.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt }; } else tasks.push({ id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((task) => task.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } }); }
-        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
-      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+        for (const issue of issues) {
+          const existing = byKey.get(issue.key);
+          if (existing) applyJiraIssue(existing, issue, true);
+          else {
+            const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } };
+            if (issue.assignee) task.assignee = issue.assignee;
+            if (issue.dueDate) task.dueDate = issue.dueDate;
+            tasks.push(task);
+          }
+        }
+        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok && options?.announce !== false) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
+      } catch (error) { if (pluginContextCurrent(generation) && options?.announce !== false) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async acceptExternalDocument() {
       const event = pendingExternalEvent; if (!event) return false;

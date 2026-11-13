@@ -38,7 +38,7 @@ describe('PluginService', () => {
     const persistence = await projectPersistence({ project: documentPath });
     const fetchFn = vi.fn(async (input: string | URL | Request, _init?: RequestInit): Promise<Response> => {
       const url = String(input);
-      if (url.includes('/rest/api/3/search/jql')) return new Response(JSON.stringify({ issues: [{ id: '100', key: 'SK-1', fields: { summary: 'Ticket', description: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] }, status: { name: 'In Progress' }, updated: '2026-10-18T10:00:00.000Z' } }] }));
+      if (url.includes('/rest/api/3/search/jql')) return new Response(JSON.stringify({ issues: [{ id: '100', key: 'SK-1', fields: { summary: 'Ticket', description: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Body' }] }] }, status: { name: 'In Progress' }, assignee: { accountId: 'account-1', displayName: 'Mara Muster' }, duedate: '2026-11-20', updated: '2026-10-18T10:00:00.000Z' } }] }));
       return new Response('{}');
     });
     const configPath = await profileStore();
@@ -54,10 +54,56 @@ describe('PluginService', () => {
     expect(snapshot).toMatchObject({ activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard' }] });
     expect(stored).not.toContain('secret-token');
     expect(stored).toContain(Buffer.from('secret-token').toString('base64'));
-    expect(await service.listJiraIssues()).toMatchObject([{ key: 'SK-1', status: 'doing', description: 'Body' }]);
+    expect(await service.listJiraIssues()).toMatchObject([{ key: 'SK-1', status: 'doing', description: 'Body', assignee: 'Mara Muster', dueDate: '2026-11-20' }]);
     const searchCall = fetchFn.mock.calls.find(([input]) => String(input).includes('/rest/api/3/search/jql'));
-    const body = JSON.parse(String((searchCall?.[1] as RequestInit | undefined)?.body)) as { jql: string };
+    const body = JSON.parse(String((searchCall?.[1] as RequestInit | undefined)?.body)) as { jql: string; fields: string[] };
     expect(body.jql).toBe('project = SK AND assignee = currentUser() ORDER BY updated DESC');
+    expect(body.fields).toEqual(expect.arrayContaining(['assignee', 'duedate']));
+    service.dispose();
+  });
+
+  it('resolves assignable Jira users and writes assignee and due date on create and update', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-jira-fields-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}\n');
+    let assignee = ''; let dueDate = '';
+    const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const url = String(input); const method = init?.method ?? 'GET';
+      if (url.includes('/user/assignable/search')) {
+        const query = new URL(url).searchParams.get('query') ?? '';
+        return new Response(JSON.stringify([{ accountId: query.startsWith('Mara') ? 'account-mara' : 'account-anna', displayName: query, emailAddress: `${query.split(' ')[0]?.toLocaleLowerCase()}@example.com` }]));
+      }
+      if (url.endsWith('/rest/api/3/issue') && method === 'POST') {
+        const body = JSON.parse(String(init?.body)) as { fields: { assignee?: { accountId: string }; duedate?: string } };
+        assignee = body.fields.assignee?.accountId === 'account-mara' ? 'Mara Muster' : '';
+        dueDate = body.fields.duedate ?? '';
+        return new Response(JSON.stringify({ id: '101', key: 'SK-2' }));
+      }
+      if (url.includes('/rest/api/3/issue/SK-2/assignee') && method === 'PUT') {
+        const body = JSON.parse(String(init?.body)) as { accountId: string | null };
+        assignee = body.accountId === 'account-anna' ? 'Anna Beispiel' : '';
+        return new Response('{}');
+      }
+      if (url.includes('/rest/api/3/issue/SK-2') && method === 'PUT') {
+        const body = JSON.parse(String(init?.body)) as { fields: { duedate: string | null } };
+        dueDate = body.fields.duedate ?? '';
+        return new Response('{}');
+      }
+      if (url.includes('/rest/api/3/issue/SK-2') && method === 'GET') return new Response(JSON.stringify({ id: '101', key: 'SK-2', fields: { summary: 'Review', description: null, status: { name: 'To Do' }, ...(assignee ? { assignee: { displayName: assignee } } : {}), ...(dueDate ? { duedate: dueDate } : {}), updated: '2026-11-13T10:00:00.000Z' } }));
+      return new Response('{}');
+    });
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn: fetchFn as typeof fetch });
+    await service.activateDocument('project');
+    await service.configureAtlassian(jiraInput('SK'));
+
+    await expect(service.createJiraIssue({ title: 'Review', description: '', assignee: 'Mara Muster', dueDate: '2026-11-20' })).resolves.toMatchObject({ key: 'SK-2', assignee: 'Mara Muster', dueDate: '2026-11-20' });
+    const createCall = fetchFn.mock.calls.find(([input, init]) => String(input).endsWith('/rest/api/3/issue') && init?.method === 'POST');
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({ fields: { assignee: { accountId: 'account-mara' }, duedate: '2026-11-20' } });
+
+    await expect(service.updateJiraIssue({ key: 'SK-2', assignee: 'Anna Beispiel', dueDate: '2026-11-21' })).resolves.toMatchObject({ assignee: 'Anna Beispiel', dueDate: '2026-11-21' });
+    const assignCall = fetchFn.mock.calls.find(([input, init]) => String(input).includes('/SK-2/assignee') && init?.method === 'PUT');
+    expect(JSON.parse(String(assignCall?.[1]?.body))).toEqual({ accountId: 'account-anna' });
+    const dueDateCall = fetchFn.mock.calls.find(([input, init]) => String(input).includes('/issue/SK-2') && !String(input).includes('/assignee') && init?.method === 'PUT');
+    expect(JSON.parse(String(dueDateCall?.[1]?.body))).toEqual({ fields: { duedate: '2026-11-21' } });
     service.dispose();
   });
 
@@ -404,6 +450,7 @@ describe('PluginService', () => {
     expect(released).toMatchObject({ projectFolder: '', activeProfileId: 'default', atlassian: { enabled: true, jiraProjectKey: 'KEEP', credentialStored: true } });
     await expect(service.createJiraIssue({ title: 'New local task', description: '' })).rejects.toThrow('lokales Diagramm');
     await expect(service.listJiraIssues()).rejects.toThrow('lokales Diagramm');
+    await expect(service.updateJiraIssue({ key: 'KEEP-1', assignee: 'Alice' })).rejects.toThrow('lokales Diagramm');
     await expect(service.transitionJiraIssue({ key: 'KEEP-1', status: 'done' })).rejects.toThrow('lokales Diagramm');
     await expect(service.listConfluencePages('')).rejects.toThrow('lokales Diagramm');
     expect(fetchFn).not.toHaveBeenCalled();

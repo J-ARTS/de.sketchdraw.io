@@ -450,7 +450,7 @@ export interface WhiteboardStore {
   insertConfluencePage(pageId: string): Promise<boolean>;
   syncConfluenceElement(elementId: string): Promise<boolean>;
   refreshConfluenceElement(elementId: string): Promise<boolean>;
-  syncJiraTasks(): Promise<boolean>;
+  syncJiraTasks(options?: { announce?: boolean }): Promise<boolean>;
   acceptExternalDocument(): Promise<boolean>;
 
   toggleFrameSidebar(open?: boolean): void;

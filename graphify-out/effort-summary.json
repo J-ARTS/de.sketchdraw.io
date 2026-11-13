@@ -2272,6 +2272,38 @@
         "codex-2026-11-13-ticket-audit-root"
       ]
     },
+    "184": {
+      "exclusiveRuns": {
+        "costUsd": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "observedSeconds": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        },
+        "runCount": 1,
+        "runIds": [
+          "codex-2026-11-13-jira-autosync-184"
+        ],
+        "tokens": {
+          "knownRuns": 0,
+          "knownSubtotal": 0,
+          "total": null,
+          "unknownRuns": 1
+        }
+      },
+      "planning": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "sharedUnallocatedRunIds": []
+    },
     "19": {
       "exclusiveRuns": {
         "costUsd": {
@@ -5430,15 +5462,15 @@
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 9
+        "unknownRuns": 10
       },
       "observedSeconds": {
         "knownRuns": 1,
         "knownSubtotal": 2693.557,
         "total": null,
-        "unknownRuns": 8
+        "unknownRuns": 9
       },
-      "runCount": 9,
+      "runCount": 10,
       "runIds": [
         "codex-149-153-main-integration",
         "codex-149-fallback-review-fixes",
@@ -5448,13 +5480,14 @@
         "codex-159-theme-settings",
         "codex-160-plugin-marketplace",
         "codex-175-git-remote-status",
+        "codex-2026-11-13-jira-autosync-184",
         "codex-2026-11-13-ticket-audit-root"
       ],
       "tokens": {
         "knownRuns": 0,
         "knownSubtotal": 0,
         "total": null,
-        "unknownRuns": 9
+        "unknownRuns": 10
       }
     },
     "OpenAI Codex + Chrome + SketchDraw npm dev:electron": {
@@ -5926,15 +5959,15 @@
       "knownRuns": 17,
       "knownSubtotal": 56.3667389,
       "total": null,
-      "unknownRuns": 245
+      "unknownRuns": 246
     },
     "observedSeconds": {
       "knownRuns": 111,
       "knownSubtotal": 53867.057263248964,
       "total": null,
-      "unknownRuns": 151
+      "unknownRuns": 152
     },
-    "runCount": 262,
+    "runCount": 263,
     "runIds": [
       "antigravity-annotation-attempt-056",
       "antigravity-architecture-001",
@@ -6017,6 +6050,7 @@
       "codex-170-reference-diagrams",
       "codex-172-177-live-integrations-and-page-reference-diagnosis",
       "codex-175-git-remote-status",
+      "codex-2026-11-13-jira-autosync-184",
       "codex-2026-11-13-mcp-upstream-review",
       "codex-2026-11-13-ticket-audit-interop",
       "codex-2026-11-13-ticket-audit-p2p",
@@ -6203,7 +6237,7 @@
       "knownRuns": 21,
       "knownSubtotal": 14045982,
       "total": null,
-      "unknownRuns": 241
+      "unknownRuns": 242
     }
   },
   "officialScoreClaimReady": false,
@@ -6213,9 +6247,9 @@
     "knownSubtotal": 73,
     "total": null,
     "unit": "story_points",
-    "unknownIssues": 138
+    "unknownIssues": 139
   },
   "policy": "Global/tool totals count each run once. Issue totals use exclusive runs only. Shared runs are unallocated. Elapsed run seconds are not human work hours or project elapsed time.",
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T09:18:31.006262+00:00"
+  "updatedAt": "2026-11-13T09:33:37Z"
 }

@@ -9,6 +9,7 @@ import type {
   ConfigureGitPluginInput,
   ConfluencePage,
   ConfluencePageSummary,
+  CreateJiraIssueInput,
   GitPluginSettings,
   GitSyncResult,
   JiraIssueSummary,
@@ -19,6 +20,7 @@ import type {
   PluginProfileSummary,
   PluginSettingsSnapshot,
   TaskStatus,
+  UpdateJiraIssueInput,
 } from '../src/domain/index';
 import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } from '../src/domain/plugins';
 import type { DocumentPersistenceService } from './persistence';
@@ -227,6 +229,16 @@ function descriptionAdf(text: string): Record<string, unknown> {
 function isoTimestamp(value: unknown): string {
   const parsed = typeof value === 'string' ? new Date(value) : new Date(Number.NaN);
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
+function jiraDueDate(value: unknown, allowEmpty = false): string {
+  if (allowEmpty && (value === null || value === '')) return '';
+  const dueDate = boundedString(value, 10, 'Jira-Fälligkeitsdatum');
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dueDate);
+  if (!match) throw new Error('Jira-Fälligkeitsdatum ist ungültig.');
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (date.toISOString().slice(0, 10) !== dueDate) throw new Error('Jira-Fälligkeitsdatum ist ungültig.');
+  return dueDate;
 }
 
 export class PluginService {
@@ -745,16 +757,72 @@ export class PluginService {
     await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(pageId)}`, { method: 'PUT', body: JSON.stringify({ id: pageId, status: 'current', title, body: { representation: 'storage', value: input.storageBody }, version: { number: input.version + 1, message: 'Updated from Sketchdraw' } }) }); return this.getConfluencePage(pageId);
   }
 
-  private jiraIssue(value: Record<string, unknown>): JiraIssueSummary { const fields = (value.fields ?? {}) as Record<string, unknown>; const status = (fields.status ?? {}) as Record<string, unknown>; const remoteStatus = String(status.name ?? 'To Do'); const key = String(value.key ?? ''); return { id: String(value.id ?? key), key, title: String(fields.summary ?? key), description: adfText(fields.description), status: jiraStatus(remoteStatus), remoteStatus, url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated) }; }
+  private jiraIssue(value: Record<string, unknown>): JiraIssueSummary {
+    const fields = (value.fields ?? {}) as Record<string, unknown>;
+    const status = (fields.status ?? {}) as Record<string, unknown>;
+    const assignee = fields.assignee && typeof fields.assignee === 'object' && !Array.isArray(fields.assignee) ? fields.assignee as Record<string, unknown> : undefined;
+    const remoteStatus = String(status.name ?? 'To Do');
+    const key = String(value.key ?? '');
+    const assigneeName = String(assignee?.displayName ?? assignee?.emailAddress ?? '').trim();
+    const dueDate = typeof fields.duedate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fields.duedate) ? fields.duedate : undefined;
+    return {
+      id: String(value.id ?? key), key, title: String(fields.summary ?? key), description: adfText(fields.description),
+      status: jiraStatus(remoteStatus), remoteStatus,
+      ...(assigneeName ? { assignee: assigneeName } : {}), ...(dueDate ? { dueDate } : {}),
+      url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated),
+    };
+  }
 
-  public async createJiraIssue(input: { title: string; description: string }): Promise<JiraIssueSummary> { this.assertDocumentProject(); const title = boundedString(input.title, 255, 'Jira-Titel'); const description = boundedString(input.description, 50_000, 'Jira-Beschreibung', true); const created = await this.atlassian('/rest/api/3/issue', { method: 'POST', body: JSON.stringify({ fields: { project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') }, issuetype: { name: this.config.atlassian.jiraIssueType }, summary: title, description: descriptionAdf(description) } }) }) as Record<string, unknown>; return this.getJiraIssue(String(created.key ?? created.id ?? '')); }
+  private async jiraAssigneeAccountId(value: string, issueKey?: string): Promise<string> {
+    const assignee = boundedString(value, 120, 'Jira-Zuständigkeit');
+    const params = new URLSearchParams({ query: assignee, maxResults: '50' });
+    if (issueKey) params.set('issueKey', issueKey);
+    else params.set('project', boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'));
+    const users = await this.atlassian(`/rest/api/3/user/assignable/search?${params}`) as Array<Record<string, unknown>>;
+    const normalized = assignee.toLocaleLowerCase('de');
+    const exact = users.filter((user) => [user.accountId, user.displayName, user.emailAddress].some((candidate) => typeof candidate === 'string' && candidate.toLocaleLowerCase('de') === normalized));
+    const selected = exact.length === 1 ? exact[0] : exact.length === 0 && users.length === 1 ? users[0] : undefined;
+    if (!selected || typeof selected.accountId !== 'string' || !selected.accountId) throw new Error(`Keine eindeutig zuweisbare Jira-Person für „${assignee}“ gefunden.`);
+    return selected.accountId;
+  }
 
-  private async getJiraIssue(key: string): Promise<JiraIssueSummary> { const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=summary,description,status,updated`) as Record<string, unknown>; return this.jiraIssue(issue); }
+  public async createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary> {
+    this.assertDocumentProject();
+    const fields: Record<string, unknown> = {
+      project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') },
+      issuetype: { name: this.config.atlassian.jiraIssueType },
+      summary: boundedString(input.title, 255, 'Jira-Titel'),
+      description: descriptionAdf(boundedString(input.description, 50_000, 'Jira-Beschreibung', true)),
+    };
+    if (input.assignee) fields.assignee = { accountId: await this.jiraAssigneeAccountId(input.assignee) };
+    if (input.dueDate) fields.duedate = jiraDueDate(input.dueDate);
+    const created = await this.atlassian('/rest/api/3/issue', { method: 'POST', body: JSON.stringify({ fields }) }) as Record<string, unknown>;
+    return this.getJiraIssue(String(created.key ?? created.id ?? ''));
+  }
+
+  private async getJiraIssue(key: string): Promise<JiraIssueSummary> {
+    const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=summary,description,status,assignee,duedate,updated`) as Record<string, unknown>;
+    return this.jiraIssue(issue);
+  }
 
   public async listJiraIssues(): Promise<JiraIssueSummary[]> {
     this.assertDocumentProject();
     const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'); const configuredFilter = boundedString(this.config.atlassian.jqlFilter, 2000, 'Jira-Filter', true); const baseFilter = configuredFilter || `project = "${project.replaceAll('"', '')}"`; const jql = /\border\s+by\b/i.test(baseFilter) ? baseFilter : `${baseFilter} ORDER BY updated DESC`;
-    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> }; return (response.issues ?? []).map((issue) => this.jiraIssue(issue));
+    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> }; return (response.issues ?? []).map((issue) => this.jiraIssue(issue));
+  }
+
+  public async updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary> {
+    this.assertDocumentProject();
+    const key = boundedString(input.key, 128, 'Jira-Key');
+    if (input.assignee !== undefined) {
+      const accountId = input.assignee === null || !input.assignee.trim() ? null : await this.jiraAssigneeAccountId(input.assignee, key);
+      await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/assignee`, { method: 'PUT', body: JSON.stringify({ accountId }) });
+    }
+    if (input.dueDate !== undefined) {
+      const dueDate = input.dueDate === null || input.dueDate === '' ? null : jiraDueDate(input.dueDate);
+      await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ fields: { duedate: dueDate } }) });
+    }
+    return this.getJiraIssue(key);
   }
 
   public async transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary> {

@@ -18,12 +18,14 @@ import type {
   ConfigureGitPluginInput,
   ConfluencePage,
   ConfluencePageSummary,
+  CreateJiraIssueInput,
   GitSyncResult,
   JiraIssueSummary,
   PluginExternalEvent,
   PluginId,
   PluginOperationResult,
   PluginSettingsSnapshot,
+  UpdateJiraIssueInput,
 } from '../src/domain/plugins';
 import {
   type CloseDecision,
@@ -283,8 +285,9 @@ export function createPreloadDesktopBridge(
       listConfluencePages: (query: string) => pluginInvoke<ConfluencePageSummary[]>('list-confluence-pages', query),
       getConfluencePage: (pageId: string) => pluginInvoke<ConfluencePage>('get-confluence-page', pageId),
       updateConfluencePage: (input: { pageId: string; title: string; storageBody: string; version: number }) => pluginInvoke<ConfluencePage>('update-confluence-page', input),
-      createJiraIssue: (input: { title: string; description: string }) => pluginInvoke<JiraIssueSummary>('create-jira-issue', input),
+      createJiraIssue: (input: CreateJiraIssueInput) => pluginInvoke<JiraIssueSummary>('create-jira-issue', input),
       listJiraIssues: () => pluginInvoke<JiraIssueSummary[]>('list-jira-issues'),
+      updateJiraIssue: (input: UpdateJiraIssueInput) => pluginInvoke<JiraIssueSummary>('update-jira-issue', input),
       transitionJiraIssue: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<JiraIssueSummary>('transition-jira-issue', input),
       watchDocument: (handleId: string) => pluginInvoke<PluginOperationResult>('watch-document', handleId),
       onEvent(listener: (event: PluginExternalEvent) => void): () => void {

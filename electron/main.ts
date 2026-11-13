@@ -459,6 +459,7 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'update-confluence-page': return plugins.updateConfluencePage(payload);
       case 'create-jira-issue': return plugins.createJiraIssue(payload);
       case 'list-jira-issues': return plugins.listJiraIssues();
+      case 'update-jira-issue': return plugins.updateJiraIssue(payload);
       case 'transition-jira-issue': return plugins.transitionJiraIssue(payload);
       default: throw new Error('Unbekannte Plugin-Aktion.');
     }

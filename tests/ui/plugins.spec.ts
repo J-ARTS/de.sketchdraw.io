@@ -14,6 +14,7 @@ type PluginTestState = {
     git: ConfigureGitPluginInput[];
     jira: ConfigureAtlassianPluginInput[];
     jiraTests: number;
+    jiraSyncs: number;
     profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
   settings: PluginSettingsSnapshot;
@@ -39,7 +40,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       jiraFailure: '',
       holdGit: false,
       holdJira: false,
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, profiles: [] },
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, profiles: [] },
       settings: defaults(),
     };
     const folders = new Map<string, string>();
@@ -165,7 +166,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
         gitSync: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         watchDocument: async () => ({ ok: true, message: 'watching' }),
         listConfluencePages: async () => [], getConfluencePage: async () => { throw new Error('not used'); }, updateConfluencePage: async () => { throw new Error('not used'); },
-        createJiraIssue: async () => { throw new Error('not used'); }, listJiraIssues: async () => [], transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
+        createJiraIssue: async () => { throw new Error('not used'); }, listJiraIssues: async () => { control.calls.jiraSyncs += 1; return []; }, updateJiraIssue: async () => { throw new Error('not used'); }, transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
       },
     } });
   }, { cancelSave: options.cancelSave ?? false, theme: options.theme ?? 'light', configurationIssue: options.configurationIssue });
@@ -305,6 +306,24 @@ test('Git and Jira configurations persist independently and secrets are never re
   await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('');
 });
 
+test('Jira synchronizes automatically and exposes no manual sync button', async ({ page }) => {
+  await desktop(page);
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Jira-Board synchronisieren', exact: true })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
+  const board = page.getByTestId('task-board');
+  await expect(board).toBeVisible();
+  await expect(board.getByRole('button', { name: 'Jira synchronisieren', exact: true })).toHaveCount(0);
+  await expect.poll(async () => (await state(page)).calls.jiraSyncs, { timeout: 7_000 }).toBeGreaterThan(0);
+});
+
 test('saving or testing another plugin preserves unfinished form drafts', async ({ page }) => {
   await desktop(page);
   const dialog = await prepareProject(page);
@@ -318,7 +337,7 @@ test('saving or testing another plugin preserves unfinished form drafts', async 
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeEnabled();
   await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH AND status = Open');
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeDisabled();
-  await expect(dialog.getByRole('button', { name: 'Jira-Board synchronisieren', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Jira-Board synchronisieren', exact: true })).toHaveCount(0);
   expect((await state(page)).calls.jiraTests).toBe(0);
   await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH AND assignee = currentUser()');
   await dialog.getByRole('button', { name: 'Verbindung testen', exact: true }).click();

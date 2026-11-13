@@ -27,9 +27,20 @@ import PluginSettings from './components/PluginSettings.vue';
 import ProfileDialog from './components/ProfileDialog.vue';
 import SettingsDialog from './components/SettingsDialog.vue';
 import { resolveCanvasBackground } from './lib/preferences';
+import { startJiraAutoSync } from './state/jira-auto-sync';
 
 const store = createWhiteboardStore(); const s = store.state;
 provide(WHITEBOARD_KEY, store);
+const stopJiraAutoSync = startJiraAutoSync({
+  isReady: () => Boolean(
+    s.file.handle && !s.roomGuest && s.canWrite && !s.transitioning && !s.pluginBusy
+    && s.pluginSettings?.available && s.pluginSettings.projectFolder
+    && s.pluginSettings.atlassian.installed && s.pluginSettings.atlassian.enabled
+    && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
+    && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey,
+  ),
+  sync: () => store.syncJiraTasks({ announce: false }),
+});
 const collaborationOpen = ref(false);
 /** A session link the app was opened with (`#sketchdraw-hdht=…` or a `sketchdraw://join` app link); the panel prefills it and the fragment is removed. */
 const inviteLink = ref<string | null>(null);
@@ -140,7 +151,7 @@ useEventListener(window, 'hashchange', readInviteFromLocation);
 readInviteFromLocation();
 /** The desktop app forwards `sketchdraw://join` links it is opened with while it is already running. */
 const offInviteLink = getDesktopBridge().onInviteLink?.(openInvite);
-onBeforeUnmount(() => { offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
+onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
 </script>
 
 <template>
