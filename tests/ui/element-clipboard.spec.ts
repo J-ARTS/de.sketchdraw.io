@@ -146,3 +146,20 @@ test('unsupported clipboard images are reported; text fields and dialogs keep th
   expect(await pasteFile(page, { name: 'image.png', type: 'image/png', bytes: png })).toBe(true);
   await expect(page.locator('[data-kind="image"]')).toHaveCount(1);
 });
+
+test('copy and paste work on an added page, whose ID is not the default one (#185)', async ({ page }) => {
+  await page.getByTestId('page-switcher').click();
+  await page.getByTestId('page-add').click();
+  await expect(page.getByRole('button', { name: /^Seite 2/ })).toHaveAttribute('aria-current', 'page');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Ellipse', exact: true }).click();
+  await page.mouse.move(300, 220); await page.mouse.down(); await page.mouse.move(460, 340, { steps: 6 }); await page.mouse.up();
+  await expect(page.locator('[data-kind="ellipse"]')).toHaveCount(1);
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('ControlOrMeta+c');
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('1 Element kopiert.')).toBeVisible();
+  await page.mouse.move(820, 610);
+  await page.keyboard.press('ControlOrMeta+v');
+  await expect(page.locator('[data-kind="ellipse"]')).toHaveCount(2);
+  await expect(page.getByText('Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.')).toHaveCount(0);
+});

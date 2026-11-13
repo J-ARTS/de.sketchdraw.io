@@ -92,7 +92,10 @@ export function parseElementClipboard(text: string): ElementClipboardPayload | n
 
   try {
     const candidate = createDocument('Zwischenablage');
-    candidate.elements = raw.elements as SketchElement[];
+    // The page a selection was copied from says nothing about where it is pasted, and it does not exist in this
+    // one-page candidate: validate every element on the candidate's page. Paste puts them on the active page (#185).
+    const pageId = candidate.pages[0]!.id;
+    candidate.elements = raw.elements.map((element) => (isRecord(element) ? { ...element, pageId } : element)) as SketchElement[];
     candidate.assets = raw.assets as Record<string, SketchAsset>;
     candidate.componentSets = raw.componentSets as ComponentSet[];
     const validated = deserializeDocument(JSON.stringify(candidate));

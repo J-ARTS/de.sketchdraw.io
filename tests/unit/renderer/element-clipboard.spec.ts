@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
+  applyCommand,
   createController,
   createDocument,
   createElement,
@@ -8,6 +9,7 @@ import {
 } from '@/domain';
 import { bounds } from '@/renderer/lib/geometry';
 import { resolveShortcut } from '@/renderer/lib/shortcuts';
+import { elementClipboardPayload, parseElementClipboard } from '@/renderer/state/element-clipboard';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { KeyInput, PointerInput, TextClipboard, WhiteboardStore } from '@/renderer/state/contract';
 
@@ -236,5 +238,41 @@ describe('element clipboard', () => {
     expect(store.handleKeyDown(key('c', 'canvas'))).toBe(true);
     await store.whenIdle();
     expect(clipboard.writeText).toHaveBeenCalledTimes(1);
+  });
+
+  test('copies and pastes on pages whose ID is not the default one (#185)', async () => {
+    // A document like the reference diagrams: no page is called "page:1".
+    let document = createDocument('Pages');
+    document = applyCommand(document, { type: 'add-page', page: { id: 'page:traefik', name: 'Traefik' } });
+    document = applyCommand(document, { type: 'add-page', page: { id: 'page:workflow', name: 'Workflow' } });
+    document = applyCommand(document, { type: 'delete-page', pageId: document.pages[0]!.id });
+    document = applyCommand(document, { type: 'add', elements: [createElement('ellipse', { id: 'ellipse:source', pageId: 'page:workflow', x: 100, y: 100, width: 120, height: 80 })] });
+    expect(document.pages.map((page) => page.id)).toEqual(['page:traefik', 'page:workflow']);
+
+    const text = JSON.stringify(elementClipboardPayload(document, ['ellipse:source']));
+    expect(parseElementClipboard(text)?.elements).toHaveLength(1);
+    // The check stays complete: a broken element is still refused.
+    const broken = JSON.parse(text) as { elements: Array<Record<string, unknown>> };
+    broken.elements[0]!.width = -5;
+    expect(parseElementClipboard(JSON.stringify(broken))).toBeNull();
+    expect(parseElementClipboard(JSON.stringify({ ...JSON.parse(text), elements: ['nonsense'] }))).toBeNull();
+
+    let clipboardText = '';
+    const clipboard: TextClipboard = { writeText: vi.fn(async (value) => { clipboardText = value; }), readText: vi.fn(async () => clipboardText) };
+    const store = createWhiteboardStore({ bridge, clipboard, controller: createController(document), isMac: false });
+    stores.push(store);
+    store.selectPage('page:workflow');
+    store.select(['ellipse:source']);
+    await store.copySelection();
+    await store.pasteSelection();
+    await store.whenIdle();
+    expect(store.state.notices.filter((notice) => notice.kind === 'error')).toEqual([]);
+    expect(store.state.document.elements.map((element) => [element.kind, element.pageId])).toEqual([['ellipse', 'page:workflow'], ['ellipse', 'page:workflow']]);
+
+    // Copied on one page and pasted on another, the copy lands on the page on screen.
+    store.selectPage('page:traefik');
+    await store.pasteSelection();
+    await store.whenIdle();
+    expect(store.state.document.elements.filter((element) => element.pageId === 'page:traefik')).toHaveLength(1);
   });
 });
