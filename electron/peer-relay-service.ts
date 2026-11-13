@@ -2,20 +2,22 @@ import { createRelayHub, type HubConnection, type HubHandler, type RelayHub, typ
 import { type DhtFactory, DirectService, type DirectServiceEvent } from './direct-service';
 
 /*
- * Volunteer peer relay (opt-in, default off). A native peer offers relay capacity to other Sketchdraw peers:
+ * Volunteer peer relay (active for the lifetime of a session, #162). A native peer offers relay capacity to other peers:
  *  - it listens on HyperDHT under its OWN key pair (never a document host key) and advertises that key under a
  *    versioned service topic, so no registry, domain or fixed server is needed to find helpers;
  *  - after a host proved ownership of its session key, it advertises a per-session topic under its own key so guests
  *    find exactly the helpers that serve their session, and withdraws it when the host leaves;
  *  - it forwards only opaque, end-to-end encrypted records through the same bounded hub the WSS relay uses, so it
  *    learns neither the PIN nor drawing content.
- * Its lifetime is independent of any open document; it ends on opt-out, window exit or dispose.
+ * It has no document authority; its owner stops it at session end, window exit or dispose.
  */
 
 export interface HelperStatus {
   running: boolean;
   /** The service advertisement was published at least once. */
   announced: boolean;
+  /** HyperDHT reports an external endpoint. This does not prove reachability from another network. */
+  externalAddressKnown: boolean;
   connections: number;
   sessions: number;
   guests: number;
@@ -73,6 +75,7 @@ export class PeerRelayHelper {
     return {
       running: this.service?.hostKey != null,
       announced: this.announced,
+      externalAddressKnown: this.service?.externalAddressKnown ?? false,
       connections: stats?.connections ?? 0,
       sessions: stats?.topics ?? 0,
       guests: stats?.guests ?? 0,

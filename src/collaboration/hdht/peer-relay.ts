@@ -4,6 +4,7 @@ import type { DirectLink } from './direct-link';
 import type { PacerOptions } from './relay-wire';
 import { connectRelayGuest, RelayHostConnection } from './relay-wire';
 import type { HostKeys, RelayRecordChannel } from './relay-channel';
+import type { SecureChannel } from './types';
 
 /** Bounds of the decentralized relay selection; every query, candidate list and registration count is finite. */
 export const PEER_RELAY_LIMITS = Object.freeze({
@@ -13,16 +14,21 @@ export const PEER_RELAY_LIMITS = Object.freeze({
   hostCandidates: 6,
   attemptTimeoutMs: 8000,
   badTtlMs: 60_000,
+  discoveryMaxDelayMs: 60_000,
 });
 
 /** Helpers that failed recently; they are skipped until the entry expires. */
 export class BadHelpers {
   private readonly until = new Map<string, number>();
   constructor(private readonly ttlMs: number = PEER_RELAY_LIMITS.badTtlMs, private readonly now: () => number = Date.now) {}
+  clear(): void { this.until.clear(); }
   mark(key: string): void {
     this.until.delete(key);
     this.until.set(key, this.now() + this.ttlMs);
     if (this.until.size > 64) this.until.delete(this.until.keys().next().value!);
+  }
+  oldest(keys: string[]): string | undefined {
+    return keys.reduce<string | undefined>((best, key) => !best || (this.until.get(key) ?? 0) < (this.until.get(best) ?? 0) ? key : best, undefined);
   }
   has(key: string): boolean {
     const expiry = this.until.get(key);
@@ -76,6 +82,18 @@ export interface HelperGuestOptions {
   onCandidate?(key: string, outcome: 'start' | 'failed' | 'won'): void;
 }
 
+const helperChannels = new WeakMap<SecureChannel, { key: string; failed(): void }>();
+
+/** A completed crypto handshake does not prove later application forwarding. Avoid retrying a silent winner. */
+export function rejectHelperChannel(channel: SecureChannel, bad: BadHelpers): boolean {
+  const helper = helperChannels.get(channel);
+  if (!helper) return false;
+  helperChannels.delete(channel);
+  bad.mark(helper.key);
+  helper.failed();
+  return true;
+}
+
 /**
  * Finds the helpers that currently serve this session through the DHT and connects through the first one whose relay
  * leg and inner end-to-end handshake (pinned host key) succeed. Failing helpers are skipped and remembered.
@@ -85,7 +103,11 @@ export async function connectViaHelpers(options: HelperGuestOptions): Promise<Re
   if (options.signal.aborted) throw new Error('ABORTED');
   const found = await discoverHelpers(options.link, { kind: 'session', topic }, options.signal);
   if (options.signal.aborted) throw new Error('ABORTED');
-  const candidates = uniqueHelpers(found).filter(key => !options.bad.has(key)).slice(0, PEER_RELAY_LIMITS.guestCandidates);
+  const unique = uniqueHelpers(found);
+  const candidates = unique.filter(key => !options.bad.has(key)).slice(0, PEER_RELAY_LIMITS.guestCandidates);
+  // A temporary host pause must not make a lone, otherwise healthy helper unusable for the full TTL.
+  // The session's bounded retry/backoff still applies; prefer every fresh candidate before one old failure.
+  if (!candidates.length) { const retry = options.bad.oldest(unique); if (retry) candidates.push(retry); }
   if (!candidates.length) throw new Error('NO_HELPER');
   const stop = new AbortController();
   return new Promise<RelayRecordChannel>((resolve, reject) => {
@@ -117,6 +139,7 @@ export async function connectViaHelpers(options: HelperGuestOptions): Promise<Re
           running--;
           if (settled) { channel.close('LOST_RACE'); return; }
           settled = true;
+          helperChannels.set(channel, { key, failed: () => options.onCandidate?.(key, 'failed') });
           options.onCandidate?.(key, 'won');
           options.signal.removeEventListener('abort', onAbort);
           stop.abort();
@@ -144,8 +167,11 @@ export interface PeerRelayHostsOptions {
   onChannel(channel: RelayRecordChannel): void;
   onChange?(activeHelpers: number): void;
   target?: number;
-  /** Time between discovery rounds while fewer than `target` helpers are registered. */
+  /** Initial delay between unsuccessful discovery rounds; subsequent delays grow exponentially. */
   retryMs?: number;
+  maxRetryMs?: number;
+  /** Injectable jitter source for deterministic timer tests. */
+  random?: () => number;
   /** Time between checks while the target is met (a lost helper is replaced after at most this long). */
   steadyMs?: number;
   pacer?: PacerOptions;
@@ -163,6 +189,8 @@ export class PeerRelayHosts {
   private generation = 0;
   private running = false;
   private wake: (() => void) | null = null;
+  private emptyRounds = 0;
+  private lastDiscoveryAt = -Infinity;
 
   constructor(private readonly options: PeerRelayHostsOptions) {}
 
@@ -171,6 +199,9 @@ export class PeerRelayHosts {
   start(): void {
     if (this.running) return;
     this.running = true;
+    this.emptyRounds = 0;
+    this.lastDiscoveryAt = -Infinity;
+    this.bad.clear();
     this.abort = new AbortController();
     void this.loop(++this.generation, this.abort.signal);
   }
@@ -194,29 +225,44 @@ export class PeerRelayHosts {
 
   private async loop(generation: number, signal: AbortSignal): Promise<void> {
     const target = Math.max(1, Math.min(PEER_RELAY_LIMITS.hostRegistrations, Math.floor(this.options.target ?? PEER_RELAY_LIMITS.hostRegistrations) || 1));
+    const base = Math.max(1, this.options.retryMs ?? 3000);
     while (this.current(generation)) {
       if (this.active.size + this.starting.size < target) {
+        // Even repeated short-lived registrations cannot turn wakeups into an unbounded lookup loop.
+        let remaining: number;
+        while ((remaining = base * 0.8 - (Date.now() - this.lastDiscoveryAt)) > 0) {
+          await this.wait(remaining); if (!this.current(generation)) return;
+        }
+        this.lastDiscoveryAt = Date.now();
         let found: string[];
         try { found = await discoverHelpers(this.options.link, { kind: 'service' }, signal); } catch { return; }
         if (!this.current(generation)) return;
         const candidates = uniqueHelpers(found)
           .filter(key => !this.active.has(key) && !this.starting.has(key) && !this.bad.has(key))
           .slice(0, PEER_RELAY_LIMITS.hostCandidates);
+        // Discovery output is untrusted: rotating Sybil keys must not reset backoff.
+        this.emptyRounds = Math.min(16, this.emptyRounds + 1);
         for (const key of candidates) {
           if (this.active.size + this.starting.size >= target) break;
           this.register(key, generation);
         }
       }
       if (!this.current(generation)) return;
-      const delay = this.active.size >= target ? (this.options.steadyMs ?? 20_000) : (this.options.retryMs ?? 3000);
-      let wake: () => void;
-      await new Promise<void>(resolve => {
-        const timer = setTimeout(resolve, delay);
-        wake = () => { clearTimeout(timer); resolve(); };
-        this.wake = wake;
-      });
-      if (this.wake === wake!) this.wake = null;
+      const maximum = Math.max(base, this.options.maxRetryMs ?? PEER_RELAY_LIMITS.discoveryMaxDelayMs);
+      const delay = this.active.size >= target ? (this.options.steadyMs ?? 20_000)
+        : Math.min(maximum, base * 2 ** Math.max(0, this.emptyRounds - 1)) * (0.8 + 0.2 * (this.options.random ?? Math.random)());
+      await this.wait(delay);
     }
+  }
+
+  private async wait(delay: number): Promise<void> {
+    let wake: () => void;
+    await new Promise<void>(resolve => {
+      const timer = setTimeout(resolve, delay);
+      wake = () => { clearTimeout(timer); resolve(); };
+      this.wake = wake;
+    });
+    if (this.wake === wake!) this.wake = null;
   }
 
   private register(key: string, generation: number): void {
@@ -236,6 +282,7 @@ export class PeerRelayHosts {
         if (state === 'ready' && this.current(generation) && this.starting.get(key) === connection) {
           this.starting.delete(key);
           this.active.set(key, connection);
+          this.emptyRounds = 0;
           this.options.onChange?.(this.active.size);
         }
       },
@@ -245,8 +292,11 @@ export class PeerRelayHosts {
         const wasActive = this.active.delete(key);
         this.starting.delete(key);
         this.bad.mark(key);
-        if (wasActive) this.options.onChange?.(this.active.size);
-        this.wake?.();
+        if (wasActive) {
+          this.emptyRounds = 0;
+          this.options.onChange?.(this.active.size);
+          this.wake?.();
+        }
       },
     });
     this.starting.set(key, connection);

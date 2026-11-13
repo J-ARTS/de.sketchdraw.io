@@ -33,7 +33,7 @@ function identity() {
   const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
   return { privateKey, key: raw.toString('base64url'), topic: topicForHostKey(raw) };
 }
-function fixture(options: { listen?: () => Promise<void> } = {}) {
+function fixture(options: { listen?: () => Promise<void>; remoteAddress?: DhtNode['remoteAddress'] } = {}) {
   const state = { nodes: 0, destroyed: 0, active: 0, maximum: 0, announcements: [] as string[], withdrawals: [] as string[], published: new Set<string>(), incoming: null as null | ((stream: Stream) => void) };
   let announceGate: { topic: string; gate: ReturnType<typeof deferred> } | null = null;
   let withdrawGate: { topic: string; gate: ReturnType<typeof deferred> } | null = null;
@@ -62,6 +62,7 @@ function fixture(options: { listen?: () => Promise<void> } = {}) {
   const createDht = (): DhtNode => {
     state.nodes++;
     return {
+      ...(options.remoteAddress ? { remoteAddress: options.remoteAddress } : {}),
       createServer(_options, callback) { state.incoming = callback as never; return { listen: options.listen ?? (async () => {}), async close() {}, on() {} }; },
       connect() { throw new Error('unused'); },
       announce: topic => query('announce', topic),
@@ -95,6 +96,18 @@ function helper(f: ReturnType<typeof fixture>, refreshMs?: number) {
 }
 
 describe('Volunteer helper lifecycle and bounded advertisements (R19/R22/R25)', () => {
+  it('keeps native endpoint observation distinct from listening and advertisement success', async () => {
+    let address: { host: string; port: number } | null = null;
+    const f = fixture({ remoteAddress: () => address }), h = helper(f);
+    await h.start();
+    expect(h.status()).toMatchObject({ running: true, announced: true, externalAddressKnown: false, forwardedRecords: 0 });
+    address = { host: '192.0.2.1', port: 12345 };
+    expect(h.status()).toMatchObject({ externalAddressKnown: true, forwardedRecords: 0 });
+    address = { host: '192.0.2.1', port: 0 };
+    expect(h.status().externalAddressKnown).toBe(false);
+    await h.stop(); expect(h.status().externalAddressKnown).toBe(false);
+  });
+
   it('is off by default, shares a pending start and supports immediate restart after cancellation', async () => {
     const pending = deferred(); let first = true;
     const f = fixture({ listen: () => { if (first) { first = false; return pending.promise; } return Promise.resolve(); } });

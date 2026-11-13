@@ -42,6 +42,8 @@ export interface DirectBridge {
 export interface HelperStatus {
   running: boolean;
   announced: boolean;
+  /** Native endpoint observation only; neither listening nor advertising proves Internet reachability. */
+  externalAddressKnown?: boolean;
   connections: number;
   sessions: number;
   guests: number;

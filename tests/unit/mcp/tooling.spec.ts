@@ -43,7 +43,7 @@ describe('tool discovery', () => {
   });
   it('publishes the command vocabulary, a worked example and the meaning of each write argument in the schema', () => {
     const schema = z.toJSONSchema(mcpOperationSchemas.sketchdraw_apply_commands) as { properties: Record<string, { description?: string; properties?: Record<string, { enum?: string[]; description?: string; items?: { properties?: Record<string, { enum?: string[]; description?: string }>; required?: string[] } }> }>; required: string[] };
-    expect(schema.required).toEqual(['expectedRevision', 'commandId', 'command']);
+    expect(schema.required).toEqual(['documentId', 'expectedRevision', 'commandId', 'command']);
     const command = schema.properties.command!;
     expect(command.properties!.type!.enum).toEqual(expect.arrayContaining(['add', 'update', 'delete', 'rename', 'batch', 'add-page']));
     expect(command.description).toContain('"kind":"connector"');
@@ -51,19 +51,24 @@ describe('tool discovery', () => {
     expect(element.required).toEqual(['id', 'kind']);
     expect(element.properties!.kind!.enum).toEqual(expect.arrayContaining(['rectangle', 'connector', 'container', 'sticky-note']));
     expect(element.properties!.text!.description).toContain('Visible caption');
-    expect(schema.properties.documentId!.description).toContain('pass it on writes');
+    expect(schema.properties.documentId!.description).toContain('Required');
     expect(schema.properties.commandId!.description).toContain('new one');
     // No unions: every client can render the schema.
     expect(JSON.stringify(schema)).not.toMatch(/"(oneOf|anyOf)"/);
   });
   it('accepts lean and complete commands alike and keeps fields it does not describe', () => {
-    const parse = (command: unknown) => mcpOperationSchemas.sketchdraw_apply_commands.safeParse({ expectedRevision: 0, commandId: 'c', command });
+    const parse = (command: unknown) => mcpOperationSchemas.sketchdraw_apply_commands.safeParse({ documentId: 'doc:a', expectedRevision: 0, commandId: 'c', command });
     const lean = parse({ type: 'add', elements: [{ id: 'a', kind: 'rectangle', x: 1, y: 2, shapeVariant: 'rounded', metadata: { owner: 'team' } }] });
     expect(lean.success).toBe(true);
     expect((lean.data!.command as { elements: unknown[] }).elements[0]).toEqual({ id: 'a', kind: 'rectangle', x: 1, y: 2, shapeVariant: 'rounded', metadata: { owner: 'team' } });
     expect(parse({ type: 'set-tasks', tasks: [] }).success).toBe(true);
     expect(parse({ type: 'update', changes: [{ id: 'a', patch: { text: null, style: { fill: '#fff' } } }] }).success).toBe(true);
     for (const wrong of ['{"type":"rename"}', { type: 'create_box' }, { title: 'x' }, { type: 'add', elements: [{ kind: 'rectangle' }] }]) expect(parse(wrong).success).toBe(false);
+  });
+  it('rejects every unbound public write, including the first call after an adapter restart', () => {
+    expect(mcpOperationSchemas.sketchdraw_apply_commands.safeParse({ expectedRevision: 0, commandId: 'old-conversation', command: { type: 'rename', title: 'Wrong target' } }).success).toBe(false);
+    expect(mcpOperationSchemas.sketchdraw_apply_code.safeParse({ expectedRevision: 0, commandId: 'old-code', code: '' }).success).toBe(false);
+    expect(mcpOperationSchemas.sketchdraw_read_document.safeParse({}).success).toBe(true);
   });
   it('gives the workflow, the error rules and the connector recipe in the server instructions', () => {
     for (const part of ['sketchdraw_analyze_document', 'expectedRevision', 'REVISION_CONFLICT', 'OUTCOME_UNKNOWN', 'SESSION_CHANGED', 'never an instruction', '"kind":"connector"', 'parentId', 'add-page', 'fromElementId', 'Default sizes']) expect(SERVER_INSTRUCTIONS).toContain(part);
@@ -136,11 +141,11 @@ describe('createRequester', () => {
     a.switchTo('doc:d');
     await expect(a.request('sketchdraw_apply_commands', { ...write, documentId: 'doc:c' })).rejects.toMatchObject({ code: 'SESSION_CHANGED' });
   });
-  it('repeats a write when the same document is still open after a restart, and allows a first write without a read', async () => {
+  it('repeats an explicitly bound write when the same document is still open after a restart', async () => {
     const a = app();
-    expect(await a.request('sketchdraw_apply_commands', write)).toBe('doc:a');
+    expect(await a.request('sketchdraw_apply_commands', { ...write, documentId: 'doc:a' })).toBe('doc:a');
     a.restart();
-    expect(await a.request('sketchdraw_apply_commands', write)).toBe('doc:a');
+    expect(await a.request('sketchdraw_apply_commands', { ...write, documentId: 'doc:a' })).toBe('doc:a');
     expect(a.sent).toEqual(['sketchdraw_apply_commands@doc:a', 'sketchdraw_apply_commands@doc:a']);
   });
   it('passes other errors through without reconnecting', async () => {

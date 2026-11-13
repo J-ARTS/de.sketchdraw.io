@@ -58,7 +58,7 @@ interface Transfer {
 }
 
 /** One aggregate allocation budget across all peers; incomplete states never reach Yjs. */
-export function createCrdtTransferReceiver(options: { onError(error: Error): void; timeoutMs?: number }) {
+export function createCrdtTransferReceiver(options: { onError(error: Error, peerKey: string): void; timeoutMs?: number }) {
   const transfers = new Map<string, Transfer>();
   const reservations = new Set<Transfer>();
   let allocated = 0;
@@ -77,40 +77,42 @@ export function createCrdtTransferReceiver(options: { onError(error: Error): voi
     // A cancelled digest still holds its input. Logical cancellation must not free that allocation early.
     if (!entry.verifying) release(entry);
   }
-  function fail(key: string, code = 'SYNC_TRANSFER_INVALID'): null {
+  function fail(peerKey: string, key: string, code = 'SYNC_TRANSFER_INVALID'): null {
     remove(key);
-    if (!closed) options.onError(new Error(code));
+    if (!closed) options.onError(new Error(code), peerKey);
     return null;
   }
   return {
     async accept(peerKey: string, frame: Uint8Array): Promise<Uint8Array | null> {
       if (closed || frame.length < 4 || !same(frame.subarray(0, 4), MAGIC)) return null;
-      if (frame.length <= HEADER || frame.length > HEADER + CHUNK_BYTES) return fail('');
+      if (frame.length <= HEADER || frame.length > HEADER + CHUNK_BYTES) return fail(peerKey, '');
       const key = `${peerKey}:${hex(frame.subarray(4, 20))}`;
       const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
       const total = view.getUint32(20), offset = view.getUint32(24);
       const chunk = frame.subarray(HEADER), hash = frame.subarray(28, HEADER);
       if (total <= CRDT_UPDATE_LIMIT_BYTES || total > CRDT_TRANSFER_LIMIT_BYTES || offset + chunk.length > total
-        || (offset + chunk.length < total && chunk.length !== CHUNK_BYTES)) return fail(key);
+        || (offset + chunk.length < total && chunk.length !== CHUNK_BYTES)) return fail(peerKey, key);
       let entry = transfers.get(key);
       if (!entry) {
-        if (offset !== 0 || reservations.size >= MAX_TRANSFERS || allocated + total > CRDT_TRANSFER_LIMIT_BYTES) return fail(key, 'SYNC_TRANSFER_LIMIT');
-        const expire = () => fail(key, 'SYNC_TRANSFER_TIMEOUT');
+        if (offset !== 0 || [...reservations].some(value => value.peerKey === peerKey)) return fail(peerKey, key, 'SYNC_TRANSFER_LIMIT');
+        // Capacity held by other connections is temporary pressure, not evidence against this sender.
+        if (reservations.size >= MAX_TRANSFERS || allocated + total > CRDT_TRANSFER_LIMIT_BYTES) return fail(peerKey, key, 'SYNC_TRANSFER_BUSY');
+        const expire = () => fail(peerKey, key, 'SYNC_TRANSFER_TIMEOUT');
         entry = { peerKey, bytes: new Uint8Array(total), hash: hash.slice(), offset: 0, verifying: false,
           idle: setTimeout(expire, idleMs), deadline: setTimeout(expire, TOTAL_MS) };
         transfers.set(key, entry); reservations.add(entry); allocated += total;
       }
-      if (entry.verifying || entry.bytes.length !== total || entry.offset !== offset || !same(entry.hash, hash)) return fail(key);
+      if (entry.verifying || entry.bytes.length !== total || entry.offset !== offset || !same(entry.hash, hash)) return fail(peerKey, key);
       entry.bytes.set(chunk, offset); entry.offset += chunk.length;
       clearTimeout(entry.idle);
-      entry.idle = setTimeout(() => fail(key, 'SYNC_TRANSFER_TIMEOUT'), idleMs);
+      entry.idle = setTimeout(() => fail(peerKey, key, 'SYNC_TRANSFER_TIMEOUT'), idleMs);
       if (entry.offset !== total) return null;
       entry.verifying = true;
       // Keep the reservation until hashing finishes; otherwise concurrent finals can exceed the budget.
       try {
         const actual = await digest(entry.bytes);
         if (closed || transfers.get(key) !== entry) return null;
-        if (!same(actual, entry.hash)) return fail(key);
+        if (!same(actual, entry.hash)) return fail(peerKey, key);
         remove(key);
         return entry.bytes;
       } finally {

@@ -1,0 +1,76 @@
+{
+  "tool": "Claude Code CLI",
+  "model_requested": "claude-fable-5-2",
+  "assistant_models": [
+    "claude-fable-5-2"
+  ],
+  "effort": "high",
+  "allowed_tools": [
+    "Read"
+  ],
+  "max_turns": 3,
+  "session_id": "f59808c1-9522-4c32-9b1e-8733cc27d025",
+  "is_error": false,
+  "duration_ms": 58201,
+  "duration_api_ms": 57885,
+  "num_turns": 2,
+  "total_cost_usd": 0.5086246,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 17679,
+    "cache_read_input_tokens": 17243,
+    "output_tokens": 5557,
+    "output_tokens_details": {
+      "thinking_tokens": 4611
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17679,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5485,
+        "cache_read_input_tokens": 12441,
+        "cache_creation_input_tokens": 10040,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10040
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 4,
+      "outputTokens": 5557,
+      "cacheReadInputTokens": 17243,
+      "cacheCreationInputTokens": 17679,
+      "webSearchRequests": 0,
+      "costUSD": 0.5086246,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4611,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17679,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "raw_event_sha256": "71ee08c09a0e536f4a2df89f737fc2b5cc8f302805acca2587e1c774ec09b9b5",
+  "issues": [
+    161,
+    168,
+    181
+  ]
+}

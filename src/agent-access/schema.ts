@@ -63,12 +63,12 @@ const mcpCommand = z.looseObject({
   patch: z.looseObject({}).optional().describe('set-metadata: string values to set, null to remove a key.'),
 }).describe('One document command. Example: {"type":"add","elements":[{"id":"box:api","kind":"rectangle","x":100,"y":100,"text":"API"},{"id":"box:db","kind":"rectangle","x":420,"y":100,"text":"DB"},{"id":"link:api-db","kind":"connector","from":{"elementId":"box:api"},"to":{"elementId":"box:db"}}]}');
 
-/** Public MCP tools target the currently open local document when no ID is supplied. */
+/** Reads can discover the current document; writes always bind the document the caller read. */
 const mcpDocumentId = idSchema.optional().describe('ID of the document you read. Optional for reads; pass it on writes so a change can never land in a document the user opened in the meantime.');
 const mcpRevision = revision.describe('The "revision" returned by your latest read or write of this document.');
 const mcpCommandId = idSchema.describe('ID you invent per change, e.g. "add-api-box-1". Repeat the same ID only to retry the identical change after an unknown outcome; every new or corrected change needs a new one.');
 const mcpBase = { documentId: mcpDocumentId };
-const mcpWrite = { ...mcpBase, expectedRevision: mcpRevision, commandId: mcpCommandId };
+const mcpWrite = { documentId: idSchema.describe('Required: ID of the document you read. A queued change must never follow the user to another document.'), expectedRevision: mcpRevision, commandId: mcpCommandId };
 export const mcpOperationSchemas = {
   sketchdraw_read_document: z.strictObject({ ...mcpBase, includeAssetData: z.boolean().optional().describe('Include embedded image bytes (large). Default false: assets are summarized.') }),
   sketchdraw_find_elements: z.strictObject({ ...mcpBase, query: z.string().max(L.MAX_QUERY_LENGTH).describe('Case-insensitive text matched against ID, kind, text, label, description and metadata. An empty string lists all elements.'), limit: z.number().int().min(1).max(L.MAX_FIND_LIMIT).optional().describe('Default 50.') }),

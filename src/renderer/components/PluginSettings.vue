@@ -44,7 +44,7 @@ const linkedPages = computed(() => s.document.elements.filter((element) => eleme
  * Plugin settings belong to the active profile of the editor, so they can be edited without an open project (#168).
  * The profile is chosen in the workspace menu and managed in ProfileDialog.vue; this dialog only names it (#169).
  */
-const canConfigure = computed(() => Boolean(s.pluginSettings?.available));
+const canConfigure = computed(() => Boolean(s.pluginSettings?.available) && !s.pluginSettings?.configurationIssue?.blocksChanges);
 const activeProfileName = computed(() => s.pluginSettings?.profiles.find((profile) => profile.id === s.pluginSettings?.activeProfileId)?.name ?? '');
 
 const pending = ref(false);
@@ -189,6 +189,7 @@ async function searchPages(): Promise<void> { await runOperation(() => store.sea
         <div v-else class="project-context" :title="s.pluginSettings.projectFolder"><AppIcon name="folder-open" /><span>{{ t('Projektordner') }}</span><strong>{{ s.pluginSettings.projectFolder }}</strong><span class="context-profile" data-testid="plugin-active-profile">{{ t('Profil „{name}“', { name: activeProfileName }) }}</span></div>
       </template>
 
+      <div v-if="s.pluginSettings?.configurationIssue" class="plugin-feedback error" role="alert">{{ tm(s.pluginSettings.configurationIssue.message) }}</div>
       <div v-if="feedback" class="plugin-feedback" :class="{ error: feedback.kind === 'error' }" :role="feedback.kind === 'error' ? 'alert' : 'status'">{{ feedback.text }}</div>
       <div class="plugin-layout" :id="`plugin-panel-${activeTab}`" role="tabpanel" :aria-labelledby="`plugin-tab-${activeTab}`">
         <aside class="plugin-list" :aria-label="activeTab === 'marketplace' ? t('Marketplace-Plugins') : t('Installierte Plugins')">

@@ -9,7 +9,7 @@ import {
 import type { DirectLink } from './direct-link';
 import { computePinProof, type HdhtInvitation, PinGate } from './invitation';
 import { type HostKeys, hostKeyToText } from './relay-channel';
-import { connectViaHelpers, BadHelpers, PeerRelayHosts } from './peer-relay';
+import { connectViaHelpers, BadHelpers, PeerRelayHosts, rejectHelperChannel } from './peer-relay';
 import { connectRelayGuest, type PacerOptions, RelayHostConnection, type RelayHostState } from './relay-wire';
 import type { SecureChannel, WebSocketFactory } from './types';
 
@@ -73,6 +73,8 @@ export interface HdhtHostTransport extends CollaborationTransport {
   readonly pinRemainingFailures: number;
   /** Disconnects one guest and tells it the host closed the connection. */
   kick(peerId: string): void;
+  /** Releases one connection under temporary shared sync pressure; the guest may reconnect. */
+  retryPeer(peerId: string): void;
 }
 
 interface HostPeer { peer: AutomaticPeer; io: ChannelIo }
@@ -231,6 +233,7 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
     subscribeStatus(listener) { statusListeners.add(listener); return () => statusListeners.delete(listener); },
     subscribeMessage(listener) { messageListeners.add(listener); return () => messageListeners.delete(listener); },
     kick(peerId) { peers.get(peerId)?.io.close('KICKED'); },
+    retryPeer(peerId) { peers.get(peerId)?.io.close('SYNC_BUSY'); },
     async send(channel: CollaborationTransportChannel, data: Uint8Array, targetPeerIds?: readonly string[]): Promise<void> {
       if (closed) throw new Error('TRANSPORT_CLOSED');
       if (!(data instanceof Uint8Array) || data.byteLength < 1 || data.byteLength > CHANNEL_LIMITS[channel]) throw new Error('TRANSPORT_MESSAGE_LIMIT');
@@ -500,11 +503,17 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
       error = undefined; retryAfterMs = undefined; attemptsLeft = undefined;
       publish();
       let ended: { reason: string; authenticated: boolean; stable?: boolean; retryAfterMs?: number } = { reason: 'CONNECT_FAILED', authenticated: false };
+      let helperFailed = false;
       try {
         const channel = await establishChannel(config, stop.signal, badHelpers);
         if (closed || stop.signal.aborted) { channel.close('ABORTED'); return; }
         phase = 'authenticating'; publish();
         ended = await session(channel);
+        // A helper can forward the signed handshake and then silently discard application records. The channel
+        // heartbeat/auth deadline is the bounded live forwarding check; remember that failed helper for failover.
+        if (!closed && !stop.signal.aborted && ['AUTH_TIMEOUT', 'HEARTBEAT_TIMEOUT'].includes(ended.reason)) {
+          helperFailed = rejectHelperChannel(channel, badHelpers);
+        }
       } catch (cause) {
         ended = { reason: cause instanceof Error ? cause.message : 'CONNECT_FAILED', authenticated: false };
       }
@@ -519,7 +528,7 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
         fatal(everConnected ? 'CONNECTION_LOST' : ended.reason === 'CONNECT_TIMEOUT' || ended.reason === 'NO_ROUTE' ? 'HOST_UNREACHABLE' : 'CONNECT_FAILED');
         return;
       }
-      state = 'reconnecting'; hostPeer = null; publish();
+      state = 'reconnecting'; error = helperFailed ? 'HELPER_FORWARDING_FAILED' : ended.reason; hostPeer = null; publish();
       const delay = Math.max(ended.retryAfterMs ?? 0, backoff[Math.min(failures, backoff.length - 1)] ?? 500);
       await new Promise<void>(resolve => {
         const finish = () => { clearTimeout(timer); stop.signal.removeEventListener('abort', finish); resolve(); };

@@ -19,6 +19,11 @@ export interface RelayHubLimits {
   maxTotalBufferedBytes: number;
   aggregateBytesPerSecond: number;
   aggregateByteBurst: number;
+  /** Additional aggregate pacer queue, separate from adapter buffers (default 8 MiB). */
+  maxAggregateQueuedBytes: number;
+  maxAggregateQueuedBytesPerConnection: number;
+  maxAggregateQueuedRecordsPerConnection: number;
+  aggregateQueueTimeoutMs: number;
 }
 
 export interface HubConnection {

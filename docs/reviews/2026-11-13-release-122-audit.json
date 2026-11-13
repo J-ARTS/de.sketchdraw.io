@@ -1,0 +1,202 @@
+{
+  "reviewedAt": "2026-11-13",
+  "repository": "J-ARTS/de.sketchdraw.io",
+  "tag": "v0.1.3",
+  "commitSha": "c45e892a192e7cc2ae9c86c5096cad9f219ac315",
+  "workflowRun": "https://github.com/J-ARTS/de.sketchdraw.io/actions/runs/43282773347",
+  "releaseUrl": "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.3",
+  "method": "Public release assets independently downloaded with gh release download; validated against separately downloaded native workflow manifests, binary headers, architecture, size and SHA-256. Native installer-extracted smoke evidence bound to matching hashes and commit.",
+  "artifacts": [
+    {
+      "platformKey": "win",
+      "displayName": "Windows x64 (NSIS .exe)",
+      "target": "nsis",
+      "arch": "x64",
+      "fileName": "Sketchdraw-0.1.3-windows-x64.exe",
+      "filePath": "/tmp/sketchdraw-release-122-validated/Sketchdraw-0.1.3-windows-x64.exe",
+      "sizeBytes": 115230985,
+      "sha256": "9eef6e3db556b421b8cc47a7a90cbed6c4c735f18b449593133248f8e7143e40",
+      "signing": {
+        "mode": "unsigned",
+        "signed": false,
+        "notarized": false,
+        "summary": "Unsigned (no Authenticode certificate configured)"
+      },
+      "binaryInspection": {
+        "format": "pe",
+        "machine": 332,
+        "arch": "ia32",
+        "sizeBytes": 115230985
+      }
+    },
+    {
+      "platformKey": "mac",
+      "displayName": "macOS Apple Silicon M1/arm64 (.dmg)",
+      "target": "dmg",
+      "arch": "arm64",
+      "fileName": "Sketchdraw-0.1.3-macos-arm64.dmg",
+      "filePath": "/tmp/sketchdraw-release-122-validated/Sketchdraw-0.1.3-macos-arm64.dmg",
+      "sizeBytes": 162133771,
+      "sha256": "d0f18a16e95f11fc215efb90c29c4e300ea3d2147fa407713a705ac338f05a74",
+      "signing": {
+        "mode": "adhoc-unsigned",
+        "signed": false,
+        "notarized": false,
+        "summary": "Ad-hoc signed for Apple Silicon arm64 compatibility (no Developer ID / notarization configured)"
+      },
+      "binaryInspection": {
+        "format": "dmg",
+        "trailerSignature": "koly",
+        "sizeBytes": 162133771
+      }
+    },
+    {
+      "platformKey": "linux",
+      "displayName": "Linux Debian/Ubuntu x64 (.deb)",
+      "target": "deb",
+      "arch": "x64",
+      "fileName": "Sketchdraw-0.1.3-linux-x64.deb",
+      "filePath": "/tmp/sketchdraw-release-122-validated/Sketchdraw-0.1.3-linux-x64.deb",
+      "sizeBytes": 117497968,
+      "sha256": "fecf876bd85cfbee848d5c0d811e4ea23a61092f8d9dba438e69adb9d048d5cc",
+      "signing": {
+        "mode": "unsigned",
+        "signed": false,
+        "notarized": false,
+        "summary": "Standard Debian archive (.deb, unsigned)"
+      },
+      "binaryInspection": {
+        "format": "deb",
+        "firstMember": "debian-binary/",
+        "sizeBytes": 117497968
+      }
+    }
+  ],
+  "nativeSmokeEvidence": [
+    {
+      "schemaVersion": 1,
+      "passed": true,
+      "source": "installer-extracted",
+      "platformKey": "linux",
+      "version": "0.1.3",
+      "commitSha": "c45e892a192e7cc2ae9c86c5096cad9f219ac315",
+      "installerSha256": "fecf876bd85cfbee848d5c0d811e4ea23a61092f8d9dba438e69adb9d048d5cc",
+      "appIsPackaged": true,
+      "appVersion": "0.1.3",
+      "appArch": "x64",
+      "sandbox": true,
+      "bundleHashes": {
+        "dist/index.html": "c544a5eaabca47d44653186b5097aea16eb0813daf8270e10cc73882c51357b6",
+        "dist-electron/main.cjs": "c04d94f8ae774cd9fc456aaa439fb3b4d72458995ce6c96162a2b63b4133fb26",
+        "dist-electron/preload.cjs": "0313b85655c87b1e2d65c8cb32784423440076e9e811894c121df6deadb3438e",
+        "dist-mcp/server.cjs": "32830c599a20c961a4534084951414a460b93a1233219dbad17932b74c6a22b7"
+      },
+      "mcp": {
+        "initialized": true,
+        "deniedWithoutGrant": true,
+        "tools": [
+          "sketchdraw_analyze_document",
+          "sketchdraw_apply_code",
+          "sketchdraw_apply_commands",
+          "sketchdraw_find_elements",
+          "sketchdraw_read_code",
+          "sketchdraw_read_document"
+        ],
+        "stderrBytes": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "passed": true,
+      "source": "installer-extracted",
+      "platformKey": "mac",
+      "version": "0.1.3",
+      "commitSha": "c45e892a192e7cc2ae9c86c5096cad9f219ac315",
+      "installerSha256": "d0f18a16e95f11fc215efb90c29c4e300ea3d2147fa407713a705ac338f05a74",
+      "appIsPackaged": true,
+      "appVersion": "0.1.3",
+      "appArch": "arm64",
+      "sandbox": true,
+      "bundleHashes": {
+        "dist/index.html": "c544a5eaabca47d44653186b5097aea16eb0813daf8270e10cc73882c51357b6",
+        "dist-electron/main.cjs": "c04d94f8ae774cd9fc456aaa439fb3b4d72458995ce6c96162a2b63b4133fb26",
+        "dist-electron/preload.cjs": "0313b85655c87b1e2d65c8cb32784423440076e9e811894c121df6deadb3438e",
+        "dist-mcp/server.cjs": "32830c599a20c961a4534084951414a460b93a1233219dbad17932b74c6a22b7"
+      },
+      "mcp": {
+        "initialized": true,
+        "deniedWithoutGrant": true,
+        "tools": [
+          "sketchdraw_analyze_document",
+          "sketchdraw_apply_code",
+          "sketchdraw_apply_commands",
+          "sketchdraw_find_elements",
+          "sketchdraw_read_code",
+          "sketchdraw_read_document"
+        ],
+        "stderrBytes": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "passed": true,
+      "source": "installer-extracted",
+      "platformKey": "win",
+      "version": "0.1.3",
+      "commitSha": "c45e892a192e7cc2ae9c86c5096cad9f219ac315",
+      "installerSha256": "9eef6e3db556b421b8cc47a7a90cbed6c4c735f18b449593133248f8e7143e40",
+      "appIsPackaged": true,
+      "appVersion": "0.1.3",
+      "appArch": "x64",
+      "sandbox": true,
+      "bundleHashes": {
+        "dist/index.html": "17516dc25c286277027eb979b76f8e57c1a0066db85752c07e5d9a7a07cd3255",
+        "dist-electron/main.cjs": "c04d94f8ae774cd9fc456aaa439fb3b4d72458995ce6c96162a2b63b4133fb26",
+        "dist-electron/preload.cjs": "0313b85655c87b1e2d65c8cb32784423440076e9e811894c121df6deadb3438e",
+        "dist-mcp/server.cjs": "32830c599a20c961a4534084951414a460b93a1233219dbad17932b74c6a22b7"
+      },
+      "mcp": {
+        "initialized": true,
+        "deniedWithoutGrant": true,
+        "tools": [
+          "sketchdraw_analyze_document",
+          "sketchdraw_apply_code",
+          "sketchdraw_apply_commands",
+          "sketchdraw_find_elements",
+          "sketchdraw_read_code",
+          "sketchdraw_read_document"
+        ],
+        "stderrBytes": 0
+      }
+    }
+  ],
+  "featureAncestors": {
+    "126": "489bb8e",
+    "127": "0fc457d"
+  },
+  "scopeNote": "This published release predates main 8df3006 and the current fixes; no claim that it includes the new ticket-audit changes.",
+  "independentSystemTools": {
+    "macOS": {
+      "tools": [
+        "hdiutil attach -readonly -nobrowse",
+        "lipo -archs",
+        "file"
+      ],
+      "result": "DMG all CRC32 checks passed; extracted executable is Mach-O 64-bit arm64; mount detached after inspection."
+    },
+    "linux": {
+      "tools": [
+        "bsdtar (control.tar.xz and data.tar.xz)",
+        "file"
+      ],
+      "result": "Debian control Architecture amd64 and Version 0.1.3; extracted opt/Sketchdraw/de.sketchdraw.io is ELF 64-bit LSB PIE x86-64, GNU/Linux 3.2.0."
+    },
+    "windows": {
+      "tools": [
+        "file"
+      ],
+      "result": "PE32 Intel 80386 NSIS bootstrap; payload x64 corroborated by hash-bound native Windows installer-extracted smoke (not re-executed on this macOS host)."
+    }
+  },
+  "postReleaseScriptChange": "2da62ae (#173) adds release listing-lag recovery after tag c45e892; unit-tested current main behavior, not attributed to the historical successful v0.1.3 publish run."
+}

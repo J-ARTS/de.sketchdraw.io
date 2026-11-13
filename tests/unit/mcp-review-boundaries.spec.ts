@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createController, createDocument } from '../../src/domain';
+import { createController, createDocument, type DocumentCommand } from '../../src/domain';
 import { createDocumentAuthority } from '../../src/session';
 import { createRendererAgentHandler } from '../../src/agent-access/renderer-handler';
 import type { AgentRendererRequest } from '../../src/agent-access/types';
@@ -46,12 +46,21 @@ describe('Independent MCP boundary review', () => {
     const f = fixture();
     const pending = f.handler.handleRequest(f.request('before-close'));
     const barrier = await f.authority.lifecycleGate.beginTransition('close', 0);
-    expect(await pending).toMatchObject({ ok: false });
+    expect(await pending).toMatchObject({ ok: false, error: { code: 'BUSY', message: expect.stringContaining('new commandId') } });
     expect(f.controller.getSnapshot().revision).toBe(0);
     f.authority.lifecycleGate.cancelTransition(barrier.token);
     // The failed command remains reserved, so replay cannot unexpectedly run later.
     expect(await f.handler.handleRequest(f.request('before-close'))).toMatchObject({ ok: false });
     expect(await f.handler.handleRequest(f.request('after-cancel'))).toMatchObject({ ok: true, revision: 1 });
+  });
+
+  it('reports a stale revision before completing a connector against a different snapshot', async () => {
+    const f = fixture();
+    expect(await f.handler.handleRequest(f.request('first'))).toMatchObject({ ok: true, revision: 1 });
+    const stale = f.request('stale');
+    const reply = await f.handler.handleRequest({ ...stale, payload: { documentId: f.session.documentId, commandId: 'stale', expectedRevision: 0, command: { type: 'add', elements: [{ id: 'link:stale', kind: 'connector', from: { elementId: 'missing:a', anchor: { x: 1, y: 0.5 } }, to: { elementId: 'missing:b', anchor: { x: 0, y: 0.5 } } }] } as unknown as DocumentCommand } });
+    expect(reply).toMatchObject({ ok: false, error: { code: 'REVISION_CONFLICT', currentRevision: 1 } });
+    expect(f.controller.getSnapshot()).toMatchObject({ revision: 1, document: { title: 'Changed', elements: [] } });
   });
 
   it('command IDs are bound to operation as well as payload and expected revision', async () => {

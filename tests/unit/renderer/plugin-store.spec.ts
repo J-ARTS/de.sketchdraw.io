@@ -243,14 +243,20 @@ describe('plugin store integration', () => {
     store.dispose();
   });
 
-  it('ignores a profile change that returns after the document context changed', async () => {
+  it('refreshes the active profile after a late switch without applying the previous document context', async () => {
     const { store, plugins } = await setup();
     let release!: (value: Awaited<ReturnType<PluginBridge['selectProfile']>>) => void;
     vi.mocked(plugins.selectProfile).mockImplementation(() => new Promise((resolve) => { release = resolve; }));
     const pending = store.selectPluginProfile('work');
     await store.newDocument();
-    release({ ...structuredClone(await plugins.getSettings()), activeProfileId: 'work' });
+    expect(store.state.pluginSettings?.activeProfileId).toBe('default');
+    const changed = { ...structuredClone(await plugins.getSettings(null)), activeProfileId: 'work' };
+    vi.mocked(plugins.getSettings).mockResolvedValue(changed);
+    release({ ...changed, projectFolder: '/old-project' });
     expect(await pending).toBe(false);
+    await vi.waitFor(() => expect(store.state.pluginSettings?.activeProfileId).toBe('work'));
+    expect(plugins.getSettings).toHaveBeenLastCalledWith(null);
+    expect(store.state.pluginSettings?.projectFolder).toBe('');
     expect(store.state.notices.some((entry) => entry.text.includes('ist aktiv'))).toBe(false);
     store.dispose();
   });

@@ -32,13 +32,15 @@ export function toolFailure(payload: AgentAccessErrorPayload): ToolResponse {
 export function createLimiter(limit: number, maxWaiting: number): <T>(task: () => Promise<T>) => Promise<T> {
   let active = 0;
   const waiting: Array<() => void> = [];
-  const release = () => { active--; waiting.shift()?.(); };
+  const release = () => {
+    const next = waiting.shift();
+    if (next) next(); else active--;
+  };
   return async task => {
     if (active >= limit) {
       if (waiting.length >= maxWaiting) throw new AgentAccessError('BUSY', 'Too many Sketchdraw calls are waiting; retry shortly.');
       await new Promise<void>(resolve => { waiting.push(resolve); });
-    }
-    active++;
+    } else active++;
     try { return await task(); } finally { release(); }
   };
 }
@@ -53,7 +55,7 @@ const RECONNECT_CODES: ReadonlySet<string> = new Set(['ACCESS_DENIED', 'ACCESS_R
  * applied to the one the user opened in the meantime.
  */
 export function createRequester<C extends DocumentConnection, R>(options: {
-  connect(fresh: boolean): Promise<C>;
+  connect(fresh: boolean, failed?: C): Promise<C>;
   send(connection: C, operation: AgentOperationName, input: unknown): Promise<R>;
 }): (operation: AgentOperationName, input: unknown) => Promise<R> {
   // The document whose ID the agent has last seen in a result. A write goes only to that document, or to the one the
@@ -61,8 +63,10 @@ export function createRequester<C extends DocumentConnection, R>(options: {
   let acknowledged: string | undefined;
   return async (operation, input) => {
     const write = AGENT_WRITE_OPERATIONS.has(operation);
+    let failed: C | undefined;
     const attempt = async (fresh: boolean): Promise<R> => {
-      const connection = await options.connect(fresh);
+      const connection = await options.connect(fresh, fresh ? failed : undefined);
+      failed = connection;
       if (write && acknowledged !== undefined && acknowledged !== connection.documentId && requestedDocument(input) !== connection.documentId) throw documentChanged(connection.documentId);
       const result = await options.send(connection, operation, input);
       acknowledged = connection.documentId;

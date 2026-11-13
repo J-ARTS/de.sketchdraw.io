@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { lstat } from 'node:fs/promises';
+import { lstat, mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import { writeAgentRuntimeAccess } from '../../../electron/agent-access/runtime-access';
 import { createConnection, createServer } from 'node:net';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/client';
@@ -13,8 +15,8 @@ import type { AgentPermission, AgentRendererRequest } from '../../../src/agent-a
 
 const cleanup: (() => unknown | Promise<unknown>)[] = [];
 afterEach(async () => { for (const close of cleanup.splice(0).reverse()) await close(); });
-async function fixture(permission: AgentPermission = 'write', intercept?: (request: AgentRendererRequest, proceed: () => ReturnType<AgentHostOptions['onRequest']>) => ReturnType<AgentHostOptions['onRequest']>) {
-  const document = { ...createDocument('Original'), id: 'doc:mcp' };
+async function fixture(permission: AgentPermission = 'write', intercept?: (request: AgentRendererRequest, proceed: () => ReturnType<AgentHostOptions['onRequest']>) => ReturnType<AgentHostOptions['onRequest']>, documentId = 'doc:mcp') {
+  const document = { ...createDocument('Original'), id: documentId };
   const controller = createController(document);
   const authority = createDocumentAuthority({ controller });
   const descriptor = { documentId: document.id, sessionEpoch: 1, webContentsGeneration: 1 };
@@ -185,7 +187,7 @@ describe('Real local agent host and renderer authority', () => {
     expect(added.isError).not.toBe(true);
     expect(text(added).split('\n')[0]).toBe('Change applied to the open document; it is not saved to a file.');
     expect(JSON.parse(text(added).split('\n')[1]!)).toMatchObject({ revision: 1, elementCount: 1 });
-    const failed = await sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { expectedRevision: 1, commandId: 'text-bad', command: { type: 'delete', ids: ['box:missing'] } } });
+    const failed = await sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { documentId: 'doc:mcp', expectedRevision: 1, commandId: 'text-bad', command: { type: 'delete', ids: ['box:missing'] } } });
     expect(failed.isError).toBe(true);
     expect(text(failed)).toContain('VALIDATION_FAILED: Command rejected:');
     expect(text(failed)).toContain('box:missing');
@@ -193,6 +195,29 @@ describe('Real local agent host and renderer authority', () => {
     // Six reads at once: the adapter queues what the app would refuse as BUSY.
     const parallel = await Promise.all(Array.from({ length: 6 }, () => sdk.callTool({ name: 'sketchdraw_read_code', arguments: {} })));
     expect(parallel.map(result => result.isError === true)).toEqual([false, false, false, false, false, false]);
+  }, 20_000);
+  it.each([false, true])('keeps concurrent reads alive across rotation (stale startup env: %s) without retargeting writes (#176)', async staleStartup => {
+    const a = await fixture(); const b = await fixture('write', undefined, 'doc:other');
+    const root = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-mcp-rotation-'));
+    cleanup.push(() => rm(root, { recursive: true, force: true }));
+    const runtimeFile = path.join(root, 'private', 'active.json');
+    const publish = (env: typeof a.grant.env) => writeAgentRuntimeAccess(runtimeFile, env, { command: process.execPath, args: [path.resolve('dist-mcp/server.cjs')], env: { SKETCHDRAW_MCP_RUNTIME_FILE: runtimeFile } });
+    await publish(a.grant.env);
+    const sdk = new Client({ name: 'rotation-review', version: '1.0.0' }); cleanup.push(() => sdk.close());
+    await sdk.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('dist-mcp/server.cjs')], env: { ...(staleStartup ? a.grant.env : {}), SKETCHDRAW_MCP_RUNTIME_FILE: runtimeFile }, stderr: 'pipe' }));
+    if (!staleStartup) expect((await sdk.callTool({ name: 'sketchdraw_read_document', arguments: {} })).structuredContent).toMatchObject({ documentId: 'doc:mcp' });
+    await publish(b.grant.env); await a.host.close();
+    const reads = Array.from({ length: 8 }, () => sdk.callTool({ name: 'sketchdraw_read_code', arguments: {} }));
+    const stale = sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: rename('stale-queued', 'Wrong document') });
+    const unbound = sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { expectedRevision: 0, commandId: 'unbound-queued', command: { type: 'rename', title: 'Wrong document' } } });
+    const results = await Promise.all(reads);
+    expect(results.map(result => result.isError === true)).toEqual(Array(8).fill(false));
+    for (const result of results) expect(result.structuredContent).toMatchObject({ documentId: 'doc:other' });
+    expect((await stale).isError).toBe(true); expect((await unbound).isError).toBe(true);
+    expect(b.controller.getSnapshot()).toMatchObject({ revision: 0, document: { title: 'Original' } });
+    const explicit = await sdk.callTool({ name: 'sketchdraw_apply_commands', arguments: { ...rename('explicit', 'Intended'), documentId: 'doc:other' } });
+    expect(explicit.isError).not.toBe(true);
+    expect(b.controller.getSnapshot()).toMatchObject({ revision: 1, document: { title: 'Intended' } });
   }, 20_000);
   it('serves a genuine SDK stdio client and preserves the grant after EOF', async () => {
     const f = await fixture();

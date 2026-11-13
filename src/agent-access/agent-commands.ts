@@ -98,6 +98,21 @@ function completeCommand(command: unknown, path: string, known: Map<string, Box>
   if (command.type === 'batch' && Array.isArray(command.commands)) {
     return { ...command, commands: command.commands.map((entry, index) => completeCommand(entry, `${path}commands[${index}].`, known, issues)) };
   }
+  if (command.type === 'update' && Array.isArray(command.changes)) {
+    // Later lean connectors in a batch choose anchors from the geometry after earlier updates.
+    // The domain still validates the complete command and applies all changes atomically.
+    for (const change of command.changes) {
+      if (!isRecord(change) || typeof change.id !== 'string' || !isRecord(change.patch)) continue;
+      const current = known.get(change.id);
+      if (!current) continue;
+      const next = { ...current };
+      for (const key of ['x', 'y', 'width', 'height', 'rotation'] as const) {
+        const value = change.patch[key];
+        if (typeof value === 'number' && Number.isFinite(value)) next[key] = value;
+      }
+      known.set(change.id, next);
+    }
+  }
   if ((command.type === 'add' || command.type === 'add-page') && Array.isArray(command.elements)) {
     // Shapes first, so a connector may name an element that follows it in the same command.
     const elements = [...command.elements];

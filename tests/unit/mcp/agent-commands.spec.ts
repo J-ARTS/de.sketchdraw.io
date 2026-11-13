@@ -85,6 +85,33 @@ describe('prepareAgentCommand', () => {
     expect(manual.connectorRouting).toBe('straight');
   });
 
+  it('the domain aligns a new connector with a target moved earlier in the same batch', () => {
+    const document = base();
+    const { command, issues } = prepareAgentCommand(lean({ type: 'batch', commands: [
+      { type: 'update', changes: [{ id: 'box:a', patch: { x: 150, y: 150 } }] },
+      { type: 'add', elements: [{ id: 'link:moved', kind: 'connector', from: { elementId: 'box:a' }, to: { elementId: 'box:b' } }] },
+    ] }), document);
+    expect(issues).toEqual([]);
+    const result = applyCommand(document, command);
+    const link = result.elements.find(element => element.id === 'link:moved')!;
+    expect(link.x + link.points![0]!.x).toBe(310);
+    expect(link.y + link.points![0]!.y).toBe(190);
+    expect(link.x + link.points!.at(-1)!.x).toBe(420);
+    expect(link.y + link.points!.at(-1)!.y).toBe(140);
+    expect(document.elements[0]).toMatchObject({ x: 100, y: 100 });
+  });
+
+  it('chooses facing anchors after a target crosses the other shape in a batch', () => {
+    const { command, issues } = prepareAgentCommand(lean({ type: 'batch', commands: [
+      { type: 'update', changes: [{ id: 'box:a', patch: { x: 700 } }] },
+      { type: 'add', elements: [{ id: 'link:crossed', kind: 'connector', from: { elementId: 'box:a' }, to: { elementId: 'box:b' } }] },
+    ] }), base());
+    expect(issues).toEqual([]);
+    const link = applyCommand(base(), command).elements.find(element => element.id === 'link:crossed')!;
+    expect(link.from?.anchor).toEqual({ x: 0, y: 0.5 });
+    expect(link.to?.anchor).toEqual({ x: 1, y: 0.5 });
+  });
+
   it('reports what it cannot complete with the path of the element, and then changes nothing', () => {
     const original = lean({ type: 'add', elements: [
       { kind: 'rectangle', x: 0, y: 0 },

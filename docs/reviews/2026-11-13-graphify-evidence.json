@@ -1,0 +1,419 @@
+{
+  "issue": 145,
+  "graphifyVersion": "0.8.44",
+  "sourceRevision": "7781fa5",
+  "baselineGraphRevision": "ac86d5f",
+  "baselineBuiltAtCommit": "2919afe662de6c739c116c32ad8a2ee490e6e13c",
+  "baselineNodeCount": 5201,
+  "candidateNodeCount": 5174,
+  "removedCount": 351,
+  "addedCount": 324,
+  "removedByOrigin": {
+    "ast": 79,
+    "owned-ledger": 272
+  },
+  "addedByOrigin": {
+    "ast": 324
+  },
+  "missingNonledgerNodes": [
+    {
+      "id": "electron_plugin_service_pluginservice_load",
+      "label": ".load()",
+      "source_file": "electron/plugin-service.ts"
+    },
+    {
+      "id": "electron_plugin_service_pluginservice_credential",
+      "label": ".credential()",
+      "source_file": "electron/plugin-service.ts"
+    },
+    {
+      "id": "components_colorpicker_current",
+      "label": "current",
+      "source_file": "src/renderer/components/ColorPicker.vue"
+    },
+    {
+      "id": "components_colorpicker_huecolor",
+      "label": "hueColor",
+      "source_file": "src/renderer/components/ColorPicker.vue"
+    },
+    {
+      "id": "components_colorpicker_if",
+      "label": "if()",
+      "source_file": "src/renderer/components/ColorPicker.vue"
+    },
+    {
+      "id": "components_commentsidebar_initials",
+      "label": "initials()",
+      "source_file": "src/renderer/components/CommentSidebar.vue"
+    },
+    {
+      "id": "components_pageswitcher_selecttasks",
+      "label": "selectTasks()",
+      "source_file": "src/renderer/components/PageSwitcher.vue"
+    },
+    {
+      "id": "components_resourcecardeditor_icons",
+      "label": "icons",
+      "source_file": "src/renderer/components/ResourceCardEditor.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_single",
+      "label": "single",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_definition",
+      "label": "definition",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_size_presets",
+      "label": "SIZE_PRESETS",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_heading_levels",
+      "label": "HEADING_LEVELS",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_widths",
+      "label": "WIDTHS",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_connector_widths",
+      "label": "CONNECTOR_WIDTHS",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_editing",
+      "label": "editing",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_texteditallowsbar",
+      "label": "textEditAllowsBar",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_visible",
+      "label": "visible",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_connectoronly",
+      "label": "connectorOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_stickyonly",
+      "label": "stickyOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_stickytaskexists",
+      "label": "stickyTaskExists",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_resourcecardonly",
+      "label": "resourceCardOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_annotationonly",
+      "label": "annotationOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_tableonly",
+      "label": "tableOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_webembedonly",
+      "label": "webEmbedOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_selectedelements",
+      "label": "selectedElements",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_roundedonly",
+      "label": "roundedOnly",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_radiusmax",
+      "label": "radiusMax",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_defaultradius",
+      "label": "defaultRadius",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_radiusvalue",
+      "label": "radiusValue",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_radiusmixed",
+      "label": "radiusMixed",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_textcapable",
+      "label": "textCapable",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_start_overflowstart_end_overflowend_page_pagebar_reveal_revealcontrol",
+      "label": "{ start: overflowStart, end: overflowEnd, page: pageBar, reveal: revealControl }",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_barsize",
+      "label": "barSize",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_measured",
+      "label": "measured",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_position",
+      "label": "position",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_popoverat",
+      "label": "popoverAt",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_placepopover",
+      "label": "placePopover()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_close",
+      "label": "close()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_onviewportshift",
+      "label": "onViewportShift()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_ondocumentpointerdown",
+      "label": "onDocumentPointerDown()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_onkeydown",
+      "label": "onKeydown()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_selectiontoolbar_onbarkeydown",
+      "label": "onBarKeydown()",
+      "source_file": "src/renderer/components/SelectionToolbar.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_libraryloading",
+      "label": "libraryLoading",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_libraryerror",
+      "label": "libraryError",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_searching",
+      "label": "searching",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_allcomponents",
+      "label": "allComponents",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_allcomponentscapped",
+      "label": "allComponentsCapped",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_genericcomponents",
+      "label": "genericComponents",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_librarycomponents",
+      "label": "libraryComponents",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_filteredshapes",
+      "label": "filteredShapes",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_annotationmatches",
+      "label": "annotationMatches",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_tablematches",
+      "label": "tableMatches",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_librarylabel",
+      "label": "libraryLabel",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "components_shapelibrarypanel_groupedlibrarycomponents",
+      "label": "groupedLibraryComponents",
+      "source_file": "src/renderer/components/ShapeLibraryPanel.vue"
+    },
+    {
+      "id": "i18n_de_pluralbase",
+      "label": "PluralBase",
+      "source_file": "src/renderer/i18n/de.ts"
+    },
+    {
+      "id": "i18n_de_t",
+      "label": "t()",
+      "source_file": "src/renderer/i18n/de.ts"
+    },
+    {
+      "id": "i18n_de_tcount",
+      "label": "tCount()",
+      "source_file": "src/renderer/i18n/de.ts"
+    },
+    {
+      "id": "i18n_de_shortcutgrouptitle",
+      "label": "shortcutGroupTitle()",
+      "source_file": "src/renderer/i18n/de.ts"
+    },
+    {
+      "id": "state_pages_pagesnapshot",
+      "label": "PageSnapshot",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_storedpage",
+      "label": "StoredPage",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_storedpagestate",
+      "label": "StoredPageState",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_singlepagename",
+      "label": "singlePageName()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_validname",
+      "label": "validName()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_validateelements",
+      "label": "validateElements()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_pagestate",
+      "label": "pageState()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_activepageid",
+      "label": "activePageId()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_documentwithpages",
+      "label": "documentWithPages()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "state_pages_clonepage",
+      "label": "clonePage()",
+      "source_file": "src/renderer/state/pages.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_fakeaction",
+      "label": "FakeAction",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_fakeentry",
+      "label": "FakeEntry",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_captureddelivery",
+      "label": "CapturedDelivery",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_faketrysteronetwork",
+      "label": "FakeTrysteroNetwork",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_faketrysteronetwork_joinroom",
+      "label": ".joinRoom()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_faketrysteronetwork_connect",
+      "label": ".connect()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_faketrysteronetwork_deliver",
+      "label": ".deliver()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_faketrysteronetwork_replaylast",
+      "label": ".replayLast()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_session",
+      "label": "session",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_waitfor",
+      "label": "waitFor()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    },
+    {
+      "id": "collaboration_automatic_spec_config",
+      "label": "config()",
+      "source_file": "tests/unit/collaboration/automatic.spec.ts"
+    }
+  ],
+  "baselineSha256": "93bd0bb2c84d1ce471071316d9a2becbffccb357fa0b6a938889d7f5e485f143",
+  "candidateSha256": "33ccb6acb19ba15d60db2722cfac4f69206bfa99878e9112b83df84c5387b691",
+  "forceUsed": false,
+  "liveGraphWritten": false
+}

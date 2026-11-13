@@ -25,6 +25,8 @@ export interface CrdtBindingOptions {
   applyRemote?: (apply: () => DocumentSession) => unknown;
   /** A failed outgoing sync must be surfaced by owners that cannot recover it. Reported once per binding. */
   onError?: (error: Error) => void;
+  /** Hosts isolate a faulty authenticated connection; guests keep using the binding-wide error handler. */
+  onPeerError?: (error: Error, peer: { peerId: string; keyHash: string }) => void;
 }
 
 export function bindCrdtTransport(
@@ -39,9 +41,12 @@ export function bindCrdtTransport(
   let knownPeers = new Set<string>();
   const pending = new Set<Promise<unknown>>();
   let pendingBytes = 0;
-  let sendTail: Promise<unknown> = Promise.resolve();
-  const abort = new AbortController();
-  const receiver = createCrdtTransferReceiver({ onError: reportError });
+  const queues = new Map<string, { tail: Promise<unknown>; pending: number; abort: AbortController }>();
+  const reserved = new Map<Uint8Array, number>();
+  const quarantined = new Set<string>();
+  const syncRequests = new Map<string, { at: number; count: number }>();
+  const syncPending = new Set<string>();
+  const receiver = createCrdtTransferReceiver({ onError: (error, key) => reportPeerError(key, error) });
   const peerKey = (peer: { peerId: string; keyHash: string }) => `${peer.peerId}:${peer.keyHash}`;
 
   function reportError(error: unknown): void {
@@ -50,69 +55,94 @@ export function bindCrdtTransport(
     options.onError(error instanceof Error ? error : new Error('SYNC_FAILED'));
   }
 
-  function run(work: () => Promise<unknown>, bytes: number): void {
-    if (pending.size >= 32 || bytes > CRDT_TRANSFER_LIMIT_BYTES - pendingBytes) { reportError(new Error('SYNC_FAILED')); return; }
-    const promise = sendTail.then(() => {
-      if (closed || failed) return;
-      const task = work();
-      return new Promise((resolve, reject) => {
-        const cancel = () => { abort.signal.removeEventListener('abort', cancel); reject(new Error('ABORTED')); };
-        abort.signal.addEventListener('abort', cancel, { once: true });
-        void task.then(value => { abort.signal.removeEventListener('abort', cancel); resolve(value); }, error => {
-          abort.signal.removeEventListener('abort', cancel); reject(error);
-        });
-        if (abort.signal.aborted) cancel();
-      });
-    });
-    sendTail = promise.catch(() => undefined);
-    pending.add(promise); pendingBytes += bytes;
-    void promise.catch(reportError).finally(() => { pending.delete(promise); pendingBytes -= bytes; });
+  function reportPeerError(key: string, error: unknown): void {
+    if (closed || failed || quarantined.has(key)) return;
+    const peer = transport.getStatus().peers.find(value => peerKey(value) === key);
+    if (!peer) return;
+    if (!options.onPeerError) { reportError(error); return; }
+    quarantined.add(key);
+    queues.get(key)?.abort.abort();
+    receiver.retainPeers(new Set(transport.getStatus().peers.map(peerKey).filter(value => !quarantined.has(value))));
+    options.onPeerError(error instanceof Error ? error : new Error('SYNC_FAILED'), { peerId: peer.peerId, keyHash: peer.keyHash });
   }
 
-  function send(channel: 'sync' | 'update', data: Uint8Array, targets: readonly string[]): void {
+  function run(key: string, data: Uint8Array, work: (signal: AbortSignal) => Promise<unknown>): Promise<void> {
+    if (quarantined.has(key)) return Promise.resolve();
+    const queue = queues.get(key) ?? { tail: Promise.resolve(), pending: 0, abort: new AbortController() };
+    queues.set(key, queue);
+    if (queue.pending >= 32) { reportPeerError(key, new Error('SYNC_PEER_BACKPRESSURE')); return Promise.resolve(); }
+    const references = reserved.get(data) ?? 0;
+    if (!references && data.byteLength > CRDT_TRANSFER_LIMIT_BYTES - pendingBytes) { reportError(new Error('SYNC_FAILED')); return Promise.resolve(); }
+    reserved.set(data, references + 1);
+    if (!references) pendingBytes += data.byteLength;
+    queue.pending++;
+    const signal = queue.abort.signal;
+    const promise = queue.tail.then(() => {
+      if (closed || failed || signal.aborted) return;
+      const task = work(signal);
+      return new Promise((resolve, reject) => {
+        const cancel = () => { signal.removeEventListener('abort', cancel); reject(new Error('ABORTED')); };
+        signal.addEventListener('abort', cancel, { once: true });
+        void task.then(value => { signal.removeEventListener('abort', cancel); resolve(value); }, error => {
+          signal.removeEventListener('abort', cancel); reject(error);
+        });
+        if (signal.aborted) cancel();
+      });
+    });
+    queue.tail = promise.catch(() => undefined);
+    pending.add(promise);
+    return promise.then(() => undefined, error => { if (!signal.aborted) reportPeerError(key, error); }).finally(() => {
+      pending.delete(promise); queue.pending--;
+      const count = reserved.get(data)! - 1;
+      if (count) reserved.set(data, count); else { reserved.delete(data); pendingBytes -= data.byteLength; }
+    });
+  }
+
+  async function send(channel: 'sync' | 'update', data: Uint8Array, targets: readonly string[]): Promise<void> {
     if (closed || failed) return;
-    const identities = new Set(transport.getStatus().peers.filter(peer => targets.includes(peer.peerId)).map(peerKey));
+    const recipients = transport.getStatus().peers.filter(peer => targets.includes(peer.peerId) && !quarantined.has(peerKey(peer)));
     if (channel === 'update' && data.byteLength > CRDT_TRANSFER_LIMIT_BYTES) {
       reportError(new Error('DOCUMENT_TOO_LARGE_FOR_COLLABORATION'));
       return;
     }
     // Queued work belongs to authenticated connections, not reusable peer IDs. Recheck each chunk as well.
-    const currentTargets = () => {
+    const current = (identity: string) => {
       const status = transport.getStatus();
-      if (channel === 'update' && status.grantedRole === 'viewer') return [];
-      return status.peers.filter(peer => identities.has(peerKey(peer)) && (channel !== 'sync' || peer.role !== 'viewer')).map(peer => peer.peerId);
+      if (channel === 'update' && status.grantedRole === 'viewer') return undefined;
+      return status.peers.find(peer => peerKey(peer) === identity && !quarantined.has(identity) && (channel !== 'sync' || peer.role !== 'viewer'));
     };
-    const currentTransport = Object.create(transport) as CollaborationTransport;
-    currentTransport.send = async (wireChannel, bytes) => {
-      await Promise.all(currentTargets().map(async id => {
-        try { await transport.send(wireChannel, bytes, [id]); }
-        catch (error) {
-          // Never resend a chunk to successful recipients. Only an ended connection's own failure is obsolete.
-          if (currentTargets().includes(id)) throw error;
-        }
-      }));
-    };
-    run(() => channel === 'update' ? sendCrdtUpdate(currentTransport, data, targets, abort.signal) : currentTransport.send(channel, data, targets), data.byteLength);
+    await Promise.all(recipients.map(peer => {
+      const key = peerKey(peer);
+      const currentTransport = Object.create(transport) as CollaborationTransport;
+      currentTransport.send = async (wireChannel, bytes) => {
+        const recipient = current(key);
+        if (!recipient) return;
+        try { await transport.send(wireChannel, bytes, [recipient.peerId]); }
+        catch (error) { if (current(key)) throw error; }
+      };
+      return run(key, data, signal => channel === 'update' ? sendCrdtUpdate(currentTransport, data, [peer.peerId], signal) : currentTransport.send(channel, data, [peer.peerId]));
+    }));
   }
 
   const offUpdates = controller.on('update', event => {
     if (closed || failed || event.source === 'persistence' || transport.getStatus().grantedRole === 'viewer') return;
     const targets = transport.getStatus().peers.map(peer => peer.peerId).filter(peerId => peerId !== event.excludePeerId);
     if (!targets.length) return;
-    send('update', event.update, targets);
+    void send('update', event.update, targets);
   });
 
   const offMessages = transport.subscribeMessage(message => {
-    if (closed || failed) return;
+    const key = peerKey(message.peer);
+    if (closed || failed || quarantined.has(key)) return;
     if (message.channel === 'asset') {
       void receiver.accept(`${message.peer.peerId}:${message.peer.keyHash}`, message.data).then(snapshot => {
-        if (!snapshot || closed || failed) return;
+        if (!snapshot || closed || failed || quarantined.has(key)) return;
         const peer = transport.getStatus().peers.find(value => value.peerId === message.peer.peerId && value.keyHash === message.peer.keyHash);
         if (!peer) return;
         try {
           applyRemote(() => controller.applyRemoteSnapshot(snapshot, { actorId: `peer:${peer.keyHash.slice(0, 24)}`, role: peer.role, source: 'peer', peerId: peer.peerId }));
-        } catch (error) { reportError(error); }
-      }).catch(reportError);
+        } catch (error) { reportPeerError(key, error); }
+      }).catch(error => reportPeerError(key, error));
       return;
     }
     if (message.channel === 'update') {
@@ -130,9 +160,17 @@ export function bindCrdtTransport(
     }
     if (message.channel === 'sync') {
       if (transport.getStatus().grantedRole === 'viewer') return;
+      const now = Date.now(), previous = syncRequests.get(key);
+      const requests = previous && now - previous.at < 1000 ? previous : { at: now, count: 0 };
+      syncRequests.set(key, requests);
+      if (++requests.count > 8) { reportPeerError(key, new Error('SYNC_PEER_RATE_LIMIT')); return; }
+      if (syncPending.has(key)) return;
       let update: Uint8Array;
       try { update = controller.encodeUpdate(message.data); } catch { return; }
-      if (update.byteLength > 2) send('update', update, [message.peer.peerId]);
+      if (update.byteLength > 2) {
+        syncPending.add(key);
+        void send('update', update, [message.peer.peerId]).finally(() => syncPending.delete(key));
+      }
       return;
     }
     if (message.channel === 'awareness' && awareness) {
@@ -143,24 +181,29 @@ export function bindCrdtTransport(
   const offStatus = transport.subscribeStatus(status => {
     if (closed || failed) return;
     receiver.retainPeers(new Set(status.peers.map(peer => `${peer.peerId}:${peer.keyHash}`)));
+    const present = new Set(status.peers.map(peerKey));
+    for (const [key, queue] of queues) if (!present.has(key)) { queue.abort.abort(); queues.delete(key); }
+    for (const key of quarantined) if (!present.has(key)) quarantined.delete(key);
+    for (const key of syncRequests.keys()) if (!present.has(key)) syncRequests.delete(key);
     const editable = status.peers.filter(peer => peer.role !== 'viewer');
     const current = new Set(editable.map(peerKey));
     const joined = editable.filter(peer => !knownPeers.has(peerKey(peer)));
     knownPeers = current;
     if (!joined.length) return;
     const stateVector = controller.encodeStateVector();
-    for (const peer of joined) send('sync', stateVector, [peer.peerId]);
+    for (const peer of joined) void send('sync', stateVector, [peer.peerId]);
   });
 
   const existing = transport.getStatus().peers.filter(peer => peer.role !== 'viewer');
   knownPeers = new Set(existing.map(peerKey));
-  for (const peer of existing) send('sync', controller.encodeStateVector(), [peer.peerId]);
+  for (const peer of existing) void send('sync', controller.encodeStateVector(), [peer.peerId]);
 
   return {
     async close(): Promise<void> {
       if (closed) return;
       closed = true;
-      abort.abort(); receiver.close();
+      for (const queue of queues.values()) queue.abort.abort();
+      receiver.close();
       offUpdates();
       offMessages();
       offStatus();

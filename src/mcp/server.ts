@@ -17,10 +17,15 @@ async function main(): Promise<void> {
   // Discovery can run before the desktop app opens a document; tool calls remain fail-closed.
   let connection: Promise<AgentClient> | undefined;
   let closed = false;
-  const getClient = (preferRuntime = false) => {
-    if (preferRuntime && connection) {
-      void connection.then(client => client.close()).catch(() => {});
-      connection = undefined;
+  const getClient = async (preferRuntime = false, failed?: AgentClient) => {
+    const observed = connection;
+    if (preferRuntime && observed) {
+      const client = await observed.catch(() => undefined);
+      // A second failing request must reuse the replacement already opened by the first one.
+      if (connection === observed && failed !== undefined && client === failed) {
+        connection = undefined;
+        client?.close();
+      }
     }
     if (!connection) {
       const attempt = loadAgentClientConfig(process.env, preferRuntime).then(connectAgent);
@@ -30,8 +35,8 @@ async function main(): Promise<void> {
     return connection;
   };
   const limit = createLimiter(L.MAX_CLIENT_CONCURRENT_REQUESTS, MAX_WAITING_CALLS);
-  const send = createRequester({
-    connect: fresh => getClient(fresh),
+  const send = createRequester<AgentClient, Awaited<ReturnType<AgentClient['request']>>>({
+    connect: (fresh, failed) => getClient(fresh, failed),
     send: (client: AgentClient, operation, input) => client.request(operation, parseMcpOperationInput(operation, input, client.documentId)),
   });
   const request = (operation: (typeof operations)[number], input: unknown) => limit(() => send(operation, input));

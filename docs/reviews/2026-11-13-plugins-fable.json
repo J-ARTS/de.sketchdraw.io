@@ -1,0 +1,80 @@
+{
+  "tool": "Claude Code CLI",
+  "model_requested": "claude-fable-5-2",
+  "assistant_models": [
+    "claude-fable-5-2"
+  ],
+  "effort": "high",
+  "permission_mode": "dontAsk",
+  "allowed_tools": [
+    "Read",
+    "Glob",
+    "Grep"
+  ],
+  "mcp_servers": {},
+  "session_id": "e7a58913-67d8-4d7b-98e0-3d99d1c76c79",
+  "is_error": false,
+  "duration_ms": 418713,
+  "duration_api_ms": 417819,
+  "num_turns": 43,
+  "total_cost_usd": 4.8656558,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 193658,
+    "cache_read_input_tokens": 681359,
+    "output_tokens": 40769,
+    "output_tokens_details": {
+      "thinking_tokens": 30796
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 193658,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 11827,
+        "cache_read_input_tokens": 198634,
+        "cache_creation_input_tokens": 1379,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1379
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 12,
+      "outputTokens": 40769,
+      "cacheReadInputTokens": 681359,
+      "cacheCreationInputTokens": 193658,
+      "webSearchRequests": 0,
+      "costUSD": 4.8656558,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 30796,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 193658,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "raw_event_sha256": "8488ecccf918d0ebf04b3159ababe6a351515ded7a9fcfc075d26021048cf393",
+  "review_path": "docs/reviews/2026-11-13-plugins-fable.md",
+  "issues": [
+    161,
+    165,
+    168
+  ]
+}

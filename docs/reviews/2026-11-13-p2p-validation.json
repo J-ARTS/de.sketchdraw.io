@@ -1,0 +1,28 @@
+{
+  "base": "8df3006",
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "command": "npx vitest run tests/unit/collaboration tests/unit/crdt tests/unit/crdt.spec.ts tests/unit/session tests/unit/renderer/room-connection.spec.ts",
+  "result": "passed",
+  "files": 34,
+  "tests": 316,
+  "duration_seconds": 15.07,
+  "log": "\n RUN  v5.0.5 /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io\n\n\n Test Files  34 passed (34)\n      Tests  316 passed (316)\n   Start at  09:44:51\n   Duration  15.07s (tests 94%, import 4%, transform 2%)\n\n",
+  "source_sha256": {
+    "relay/hub.mjs": "f1e6bd8df9b3c28b4a51689ab8b41dea409e60433378b604d3ed243b56a235f2",
+    "relay/hub.d.mts": "3ff3d1a8c82eb3f89fb4eb539a14fb284f8f73646f8ae9eb385bdfe3a3d98888",
+    "src/collaboration/crdt.ts": "301dd826db5b696c20b0ebdd1a0edbad3765d678217822e5e9b400d108a39fb5",
+    "src/collaboration/crdt-transfer.ts": "39d7aae1a7484709b48e796ef25338014d96aed0960d70c4ee187fb4845b24e5",
+    "src/collaboration/hdht/peer-relay.ts": "bbf8a820e1978e0749d547d71246685dc6fc3292631099a2b266d2c4510c8bb0",
+    "src/collaboration/hdht/session.ts": "d2605b8f2f553d52ec39d43b569e0a30e26c02fc0051bcf79f25717121b784e6",
+    "src/renderer/components/HdhtSession.vue": "b2bb5ea6165ee626e09d19865653c5040a56c1b5cabc7b696f48dce5e58f7e7f"
+  },
+  "diff_check": "passed",
+  "real_network_field_tests": "not run",
+  "installed_protocol_clicks": "not run",
+  "ui_electron": "root-coordinated, not claimed here",
+  "typecheck": "root pending final shared source check"
+}

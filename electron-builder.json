@@ -15,6 +15,13 @@
     "package.json",
     "LICENSE"
   ],
+  "extraResources": [
+    {
+      "from": "skills/sketchdraw-desktop",
+      "to": "skills/sketchdraw-desktop",
+      "filter": ["**/*"]
+    }
+  ],
   "protocols": [
     {
       "name": "Sketchdraw Session",

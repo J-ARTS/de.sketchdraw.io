@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { createController, createDocument, createElement, deserializeDocument, type DesktopBridge, type SaveDocumentResult } from '@/domain';
+import { createController, createDocument, createElement, deserializeDocument, type DesktopBridge, type SaveDocumentResult, type SketchDocument } from '@/domain';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { PointerInput, WhiteboardStore } from '@/renderer/state/contract';
 import { builtInComponentSets } from '@/catalog';
 
 const stores: WhiteboardStore[] = [];
 afterEach(() => { for (const store of stores.splice(0)) store.dispose(); });
-function setup(overrides: Partial<DesktopBridge> = {}) {
+function setup(overrides: Partial<DesktopBridge> = {}, document?: SketchDocument) {
   let close: (id: string) => void = () => {};
   const bridge: DesktopBridge = {
     platform: 'electron', openDocument: vi.fn<DesktopBridge['openDocument']>(async () => ({ status: 'cancelled' })),
@@ -15,7 +15,7 @@ function setup(overrides: Partial<DesktopBridge> = {}) {
     openExternal: vi.fn(async () => {}), onCloseRequested: fn => { close = fn; return () => {}; },
     respondToClose: vi.fn(async () => {}), onMenuCommand: () => () => {}, ...overrides,
   };
-  const store = createWhiteboardStore({ bridge }); stores.push(store);
+  const store = createWhiteboardStore({ bridge, ...(document ? { controller: createController(document) } : {}) }); stores.push(store);
   return { store, bridge, close: (id = 'close-1') => close(id) };
 }
 const point = (x: number, y: number): PointerInput => ({ x, y, button: 0, pointerType: 'mouse', shiftKey: false, altKey: false, metaOrCtrl: false, detail: 1 });
@@ -42,6 +42,27 @@ describe('Whiteboard uses the real session gateway', () => {
     expect(store.state.document.elements[1]).toMatchObject({
       width: 168, height: 168, x: 260 - 84, y: 310 - 84,
     });
+  });
+
+  test('component insertion targets the active page when the document has no default page id', async () => {
+    const document = createDocument('Custom pages');
+    document.pages = [
+      { id: 'page:alpha', name: 'Alpha' },
+      { id: 'page:beta', name: 'Beta' },
+    ];
+    const { store } = setup({}, document);
+    store.selectPage('page:beta');
+    const set = builtInComponentSets.find((candidate) => candidate.id === 'sketchdraw.aws')!;
+
+    await store.insertComponent(set, 'aws.compute.instance');
+    await store.whenIdle();
+
+    expect(store.state.document.elements).toHaveLength(1);
+    expect(store.state.document.elements[0]).toMatchObject({ pageId: 'page:beta', componentType: 'aws.compute.instance' });
+    expect(store.state.history.canUndo).toBe(true);
+    store.undo();
+    await store.whenIdle();
+    expect(store.state.document.elements).toHaveLength(0);
   });
 
   test('laser input stays outside the document, drafts and undo history', async () => {

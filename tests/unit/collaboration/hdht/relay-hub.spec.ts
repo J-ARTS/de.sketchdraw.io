@@ -51,6 +51,89 @@ function fixture(synchronousClose = true, limits: Partial<RelayHubLimits> = {}) 
 }
 
 describe('transport-neutral relay ownership and limits (R20/R21)', () => {
+  it('does not charge controls or unknown destinations against shared forwarding capacity (#182)', () => {
+    vi.useFakeTimers();
+    const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100 });
+    const host = f.client(); f.register(host);
+    const guest = f.client(); guest.send({ t: 'guest', topic: f.topic });
+    const other = f.client(); f.register(other, hostIdentity());
+    for (let index = 0; index < 30; index++) other.handler.message(new Uint8Array(1000), true);
+    for (let index = 0; index < 10; index++) other.send({ t: 'ping' });
+    host.send({ t: 'ping' });
+    guest.handler.message(new Uint8Array(84), true);
+    expect(host.frames).toHaveLength(1);
+    expect(host.texts.at(-1)).toEqual({ t: 'pong' });
+    expect([host, guest, other].every(client => !client.closes.length)).toBe(true);
+    expect(f.hub.stats()).toMatchObject({ forwardedRecords: 1, closedForLimit: 0 });
+  });
+
+  it('paces real aggregate saturation fairly without losing order or rejecting another session', async () => {
+    vi.useFakeTimers();
+    const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100 });
+    const host = f.client(); f.register(host);
+    const first = f.client(); first.send({ t: 'guest', topic: f.topic });
+    const otherIdentity = hostIdentity(), otherHost = f.client(); f.register(otherHost, otherIdentity);
+    const second = f.client(); second.send({ t: 'guest', topic: otherIdentity.topic });
+    for (const value of [1, 2, 3]) first.handler.message(new Uint8Array(84).fill(value), true);
+    second.handler.message(new Uint8Array(84).fill(4), true);
+    otherHost.send({ t: 'ping' });
+    expect(otherHost.texts.at(-1)).toEqual({ t: 'pong' });
+    expect(otherHost.closes).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(host.frames.map(frame => frame[16])).toEqual([1, 2]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(otherHost.frames.map(frame => frame[16])).toEqual([4]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(host.frames.map(frame => frame[16])).toEqual([1, 2, 3]);
+    expect(f.hub.stats().closedForLimit).toBe(0);
+    f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('sheds the largest queued producer rather than the unrelated next sender at the global queue bound', async () => {
+    vi.useFakeTimers();
+    const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100, maxAggregateQueuedBytes: 250 });
+    const host = f.client(); f.register(host);
+    const flood = f.client(); flood.send({ t: 'guest', topic: f.topic });
+    const survivor = f.client(); survivor.send({ t: 'guest', topic: f.topic });
+    for (let index = 0; index < 3; index++) flood.handler.message(new Uint8Array(84), true);
+    survivor.handler.message(new Uint8Array(84).fill(7), true);
+    expect(flood.closes).toEqual([{ code: 4429, reason: 'aggregate-queue-full' }]);
+    expect(survivor.closes).toEqual([]); expect(host.closes).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(host.frames.map(frame => frame[16])).toEqual([0, 7]);
+    f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(['bytes', 'records'] as const)('bounds each producer queue by %s with an explicit disconnect', bound => {
+    vi.useFakeTimers();
+    const f = fixture(true, { aggregateBytesPerSecond: 100, aggregateByteBurst: 100,
+      maxAggregateQueuedBytesPerConnection: bound === 'bytes' ? 200 : 1000, maxAggregateQueuedRecordsPerConnection: bound === 'records' ? 2 : 10 });
+    const host = f.client(); f.register(host);
+    const flood = f.client(); flood.send({ t: 'guest', topic: f.topic });
+    flood.handler.message(new Uint8Array(84), true);
+    for (let index = 0; index < 3; index++) flood.handler.message(new Uint8Array(84), true);
+    expect(flood.closes).toEqual([{ code: 4429, reason: 'aggregate-queue-full' }]);
+    expect(host.closes).toEqual([]);
+    f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('expires queued producers and removes stale destination records on replacement and disposal', async () => {
+    vi.useFakeTimers();
+    const f = fixture(false, { aggregateBytesPerSecond: 1, aggregateByteBurst: 100, aggregateQueueTimeoutMs: 50 });
+    const host = f.client(); f.register(host);
+    const guest = f.client(); guest.send({ t: 'guest', topic: f.topic });
+    guest.handler.message(new Uint8Array(84), true); guest.handler.message(new Uint8Array(84), true);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(guest.closes).toEqual([{ code: 4429, reason: 'aggregate-queue-timeout' }]);
+    const next = f.client(); next.send({ t: 'guest', topic: f.topic });
+    next.handler.message(new Uint8Array(84), true);
+    const replacement = f.client(); f.register(replacement);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(replacement.frames).toEqual([]);
+    expect(next.closes).toEqual([{ code: 4410, reason: 'host-replaced' }]);
+    f.hub.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each([true, false])('keeps the replacement routable with synchronous close callbacks = %s', synchronous => {
     const f = fixture(synchronous);
     const first = f.client(); f.register(first);

@@ -8,7 +8,6 @@ import {
 import { SCRIPT_V1_DEFAULT_STYLE } from '../codec';
 import {
   applyCommand,
-  DEFAULT_PAGE_ID,
   DOMAIN_LIMITS,
   DomainValidationError,
   serializeDocument,
@@ -1169,6 +1168,7 @@ export function instantiateComponent(
       ? { fontFamily: definition.style.fontFamily }
       : {}),
   };
+  const pageId = request.pageId ?? validatedDoc.pages[0]!.id;
 
   // AWS group frames (#143) are containers that carry their look in a metadata key, not components.
   const group = awsGroupById(definition.metadata?.[GROUP_METADATA_KEY]);
@@ -1176,7 +1176,7 @@ export function instantiateComponent(
     const text = request.label ?? group.label;
     const container: SketchElement = {
       id: request.id,
-      pageId: request.pageId ?? DEFAULT_PAGE_ID,
+      pageId,
       kind: 'container',
       x: normalizeZero(request.at.x),
       y: normalizeZero(request.at.y),
@@ -1196,7 +1196,7 @@ export function instantiateComponent(
 
   const element: SketchElement = {
     id: request.id,
-    pageId: request.pageId ?? DEFAULT_PAGE_ID,
+    pageId,
     kind: 'component',
     componentType: definition.type,
     x: normalizeZero(request.at.x),

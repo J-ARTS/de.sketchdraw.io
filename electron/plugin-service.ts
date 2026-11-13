@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs, watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -13,6 +13,7 @@ import type {
   GitSyncResult,
   JiraIssueSummary,
   PluginExternalEvent,
+  PluginConfigurationIssue,
   PluginId,
   PluginOperationResult,
   PluginProfileSummary,
@@ -116,6 +117,40 @@ function isPristine(config: PersistedPluginConfig): boolean {
   return sameFields(config.git, DEFAULT_CONFIG.git) && sameFields(config.atlassian, DEFAULT_CONFIG.atlassian);
 }
 
+function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atlassian'> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
+  const record = value as Record<string, unknown>;
+  for (const plugin of ['git', 'atlassian'] as const) {
+    const fields = record[plugin];
+    if (!fields || typeof fields !== 'object' || Array.isArray(fields)) throw new Error('PROFILE_STORE_INVALID');
+    const config = fields as Record<string, unknown>;
+    for (const [key, fallback] of Object.entries(DEFAULT_CONFIG[plugin])) {
+      if (key in config && typeof config[key] !== typeof fallback) throw new Error('PROFILE_STORE_INVALID');
+    }
+    for (const key of ['encryptedAccessToken', 'credentialRemoteUrl', 'encryptedApiToken']) {
+      if (key in config && typeof config[key] !== 'string') throw new Error('PROFILE_STORE_INVALID');
+    }
+    if (plugin === 'git' && 'authMode' in config && config.authMode !== 'system' && config.authMode !== 'token') throw new Error('PROFILE_STORE_INVALID');
+  }
+  const git = { ...DEFAULT_CONFIG.git, ...(record.git as PersistedGitConfig) };
+  const atlassian = { ...DEFAULT_CONFIG.atlassian, ...(record.atlassian as PersistedAtlassianConfig) };
+  // Loading a profile or adopting a folder file must enforce the same boundaries as explicit configuration.
+  git.remote = normalizeGitRemote(git.remote);
+  git.remoteUrl = normalizeGitRemoteUrl(git.remoteUrl);
+  git.username = boundedString(git.username, 320, 'Git-Benutzername', git.authMode !== 'token' || !git.enabled);
+  // Older versions captured this comparison key directly from Git, including username-bearing URLs.
+  if (git.credentialRemoteUrl !== undefined) git.credentialRemoteUrl = boundedString(git.credentialRemoteUrl, 2048, 'Git-Remote-URL', true);
+  if (git.enabled && git.authMode === 'token' && !git.encryptedAccessToken) throw new Error('PROFILE_STORE_INVALID');
+  atlassian.siteUrl = atlassian.siteUrl.trim() ? normalizeSiteUrl(atlassian.siteUrl) : '';
+  atlassian.email = boundedString(atlassian.email, 320, 'E-Mail', !atlassian.enabled);
+  atlassian.confluenceSpaceKey = boundedString(atlassian.confluenceSpaceKey, 128, 'Confluence-Space', true);
+  atlassian.jiraProjectKey = boundedString(atlassian.jiraProjectKey, 128, 'Jira-Projekt', !atlassian.enabled).toUpperCase();
+  atlassian.jiraIssueType = boundedString(atlassian.jiraIssueType, 128, 'Jira-Vorgangstyp');
+  atlassian.jqlFilter = boundedString(atlassian.jqlFilter, 2000, 'Jira-Filter', true);
+  if (atlassian.enabled && (!atlassian.siteUrl || !atlassian.encryptedApiToken)) throw new Error('PROFILE_STORE_INVALID');
+  return { git, atlassian };
+}
+
 function parseProfileStore(value: unknown): PersistedProfileStore {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
   const record = value as Record<string, unknown>;
@@ -127,12 +162,11 @@ function parseProfileStore(value: unknown): PersistedProfileStore {
     const id = profile.id; const name = profile.name;
     if (typeof id !== 'string' || !/^[a-z0-9-]{1,64}$/.test(id) || ids.has(id)) throw new Error('PROFILE_STORE_INVALID');
     if (typeof name !== 'string' || !name.trim() || name.length > PROFILE_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name)) throw new Error('PROFILE_STORE_INVALID');
-    if (!profile.git || typeof profile.git !== 'object' || !profile.atlassian || typeof profile.atlassian !== 'object') throw new Error('PROFILE_STORE_INVALID');
     ids.add(id);
-    return { id, name: name.trim(), git: { ...DEFAULT_CONFIG.git, ...(profile.git as PersistedGitConfig) }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...(profile.atlassian as PersistedAtlassianConfig) } };
+    return { id, name: name.trim(), ...parsePluginConfig(profile) };
   });
-  const active = typeof record.activeProfileId === 'string' && ids.has(record.activeProfileId) ? record.activeProfileId : profiles[0]!.id;
-  return { version: STORE_VERSION, activeProfileId: active, profiles };
+  if (typeof record.activeProfileId !== 'string' || !ids.has(record.activeProfileId)) throw new Error('PROFILE_STORE_INVALID');
+  return { version: STORE_VERSION, activeProfileId: record.activeProfileId, profiles };
 }
 
 function boundedString(value: unknown, max: number, name: string, allowEmpty = false): string {
@@ -160,6 +194,14 @@ function normalizeGitRemoteUrl(value: unknown): string {
   }
   return remoteUrl;
 }
+
+function normalizeGitRemote(value: unknown): string {
+  const remote = boundedString(value, 128, 'Git-Remote');
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(remote)) throw new Error('Git-Remote ist ungültig.');
+  return remote;
+}
+
+function configRevision(text: string): string { return createHash('sha256').update(text).digest('hex'); }
 
 function jiraStatus(value: string): TaskStatus {
   const status = value.toLocaleLowerCase('en');
@@ -199,6 +241,9 @@ export class PluginService {
   private profiles: PersistedProfile[] = [defaultProfile()];
   private activeProfileId = DEFAULT_PROFILE_ID;
   private loaded: Promise<void> | null = null;
+  private storeIssue: PluginConfigurationIssue | undefined;
+  private legacyIssue: PluginConfigurationIssue | undefined;
+  private storeRevision: string | null = null;
   private storeQueue: Promise<void> = Promise.resolve();
   private projectFolder = '';
   /** Changes with the project folder and with the active profile; pending work of the old context stops. */
@@ -233,17 +278,56 @@ export class PluginService {
 
   private ensureLoaded(): Promise<void> { return this.loaded ??= this.loadStore(); }
 
+  private configurationIssue(source: PluginConfigurationIssue['source'], kind: PluginConfigurationIssue['kind'], file: string): PluginConfigurationIssue {
+    const reason = { 'read-error': 'konnte nicht gelesen werden', 'invalid-json': 'enthält ungültiges JSON', 'unsupported-version': 'hat eine nicht unterstützte Version', 'invalid-data': 'enthält ungültige Konfigurationsdaten', 'external-change': 'wurde außerhalb dieser App-Instanz geändert' }[kind];
+    const recovery = kind === 'external-change'
+      ? 'Änderungen sind gesperrt, damit die neuere Konfiguration erhalten bleibt. Schließe diese App-Instanz und starte sie neu, um den aktuellen Stand zu laden.'
+      : source === 'profiles' && kind === 'unsupported-version'
+        ? 'Änderungen an Profilen und Plugins sind gesperrt. Sichere die Datei und verwende eine App-Version, die dieses Konfigurationsformat unterstützt. Starte die App danach neu.'
+      : source === 'profiles'
+      ? 'Änderungen an Profilen und Plugins sind gesperrt. Beende die App, sichere diese Datei und repariere sie oder verschiebe sie zur Seite. Starte die App danach neu.'
+      : 'Die alte Ordner-Konfiguration wurde nicht übernommen. Sichere und repariere die Datei und öffne das Dokument danach erneut. Die Editor-Profile können weiter verwendet werden.';
+    return { source, kind, blocksChanges: source === 'profiles', message: `Die Plugin-Konfiguration „${file}“ ${reason}. Die Datei bleibt unverändert. ${recovery}` };
+  }
+
+  private assertStoreWritable(): void { if (this.storeIssue) throw new Error(this.storeIssue.message); }
+
+  /** An older app instance must not overwrite newer profiles or a file changed by another editor (#181). */
+  private async assertStoreCurrent(): Promise<void> {
+    if (!this.storePath) return;
+    let revision: string | null = null;
+    try { revision = configRevision(await fs.readFile(this.storePath, 'utf8')); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.storeIssue = this.configurationIssue('profiles', 'read-error', this.storePath);
+    }
+    if (!this.storeIssue && revision !== this.storeRevision) this.storeIssue = this.configurationIssue('profiles', 'external-change', this.storePath);
+    this.assertStoreWritable();
+  }
+
+  private async readConfigFile(file: string, source: PluginConfigurationIssue['source'], version: number): Promise<{ value?: unknown; revision?: string; issue?: PluginConfigurationIssue }> {
+    let text: string;
+    try { text = await fs.readFile(file, 'utf8'); }
+    catch (error) { return (error as NodeJS.ErrnoException).code === 'ENOENT' ? {} : { issue: this.configurationIssue(source, 'read-error', file) }; }
+    let value: unknown;
+    try { value = JSON.parse(text); }
+    catch { return { issue: this.configurationIssue(source, 'invalid-json', file) }; }
+    if (!value || typeof value !== 'object' || Array.isArray(value) || !('version' in value)) return { issue: this.configurationIssue(source, 'invalid-data', file) };
+    if (value.version !== version) return { issue: this.configurationIssue(source, 'unsupported-version', file) };
+    return { value, revision: configRevision(text) };
+  }
+
   private async loadStore(): Promise<void> {
     if (!this.storePath) return;
-    let text: string;
-    try { text = await fs.readFile(this.storePath, 'utf8'); } catch { return; }
+    const result = await this.readConfigFile(this.storePath, 'profiles', STORE_VERSION);
+    this.storeIssue = result.issue;
+    this.storeRevision = result.revision ?? null;
+    if (result.value === undefined) return;
     try {
-      const store = parseProfileStore(JSON.parse(text));
+      const store = parseProfileStore(result.value);
       this.profiles = store.profiles; this.activeProfileId = store.activeProfileId;
       this.config = this.configOf(this.activeProfile()); this.refreshRuntime();
     } catch {
-      // An unreadable file is kept beside the store so that the next save cannot destroy it.
-      await fs.copyFile(this.storePath, `${this.storePath}.unreadable`).catch(() => undefined);
+      this.storeIssue = this.configurationIssue('profiles', 'invalid-data', this.storePath);
     }
   }
 
@@ -256,6 +340,8 @@ export class PluginService {
   /** All changes of the profile file run one after another and start from the latest state in memory. */
   private mutateStore(mutate: (profiles: PersistedProfile[], activeProfileId: string) => { profiles: PersistedProfile[]; activeProfileId: string }): Promise<void> {
     const run = this.storeQueue.then(async () => {
+      this.assertStoreWritable();
+      await this.assertStoreCurrent();
       const next = mutate(this.profiles, this.activeProfileId);
       if (this.storePath) {
         const contents = `${JSON.stringify({ version: STORE_VERSION, activeProfileId: next.activeProfileId, profiles: next.profiles } satisfies PersistedProfileStore, null, 2)}\n`;
@@ -263,7 +349,9 @@ export class PluginService {
         try {
           await fs.mkdir(path.dirname(this.storePath), { recursive: true });
           await fs.writeFile(temp, contents, { encoding: 'utf8', mode: 0o600 });
+          await this.assertStoreCurrent();
           await fs.rename(temp, this.storePath);
+          this.storeRevision = configRevision(contents);
         } finally { await fs.rm(temp, { force: true }); }
       }
       this.profiles = next.profiles; this.activeProfileId = next.activeProfileId;
@@ -294,6 +382,7 @@ export class PluginService {
   /** The running configuration follows the active profile; work that started under another profile stops. */
   private async adoptActiveProfile(): Promise<void> {
     this.projectGeneration++; this.clearWatchers();
+    this.legacyIssue = undefined;
     this.config = this.configOf(this.activeProfile()); this.refreshRuntime();
     await this.refreshFolderStatus();
   }
@@ -361,6 +450,7 @@ export class PluginService {
   /** The folder only decides where Git works; the configuration belongs to the active profile. */
   private resetProject(folder = ''): void {
     this.projectGeneration++; this.clearWatchers(); this.projectFolder = folder;
+    this.legacyIssue = undefined;
     this.refreshRuntime();
   }
 
@@ -380,14 +470,17 @@ export class PluginService {
    * configured yet; the old file stays where it is.
    */
   private async adoptLegacyProjectConfig(folder: string, generation: number): Promise<void> {
-    if (!isPristine(this.config)) return;
+    if (this.storeIssue || !isPristine(this.config)) return;
     const profileId = this.activeProfileId;
+    const file = path.join(folder, LEGACY_PROJECT_CONFIG_NAME);
+    const result = await this.readConfigFile(file, 'legacy', CONFIG_VERSION);
+    if (generation !== this.projectGeneration || profileId !== this.activeProfileId || !isPristine(this.config)) return;
+    this.legacyIssue = result.issue;
+    if (result.value === undefined) return;
     let legacy: PersistedPluginConfig;
     try {
-      const raw = JSON.parse(await fs.readFile(path.join(folder, LEGACY_PROJECT_CONFIG_NAME), 'utf8')) as Partial<PersistedPluginConfig>;
-      if (raw.version !== CONFIG_VERSION || !raw.git || !raw.atlassian) return;
-      legacy = { version: CONFIG_VERSION, git: { ...DEFAULT_CONFIG.git, ...raw.git }, atlassian: { ...DEFAULT_CONFIG.atlassian, ...raw.atlassian } };
-    } catch { return; }
+      legacy = { version: CONFIG_VERSION, ...parsePluginConfig(result.value) };
+    } catch { this.legacyIssue = this.configurationIssue('legacy', 'invalid-data', file); return; }
     if (generation !== this.projectGeneration || profileId !== this.activeProfileId || !isPristine(this.config)) return;
     try { await this.saveConfig(legacy, profileId); } catch { return; }
     if (generation === this.projectGeneration && profileId === this.activeProfileId) this.refreshRuntime();
@@ -409,7 +502,8 @@ export class PluginService {
     await this.ensureLoaded();
     if (handleId === null) { this.resetProject(); this.activation = Promise.resolve(); }
     else if (handleId !== undefined) return this.activateDocument(handleId);
-    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
+    const issue = this.storeIssue ?? this.legacyIssue;
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
   }
 
   public async installPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
@@ -430,10 +524,15 @@ export class PluginService {
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
     await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.');
-    if (!this.config.git.installed) throw new Error('Git-Plugin ist nicht installiert.');
     const generation = this.projectGeneration; const folder = this.projectFolder; const profileId = this.activeProfileId;
-    const remote = boundedString(input.remote || 'origin', 128, 'Git-Remote');
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(remote)) throw new Error('Git-Remote ist ungültig.');
+    this.assertStoreWritable();
+    // Serialize the preflight too: a read overlapping our own rename must not look like an external change.
+    const preflight = this.storeQueue.then(() => this.assertStoreCurrent());
+    this.storeQueue = preflight.catch(() => undefined);
+    await preflight;
+    this.assertGeneration(generation);
+    if (!this.config.git.installed) throw new Error('Git-Plugin ist nicht installiert.');
+    const remote = normalizeGitRemote(input.remote || 'origin');
     const remoteUrl = normalizeGitRemoteUrl(input.remoteUrl ?? '');
     const authMode = input.authMode === 'token' ? 'token' : 'system'; const previousToken = this.config.git.encryptedAccessToken;
     const changedRemote = remote !== this.config.git.remote || remoteUrl !== this.config.git.remoteUrl;
@@ -451,7 +550,7 @@ export class PluginService {
       this.assertGeneration(generation);
       const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], folder); const repositoryRoot = rootOutput.trim(); this.assertGeneration(generation);
       if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); this.assertGeneration(generation); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { this.assertGeneration(generation); await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
-      if (encryptedAccessToken && newToken && !credentialRemoteUrl) { try { credentialRemoteUrl = (await this.runGit(['remote', 'get-url', remote], repositoryRoot)).stdout.trim() || undefined; } catch { /* No remote yet: network use requires entering a token after selecting one. */ } }
+      if (encryptedAccessToken && newToken && !credentialRemoteUrl) { try { credentialRemoteUrl = normalizeGitRemoteUrl((await this.runGit(['remote', 'get-url', remote], repositoryRoot)).stdout.trim()) || undefined; } catch { /* No usable remote yet: network use requires entering a token after selecting a safe URL. */ } }
       this.assertGeneration(generation);
     }
     if (credentialRemoteUrl) next.credentialRemoteUrl = credentialRemoteUrl;

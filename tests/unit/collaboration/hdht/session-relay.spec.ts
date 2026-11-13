@@ -52,6 +52,64 @@ async function setup(options: { role?: 'editor' | 'viewer'; expiresInMs?: number
 const ready = (transport: CollaborationTransport) => until(() => transport.getStatus().state === 'ready');
 
 describe('HyperDHT+relay session over a real local relay', () => {
+  it('#179 retries shared receive-capacity pressure without a final kick or a host-wide failure', async () => {
+    const { host, guest } = await setup();
+    const controller = createCrdtController(createDocument('Busy host')); cleanups.push(() => controller.destroy());
+    const first = guest().transport, second = guest().transport;
+    await Promise.all([ready(first), ready(second)]);
+    const errors: string[] = [], peerErrors: string[] = [], states: string[] = [];
+    second.subscribeStatus(status => states.push(status.state));
+    const binding = bindCrdtTransport(controller, host, undefined, {
+      onError: error => errors.push(error.message),
+      onPeerError: (error, peer) => {
+        peerErrors.push(error.message);
+        if (error.message === 'SYNC_TRANSFER_BUSY') { host.retryPeer(peer.peerId); void first.close(); }
+        else host.kick(peer.peerId);
+      },
+    });
+    cleanups.push(() => binding.close());
+    const frame = new Uint8Array(60 + 48 * 1024); frame.set([0x53, 0x43, 0x59, 0x31]);
+    new DataView(frame.buffer).setUint32(20, 40 * 1024 * 1024);
+    let assets = 0; host.subscribeMessage(message => { if (message.channel === 'asset') assets++; });
+    await first.send('asset', frame); await until(() => assets === 1);
+    await second.send('asset', frame);
+    await until(() => peerErrors.length === 1 && states.includes('reconnecting') && second.getStatus().state === 'ready');
+    expect(peerErrors).toEqual(['SYNC_TRANSFER_BUSY']); expect(errors).toEqual([]);
+    expect(second.getStatus().error).toBeUndefined(); expect(host.getStatus().state).toBe('ready');
+    expect(states).not.toContain('error');
+    const received: Uint8Array[] = [];
+    second.subscribeMessage(message => { if (message.channel === 'update') received.push(message.data); });
+    controller.dispatch({ type: 'rename', title: 'Recovered capacity' }, { actorId: 'host', source: 'human', expectedRevision: controller.getSnapshot().revision });
+    await until(() => received.length > 0);
+  });
+
+  it('#179 isolates a malformed authenticated editor upload while a second encrypted guest keeps syncing', async () => {
+    const { host, guest } = await setup();
+    const document = createDocument('Host survives'); document.id = 'doc-1';
+    const controller = createCrdtController(document); cleanups.push(() => controller.destroy());
+    const errors: string[] = [], peerErrors: string[] = [];
+    const binding = bindCrdtTransport(controller, host, undefined, {
+      onError: error => errors.push(error.message),
+      onPeerError: (error, peer) => { peerErrors.push(error.message); host.kick(peer.peerId); },
+    });
+    cleanups.push(() => binding.close());
+    const attacker = guest().transport, survivor = guest().transport;
+    const remote = await bootstrapRoomDocument(survivor, { documentId: document.id, timeoutMs: 8000 });
+    cleanups.push(() => remote.destroy());
+    const remoteBinding = bindCrdtTransport(remote, survivor); cleanups.push(() => remoteBinding.close());
+    await ready(attacker); await until(() => host.getStatus().peers.length === 2);
+    await attacker.send('asset', Uint8Array.of(0x53, 0x43, 0x59, 0x31));
+    await until(() => attacker.getStatus().state === 'error');
+    expect(attacker.getStatus().error).toBe('KICKED');
+    expect(host.getStatus()).toMatchObject({ state: 'ready' });
+    expect(host.getStatus().peers).toHaveLength(1);
+    expect(peerErrors).toEqual(['SYNC_TRANSFER_INVALID']); expect(errors).toEqual([]);
+    controller.dispatch({ type: 'rename', title: 'Still connected' }, { actorId: 'host', source: 'human', expectedRevision: controller.getSnapshot().revision });
+    await until(() => remote.getSnapshot().document.title === 'Still connected');
+    remote.dispatch({ type: 'rename', title: 'Survivor edits' }, { actorId: 'survivor', source: 'human', expectedRevision: remote.getSnapshot().revision });
+    await until(() => controller.getSnapshot().document.title === 'Survivor edits');
+  });
+
   it('bootstraps and syncs Yjs in both directions through the encrypted relay route', async () => {
     const { host, guest } = await setup();
     const document = createDocument('Gemeinsam');

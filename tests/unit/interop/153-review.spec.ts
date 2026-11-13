@@ -74,6 +74,13 @@ describe('independent interoperability regressions (#153)', () => {
     expect(allocationRequests).toEqual([]);
   });
 
+  it('budgets padding tabs before allocating a sparse table near the text limit', () => {
+    const label = 'a\tb\tc\td\te\tf\tg\th\ti\tj\n' + 'x'.repeat(49_975) + '\ny';
+    expect(label.length).toBe(49_997);
+    expect(() => importDrawio(foreignTable(label))).toThrow(expect.objectContaining({ code: 'LIMIT_EXCEEDED' }));
+    expect(allocationRequests).toEqual([]);
+  });
+
   it('accepts the cell budget boundary and fills missing sparse cells without shifting text', () => {
     const label = ['A\tB\tC\tD\tE', ...Array.from({ length: 99 }, () => 'Z')].join('\n');
     const table = importDrawio(foreignTable(label)).document.elements[0]!.table!;
@@ -93,6 +100,26 @@ describe('independent interoperability regressions (#153)', () => {
     const element = importDrawio(xml).document.elements[0]!;
     expect(element.style.stroke).toBe('#0000ff');
     expect(element.table!.cells[0]!.style.color).toBe('#ff0000');
+  });
+
+  it.each(['#f00', '#ff0000', 'rgb(255, 0, 0)', '#f00f', '#ff0000ff', 'rgba(255, 0, 0, 1)'])('normalizes opaque table ink %s to the cell color contract', ink => {
+    const imported = importDrawio(foreignTable('Cell', `fontColor=${ink};fillColor=#fff;strokeColor=#0000ff`));
+    expect(imported.document.elements[0]!.table!.cells[0]!.style).toMatchObject({ color: '#ff0000', fill: '#ffffff' });
+    expect(imported.diagnostics.filter(item => item.property === 'fontColor')).toEqual([]);
+  });
+
+  it.each(['#f008', '#ff000080', 'rgba(255, 0, 0, 0.5)'])('keeps table hue and diagnoses unsupported cell transparency for %s', ink => {
+    const imported = importDrawio(foreignTable('Cell', `fontColor=${ink};fillColor=rgba(255, 255, 255, 0.5)`));
+    expect(imported.document.elements[0]!.table!.cells[0]!.style).toMatchObject({ color: '#ff0000', fill: '#ffffff' });
+    expect(imported.diagnostics).toContainEqual(expect.objectContaining({ code: 'STYLE_APPROXIMATED', property: 'fontColor' }));
+    expect(imported.diagnostics).toContainEqual(expect.objectContaining({ code: 'STYLE_APPROXIMATED', property: 'fillColor' }));
+  });
+
+  it('diagnoses transparent table ink and fill while using valid independent defaults', () => {
+    const imported = importDrawio(foreignTable('Cell', 'fontColor=none;fillColor=none;strokeColor=#ff0000'));
+    expect(imported.document.elements[0]!.table!.cells[0]!.style).toMatchObject({ color: '#000000', fill: '#ffffff' });
+    expect(imported.diagnostics).toContainEqual(expect.objectContaining({ code: 'STYLE_APPROXIMATED', property: 'fontColor' }));
+    expect(imported.diagnostics).toContainEqual(expect.objectContaining({ code: 'STYLE_APPROXIMATED', property: 'fillColor' }));
   });
 
   // #157 supersedes the former outline-color fallback assertion from #156:

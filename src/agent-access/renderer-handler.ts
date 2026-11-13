@@ -124,6 +124,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
       return { ...base, title: document.title, pages, summary: { pageCount: document.pages.length, totalElements: document.elements.length, countsByKind: counts, containerCount: counts.container, maxContainerDepth: maxDepth, connectorCount: counts.connector, boundConnectorCount: bound, unboundConnectorCount: unbound, partiallyBoundConnectorCount: partial, assetCount: Object.keys(document.assets).length, totalAssetDataUrlBytes: Object.values(document.assets).reduce((total, asset) => total + new TextEncoder().encode(asset.dataUrl).length, 0), componentSetCount: document.componentSets.length, totalComponentDefinitions: document.componentSets.reduce((total, set) => total + set.components.length, 0) }, findings };
     }
     if (!('commandId' in input) || request.commandId !== input.commandId || request.expectedRevision !== input.expectedRevision) throw new AgentAccessError('VALIDATION_FAILED', 'Mutation metadata mismatch.');
+    if (input.expectedRevision !== snapshot.revision) throw new AgentAccessError('REVISION_CONFLICT', 'The document changed since the revision you read. Read it again and apply the change to the current revision with a new commandId.', { currentRevision: snapshot.revision });
     let command: DocumentCommand;
     let diagnostics: import('../domain').ParseDiagnostic[] = [];
     if ('code' in input) {
@@ -139,15 +140,15 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
     }
     check(request, true);
     const requestId = grant.binding.gateway.nextRequestId();
-    if (!requestId) throw new AgentAccessError('BUSY', 'A previous agent change is unresolved.');
+    if (!requestId) throw new AgentAccessError('BUSY', 'The document is busy with another operation. Read it again and retry with a new commandId.');
     const outcome = await grant.binding.gateway.submit({ requestId, expectedRevision: input.expectedRevision, action: { kind: 'dispatch', command } });
     if (outcome.status === 'outcome-unknown') throw new AgentAccessError('OUTCOME_UNKNOWN', 'The mutation outcome is not confirmed.');
     if (outcome.status === 'rejected') {
-      const code = ['ACCESS_DENIED', 'ACCESS_REVOKED', 'SESSION_CHANGED', 'DOCUMENT_MISMATCH', 'REVISION_CONFLICT', 'REQUEST_TOO_LARGE', 'BUSY', 'REQUEST_TIMEOUT', 'REQUEST_ID_REUSED'].includes(outcome.code) ? outcome.code as import('./types').AgentAccessErrorCode : 'VALIDATION_FAILED';
+      const code = outcome.code === 'TRANSITION_PENDING' ? 'BUSY' : ['ACCESS_DENIED', 'ACCESS_REVOKED', 'SESSION_CHANGED', 'DOCUMENT_MISMATCH', 'REVISION_CONFLICT', 'REQUEST_TOO_LARGE', 'BUSY', 'REQUEST_TIMEOUT', 'REQUEST_ID_REUSED'].includes(outcome.code) ? outcome.code as import('./types').AgentAccessErrorCode : 'VALIDATION_FAILED';
       // The authority reports only a code. For a validation failure the domain is asked again, without committing, so the
       // agent learns which field is wrong instead of guessing (#176).
       const issues = code === 'VALIDATION_FAILED' ? explainCommandRejection(grant.binding.source.getSnapshot().document, command) : [];
-      const message = code === 'REVISION_CONFLICT' ? 'The document changed since the revision you read. Read it again and apply the change to the current revision with a new commandId.' : summarizeIssues(issues);
+      const message = code === 'REVISION_CONFLICT' ? 'The document changed since the revision you read. Read it again and apply the change to the current revision with a new commandId.' : code === 'BUSY' ? 'The document is busy with another operation. Read it again and retry with a new commandId.' : issues.length ? summarizeIssues(issues) : `Change was rejected by the shared document authority (${outcome.code}).`;
       throw new AgentAccessError(code, message, { currentRevision: outcome.currentRevision, ...(issues.length ? { issues } : {}) });
     }
     check(request, true);
@@ -169,7 +170,7 @@ export function createRendererAgentHandler(authority: DocumentAuthority, session
           if (previous.canonical !== undefined ? previous.canonical !== canonical : previous.fingerprint !== await digest(canonical)) throw new AgentAccessError('REQUEST_ID_REUSED', 'This commandId was already used for different arguments (a rejected call uses up its ID too). Send the corrected change with a new commandId.');
           result = { ...await previous.result, deduplicated: true };
         } else {
-          if (grant.journal.size >= L.MAX_JOURNAL_ENTRIES_PER_GRANT) throw new AgentAccessError('JOURNAL_FULL', 'Create a new grant to continue.');
+          if (grant.journal.size >= L.MAX_JOURNAL_ENTRIES_PER_GRANT) throw new AgentAccessError('JOURNAL_FULL', 'This document session has reached its command history limit. Ask the user to save, close and reopen the local document, then read it again before continuing.');
           const entry: Entry = { canonical, result: Promise.resolve().then(async () => {
             entry.fingerprint = await digest(canonical); entry.canonical = undefined;
             return execute(request, grant);

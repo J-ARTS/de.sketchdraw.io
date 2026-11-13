@@ -12,7 +12,7 @@ Every change appears on the user's canvas at once and stays **unsaved**; the use
 ## Workflow
 
 1. **Read.** `sketchdraw_analyze_document` gives an overview with the title and every page ID, `sketchdraw_find_elements` the IDs and positions of matching elements (an empty query lists all; connectors show `fromElementId` and `toElementId`), `sketchdraw_read_document` everything. Each result has `documentId` and `revision`. For a large diagram prefer the first two over a full read.
-2. **Change.** Use `sketchdraw_apply_commands` for targeted edits. Pass `documentId` and `expectedRevision` from your latest result and a new `commandId`.
+2. **Change.** Use `sketchdraw_apply_commands` for targeted edits. Both `documentId` and `expectedRevision` from your latest result are required; pass them and a new `commandId`.
 3. **Continue.** A write returns the new `revision`; use it for the next write. Read back when the outcome matters. A request that changes nothing answers `changed: false` and keeps the revision.
 
 Results arrive as `structuredContent` and as the same JSON in the text block. A response with `isError` changed nothing.
@@ -63,6 +63,8 @@ Optional on a connector: `connectorRouting` (`elbowed` by default here, `straigh
 | --- | --- | --- |
 | `VALIDATION_FAILED` | The command or code is wrong. `issues` (commands) or `diagnostics` (code, with line and column) name each problem. | Fix exactly those and send again with a new `commandId`; the rejected call used up its ID. |
 | `REVISION_CONFLICT` | The document changed since your read; `currentRevision` is included. | Read again, reconcile, send with the current revision and a new `commandId`. |
+| `BUSY` | Too many calls are waiting or the document is changing state. | Wait briefly, read again and retry a rejected write with a new `commandId`. |
+| `JOURNAL_FULL` | The local document session reached its command history limit. | Ask the user to save, close and reopen it; read the newly connected document before continuing. |
 | `REQUEST_ID_REUSED` | This `commandId` was already used for another payload. | Use a new one. Repeating the identical call instead returns the stored result with `deduplicated: true` and changes nothing. |
 | `OUTCOME_UNKNOWN` | The connection dropped while the change was on its way. | Repeat the identical call with the same `commandId`. Only afterwards decide on anything new. |
 | `SESSION_CHANGED`, `DOCUMENT_MISMATCH` | The user opened another document. Nothing was changed. | Read the new document; its revisions start at 0. Ask before carrying a change over. |

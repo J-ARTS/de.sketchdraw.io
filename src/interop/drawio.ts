@@ -4,8 +4,8 @@ import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, Sk
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
-import { context, importBoundary, add, baseStyle, color, decodeEnvelope, fail, finish, imageAsset, number, plainHtml, placeholder, pointsElement, warn, type ImportContext } from './common';
-import { prepareDrawioExport } from './export';
+import { context, importBoundary, add, baseStyle, color, decodeEnvelopeWithProjection, fail, finish, imageAsset, number, plainHtml, placeholder, pointsElement, warn, type ImportContext } from './common';
+import { drawioProjectionForValidation } from './export';
 import { areXmlTreesEquivalent, stripDrawioEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, getElementTextContent as text, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type DrawioImportOptions, type DrawioPageInfo, type InteropImportResult } from './types';
 function named(node: XmlElementNode, local: string): boolean { return node.uri === '' && node.local === local; }
@@ -147,6 +147,20 @@ function label(cell: Cell, ctx: ImportContext): string {
   }
   return cell.value;
 }
+/** Cell colors have a narrower, opaque six-digit sRGB contract than outer styles. */
+function tableColor(value: string, fallback: string, cell: Cell, ctx: ImportContext, property: string): string {
+  const approximated = () => warn(ctx, cell.node, 'STYLE_APPROXIMATED', property, 'Table cell colors are opaque; transparency or fractional channels were approximated.');
+  if (value === 'transparent') { approximated(); return fallback; }
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    const expanded = hex.length <= 4 ? [...hex].map(channel => channel + channel).join('') : hex;
+    if (expanded.length === 8 && expanded.slice(6) !== 'ff') approximated();
+    return `#${expanded.slice(0, 6)}`;
+  }
+  const channels = value.slice(value.indexOf('(') + 1, -1).split(',').map(Number);
+  if (channels.length > 3 && channels[3] !== 1 || channels.slice(0, 3).some(channel => !Number.isInteger(channel))) approximated();
+  return `#${channels.slice(0, 3).map(channel => Math.round(channel).toString(16).padStart(2, '0')).join('')}`;
+}
 function pointNode(geometry: XmlElementNode | undefined, name: string): Point | undefined {
   const p = geometry && children(geometry).find(n => named(n, 'mxPoint') && n.attributes['as'] === name);
   return p ? { x: number(p.attributes['x']), y: number(p.attributes['y']) } : undefined;
@@ -166,8 +180,8 @@ function restoreEmbeddedModel(ctx: ImportContext, root: XmlElementNode, envelope
   try {
     if (envelopes.length !== 1 || envelopes[0]!.node.attributes['id'] !== '0')
       throw new Error('Duplicate or misplaced metadata');
-    const doc = decodeEnvelope(envelopes[0]!.value, 'drawio');
-    const expected = parseXmlDocument(prepareDrawioExport(doc).contents);
+    const { document: doc, projectionVersion } = decodeEnvelopeWithProjection(envelopes[0]!.value, 'drawio');
+    const expected = parseXmlDocument(drawioProjectionForValidation(doc, projectionVersion));
     // Always compare every visible page, even when the caller imports only one.
     if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
       return doc;
@@ -331,11 +345,15 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     const columnCount = tableRows?.reduce((maximum, row) => Math.max(maximum, row.length), 1) ?? 0;
     if (tableRows && tableRows.length * columnCount > MAX_TABLE_CELLS)
       fail('LIMIT_EXCEEDED', `Table exceeds the ${MAX_TABLE_CELLS}-cell limit.`);
+    if (tableRows && importedText.length + tableRows.reduce((padding, row) => padding + columnCount - row.length, 0) > DOMAIN_LIMITS.MAX_TEXT_LENGTH)
+      fail('LIMIT_EXCEEDED', 'Padded table text exceeds the document text limit.');
     const table = tableRows ? createTableDocument(tableRows.length, columnCount) : undefined;
+    const cellFill = table ? tableColor(outerStyle.fill, '#ffffff', cell, ctx, 'fillColor') : undefined;
+    const cellInk = table ? tableColor(outerStyle.textColor ?? '#000000', '#000000', cell, ctx, 'fontColor') : undefined;
     if (table) table.cells.forEach((entry, cellIndex) => {
       const rowIndex = Math.floor(cellIndex / table.columns.length); const columnIndex = cellIndex % table.columns.length;
       entry.text = tableRows![rowIndex]?.[columnIndex] ?? '';
-      entry.style = { fill: outerStyle.fill === 'transparent' ? '#ffffff' : outerStyle.fill, color: outerStyle.textColor ?? '#000000', fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
+      entry.style = { fill: cellFill!, color: cellInk!, fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
     });
     const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);

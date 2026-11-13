@@ -119,6 +119,11 @@ async function start(): Promise<void> {
     offStatus = current.subscribeStatus(inspect); inspect();
     binding = bindCrdtTransport(controller, current, undefined, {
       applyRemote: apply => { if (store.getAuthority() === authority) authority.applyExternalUpdate(apply); },
+      onPeerError: (error, peer) => {
+        if (generation !== epoch || host !== current) return;
+        if (!current.getStatus().peers.some(value => value.peerId === peer.peerId && value.keyHash === peer.keyHash)) return;
+        if (error.message === 'SYNC_TRANSFER_BUSY') current.retryPeer(peer.peerId); else current.kick(peer.peerId);
+      },
       onError: value => {
         if (generation !== epoch || host !== current) return;
         const reason = value.message === 'DOCUMENT_TOO_LARGE_FOR_COLLABORATION' ? value.message : 'SYNC_FAILED';

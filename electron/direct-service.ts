@@ -48,6 +48,8 @@ interface DhtServer {
 interface DhtQuery { [Symbol.asyncIterator](): AsyncIterator<{ peers?: { publicKey: Uint8Array }[] }>; destroy?(): void; finished?(): Promise<void> }
 interface DhtWriteQuery { finished(): Promise<void>; destroy?(): void }
 export interface DhtNode {
+  /** Public HyperDHT API: a known external endpoint, not a reachability guarantee. */
+  remoteAddress?(): { host: string; port: number } | null;
   lookup?(topic: Uint8Array): DhtQuery;
   announce?(topic: Uint8Array, keyPair: { publicKey: Uint8Array; secretKey: Uint8Array }): { finished(): Promise<void>; destroy?(): void };
   unannounce?(topic: Uint8Array, keyPair: { publicKey: Uint8Array; secretKey: Uint8Array }): Promise<void>;
@@ -221,6 +223,13 @@ export class DirectService {
 
   /** Public key (hex) of the running server, or null. */
   get hostKey(): string | null { return this.serverKey; }
+
+  /** Do not expose peer IP addresses to the renderer or interpret an endpoint as a successful NAT probe. */
+  get externalAddressKnown(): boolean {
+    const address = this.serverNode?.remoteAddress?.();
+    return typeof address?.host === 'string' && address.host.length > 0
+      && Number.isInteger(address.port) && address.port > 0 && address.port <= 65535;
+  }
 
   /** Advertises the running server's own key under a DHT topic. Bounded; resolves false when it could not be completed. */
   async announce(topic: Uint8Array, timeoutMs = DIRECT_ANNOUNCE_TIMEOUT_MS): Promise<boolean> {

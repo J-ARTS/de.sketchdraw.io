@@ -1,0 +1,54 @@
+{
+  "baseRevision": "8df300656e28f6a7fb19ae9f6185ae236725fc9c",
+  "workingTree": "local-uncommitted-shared",
+  "environment": {
+    "os": "macOS 14.6.1",
+    "arch": "arm64",
+    "node": "22.16.0"
+  },
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/interop tests/unit/platform/mermaid-export.spec.ts",
+      "result": "passed",
+      "files": 11,
+      "tests": 159,
+      "log": "/tmp/sketchdraw-interop-final-unit.log"
+    },
+    {
+      "command": "npx playwright test --config=/tmp/sketchdraw-interop-playwright.config.ts --project=ui tests/ui/interop.spec.ts",
+      "result": "passed",
+      "tests": 13,
+      "seconds": 23.8,
+      "log": "/tmp/sketchdraw-interop-final-ui.log",
+      "scope": "after core fixes; before final color-case and portable-diagnostic refinements"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "failed",
+      "reason": "parallel MCP type mismatch src/mcp/server.ts:39; root notified",
+      "log": "/tmp/sketchdraw-interop-final-typecheck.log"
+    },
+    {
+      "command": "python3 -m unittest discover -s tools/tests -v",
+      "result": "passed",
+      "tests": 30,
+      "log": "/tmp/sketchdraw-145-python-final.log"
+    }
+  ],
+  "sha256": {
+    "src/interop/common.ts": "f8215dcfd5c9cf83567fbf95cbf19a7f6d8d975aa61524f8d6dbafa8ec3bd541",
+    "src/interop/drawio.ts": "1d4efc52832598ae4ee1275295a6318c99e37de9a9e02710420831ff6be3e38e",
+    "src/interop/export.ts": "cf939fe572f13adbe02fc05459a6b901ad29dfc4902b75321365b628be0b193e",
+    "tests/unit/interop/153-review.spec.ts": "0ed9965ca012f9754cdbd1d5e99b7ffcc593adad37fc94899e404a24269a4899",
+    "tests/unit/interop/table-export.spec.ts": "d2fad14383856cceb77a1bc0a44193d8fa23dc0dff5d73cfd840a6db528d97b2",
+    "tests/unit/interop/fixtures/table-colors-v1.drawio": "a51c3a9788063fe99ee223fa78edad6f47b652ef7e4a4616d905b21d13ff807d",
+    "tools/graphify-update.py": "ff0fecac2accee7284fba1bbbdfa62e183acb7db0bc94252e1c000d3214a8834",
+    "tools/tests/test_graphify_update.py": "df74d10892aded811ec887bbae6a72e790e40611ddadc2df0d10b62178f21917"
+  },
+  "integrationConfirmed": false,
+  "rootReportedFollowup": {
+    "typecheck": "passed",
+    "mcpUnitTests": 48,
+    "source": "root coordination message; no local log reference supplied"
+  }
+}

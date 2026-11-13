@@ -63,7 +63,7 @@ export interface CollaborationTransportStatus {
   grantedRole?: 'editor' | 'viewer';
   retryAfterMs?: number;
   attemptsLeft?: number;
-  /** hyperdht-relay host: number of volunteer helpers currently carrying this session. */
+  /** hyperdht-relay host: authenticated helper registrations, not a count of proven Internet paths. */
   helpers?: number;
 }
 

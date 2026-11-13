@@ -27,6 +27,11 @@ export const DEFAULT_LIMITS = Object.freeze({
   // Shared cap over all connections of one hub (volunteer helpers); Infinity for a dedicated server.
   aggregateBytesPerSecond: Infinity,
   aggregateByteBurst: Infinity,
+  // Pending aggregate pacing is separate from adapter buffers, with a finite lifetime and per-sender share.
+  maxAggregateQueuedBytes: 8 * 1024 * 1024,
+  maxAggregateQueuedBytesPerConnection: 1024 * 1024,
+  maxAggregateQueuedRecordsPerConnection: 128,
+  aggregateQueueTimeoutMs: 5000,
 });
 
 const HOST_PROOF_LABEL = 'sketchdraw-relay-host-v1\0';
@@ -84,7 +89,87 @@ export function createRelayHub(options = {}) {
   const connections = new Map();
   const counters = { forwardedRecords: 0, closedForLimit: 0 };
   const aggregate = Number.isFinite(limits.aggregateBytesPerSecond) ? bucket(limits.aggregateBytesPerSecond, limits.aggregateByteBurst, now()) : null;
+  // Insertion order is the next sender to serve. Each sender retains FIFO order; one record per turn.
+  const forwarding = new Map();
+  let queuedBytes = 0;
+  let forwardingTimer = null;
+  let draining = false;
   let disposed = false;
+
+  function forgetForwarding(conn) {
+    for (const [source, queue] of forwarding) {
+      const remaining = source === conn ? [] : queue.records.filter(record => record.target !== conn);
+      const bytes = remaining.reduce((sum, record) => sum + record.frame.length, 0);
+      queuedBytes -= queue.bytes - bytes;
+      if (!remaining.length) forwarding.delete(source);
+      else { queue.records = remaining; queue.bytes = bytes; }
+    }
+    if (!forwarding.size && forwardingTimer) { clearTimeout(forwardingTimer); forwardingTimer = null; }
+  }
+
+  function scheduleForwarding(delay) {
+    if (forwardingTimer || disposed || !forwarding.size) return;
+    forwardingTimer = setTimeout(() => { forwardingTimer = null; drainForwarding(); }, Math.max(1, Math.ceil(delay)));
+    forwardingTimer.unref?.();
+  }
+
+  function sendFrame(target, frame) {
+    if (!canSend(target, frame.length, limits.maxBufferedBytes)) return;
+    counters.forwardedRecords++;
+    try { target.send(frame, true); } catch { closeConnection(target, 1011, 'send-failed'); }
+  }
+
+  function drainForwarding() {
+    if (draining || disposed) return;
+    draining = true;
+    try {
+      while (forwarding.size) {
+        for (const [source, queue] of forwarding) {
+          if (now() - queue.records[0].at >= limits.aggregateQueueTimeoutMs) {
+            counters.closedForLimit++;
+            closeConnection(source, 4429, 'aggregate-queue-timeout');
+          }
+        }
+        if (!forwarding.size) break;
+        const [source, queue] = forwarding.entries().next().value;
+        const record = queue.records[0];
+        if (!take(aggregate, record.frame.length, now())) {
+          const wait = (record.frame.length - aggregate.tokens) * 1000 / aggregate.rate;
+          // Also honor the oldest waiting sender's deadline, even behind another sender.
+          const deadline = Math.min(...Array.from(forwarding.values(), value => value.records[0].at + limits.aggregateQueueTimeoutMs));
+          scheduleForwarding(Math.min(wait, Math.max(1, deadline - now())));
+          break;
+        }
+        forwarding.delete(source);
+        queue.records.shift(); queue.bytes -= record.frame.length; queuedBytes -= record.frame.length;
+        if (queue.records.length) forwarding.set(source, queue);
+        sendFrame(record.target, record.frame);
+      }
+      if (!forwarding.size && forwardingTimer) { clearTimeout(forwardingTimer); forwardingTimer = null; }
+    } finally { draining = false; }
+  }
+
+  function paceForwarding(source, target, frame) {
+    if (!aggregate) { sendFrame(target, frame); return; }
+    // Only validated forwarding targets reach this point; join/ping/drop controls never spend payload tokens.
+    if (!forwarding.size && take(aggregate, frame.length, now())) { sendFrame(target, frame); return; }
+    const queue = forwarding.get(source) ?? { records: [], bytes: 0 };
+    if (frame.length > aggregate.burst || queue.bytes + frame.length > limits.maxAggregateQueuedBytesPerConnection
+      || queue.records.length >= limits.maxAggregateQueuedRecordsPerConnection || frame.length > limits.maxAggregateQueuedBytes) {
+      counters.closedForLimit++; closeConnection(source, 4429, 'aggregate-queue-full'); return;
+    }
+    while (queuedBytes + frame.length > limits.maxAggregateQueuedBytes) {
+      // Shed the greatest producer, never the unrelated connection that happened to arrive next.
+      let largest = source, largestBytes = queue.bytes + frame.length;
+      for (const [candidate, pending] of forwarding) if (pending.bytes > largestBytes) { largest = candidate; largestBytes = pending.bytes; }
+      counters.closedForLimit++; closeConnection(largest, 4429, 'aggregate-queue-full');
+      if (largest === source || !connections.has(source) || !connections.has(target)) return;
+    }
+    // Copy so a tiny retained view cannot pin a much larger adapter input allocation.
+    queue.records.push({ target, frame: Buffer.from(frame), at: now() }); queue.bytes += frame.length; queuedBytes += frame.length;
+    forwarding.set(source, queue);
+    drainForwarding();
+  }
 
   function closeConnection(conn, code, reason, terminate = false) {
     const entry = connections.get(conn);
@@ -107,7 +192,7 @@ export function createRelayHub(options = {}) {
     let tooMuch = conn.bufferedAmount() + framedSize > perConnectionLimit;
     if (!tooMuch) {
       let total = framedSize;
-      // Adapter counters update synchronously on send and decrease on drain. No additional hub queue is retained.
+      // Adapter counters update synchronously on send and decrease on drain. Pacing has its own bounded queue.
       for (const connection of connections.keys()) {
         total += connection.bufferedAmount();
         if (total > limits.maxTotalBufferedBytes) { tooMuch = true; break; }
@@ -146,7 +231,7 @@ export function createRelayHub(options = {}) {
       state.lastSeen = now();
       const size = data.length;
       if (size > limits.maxRecordBytes) { counters.closedForLimit++; closeConnection(conn, 1009, 'too-large'); return; }
-      if (!take(state.msgs, 1, now()) || !take(state.bytes, size, now()) || (aggregate && !take(aggregate, size, now()))) { counters.closedForLimit++; closeConnection(conn, 4429, 'rate-limit'); return; }
+      if (!take(state.msgs, 1, now()) || !take(state.bytes, size, now())) { counters.closedForLimit++; closeConnection(conn, 4429, 'rate-limit'); return; }
       if (!state.role) {
         if (isBinary || size > 256) { closeConnection(conn, 1008, 'bad-join'); return; }
         let join;
@@ -186,6 +271,7 @@ export function createRelayHub(options = {}) {
       ended = true;
       clearTimeout(joinTimer); clearTimeout(lifeTimer); clearInterval(idleTimer);
       connections.delete(conn);
+      forgetForwarding(conn);
       leave(conn, state);
     }
 
@@ -239,9 +325,7 @@ export function createRelayHub(options = {}) {
       if (data.length === ID_BYTES) { closeConnection(target, 4411, 'dropped'); return; }
       frame = data.subarray(ID_BYTES);
     }
-    if (!canSend(target, frame.length, limits.maxBufferedBytes)) return;
-    counters.forwardedRecords++;
-    try { target.send(frame, true); } catch { closeConnection(target, 1011, 'send-failed'); }
+    paceForwarding(conn, target, frame);
   }
 
   function leave(conn, state) {
@@ -269,6 +353,8 @@ export function createRelayHub(options = {}) {
     /** Closes every connection; used when the owner of the hub stops. */
     dispose() {
       disposed = true;
+      if (forwardingTimer) clearTimeout(forwardingTimer);
+      forwardingTimer = null;
       for (const conn of Array.from(connections.keys())) closeConnection(conn, 1001, 'shutdown');
     },
   };

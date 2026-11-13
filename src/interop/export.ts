@@ -242,7 +242,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
   out.append('</svg>');
   return out.toString();
 }
-function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean): string {
+function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: 1 | 2 = 2): string {
   const out = new XmlOutputBuilder();
   const ids = new Map(document.elements.map((e, i) => [e.id, `sd-${i}`]));
   const map = new Map(document.elements.map(e => [e.id, e]));
@@ -251,7 +251,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   // model (all pages) sits on the first diagram.
   for (const [pageIndex, page] of document.pages.entries()) {
   const diagramName = document.pages.length === 1 ? document.title : page.name;
-  out.append(`<diagram id="page-${pageIndex + 1}" name="${escapeXmlAttr(xmlText(diagramName, d))}"><mxGraphModel><root><object id="0"${embed && pageIndex === 0 ? ` sketchdrawInterop="${encodeEnvelope(document, 'drawio')}"` : ''}><mxCell/></object><mxCell id="1" parent="0"/>`);
+  out.append(`<diagram id="page-${pageIndex + 1}" name="${escapeXmlAttr(xmlText(diagramName, d))}"><mxGraphModel><root><object id="0"${embed && pageIndex === 0 ? ` sketchdrawInterop="${encodeEnvelope(document, 'drawio', projectionVersion)}"` : ''}><mxCell/></object><mxCell id="1" parent="0"/>`);
   for (const raw of document.elements.filter((candidate) => candidate.pageId === page.id)) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
@@ -261,7 +261,13 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const shapeVariant = effectiveShapeVariant(el);
     const startMarker = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
     const endMarker = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
-    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, ...(el.style.strokeDash === 'animated' ? ['flowAnimation=1'] : []), `startArrow=${DRAWIO_MARKER[startMarker]}`, `startFill=${DRAWIO_FILLED_MARKERS.has(startMarker) ? 1 : 0}`, `endArrow=${DRAWIO_MARKER[endMarker]}`, `endFill=${DRAWIO_FILLED_MARKERS.has(endMarker) ? 1 : 0}`];
+    // v1 used the outer border/text style even for tables. Keep that exact
+    // projection exclusively for validating legacy envelopes before restoring them.
+    const table = projectionVersion === 2 && el.kind === 'table' ? el.table : undefined;
+    const firstCell = table?.cells.find(cell => cell.rowId === table.rows[0]!.id && cell.columnId === table.columns[0]!.id);
+    if (firstCell && table!.cells.some(cell => cell.style.color.toLowerCase() !== firstCell.style.color.toLowerCase() || cell.style.fill.toLowerCase() !== firstCell.style.fill.toLowerCase()))
+      d.add({ code: 'STYLE_APPROXIMATED', elementId: el.id, property: 'table.colors', severity: 'warning', effect: embed ? 'approximated' : 'omitted', message: embed ? 'The native table projection uses the first visible cell colors; mixed cell colors remain in embedded metadata only.' : 'The portable table projection uses the first visible cell colors; other cell colors are omitted.' });
+    const style = [`html=0`, `strokeColor=${safeColor(el.style.stroke, d, el)}`, `fillColor=${safeColor(firstCell?.style.fill ?? el.style.fill, d, el)}`, `strokeWidth=${el.style.strokeWidth}`, `opacity=${el.style.opacity * 100}`, `fontSize=${el.style.fontSize}`, `fontColor=${firstCell ? safeColor(firstCell.style.color, d, el) : safeTextColor(el,d)}`, `fontFamily=${DRAWIO_FONT_FAMILY[el.style.fontFamily ?? 'sans']}`, `fontStyle=${fontStyle}`, `align=${el.style.textAlign}`, `rotation=${el.rotation}`, `dashed=${el.style.strokeDash === 'solid' ? 0 : 1}`, `dashPattern=${el.style.strokeDash === 'dotted' ? '2 4' : '8 6'}`, ...(el.style.strokeDash === 'animated' ? ['flowAnimation=1'] : []), `startArrow=${DRAWIO_MARKER[startMarker]}`, `startFill=${DRAWIO_FILLED_MARKERS.has(startMarker) ? 1 : 0}`, `endArrow=${DRAWIO_MARKER[endMarker]}`, `endFill=${DRAWIO_FILLED_MARKERS.has(endMarker) ? 1 : 0}`];
     if (shapeVariant) {
       style.push(`sketchdrawShapeVariant=${shapeVariant}`);
       const native: Partial<Record<typeof shapeVariant, readonly string[]>> = {
@@ -361,6 +367,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   }
   out.append('</mxfile>');
   return out.toString();
+}
+/** Internal comparison surface; old versions are never selected by export callers. */
+export function drawioProjectionForValidation(document: SketchDocument, projectionVersion: 1 | 2): string {
+  return nativeDrawio(document, new DiagnosticCollector(), false, projectionVersion);
 }
 export function prepareExport(document: SketchDocument, format: Exclude<InteropFormat, 'mermaid'>, options: InteropExportOptions = {}): InteropExportResult {
   const full = validateDocument(document);

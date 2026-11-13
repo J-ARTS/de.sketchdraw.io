@@ -1,15 +1,17 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { promises as fs } from 'node:fs';
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PluginService } from '../../electron/plugin-service';
 import type { DocumentPersistenceService } from '../../electron/persistence';
+import { setLocale, tm } from '../../src/renderer/i18n';
 
 const execFile = promisify(execFileCallback);
 const cleanup: string[] = [];
-afterEach(async () => { await Promise.all(cleanup.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
+afterEach(async () => { vi.restoreAllMocks(); setLocale('de'); await Promise.all(cleanup.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
 
 function credentials() {
   return { available: () => true, encrypt: (value: string) => Buffer.from(value).toString('base64'), decrypt: (value: string) => Buffer.from(value, 'base64').toString('utf8') };
@@ -264,14 +266,82 @@ describe('PluginService', () => {
     service.dispose();
   });
 
-  it('keeps an unreadable profile file aside instead of overwriting it', async () => {
+  it.each([
+    ['invalid-json', '{"version":3,"profiles":"broken"'],
+    ['unsupported-version', JSON.stringify({ version: 4, privateData: 'keep-future-data' })],
+    ['invalid-data', JSON.stringify({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', git: { enabled: 'yes' }, atlassian: {} }] })],
+    ['invalid-data', JSON.stringify({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', git: [], atlassian: {} }] })],
+    ['invalid-data', JSON.stringify({ version: 3, activeProfileId: 'missing', profiles: [{ id: 'default', name: 'Standard', git: {}, atlassian: {} }] })],
+    ['invalid-data', JSON.stringify({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', git: { remote: '--upload-pack=x' }, atlassian: {} }] })],
+    ['invalid-data', JSON.stringify({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', git: {}, atlassian: { siteUrl: 'https://user:secret@example.com' } }] })],
+  ])('preserves a %s profile file and blocks all configuration writes before Git side effects (#161)', async (kind, original) => {
     const configPath = await profileStore();
-    await writeFile(configPath, '{"version":3,"profiles":"broken"');
+    await writeFile(configPath, original!);
+    // An old recovery file is not replaced either.
+    await writeFile(`${configPath}.unreadable`, 'older-backup');
+    const documentPath = path.join(path.dirname(configPath), 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    const runGit = vi.fn(async () => ({ stdout: '', stderr: '' }));
+    const service = new PluginService({ configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit });
+    const settings = await service.getSettings('project');
+    expect(settings).toMatchObject({ configurationIssue: { source: 'profiles', kind, blocksChanges: true }, atlassian: { enabled: false } });
+    expect(settings.configurationIssue?.message).toContain('Starte die App danach neu');
+    await expect(service.configureAtlassian(jiraInput('NEW'))).rejects.toThrow('gesperrt');
+    await expect(service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' })).rejects.toThrow('gesperrt');
+    await expect(service.installPlugin('git')).rejects.toThrow('gesperrt');
+    await expect(service.uninstallPlugin('jira')).rejects.toThrow('gesperrt');
+    await expect(service.createProfile({ name: 'Neu' })).rejects.toThrow('gesperrt');
+    await expect(service.renameProfile({ id: 'default', name: 'Neu' })).rejects.toThrow('gesperrt');
+    expect(runGit).not.toHaveBeenCalled();
+    expect(await readFile(configPath, 'utf8')).toBe(original);
+    expect(await readFile(`${configPath}.unreadable`, 'utf8')).toBe('older-backup');
+    expect(JSON.stringify(settings)).not.toContain('keep-future-data');
+    service.dispose();
+  });
+
+  it('distinguishes a read error from a missing file and permits recovery only after a restart (#161)', async () => {
+    const configPath = await profileStore(); await mkdir(configPath);
+    const options = { configPath, persistence: await projectPersistence({}), credentials: credentials(), emitEvent: vi.fn() };
+    const service = new PluginService(options);
+    expect(await service.getSettings()).toMatchObject({ configurationIssue: { source: 'profiles', kind: 'read-error', blocksChanges: true } });
+    await expect(service.configureAtlassian(jiraInput('NEW'))).rejects.toThrow('gesperrt');
+    await rename(configPath, `${configPath}.recovered`);
+    await expect(service.createProfile({ name: 'Still blocked' })).rejects.toThrow('gesperrt');
+    service.dispose();
+    const restarted = new PluginService(options);
+    expect(await restarted.getSettings()).not.toHaveProperty('configurationIssue');
+    await restarted.configureAtlassian(jiraInput('RECOVERED'));
+    expect(JSON.parse(await readFile(configPath, 'utf8')).profiles[0].atlassian.jiraProjectKey).toBe('RECOVERED');
+    restarted.dispose();
+  });
+
+  it('translates the complete recovery message returned by the service into English (#161)', async () => {
+    const configPath = await profileStore(); await writeFile(configPath, '{"version":99}');
     const service = new PluginService({ configPath, persistence: await projectPersistence({}), credentials: credentials(), emitEvent: vi.fn() });
-    expect(await service.getSettings()).toMatchObject({ activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard' }], atlassian: { enabled: false } });
+    const message = (await service.getSettings()).configurationIssue!.message;
+    setLocale('en');
+    expect(tm(message)).toBe(`The plugin configuration “${configPath}” has an unsupported version. The file remains unchanged. Changes to profiles and plugins are blocked. Back up the file and use an app version that supports this configuration format. Then restart the app.`);
+    service.dispose();
+  });
+
+  it.each([
+    ['invalid-json', '{"version":2'],
+    ['unsupported-version', JSON.stringify({ version: 9, git: {}, atlassian: {} })],
+    ['invalid-data', JSON.stringify({ version: 2, git: {}, atlassian: { encryptedApiToken: 42 } })],
+    ['invalid-data', JSON.stringify({ version: 2, git: { enabled: true, autoPush: true, remote: '--upload-pack=x' }, atlassian: {} })],
+    ['invalid-data', JSON.stringify({ version: 2, git: { enabled: true, autoPush: true, remote: 'https://unexpected.example/repo.git' }, atlassian: {} })],
+    ['invalid-data', JSON.stringify({ version: 2, git: {}, atlassian: { siteUrl: 'http://unexpected.example' } })],
+  ])('reports a %s legacy file without replacing it or importing its values (#161)', async (kind, original) => {
+    const configPath = await profileStore(); const folder = path.dirname(configPath);
+    const documentPath = path.join(folder, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    const legacyPath = path.join(folder, '.sketchdraw-plugins.json'); await writeFile(legacyPath, original!);
+    const runGit = vi.fn(async () => ({ stdout: '', stderr: '' }));
+    const service = new PluginService({ configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit });
+    expect(await service.getSettings('project')).toMatchObject({ configurationIssue: { source: 'legacy', kind, blocksChanges: false }, atlassian: { enabled: false, credentialStored: false } });
     await service.configureAtlassian(jiraInput('NEW'));
-    expect(await readFile(`${configPath}.unreadable`, 'utf8')).toBe('{"version":3,"profiles":"broken"');
-    expect(JSON.parse(await readFile(configPath, 'utf8'))).toMatchObject({ version: 3, profiles: [{ atlassian: { jiraProjectKey: 'NEW' } }] });
+    expect(await readFile(legacyPath, 'utf8')).toBe(original);
+    expect(JSON.parse(await readFile(configPath, 'utf8')).profiles[0].atlassian.jiraProjectKey).toBe('NEW');
+    expect(runGit).not.toHaveBeenCalled();
+    expect(await service.getSettings(null)).not.toHaveProperty('configurationIssue');
     service.dispose();
   });
 
@@ -348,11 +418,13 @@ describe('PluginService', () => {
     const first = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-race-a-')); const second = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-race-b-')); cleanup.push(first, second);
     const a = path.join(first, 'a.sketchdraw.json'); const b = path.join(second, 'b.sketchdraw.json'); await writeFile(a, '{}'); await writeFile(b, '{}');
     let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
-    const runGit = vi.fn(async () => { await gate; throw new Error('no repository'); });
+    let started!: () => void; const startedGit = new Promise<void>((resolve) => { started = resolve; });
+    const runGit = vi.fn(async () => { started(); await gate; throw new Error('no repository'); });
     const service = new PluginService({ persistence: await projectPersistence({ a, b }), credentials: credentials(), emitEvent: vi.fn(), runGit });
     await service.getSettings('a');
     const pending = service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
     const rejection = expect(pending).rejects.toThrow('Projektordner hat sich geändert');
+    await startedGit;
     await service.getSettings('b'); release(); await rejection;
     expect(runGit).toHaveBeenCalledTimes(1);
     expect((await service.getSettings()).git).toMatchObject({ enabled: false, credentialStored: false });
@@ -383,16 +455,106 @@ describe('PluginService', () => {
   it('keeps configuration inactive when saving the profile file fails', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-plugin-save-error-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
-    const configPath = await profileStore(); await mkdir(configPath);
+    const configPath = await profileStore();
     const fetchFn = vi.fn(async () => new Response('{}'));
     const service = new PluginService({ configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn });
     await service.getSettings('project');
-    await expect(service.configureAtlassian(jiraInput('NEW'))).rejects.toThrow();
+    // Loading succeeds; the actual atomic write fails after creating its temporary file.
+    const renameFile = vi.spyOn(fs, 'rename').mockRejectedValue(Object.assign(new Error('simulated rename failure'), { code: 'EACCES' }));
+    await expect(service.configureAtlassian(jiraInput('NEW'))).rejects.toThrow('simulated rename failure');
+    expect(renameFile).toHaveBeenCalledTimes(1);
+    expect((await readdir(path.dirname(configPath))).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+    await expect(readFile(configPath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
     expect((await service.getSettings()).atlassian).toMatchObject({ enabled: false, credentialStored: false, jiraProjectKey: '' });
     await expect(service.createProfile({ name: 'Neu' })).rejects.toThrow();
     expect(await service.getSettings()).toMatchObject({ activeProfileId: 'default', profiles: [{ id: 'default' }] });
     await expect(service.listJiraIssues()).rejects.toThrow(); expect(fetchFn).not.toHaveBeenCalled();
     service.dispose();
+  });
+
+  it('refuses a stale app instance overwrite and preserves the newer profiles and credentials (#181)', async () => {
+    const configPath = await profileStore();
+    const options = { configPath, persistence: await projectPersistence({}), credentials: credentials(), emitEvent: vi.fn() };
+    const first = new PluginService(options); const stale = new PluginService(options);
+    await first.getSettings(); await stale.getSettings();
+    await first.createProfile({ name: 'Neuere Konfiguration' });
+    await first.configureAtlassian(jiraInput('NEWER'));
+    const newer = await readFile(configPath, 'utf8');
+    await expect(stale.configureAtlassian(jiraInput('STALE'))).rejects.toThrow('außerhalb dieser App-Instanz');
+    expect(await readFile(configPath, 'utf8')).toBe(newer);
+    expect(await stale.getSettings()).toMatchObject({ configurationIssue: { kind: 'external-change', blocksChanges: true }, atlassian: { enabled: false } });
+    await expect(stale.createProfile({ name: 'Stale' })).rejects.toThrow('gesperrt');
+    first.dispose(); stale.dispose();
+    const restarted = new PluginService(options);
+    expect(await restarted.getSettings()).toMatchObject({ atlassian: { jiraProjectKey: 'NEWER', credentialStored: true } });
+    restarted.dispose();
+  });
+
+  it('serializes the Git preflight with this instances own rename instead of falsely locking it (#181)', async () => {
+    const configPath = await profileStore();
+    const service = new PluginService({ configPath, persistence: await projectPersistence({}), credentials: credentials(), emitEvent: vi.fn() });
+    await service.configureAtlassian(jiraInput('BASE'));
+    const original = await readFile(configPath, 'utf8');
+    let reachedRename!: () => void; let releaseRename!: () => void; let releaseRead!: () => void;
+    const atRename = new Promise<void>((resolve) => { reachedRename = resolve; });
+    const renameGate = new Promise<void>((resolve) => { releaseRename = resolve; });
+    const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+    let renamed = false;
+    const actualRename = fs.rename.bind(fs); const actualRead = fs.readFile.bind(fs);
+    vi.spyOn(fs, 'rename').mockImplementationOnce(async (...args) => { reachedRename(); await renameGate; await actualRename(...args); renamed = true; });
+    const renaming = service.renameProfile({ id: 'default', name: 'Renamed profile' });
+    await atRename;
+    vi.spyOn(fs, 'readFile').mockImplementationOnce(async (...args) => { const contents = renamed ? await actualRead(...args) : original; await readGate; return contents; });
+    const configuring = service.configureGit({ enabled: false, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+    // Let an incorrectly unqueued preflight capture the old bytes while our own rename is paused.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    releaseRename(); await renaming; releaseRead();
+    expect(await configuring).not.toHaveProperty('configurationIssue');
+    expect((await service.getSettings()).profiles).toEqual([{ id: 'default', name: 'Renamed profile' }]);
+    service.dispose();
+  });
+
+  it('loads historic credential comparison URLs but does not bind a new token to an unsafe discovered URL (#161)', async () => {
+    const configPath = await profileStore(); const folder = path.dirname(configPath);
+    const documentPath = path.join(folder, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    await execFile('git', ['init'], { cwd: folder });
+    await execFile('git', ['remote', 'add', 'origin', 'https://user@host.example/repo.git'], { cwd: folder });
+    const options = { configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn() };
+    const service = new PluginService(options); await service.getSettings('project');
+    await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'token', username: 'alice', accessToken: 'secret' });
+    const stored = JSON.parse(await readFile(configPath, 'utf8'));
+    expect(stored.profiles[0].git).not.toHaveProperty('credentialRemoteUrl');
+    service.dispose();
+    const restarted = new PluginService(options);
+    expect(await restarted.getSettings()).not.toHaveProperty('configurationIssue');
+    restarted.dispose();
+    // A previous release could have captured this value directly from `git remote get-url`.
+    stored.profiles[0].git.credentialRemoteUrl = 'https://user@host.example/repo.git';
+    await writeFile(configPath, JSON.stringify(stored));
+    const historic = new PluginService(options);
+    expect(await historic.getSettings()).toMatchObject({ git: { enabled: true, credentialStored: true } });
+    expect(await historic.getSettings()).not.toHaveProperty('configurationIssue');
+    historic.dispose();
+  });
+
+  it('detects an external change before Git side effects and before an atomic rename (#181)', async () => {
+    const configPath = await profileStore(); const folder = path.dirname(configPath);
+    const documentPath = path.join(folder, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    const runGit = vi.fn(async () => ({ stdout: '', stderr: '' }));
+    const options = { configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit };
+    const service = new PluginService(options); await service.getSettings('project');
+    const future = '{"version":99,"keep":"newer"}'; await writeFile(configPath, future);
+    await expect(service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' })).rejects.toThrow('außerhalb dieser App-Instanz');
+    expect(runGit).not.toHaveBeenCalled(); expect(await readFile(configPath, 'utf8')).toBe(future);
+    service.dispose(); await rm(configPath);
+    const racing = new PluginService(options); await racing.getSettings();
+    const write = fs.writeFile.bind(fs);
+    vi.spyOn(fs, 'writeFile').mockImplementationOnce(async (...args) => { await write(...args); await write(configPath, future); });
+    await expect(racing.createProfile({ name: 'Race' })).rejects.toThrow('außerhalb dieser App-Instanz');
+    expect(await readFile(configPath, 'utf8')).toBe(future);
+    expect((await readdir(folder)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
+    expect((await racing.getSettings()).profiles).toEqual([{ id: 'default', name: 'Standard' }]);
+    racing.dispose();
   });
 
   it('discards remote Jira responses after changing the project before follow-up requests', async () => {

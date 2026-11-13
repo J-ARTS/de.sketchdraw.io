@@ -21,14 +21,15 @@ type PluginTestState = {
 type TestWindow = Window & { __pluginTest: PluginTestState; __resolvePluginRequest: (plugin: 'git' | 'jira') => void };
 
 /** The mock keeps plugin settings per editor profile and only exposes a project folder after a file was saved. */
-async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'light' | 'dark' } = {}): Promise<void> {
-  await page.addInitScript(({ cancelSave, theme }) => {
+async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'light' | 'dark'; configurationIssue?: PluginSettingsSnapshot['configurationIssue'] } = {}): Promise<void> {
+  await page.addInitScript(({ cancelSave, theme, configurationIssue }) => {
     localStorage.setItem('sketchdraw.preferences.v1', JSON.stringify({ theme, language: 'de', canvasBackground: null }));
     const defaults = (): PluginSettingsSnapshot => ({
       available: true,
       projectFolder: '',
       profiles: [{ id: 'default', name: 'Standard' }],
       activeProfileId: 'default',
+      ...(configurationIssue ? { configurationIssue } : {}),
       git: { installed: true, enabled: false, folderPath: '', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Git-Plugin ist deaktiviert.' },
       atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '', credentialStored: false, health: 'disabled', message: 'Jira-Plugin ist deaktiviert.' },
     });
@@ -51,7 +52,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
     const compose = (): void => {
       const config = configs.get(activeProfileId)!;
       config.git.folderPath = folder;
-      control.settings = { available: true, projectFolder: folder, profiles: profiles.map(profile => ({ ...profile })), activeProfileId, git: config.git, atlassian: config.atlassian };
+      control.settings = { available: true, projectFolder: folder, profiles: profiles.map(profile => ({ ...profile })), activeProfileId, ...(configurationIssue ? { configurationIssue } : {}), git: config.git, atlassian: config.atlassian };
     };
     const profileName = (value: string, exceptId?: string): string => {
       const name = String(value ?? '').trim();
@@ -167,7 +168,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
         createJiraIssue: async () => { throw new Error('not used'); }, listJiraIssues: async () => [], transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
       },
     } });
-  }, { cancelSave: options.cancelSave ?? false, theme: options.theme ?? 'light' });
+  }, { cancelSave: options.cancelSave ?? false, theme: options.theme ?? 'light', configurationIssue: options.configurationIssue });
   await start(page);
 }
 
@@ -212,6 +213,40 @@ async function state(page: Page): Promise<PluginTestState> {
 
 test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => { throw error; });
+});
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`damaged profile storage explains recovery and disables mutations in both dialogs (${theme}, #161)`, async ({ page }) => {
+    const message = 'Die Plugin-Konfiguration hat eine nicht unterstützte Version. Die Datei bleibt unverändert. Beende die App, sichere die Datei und starte danach neu.';
+    await desktop(page, { theme, configurationIssue: { source: 'profiles', kind: 'unsupported-version', blocksChanges: true, message } });
+    const plugins = await openPlugins(page);
+    await expect(plugins.getByRole('alert')).toHaveText(message);
+    await expect(plugins.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+    await expect(plugins.getByRole('button', { name: 'Deinstallieren', exact: true })).toBeDisabled();
+    await selectPlugin(plugins, 'Jira');
+    await expect(plugins.getByRole('button', { name: 'Jira speichern', exact: true })).toBeDisabled();
+    await expect(plugins.getByLabel('API-Token', { exact: true })).toBeDisabled();
+    await closePlugins(plugins);
+    const profiles = await openProfiles(page);
+    await expect(profiles.getByRole('alert')).toHaveText(message);
+    await expect(profiles.getByRole('button', { name: 'Neues Profil', exact: true })).toBeDisabled();
+    await expect(profiles.getByRole('button', { name: 'Profil „Standard“ umbenennen', exact: true })).toBeDisabled();
+    await expect(profiles.getByRole('button', { name: 'Profil „Standard“ kopieren', exact: true })).toBeDisabled();
+    await closeProfiles(profiles);
+    const calls = (await state(page)).calls;
+    expect(calls.git).toEqual([]); expect(calls.jira).toEqual([]); expect(calls.profiles).toEqual([]);
+  });
+}
+
+test('a legacy configuration warning preserves access to independent editor profiles (#161)', async ({ page }) => {
+  const message = 'Die alte Ordner-Konfiguration wurde nicht übernommen. Die Datei bleibt unverändert. Die Editor-Profile können weiter verwendet werden.';
+  await desktop(page, { configurationIssue: { source: 'legacy', kind: 'invalid-json', blocksChanges: false, message } });
+  const plugins = await openPlugins(page);
+  await expect(plugins.getByRole('alert')).toHaveText(message);
+  await expect(plugins.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await closePlugins(plugins);
+  const profiles = await openProfiles(page);
+  await expect(profiles.getByRole('button', { name: 'Neues Profil', exact: true })).toBeEnabled();
 });
 
 test('bundled plugins start installed, are configurable in the profile right away, and saving the diagram gives Git its folder', async ({ page }) => {

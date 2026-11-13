@@ -188,6 +188,8 @@ test('electron-builder.json configures exact targets, deterministic artifact nam
   assert.equal(config.productName, 'Sketchdraw');
   assert.equal(config.publish, null);
   assert.ok(config.files.includes('dist-mcp/**/*'));
+  assert.ok(config.extraResources.some(resource =>
+    resource.from === 'skills/sketchdraw-desktop' && resource.to === 'skills/sketchdraw-desktop' && resource.filter.includes('**/*')));
   assert.equal(config.directories?.output, 'release');
 
   // Windows x64 NSIS .exe

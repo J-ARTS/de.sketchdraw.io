@@ -193,6 +193,36 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(doc2.elements[1]?.label).toBe('Amazon S3');
     });
 
+    it('uses the first existing page by default and accepts an explicit non-default page', () => {
+      const document = validateDocument({
+        ...createEmptyDocument(),
+        pages: [
+          { id: 'page:alpha', name: 'Alpha' },
+          { id: 'page:beta', name: 'Beta' },
+        ],
+      });
+      const set = getBuiltInSet('sketchdraw.aws');
+
+      const fallback = instantiateComponent(document, {
+        set,
+        type: 'aws.compute.instance',
+        id: 'kinesis-alpha',
+        at: { x: 40, y: 60 },
+      });
+      expect(fallback.element.pageId).toBe('page:alpha');
+      expect(applyCommand(document, fallback.command).elements[0]?.pageId).toBe('page:alpha');
+
+      const explicit = instantiateComponent(document, {
+        set,
+        type: 'aws.compute.instance',
+        id: 'kinesis-beta',
+        pageId: 'page:beta',
+        at: { x: 240, y: 60 },
+      });
+      expect(explicit.element.pageId).toBe('page:beta');
+      expect(applyCommand(document, explicit.command).elements[0]?.pageId).toBe('page:beta');
+    });
+
     it('supports instantiation inside an existing container and rejects missing or non-container parentId', () => {
       const genericSet = getBuiltInSet('sketchdraw.generic');
       const baseDoc: SketchDocument = validateDocument({

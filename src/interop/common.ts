@@ -151,13 +151,13 @@ export function finish(ctx: ImportContext, options: ImportOptions, restored?: Sk
   const diagnostics = ctx.diagnostics.finalize();
   return { document, diagnostics, warnings: extractWarnings(diagnostics), requiresConfirmation: hasWarningDiagnostics(diagnostics), fidelity: computeImportFidelity(diagnostics, !!restored), source: { format: ctx.format, ...(page ? { page } : {}) } };
 }
-export function encodeEnvelope(document: SketchDocument, format: InteropFormat): string {
-  const json = JSON.stringify({ format: 'sketchdraw-interop', version: 1, projection: `${format}-v1`, encoding: 'base64-json', document: JSON.parse(serializeDocument(document)) });
+export function encodeEnvelope(document: SketchDocument, format: InteropFormat, projectionVersion: 1 | 2 = 1): string {
+  const json = JSON.stringify({ format: 'sketchdraw-interop', version: 1, projection: `${format}-v${projectionVersion}`, encoding: 'base64-json', document: JSON.parse(serializeDocument(document)) });
   if (utf8ByteLength(json) > L.MAX_EMBEDDED_DOCUMENT_BYTES)
     fail('LIMIT_EXCEEDED', 'Embedded document envelope exceeds its byte limit.');
   return encodeUtf8JsonToBase64(json);
 }
-export function decodeEnvelope(value: string, format: InteropFormat): SketchDocument {
+export function decodeEnvelopeWithProjection(value: string, format: InteropFormat): { document: SketchDocument; projectionVersion: 1 | 2 } {
   const json = decodeBase64ToUtf8String(value, L.MAX_EMBEDDED_DOCUMENT_BYTES);
   const parsed = parseStrictJsonObject(json, { lineNumber: 1, lineOffset: 0 });
   if (!parsed.ok)
@@ -165,9 +165,13 @@ export function decodeEnvelope(value: string, format: InteropFormat): SketchDocu
   const data = parsed.value;
   if (Object.keys(data).sort().join(',') !== 'document,encoding,format,projection,version' || data['format'] !== 'sketchdraw-interop' || data['version'] !== 1 || data['encoding'] !== 'base64-json')
     fail('EMBEDDED_MODEL_INVALID', 'Unsupported embedded envelope.');
-  if (data['projection'] !== `${format}-v1`)
+  const projectionVersion = data['projection'] === `${format}-v1` ? 1 : format === 'drawio' && data['projection'] === 'drawio-v2' ? 2 : undefined;
+  if (projectionVersion === undefined)
     fail('EMBEDDED_MODEL_STALE', 'Unknown projection version cannot confirm the native projection.');
-  return validateDocument(data['document']);
+  return { document: validateDocument(data['document']), projectionVersion };
+}
+export function decodeEnvelope(value: string, format: InteropFormat): SketchDocument {
+  return decodeEnvelopeWithProjection(value, format).document;
 }
 export function findOwnSvgEnvelope(root: XmlElementNode): XmlElementNode[] {
   return getElementChildren(root).filter(n => n.uri === SVG_NS && n.local === 'metadata').flatMap(n => getElementChildren(n).filter(c => c.uri === OWN_NS));

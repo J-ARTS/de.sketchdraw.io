@@ -48,6 +48,14 @@ export interface PluginProfileSummary {
 export const PLUGIN_PROFILE_LIMIT = 12;
 export const PLUGIN_PROFILE_NAME_MAX = 40;
 
+/** Loading problems never authorize replacing an existing configuration file (#161). */
+export interface PluginConfigurationIssue {
+  source: 'profiles' | 'legacy';
+  kind: 'read-error' | 'invalid-json' | 'unsupported-version' | 'invalid-data' | 'external-change';
+  message: string;
+  blocksChanges: boolean;
+}
+
 export interface PluginSettingsSnapshot {
   available: boolean;
   /** Folder of the open local diagram; Git works there. Empty for unsaved, imported and guest diagrams. */
@@ -55,6 +63,7 @@ export interface PluginSettingsSnapshot {
   profiles: PluginProfileSummary[];
   /** `git` and `atlassian` below are the settings of this profile. */
   activeProfileId: string;
+  configurationIssue?: PluginConfigurationIssue;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
 }

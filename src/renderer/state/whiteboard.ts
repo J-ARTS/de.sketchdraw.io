@@ -140,7 +140,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const generation = pluginGeneration; state.pluginBusy = true;
     try {
       const settings = await action();
-      if (!pluginContextCurrent(generation)) return false;
+      if (!pluginContextCurrent(generation)) {
+        if (!disposed) void store.refreshPluginSettings();
+        return false;
+      }
       pluginGeneration++; state.confluencePages = [];
       state.pluginSettings = settings; state.pluginBusy = false;
       const handle = currentPluginHandle();
@@ -2088,7 +2091,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           : centre;
         // Dropping from the library into a container makes the new element its child; a click places it at the center.
         const parent = screenAt ? containerAt(pageEls(), centre, new Set()) : undefined;
-        const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), at, ...(parent ? { parentId: parent.id } : {}) });
+        const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), pageId: state.activePageId, at, ...(parent ? { parentId: parent.id } : {}) });
         if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; }
       }
       catch (error) { fail(error); }

@@ -168,3 +168,84 @@ test('binding close aborts a chunk transfer whose native send never drains', asy
   await vi.waitFor(() => expect(closed).toBe(true));
   expect(onError).not.toHaveBeenCalled();
 });
+
+test('#179 malformed snapshot from one editor does not fail the host binding for a second peer', async () => {
+  const controller = createCrdtController(createDocument('Host')); cleanups.push(() => controller.destroy());
+  const f = fixture(), onError = vi.fn();
+  const attacker = { ...f.peer, peerId: 'editor', role: 'editor' as const };
+  const survivor = { ...f.peer, peerId: 'survivor', keyHash: 'b'.repeat(64), role: 'viewer' as const };
+  f.update({ peers: [attacker, survivor] });
+  const onPeerError = vi.fn((_error, peer) => f.update({ peers: f.transport.getStatus().peers.filter(value => value.peerId !== peer.peerId) }));
+  const binding = bindCrdtTransport(controller, f.transport, undefined, { onError, onPeerError }); cleanups.push(() => binding.close());
+  await tick();
+  for (const callback of f.messages) await callback({ channel: 'asset', data: Uint8Array.of(0x53, 0x43, 0x59, 0x31), peer: attacker });
+  await tick();
+  expect(onError).not.toHaveBeenCalled();
+  expect(onPeerError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: 'SYNC_TRANSFER_INVALID' }), { peerId: attacker.peerId, keyHash: attacker.keyHash });
+  controller.dispatch({ type: 'rename', title: 'Survivor still receives updates' }, { actorId: 'host', source: 'human', expectedRevision: 0 });
+  await tick();
+  expect(vi.mocked(f.transport.send).mock.calls.some(([channel, , targets]) => channel === 'update' && targets?.includes('survivor'))).toBe(true);
+});
+
+test('#179 coalesces viewer sync floods and disconnects only the requesting peer', async () => {
+  const controller = createCrdtController(createDocument('Host')); cleanups.push(() => controller.destroy());
+  const f = fixture(), onError = vi.fn();
+  const viewer = { ...f.peer, peerId: 'viewer', role: 'viewer' as const };
+  const survivor = { ...viewer, peerId: 'survivor', keyHash: 'b'.repeat(64) };
+  f.update({ peers: [viewer, survivor] });
+  vi.mocked(f.transport.send).mockImplementation(async (_channel, _data, targets) => { if (targets?.includes(viewer.peerId)) await new Promise<void>(() => {}); });
+  const onPeerError = vi.fn((_error, peer) => f.update({ peers: f.transport.getStatus().peers.filter(value => value.peerId !== peer.peerId) }));
+  const binding = bindCrdtTransport(controller, f.transport, undefined, { onError, onPeerError }); cleanups.push(() => binding.close());
+  for (let index = 0; index < 33; index++) {
+    for (const callback of f.messages) await callback({ channel: 'sync', data: EMPTY_STATE_VECTOR, peer: viewer });
+  }
+  await tick();
+  expect(onError).not.toHaveBeenCalled();
+  expect(onPeerError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: 'SYNC_PEER_RATE_LIMIT' }), { peerId: viewer.peerId, keyHash: viewer.keyHash });
+  expect(vi.mocked(f.transport.send).mock.calls.filter(([, , targets]) => targets?.includes(viewer.peerId))).toHaveLength(1);
+  controller.dispatch({ type: 'rename', title: 'After rejected flood' }, { actorId: 'host', source: 'human', expectedRevision: 0 });
+  await tick();
+  expect(vi.mocked(f.transport.send).mock.calls.some(([channel, , targets]) => channel === 'update' && targets?.includes(survivor.peerId))).toBe(true);
+});
+
+test('#179 a stalled recipient cannot block the other peer or exhaust its queue', async () => {
+  const controller = createCrdtController(createDocument('Host')); cleanups.push(() => controller.destroy());
+  const f = fixture(), onError = vi.fn();
+  const slow = { ...f.peer, peerId: 'slow', role: 'viewer' as const };
+  const survivor = { ...slow, peerId: 'survivor', keyHash: 'b'.repeat(64) };
+  f.update({ peers: [slow, survivor] });
+  vi.mocked(f.transport.send).mockImplementation(async (_channel, _data, targets) => { if (targets?.includes(slow.peerId)) await new Promise<void>(() => {}); });
+  const onPeerError = vi.fn((_error, peer) => f.update({ peers: f.transport.getStatus().peers.filter(value => value.peerId !== peer.peerId) }));
+  const binding = bindCrdtTransport(controller, f.transport, undefined, { onError, onPeerError }); cleanups.push(() => binding.close());
+  for (let revision = 0; revision < 34; revision++) {
+    controller.dispatch({ type: 'rename', title: `Edit ${revision}` }, { actorId: 'host', source: 'human', expectedRevision: revision });
+    await tick();
+  }
+  expect(onError).not.toHaveBeenCalled();
+  expect(onPeerError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: 'SYNC_PEER_BACKPRESSURE' }), { peerId: slow.peerId, keyHash: slow.keyHash });
+  expect(vi.mocked(f.transport.send).mock.calls.filter(([channel, , targets]) => channel === 'update' && targets?.includes(survivor.peerId))).toHaveLength(34);
+});
+
+test('#179 an incomplete large snapshot times out only its own authenticated connection', async () => {
+  const controller = createCrdtController(createDocument('Host')); cleanups.push(() => controller.destroy());
+  const f = fixture(), onError = vi.fn();
+  const editor = { ...f.peer, peerId: 'editor', role: 'editor' as const };
+  const survivor = { ...f.peer, peerId: 'survivor', keyHash: 'b'.repeat(64), role: 'viewer' as const };
+  f.update({ peers: [editor, survivor] });
+  const onPeerError = vi.fn((_error, peer) => f.update({ peers: f.transport.getStatus().peers.filter(value => value.peerId !== peer.peerId) }));
+  vi.useFakeTimers();
+  const binding = bindCrdtTransport(controller, f.transport, undefined, { onError, onPeerError }); cleanups.push(() => binding.close());
+  try {
+    const frame = new Uint8Array(60 + 48 * 1024); frame.set([0x53, 0x43, 0x59, 0x31]);
+    new DataView(frame.buffer).setUint32(20, 5 * 1024 * 1024);
+    for (const callback of f.messages) await callback({ channel: 'asset', data: frame, peer: editor });
+    await vi.advanceTimersByTimeAsync(30_001);
+    expect(onError).not.toHaveBeenCalled();
+    expect(onPeerError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: 'SYNC_TRANSFER_TIMEOUT' }), { peerId: editor.peerId, keyHash: editor.keyHash });
+    expect(f.transport.getStatus().peers).toEqual([survivor]);
+    controller.dispatch({ type: 'rename', title: 'After stalled upload' }, { actorId: 'host', source: 'human', expectedRevision: 0 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.mocked(f.transport.send).mock.calls.some(([channel, , targets]) => channel === 'update' && targets?.includes(survivor.peerId))).toBe(true);
+    await binding.close(); expect(vi.getTimerCount()).toBe(0);
+  } finally { vi.useRealTimers(); }
+});

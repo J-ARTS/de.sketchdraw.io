@@ -181,12 +181,12 @@ Die folgenden Regeln gelten, wenn ein Wissensgraph unter `graphify-out/` vorhand
 - Für Beziehungen `graphify path "<A>" "<B>"` und für einzelne Konzepte `graphify explain "<concept>"` verwenden.
 - Wenn `graphify-out/wiki/index.md` existiert, diese Datei zur übergreifenden Navigation verwenden.
 - `graphify-out/GRAPH_REPORT.md` nur für übergreifende Architekturprüfungen lesen oder wenn die gezielten Abfragen nicht genügend Kontext liefern.
-- Nach Codeänderungen bei eingerichtetem Graphify `graphify update .` ausführen, um den Graphen aktuell zu halten.
+- Nach Codeänderungen bei eingerichtetem Graphify `python3 tools/graphify-update.py` ausführen. Der Wrapper führt `graphify update` isoliert aus, trennt die Ledgerprojektion und verhindert ungeprüften Verlust fremder Knoten. Kein pauschales `--force`; tatsächlich gelöschte Quellsymbole vor einem gezielten Bestandsabgleich dokumentieren (siehe `docs/graphify-traceability.md`).
 - Fehlt der Graph oder das CLI, die relevanten Projektdateien direkt untersuchen und die Einschränkung bei Bedarf benennen.
 
 ### Tickets, Werkzeuge und Arbeitsaufwand verknüpfen
 
 - `agent-state/work-ledger.json` enthält die nachvollziehbare Zuordnung von GitHub-Tickets zu verantwortlichen Werkzeugen/Agenten, konkreten Runs, Ergebnissen, Bedenken und Aufwand. GitHub bleibt die maßgebliche Quelle für den Aufgabenstatus; den lokalen Stand mit den bestätigten Ticketänderungen abgleichen.
 - Geplante Story Points und beobachteten Ist-Aufwand getrennt führen. Zeiten, Tokens und Kosten nur aus tatsächlichen Messungen übernehmen; unbekannte Werte bleiben `null`. Ein mehrere Tickets betreffender Run wird insgesamt nur einmal gezählt, nicht jedem Ticket vollständig zugeschlagen.
-- Nach Änderungen am Ledger und nach `graphify update .` die Verknüpfungen mit `python3 tools/graphify-links.py` wiederherstellen und mit `python3 tools/graphify-links.py --check` prüfen. Graph-Schreibvorgänge nacheinander ausführen.
+- Nach Änderungen am Ledger und nach `python3 tools/graphify-update.py` die Verknüpfungen mit `python3 tools/graphify-links.py` wiederherstellen und mit `python3 tools/graphify-links.py --check` prüfen. Graph-Schreibvorgänge nacheinander ausführen.
 - Übergaben müssen Ticket, Run-ID, Werkzeug/Modell, Status, Artefakte, Testergebnisse und nächsten Schritt verbinden. Einen geplanten oder gestarteten Run niemals als erfolgreich abgeschlossen ausgeben. Details und Abfragen: `docs/graphify-traceability.md`.

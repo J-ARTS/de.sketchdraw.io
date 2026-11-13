@@ -30,7 +30,7 @@ let dialogEpoch = 0;
 
 const profiles = computed(() => s.pluginSettings?.available ? s.pluginSettings.profiles : []);
 const activeId = computed(() => s.pluginSettings?.activeProfileId ?? '');
-const busy = computed(() => pending.value || s.pluginBusy);
+const busy = computed(() => pending.value || s.pluginBusy || Boolean(s.pluginSettings?.configurationIssue?.blocksChanges));
 const limitReached = computed(() => profiles.value.length >= PLUGIN_PROFILE_LIMIT);
 const target = computed(() => { const current = step.value; return current && current.kind !== 'create' ? profiles.value.find((profile) => profile.id === current.id) ?? null : null; });
 const formLabel = computed(() => step.value?.kind === 'rename' ? t('Neuer Name für „{name}“', { name: target.value?.name ?? '' }) : step.value?.kind === 'copy' ? t('Name der Kopie von „{name}“', { name: target.value?.name ?? '' }) : t('Name des neuen Profils'));
@@ -128,6 +128,7 @@ function onNativeClose(): void { if (props.open) emit('close'); }
       <header><h2 id="profile-dialog-title" class="sd-panel-title">{{ t('Profile') }}</h2><button ref="closeButton" type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Profile schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
       <p class="hint">{{ t('Ein Profil bündelt deine Plugin-Einstellungen und Tokens. Das aktive Profil gilt für jedes Diagramm; was es enthält, stellst du in den Plugin-Einstellungen ein.') }}</p>
 
+      <p v-if="s.pluginSettings?.configurationIssue" class="feedback error" role="alert">{{ tm(s.pluginSettings.configurationIssue.message) }}</p>
       <ul class="profile-list" :aria-label="t('Profile')">
         <li v-for="profile in profiles" :key="profile.id" class="profile-item" :class="{ active: profile.id === activeId, target: target?.id === profile.id }" :aria-current="profile.id === activeId ? 'true' : undefined">
           <span class="profile-mark" aria-hidden="true"><AppIcon name="component" :size="18" /></span>
