@@ -76,6 +76,11 @@ export interface ActorBindingOptions {
   grantGeneration: number;
   guard: GrantGuard;
   peerSessionId?: string; // required exactly for source: 'peer'; trusted OwnerSession ID
+  /**
+   * Agents only: the local actor whose undo history records this binding's changes (#176). A local agent works on
+   * the user's behalf, so the user's undo covers what it did. Never for peers: their changes stay their own.
+   */
+  historyActorId?: string;
 }
 export interface ActorBinding {
   readonly bindingId: string;

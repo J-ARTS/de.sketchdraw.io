@@ -56,7 +56,11 @@ Ergänzung nach einem Praxistest mit einem SDK-Client und mit Sonnet-Subagenten,
 6. **Warteschlange.** Der Adapter lässt zwei Aufrufe gleichzeitig laufen und reiht bis zu 64 weitere ein; erst darüber `BUSY`.
 7. **Lesehilfen.** `sketchdraw_find_elements` nennt für Verbindungen `fromElementId`/`toElementId`. `sketchdraw_analyze_document` meldet `UNLABELED_ELEMENT` nicht mehr für Verbindungen und Pfade. Eine Wiederholung mit bekannter `commandId` wird im Text als Wiederholung ausgewiesen.
 
-Bekannte Grenzen: Der Code-Pfad ergänzt keine Verbindungsgeometrie. Agentenänderungen sind für den Menschen nicht rückgängig zu machen (History pro Actor, CL-03). Es gibt keinen Seitenfilter und keine Feldauswahl für große Dokumente und kein `outputSchema`.
+8. **Rückgängig durch den Nutzer.** `ActorBindingOptions.historyActorId` (nur für `source: 'agent'`, sonst `VALIDATION_FAILED`) benennt den lokalen Actor, in dessen Verlauf die Authority die Änderungen dieser Bindung ablegt. Der Renderer bindet lokale Agenten mit dem Actor des Nutzers; damit nimmt dessen Undo die jeweils letzte Änderung zurück, gleich von wem. CL-03 bleibt für Peers unverändert: Deren Bindungen können keinen fremden Verlauf benennen. Actor-ID, Grant-Prüfung und Commit-Benachrichtigung der Agentenbindung sind unverändert.
+9. **Verbindungen im Diagrammcode.** `parseDiagram` berechnet für eine `connector`-Zeile mit beiden Enden und ohne `points` dieselbe Geometrie wie der Befehlspfad (`routeBoundConnector` in `src/domain/connectors.ts`), nur innerhalb einer Seite. `formatDiagram` schreibt weiterhin die vollständige Geometrie.
+10. **Skill im Installer.** `skills/**/SKILL.md` liegt als `extraResources` neben `app.asar`; der Installer-Smoke prüft Vorhandensein und Hash. Der Adapter hängt den gefundenen Pfad an die Server-Anweisungen an.
+
+Bekannte Grenzen: Es gibt keinen Seitenfilter und keine Feldauswahl für große Dokumente, kein `outputSchema` und kein Undo-Werkzeug für den Agenten selbst.
 
 ## Seiten (Schema v2)
 

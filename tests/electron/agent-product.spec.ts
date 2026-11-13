@@ -66,6 +66,33 @@ test('desktop exposes all MCP tools automatically across document switches and r
     await expect(page.getByTestId('document-title')).toHaveValue('Agent and human');
     await expect(page.getByTestId('diagram-code')).toHaveValue('sketchdraw broken draft');
 
+    stage = 'human undo of an agent change';
+    // #176: what the local agent did is in the user's undo history, and a connector needs only its two ends.
+    const agentRevision = (renamed.structuredContent as { revision: number }).revision;
+    const undoable = await client.callTool({ name: 'sketchdraw_apply_commands', arguments: { expectedRevision: agentRevision, commandId: 'product-undo', command: { type: 'add', elements: [
+      { id: 'shape:undo', kind: 'rectangle', x: 620, y: 240, text: 'Undo me' },
+      { id: 'link:undo', kind: 'connector', from: { elementId: 'shape:sdk' }, to: { elementId: 'shape:undo' } },
+    ] } } });
+    expect(undoable.isError).not.toBe(true);
+    await expect(page.locator('[data-element-id="shape:undo"]')).toBeAttached();
+    await expect(page.locator('[data-element-id="link:undo"]')).toBeAttached();
+    await page.getByTestId('whiteboard-canvas').focus();
+    await page.keyboard.press('ControlOrMeta+z');
+    await expect(page.locator('[data-element-id="shape:undo"]')).toHaveCount(0);
+    await expect(page.locator('[data-element-id="link:undo"]')).toHaveCount(0);
+    // Only the agent's last change went; its earlier box and title are still there.
+    await expect(page.locator('[data-element-id="shape:sdk"]')).toBeAttached();
+    await expect(page.getByTestId('document-title')).toHaveValue('Agent and human');
+    const afterUndo = await client.callTool({ name: 'sketchdraw_find_elements', arguments: { query: 'shape:undo' } });
+    expect(afterUndo.structuredContent).toMatchObject({ revision: agentRevision + 2, totalMatches: 0 });
+    await page.keyboard.press('ControlOrMeta+Shift+z');
+    await expect(page.locator('[data-element-id="shape:undo"]')).toBeAttached();
+    // The same lean connector works as a line of diagram code.
+    const code = (await client.callTool({ name: 'sketchdraw_read_code', arguments: {} })).structuredContent as { code: string; revision: number };
+    const viaCode = await client.callTool({ name: 'sketchdraw_apply_code', arguments: { expectedRevision: code.revision, commandId: 'product-code-link', code: `${code.code}connector "link:code" {"from":{"elementId":"shape:undo"},"to":{"elementId":"shape:sdk"}}\n` } });
+    expect(viaCode.isError).not.toBe(true);
+    await expect(page.locator('[data-element-id="link:code"]')).toBeAttached();
+
     stage = 'document switch reconnect';
     await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-new').click();
     await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
@@ -95,7 +122,7 @@ test('desktop exposes all MCP tools automatically across document switches and r
     const afterRestart = await restartClient.callTool({ name: 'sketchdraw_read_document', arguments: {} });
     expect(afterRestart.isError).not.toBe(true);
     expect(errors).toEqual([]);
-    await testInfo.attach('product-agent-evidence', { body: JSON.stringify({ realProductRenderer: true, realSdk: true, noApprovalUi: true, automaticWrite: true, documentSwitchReconnect: true, restartReconnect: true, invalidDraftPreserved: true, platform: process.platform }), contentType: 'application/json' });
+    await testInfo.attach('product-agent-evidence', { body: JSON.stringify({ realProductRenderer: true, realSdk: true, noApprovalUi: true, automaticWrite: true, humanUndoOfAgentChange: true, leanConnectorInCode: true, documentSwitchReconnect: true, restartReconnect: true, invalidDraftPreserved: true, platform: process.platform }), contentType: 'application/json' });
   } catch (error) {
     failure = error;
     await testInfo.attach('failed-stage', { body: stage, contentType: 'text/plain' }).catch(() => {});

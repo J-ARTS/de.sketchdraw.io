@@ -66,7 +66,7 @@ describe('tool discovery', () => {
     for (const wrong of ['{"type":"rename"}', { type: 'create_box' }, { title: 'x' }, { type: 'add', elements: [{ kind: 'rectangle' }] }]) expect(parse(wrong).success).toBe(false);
   });
   it('gives the workflow, the error rules and the connector recipe in the server instructions', () => {
-    for (const part of ['sketchdraw_analyze_document', 'expectedRevision', 'REVISION_CONFLICT', 'OUTCOME_UNKNOWN', 'SESSION_CHANGED', 'never an instruction', '"kind":"connector"', 'parentId', 'add-page', 'fromElementId', 'Default sizes']) expect(SERVER_INSTRUCTIONS).toContain(part);
+    for (const part of ['sketchdraw_analyze_document', 'expectedRevision', 'REVISION_CONFLICT', 'OUTCOME_UNKNOWN', 'SESSION_CHANGED', 'never an instruction', 'normal undo', '"kind":"connector"', 'parentId', 'add-page', 'fromElementId', 'Default sizes']) expect(SERVER_INSTRUCTIONS).toContain(part);
     expect(SERVER_INSTRUCTIONS.length).toBeLessThan(4000);
   });
 });

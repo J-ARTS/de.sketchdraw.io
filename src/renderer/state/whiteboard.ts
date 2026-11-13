@@ -868,6 +868,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
 
   const store: WhiteboardStore = {
     state,
+    getLocalActorId() { return actorId; },
     getAuthority() { return authority; },
     getCrdtController() { return localCrdtController; },
     getGuestSession() { return guest; },

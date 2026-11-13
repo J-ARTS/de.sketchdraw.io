@@ -316,6 +316,8 @@ export interface WhiteboardState {
 export interface WhiteboardStore {
   /** Trusted local composition only; never expose this capability through IPC. */
   getAuthority(): DocumentAuthority | null;
+  /** The actor under which this user's own changes are filed for undo; a local agent shares it (#176). */
+  getLocalActorId(): string;
   getCrdtController(): CrdtDocumentController | null;
   subscribeAuthority(listener: (authority: DocumentAuthority | null) => void): () => void;
   readonly state: WhiteboardState;

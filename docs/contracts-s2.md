@@ -67,6 +67,8 @@ IDs sind innerhalb der jeweiligen Domänen-Namespaces eindeutig. Zwei Elementdek
 
 Dies ist der vorgeschlagene feste Default von Script v1, unabhängig von UI-Voreinstellungen oder einer später veränderten Element-Factory. Ein fehlendes optionales `fontFamily` wird nicht als neues Feld eingefügt; die Domäne interpretiert es wie vereinbart als `sans`. Alle anderen optionalen Felder bleiben bei Weglassen abwesend. `null` ist in vollständigen Dokumentdeklarationen **keine Patch-Operation** und nur zulässig, falls der persistente Feldtyp es ausdrücklich erlaubt; die gegenwärtigen optionalen Elementfelder erlauben es nicht. Der Formatter schreibt vollständige Pflichtfelder und deshalb keine von UI-Einstellungen abhängigen Abkürzungen.
 
+Ergänzung #176 (13.11.2026): Eine `connector`-Zeile darf Lage und Verlauf weglassen, wenn `from` und `to` Elemente derselben Seite nennen: `connector "request" {"from":{"elementId":"web"},"to":{"elementId":"api"}}`. Der Parser berechnet dann `x`, `y`, `width`, `height`, zwei `points` und fehlende `anchor` aus den einander zugewandten Seitenmitten und setzt `connectorRouting: "elbowed"`, sofern nichts angegeben ist. Zeilen mit `points` werden unverändert übernommen; die kanonische Ausgabe enthält stets die vollständige Geometrie.
+
 ### Ressourcen und ausdrückliches Löschen
 
 Bei vorhandenem Kontext muss **jede** dort enthaltene Asset- und Set-ID im Script entweder vollständig deklariert, ausdrücklich referenziert oder ausdrücklich mit `drop` entfernt werden. Bloßes Weglassen liefert `RESOURCE_OMITTED`, auch bei derzeit ungenutzten Assets. Neue Ressourcen dürfen ergänzt werden. Dadurch verursacht ein verkürzter Entwurf keinen unbemerkten Ressourcenverlust und eine normale Elementlöschung keine automatische Assetbereinigung.

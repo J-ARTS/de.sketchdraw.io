@@ -10,6 +10,7 @@ import { computeSha256, inspectBinaryFile, RELEASE_TARGETS } from './release.mjs
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const REQUIRED_BUNDLES = ['dist/index.html', 'dist-electron/main.cjs', 'dist-electron/preload.cjs', 'dist-mcp/server.cjs'];
+export const SHIPPED_SKILL = 'skills/sketchdraw-desktop/SKILL.md';
 export const EXPECTED_MCP_TOOLS = ['sketchdraw_read_document', 'sketchdraw_find_elements', 'sketchdraw_analyze_document', 'sketchdraw_apply_commands', 'sketchdraw_read_code', 'sketchdraw_apply_code'];
 
 export function cleanSmokeEnvironment(env = process.env) {
@@ -148,6 +149,9 @@ process.stdout.write(JSON.stringify(result));`;
   assert.equal(contents.version, version);
   assert.equal(contents.arch, arch);
   for (const bundle of REQUIRED_BUNDLES) assert.equal(contents.files[bundle], computeSha256(join(root, bundle)), `Installed bundle differs: ${bundle}`);
+  // The agent skill ships as a plain file beside app.asar (#176).
+  assert.ok(existsSync(join(resourcesPath, SHIPPED_SKILL)), `Installed app lacks ${SHIPPED_SKILL}`);
+  assert.equal(computeSha256(join(resourcesPath, SHIPPED_SKILL)), computeSha256(join(root, SHIPPED_SKILL)), `Installed skill differs: ${SHIPPED_SKILL}`);
   const { _electron: electron } = await import('@playwright/test');
   let app;
   let gui;

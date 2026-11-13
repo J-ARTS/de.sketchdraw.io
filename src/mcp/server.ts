@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio, StdioServerTransport } from '@modelcontextprotocol/server/stdio';
 import { mcpOperationSchemas, operations, parseMcpOperationInput } from '../agent-access/schema';
@@ -10,6 +12,17 @@ import { createLimiter, createRequester, toolFailure, toolSuccess } from './tool
 /** Replaced with the app version by scripts/build-mcp.mjs. */
 declare const __SKETCHDRAW_VERSION__: string | undefined;
 const VERSION = typeof __SKETCHDRAW_VERSION__ === 'string' ? __SKETCHDRAW_VERSION__ : '0.0.0';
+/**
+ * The skill ships as a plain file beside the app archive (installed app) or in the repository (development build).
+ * Naming its path in the instructions lets any client with file access find it without configuration.
+ */
+function shippedSkill(): string | undefined {
+  return ['../../skills/sketchdraw-desktop/SKILL.md', '../skills/sketchdraw-desktop/SKILL.md'].map(relative => path.resolve(__dirname, relative)).find(file => existsSync(file));
+}
+function instructions(): string {
+  const skill = shippedSkill();
+  return skill ? `${SERVER_INSTRUCTIONS}\n\nA longer guide with a command table and an error table is installed as a skill file: ${skill}` : SERVER_INSTRUCTIONS;
+}
 /** Calls waiting for one of the two request slots of the app connection. */
 const MAX_WAITING_CALLS = 64;
 
@@ -37,7 +50,7 @@ async function main(): Promise<void> {
   const request = (operation: (typeof operations)[number], input: unknown) => limit(() => send(operation, input));
   const transport = new StdioServerTransport(process.stdin, process.stdout, { maxBufferSize: L.POST_AUTH_FRAME_BYTES });
   const handle = serveStdio(() => {
-    const server = new McpServer({ name: 'sketchdraw', version: VERSION }, { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS });
+    const server = new McpServer({ name: 'sketchdraw', version: VERSION }, { capabilities: { tools: {} }, instructions: instructions() });
     for (const operation of operations) {
       server.registerTool(operation, {
         description: TOOL_DESCRIPTIONS[operation],

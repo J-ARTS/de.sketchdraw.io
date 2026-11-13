@@ -3,6 +3,7 @@ import {
   DEFAULT_PAGE_NAME,
   DOMAIN_LIMITS,
   DomainValidationError,
+  routeBoundConnector,
   serializeDocument,
   validateDocument,
 } from '../domain';
@@ -1452,6 +1453,16 @@ export function parseDiagram(source: string, contextDocument?: SketchDocument): 
 
     if (pageEntries.length === 0) {
       pageEntries.push({ id: DEFAULT_PAGE_ID, name: DEFAULT_PAGE_NAME, lineSpan: documentSpan, idSpan: documentSpan, implicit: true });
+    }
+    // A connector line may name its two ends and leave the route out (#176); it is computed from the elements it joins,
+    // wherever they stand in the script. Lines that carry points are taken as written.
+    const shapesById = new Map<string, Record<string, unknown>>();
+    for (const entry of elementEntries) if (entry.element.kind !== 'connector') shapesById.set(entry.id, entry.element);
+    for (const entry of elementEntries) {
+      entry.element = routeBoundConnector(entry.element, (elementId) => {
+        const target = shapesById.get(elementId);
+        return target && target.pageId === entry.element.pageId ? target : undefined;
+      });
     }
     const candidateDoc: Record<string, unknown> = {
       schemaVersion: 2,

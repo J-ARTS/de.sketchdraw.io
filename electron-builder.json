@@ -15,6 +15,15 @@
     "package.json",
     "LICENSE"
   ],
+  "extraResources": [
+    {
+      "from": "skills",
+      "to": "skills",
+      "filter": [
+        "**/SKILL.md"
+      ]
+    }
+  ],
   "protocols": [
     {
       "name": "Sketchdraw Session",

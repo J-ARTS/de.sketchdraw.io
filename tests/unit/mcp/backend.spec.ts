@@ -49,6 +49,26 @@ describe('Real local agent host and renderer authority', () => {
     expect(await f.client.request('sketchdraw_find_elements', { documentId: f.document.id, query: 'Agent box' })).toMatchObject({ revision: 2, matches: [expect.objectContaining({ id: element.id, x: 70, shapeVariant: 'hexagon' })] });
     expect(f.controller.getSnapshot().revision).toBe(2);
   });
+  it('lets the local user undo what an agent did when the handler is given the user as history owner (#176)', async () => {
+    const document = { ...createDocument('Original'), id: 'doc:undo' };
+    const controller = createController(document);
+    const authority = createDocumentAuthority({ controller });
+    const descriptor = { documentId: document.id, sessionEpoch: 1, webContentsGeneration: 1 };
+    const handler = createRendererAgentHandler(authority, descriptor, { historyActorId: 'local-user' });
+    const host = await createAgentHost({ onControl: handler.handleControl, onRequest: request => handler.handleRequest(request) });
+    cleanup.push(() => host.close(), () => handler.dispose());
+    await host.registerSession(descriptor);
+    const client = await connectAgent((await host.issueGrant('write', 'test agent')).env); cleanup.push(() => client.close());
+    const human = authority.bindActor({ actorId: 'local-user', source: 'human', grantId: 'local:human', grantGeneration: 0, guard: () => ({ allowed: true }) });
+    expect(await client.request('sketchdraw_apply_commands', { documentId: document.id, expectedRevision: 0, commandId: 'agent-add', command: { type: 'add', elements: [{ id: 'box:agent', kind: 'rectangle', x: 0, y: 0, text: 'Vom Agenten' }] } } as never)).toMatchObject({ revision: 1, elementCount: 1 });
+    expect(human.source.getHistoryState().canUndo).toBe(true);
+    expect(await human.gateway.submit({ requestId: human.gateway.nextRequestId()!, expectedRevision: 1, action: { kind: 'undo' } })).toMatchObject({ status: 'committed', revision: 2 });
+    expect(controller.getSnapshot().document.elements).toEqual([]);
+    // The agent sees the undo as a normal change of the document and can go on from the new revision.
+    expect(await client.request('sketchdraw_analyze_document', { documentId: document.id })).toMatchObject({ revision: 2, summary: { totalElements: 0 } });
+    expect(await human.gateway.submit({ requestId: human.gateway.nextRequestId()!, expectedRevision: 2, action: { kind: 'redo' } })).toMatchObject({ status: 'committed', revision: 3 });
+    expect(controller.getSnapshot().document.elements.map(element => element.id)).toEqual(['box:agent']);
+  });
   it('lets agents work with pages: add a page, add to it, read pages and find elements with their page', async () => {
     const f = await fixture();
     expect(await f.client.request('sketchdraw_apply_commands', { ...rename('page'), command: { type: 'add-page', page: { id: 'page:agent', name: 'Agentenseite' } } })).toMatchObject({ revision: 1, changed: true });
@@ -170,6 +190,8 @@ describe('Real local agent host and renderer authority', () => {
     cleanup.push(() => sdk.close());
     await sdk.connect(new StdioClientTransport({ command: process.execPath, args: [path.resolve('dist-mcp/server.cjs')], env: { ...f.grant.env }, stderr: 'pipe', maxBufferSize: 40 * 1024 * 1024 }));
     expect(sdk.getInstructions()).toContain('sketchdraw_apply_commands');
+    // The adapter found the skill that ships beside it and tells the client where it is.
+    expect(sdk.getInstructions()).toMatch(/installed as a skill file: .*skills[\\/]sketchdraw-desktop[\\/]SKILL\.md$/);
     expect(sdk.getServerVersion()?.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(sdk.getServerVersion()?.version).not.toBe('0.0.0');
     const tools = (await sdk.listTools()).tools;
