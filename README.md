@@ -6,13 +6,13 @@ Ein lokaler Visual Workspace für Windows, macOS und Linux. Menschen und Agenten
 
 ## Download
 
-[Release v0.1.3](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.3) enthält drei nativ geprüfte Installer:
+[Release v0.1.4](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4) enthält drei nativ geprüfte Installer:
 
-- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.3/Sketchdraw-0.1.3-windows-x64.exe)
-- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.3/Sketchdraw-0.1.3-macos-arm64.dmg)
-- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.3/Sketchdraw-0.1.3-linux-x64.deb)
+- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb)
 
-Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert. Hinweise zum ersten Start stehen in den Release-Notes, die konkreten Prüfungen im [Release-Nachweis](docs/reviews/2026-11-13-release-122-audit.json).
+Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert. Hinweise zum ersten Start und die konkreten nativen Prüfungen stehen in den Release-Notes und im [Release-Ablauf](docs/release.md).
 
 ## Funktionen
 
