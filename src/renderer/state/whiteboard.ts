@@ -1386,12 +1386,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async insertCustomComponent(id, screenAt) {
       if (state.transitioning) return;
       const component = useCustomComponents().get(id);
-      if (!component) return;
+      if (component) await store.insertElements(component.payload, screenAt, component.name);
+    },
+    async insertElements(payload, screenAt, name) {
+      if (state.transitioning) return false;
       try {
-        const plan = planElementPaste(component.payload, state.document, screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter(), uid);
-        if (await dispatch(plan.command)) { setSelection(plan.selection); state.tool = 'select'; state.liveMessage = t('„{name}“ eingefügt.', { name: component.name }); }
+        const plan = planElementPaste(payload, state.document, screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter(), uid);
+        if (!await dispatch(plan.command)) return false;
+        setSelection(plan.selection); state.tool = 'select';
+        state.liveMessage = name ? t('„{name}“ eingefügt.', { name }) : tn(plan.selection.length, '{count} Element eingefügt.', '{count} Elemente eingefügt.');
+        return true;
       }
-      catch (error) { fail(error); }
+      catch (error) { fail(error); return false; }
     },
     duplicateSelection() {
       if (!state.canWrite || state.transitioning || !state.selection.length) return;

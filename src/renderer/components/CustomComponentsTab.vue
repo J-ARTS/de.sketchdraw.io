@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, ref, watch } from 'vue';
-import { createDocument, type SketchDocument } from '@/domain';
-import { bounds } from '@/renderer/lib/geometry';
 import { CUSTOM_COMPONENT_DRAG_MIME, CUSTOM_COMPONENT_LIMITS, useCustomComponents, type CustomComponent } from '@/renderer/lib/custom-components';
 import AppIcon from './AppIcon.vue';
-import ElementView from './ElementView.vue';
+import PayloadPreview from './PayloadPreview.vue';
 import { useWhiteboard } from './use-whiteboard';
 
 /** The "own components" tab of the library (#188): insert by click or drag, rename, delete. */
@@ -23,26 +21,6 @@ const filtered = computed(() => {
   const needle = props.query.trim().toLocaleLowerCase();
   return needle ? library.components.value.filter((component) => component.name.toLocaleLowerCase().includes(needle)) : library.components.value;
 });
-
-interface Preview { document: SketchDocument; viewBox: string }
-/** A component's elements never change after saving, so its preview document is built once per id. */
-const previews = new Map<string, Preview>();
-function previewOf(component: CustomComponent): Preview {
-  const cached = previews.get(component.id);
-  if (cached) return cached;
-  const document = createDocument(component.name);
-  const pageId = document.pages[0]!.id;
-  document.elements = component.payload.elements.map((element) => ({ ...element, pageId }));
-  document.assets = component.payload.assets;
-  document.componentSets = component.payload.componentSets;
-  const box = bounds(document.elements) ?? { x: 0, y: 0, width: 1, height: 1 };
-  // Room for strokes and arrowheads, which reach beyond the element rectangles.
-  const pad = Math.max(6, Math.max(box.width, box.height) * 0.05);
-  const preview = { document, viewBox: `${box.x - pad} ${box.y - pad} ${Math.max(1, box.width) + 2 * pad} ${Math.max(1, box.height) + 2 * pad}` };
-  previews.set(component.id, preview);
-  return preview;
-}
-const tiles = computed(() => filtered.value.map((component) => ({ component, preview: previewOf(component) })));
 
 const tile = (id: string): HTMLElement | null => root.value?.querySelector<HTMLElement>(`[data-component-id="${CSS.escape(id)}"]`) ?? null;
 function focusIn(id: string, selector: string): void {
@@ -100,7 +78,6 @@ function confirmDelete(component: CustomComponent): void {
   const neighbour = filtered.value[index + 1] ?? filtered.value[index - 1];
   confirmingId.value = null;
   if (!library.remove(component.id)) { announcement.value = t('Die Komponente konnte nicht gelöscht werden.'); return; }
-  previews.delete(component.id);
   announcement.value = t('„{name}“ wurde gelöscht.', { name: component.name });
   // Focus stays in the list; without a neighbour it goes to the tab, so it is not lost with the removed tile.
   if (neighbour) focusIn(neighbour.id, '.custom-insert');
@@ -119,19 +96,17 @@ function confirmDelete(component: CustomComponent): void {
     <p v-else-if="!filtered.length" class="custom-empty"><span>{{ t('Keine eigene Komponente gefunden.') }}</span></p>
     <template v-else>
       <ul class="custom-grid" :aria-label="t('Eigene Komponenten')">
-        <li v-for="item in tiles" :key="item.component.id" class="custom-tile" :class="{ confirming: confirmingId === item.component.id }" :data-component-id="item.component.id">
-          <button type="button" class="custom-insert" :disabled="s.transitioning || !s.canWrite" draggable="true" :aria-label="t('„{name}“ einfügen', { name: item.component.name })" :title="t('„{name}“ einfügen', { name: item.component.name })" @click="insert(item.component)" @dragstart="drag($event, item.component)">
-            <svg class="custom-preview" :viewBox="item.preview.viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-              <ElementView v-for="element in item.preview.document.elements" :key="element.id" :element="element" :document="item.preview.document" :theme="s.theme" static-preview />
-            </svg>
+        <li v-for="component in filtered" :key="component.id" class="custom-tile" :class="{ confirming: confirmingId === component.id }" :data-component-id="component.id">
+          <button type="button" class="custom-insert" :disabled="s.transitioning || !s.canWrite" draggable="true" :aria-label="t('„{name}“ einfügen', { name: component.name })" :title="t('„{name}“ einfügen', { name: component.name })" @click="insert(component)" @dragstart="drag($event, component)">
+            <PayloadPreview class="custom-preview" :payload="component.payload" :theme="s.theme" />
           </button>
-          <div v-if="confirmingId === item.component.id" class="custom-meta" role="group" :aria-label="t('„{name}“ löschen?', { name: item.component.name })" @keydown.escape.prevent.stop="cancelDelete(item.component.id)">
-            <button type="button" class="confirm-button confirm-delete" @click="confirmDelete(item.component)">{{ t('Löschen') }}</button>
-            <button type="button" class="confirm-button" @click="cancelDelete(item.component.id)">{{ t('Abbrechen') }}</button>
+          <div v-if="confirmingId === component.id" class="custom-meta" role="group" :aria-label="t('„{name}“ löschen?', { name: component.name })" @keydown.escape.prevent.stop="cancelDelete(component.id)">
+            <button type="button" class="confirm-button confirm-delete" @click="confirmDelete(component)">{{ t('Löschen') }}</button>
+            <button type="button" class="confirm-button" @click="cancelDelete(component.id)">{{ t('Abbrechen') }}</button>
           </div>
           <div v-else class="custom-meta">
             <input
-              v-if="library.renamingId.value === item.component.id"
+              v-if="library.renamingId.value === component.id"
               v-model="draft"
               class="custom-name-input"
               type="text"
@@ -139,14 +114,14 @@ function confirmDelete(component: CustomComponent): void {
               :maxlength="CUSTOM_COMPONENT_LIMITS.MAX_NAME_LENGTH"
               autocomplete="off"
               spellcheck="false"
-              @keydown.enter.prevent="commitRename(item.component.id, true)"
-              @keydown.escape.prevent.stop="cancelRename(item.component.id)"
-              @blur="commitRename(item.component.id, false)"
+              @keydown.enter.prevent="commitRename(component.id, true)"
+              @keydown.escape.prevent.stop="cancelRename(component.id)"
+              @blur="commitRename(component.id, false)"
             />
             <template v-else>
-              <span class="custom-name" :title="item.component.name" @dblclick="startRename(item.component.id)">{{ item.component.name }}</span>
-              <button type="button" class="tile-action rename-action" :aria-label="t('„{name}“ umbenennen', { name: item.component.name })" :title="t('Umbenennen')" @click="startRename(item.component.id)"><AppIcon name="rename" :size="16" /></button>
-              <button type="button" class="tile-action delete-action" :aria-label="t('„{name}“ löschen', { name: item.component.name })" :title="t('Löschen')" @click="askDelete(item.component.id)"><AppIcon name="trash" :size="16" /></button>
+              <span class="custom-name" :title="component.name" @dblclick="startRename(component.id)">{{ component.name }}</span>
+              <button type="button" class="tile-action rename-action" :aria-label="t('„{name}“ umbenennen', { name: component.name })" :title="t('Umbenennen')" @click="startRename(component.id)"><AppIcon name="rename" :size="16" /></button>
+              <button type="button" class="tile-action delete-action" :aria-label="t('„{name}“ löschen', { name: component.name })" :title="t('Löschen')" @click="askDelete(component.id)"><AppIcon name="trash" :size="16" /></button>
             </template>
           </div>
         </li>
@@ -166,7 +141,6 @@ function confirmDelete(component: CustomComponent): void {
 .custom-insert:active{cursor:grabbing}
 .custom-insert:disabled{cursor:not-allowed;opacity:.55}
 .custom-insert:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.custom-preview{display:block;width:100%;height:100%;overflow:visible;pointer-events:none}
 .custom-meta{display:flex;align-items:center;gap:2px;min-height:44px;padding:4px 4px 4px 10px}
 .custom-name{flex:1;min-width:0;overflow:hidden;color:var(--text-primary);font-size:12px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
 .custom-name-input{flex:1;min-width:0;height:32px;margin-right:6px;padding:0 8px;border:1px solid var(--accent);border-radius:8px;outline:0;background:var(--surface-panel);color:var(--text-primary);font:inherit;font-size:12px;font-weight:600}

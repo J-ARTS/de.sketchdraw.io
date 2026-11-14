@@ -8,8 +8,10 @@ import { matchesShape, SHAPE_CATALOG, type ShapeEntry } from '@/renderer/lib/sha
 import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
 import { beginComponentDrag, clearComponentDrag, COMPONENT_DRAG_MIME } from '@/renderer/lib/component-drag';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
+import { DIAGRAM_LIBRARIES, diagramLibrary, type DiagramLibraryId } from '@/renderer/lib/diagram-libraries';
 import AppIcon from './AppIcon.vue';
 import CustomComponentsTab from './CustomComponentsTab.vue';
+import DiagramLibraryView from './DiagramLibraryView.vue';
 import SafeIcon from './SafeIcon';
 import { useWhiteboard } from './use-whiteboard';
 
@@ -21,6 +23,11 @@ const customLibrary = useCustomComponents();
 const tab = customLibrary.tab;
 const query = ref('');
 const activeLibrary = ref<ComponentDefinition['provider'] | null>(null);
+/** A library of diagram templates (#191): ER, BPMN, sequence. */
+const activeDiagramLibrary = ref<DiagramLibraryId | null>(null);
+const DIAGRAM_ICONS: Record<DiagramLibraryId, 'table' | 'shapes' | 'connect'> = { er: 'table', bpmn: 'shapes', sequence: 'connect' };
+const subLibrary = computed(() => Boolean(activeLibrary.value || activeDiagramLibrary.value));
+function leaveSubLibrary(): void { activeLibrary.value = null; activeDiagramLibrary.value = null; query.value = ''; }
 const searchInput = ref<HTMLInputElement | null>(null);
 const opener = ref<HTMLElement | null>(null);
 const expanded = reactive<Record<string, boolean>>({
@@ -69,7 +76,8 @@ watch(activeLibrary, async (provider) => {
 });
 const searching = computed(() => query.value.trim().length > 0);
 /** The own components are shown; a provider library (AWS, …) opened from the shapes tab takes precedence. */
-const customTab = computed(() => tab.value === 'custom' && !activeLibrary.value);
+const searchLabel = computed(() => activeDiagramLibrary.value ? t('Vorlagen durchsuchen') : tab.value === 'custom' && !subLibrary.value ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen'));
+const customTab = computed(() => tab.value === 'custom' && !subLibrary.value);
 watch(searching, async (active) => {
   if (!active || officialAll.value) return;
   try { officialAll.value = await loadAllOfficialLibraries(); } catch { /* starter sets stay searchable */ }
@@ -98,7 +106,7 @@ const tableMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
   return !needle || ['tabelle', 'table', 'grid', 'zellen', 'zeilen', 'spalten'].some((term) => term.includes(needle));
 });
-const libraryLabel = computed(() => providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
+const libraryLabel = computed(() => activeDiagramLibrary.value ? t(diagramLibrary(activeDiagramLibrary.value).name) : providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
 const groupedLibraryComponents = computed(() => {
   const groups = new Map<string, CatalogSearchResult[]>();
   for (const item of libraryComponents.value) {
@@ -218,28 +226,29 @@ onBeforeUnmount(() => {
   <aside id="shape-library-panel" class="shape-library sd-panel" :aria-label="t('Formen und Komponenten')" data-testid="shape-library-sidebar" @keydown="onKeydown">
     <header class="library-header">
       <div class="library-title-row">
-        <button v-if="activeLibrary" type="button" class="header-action" :aria-label="t('Zurück zu allen Formen')" @click="activeLibrary = null"><span aria-hidden="true">←</span></button>
-        <h2 class="sd-panel-title">{{ activeLibrary ? libraryLabel : t('Formen') }}</h2>
+        <button v-if="subLibrary" type="button" class="header-action" :aria-label="t('Zurück zu allen Formen')" @click="leaveSubLibrary"><span aria-hidden="true">←</span></button>
+        <h2 class="sd-panel-title">{{ subLibrary ? libraryLabel : t('Formen') }}</h2>
         <button type="button" class="header-action close-button sd-panel-close" :aria-label="t('Formen schließen')" @click="close"><AppIcon name="close" /></button>
       </div>
-      <div v-if="!activeLibrary" class="library-tabs" role="tablist" :aria-label="t('Bereiche der Bibliothek')" @keydown="onTabKeydown">
+      <div v-if="!subLibrary" class="library-tabs" role="tablist" :aria-label="t('Bereiche der Bibliothek')" @keydown="onTabKeydown">
         <button id="library-tab-shapes" type="button" role="tab" class="library-tab" :aria-selected="tab === 'shapes'" aria-controls="library-tabpanel" :tabindex="tab === 'shapes' ? 0 : -1" @click="selectTab('shapes')">{{ t('Formen') }}</button>
         <button id="library-tab-custom" type="button" role="tab" class="library-tab" :aria-selected="tab === 'custom'" aria-controls="library-tabpanel" :tabindex="tab === 'custom' ? 0 : -1" @click="selectTab('custom')">{{ t('Eigene') }}<span v-if="customLibrary.components.value.length" class="tab-count">{{ customLibrary.components.value.length }}</span></button>
       </div>
       <label class="library-search">
         <AppIcon name="search" :size="20" />
-        <span class="visually-hidden">{{ customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen') }}</span>
-        <input ref="searchInput" v-model="query" type="search" :aria-label="customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen')" :placeholder="customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen')" autocomplete="off" spellcheck="false" />
+        <span class="visually-hidden">{{ searchLabel }}</span>
+        <input ref="searchInput" v-model="query" type="search" :aria-label="searchLabel" :placeholder="searchLabel" autocomplete="off" spellcheck="false" />
       </label>
-      <div v-if="!customTab" class="customize-row">
+      <div v-if="!customTab && !activeDiagramLibrary" class="customize-row">
         <p v-if="toolbarState.editing.value">{{ t('Form anklicken oder in die obere Leiste ziehen.') }}</p>
         <span v-else>{{ t('Lieblingsformen direkt in der oberen Leiste ablegen.') }}</span>
         <button type="button" :aria-pressed="toolbarState.editing.value" @click="toggleEditing">{{ toolbarState.editing.value ? t('Fertig') : t('Leiste anpassen') }}</button>
       </div>
     </header>
 
-    <div id="library-tabpanel" ref="scroller" class="library-scroll" :role="activeLibrary ? undefined : 'tabpanel'" :aria-labelledby="activeLibrary ? undefined : `library-tab-${tab}`">
-      <template v-if="activeLibrary">
+    <div id="library-tabpanel" ref="scroller" class="library-scroll" :role="subLibrary ? undefined : 'tabpanel'" :aria-labelledby="subLibrary ? undefined : `library-tab-${tab}`">
+      <DiagramLibraryView v-if="activeDiagramLibrary" :library="diagramLibrary(activeDiagramLibrary)" :query="query" />
+      <template v-else-if="activeLibrary">
         <p v-if="libraryLoading" class="empty-state" role="status">{{ t('Bibliothek wird geladen …') }}</p>
         <p v-if="libraryError" class="empty-state" role="alert">{{ t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
         <section v-for="(group, index) in groupedLibraryComponents" :key="group.category" class="component-group">
@@ -279,6 +288,7 @@ onBeforeUnmount(() => {
           <p v-if="allComponentsCapped" class="empty-state">{{ t('Die ersten {count} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.', { count: SEARCH_LIMIT }) }}</p>
           <p v-if="!annotationMatches && !tableMatches && !filteredShapes.length && !allComponents.length" class="empty-state">{{ t('Keine Form oder Komponente gefunden.') }}</p>
         </section>
+        <DiagramLibraryView :query="query" />
       </template>
 
       <template v-else>
@@ -308,6 +318,11 @@ onBeforeUnmount(() => {
 
         <section class="other-libraries" aria-labelledby="other-libraries-heading">
           <h3 id="other-libraries-heading">{{ t('Weitere Bibliotheken') }}</h3>
+          <button v-for="diagram in DIAGRAM_LIBRARIES" :key="diagram.id" type="button" class="provider-row" :data-testid="`open-diagram-library-${diagram.id}`" @click="activeDiagramLibrary = diagram.id; query = ''">
+            <span class="provider-logo diagram-logo"><AppIcon :name="DIAGRAM_ICONS[diagram.id]" :size="30" /></span>
+            <span><strong>{{ t(diagram.name) }}</strong><small>{{ t(diagram.description) }}</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
           <button v-for="providerItem in providers" :key="providerItem.id" type="button" class="provider-row" @click="activeLibrary = providerItem.id">
             <span class="provider-logo"><SafeIcon :source="providerPreview(providerItem.id)" :size="48" /></span>
             <span><strong>{{ t(providerItem.label) }}</strong><small>{{ t('{count} Symbole', { count: providerCount(providerItem.id) }) }}</small></span>
@@ -335,7 +350,7 @@ onBeforeUnmount(() => {
 .component-group,.search-results{padding:20px 20px 4px}.component-group h3,.search-results h3{margin:0 4px 12px;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}.component-group{padding-top:8px;padding-bottom:0;border-bottom:1px solid var(--border-subtle)}.component-group h3{margin:0}.category-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;text-transform:inherit;cursor:pointer}.category-toggle:hover{color:var(--text-primary)}.category-toggle>span:first-child{flex:1}.category-count{min-width:24px;padding:1px 7px;border-radius:999px;background:var(--surface-raised);font-size:11px;text-align:center}.category-chevron{font-size:18px;transition:transform .16s ease}.category-toggle[aria-expanded=true] .category-chevron{transform:rotate(180deg)}
 .component-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px 18px}.component-group .component-grid{padding:0 0 16px}.search-results .component-grid{padding:0}.component-tile{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 7px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);color:var(--text-primary);text-align:center;cursor:grab}.component-tile:active{cursor:grabbing}.component-tile:hover,.component-tile:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.component-tile span{width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:650}.component-tile small{font-size:9px;color:var(--text-muted)}.search-components{margin-bottom:16px}
 .component-grid .resource-card-tile{grid-column:1/-1;min-height:126px;padding:10px}.resource-card-preview{display:grid!important;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;width:100%!important;min-height:62px;padding:10px 10px 18px;box-sizing:border-box;border:1px solid var(--border-default);border-radius:7px;background:var(--surface-panel);box-shadow:inset 0 -10px var(--accent-soft);text-align:left}.resource-card-preview>span{display:grid;gap:3px;font-size:12px!important}.resource-card-preview b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-card-preview small{text-transform:uppercase}
-.other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-raised)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}.provider-row>span:last-child{font-size:25px;color:var(--text-muted)}
+.other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-raised)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.diagram-logo{color:var(--accent)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}.provider-row>span:last-child{font-size:25px;color:var(--text-muted)}
 .empty-state{padding:18px 24px;color:var(--text-muted);font-size:11px;line-height:1.5}.library-footer{flex:none;display:grid;gap:10px;padding:12px 20px;border-top:1px solid var(--border-subtle);background:var(--surface-panel)}.reset-button{justify-self:start}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.shape-library{right:12px;bottom:12px;width:calc(100vw - 24px)}.library-header{padding:8px 16px 12px}.shape-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding-inline:14px}.component-grid{padding-inline:14px}.provider-row{padding-inline:16px}}
 @media(prefers-reduced-motion:reduce){.accordion-trigger>span:last-child{transition:none}}

@@ -17,6 +17,7 @@ import { defaultSizeFor, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '../
 import type { PointerInput } from '../state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
 import { CUSTOM_COMPONENT_DRAG_MIME } from '../lib/custom-components';
+import { diagramTemplate, TEMPLATE_DRAG_MIME } from '../lib/diagram-libraries';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -166,7 +167,7 @@ function wheel(event: WheelEvent) {
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
 }
 function dragOver(event: DragEvent): void {
-  if (!peekComponentDrag() && !event.dataTransfer?.types.includes(COMPONENT_DRAG_MIME) && !event.dataTransfer?.types.includes(CUSTOM_COMPONENT_DRAG_MIME)) return;
+  if (!peekComponentDrag() && !event.dataTransfer?.types.includes(COMPONENT_DRAG_MIME) && !event.dataTransfer?.types.includes(CUSTOM_COMPONENT_DRAG_MIME) && !event.dataTransfer?.types.includes(TEMPLATE_DRAG_MIME)) return;
   event.preventDefault();
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
 }
@@ -177,6 +178,14 @@ function dropComponent(event: DragEvent): void {
     event.preventDefault();
     const area = canvas.value.getBoundingClientRect();
     void store.insertCustomComponent(customId, { x: event.clientX - area.left, y: event.clientY - area.top });
+    return;
+  }
+  // A template of a diagram library (#191) travels by its id as well.
+  const template = diagramTemplate(event.dataTransfer?.getData(TEMPLATE_DRAG_MIME) ?? '');
+  if (template && canvas.value) {
+    event.preventDefault();
+    const area = canvas.value.getBoundingClientRect();
+    void store.insertElements(template.build(), { x: event.clientX - area.left, y: event.clientY - area.top }, t(template.name));
     return;
   }
   const payload = takeComponentDrag();

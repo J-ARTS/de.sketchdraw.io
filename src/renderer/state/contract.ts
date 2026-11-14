@@ -28,6 +28,7 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
+import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 
 export type Tool =
@@ -376,6 +377,11 @@ export interface WhiteboardStore {
    * new component, or null when nothing could be saved; the reason is shown as a notice.
    */
   saveSelectionAsComponent(): string | null;
+  /**
+   * Inserts a saved selection (an own component or a library template) as new elements on the active page, at the
+   * canvas centre or centred on a screen-space point, as one undo step. `name` is announced to screen readers.
+   */
+  insertElements(payload: ElementClipboardPayload, screenAt?: Point, name?: string): Promise<boolean>;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;
