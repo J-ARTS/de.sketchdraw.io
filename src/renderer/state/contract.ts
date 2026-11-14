@@ -27,6 +27,7 @@ import type {
   TaskStatus,
   TaskType,
 } from '@/domain/types';
+import type { ResourceCardField } from '@/catalog';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 
 export type Tool =
@@ -124,6 +125,11 @@ export interface TextEditSession {
   initialStyle: ElementStyle;
   initialText: string;
   draft: string;
+  /**
+   * Present while one line of a resource card is edited on the canvas (#189): `box` is that line, the draft is
+   * a single line, and the commit writes the card's name or description instead of a multi-line element text.
+   */
+  field?: ResourceCardField;
   /** Sticky note author while editing; written together with the text on commit. */
   author?: string | null;
   initialAuthor?: string | null;
@@ -396,7 +402,8 @@ export interface WhiteboardStore {
   setTitle(title: string): void;
   updateTitleDraft(title: string): void;
 
-  startTextEdit(elementId?: string): void;
+  /** Edits an element's text on the canvas. A resource card needs `field`: its name or its description. */
+  startTextEdit(elementId?: string, field?: ResourceCardField): void;
   setTextDraft(text: string): void;
   /** Changes a sticky note's author while its text is edited; committed with the text. */
   setTextAuthor(author: string | null): void;

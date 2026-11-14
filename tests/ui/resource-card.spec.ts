@@ -87,3 +87,73 @@ test('resource cards resize, copy at the pointer and restore editor focus on Esc
   await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
   await expect(page.locator('[data-resource-icon-type]')).toHaveCount(1);
 });
+
+test('the name and description of a selected card are edited by clicking the text (#189)', async ({ page }) => {
+  const card = await insertResourceCard(page);
+  const title = card.getByTestId('resource-card-title');
+  const description = card.getByTestId('resource-card-description');
+  const editor = page.getByTestId('canvas-text-editor');
+  const clickLine = async (line: typeof title) => { const box = (await line.boundingBox())!; await page.mouse.click(box.x + 12, box.y + box.height / 2); };
+
+  // The inserted card is selected: a click on its name edits the name in place.
+  const titleBox = (await title.boundingBox())!;
+  await clickLine(title);
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveAccessibleName('Name der Ressourcenkarte');
+  await expect(editor).toHaveValue('Ressourcenkarte');
+  const editorBox = (await editor.boundingBox())!;
+  expect(Math.abs(editorBox.x - titleBox.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(editorBox.y + editorBox.height / 2 - (titleBox.y + titleBox.height / 2))).toBeLessThanOrEqual(2);
+  // Only the edited line is hidden; the rest of the card stays.
+  await expect(title).toHaveCount(0);
+  await expect(description).toBeVisible();
+  await page.keyboard.type('Bestellservice');
+  await page.keyboard.press('Enter');
+  await expect(editor).toHaveCount(0);
+  await expect(title).toHaveText('Bestellservice');
+
+  await clickLine(description);
+  await expect(editor).toHaveAccessibleName('Beschreibung der Ressourcenkarte');
+  await page.keyboard.type('nimmt Bestellungen an');
+  // A click beside the card takes the text over, like for every other text.
+  await page.mouse.click(200, 650);
+  await expect(editor).toHaveCount(0);
+  await expect(description).toHaveText('NIMMT BESTELLUNGEN AN');
+
+  // Each edit is one undo step.
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(description).toHaveText('BESCHREIBUNG');
+  await expect(title).toHaveText('Bestellservice');
+
+  // Unselected, the first click only selects; a double click edits at once.
+  await page.mouse.click(200, 650);
+  const box = (await title.boundingBox())!;
+  await page.mouse.click(box.x + 12, box.y + box.height / 2);
+  await expect(editor).toHaveCount(0);
+  await page.mouse.click(200, 650);
+  await page.mouse.dblclick(box.x + 12, box.y + box.height / 2);
+  await expect(editor).toHaveValue('Bestellservice');
+  await page.keyboard.press('Escape');
+  await expect(editor).toHaveCount(0);
+});
+
+test('resource card text is black by default and takes the text colour of the selection bar (#189)', async ({ page }) => {
+  const card = await insertResourceCard(page);
+  const title = card.getByTestId('resource-card-title');
+  const description = card.getByTestId('resource-card-description');
+  // Black, not the frame colour, and the description is not faded.
+  await expect(title).toHaveAttribute('fill', '#1e1e1e');
+  await expect(description).toHaveAttribute('fill', '#1e1e1e');
+  expect(await description.getAttribute('fill-opacity')).toBeNull();
+  expect(await card.getByTestId('resource-card-surface').evaluate((node) => getComputedStyle(node).stroke)).not.toBe('rgb(30, 30, 30)');
+
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await toolbar.getByRole('button', { name: 'Schriftfarbe' }).click();
+  await page.getByRole('group', { name: 'Schriftfarbe' }).getByRole('button', { name: 'Schrift Rot' }).click();
+  const red = await title.getAttribute('fill');
+  expect(red).not.toBe('#1e1e1e');
+  await expect(description).toHaveAttribute('fill', red!);
+  // The frame keeps its colour.
+  expect(await card.getByTestId('resource-card-surface').evaluate((node) => getComputedStyle(node).stroke)).not.toBe(await title.evaluate((node) => getComputedStyle(node).fill));
+});

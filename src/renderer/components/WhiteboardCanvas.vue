@@ -8,7 +8,7 @@ import QuickConnect from './QuickConnect.vue';
 import AnnotationEditor from './AnnotationEditor.vue';
 import TableOverlay from './TableOverlay.vue';
 import LaserPointerOverlay from './LaserPointerOverlay.vue';
-import { awsGroupOf, groupChrome } from '@/catalog';
+import { awsGroupOf, groupChrome, RESOURCE_CARD_TEXT_COLOR, resourceCardLayout } from '@/catalog';
 import { createElement, type SketchElement } from '@/domain';
 import { docToScreen, screenToDoc } from '../lib/viewport';
 import { themeColor } from '../lib/theme';
@@ -65,6 +65,22 @@ const editStyle = computed(() => {
   if (!edit) return {};
   const zoom = s.viewport.zoom;
   const { x, y } = docToScreen(s.viewport, edit.box);
+  // One line of a resource card (#189): the box is the line itself, drawn like the card draws it.
+  if (edit.field) {
+    const card = s.document.elements.find((element) => element.id === edit.elementId);
+    const line = resourceCardLayout(card ?? { width: edit.box.width, height: edit.box.height, style: edit.style })[edit.field];
+    return {
+      left: `${x}px`, top: `${y}px`, width: `${Math.max(24, edit.box.width * zoom)}px`, height: `${Math.max(16, edit.box.height * zoom)}px`,
+      alignItems: 'center', padding: '0', boxSizing: 'border-box' as const,
+      transform: `rotate(${edit.rotation}deg)`,
+      fontSize: `${line.fontSize * zoom}px`,
+      fontFamily: fontFamilyCss(edit.style.fontFamily),
+      fontWeight: edit.field === 'title' ? '600' : '500',
+      textAlign: 'left' as const,
+      '--edit-color': themeColor(edit.style.textColor ?? RESOURCE_CARD_TEXT_COLOR, s.theme),
+      '--annotation-zoom': zoom,
+    };
+  }
   const free = edit.kind === 'text';
   const sticky = edit.kind === 'sticky-note';
   const annotation = edit.kind === 'annotation';
@@ -97,7 +113,8 @@ function autosize(): void {
   el.style.height = `${el.scrollHeight}px`;
 }
 function onEditorKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !event.isComposing) {
+  // A resource card line is a single line: Enter alone takes the text over.
+  if (event.key === 'Enter' && !event.isComposing && (event.metaKey || event.ctrlKey || s.textEdit?.field)) {
     event.preventDefault();
     store.commitTextEdit();
   }
@@ -180,7 +197,7 @@ onMounted(() => canvas.value?.focus());
       <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
       <rect width="100%" height="100%" fill="url(#canvas-dots)" />
       <g :transform="transform" pointer-events="none">
-        <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id" :interactive="element.kind === 'web-embed' && s.tool === 'select' && s.selection.length === 1 && s.selection[0] === element.id" @open-link="store.openDocumentationLink" />
+        <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id && !s.textEdit.field" :editing-field="s.textEdit?.elementId === element.id ? s.textEdit.field : undefined" :interactive="element.kind === 'web-embed' && s.tool === 'select' && s.selection.length === 1 && s.selection[0] === element.id" @open-link="store.openDocumentationLink" />
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />
         <g v-if="shapeSilhouette" class="shape-silhouette" data-testid="shape-silhouette" :data-shape="s.shapeVariant" pointer-events="none" aria-hidden="true" opacity=".38">
           <ElementView :element="shapeSilhouette" :document="s.document" :theme="s.theme" />
@@ -217,7 +234,7 @@ onMounted(() => canvas.value?.focus());
     <div v-if="s.empty && !s.draftElement && !s.textEdit" class="empty-canvas" aria-hidden="true"><span class="eyebrow">DEIN VISUAL WORKSPACE</span><h1>{{ t('Gedanken brauchen Raum.') }}</h1><p>{{ t('Wähle ein Werkzeug und leg los.') }}<br>Mit <kbd>R</kbd> {{ t('zeichnest du dein erstes Rechteck.') }}</p><span class="empty-arrow">↖</span></div>
     <div v-if="s.textEdit" class="text-edit-wrap" :class="{ free: s.textEdit.kind === 'text' }" :style="editStyle">
       <AnnotationEditor v-if="s.textEdit.kind === 'annotation'" />
-      <textarea v-else ref="editor" rows="1" class="canvas-text-editor" data-testid="canvas-text-editor" :aria-label="t('Text auf der Zeichenfläche')" aria-keyshortcuts="Escape Control+Enter Meta+Enter" :placeholder="s.textEdit.kind === 'sticky-note' ? t('Schreib etwas, @erwähne jemanden') : undefined" :style="{ fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
+      <textarea v-else ref="editor" rows="1" class="canvas-text-editor" :class="{ 'card-field': s.textEdit.field }" data-testid="canvas-text-editor" :data-field="s.textEdit.field" :aria-label="s.textEdit.field === 'title' ? t('Name der Ressourcenkarte') : s.textEdit.field === 'description' ? t('Beschreibung der Ressourcenkarte') : t('Text auf der Zeichenfläche')" :aria-keyshortcuts="s.textEdit.field ? 'Escape Enter' : 'Escape Control+Enter Meta+Enter'" :placeholder="s.textEdit.kind === 'sticky-note' ? t('Schreib etwas, @erwähne jemanden') : s.textEdit.field === 'description' ? t('Beschreibung') : undefined" :style="s.textEdit.field ? {} : { fontWeight: s.textEdit.style.fontWeight ?? 'normal', textDecoration: s.textEdit.style.textDecoration ?? 'none' }" :value="s.textEdit.draft" :disabled="s.transitioning || !s.canWrite" @input="store.setTextDraft(($event.target as HTMLTextAreaElement).value)" @keydown="onEditorKeydown" @compositionstart="store.setComposing(true)" @compositionend="store.setComposing(false)" />
       <div v-if="s.textEdit.conflict" class="draft-conflict" role="alert"><p>{{ s.textEdit.conflict }}</p><button class="sd-btn" @click="store.resolveTextConflict('insert-new')">{{ t('Als neuen Text einfügen') }}</button><button class="sd-btn" @click="store.resolveTextConflict('keep-mine')">{{ t('Meinen Text übernehmen') }}</button><button class="sd-btn" @click="store.resolveTextConflict('use-current')">{{ t('Entwurf verwerfen') }}</button></div>
     </div>
     <p id="canvas-help" class="visually-hidden">{{ t('Mit V auswählen, mit R ein Rechteck und mit F einen Präsentationsframe zeichnen. Mit Alt+Umschalt+P startest du die Präsentation. Pfeiltasten bewegen die Auswahl. Bild auf und Bild ab wählen Elemente. Weitere Tastenkürzel unter Hilfe.') }}</p>
@@ -227,5 +244,5 @@ onMounted(() => canvas.value?.focus());
 <style scoped>
 .canvas-wrap,.whiteboard-canvas{position:absolute;inset:0;width:100%;height:100%}.whiteboard-canvas{touch-action:none;outline:none!important}.whiteboard-canvas:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .empty-canvas{position:absolute;top:38%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;color:var(--text-muted);width:min(480px,80vw)}.eyebrow{font-size:10px;letter-spacing:.2em;font-weight:650;color:var(--accent)}h1{font-size:clamp(24px,3vw,36px);letter-spacing:-.04em;font-weight:550;color:var(--text-primary);margin:16px 0}p{font-size:13px;line-height:1.8}.empty-arrow{display:block;transform:rotate(-12deg);font-size:40px;margin-top:30px;color:var(--border-default)}kbd{border:1px solid var(--border-subtle);border-radius:4px;padding:1px 5px;background:var(--surface-panel)}
-.text-edit-wrap{position:absolute;z-index:8;display:flex;transform-origin:center;pointer-events:none}.canvas-text-editor{display:block;width:100%;max-height:100%;margin:0;padding:0;overflow:hidden;resize:none;background:transparent;border:0;outline:none;color:var(--edit-color);caret-color:var(--edit-color);font:inherit;line-height:1.25;text-align:inherit;pointer-events:auto}.text-edit-wrap.free .canvas-text-editor{max-height:none}.canvas-text-editor::placeholder{color:color-mix(in srgb,var(--edit-color) 55%,transparent);opacity:1}.canvas-text-editor::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}.draft-conflict{position:absolute;top:calc(100% + 8px);left:0;min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);border-radius:var(--radius-1);padding:12px;font-size:12px;pointer-events:auto}
+.text-edit-wrap{position:absolute;z-index:8;display:flex;transform-origin:center;pointer-events:none}.canvas-text-editor{display:block;width:100%;max-height:100%;margin:0;padding:0;overflow:hidden;resize:none;background:transparent;border:0;outline:none;color:var(--edit-color);caret-color:var(--edit-color);font:inherit;line-height:1.25;text-align:inherit;pointer-events:auto}.text-edit-wrap.free .canvas-text-editor{max-height:none}.canvas-text-editor.card-field{font-weight:inherit;white-space:nowrap;overflow:hidden}.canvas-text-editor.card-field[data-field=description]{text-transform:uppercase}.canvas-text-editor.card-field[data-field=description]::placeholder{text-transform:uppercase}.canvas-text-editor::placeholder{color:color-mix(in srgb,var(--edit-color) 55%,transparent);opacity:1}.canvas-text-editor::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}.draft-conflict{position:absolute;top:calc(100% + 8px);left:0;min-width:260px;background:var(--surface-panel);border:1px solid var(--status-error);border-radius:var(--radius-1);padding:12px;font-size:12px;pointer-events:auto}
 </style>

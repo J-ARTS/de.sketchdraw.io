@@ -16,7 +16,7 @@ import { bulletsActive, toggleBullets } from '@/renderer/lib/bullets';
 import { linkAt } from '@/renderer/lib/text-links';
 import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
-import { isResourceCard } from '@/catalog';
+import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
@@ -89,7 +89,7 @@ const radiusMixed = computed(() => info.value.mixed.includes('cornerRadius'));
 function setRadius(value: number): void { if (Number.isFinite(value)) store.setPropertyDraft({ style: { cornerRadius: Math.max(0, Math.min(radiusMax.value, Math.round(value))) } }); }
 function commitRadius(): void { void store.commitPropertyDraft(); }
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
-const textColorCapable = computed(() => !resourceCardOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'web-embed', 'frame'].includes(kind)));
+const textColorCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'web-embed', 'frame'].includes(kind)));
 
 const bar = ref<HTMLElement | null>(null);
 const barTrack = ref<HTMLElement | null>(null);
@@ -438,7 +438,8 @@ const lineMode = computed<LineMode | null>(() => {
   return ['solid', 'dashed', 'animated'].includes(info.value.values.strokeDash ?? '') ? info.value.values.strokeDash as LineMode : null;
 });
 const strokeBase = computed(() => (lineMode.value === 'none' ? null : normalizeHex(info.value.values.stroke ?? '')));
-const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? info.value.values.stroke ?? '') ?? '#242424');
+/** Resource card text does not follow the frame colour: without a chosen colour it is black (#189). */
+const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? (resourceCardOnly.value ? RESOURCE_CARD_TEXT_COLOR : info.value.values.stroke) ?? '') ?? '#242424');
 watch(fillBase, (value) => { if (value) lastFill.value = value; }, { immediate: true });
 watch(strokeBase, (value) => { if (value) lastStroke.value = value; }, { immediate: true });
 

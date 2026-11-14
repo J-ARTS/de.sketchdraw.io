@@ -26,7 +26,7 @@ import { createDocumentAuthority, SessionAccessError, type ActorBinding, type Do
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
 import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
-import { instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport } from '@/catalog';
+import { instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
@@ -64,6 +64,8 @@ type Gesture = {
   targets: SketchElement[]; handle?: HandleId; tool: Tool; points: Point[];
   preview: DocumentCommand | null; element: SketchElement | null;
   connectorFromId?: string;
+  /** A press on a text line of the already selected resource card: released without a drag, it edits that line (#189). */
+  editField?: ResourceCardField;
   connectorPoints?: Point[];
   connectorPointIndex?: number;
   connectorSegmentIndex?: number;
@@ -680,6 +682,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     try { return createElement(g.tool, value); } catch { return null; }
   }
 
+  /** The line of a resource card at a document point, in the card's own (unrotated) coordinates. */
+  function cardFieldAt(element: SketchElement, point: Point): ResourceCardField | null {
+    if (!isResourceCard(element)) return null;
+    const local = rotatePoint(point, center(element), -element.rotation);
+    return resourceCardFieldAt(element, { x: local.x - element.x, y: local.y - element.y });
+  }
+  /** Writes the edited name or description of a resource card (#189), with style changes made meanwhile, as one update. */
+  async function applyCardField(edit: NonNullable<WhiteboardState['textEdit']>, field: ResourceCardField, id: string, styleChanges: Partial<ElementStyle>): Promise<boolean> {
+    const text = edit.draft.replace(/\s+/g, ' ').trim();
+    const now = pageEls().find((e) => e.id === id);
+    if (!same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
+    // A card always has a name: an emptied name keeps the old one. The description may be cleared.
+    const content: ElementPatch = field === 'title'
+      ? (text && text !== edit.initialText ? { text, label: text } : {})
+      : (text !== edit.initialText.trim() ? { description: text || null } : {});
+    const patch: ElementPatch = { ...content, ...(Object.keys(styleChanges).length ? { style: styleChanges } : {}) };
+    if (!Object.keys(patch).length) { state.textEdit = null; changedDraft(); return true; }
+    const recover = () => { if (state.textEdit === edit) { state.textEdit = null; changedDraft(); } };
+    const ok = await dispatch({ type: 'update', changes: [{ id, patch }] }, state.revision === textRevision ? textRevision : state.revision, 'human', recover);
+    if (ok) recover();
+    return ok;
+  }
   async function applyText(): Promise<boolean> {
     const edit = state.textEdit;
     if (!edit) return true;
@@ -691,6 +715,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
     const linksChanged = edit.kind !== 'annotation' && !sameTextLinks(edit.links ?? [], edit.initialLinks ?? []);
     if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged && !linksChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    if (edit.field && edit.elementId) return applyCardField(edit, edit.field, edit.elementId, styleChanges);
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
     const existing = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : undefined;
     // Free text grows and shrinks with its line count; the width stays whatever the user chose.
@@ -1066,6 +1091,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
       if (state.tool === 'image') return;
+      const editField = kind === 'move' && target && !input.shiftKey && state.selection.length === 1 && state.selection[0] === target.id ? cardFieldAt(target, point) : null;
       if (kind === 'move' && target) {
         if (input.shiftKey && state.selection.includes(target.id)) { setSelection(state.selection.filter((id) => id !== target.id)); return; }
         if (!state.selection.includes(target.id)) setSelection([target.id], input.shiftKey);
@@ -1090,7 +1116,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           pencilOpacity: state.pencilOpacity,
         } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
-        ...(dockStart ? { connectorFromId: dockStart.id } : {}) };
+        ...(dockStart ? { connectorFromId: dockStart.id } : {}),
+        ...(editField ? { editField } : {}) };
       if (dockStart) {
         state.connectorTargets = { fromId: dockStart.id, toId: null };
         state.connectorHoverTargetId = null;
@@ -1208,6 +1235,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pointerUp(input) {
       const g = gesture;
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;
+      // A click (no drag) on the name or description of the selected resource card edits that line.
+      if (g.kind === 'move' && g.editField && g.targets[0] && Math.hypot(input.x - g.screenStart.x, input.y - g.screenStart.y) < 4) {
+        const { id } = g.targets[0];
+        const field = g.editField;
+        resetGesture();
+        store.startTextEdit(id, field);
+        return;
+      }
       store.pointerMove(input);
       if (g.kind === 'draw' && !g.element && !['path', 'connector'].includes(g.tool)) {
         const size = defaultSizeFor(g.tool, state.shapeVariant);
@@ -1222,7 +1257,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.canWrite || state.transitioning) return;
       const e = hit(screenToDoc(state.viewport, input));
       if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = t('Frame in der Folienleiste zum Umbenennen ausgewählt.'); return; }
-      if (e && e.kind !== 'table' && !isResourceCard(e)) store.startTextEdit(e.id);
+      // A resource card edits the line under the pointer, and its name anywhere else on the card.
+      if (isResourceCard(e)) { setSelection([e!.id]); store.startTextEdit(e!.id, cardFieldAt(e!, screenToDoc(state.viewport, input)) ?? 'title'); return; }
+      if (e && e.kind !== 'table') store.startTextEdit(e.id);
     },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
     handleKeyDown(input) {
@@ -1503,17 +1540,26 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     setTitle(title) { if (state.canWrite && !state.transitioning && title.trim()) { titleDraft = title.trim(); changedDraft(); void dispatch({ type: 'rename', title: title.trim() }); } },
     updateTitleDraft(title) { if (state.canWrite && !state.transitioning && title !== titleDraft) { titleDraft = title; changedDraft(); } },
-    startTextEdit(elementId) {
+    startTextEdit(elementId, field) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
       const e = elementId ? pageEls().find((e) => e.id === elementId) : undefined;
-      if (isResourceCard(e) || e?.kind === 'table') return;
+      if (e?.kind === 'table' || isResourceCard(e) !== Boolean(field)) return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
+      if (e && field) {
+        // One line of the card: the box is that line, turned with the card around the card's centre.
+        const line = resourceCardFieldBox(e, field);
+        const middle = rotatePoint({ x: e.x + line.x + line.width / 2, y: e.y + line.y + line.height / 2 }, center(e), e.rotation);
+        const text = field === 'title' ? e.text || e.label || '' : e.description ?? '';
+        state.textEdit = { elementId: e.id, kind: e.kind, field, box: { x: middle.x - line.width / 2, y: middle.y - line.height / 2, width: line.width, height: line.height }, rotation: e.rotation, style: { ...e.style }, initialStyle: { ...e.style }, initialText: text, draft: text, author: null, initialAuthor: null, links: [], initialLinks: [], initialAnnotation: null, annotationDraft: null, composing: false, conflict: null };
+        changedDraft();
+        return;
+      }
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
       state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
-    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
+    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\s*[\r\n]+\s*/g, ' '); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
     setTextLink(start, end, url) {
       const edit = state.textEdit;
       if (!state.canWrite || !edit || state.transitioning || edit.kind === 'annotation') return false;

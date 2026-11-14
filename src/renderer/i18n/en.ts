@@ -1176,4 +1176,6 @@ export const EN: Readonly<Record<string, string>> = {
   "Die eigene Bibliothek ist voll. Lösche Komponenten, die du nicht mehr brauchst.": "Your library is full. Delete components you no longer need.",
   "Die Komponente konnte nicht gespeichert werden.": "The component could not be saved.",
   "„{name}“ eingefügt.": "“{name}” inserted.",
+  "Name der Ressourcenkarte": "Resource card name",
+  "Beschreibung der Ressourcenkarte": "Resource card description",
 };

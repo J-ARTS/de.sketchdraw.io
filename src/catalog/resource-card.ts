@@ -5,6 +5,8 @@ export const RESOURCE_CARD_COMPONENT_TYPE = 'generic.resource-card';
 export const RESOURCE_CARD_ICON_KEY = 'resource-card:icon';
 export const RESOURCE_CARD_LINK_ORDER_KEY = 'resource-card:link-order';
 export const MAX_RESOURCE_CARD_LINKS = 5;
+/** Card text without a chosen text colour: black, independent of the frame colour (#189). */
+export const RESOURCE_CARD_TEXT_COLOR = '#1e1e1e';
 
 const LINK_PREFIX = 'resource-card:link:';
 const LINK_ID = /^[a-z0-9][a-z0-9-]{0,31}$/i;
@@ -98,4 +100,53 @@ export function nextResourceCardLinkId(links: readonly ResourceCardLink[]): stri
     if (!used.has(id)) return id;
   }
   return `link-${links.length + 1}`;
+}
+
+/** The two texts of a resource card that can be edited on the canvas (#189). */
+export type ResourceCardField = 'title' | 'description';
+
+export interface ResourceCardLayout {
+  footerHeight: number;
+  bodyHeight: number;
+  iconSize: number;
+  /** Left edge of both text lines. */
+  textX: number;
+  /** Vertical centre and font size of each line, in the card's own coordinates. */
+  title: { y: number; fontSize: number };
+  description: { y: number; fontSize: number };
+}
+
+type CardGeometry = { width: number; height: number; style: { fontSize: number } };
+
+/** Where a resource card draws its parts; the one source for drawing, hit-testing and the text editor. */
+export function resourceCardLayout(element: CardGeometry): ResourceCardLayout {
+  const { fontSize } = element.style;
+  const footerHeight = Math.max(28, Math.min(36, element.height * 0.24));
+  const bodyHeight = Math.max(0, element.height - footerHeight);
+  const iconSize = Math.max(28, Math.min(52, bodyHeight * 0.48, element.width * 0.16));
+  return {
+    footerHeight,
+    bodyHeight,
+    iconSize,
+    textX: 20 + iconSize + 18,
+    title: { y: bodyHeight / 2 - Math.max(5, fontSize * 0.25), fontSize: Math.max(14, fontSize) },
+    description: { y: bodyHeight / 2 + Math.max(16, fontSize * 0.85), fontSize: Math.max(10, fontSize * 0.65) },
+  };
+}
+
+/** The rectangle of one text line in the card's own coordinates: from the text's left edge to the card's right padding. */
+export function resourceCardFieldBox(element: CardGeometry, field: ResourceCardField): { x: number; y: number; width: number; height: number } {
+  const layout = resourceCardLayout(element);
+  const line = layout[field];
+  const height = line.fontSize * 1.3;
+  return { x: layout.textX, y: line.y - height / 2, width: Math.max(24, element.width - layout.textX - 12), height };
+}
+
+/** The text line at a point given in the card's own coordinates, or null beside the texts. */
+export function resourceCardFieldAt(element: CardGeometry, point: { x: number; y: number }): ResourceCardField | null {
+  for (const field of ['title', 'description'] as const) {
+    const box = resourceCardFieldBox(element, field);
+    if (point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height) return field;
+  }
+  return null;
 }

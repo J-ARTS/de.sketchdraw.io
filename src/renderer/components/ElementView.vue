@@ -10,11 +10,11 @@ import { fontFamilyCss } from '../lib/constants';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
-import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLinks } from '@/catalog';
+import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLinks, RESOURCE_CARD_TEXT_COLOR, type ResourceCardField } from '@/catalog';
 import AnnotationContent from './AnnotationContent.vue';
 import TableContent from './TableContent.vue';
 
-const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean; interactive?: boolean; staticPreview?: boolean }>();
+const props = defineProps<{ element: SketchElement; document: SketchDocument; theme: 'light' | 'dark'; editing?: boolean; /** The line of a resource card that is being edited on the canvas (#189); the rest of the card stays visible. */ editingField?: ResourceCardField; interactive?: boolean; staticPreview?: boolean }>();
 const emit = defineEmits<{ openLink: [url: string] }>();
 const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 const e = computed(() => props.element);
@@ -54,10 +54,13 @@ const cloudIconSize = computed(() => Math.max(40, Math.min(64, e.value.width * .
 const definitions = computed(() => [...props.document.componentSets, ...builtInComponentSets].flatMap((set) => set.components));
 const resourceIcon = computed(() => definitions.value.find((candidate) => candidate.type === resourceCardIconType(e.value)) ?? definition.value);
 const cardLinks = computed(() => resourceCardLinks(e.value));
-const cardFooterHeight = computed(() => Math.max(28, Math.min(36, e.value.height * .24)));
-const cardBodyHeight = computed(() => Math.max(0, e.value.height - cardFooterHeight.value));
-const cardIconSize = computed(() => Math.max(28, Math.min(52, cardBodyHeight.value * .48, e.value.width * .16)));
-const cardTextX = computed(() => 20 + cardIconSize.value + 18);
+const cardLayout = computed(() => resourceCardLayout(e.value));
+const cardFooterHeight = computed(() => cardLayout.value.footerHeight);
+const cardBodyHeight = computed(() => cardLayout.value.bodyHeight);
+const cardIconSize = computed(() => cardLayout.value.iconSize);
+const cardTextX = computed(() => cardLayout.value.textX);
+/** Resource card text is black unless a text colour was chosen; it does not follow the frame colour (#189). */
+const cardTextColor = computed(() => themeColor(e.value.style.textColor ?? RESOURCE_CARD_TEXT_COLOR, props.theme));
 function clampCardText(value: string, size: number): string {
   const available = Math.max(24, e.value.width - cardTextX.value - 18);
   const max = Math.max(3, Math.floor(available / (size * .58)));
@@ -199,11 +202,11 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       </text>
       <text data-testid="cloud-component-provider" :x="e.width / 2" :y="cloudProviderY" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
     </g>
-    <g v-if="resourceCard && !editing" data-testid="resource-card-content" pointer-events="none">
-      <text :x="cardTextX" :y="cardBodyHeight / 2 - Math.max(5, e.style.fontSize * .25)" :fill="textColor" :font-size="Math.max(14, e.style.fontSize)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
-      <text :x="cardTextX" :y="cardBodyHeight / 2 + Math.max(16, e.style.fontSize * .85)" :fill="textColor" fill-opacity=".55" :font-size="Math.max(10, e.style.fontSize * .65)" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
+    <g v-if="resourceCard" data-testid="resource-card-content" pointer-events="none">
+      <text v-if="editingField !== 'title'" data-testid="resource-card-title" :x="cardTextX" :y="cardLayout.title.y" :fill="cardTextColor" :font-size="cardLayout.title.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
+      <text v-if="editingField !== 'description'" data-testid="resource-card-description" :x="cardTextX" :y="cardLayout.description.y" :fill="cardTextColor" :font-size="cardLayout.description.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
     </g>
-    <template v-if="resourceCard && !editing">
+    <template v-if="resourceCard">
       <g
         v-for="(link, index) in cardLinks"
         :key="link.id"
