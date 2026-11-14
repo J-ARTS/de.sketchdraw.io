@@ -82,3 +82,51 @@ test('templates are found from the main search, and the libraries are English in
   await library.getByRole('button', { name: 'Back to all shapes' }).click();
   await expect(page.getByTestId('open-diagram-library-er')).toContainText('ER diagrams');
 });
+
+test('a sequence diagram grows by click: new messages and new lifelines from the selection bar (#192)', async ({ page }) => {
+  const library = await openLibrary(page, 'sequence');
+  await library.getByRole('button', { name: 'Beispiel: Anfrage und Antwort' }).click();
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const canvas = page.locator('.whiteboard-canvas');
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await expect(canvas.locator('[data-kind="connector"]')).toHaveCount(2);
+
+  // Select the lifeline "Client" by its box.
+  const head = canvas.locator('[data-kind="rectangle"]').filter({ hasText: 'Client' });
+  const box = (await head.boundingBox())!;
+  await page.mouse.click(200, 700);
+  await page.mouse.click(box.x + 8, box.y + 8);
+  const addMessage = toolbar.getByRole('button', { name: 'Nachricht hinzufügen' });
+  const addLifeline = toolbar.getByRole('button', { name: 'Lebenslinie hinzufügen' });
+  await expect(addMessage).toBeVisible();
+
+  await addMessage.click();
+  await expect(canvas.locator('[data-kind="connector"]')).toHaveCount(3);
+  // The new message is selected, and the bar keeps offering the next one.
+  await addMessage.click();
+  await expect(canvas.locator('[data-kind="connector"]')).toHaveCount(4);
+  const messages = await canvas.locator('[data-kind="connector"]').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect()).map((rect) => Math.round(rect.y + rect.height / 2)).sort((a, b) => a - b));
+  // Four messages, evenly spaced from top to bottom.
+  expect(new Set(messages).size).toBe(4);
+  expect(messages[3]! - messages[2]!).toBe(messages[1]! - messages[0]!);
+
+  await addLifeline.click();
+  await expect(canvas.locator('[data-kind="rectangle"]')).toHaveCount(3);
+  await expect(canvas.locator('[data-kind="rectangle"]').filter({ hasText: 'Teilnehmer 3' })).toBeVisible();
+  // The new lifeline is selected: the next message starts there and runs to its neighbour.
+  await addMessage.click();
+  await expect(canvas.locator('[data-kind="connector"]')).toHaveCount(5);
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // Each click is one undo step.
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(canvas.locator('[data-kind="connector"]')).toHaveCount(4);
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(canvas.locator('[data-kind="rectangle"]')).toHaveCount(2);
+
+  // Other selections do not show the two actions.
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(150, 650); await page.mouse.down(); await page.mouse.move(260, 720, { steps: 4 }); await page.mouse.up();
+  await expect(toolbar.getByRole('button', { name: 'Nachricht hinzufügen' })).toHaveCount(0);
+});

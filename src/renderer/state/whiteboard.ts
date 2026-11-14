@@ -44,6 +44,7 @@ import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickCon
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
+import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
   ERASER_RADIUS_DEFAULT, PENCIL_OPACITY_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption,
@@ -1387,6 +1388,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.transitioning) return;
       const component = useCustomComponents().get(id);
       if (component) await store.insertElements(component.payload, screenAt, component.name);
+    },
+    async addSequenceLifeline() {
+      if (state.transitioning) return;
+      const context = sequenceContext(state.document, state.activePageId, state.selection);
+      if (!context) return;
+      const plan = planAddLifeline(context, uid, t('Teilnehmer'));
+      if (await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Lebenslinie hinzugefügt.'); }
+    },
+    async addSequenceMessage() {
+      if (state.transitioning) return;
+      const context = sequenceContext(state.document, state.activePageId, state.selection);
+      if (!context) return;
+      try {
+        const plan = planAddMessage(context, state.document, uid, t('Nachricht'), t('Teilnehmer'));
+        if (await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Nachricht hinzugefügt.'); }
+      }
+      catch (error) { fail(error); }
     },
     async insertElements(payload, screenAt, name) {
       if (state.transitioning) return false;

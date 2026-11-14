@@ -18,6 +18,7 @@ import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
+import { sequenceContext } from '@/renderer/lib/sequence-diagram';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
@@ -69,6 +70,8 @@ const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
 /** #44: the bar stays usable while the selected element's text is edited; style changes go to the text draft. */
 const editing = computed(() => Boolean(s.textEdit));
 const resourceEditorOpen = ref(false);
+/** The selection is a lifeline or a message of a sequence diagram (#192): the bar offers to extend it. */
+const sequenceCapable = computed(() => Boolean(sequenceContext(s.document, s.activePageId, s.selection)));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
@@ -587,6 +590,11 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" :aria-label="t('Komponenteneinstellungen')" :disabled="editing" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" :title="unavailable(t('Komponenteneinstellungen'))" @click="toggle('more')">
           <AppIcon name="more" />
         </button>
+      </template>
+      <template v-if="sequenceCapable">
+        <span class="sep" aria-hidden="true" />
+        <button type="button" class="tool-btn" data-testid="sequence-add-lifeline" :disabled="editing || s.transitioning" :aria-label="t('Lebenslinie hinzufügen')" :title="unavailable(t('Lebenslinie hinzufügen'))" @click="store.addSequenceLifeline()"><AppIcon name="sequence-lifeline" /></button>
+        <button type="button" class="tool-btn" data-testid="sequence-add-message" :disabled="editing || s.transitioning" :aria-label="t('Nachricht hinzufügen')" :title="unavailable(t('Nachricht hinzufügen'))" @click="store.addSequenceMessage()"><AppIcon name="sequence-message" /></button>
       </template>
       <span class="sep" aria-hidden="true" />
       <button :ref="(el) => setTrigger('actions', el)" type="button" class="tool-btn" :aria-label="t('Elementaktionen')" :disabled="editing" :aria-expanded="openSegment === 'actions'" :aria-controls="panelId('actions')" :title="unavailable(t('Elementaktionen'))" @click="toggle('actions')">

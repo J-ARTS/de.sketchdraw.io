@@ -1243,4 +1243,9 @@ export const EN: Readonly<Record<string, string>> = {
   "Vorlagen durchsuchen": "Search templates",
   "Weitere": "More",
   "Zeitereignis": "Timer event",
+  "Teilnehmer": "Participant",
+  "Lebenslinie hinzugefügt.": "Lifeline added.",
+  "Nachricht hinzugefügt.": "Message added.",
+  "Lebenslinie hinzufügen": "Add lifeline",
+  "Nachricht hinzufügen": "Add message",
 };

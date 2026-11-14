@@ -382,6 +382,10 @@ export interface WhiteboardStore {
    * canvas centre or centred on a screen-space point, as one undo step. `name` is announced to screen readers.
    */
   insertElements(payload: ElementClipboardPayload, screenAt?: Point, name?: string): Promise<boolean>;
+  /** Adds a lifeline to the sequence diagram of the selection, right of the outermost one (#192). */
+  addSequenceLifeline(): Promise<void>;
+  /** Adds a message from the selection's lifeline to its neighbour, below the lowest message (#192). */
+  addSequenceMessage(): Promise<void>;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;
