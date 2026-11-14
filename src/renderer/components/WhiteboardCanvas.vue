@@ -16,6 +16,7 @@ import { DOCK_POINTS } from '../lib/geometry';
 import { defaultSizeFor, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '../lib/constants';
 import type { PointerInput } from '../state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '../lib/component-drag';
+import { CUSTOM_COMPONENT_DRAG_MIME } from '../lib/custom-components';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -148,11 +149,19 @@ function wheel(event: WheelEvent) {
   store.wheel({ x: event.clientX - box.left, y: event.clientY - box.top, deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode, ctrlKey: event.ctrlKey || event.metaKey, shiftKey: event.shiftKey });
 }
 function dragOver(event: DragEvent): void {
-  if (!peekComponentDrag() && !event.dataTransfer?.types.includes(COMPONENT_DRAG_MIME)) return;
+  if (!peekComponentDrag() && !event.dataTransfer?.types.includes(COMPONENT_DRAG_MIME) && !event.dataTransfer?.types.includes(CUSTOM_COMPONENT_DRAG_MIME)) return;
   event.preventDefault();
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
 }
 function dropComponent(event: DragEvent): void {
+  // One of the user's own components (#188) travels by its id.
+  const customId = event.dataTransfer?.getData(CUSTOM_COMPONENT_DRAG_MIME);
+  if (customId && canvas.value) {
+    event.preventDefault();
+    const area = canvas.value.getBoundingClientRect();
+    void store.insertCustomComponent(customId, { x: event.clientX - area.left, y: event.clientY - area.top });
+    return;
+  }
   const payload = takeComponentDrag();
   if (!payload || !canvas.value) return;
   event.preventDefault();

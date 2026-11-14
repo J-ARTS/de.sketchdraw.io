@@ -7,13 +7,18 @@ import { loadAllOfficialLibraries, loadOfficialLibrary, officialIconCount, searc
 import { matchesShape, SHAPE_CATALOG, type ShapeEntry } from '@/renderer/lib/shapes';
 import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
 import { beginComponentDrag, clearComponentDrag, COMPONENT_DRAG_MIME } from '@/renderer/lib/component-drag';
+import { useCustomComponents } from '@/renderer/lib/custom-components';
 import AppIcon from './AppIcon.vue';
+import CustomComponentsTab from './CustomComponentsTab.vue';
 import SafeIcon from './SafeIcon';
 import { useWhiteboard } from './use-whiteboard';
 
 const store = useWhiteboard();
 const s = store.state;
 const toolbarState = useShapeToolbarState();
+/** The user's own components (#188) have their own tab beside the shapes. */
+const customLibrary = useCustomComponents();
+const tab = customLibrary.tab;
 const query = ref('');
 const activeLibrary = ref<ComponentDefinition['provider'] | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
@@ -63,6 +68,8 @@ watch(activeLibrary, async (provider) => {
   finally { libraryLoading.value = false; }
 });
 const searching = computed(() => query.value.trim().length > 0);
+/** The own components are shown; a provider library (AWS, …) opened from the shapes tab takes precedence. */
+const customTab = computed(() => tab.value === 'custom' && !activeLibrary.value);
 watch(searching, async (active) => {
   if (!active || officialAll.value) return;
   try { officialAll.value = await loadAllOfficialLibraries(); } catch { /* starter sets stay searchable */ }
@@ -169,6 +176,18 @@ function dragShape(event: DragEvent, entry: ShapeEntry): void {
   event.dataTransfer?.setData('text/x-sketchdraw-shape', entry.id);
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
 }
+function selectTab(next: 'shapes' | 'custom'): void {
+  if (next === 'custom') toolbarState.stopEditing();
+  tab.value = next;
+}
+/** Arrow keys move between the two tabs, as in every tab list. */
+function onTabKeydown(event: KeyboardEvent): void {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 'shapes' : event.key === 'End' ? 'custom' : tab.value === 'shapes' ? 'custom' : 'shapes';
+  selectTab(next);
+  void nextTick(() => document.getElementById(`library-tab-${next}`)?.focus());
+}
 function toggleEditing(): void {
   if (toolbarState.editing.value) toolbarState.stopEditing();
   else toolbarState.startEditing();
@@ -183,9 +202,13 @@ function onKeydown(event: KeyboardEvent): void {
 onMounted(async () => {
   opener.value = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   await nextTick();
-  searchInput.value?.focus();
+  // A component that was just saved is waiting for its name; that field keeps the focus.
+  if (!customLibrary.renamingId.value) searchInput.value?.focus();
 });
 onBeforeUnmount(() => {
+  // The next opening starts with the shapes again.
+  tab.value = 'shapes';
+  customLibrary.renamingId.value = null;
   const target = opener.value;
   if (target?.isConnected) queueMicrotask(() => target.focus());
 });
@@ -199,19 +222,23 @@ onBeforeUnmount(() => {
         <h2 class="sd-panel-title">{{ activeLibrary ? libraryLabel : t('Formen') }}</h2>
         <button type="button" class="header-action close-button sd-panel-close" :aria-label="t('Formen schließen')" @click="close"><AppIcon name="close" /></button>
       </div>
+      <div v-if="!activeLibrary" class="library-tabs" role="tablist" :aria-label="t('Bereiche der Bibliothek')" @keydown="onTabKeydown">
+        <button id="library-tab-shapes" type="button" role="tab" class="library-tab" :aria-selected="tab === 'shapes'" aria-controls="library-tabpanel" :tabindex="tab === 'shapes' ? 0 : -1" @click="selectTab('shapes')">{{ t('Formen') }}</button>
+        <button id="library-tab-custom" type="button" role="tab" class="library-tab" :aria-selected="tab === 'custom'" aria-controls="library-tabpanel" :tabindex="tab === 'custom' ? 0 : -1" @click="selectTab('custom')">{{ t('Eigene') }}<span v-if="customLibrary.components.value.length" class="tab-count">{{ customLibrary.components.value.length }}</span></button>
+      </div>
       <label class="library-search">
         <AppIcon name="search" :size="20" />
-        <span class="visually-hidden">{{ t('Formen durchsuchen') }}</span>
-        <input ref="searchInput" v-model="query" type="search" :aria-label="t('Formen durchsuchen')" :placeholder="t('Formen durchsuchen')" autocomplete="off" spellcheck="false" />
+        <span class="visually-hidden">{{ customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen') }}</span>
+        <input ref="searchInput" v-model="query" type="search" :aria-label="customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen')" :placeholder="customTab ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen')" autocomplete="off" spellcheck="false" />
       </label>
-      <div class="customize-row">
+      <div v-if="!customTab" class="customize-row">
         <p v-if="toolbarState.editing.value">{{ t('Form anklicken oder in die obere Leiste ziehen.') }}</p>
         <span v-else>{{ t('Lieblingsformen direkt in der oberen Leiste ablegen.') }}</span>
         <button type="button" :aria-pressed="toolbarState.editing.value" @click="toggleEditing">{{ toolbarState.editing.value ? t('Fertig') : t('Leiste anpassen') }}</button>
       </div>
     </header>
 
-    <div ref="scroller" class="library-scroll">
+    <div id="library-tabpanel" ref="scroller" class="library-scroll" :role="activeLibrary ? undefined : 'tabpanel'" :aria-labelledby="activeLibrary ? undefined : `library-tab-${tab}`">
       <template v-if="activeLibrary">
         <p v-if="libraryLoading" class="empty-state" role="status">{{ t('Bibliothek wird geladen …') }}</p>
         <p v-if="libraryError" class="empty-state" role="alert">{{ t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
@@ -228,6 +255,8 @@ onBeforeUnmount(() => {
         </section>
         <p v-if="!libraryComponents.length && !libraryLoading" class="empty-state">{{ t('Keine passenden Symbole gefunden.') }}</p>
       </template>
+
+      <CustomComponentsTab v-else-if="customTab" :query="query" />
 
       <template v-else-if="searching">
         <section class="search-results">
@@ -298,6 +327,7 @@ onBeforeUnmount(() => {
 .shape-library{position:absolute;z-index:22;top:var(--panel-top);right:18px;bottom:18px;width:min(420px,calc(100vw - 36px));display:flex;flex-direction:column;overflow:hidden;border-radius:22px;box-shadow:var(--shadow-panel)}
 .library-header{flex:none;padding:8px 24px 12px;border-bottom:1px solid var(--border-subtle);background:var(--surface-panel)}
 .library-title-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}.close-button{margin-left:auto}.header-action{display:grid;width:36px;height:36px;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--text-primary);font-size:18px;line-height:1;cursor:pointer}.header-action:hover{background:var(--surface-raised)}
+.library-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px;padding:4px;border-radius:12px;background:var(--surface-raised)}.library-tab{display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer}.library-tab:hover{color:var(--text-primary)}.library-tab[aria-selected=true]{background:var(--surface-panel);color:var(--text-primary);box-shadow:0 1px 2px rgb(0 0 0 / .12)}.library-tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}.tab-count{min-width:20px;padding:1px 6px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;line-height:1.5}
 .library-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 12px;border:1px solid transparent;border-radius:12px;background:var(--surface-raised);color:var(--text-muted)}.library-search:focus-within{border-color:var(--accent)}.library-search input{min-width:0;width:100%;height:100%;border:0;outline:0;background:transparent;color:var(--text-primary);font:inherit;font-size:16px}.library-search input::placeholder{color:var(--text-muted)}
 .customize-row{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--text-muted);font-size:11px}.customize-row p,.customize-row span{flex:1;margin:0}.customize-row button,.reset-button{flex:none;min-height:34px;padding:0 10px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-raised);color:var(--text-primary);cursor:pointer}.customize-row button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .library-scroll{flex:1;min-height:0;overflow:auto;background:var(--surface-panel)}.accordion-section{border-bottom:1px solid var(--border-subtle)}.accordion-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:66px;padding:0 24px;border:0;background:transparent;color:var(--text-primary);font-size:17px;font-weight:650;text-align:left;cursor:pointer}.accordion-trigger:hover{background:var(--surface-raised)}.accordion-trigger>span:last-child{font-size:24px;transition:transform .16s ease}.accordion-trigger[aria-expanded=true]>span:last-child{transform:rotate(180deg)}
@@ -309,5 +339,5 @@ onBeforeUnmount(() => {
 .empty-state{padding:18px 24px;color:var(--text-muted);font-size:11px;line-height:1.5}.library-footer{flex:none;display:grid;gap:10px;padding:12px 20px;border-top:1px solid var(--border-subtle);background:var(--surface-panel)}.reset-button{justify-self:start}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.shape-library{right:12px;bottom:12px;width:calc(100vw - 24px)}.library-header{padding:8px 16px 12px}.shape-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding-inline:14px}.component-grid{padding-inline:14px}.provider-row{padding-inline:16px}}
 @media(prefers-reduced-motion:reduce){.accordion-trigger>span:last-child{transition:none}}
-@media(forced-colors:active){.shape-tile.favorite{outline:2px solid Highlight}.customize-row button[aria-pressed=true]{outline:2px solid Highlight}}
+@media(forced-colors:active){.library-tab[aria-selected=true]{outline:2px solid Highlight}.shape-tile.favorite{outline:2px solid Highlight}.customize-row button[aria-pressed=true]{outline:2px solid Highlight}}
 </style>

@@ -365,6 +365,13 @@ export interface WhiteboardStore {
   /** Paste event: Sketchdraw elements from its text, otherwise its image, at the pointer. */
   pasteClipboardData(content: ClipboardContent): Promise<void>;
   duplicateSelection(): void;
+  /**
+   * Saves the selection to the user's own component library (#188) under a derived name. Returns the id of the
+   * new component, or null when nothing could be saved; the reason is shown as a notice.
+   */
+  saveSelectionAsComponent(): string | null;
+  /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
+  insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;
   endNudge(): void;
   reorder(op: 'front' | 'back' | 'forward' | 'backward'): void;

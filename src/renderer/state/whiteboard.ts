@@ -43,6 +43,7 @@ import {
 import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
+import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
   ERASER_RADIUS_DEFAULT, PENCIL_OPACITY_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption,
@@ -1323,6 +1324,37 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         return;
       }
       await pasteContent(content.text, content.image, revision);
+    },
+    saveSelectionAsComponent() {
+      const payload = elementClipboardPayload(state.document, state.selection);
+      if (!payload) return null;
+      const library = useCustomComponents();
+      // One selected element with a caption names the component; anything else gets a numbered default.
+      const only = state.selection.length === 1 ? state.document.elements.find((element) => element.id === state.selection[0]) : undefined;
+      const caption = normalizeComponentName((only?.text || only?.label || '').split('\n')[0] ?? '');
+      const result = library.add(caption || library.numberedName(t('Komponente')), payload, () => uid('custom-component'));
+      if (result.ok) {
+        notice(t('„{name}“ wurde als Komponente gespeichert.', { name: result.component.name }));
+        return result.component.id;
+      }
+      const reasons = {
+        empty: t('Die Auswahl lässt sich nicht als Komponente speichern.'),
+        'too-large': t('Die Auswahl ist zu groß für eine Komponente (höchstens {limit} KB). Bilder machen eine Komponente groß.', { limit: CUSTOM_COMPONENT_LIMITS.MAX_COMPONENT_BYTES / 1024 }),
+        'library-full': t('Die eigene Bibliothek ist voll. Lösche Komponenten, die du nicht mehr brauchst.'),
+        storage: t('Die Komponente konnte nicht gespeichert werden.'),
+      };
+      notice(reasons[result.reason], 'error');
+      return null;
+    },
+    async insertCustomComponent(id, screenAt) {
+      if (state.transitioning) return;
+      const component = useCustomComponents().get(id);
+      if (!component) return;
+      try {
+        const plan = planElementPaste(component.payload, state.document, screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter(), uid);
+        if (await dispatch(plan.command)) { setSelection(plan.selection); state.tool = 'select'; state.liveMessage = t('„{name}“ eingefügt.', { name: component.name }); }
+      }
+      catch (error) { fail(error); }
     },
     duplicateSelection() {
       if (!state.canWrite || state.transitioning || !state.selection.length) return;

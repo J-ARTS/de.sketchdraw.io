@@ -17,6 +17,7 @@ import { linkAt } from '@/renderer/lib/text-links';
 import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard } from '@/catalog';
+import { useCustomComponents } from '@/renderer/lib/custom-components';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
@@ -394,6 +395,17 @@ function runSelectionAction(action: 'back' | 'backward' | 'forward' | 'front' | 
   if (action === 'clone') store.duplicateSelection();
   else store.reorder(action);
 }
+/** Saves the selection to the own library (#188) and leads there, with the new name ready to be changed. */
+function saveAsComponent(): void {
+  if (editing.value) return;
+  close(false);
+  const id = store.saveSelectionAsComponent();
+  if (!id) return;
+  const library = useCustomComponents();
+  library.tab.value = 'custom';
+  library.renamingId.value = id;
+  store.setCatalogOpen(true);
+}
 async function createStickyTask(): Promise<void> {
   const elementId = info.value.singleId;
   if (!elementId || stickyTaskExists.value) return;
@@ -715,6 +727,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button type="button" class="action-button" :aria-label="t('Ganz nach vorn')" :title="t('Ganz nach vorn')" :disabled="!canMoveForward" @click="runSelectionAction('front')"><AppIcon name="order-front" /></button>
       <span class="action-separator" aria-hidden="true" />
       <button type="button" class="action-button" :aria-label="t('Klonen')" :title="t('Klonen')" @click="runSelectionAction('clone')"><AppIcon name="duplicate" /></button>
+      <button type="button" class="action-button" data-testid="save-as-component" :aria-label="t('Als Komponente speichern')" :title="t('Als Komponente speichern')" @click="saveAsComponent"><AppIcon name="component-add" /></button>
       <button type="button" class="action-button danger" :aria-label="t('Löschen')" :title="t('Löschen')" @click="runSelectionAction('delete')"><AppIcon name="trash" /></button>
     </div>
 
