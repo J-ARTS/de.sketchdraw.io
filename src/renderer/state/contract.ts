@@ -386,6 +386,8 @@ export interface WhiteboardStore {
    * canvas centre or centred on a screen-space point, as one undo step. `name` is announced to screen readers.
    */
   insertElements(payload: ElementClipboardPayload, screenAt?: Point, name?: string): Promise<boolean>;
+  /** Adds a lane at the bottom of the BPMN pool of the selection; the pool grows by it (#196). */
+  addBpmnLane(): Promise<void>;
   /** Adds a lifeline to the sequence diagram of the selection, right of the outermost one (#192). */
   addSequenceLifeline(): Promise<void>;
   /** Adds a message from the selection's lifeline to its neighbour, below the lowest message (#192). */

@@ -45,6 +45,7 @@ import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
 import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
+import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
@@ -1118,7 +1119,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (kind === 'marquee' && !input.shiftKey) setSelection([]);
       // A connector may start anywhere: on an element it docks there, on empty canvas (or on another connector) it is free.
       const dockStart = state.tool === 'connector' && target && target.kind !== 'connector' ? target : null;
-      const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : selected().map(clone);
+      // A lane is part of its pool: dragging it moves the whole pool with everything in it (#196).
+      const lanePool = kind === 'move' && state.selection.length === 1 && swimlaneRole(selected()[0]) === 'lane' ? poolOf(state.document, selected()[0]) : null;
+      const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : lanePool ? [clone(lanePool)] : selected().map(clone);
       let connectorPoints: Point[] | undefined;
       let connectorPointIndex: number | undefined;
       let connectorSegmentIndex: number | undefined;
@@ -1253,7 +1256,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           value = { ...rect, x: rotatedCenter.x - rect.width / 2, y: rotatedCenter.y - rect.height / 2 };
           if (el.points) value.points = el.points.map((p) => ({ x: el.width ? p.x * rect.width / el.width : p.x, y: el.height ? p.y * rect.height / el.height : p.y }));
         }
-        g.preview = { type: 'update', changes: [{ id: el.id, patch: value }] }; state.previewCommand = g.preview;
+        // Resizing a BPMN pool or lane keeps the lanes flush with their pool (#196).
+        g.preview = g.kind === 'resize' ? withSwimlaneLayout(g.base.document, { type: 'update', changes: [{ id: el.id, patch: value }] }) : { type: 'update', changes: [{ id: el.id, patch: value }] }; state.previewCommand = g.preview;
       }
       g.last = point; changedDraft();
     },
@@ -1422,6 +1426,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const component = useCustomComponents().get(id);
       if (component) await store.insertElements(component.payload, screenAt, component.name);
     },
+    async addBpmnLane() {
+      if (state.transitioning) return;
+      const plan = planAddLane(state.document, selected()[0], uid, (index) => t('Bahn {index}', { index }));
+      if (plan && await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Bahn hinzugefügt.'); }
+    },
     async addSequenceLifeline() {
       if (state.transitioning) return;
       const context = sequenceContext(state.document, state.activePageId, state.selection);
@@ -1442,7 +1451,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async insertElements(payload, screenAt, name) {
       if (state.transitioning) return false;
       try {
-        const plan = planElementPaste(payload, state.document, screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter(), uid);
+        const at = screenAt ? screenToDoc(state.viewport, screenAt) : currentCenter();
+        const plan = planElementPaste(payload, state.document, at, uid);
+        // Dropped onto a container (a group, a BPMN lane), the new elements become its children, like a dropped component.
+        const parent = screenAt ? containerAt(pageEls(), at, new Set()) : undefined;
+        if (parent) {
+          const added = plan.command.type === 'add' ? plan.command : plan.command.type === 'batch' ? plan.command.commands.find((command) => command.type === 'add') : undefined;
+          if (added?.type === 'add') for (const element of added.elements) if (!element.parentId) element.parentId = parent.id;
+        }
         if (!await dispatch(plan.command)) return false;
         setSelection(plan.selection); state.tool = 'select';
         state.liveMessage = name ? t('„{name}“ eingefügt.', { name }) : tn(plan.selection.length, '{count} Element eingefügt.', '{count} Elemente eingefügt.');

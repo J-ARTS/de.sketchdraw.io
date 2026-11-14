@@ -8,6 +8,8 @@ import { lineSegments, parseTextLinks } from '../lib/text-links';
 import { wrapWords } from '../lib/text-metrics';
 import { fontFamilyCss } from '../lib/constants';
 import { connectorLabelPosition, pointOnConnector } from '../lib/connector-label';
+import { bpmnDecoration } from '../lib/bpmn';
+import BpmnDecor from './BpmnDecor.vue';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
@@ -40,6 +42,8 @@ const groupTile = computed(() => {
 const asset = computed(() => props.document.assets[e.value.assetId ?? '']);
 const definition = computed(() => props.document.componentSets.flatMap((set) => set.components).find((c) => c.type === e.value.componentType));
 const resourceCard = computed(() => isResourceCard(e.value));
+/** BPMN marks in the metadata (#196): title strip of pools and lanes, event rings, symbols and markers. */
+const bpmn = computed(() => bpmnDecoration(e.value));
 const cloudProvider = computed(() => {
   const provider = definition.value?.provider;
   return provider === 'aws' || provider === 'azure' || provider === 'gcp' || provider === 'kubernetes' ? provider : null;
@@ -195,6 +199,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <path v-else-if="e.kind === 'connector'" :d="connectorPath" fill="none" :marker-start="markerUrl(startMarker)" :marker-end="markerUrl(endMarker)" />
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
+    <BpmnDecor v-if="bpmn" :element="e" :decoration="bpmn" :stroke="stroke" :fill="fill" :text-color="textColor" :editing="editing" />
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
     <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
@@ -266,7 +271,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
         </div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !bpmn?.role && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25"><template v-if="line.bullet">• </template><template v-for="(segment, j) in lineSegments(line.text, line.from, textLinks)" :key="j"><tspan v-if="segment.url" class="text-link" text-decoration="underline" pointer-events="visiblePainted" :data-text-link="segment.url">{{ segment.text }}</tspan><template v-else>{{ segment.text }}</template></template></tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="textColor" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>

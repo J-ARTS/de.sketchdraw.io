@@ -19,6 +19,7 @@ import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceContext } from '@/renderer/lib/sequence-diagram';
+import { swimlaneRole } from '@/renderer/lib/bpmn';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
@@ -72,6 +73,8 @@ const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
 const editing = computed(() => Boolean(s.textEdit));
 const resourceEditorOpen = ref(false);
 /** The selection is a lifeline or a message of a sequence diagram (#192): the bar offers to extend it. */
+/** A BPMN pool or lane is selected (#196): the bar offers another lane. */
+const swimlaneSelected = computed(() => info.value.count === 1 && Boolean(swimlaneRole(single.value)));
 const sequenceCapable = computed(() => Boolean(sequenceContext(s.document, s.activePageId, s.selection)));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
@@ -596,6 +599,10 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <button :ref="(el) => setTrigger('more', el)" type="button" class="tool-btn" :aria-label="t('Komponenteneinstellungen')" :disabled="editing" :aria-expanded="openSegment === 'more'" :aria-controls="panelId('more')" :title="unavailable(t('Komponenteneinstellungen'))" @click="toggle('more')">
           <AppIcon name="more" />
         </button>
+      </template>
+      <template v-if="swimlaneSelected">
+        <span class="sep" aria-hidden="true" />
+        <button type="button" class="tool-btn" data-testid="bpmn-add-lane" :disabled="editing || s.transitioning" :aria-label="t('Bahn hinzufügen')" :title="unavailable(t('Bahn hinzufügen'))" @click="store.addBpmnLane()"><AppIcon name="lane-add" /></button>
       </template>
       <template v-if="sequenceCapable">
         <span class="sep" aria-hidden="true" />

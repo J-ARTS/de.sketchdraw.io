@@ -57,7 +57,7 @@ test('the BPMN library inserts events, tasks, gateways, lanes and a connected ex
   await page.getByTestId('workspace-menu-button').click();
   await page.getByRole('menuitemcheckbox', { name: 'Code', exact: true }).click();
   const code = await page.getByTestId('diagram-code').inputValue();
-  expect(code).toContain('Aufgabe');
+  expect(code).toContain('Antrag prüfen');
   expect(code).toContain('Bahn 2');
 });
 
@@ -66,7 +66,7 @@ test('templates are found from the main search, and the libraries are English in
   const library = page.getByTestId('shape-library-sidebar');
   await library.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('gateway');
   const results = page.getByTestId('diagram-template-results');
-  await expect(results.getByRole('button')).toHaveCount(3);
+  await expect(results.getByRole('button')).toHaveCount(4);
   await results.getByRole('button', { name: 'Exklusives Gateway' }).click();
   await expect(page.locator('.whiteboard-canvas [data-kind="diamond"]')).toHaveCount(1);
 

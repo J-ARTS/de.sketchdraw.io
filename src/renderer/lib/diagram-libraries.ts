@@ -1,6 +1,7 @@
 import { createElement, type ConnectorMarker, type ConnectorRouting, type ElementStyle, type Point, type SketchElement, type TableDocument } from '@/domain';
 import { L } from '@/renderer/i18n';
 import { DEFAULT_STYLE, STYLE_BY_KIND } from './constants';
+import { BPMN_EVENT_KEY, BPMN_ICON_KEY, BPMN_ICON_STYLE_KEY, BPMN_MARKER_KEY, createLane, createPool, type BpmnEvent, type BpmnMarker } from './bpmn';
 import { ELEMENT_CLIPBOARD_FORMAT, type ElementClipboardPayload } from '../state/element-clipboard';
 
 /**
@@ -118,50 +119,101 @@ const er: DiagramLibrary = {
   ],
 };
 
-const round = (id: string, text: string, look: Partial<ElementStyle>): SketchElement => shape('ellipse', id, { x: 0, y: 0, width: 56, height: 56 }, text, {}, look);
-const task = (id: string, at: Point, text: string): SketchElement => shape('rectangle', id, { x: at.x, y: at.y, width: 150, height: 80 }, text, { shapeVariant: 'rounded' });
-const gateway = (id: string, at: Point, symbol: string): SketchElement => shape('diamond', id, { x: at.x, y: at.y, width: 72, height: 72 }, symbol, {}, { fontSize: 24, fill: '#fff9db' });
+type Meta = Record<string, string>;
+const EVENT_LOOK: Record<BpmnEvent, Partial<ElementStyle>> = {
+  start: { stroke: '#2f9e44', fill: '#ebfbee', strokeWidth: 1.5 },
+  intermediate: { stroke: '#1971c2', fill: '#e7f5ff', strokeWidth: 1.5 },
+  end: { stroke: '#c92a2a', fill: '#fff5f5', strokeWidth: 4 },
+};
+/** An event: a circle whose border says start, intermediate or end, with an optional symbol; `solid` symbols mark throwing events. */
+function event(id: string, kind: BpmnEvent, icon?: string, solid = false, at: Point = { x: 0, y: 0 }): SketchElement {
+  const metadata: Meta = { [BPMN_EVENT_KEY]: kind, ...(icon ? { [BPMN_ICON_KEY]: icon } : {}), ...(solid ? { [BPMN_ICON_STYLE_KEY]: 'solid' } : {}) };
+  return createElement('ellipse', { id, x: at.x, y: at.y, width: 48, height: 48, metadata, style: style({ textAlign: 'center', fontSize: 12, ...EVENT_LOOK[kind] }) });
+}
+interface ActivityOptions { icon?: string; solid?: boolean; marker?: BpmnMarker; look?: Partial<ElementStyle> }
+/** An activity: a rounded rectangle with an optional type symbol at the top left and a marker at the bottom. */
+function activity(id: string, at: Point, text: string, options: ActivityOptions = {}): SketchElement {
+  const metadata: Meta = { ...(options.icon ? { [BPMN_ICON_KEY]: options.icon } : {}), ...(options.solid ? { [BPMN_ICON_STYLE_KEY]: 'solid' } : {}), ...(options.marker ? { [BPMN_MARKER_KEY]: options.marker } : {}) };
+  return shape('rectangle', id, { x: at.x, y: at.y, width: 150, height: 80 }, text, { shapeVariant: 'rounded', ...(Object.keys(metadata).length ? { metadata } : {}) }, { fill: '#fff9db', ...options.look });
+}
+const task = (id: string, at: Point, text: string): SketchElement => activity(id, at, text);
+const gateway = (id: string, at: Point, symbol: string): SketchElement => shape('diamond', id, { x: at.x, y: at.y, width: 64, height: 64 }, symbol, {}, { fontSize: 24, fontWeight: 'bold' });
+
+const EVENTS: ReadonlyArray<readonly [string, string, BpmnEvent, string | undefined, boolean, string]> = [
+  ['bpmn.start', L('Startereignis'), 'start', undefined, false, 'start event'],
+  ['bpmn.start-message', L('Start: Nachricht'), 'start', 'message', false, 'start message nachricht'],
+  ['bpmn.start-timer', L('Start: Zeit'), 'start', 'timer', false, 'start timer zeit'],
+  ['bpmn.start-conditional', L('Start: Bedingung'), 'start', 'conditional', false, 'start conditional bedingung'],
+  ['bpmn.start-signal', L('Start: Signal'), 'start', 'signal', false, 'start signal'],
+  ['bpmn.intermediate', L('Zwischenereignis'), 'intermediate', undefined, false, 'intermediate event'],
+  ['bpmn.message', L('Nachricht empfangen'), 'intermediate', 'message', false, 'intermediate message catch nachrichtenereignis'],
+  ['bpmn.message-throw', L('Nachricht senden'), 'intermediate', 'message', true, 'intermediate message throw senden'],
+  ['bpmn.timer', L('Zeitereignis'), 'intermediate', 'timer', false, 'timer intermediate zeit'],
+  ['bpmn.intermediate-conditional', L('Bedingung'), 'intermediate', 'conditional', false, 'conditional intermediate'],
+  ['bpmn.intermediate-signal', L('Signal empfangen'), 'intermediate', 'signal', false, 'signal catch'],
+  ['bpmn.intermediate-signal-throw', L('Signal senden'), 'intermediate', 'signal', true, 'signal throw'],
+  ['bpmn.intermediate-link', L('Link'), 'intermediate', 'link', false, 'link verweis'],
+  ['bpmn.intermediate-escalation', L('Eskalation'), 'intermediate', 'escalation', true, 'escalation'],
+  ['bpmn.end', L('Endereignis'), 'end', undefined, false, 'end event ende'],
+  ['bpmn.end-message', L('Ende: Nachricht'), 'end', 'message', true, 'end message'],
+  ['bpmn.end-error', L('Ende: Fehler'), 'end', 'error', true, 'end error fehler'],
+  ['bpmn.end-signal', L('Ende: Signal'), 'end', 'signal', true, 'end signal'],
+  ['bpmn.end-cancel', L('Ende: Abbruch'), 'end', 'cancel', false, 'end cancel abbruch'],
+  ['bpmn.end-terminate', L('Ende: Terminierung'), 'end', 'terminate', false, 'end terminate terminierung'],
+];
+const ACTIVITIES: ReadonlyArray<readonly [string, string, string, ActivityOptions, string]> = [
+  ['bpmn.task', L('Aufgabe'), 'Aufgabe', {}, 'task activity aktivität'],
+  ['bpmn.user-task', L('Benutzeraufgabe'), 'Aufgabe', { icon: 'user' }, 'user task benutzer'],
+  ['bpmn.service-task', L('Serviceaufgabe'), 'Aufgabe', { icon: 'service' }, 'service task dienst'],
+  ['bpmn.script-task', L('Skriptaufgabe'), 'Aufgabe', { icon: 'script' }, 'script task skript'],
+  ['bpmn.send-task', L('Sendeaufgabe'), 'Aufgabe', { icon: 'message', solid: true }, 'send task senden'],
+  ['bpmn.receive-task', L('Empfangsaufgabe'), 'Aufgabe', { icon: 'message' }, 'receive task empfangen'],
+  ['bpmn.manual-task', L('Manuelle Aufgabe'), 'Aufgabe', { icon: 'manual' }, 'manual task manuell'],
+  ['bpmn.rule-task', L('Geschäftsregel-Aufgabe'), 'Aufgabe', { icon: 'rule' }, 'business rule task regel'],
+  ['bpmn.subprocess', L('Teilprozess'), 'Teilprozess', { marker: 'subprocess' }, 'subprocess unterprozess'],
+  ['bpmn.call-activity', L('Aufrufaktivität'), 'Aufruf', { look: { strokeWidth: 5 } }, 'call activity aufruf'],
+  ['bpmn.loop-task', L('Schleife'), 'Aufgabe', { marker: 'loop' }, 'loop schleife wiederholung'],
+  ['bpmn.multi-parallel', L('Mehrfachinstanz (parallel)'), 'Aufgabe', { marker: 'parallel' }, 'multi instance parallel mehrfach'],
+  ['bpmn.multi-sequential', L('Mehrfachinstanz (sequenziell)'), 'Aufgabe', { marker: 'sequential' }, 'multi instance sequential mehrfach'],
+  ['bpmn.event-subprocess', L('Ereignis-Teilprozess'), 'Teilprozess', { marker: 'subprocess', look: { strokeDash: 'dotted' } }, 'event subprocess'],
+];
+
+/** A pool with its lanes stacked over the whole width, like in a BPMN tool. */
+function poolWithLanes(names: readonly string[], laneHeight = 150): SketchElement[] {
+  const pool = createPool('p', { x: 0, y: 0, width: 760, height: names.length * laneHeight }, 'Pool');
+  return [pool, ...names.map((name, index) => createLane(`l${index}`, pool, index * laneHeight, laneHeight, name))];
+}
 
 const bpmn: DiagramLibrary = {
   id: 'bpmn',
   name: L('BPMN'),
   description: L('Ereignisse, Aufgaben, Gateways und Bahnen'),
   templates: [
-    { id: 'bpmn.start', name: L('Startereignis'), section: L('Ereignisse'), keywords: 'start event', build: () => payload([round('s', '', { stroke: '#2f9e44', fill: '#ebfbee', strokeWidth: 2 })]) },
-    { id: 'bpmn.end', name: L('Endereignis'), section: L('Ereignisse'), keywords: 'end event ende', build: () => payload([round('s', '', { stroke: '#c92a2a', fill: '#fff5f5', strokeWidth: 5 })]) },
-    { id: 'bpmn.timer', name: L('Zeitereignis'), section: L('Ereignisse'), keywords: 'timer intermediate zwischenereignis zeit', build: () => payload([round('s', '◷', { strokeWidth: 2, fontSize: 26 })]) },
-    { id: 'bpmn.message', name: L('Nachrichtenereignis'), section: L('Ereignisse'), keywords: 'message intermediate zwischenereignis nachricht', build: () => payload([round('s', '✉', { strokeWidth: 2, fontSize: 24 })]) },
-    { id: 'bpmn.task', name: L('Aufgabe'), section: L('Aktivitäten'), keywords: 'task activity aktivität', build: () => payload([task('s', { x: 0, y: 0 }, 'Aufgabe')]) },
-    { id: 'bpmn.subprocess', name: L('Teilprozess'), section: L('Aktivitäten'), keywords: 'subprocess unterprozess', build: () => payload([task('s', { x: 0, y: 0 }, 'Teilprozess\n⊞')]) },
+    ...EVENTS.map(([id, name, kind, icon, solid, keywords]): DiagramTemplate => ({ id, name, section: L('Ereignisse'), keywords: `event ereignis ${keywords}`, build: () => payload([event('s', kind, icon, solid)]) })),
+    ...ACTIVITIES.map(([id, name, text, options, keywords]): DiagramTemplate => ({ id, name, section: L('Aktivitäten'), keywords, build: () => payload([activity('s', { x: 0, y: 0 }, text, options)]) })),
     { id: 'bpmn.gateway-exclusive', name: L('Exklusives Gateway'), section: L('Gateways'), keywords: 'gateway xor exclusive entscheidung', build: () => payload([gateway('s', { x: 0, y: 0 }, '✕')]) },
     { id: 'bpmn.gateway-parallel', name: L('Paralleles Gateway'), section: L('Gateways'), keywords: 'gateway and parallel', build: () => payload([gateway('s', { x: 0, y: 0 }, '+')]) },
     { id: 'bpmn.gateway-inclusive', name: L('Inklusives Gateway'), section: L('Gateways'), keywords: 'gateway or inclusive', build: () => payload([gateway('s', { x: 0, y: 0 }, '○')]) },
+    { id: 'bpmn.gateway-event', name: L('Ereignisbasiertes Gateway'), section: L('Gateways'), keywords: 'gateway event based ereignis', build: () => payload([gateway('s', { x: 0, y: 0 }, '⬠')]) },
     { id: 'bpmn.data-object', name: L('Datenobjekt'), section: L('Daten'), keywords: 'data object dokument', build: () => payload([shape('rectangle', 's', { x: 0, y: 0, width: 80, height: 100 }, 'Daten', { shapeVariant: 'note' }, { fontSize: 14 })]) },
     { id: 'bpmn.data-store', name: L('Datenspeicher'), section: L('Daten'), keywords: 'data store datenbank database', build: () => payload([shape('rectangle', 's', { x: 0, y: 0, width: 100, height: 90 }, 'Speicher', { shapeVariant: 'cylinder' }, { fontSize: 14 })]) },
-    { id: 'bpmn.pool', name: L('Pool'), section: L('Bahnen'), keywords: 'pool participant teilnehmer swimlane', build: () => payload([container('s', { x: 0, y: 0, width: 640, height: 220 }, 'Pool', { stroke: INK, strokeDash: 'solid', strokeWidth: 2 })]) },
-    {
-      id: 'bpmn.pool-lanes', name: L('Pool mit zwei Bahnen'), section: L('Bahnen'), keywords: 'pool lane bahn swimlane',
-      build: () => payload([
-        container('p', { x: 0, y: 0, width: 640, height: 320 }, 'Pool', { stroke: INK, strokeDash: 'solid', strokeWidth: 2 }),
-        container('a', { x: 16, y: 40, width: 608, height: 124 }, 'Bahn 1', { stroke: INK, strokeDash: 'solid' }, { parentId: 'p' }),
-        container('b', { x: 16, y: 180, width: 608, height: 124 }, 'Bahn 2', { stroke: INK, strokeDash: 'solid' }, { parentId: 'p' }),
-      ]),
-    },
+    { id: 'bpmn.pool-lanes', name: L('Pool mit zwei Bahnen'), section: L('Bahnen'), keywords: 'pool lane bahn swimlane', build: () => payload(poolWithLanes(['Bahn 1', 'Bahn 2'])) },
+    { id: 'bpmn.pool-three-lanes', name: L('Pool mit drei Bahnen'), section: L('Bahnen'), keywords: 'pool lane bahn swimlane drei three', build: () => payload(poolWithLanes(['Bahn 1', 'Bahn 2', 'Bahn 3'], 130)) },
+    { id: 'bpmn.pool', name: L('Pool'), section: L('Bahnen'), keywords: 'pool participant teilnehmer swimlane', build: () => payload([createPool('p', { x: 0, y: 0, width: 760, height: 200 }, 'Pool')]) },
+    { id: 'bpmn.pool-collapsed', name: L('Zugeklappter Pool'), section: L('Bahnen'), keywords: 'pool collapsed black box teilnehmer partner', build: () => payload([shape('rectangle', 's', { x: 0, y: 0, width: 760, height: 70 }, 'Teilnehmer', {}, { fontSize: 20, strokeWidth: 1.5 })]) },
     { id: 'bpmn.sequence-flow', name: L('Sequenzfluss'), section: L('Flüsse'), keywords: 'sequence flow pfeil', build: () => payload([link('l', { x: 0, y: 0 }, { x: 160, y: 0 }, { end: 'solid-arrow' })]) },
     { id: 'bpmn.message-flow', name: L('Nachrichtenfluss'), section: L('Flüsse'), keywords: 'message flow', build: () => payload([link('l', { x: 0, y: 0 }, { x: 160, y: 0 }, { start: 'circle', end: 'triangle', dash: 'dashed' })]) },
     { id: 'bpmn.association', name: L('Assoziation'), section: L('Flüsse'), keywords: 'association', build: () => payload([link('l', { x: 0, y: 0 }, { x: 160, y: 0 }, { dash: 'dotted' })]) },
     {
       id: 'bpmn.example', name: L('Beispiel: einfacher Prozess'), section: L('Flüsse'), keywords: 'example beispiel process prozess',
       build: () => {
-        const start = { ...round('s', '', { stroke: '#2f9e44', fill: '#ebfbee', strokeWidth: 2 }), x: 0, y: 12 };
-        const end = { ...round('e', '', { stroke: '#c92a2a', fill: '#fff5f5', strokeWidth: 5 }), x: 496, y: 12 };
         const right = { x: 1, y: 0.5 };
         const left = { x: 0, y: 0.5 };
         return payload([
-          start, task('t', { x: 116, y: 0 }, 'Aufgabe'), gateway('g', { x: 346, y: 4 }, '✕'), end,
-          link('l1', { x: 56, y: 40 }, { x: 116, y: 40 }, { end: 'solid-arrow', from: { id: 's', anchor: right }, to: { id: 't', anchor: left } }),
-          link('l2', { x: 266, y: 40 }, { x: 346, y: 40 }, { end: 'solid-arrow', from: { id: 't', anchor: right }, to: { id: 'g', anchor: left } }),
-          link('l3', { x: 418, y: 40 }, { x: 496, y: 40 }, { end: 'solid-arrow', from: { id: 'g', anchor: right }, to: { id: 'e', anchor: left } }),
+          event('s', 'start', 'message', false, { x: 0, y: 16 }), task('t', { x: 108, y: 0 }, 'Antrag prüfen'), gateway('g', { x: 338, y: 8 }, '✕'), event('e', 'end', undefined, false, { x: 482, y: 16 }),
+          link('l1', { x: 48, y: 40 }, { x: 108, y: 40 }, { end: 'solid-arrow', from: { id: 's', anchor: right }, to: { id: 't', anchor: left } }),
+          link('l2', { x: 258, y: 40 }, { x: 338, y: 40 }, { end: 'solid-arrow', from: { id: 't', anchor: right }, to: { id: 'g', anchor: left } }),
+          link('l3', { x: 402, y: 40 }, { x: 482, y: 40 }, { end: 'solid-arrow', from: { id: 'g', anchor: right }, to: { id: 'e', anchor: left } }),
         ]);
       },
     },
