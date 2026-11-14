@@ -89,6 +89,7 @@ export type HandleId =
   | 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'rotate'
   | 'connector-endpoint:start' | 'connector-endpoint:end'
   | `connector-control:${number}`
+  | 'connector-label'
   | `connector-segment:${number}`;
 
 /** Frame of the current selection in document coordinates (centre + size, rotation in degrees). */
@@ -104,7 +105,8 @@ export interface HandleView {
   elementId?: string;
   x: number;
   y: number;
-  kind?: 'selection' | 'connector-endpoint' | 'connector-control' | 'connector-segment';
+  /** `connector-label` moves the connector's text along the connector (#195). */
+  kind?: 'selection' | 'connector-endpoint' | 'connector-control' | 'connector-segment' | 'connector-label';
   /** Segment direction; the drag cursor moves on the perpendicular axis. */
   orientation?: 'horizontal' | 'vertical';
 }
@@ -131,6 +133,8 @@ export interface TextEditSession {
    * a single line, and the commit writes the card's name or description instead of a multi-line element text.
    */
   field?: ResourceCardField;
+  /** A connector's new text is placed here, as a share of the connector's length (#195); written with the text. */
+  labelPosition?: number;
   /** Sticky note author while editing; written together with the text on commit. */
   author?: string | null;
   initialAuthor?: string | null;

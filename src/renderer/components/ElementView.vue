@@ -7,6 +7,7 @@ import { themeColor } from '../lib/theme';
 import { lineSegments, parseTextLinks } from '../lib/text-links';
 import { wrapWords } from '../lib/text-metrics';
 import { fontFamilyCss } from '../lib/constants';
+import { connectorLabelPosition, pointOnConnector } from '../lib/connector-label';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
 import { shapeEntryForElement } from '../lib/shapes';
@@ -121,6 +122,8 @@ const connectorPath = computed(() => e.value.kind === 'connector' ? connectorPat
 const startMarker = computed(() => e.value.kind === 'connector' ? connectorStartMarker(e.value) : 'none');
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');
 const markerUrl = (marker: ConnectorMarker) => marker === 'none' ? undefined : `url(#${uid}-${marker})`;
+/** The text sits on the drawn line, at its share of the connector's length (#195). */
+const connectorLabelPoint = computed(() => pointOnConnector(e.value, connectorLabelPosition(e.value)));
 const connectorLabelWidth = computed(() => Math.max(36, text.value.length * fontSize.value * .62 + 16));
 const shape = computed(() => shapeEntryForElement(e.value));
 /** Rounded rectangles: the radius is capped to half the shorter side; the default matches the former icon-based corner. */
@@ -231,8 +234,8 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <text x="12" y="-19" fill="#ffffff" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" dominant-baseline="central">{{ frameTitle }}</text>
     </g>
     <g v-else-if="e.kind === 'connector' && text && !editing" pointer-events="none">
-      <rect :x="e.width / 2 - connectorLabelWidth / 2" :y="e.height / 2 - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
-      <text :x="e.width / 2" :y="e.height / 2" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
+      <rect data-testid="connector-label-surface" :x="connectorLabelPoint.x - connectorLabelWidth / 2" :y="connectorLabelPoint.y - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
+      <text data-testid="connector-label" :x="connectorLabelPoint.x" :y="connectorLabelPoint.y" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
     </g>
     <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
       <div class="annotation-body" :style="{ color: textColor, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>

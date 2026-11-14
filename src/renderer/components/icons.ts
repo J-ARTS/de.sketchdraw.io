@@ -3,7 +3,7 @@ export type ToolIconName =
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type ActionIconName =
-  | 'component' | 'component-add' | 'sequence-lifeline' | 'sequence-message' | 'layers' | 'external-link' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
+  | 'component' | 'component-add' | 'label-position' | 'sequence-lifeline' | 'sequence-message' | 'layers' | 'external-link' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
   | 'file' | 'file-plus' | 'folder-open' | 'save' | 'save-as' | 'help' | 'sun' | 'moon'
   | 'arrow-up' | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'close' | 'check'
   | 'warning' | 'info' | 'dot' | 'saving' | 'download'
@@ -47,6 +47,7 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   component: ['M12 3l8 4.5v9L12 21l-8-4.5v-9z', 'M12 12l8-4.5', 'M12 12v9', 'M12 12L4 7.5'],
   'sequence-lifeline': ['M5 3h10v5H5z', 'M10 8v2.5', 'M10 13v2.5', 'M10 18v3', 'M19 14v6', 'M16 17h6'],
   'sequence-message': ['M3 8h13', 'M12 4l4 4-4 4', 'M4 3v18', 'M19 14v6', 'M16 17h6'],
+  'label-position': ['M3 17h18', 'M17 13l4 4-4 4', 'M6 5h7', 'M9.5 5v7', 'M6 12h7'],
   layers: ['M12 3l9 5-9 5-9-5z', 'M3 12.5l9 5 9-5', 'M3 17l9 5 9-5'],
   'external-link': ['M14 4h6v6', 'M20 4l-9 9', 'M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5'],
   'component-add': ['M10 7l7 4v8l-7 4-7-4v-8z', 'M10 15l7-4', 'M10 15v8', 'M10 15l-7-4', 'M19 2v6', 'M16 5h6'],

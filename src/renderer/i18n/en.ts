@@ -1248,4 +1248,6 @@ export const EN: Readonly<Record<string, string>> = {
   "Nachricht hinzugefügt.": "Message added.",
   "Lebenslinie hinzufügen": "Add lifeline",
   "Nachricht hinzufügen": "Add message",
+  "Textposition": "Text position",
+  "{percent} % vom Anfang": "{percent} % from the start",
 };

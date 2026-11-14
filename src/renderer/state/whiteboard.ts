@@ -45,6 +45,7 @@ import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
 import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
+import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
   ERASER_RADIUS_DEFAULT, PENCIL_OPACITY_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption,
@@ -65,6 +66,8 @@ type Gesture = {
   targets: SketchElement[]; handle?: HandleId; tool: Tool; points: Point[];
   preview: DocumentCommand | null; element: SketchElement | null;
   connectorFromId?: string;
+  /** The text handle of a connector is dragged: the text moves along the connector (#195). */
+  connectorLabel?: boolean;
   /** A press on a text line of the already selected resource card: released without a drag, it edits that line (#189). */
   editField?: ResourceCardField;
   connectorPoints?: Point[];
@@ -326,6 +329,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
           }
         } else if (routing === 'curved') {
           route.slice(1, -1).forEach((point, index) => handles.push({ id: `connector-control:${index + 1}`, elementId: element.id, ...screenPoint(point), kind: 'connector-control' }));
+        }
+        // A selected connector with text offers a grip below the text to slide it along the line (#195).
+        if (element === selectedElement && element.text && !this.textEdit) {
+          const at = screenPoint(pointOnConnector(element, connectorLabelPosition(element)));
+          handles.push({ id: 'connector-label', elementId: element.id, x: at.x, y: at.y + element.style.fontSize * 0.8 * this.viewport.zoom + 10, kind: 'connector-label' });
         }
         return handles;
       }
@@ -683,6 +691,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     try { return createElement(g.tool, value); } catch { return null; }
   }
 
+  /** The editor box of a connector's text: centred on the text's point on the line. */
+  function connectorTextBox(element: SketchElement, position: number) {
+    const at = pointOnConnector(element, position);
+    const middle = rotatePoint({ x: element.x + at.x, y: element.y + at.y }, center(element), element.rotation);
+    return { x: middle.x - 110, y: middle.y - 24, width: 220, height: 48 };
+  }
   /** The line of a resource card at a document point, in the card's own (unrotated) coordinates. */
   function cardFieldAt(element: SketchElement, point: Point): ResourceCardField | null {
     if (!isResourceCard(element)) return null;
@@ -726,8 +740,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const contentPatch = edit.kind === 'annotation' && edit.annotationDraft
       ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
       : textChanged || Object.keys(heightPatch).length ? { text: edit.draft, ...heightPatch } : {};
+    const metadataPatch: Record<string, string | null> = {
+      ...(linksChanged || (textChanged && (edit.links?.length ?? 0) > 0) ? { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? []) } : {}),
+      ...(edit.labelPosition !== undefined && edit.kind === 'connector' ? { [CONNECTOR_LABEL_POSITION_KEY]: formatConnectorLabelPosition(edit.labelPosition) } : {}),
+    };
     const command: DocumentCommand = edit.elementId
-      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}), ...(linksChanged || (textChanged && (edit.links?.length ?? 0) > 0) ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? []) } } : {}) } }] }
+      ? { type: 'update', changes: [{ id, patch: { ...contentPatch, ...(styleChanged ? { style: styleChanges } : {}), ...(authorChanged ? { author: edit.author ?? null } : {}), ...(Object.keys(metadataPatch).length ? { metadata: metadataPatch } : {}) } }] }
       : { type: 'add', elements: [createElement(edit.kind === 'annotation' ? 'annotation' : 'text', { id, ...edit.box, ...contentPatch, text: edit.draft, style: { ...edit.style }, ...((edit.links?.length ?? 0) > 0 ? { metadata: { [TEXT_LINKS_KEY]: serializeTextLinks(edit.links ?? [])! } } : {}) })] };
     const createdText = !edit.elementId && edit.kind === 'text';
     const now = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : null;
@@ -1118,6 +1136,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         } : {}),
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
         ...(dockStart ? { connectorFromId: dockStart.id } : {}),
+        ...(handle?.id === 'connector-label' ? { connectorLabel: true } : {}),
         ...(editField ? { editField } : {}) };
       if (dockStart) {
         state.connectorTargets = { fromId: dockStart.id, toId: null };
@@ -1156,6 +1175,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (g.kind === 'draw') {
         if (g.tool === 'path' && Math.hypot(point.x - g.last.x, point.y - g.last.y) >= 1 / state.viewport.zoom && g.points.length < DOMAIN_LIMITS.MAX_POINTS_PER_ELEMENT) g.points.push(point);
         g.element = createDraw(g, point, input.shiftKey); state.drawing = g.element;
+      } else if (g.kind === 'connector-point' && g.connectorLabel && g.targets[0]?.kind === 'connector') {
+        const element = g.targets[0];
+        // The grip sits below the text; the text itself follows the pointer's nearest point on the line.
+        const position = nearestConnectorPosition(element, worldToElementLocalPoint(element, { x: point.x, y: point.y - (element.style.fontSize * 0.8 + 10 / state.viewport.zoom) }));
+        g.preview = { type: 'update', changes: [{ id: element.id, patch: { metadata: { [CONNECTOR_LABEL_POSITION_KEY]: formatConnectorLabelPosition(position) } } }] };
+        state.previewCommand = g.preview;
       } else if (g.kind === 'connector-point' && g.targets[0]?.kind === 'connector' && g.connectorPoints && (g.connectorPointIndex !== undefined || g.connectorSegmentIndex !== undefined)) {
         const element = g.targets[0];
         let route = g.connectorPoints.map((entry) => ({ ...entry }));
@@ -1260,7 +1285,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = t('Frame in der Folienleiste zum Umbenennen ausgewählt.'); return; }
       // A resource card edits the line under the pointer, and its name anywhere else on the card.
       if (isResourceCard(e)) { setSelection([e!.id]); store.startTextEdit(e!.id, cardFieldAt(e!, screenToDoc(state.viewport, input)) ?? 'title'); return; }
-      if (e && e.kind !== 'table') store.startTextEdit(e.id);
+      if (e && e.kind !== 'table') {
+        store.startTextEdit(e.id);
+        // A connector without text gets its text where it was double-clicked (#195).
+        if (e.kind === 'connector' && !e.text && state.textEdit?.elementId === e.id) {
+          const position = nearestConnectorPosition(e, worldToElementLocalPoint(e, screenToDoc(state.viewport, input)));
+          state.textEdit.labelPosition = position;
+          state.textEdit.box = connectorTextBox(e, position);
+        }
+      }
     },
     wheel(input) { const action = wheelToAction(input); if (action.kind === 'zoom') store.zoomBy(action.factor, input); else store.panBy(action.dx, action.dy); },
     handleKeyDown(input) {
@@ -1580,7 +1613,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\s*[\r\n]+\s*/g, ' '); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },

@@ -19,11 +19,12 @@ import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceContext } from '@/renderer/lib/sequence-diagram';
+import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'label-position' | 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -90,6 +91,10 @@ const defaultRadius = computed(() => selectedElements.value.every((element) => e
 const radiusValue = computed(() => Math.min(radiusMax.value, Math.round(info.value.values.cornerRadius ?? defaultRadius.value)));
 const radiusMixed = computed(() => info.value.mixed.includes('cornerRadius'));
 /** Live preview through the property draft; committed once on release (same flow as the font size). */
+/** Where the text of the selected connector sits along it, in percent (#195); the slider is the keyboard way to move it. */
+const labelPercent = computed(() => { const shown = s.displayElements.find((element) => element.id === info.value.singleId); return shown ? Math.round(connectorLabelPosition(shown) * 100) : 50; });
+function setLabelPosition(percent: number): void { if (Number.isFinite(percent)) store.setPropertyDraft({ metadata: { [CONNECTOR_LABEL_POSITION_KEY]: formatConnectorLabelPosition(percent / 100) } }); }
+function commitLabelPosition(): void { void store.commitPropertyDraft(); }
 function setRadius(value: number): void { if (Number.isFinite(value)) store.setPropertyDraft({ style: { cornerRadius: Math.max(0, Math.min(radiusMax.value, Math.round(value))) } }); }
 function commitRadius(): void { void store.commitPropertyDraft(); }
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
@@ -517,6 +522,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <template v-if="connectorOnly">
         <span class="sep" aria-hidden="true" />
         <button type="button" class="tool-btn" :aria-label="t('Text hinzufügen oder bearbeiten')" :aria-pressed="editing ? true : undefined" :disabled="editing" :title="editing ? t('Text wird bearbeitet') : t('Text hinzufügen oder bearbeiten')" @click="store.startTextEdit(info.singleId ?? undefined)"><AppIcon name="text" /></button>
+        <button v-if="single?.text" :ref="(el) => setTrigger('label-position', el)" type="button" class="tool-btn" data-testid="connector-label-position" :aria-label="t('Textposition')" :disabled="editing" :aria-expanded="openSegment === 'label-position'" :aria-controls="panelId('label-position')" :title="unavailable(t('Textposition'))" @click="toggle('label-position')"><AppIcon name="label-position" /></button>
         <span class="sep" aria-hidden="true" />
         <button :ref="(el) => setTrigger('route', el)" type="button" class="segment" :aria-label="t('Linienform: {routeLabel}', { routeLabel })" :disabled="editing" :aria-expanded="openSegment === 'route'" :aria-controls="panelId('route')" :title="unavailable(t('Linienform'))" @click="toggle('route')">
           <svg class="connector-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V10c0-3 2-5 5-5h9" /></svg><AppIcon class="chev" name="chevron-down" :size="14" />
@@ -612,7 +618,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     :class="{ compact: openSegment === 'align' }"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
+    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'label-position' ? t('Textposition') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -640,6 +646,9 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       </div>
     </template>
 
+    <label v-else-if="openSegment === 'label-position'" class="field radius-field">{{ t('Textposition') }}
+      <span class="radius-row"><input class="radius-range" type="range" min="0" max="100" step="1" :value="labelPercent" :aria-label="t('Textposition')" :aria-valuetext="t('{percent} % vom Anfang', { percent: labelPercent })" @input="setLabelPosition(($event.target as HTMLInputElement).valueAsNumber)" @change="commitLabelPosition" /><output class="radius-output">{{ labelPercent }} %</output></span>
+    </label>
     <template v-else-if="openSegment === 'radius'">
       <label class="field radius-field">{{ t('Eckenradius') }}
         <span class="radius-row"><input class="radius-range" type="range" min="0" :max="radiusMax" step="1" :value="radiusValue" :aria-label="t('Eckenradius')" :aria-valuetext="`${radiusValue} px`" @input="setRadius(($event.target as HTMLInputElement).valueAsNumber)" @change="commitRadius" /><output class="radius-output">{{ radiusMixed ? '–' : radiusValue }} px</output></span>
