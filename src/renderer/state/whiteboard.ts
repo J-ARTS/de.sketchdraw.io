@@ -26,7 +26,7 @@ import { createDocumentAuthority, SessionAccessError, type ActorBinding, type Do
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
 import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
-import { instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
+import { builtInComponentSets, instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
@@ -2198,6 +2198,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; }
       }
       catch (error) { fail(error); }
+    },
+    async updateResourceCard(id, patch, iconSet) {
+      if (state.transitioning) return false;
+      try {
+        // Built-in sets are drawn without being part of the document; only other sets must travel with it.
+        const addSet = iconSet && !builtInComponentSets.some((set) => set.id === iconSet.id) ? prepareComponentSetImport(state.document, iconSet) : null;
+        const update: DocumentCommand = { type: 'update', changes: [{ id, patch }] };
+        return await dispatch(addSet ? { type: 'batch', commands: [addSet, update] } : update);
+      }
+      catch (error) { fail(error); return false; }
     },
     async importComponentSet(file) {
       if (state.transitioning) return;

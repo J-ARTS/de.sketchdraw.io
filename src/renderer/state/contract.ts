@@ -512,6 +512,11 @@ export interface WhiteboardStore {
   setCatalogOpen(open: boolean): void;
   /** Inserts a component at the canvas centre or, when supplied, centred on a screen-space point. */
   insertComponent(set: ComponentSet, type: string, screenAt?: Point): Promise<void>;
+  /**
+   * Writes the resource card dialog's changes as one undo step. `iconSet` is the set of a newly picked icon; a set
+   * the document does not have yet (a provider library) is added with the same command, so the icon can be drawn.
+   */
+  updateResourceCard(id: string, patch: ElementPatch, iconSet?: ComponentSet): Promise<boolean>;
   importComponentSet(file: File): Promise<void>;
   whenIdle(): Promise<void>;
   needsCloseWarning(): boolean;

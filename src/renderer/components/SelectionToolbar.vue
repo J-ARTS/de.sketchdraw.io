@@ -68,6 +68,7 @@ const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
 // --- Visibility and placement ----------------------------------------------------
 /** #44: the bar stays usable while the selected element's text is edited; style changes go to the text draft. */
 const editing = computed(() => Boolean(s.textEdit));
+const resourceEditorOpen = ref(false);
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
@@ -200,8 +201,18 @@ function close(returnFocus: boolean): void {
   if (returnFocus && segment) triggers.value[segment]?.focus();
 }
 
-watch(() => s.selection.join('|'), () => close(false));
-watch(visible, (value) => { if (!value) close(false); });
+watch(() => s.selection.join('|'), () => { close(false); resourceEditorOpen.value = false; });
+watch(visible, (value) => { if (!value) { close(false); resourceEditorOpen.value = false; } });
+/** The resource card dialog (#190) is modal and no popover of the bar; closing it returns the focus to its button. */
+function openResourceEditor(): void {
+  if (editing.value) return;
+  close(false);
+  resourceEditorOpen.value = true;
+}
+function closeResourceEditor(): void {
+  resourceEditorOpen.value = false;
+  void nextTick(() => triggers.value.resource?.focus());
+}
 
 /** Keep an open popover anchored when the selection frame, viewport (zoom/pan) or bar size changes. */
 watch([position, barSize], () => { if (openSegment.value) void nextTick(placePopover); }, { deep: true });
@@ -556,8 +567,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <button type="button" class="tool-btn list-toggle" :aria-label="t('Aufzählung')" :aria-pressed="info.values.listStyle === 'bullet'" :title="t('Aufzählung')" @click="style({ listStyle: info.values.listStyle === 'bullet' ? 'none' : 'bullet' })"><span aria-hidden="true">•</span><span aria-hidden="true">☰</span></button>
         <button :ref="(el) => setTrigger('table', el)" type="button" class="tool-btn" :aria-label="t('Tabellenstruktur')" :aria-expanded="openSegment === 'table'" :aria-controls="panelId('table')" :title="t('Zeilen und Spalten')" @click="toggle('table')"><AppIcon name="table" /></button>
       </template>
-      <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" :aria-label="t('Ressourcenkarte bearbeiten')" :aria-expanded="openSegment === 'resource'" :aria-controls="panelId('resource')" :title="unavailable(t('Ressourcenkarte bearbeiten'))" @click="toggle('resource')">
-        <AppIcon name="more" />
+      <button v-if="resourceCardOnly" :disabled="editing" :ref="(el) => setTrigger('resource', el)" type="button" class="tool-btn" :aria-label="t('Ressourcenkarte bearbeiten')" aria-haspopup="dialog" :title="unavailable(t('Ressourcenkarte bearbeiten'))" @click="openResourceEditor">
+        <AppIcon name="rename" />
       </button>
       <button v-if="info.count === 1 && !connectorOnly && !resourceCardOnly && !tableOnly" :disabled="editing && !textLinkCapable" :ref="(el) => setTrigger(editing ? 'textlink' : 'link', el)" type="button" class="tool-btn" :class="{ on: editing ? textEditHasLinks : Boolean(webEmbedOnly ? single?.embedUrl : single?.documentationUrl) }" :aria-label="editing ? t('Link zum Text') : webEmbedOnly ? t('Webadresse') : t('Dokumentationslink')" :aria-expanded="openSegment === (editing ? 'textlink' : 'link')" :aria-controls="panelId(editing ? 'textlink' : 'link')" :title="editing ? t('Link zum Text') : unavailable(webEmbedOnly ? t('Webadresse') : t('Dokumentationslink'))" @click="toggle(editing ? 'textlink' : 'link')">
         <AppIcon name="link" />
@@ -695,8 +706,6 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button type="button" class="choice danger" @click="store.changeTableStructure('column-delete')">{{ t('Spalte löschen') }}</button>
     </div>
 
-    <ResourceCardEditor v-else-if="openSegment === 'resource' && single" :element="single" :document="s.document" @saved="close(true)" @cancel="close(true)" />
-
     <template v-else-if="openSegment === 'textlink'">
       <p class="link-hint">{{ textLinkSelectionLabel }}</p>
       <label class="field">{{ t('Link zum markierten Text') }}<input ref="textLinkInput" v-model="textLinkDraft" class="ctx-input wide" type="url" :aria-label="t('Link zum markierten Text')" placeholder="https://" @keydown.enter.prevent="applyTextLink" /></label>
@@ -739,6 +748,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       </template>
     </template>
   </div>
+
+  <ResourceCardEditor v-if="resourceEditorOpen && resourceCardOnly && single" :element="single" :document="s.document" @saved="closeResourceEditor" @cancel="closeResourceEditor" />
 </template>
 
 <style scoped>

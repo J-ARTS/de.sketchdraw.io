@@ -3,7 +3,7 @@ export type ToolIconName =
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type ActionIconName =
-  | 'component' | 'component-add' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
+  | 'component' | 'component-add' | 'layers' | 'external-link' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
   | 'file' | 'file-plus' | 'folder-open' | 'save' | 'save-as' | 'help' | 'sun' | 'moon'
   | 'arrow-up' | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'close' | 'check'
   | 'warning' | 'info' | 'dot' | 'saving' | 'download'
@@ -45,6 +45,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   // Handheld laser pointer: pointer body emitting a straight beam onto a target spot — no wand sparkles (#95).
   laser: ['M4.87 16.87L7.13 19.13 13.13 13.13 10.87 10.87z', 'M8.47 13.27l2.26 2.26', 'M13 11l3.1-3.1', 'M15.9 6.5a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0', 'M17.5 6.5h.01'],
   component: ['M12 3l8 4.5v9L12 21l-8-4.5v-9z', 'M12 12l8-4.5', 'M12 12v9', 'M12 12L4 7.5'],
+  layers: ['M12 3l9 5-9 5-9-5z', 'M3 12.5l9 5 9-5', 'M3 17l9 5 9-5'],
+  'external-link': ['M14 4h6v6', 'M20 4l-9 9', 'M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5'],
   'component-add': ['M10 7l7 4v8l-7 4-7-4v-8z', 'M10 15l7-4', 'M10 15v8', 'M10 15l-7-4', 'M19 2v6', 'M16 5h6'],
   undo: ['M9 14L4 9l5-5', 'M4 9h10a6 6 0 0 1 0 12h-3'],
   redo: ['M15 14l5-5-5-5', 'M20 9H10a6 6 0 0 0 0 12h3'],
