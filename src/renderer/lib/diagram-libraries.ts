@@ -1,4 +1,4 @@
-import { createElement, type ConnectorMarker, type ElementStyle, type Point, type SketchElement, type TableDocument } from '@/domain';
+import { createElement, type ConnectorMarker, type ConnectorRouting, type ElementStyle, type Point, type SketchElement, type TableDocument } from '@/domain';
 import { L } from '@/renderer/i18n';
 import { DEFAULT_STYLE, STYLE_BY_KIND } from './constants';
 import { ELEMENT_CLIPBOARD_FORMAT, type ElementClipboardPayload } from '../state/element-clipboard';
@@ -48,14 +48,14 @@ function container(id: string, box: Box, text: string, look: Partial<ElementStyl
   return createElement('container', { id, ...box, text, label: text, style: style({ ...STYLE_BY_KIND.container, fontSize: 14, ...look }), ...extra });
 }
 interface End { id: string; anchor: Point }
-interface LinkOptions { start?: ConnectorMarker; end?: ConnectorMarker; dash?: ElementStyle['strokeDash']; text?: string; from?: End; to?: End; extra?: Partial<SketchElement> }
-/** A straight connector from `a` to `b` (document coordinates), optionally bound to elements at both ends. */
+interface LinkOptions { start?: ConnectorMarker; end?: ConnectorMarker; dash?: ElementStyle['strokeDash']; text?: string; from?: End; to?: End; routing?: ConnectorRouting; extra?: Partial<SketchElement> }
+/** A connector from `a` to `b` (document coordinates), straight unless `routing` says otherwise, optionally bound to elements at both ends. */
 function link(id: string, a: Point, b: Point, options: LinkOptions = {}): SketchElement {
   return createElement('connector', {
     id,
     x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y),
     points: [{ x: a.x - Math.min(a.x, b.x), y: a.y - Math.min(a.y, b.y) }, { x: b.x - Math.min(a.x, b.x), y: b.y - Math.min(a.y, b.y) }],
-    connectorRouting: 'straight',
+    connectorRouting: options.routing ?? 'straight',
     startMarker: options.start ?? 'none',
     endMarker: options.end ?? 'none',
     ...(options.text ? { text: options.text } : {}),
@@ -88,6 +88,7 @@ function entityTable(id: string, at: Point, name: string, attributes: ReadonlyAr
   return createElement('table', { id, x: at.x, y: at.y, width: 260, height: rows.length * 36, label: name, table, style: style({ fill: '#ffffff', strokeWidth: 1 }) });
 }
 
+/** Relationships are curved connectors, like the curved arrow: they bend towards the sides they dock on and can be shaped by their control points. */
 const ER_LINKS: ReadonlyArray<readonly [string, string, ConnectorMarker, ConnectorMarker, string]> = [
   ['er.one-to-one', L('Beziehung 1:1'), 'exactly-one', 'exactly-one', 'one to one eins'],
   ['er.one-to-many', L('Beziehung 1:n'), 'exactly-one', 'one-or-many', 'one to many viele'],
@@ -106,10 +107,10 @@ const er: DiagramLibrary = {
       build: () => payload([
         entityTable('a', { x: 0, y: 0 }, 'Kunde', [['id', 'PK'], ['name', 'string'], ['email', 'string']]),
         entityTable('b', { x: 420, y: 0 }, 'Bestellung', [['id', 'PK'], ['kunde_id', 'FK'], ['datum', 'date']]),
-        link('l', { x: 260, y: 72 }, { x: 420, y: 72 }, { start: 'exactly-one', end: 'zero-or-many', from: { id: 'a', anchor: { x: 1, y: 0.5 } }, to: { id: 'b', anchor: { x: 0, y: 0.5 } } }),
+        link('l', { x: 260, y: 72 }, { x: 420, y: 72 }, { routing: 'curved', start: 'exactly-one', end: 'zero-or-many', from: { id: 'a', anchor: { x: 1, y: 0.5 } }, to: { id: 'b', anchor: { x: 0, y: 0.5 } } }),
       ]),
     },
-    ...ER_LINKS.map(([id, name, start, end, keywords]): DiagramTemplate => ({ id, name, section: L('Beziehungen'), keywords: `relationship kardinalität cardinality ${keywords}`, build: () => payload([link('l', { x: 0, y: 0 }, { x: 200, y: 0 }, { start, end })]) })),
+    ...ER_LINKS.map(([id, name, start, end, keywords]): DiagramTemplate => ({ id, name, section: L('Beziehungen'), keywords: `relationship kardinalität cardinality ${keywords}`, build: () => payload([link('l', { x: 0, y: 0 }, { x: 200, y: 0 }, { routing: 'curved', start, end })]) })),
     { id: 'er.chen-entity', name: L('Entität (Chen)'), section: L('Chen-Notation'), keywords: 'entity chen rechteck', build: () => payload([shape('rectangle', 's', { x: 0, y: 0, width: 150, height: 70 }, 'Entität')]) },
     { id: 'er.chen-attribute', name: L('Attribut'), section: L('Chen-Notation'), keywords: 'attribute chen ellipse', build: () => payload([shape('ellipse', 's', { x: 0, y: 0, width: 130, height: 60 }, 'Attribut')]) },
     { id: 'er.chen-key', name: L('Schlüsselattribut'), section: L('Chen-Notation'), keywords: 'key attribute primary schlüssel', build: () => payload([shape('ellipse', 's', { x: 0, y: 0, width: 130, height: 60 }, 'ID', {}, { fontWeight: 'bold', fill: '#fff3bf' })]) },

@@ -31,9 +31,13 @@ describe('diagram libraries (#191)', () => {
     expect(entity).toMatchObject({ kind: 'table', width: 260, height: 144 });
     expect(entity!.table!.cells.filter((cell) => cell.style.fontWeight === 'bold').map((cell) => cell.text)).toEqual(['Entität', '']);
     const [link] = diagramTemplate('er.one-to-many')!.build().elements;
-    expect(link).toMatchObject({ kind: 'connector', startMarker: 'exactly-one', endMarker: 'one-or-many' });
+    // Relationships react like the curved arrow.
+    expect(link).toMatchObject({ kind: 'connector', connectorRouting: 'curved', startMarker: 'exactly-one', endMarker: 'one-or-many' });
+    for (const id of ['er.one-to-one', 'er.optional-to-many', 'er.many-to-many']) expect(diagramTemplate(id)!.build().elements[0]!.connectorRouting).toBe('curved');
     const example = diagramTemplate('er.example')!.build().elements;
-    expect(example.find((element) => element.kind === 'connector')).toMatchObject({ from: { elementId: 'a' }, to: { elementId: 'b' } });
+    expect(example.find((element) => element.kind === 'connector')).toMatchObject({ connectorRouting: 'curved', from: { elementId: 'a' }, to: { elementId: 'b' } });
+    // The flows of other diagram types keep their straight lines.
+    expect(diagramTemplate('bpmn.sequence-flow')!.build().elements[0]!.connectorRouting).toBe('straight');
   });
 
   test('a sequence lifeline is one container with its box and line, and messages bind to the containers', () => {

@@ -130,3 +130,34 @@ test('a sequence diagram grows by click: new messages and new lifelines from the
   await page.mouse.move(150, 650); await page.mouse.down(); await page.mouse.move(260, 720, { steps: 4 }); await page.mouse.up();
   await expect(toolbar.getByRole('button', { name: 'Nachricht hinzufügen' })).toHaveCount(0);
 });
+
+test('ER relationships react like the curved arrow: they bend with their tables and have control points (#194)', async ({ page }) => {
+  const library = await openLibrary(page, 'er');
+  await library.getByRole('button', { name: 'Beispiel: Kunde und Bestellung' }).click();
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const canvas = page.locator('.whiteboard-canvas');
+  const relationship = canvas.locator('[data-kind="connector"] path[marker-end]').first();
+  const before = (await relationship.getAttribute('d'))!;
+  // A curve, not a line: the path is a cubic Bézier.
+  expect(before).toMatch(/C/);
+
+  // Move the right table down: the relationship stays docked and bends into an S.
+  await page.mouse.click(640, 220);
+  const table = canvas.locator('[data-kind="table"]').last();
+  const box = (await table.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 6, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 6, box.y + box.height / 2 + 160, { steps: 8 });
+  await page.mouse.up();
+  const after = (await relationship.getAttribute('d'))!;
+  expect(after).not.toBe(before);
+  expect(after).toMatch(/C/);
+  const line = (await canvas.locator('[data-kind="connector"]').first().boundingBox())!;
+  expect(line.height).toBeGreaterThan(100);
+
+  // Selected, it shows the two control points of a curved connector.
+  await page.mouse.click(line.x + line.width / 2, line.y + line.height / 2);
+  await expect(page.getByTestId('connector-control-handle-1')).toBeVisible();
+  await expect(page.getByTestId('connector-control-handle-2')).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Linienform: Gebogen' })).toBeVisible();
+});
