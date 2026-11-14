@@ -129,25 +129,33 @@ function close(): void {
   toolbarState.stopEditing();
   store.setCatalogOpen(false);
 }
+/**
+ * Picking a tool tile keeps the library open, like the component tiles: several shapes in a row need no reopening
+ * (#187). It closes with its close button, Escape or the "more shapes" button. The exception is a narrow window,
+ * where the library covers the whole canvas (the media query in the styles) and the picked tool could not be used.
+ */
+function afterPick(): void {
+  if (window.matchMedia('(max-width:760px)').matches) store.setCatalogOpen(false);
+}
 function activateShape(entry: ShapeEntry): void {
   if (toolbarState.editing.value) {
     toolbarState.addFavorite(entry.id);
     return;
   }
   store.setShapeTool(entry.id);
-  store.setCatalogOpen(false);
+  afterPick();
 }
 function activateConnector(): void {
   store.setTool('connector');
-  store.setCatalogOpen(false);
+  afterPick();
 }
 function activateAnnotation(): void {
   store.setTool('annotation');
-  store.setCatalogOpen(false);
+  afterPick();
 }
 function activateTable(): void {
   store.setTool('table');
-  store.setCatalogOpen(false);
+  afterPick();
 }
 function activateComponent(item: CatalogSearchResult): void {
   store.insertComponent(item.set, item.component.type);

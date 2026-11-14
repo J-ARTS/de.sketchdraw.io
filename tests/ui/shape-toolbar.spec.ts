@@ -30,9 +30,61 @@ test('Weitere Formen opens a searchable sidebar and activates every catalog shap
   await expect(search).toBeFocused();
   await search.fill('sechseck');
   await sidebar.getByRole('button', { name: 'Sechseck' }).click();
-  await expect(sidebar).toHaveCount(0);
+  // Picking a shape keeps the library open (#187); the canvas beside it stays usable.
+  await expect(sidebar).toBeVisible();
   await page.mouse.move(320, 260); await page.mouse.down(); await page.mouse.move(480, 360); await page.mouse.up();
   await expect(page.locator('.whiteboard-canvas [data-shape-variant=hexagon]')).toHaveCount(1);
+});
+
+test('the library stays open across several picks and closes only on request (#187)', async ({ page }) => {
+  const opener = page.getByTestId('more-shapes');
+  await opener.click();
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  const canvas = page.locator('.whiteboard-canvas');
+  const libraryLeft = (await sidebar.boundingBox())!.x;
+  expect(libraryLeft).toBeGreaterThan(600);
+
+  const draw = async (x: number, y: number) => { await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 120, y + 80, { steps: 4 }); await page.mouse.up(); };
+  const search = sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' });
+  await search.fill('sechseck');
+  await sidebar.getByRole('button', { name: 'Sechseck' }).click();
+  await expect(sidebar).toBeVisible();
+  await draw(200, 240);
+  await expect(canvas.locator('[data-shape-variant=hexagon]')).toHaveCount(1);
+  await expect(sidebar).toBeVisible();
+
+  // The second shape needs no reopening.
+  await search.fill('trapez');
+  await sidebar.getByRole('button', { name: 'Trapez' }).click();
+  await expect(sidebar).toBeVisible();
+  await draw(200, 420);
+  await expect(canvas.locator('[data-shape-variant=trapezoid]')).toHaveCount(1);
+
+  // Connector, annotation and table tiles behave the same.
+  await search.fill('');
+  await sidebar.getByRole('button', { name: 'Tabelle' }).click();
+  await expect(sidebar).toBeVisible();
+  await sidebar.getByRole('button', { name: 'Annotation' }).click();
+  await expect(sidebar).toBeVisible();
+  await sidebar.getByRole('button', { name: 'Verbinder', exact: true }).first().click();
+  await sidebar.getByRole('button', { name: 'Verbinder', exact: true }).last().click();
+  await expect(sidebar).toBeVisible();
+
+  await sidebar.getByRole('button', { name: 'Formen schließen' }).click();
+  await expect(sidebar).toHaveCount(0);
+  await opener.click();
+  await expect(sidebar).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(sidebar).toHaveCount(0);
+});
+
+test('on a narrow window the library covers the canvas and still closes after a pick (#187)', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 800 });
+  await page.getByTestId('more-shapes').click();
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  await sidebar.getByRole('searchbox', { name: 'Formen durchsuchen' }).fill('sechseck');
+  await sidebar.getByRole('button', { name: 'Sechseck' }).click();
+  await expect(sidebar).toHaveCount(0);
 });
 
 test('the sidebar searches and inserts official AWS and Kubernetes components', async ({ page }) => {
