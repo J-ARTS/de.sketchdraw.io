@@ -19,10 +19,12 @@ import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceSelection } from '@/renderer/lib/sequence-diagram';
+import { sequenceToCode } from '@/renderer/lib/sequence-code';
 import { swimlaneRole } from '@/renderer/lib/bpmn';
 import { selectionHasMerge } from '@/renderer/lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
 import ResourceCardEditor from './ResourceCardEditor.vue';
+import SequenceCodeDialog from './SequenceCodeDialog.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
@@ -73,6 +75,8 @@ const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
 /** #44: the bar stays usable while the selected element's text is edited; style changes go to the text draft. */
 const editing = computed(() => Boolean(s.textEdit));
 const resourceEditorOpen = ref(false);
+/** The code of the selection's sequence diagram while its dialog is open (#200). */
+const sequenceCode = ref<string | null>(null);
 /** The selection is a lifeline or a message of a sequence diagram (#192): the bar offers to extend it. */
 /** Cells of the selected table (#197): several can be merged, and a merge among them can be undone. */
 const tableCells = computed(() => (tableOnly.value && s.tableSelection?.elementId === info.value.singleId ? s.tableSelection.cellIds : []));
@@ -81,7 +85,7 @@ const canUnmergeCells = computed(() => Boolean(single.value) && selectionHasMerg
 /** A BPMN pool or lane is selected (#196): the bar offers another lane. */
 const swimlaneSelected = computed(() => info.value.count === 1 && Boolean(swimlaneRole(single.value)));
 /** A part of a sequence diagram is selected (#199): the bar offers to extend the diagram. */
-const sequencePart = computed(() => (info.value.count === 1 ? sequenceSelection(s.document.elements.filter((element) => element.pageId === s.activePageId), s.selection) : null));
+const sequencePart = computed(() => (info.value.count ? sequenceSelection(s.document.elements.filter((element) => element.pageId === s.activePageId), s.selection) : null));
 const sequenceCapable = computed(() => Boolean(sequencePart.value));
 const sequenceNumbered = computed(() => Boolean(sequencePart.value?.diagram.model.autonumber));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
@@ -220,13 +224,23 @@ function close(returnFocus: boolean): void {
   if (returnFocus && segment) triggers.value[segment]?.focus();
 }
 
-watch(() => s.selection.join('|'), () => { close(false); resourceEditorOpen.value = false; });
+watch(() => s.selection.join('|'), () => { close(false); resourceEditorOpen.value = false; sequenceCode.value = null; });
 watch(visible, (value) => { if (!value) { close(false); resourceEditorOpen.value = false; } });
 /** The resource card dialog (#190) is modal and no popover of the bar; closing it returns the focus to its button. */
 function openResourceEditor(): void {
   if (editing.value) return;
   close(false);
   resourceEditorOpen.value = true;
+}
+function openSequenceCode(): void {
+  const diagram = sequencePart.value?.diagram;
+  if (!diagram) return;
+  close(false);
+  sequenceCode.value = sequenceToCode(diagram.model);
+}
+function closeSequenceCode(): void {
+  sequenceCode.value = null;
+  void nextTick(() => triggers.value.sequence?.focus());
 }
 function closeResourceEditor(): void {
   resourceEditorOpen.value = false;
@@ -733,7 +747,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     <div v-else-if="openSegment === 'sequence'" class="choices column sequence-actions" role="group" :aria-label="t('Sequenzdiagramm erweitern')">
       <button type="button" class="choice" data-testid="sequence-add-self" @click="store.addSequenceMessage('self')">{{ t('Selbstnachricht hinzufügen') }}</button>
       <button type="button" class="choice" data-testid="sequence-add-async" @click="store.addSequenceMessage('async')">{{ t('Asynchrone Nachricht hinzufügen') }}</button>
-      <button type="button" class="choice" data-testid="sequence-numbers" :aria-pressed="sequenceNumbered" :class="{ active: sequenceNumbered }" @click="store.toggleSequenceNumbers()">{{ t('Nachrichten nummerieren') }}</button>
+      <button type="button" class="choice" data-testid="sequence-numbers" :aria-pressed="sequenceNumbered" @click="store.toggleSequenceNumbers()">{{ t('Nachrichten nummerieren') }}</button>
+      <button type="button" class="choice" data-testid="sequence-edit-code" aria-haspopup="dialog" @click="openSequenceCode">{{ t('Als Code bearbeiten …') }}</button>
     </div>
     <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" :aria-label="t('Zeilen und Spalten bearbeiten')">
       <button type="button" class="choice" :disabled="!canMergeCells" @click="store.mergeTableCells()">{{ t('Zellen verbinden') }}</button>
@@ -796,6 +811,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
   </div>
 
   <ResourceCardEditor v-if="resourceEditorOpen && resourceCardOnly && single" :element="single" :document="s.document" @saved="closeResourceEditor" @cancel="closeResourceEditor" />
+  <SequenceCodeDialog v-if="sequenceCode !== null && sequenceCapable" :code="sequenceCode" @close="closeSequenceCode" />
 </template>
 
 <style scoped>

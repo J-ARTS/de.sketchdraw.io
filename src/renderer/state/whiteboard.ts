@@ -45,7 +45,8 @@ import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
 import { addSequenceLifeline, addSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
-import { isSequenceFragment, isSequenceLifeline } from '../lib/sequence-model';
+import { isSequenceFragment, isSequenceLifeline, planSequence } from '../lib/sequence-model';
+import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelCentre, connectorLabelGripDrop, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
@@ -1493,9 +1494,26 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async addSequenceMessage(kind = 'sync') {
       await editSequence((selection, texts) => addSequenceMessage(pageEls(), selection, kind, state.activePageId, uid, texts), kind === 'reply' ? t('Antwort hinzugefügt.') : kind === 'self' ? t('Selbstnachricht hinzugefügt.') : t('Nachricht hinzugefügt.'));
     },
+    async applySequenceCode(code) {
+      if (state.transitioning) return false;
+      const selection = sequenceSelection(pageEls(), state.selection);
+      const parsed = parseSequenceCode(code);
+      if (!selection || parsed.diagnostics.some((entry) => entry.severity === 'error')) return false;
+      try {
+        const model = reconcileSequence(parsed.model, selection.diagram.model, uid);
+        const command = planSequence(pageEls(), selection.diagram, model, { pageId: state.activePageId }).command;
+        if (!command) return true;
+        const keep = [...state.selection];
+        if (!(await dispatch(command))) return false;
+        const left = keep.filter((id) => pageEls().some((element) => element.id === id));
+        setSelection(left.length ? left : [model.participants[0]!.id]);
+        state.liveMessage = t('Sequenzdiagramm aus dem Code übernommen.');
+        return true;
+      } catch (error) { fail(error); return false; }
+    },
     async toggleSequenceNumbers() {
-      const id = state.selection[0];
-      if (id) await editSequence((selection) => toggleSequenceNumbers(pageEls(), selection, state.activePageId, id), t('Nummerierung umgeschaltet.'));
+      const keep = [...state.selection];
+      await editSequence((selection) => toggleSequenceNumbers(pageEls(), selection, state.activePageId, keep), t('Nummerierung umgeschaltet.'));
     },
     async insertElements(payload, screenAt, name) {
       if (state.transitioning) return false;

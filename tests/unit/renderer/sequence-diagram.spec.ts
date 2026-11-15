@@ -204,11 +204,14 @@ describe('extending a sequence diagram by click (#192, #199)', () => {
     expect(sequenceSelection(page(document), ['b:line'])).toMatchObject({ lifelineId: 'b' });
     expect(sequenceSelection(page(document), [activations(document, 'b')[0]!.id])).toMatchObject({ lifelineId: 'b' });
     expect(sequenceSelection(page(document), ['m1'])).toMatchObject({ lifelineId: null, itemId: 'm1' });
-    expect(sequenceSelection(page(document), ['a', 'b'])).toBeNull();
+    // Several parts of one diagram stand for the diagram; mixed with something else they do not.
+    expect(sequenceSelection(page(document), ['a', 'b', 'm1'])).toMatchObject({ lifelineId: null, itemId: null });
     expect(sequenceSelection(page(document), [])).toBeNull();
     const other = createDocument('Other');
     const task = applyCommand(other, planElementPaste(diagramTemplate('bpmn.task')!.build(), other, { x: 0, y: 0 }, createId).command);
     expect(sequenceSelection(page(task), [task.elements[0]!.id])).toBeNull();
+    const mixed = applyCommand(document, { type: 'add', elements: [{ ...task.elements[0]!, id: 'other', pageId: pageId(document) }] });
+    expect(sequenceSelection(page(mixed), ['a', 'other'])).toBeNull();
   });
 
   test('a new lifeline stands right of the selected one, the ones further right move over with their messages', () => {
@@ -282,11 +285,11 @@ describe('extending a sequence diagram by click (#192, #199)', () => {
 
   test('numbering turns on for all messages, new ones join in, and it turns off again', () => {
     const start = base();
-    const on = edit(start, 'm1', (selected) => toggleSequenceNumbers(page(start), selected, pageId(start), 'm1'));
+    const on = edit(start, 'm1', (selected) => toggleSequenceNumbers(page(start), selected, pageId(start), ['m1']));
     expect(['m1', 'm2'].map((id) => by(on.document, id).metadata?.[SEQUENCE_NUMBER_KEY])).toEqual(['1', '2']);
     const more = edit(on.document, 'm1', (selected) => addSequenceMessage(page(on.document), selected, 'async', pageId(start), createId, texts));
     expect([by(more.document, more.selection[0]!).metadata?.[SEQUENCE_NUMBER_KEY], by(more.document, 'm2').metadata?.[SEQUENCE_NUMBER_KEY]]).toEqual(['2', '3']);
-    const off = edit(more.document, 'm1', (selected) => toggleSequenceNumbers(page(more.document), selected, pageId(start), 'm1'));
+    const off = edit(more.document, 'm1', (selected) => toggleSequenceNumbers(page(more.document), selected, pageId(start), ['m1']));
     expect(by(off.document, 'm2').metadata?.[SEQUENCE_NUMBER_KEY]).toBeUndefined();
   });
 });

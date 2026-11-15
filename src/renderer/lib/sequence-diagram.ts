@@ -33,15 +33,19 @@ export function selectedLifeline(elements: readonly SketchElement[], id: string 
   return parent && isSequenceLifeline(parent) ? parent : null;
 }
 
-/** What a single selected element is in its sequence diagram, or null when it is not part of one. */
+/**
+ * What the selection is in its sequence diagram, or null when it is not part of one. A single element says
+ * where to add; several elements of one diagram (the whole diagram, just inserted) stand for the diagram.
+ */
 export function sequenceSelection(elements: readonly SketchElement[], selection: readonly string[]): SequenceSelection | null {
-  if (selection.length !== 1) return null;
+  if (!selection.length) return null;
   const selected = elements.find((element) => element.id === selection[0]);
   if (!selected || !sequenceRole(selected)) return null;
   const lifeline = selectedLifeline(elements, selected.id);
   const divider = sequenceRole(selected) === 'divider' && selected.parentId ? selected : null;
   const diagram = readSequence(elements, lifeline?.id ?? divider?.parentId ?? selected.id);
   if (!diagram) return null;
+  if (selection.length > 1) return selection.every((id) => diagram.members.has(id)) ? { diagram, lifelineId: null, itemId: null, sectionId: null } : null;
   if (lifeline) return { diagram, lifelineId: lifeline.id, itemId: null, sectionId: null };
   if (divider) return { diagram, lifelineId: null, itemId: divider.parentId!, sectionId: divider.id };
   return diagram.members.has(selected.id) ? { diagram, lifelineId: null, itemId: selected.id, sectionId: null } : null;
@@ -153,10 +157,10 @@ export function addSequenceMessage(elements: readonly SketchElement[], selection
 }
 
 /** Turns the running numbers of the diagram's messages on or off. */
-export function toggleSequenceNumbers(elements: readonly SketchElement[], selection: SequenceSelection, pageId: string, select: string): SequenceEdit {
+export function toggleSequenceNumbers(elements: readonly SketchElement[], selection: SequenceSelection, pageId: string, keep: readonly string[]): SequenceEdit {
   const model = copy(selection.diagram.model);
   model.autonumber = !model.autonumber;
-  return finish(elements, selection, model, pageId, select);
+  return { command: planSequence(elements, selection.diagram, model, { pageId }).command, selection: [...keep] };
 }
 
 function touchedIds(command: DocumentCommand, into: Set<string> = new Set()): Set<string> {

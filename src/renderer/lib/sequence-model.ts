@@ -65,6 +65,7 @@ export const isSequenceLifeline = (element: SketchElement | undefined): boolean 
 export const isSequenceFragment = (element: SketchElement | undefined): boolean => element?.kind === 'container' && sequenceRole(element) === 'fragment';
 const isMessage = (element: SketchElement): boolean => element.kind === 'connector' && sequenceRole(element) === 'message';
 const centreX = (lifeline: Pick<SketchElement, 'x' | 'width'>): number => lifeline.x + lifeline.width / 2;
+const isActorHead = (head: Pick<SketchElement, 'metadata'>): boolean => head.metadata?.[SEQUENCE_HEAD_KEY] === 'actor';
 
 /** How a message is drawn says what it is: dashed is a reply, an open arrowhead asynchronous. */
 export function messageKind(element: Pick<SketchElement, 'style' | 'endMarker'>): SequenceMessageKind {
@@ -449,7 +450,7 @@ function difference(existing: SketchElement, desired: SketchElement): ElementPat
   for (const key of ['connectorRouting', 'startMarker', 'endMarker'] as const) if (desired[key] && existing[key] !== desired[key]) patch[key] = desired[key] as never;
   const look: Partial<ElementStyle> = {};
   if (existing.style.strokeDash !== desired.style.strokeDash) look.strokeDash = desired.style.strokeDash;
-  if (existing.style.fill !== desired.style.fill) look.fill = desired.style.fill;
+  for (const key of ['fill', 'stroke', 'textColor'] as const) if (existing.style[key] !== desired.style[key] && desired.style[key] !== undefined) look[key] = desired.style[key];
   if (Object.keys(look).length) patch.style = look;
   const metadata: Record<string, string | null> = {};
   for (const key of new Set([...Object.keys(existing.metadata ?? {}), ...Object.keys(desired.metadata ?? {})])) {
@@ -492,7 +493,9 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
     const least: number = previous ? previous.x + previous.width + SEQUENCE_LIFELINE.gap : Number.NEGATIVE_INFINITY;
     const x = Math.max(wanted, least);
     if (lifeline && x > wanted) shift += x - wanted;
-    const column: Column = { id: participant.id, x, width, head: head?.height ?? (participant.actor ? SEQUENCE_LIFELINE.actorHeadHeight : SEQUENCE_LIFELINE.headHeight) };
+    // A head keeps the height it was given, unless it just became an actor or stopped being one.
+    const standard = participant.actor ? SEQUENCE_LIFELINE.actorHeadHeight : SEQUENCE_LIFELINE.headHeight;
+    const column: Column = { id: participant.id, x, width, head: head && isActorHead(head) === participant.actor ? head.height : standard };
     columns.set(participant.id, column);
     previous = column;
   }
@@ -524,7 +527,14 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
     want(lifelineParts, participant.id, () => created[0]!, (now) => ({ ...now, ...box, label: participant.name || now.label }));
     const middle = column.x + column.width / 2;
     const length = layout.height - column.head;
-    if (head) lifelineParts.push({ existing: head, element: { ...head, x: column.x, y: top, width: column.width, text: participant.name, label: participant.name || head.label, metadata: withMetadata(head, { [SEQUENCE_HEAD_KEY]: participant.actor ? 'actor' : null }) } });
+    if (head) {
+      const turned = isActorHead(head) !== participant.actor;
+      lifelineParts.push({ existing: head, element: {
+        ...head, x: column.x, y: top, width: column.width, height: column.head, text: participant.name, label: participant.name || head.label,
+        metadata: withMetadata(head, { [SEQUENCE_HEAD_KEY]: participant.actor ? 'actor' : null }),
+        ...(turned ? { style: { ...head.style, ...created[1]!.style } } : {}),
+      } });
+    }
     else lifelineParts.push({ existing: undefined, element: onPage(created[1]!) });
     if (line) lifelineParts.push({ existing: line, element: { ...line, x: middle, y: top + column.head, width: 0, height: length, points: [{ x: 0, y: 0 }, { x: 0, y: length }] } });
     else lifelineParts.push({ existing: undefined, element: onPage({ ...created[2]!, y: top + column.head, height: length, points: [{ x: 0, y: 0 }, { x: 0, y: length }] }) });

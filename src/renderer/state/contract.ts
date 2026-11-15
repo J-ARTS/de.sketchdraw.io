@@ -394,6 +394,8 @@ export interface WhiteboardStore {
   addSequenceMessage(kind?: 'sync' | 'async' | 'reply' | 'self'): Promise<void>;
   /** Turns the running numbers at the messages of the selection's sequence diagram on or off (#199). */
   toggleSequenceNumbers(): Promise<void>;
+  /** Replaces the sequence diagram of the selection by what its code says, as one step (#200); false when nothing was applied. */
+  applySequenceCode(code: string): Promise<boolean>;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;

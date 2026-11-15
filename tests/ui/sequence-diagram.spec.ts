@@ -221,3 +221,76 @@ test('an actor is a lifeline with a stick figure, and a new diagram starts from 
   await expect(part(page, 'message')).toHaveCount(1);
   await expect(head(page, 'Teilnehmer 2')).toBeVisible();
 });
+
+test('the code of a sequence diagram is shown, edited and applied as one step (#200)', async ({ page }) => {
+  await insertTemplate(page, 'Beispiel: Anfrage und Antwort');
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await select(page, arrow(page, 'Anfrage'));
+  await toolbar.getByRole('button', { name: 'Sequenzdiagramm' }).click();
+  await page.getByTestId('sequence-edit-code').click();
+  const dialog = page.getByRole('dialog', { name: 'Sequenzdiagramm als Code' });
+  const code = dialog.getByRole('textbox', { name: 'Code des Sequenzdiagramms' });
+  await expect(code).toBeFocused();
+  await expect(code).toHaveValue('sequenceDiagram\n    participant Client\n    participant Dienst\n    Client->>Dienst: Anfrage\n    Dienst-->>Client: Antwort\n');
+  await expect(dialog.getByText('Der Code ist lesbar.')).toBeVisible();
+  expect((await new AxeBuilder({ page }).include('[data-testid="sequence-code-dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // An error names its line, blocks applying, and a click on it selects the line.
+  await code.fill('sequenceDiagram\n    participant Client\n    Client->>Dienst: Anfrage\n    das ist kein Code\n');
+  const problem = dialog.getByRole('button', { name: /Zeile 4.*Fehler/ });
+  await expect(problem).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Übernehmen' })).toBeDisabled();
+  await expect(code).toHaveAttribute('aria-invalid', 'true');
+  await problem.click();
+  expect(await code.evaluate((node) => { const area = node as HTMLTextAreaElement; return area.value.slice(area.selectionStart, area.selectionEnd); })).toBe('    das ist kein Code');
+  // Nothing happened on the canvas.
+  await expect(part(page, 'message')).toHaveCount(2);
+
+  // A third participant, a loop around a call to it, numbers, and a changed text.
+  await code.fill([
+    'sequenceDiagram',
+    '    autonumber',
+    '    participant Client',
+    '    participant Dienst',
+    '    actor Lager',
+    '    Client->>Dienst: Bestellung',
+    '    loop je Artikel',
+    '        Dienst->>Lager: reservieren<br/>und prüfen',
+    '        Lager-->>Dienst: reserviert',
+    '    end',
+    '    Dienst-->>Client: Antwort',
+    '',
+  ].join('\n'));
+  await expect(dialog.getByText('Der Code ist lesbar.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Übernehmen' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(part(page, 'lifeline')).toHaveCount(3);
+  await expect(canvasOf(page).getByTestId('sequence-actor-name')).toHaveText('Lager');
+  expect(await order(page)).toEqual(['Bestellung', 'reservieren und prüfen', 'reserviert', 'Antwort']);
+  await expect(part(page, 'fragment').getByTestId('sequence-fragment-operator')).toHaveText('loop');
+  await expect(part(page, 'fragment').getByTestId('sequence-fragment-condition')).toHaveText('[je Artikel]');
+  await expect(canvasOf(page).getByTestId('sequence-number')).toHaveCount(4);
+  await expect(part(page, 'activation')).toHaveCount(2);
+  // The loop frames the two messages to the warehouse and nothing else.
+  const frame = (await part(page, 'fragment').locator('rect').first().boundingBox())!;
+  const heights = await Promise.all(['Bestellung', 'reservieren', 'reserviert', 'Antwort'].map(async (text) => (await centre(arrow(page, text))).y));
+  expect(heights.map((y) => y > frame.y && y < frame.y + frame.height)).toEqual([false, true, true, false]);
+
+  // What is on the canvas reads back as the same code, and the canvas change shows up in it.
+  await select(page, arrow(page, 'Bestellung'));
+  await toolbar.getByRole('button', { name: 'Antwort hinzufügen' }).click();
+  await toolbar.getByRole('button', { name: 'Sequenzdiagramm' }).click();
+  await page.getByTestId('sequence-edit-code').click();
+  await expect(code).toHaveValue(/ {4}autonumber\n {4}participant Client\n {4}participant Dienst\n {4}actor Lager\n {4}Client->>Dienst: Bestellung\n {4}Dienst-->>Client: Antwort\n {4}loop je Artikel\n {8}Dienst->>Lager: reservieren<br\/>und prüfen\n/);
+  // Escape closes without applying and returns to the bar.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(toolbar.getByRole('button', { name: 'Sequenzdiagramm' })).toBeFocused();
+
+  // Applying was one undo step.
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(part(page, 'lifeline')).toHaveCount(2);
+  expect(await order(page)).toEqual(['Anfrage', 'Antwort']);
+});
