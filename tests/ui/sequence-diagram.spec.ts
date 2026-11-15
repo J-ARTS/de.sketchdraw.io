@@ -225,17 +225,24 @@ test('an actor is a lifeline with a stick figure, and a new diagram starts from 
 test('the code of a sequence diagram runs along beside the canvas, in both directions (#200, #203)', async ({ page }) => {
   await insertTemplate(page, 'Beispiel: Anfrage und Antwort');
   const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
-  // Right after inserting, the whole diagram is selected: the code is one click away.
+  // Right after inserting, the whole diagram is selected: the code is under the element actions ("…").
+  await toolbar.getByRole('button', { name: 'Elementaktionen' }).click();
+  await page.getByRole('button', { name: 'Mermaid-Code anzeigen' }).click();
+  const panel = page.getByRole('complementary', { name: 'Mermaid-Code' });
+  await expect(panel.getByRole('heading', { name: 'Sequenzdiagramm als Mermaid-Code' })).toBeVisible();
+  const code = panel.getByRole('textbox', { name: 'Mermaid-Code des Diagramms' });
+  const status = panel.getByTestId('diagram-code-status');
+  // The sequence menu no longer has an entry of its own for it.
   await toolbar.getByRole('button', { name: 'Sequenzdiagramm' }).click();
-  await page.getByTestId('sequence-edit-code').click();
-  const panel = page.getByRole('complementary', { name: 'Sequenzdiagramm als Code' });
-  const code = panel.getByRole('textbox', { name: 'Code des Sequenzdiagramms' });
-  const status = panel.getByTestId('sequence-code-status');
+  await expect(page.getByTestId('sequence-numbers')).toBeVisible();
+  await expect(page.getByTestId('sequence-edit-code')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await code.focus();
   await expect(code).toBeFocused();
   await expect(code).toHaveValue('sequenceDiagram\n    participant Client\n    participant Dienst\n    Client->>Dienst: Anfrage\n    Dienst-->>Client: Antwort\n');
-  await expect(panel.getByTestId('sequence-code-names')).toHaveText('Client, Dienst');
+  await expect(panel.getByTestId('diagram-code-names')).toHaveText('Client, Dienst');
   await expect(status).toHaveText('Code und Zeichenfläche sind auf demselben Stand.');
-  expect((await new AxeBuilder({ page }).include('[data-testid="sequence-code-panel"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  expect((await new AxeBuilder({ page }).include('[data-testid="diagram-code-panel"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 
   // The diagram moved out from under the panel.
   const edge = (await panel.boundingBox())!.x;
@@ -291,8 +298,8 @@ test('the code of a sequence diagram runs along beside the canvas, in both direc
 
   // With nothing of a diagram selected it keeps showing the last one; closing it gives the room back.
   await page.mouse.click(120, 400);
-  await expect(panel.getByTestId('sequence-code-names')).toHaveText('Client, Dienst, Lager');
-  await panel.getByRole('button', { name: 'Sequenzcode schließen' }).click();
+  await expect(panel.getByTestId('diagram-code-names')).toHaveText('Client, Dienst, Lager');
+  await panel.getByRole('button', { name: 'Mermaid-Code schließen' }).click();
   await expect(panel).toHaveCount(0);
 });
 

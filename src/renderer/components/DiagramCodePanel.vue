@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { t } from '@/renderer/i18n';
-import { parseSequenceCode, sequenceToCode } from '@/renderer/lib/sequence-code';
-import { sequenceSelection } from '@/renderer/lib/sequence-diagram';
+import { diagramCodeAnchor, diagramCodeDiagnostics, diagramCodeView, type DiagramCodeKind } from '@/renderer/lib/diagram-code';
+import { readFlow } from '@/renderer/lib/flow-model';
 import { readSequence } from '@/renderer/lib/sequence-model';
 import { docToScreen } from '@/renderer/lib/viewport';
 import AppIcon from './AppIcon.vue';
 import { useWhiteboard } from './use-whiteboard';
 
 /**
- * The code of a sequence diagram beside the canvas (#203), in Mermaid notation. It runs along in both
- * directions: what is typed here is applied to the diagram shortly after, as soon as it can be read, and
- * what changes on the canvas shows up here at once. The panel shows the diagram a selected element belongs
- * to and stays with the last one when the selection moves elsewhere.
+ * The Mermaid code of a diagram beside the canvas (#203, #206): a `sequenceDiagram` for a sequence diagram,
+ * a `flowchart` for a process (BPMN). It runs along in both directions: what is typed here is applied to the
+ * diagram shortly after, as soon as it can be read, and what changes on the canvas shows up here at once.
+ * The panel shows the diagram a selected element belongs to and stays with the last one when the selection
+ * moves elsewhere.
  */
 const APPLY_DELAY = 500;
 const store = useWhiteboard();
@@ -20,7 +21,7 @@ const s = store.state;
 
 const panel = ref<HTMLElement>();
 const editor = ref<HTMLTextAreaElement>();
-/** A lifeline of the diagram the panel shows. */
+/** An element of the diagram the panel shows. */
 const anchor = ref<string | null>(null);
 const text = ref('');
 /** The text as it was loaded or last applied: what the canvas shows. */
@@ -36,13 +37,16 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 
 // The preview of a running gesture counts: the code follows a message while it is dragged.
 const elements = computed(() => s.displayElements);
-const diagram = computed(() => (anchor.value ? readSequence(elements.value, anchor.value) : null));
-const canonical = computed(() => (diagram.value ? sequenceToCode(diagram.value.model) : null));
-const names = computed(() => diagram.value?.model.participants.map((participant) => participant.name.replace(/\s+/g, ' ')).join(', ') ?? '');
-const diagnostics = computed(() => parseSequenceCode(text.value).diagnostics);
+const view = computed(() => (anchor.value ? diagramCodeView(elements.value, anchor.value) : null));
+const canonical = computed(() => view.value?.code ?? null);
+const names = computed(() => view.value?.names ?? '');
+/** The notation stays the one of the diagram that was loaded, also while its code cannot be read. */
+const kind = ref<DiagramCodeKind>('sequence');
+watch(() => view.value?.kind, (now) => { if (now) kind.value = now; }, { immediate: true });
+const diagnostics = computed(() => diagramCodeDiagnostics(kind.value, text.value));
 const errors = computed(() => diagnostics.value.filter((entry) => entry.severity === 'error'));
 const dirty = computed(() => text.value !== base.value);
-const selectedAnchor = computed(() => sequenceSelection(elements.value, s.selection)?.diagram.model.participants[0]?.id ?? null);
+const selectedAnchor = computed(() => diagramCodeAnchor(elements.value, s.selection)?.anchorId ?? null);
 
 function load(code: string): void {
   const caret = editor.value?.selectionStart ?? 0;
@@ -71,7 +75,7 @@ async function apply(force = false): Promise<void> {
   const sent = text.value;
   applying = true;
   try {
-    const id = await store.applySequenceCode(sent, anchor.value);
+    const id = await store.applyDiagramCode(sent, anchor.value);
     failed.value = !id;
     if (id) {
       anchor.value = id; base.value = sent; stale.value = false;
@@ -116,8 +120,8 @@ const status = computed(() => {
 function reveal(): void {
   const canvas = document.querySelector<HTMLElement>('[data-testid="whiteboard-canvas"]')?.getBoundingClientRect();
   const own = panel.value?.getBoundingClientRect();
-  const ids = new Set(diagram.value?.model.participants.map((participant) => participant.id));
-  const lifelines = elements.value.filter((element) => ids.has(element.id));
+  const members = anchor.value ? (kind.value === 'sequence' ? readSequence(elements.value, anchor.value)?.members : readFlow(elements.value, anchor.value)?.members) : undefined;
+  const lifelines = elements.value.filter((element) => members?.has(element.id) && element.kind !== 'connector');
   // Below the canvas (narrow windows) the panel covers nothing sideways.
   if (!canvas || !own || !lifelines.length || own.left - canvas.left < 200) return;
   const left = docToScreen(s.viewport, { x: Math.min(...lifelines.map((lifeline) => lifeline.x)), y: 0 }).x;
@@ -132,15 +136,17 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 </script>
 
 <template>
-  <aside ref="panel" class="sequence-code-panel sd-panel" data-testid="sequence-code-panel" :aria-label="t('Sequenzdiagramm als Code')">
+  <aside ref="panel" class="diagram-code-panel sd-panel" data-testid="diagram-code-panel" :data-kind="kind" :aria-label="t('Mermaid-Code')">
     <div class="heading">
-      <h2 class="sd-panel-title">{{ t('Sequenzdiagramm als Code') }}</h2>
-      <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Sequenzcode schließen')" @click="store.toggleSequenceCode(false)"><AppIcon name="close" /></button>
+      <h2 class="sd-panel-title">{{ kind === 'sequence' ? t('Sequenzdiagramm als Mermaid-Code') : t('Ablauf als Mermaid-Code') }}</h2>
+      <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Mermaid-Code schließen')" @click="store.toggleDiagramCode(false)"><AppIcon name="close" /></button>
     </div>
-    <template v-if="anchor && (diagram || dirty)">
-      <p class="panel-intro"><span class="names" data-testid="sequence-code-names">{{ names }}</span>{{ t('Schreibweise wie bei Mermaid. Was du tippst, erscheint gleich auf der Zeichenfläche; Abstände, Aktivierungen und Nummern entstehen automatisch.') }}</p>
+    <template v-if="anchor && (view || dirty)">
+      <p class="panel-intro"><span class="names" data-testid="diagram-code-names">{{ names }}</span>{{ kind === 'sequence'
+        ? t('Was du tippst, erscheint gleich auf der Zeichenfläche; Abstände, Aktivierungen und Nummern entstehen automatisch.')
+        : t('Was du tippst, erscheint gleich auf der Zeichenfläche. Neue Knoten stehen neben ihrem Vorgänger, alles andere bleibt an seinem Platz.') }}</p>
       <textarea
-        ref="editor" class="code-editor sd-textarea" data-testid="sequence-code" :value="text" :aria-label="t('Code des Sequenzdiagramms')" :aria-invalid="errors.length > 0" aria-describedby="sequence-code-status"
+        ref="editor" class="code-editor sd-textarea" data-testid="diagram-code-editor" :value="text" :aria-label="t('Mermaid-Code des Diagramms')" :aria-invalid="errors.length > 0" aria-describedby="diagram-code-status"
         spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" :readonly="!s.canWrite"
         @input="onInput" @blur="onBlur" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false; schedule()"
       />
@@ -154,19 +160,20 @@ onBeforeUnmount(() => { clearTimeout(timer); });
         </li>
       </ul>
       <div class="panel-footer">
-        <p id="sequence-code-status" class="status" :class="{ problem: failed || stale || errors.length > 0 }" role="status" data-testid="sequence-code-status">{{ status }}</p>
+        <p id="diagram-code-status" class="status" :class="{ problem: failed || stale || errors.length > 0 }" role="status" data-testid="diagram-code-status">{{ status }}</p>
         <template v-if="stale">
-          <button type="button" class="sd-btn" data-testid="sequence-code-reload" @click="reload">{{ t('Vom Diagramm laden') }}</button>
-          <button type="button" class="sd-btn sd-btn--primary" :disabled="errors.length > 0 || !s.canWrite" @click="apply(true)">{{ t('Meinen Code übernehmen') }}</button>
+          <button type="button" class="sd-btn" data-testid="diagram-code-reload" @click="reload">{{ t('Vom Diagramm laden') }}</button>
+          <!-- The names in the code of a process point at its shapes as they were; over a changed process they could point elsewhere. -->
+          <button v-if="kind === 'sequence'" type="button" class="sd-btn sd-btn--primary" :disabled="errors.length > 0 || !s.canWrite" @click="apply(true)">{{ t('Meinen Code übernehmen') }}</button>
         </template>
       </div>
     </template>
-    <p v-else class="panel-intro" data-testid="sequence-code-empty">{{ t('Wähle einen Teil eines Sequenzdiagramms aus, um seinen Code zu sehen. Ein Diagramm findest du unter „Weitere Formen“ in der Bibliothek „Sequenzdiagramme“.') }}</p>
+    <p v-else class="panel-intro" data-testid="diagram-code-empty">{{ t('Wähle einen Teil eines Sequenzdiagramms oder eines Ablaufs (BPMN) aus, um seinen Mermaid-Code zu sehen. Beide findest du unter „Weitere Formen“ in den Bibliotheken.') }}</p>
   </aside>
 </template>
 
 <style scoped>
-.sequence-code-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:min(440px,calc(100vw - 285px));z-index:22;display:flex;flex-direction:column;overflow:hidden}
+.diagram-code-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:min(440px,calc(100vw - 285px));z-index:22;display:flex;flex-direction:column;overflow:hidden}
 .heading{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border-subtle)}
 .panel-intro{margin:0;padding:12px;color:var(--text-muted);font-size:12px;line-height:1.6}
 .names{display:block;overflow:hidden;color:var(--text-primary);font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}
@@ -183,6 +190,6 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 .status{flex:1 1 100%;margin:0;color:var(--text-muted);font-size:12px;line-height:1.5}
 .status.problem{color:var(--status-error)}
 @media (max-width:760px){
-  .sequence-code-panel{left:12px;right:12px;top:auto;bottom:72px;width:auto;height:min(46vh,360px)}
+  .diagram-code-panel{left:12px;right:12px;top:auto;bottom:72px;width:auto;height:min(46vh,360px)}
 }
 </style>

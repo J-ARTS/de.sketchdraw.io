@@ -310,8 +310,8 @@ export interface WhiteboardState {
   propertyDraft: { patch: ElementPatch; baseRevision: number; ids: string[] } | null;
   transitioning: boolean;
   codeOpen: boolean;
-  /** The code of a sequence diagram is shown beside the canvas (#203). */
-  sequenceCodeOpen: boolean;
+  /** The Mermaid code of a diagram is shown beside the canvas (#203, #206). */
+  diagramCodeOpen: boolean;
   code: CodeDraft;
   catalogOpen: boolean;
   hasDraft: boolean;
@@ -397,13 +397,13 @@ export interface WhiteboardStore {
   /** Turns the running numbers at the messages of the selection's sequence diagram on or off (#199). */
   toggleSequenceNumbers(): Promise<void>;
   /**
-   * Makes a sequence diagram show what its code says, as one step (#200, #203). The diagram is the one
-   * `anchorId` belongs to, else the one of the selection. Returns a lifeline of the diagram as it is now,
-   * or null when nothing was applied.
+   * Makes the diagram `anchorId` belongs to show what its Mermaid code says, as one step (#200, #203, #206):
+   * a sequence diagram or a process. Returns an element of the diagram as it is now, or null when nothing
+   * was applied.
    */
-  applySequenceCode(code: string, anchorId?: string): Promise<string | null>;
-  /** Opens or closes the code of a sequence diagram beside the canvas (#203). */
-  toggleSequenceCode(open?: boolean): void;
+  applyDiagramCode(code: string, anchorId: string): Promise<string | null>;
+  /** Opens or closes the Mermaid code of a diagram beside the canvas (#203, #206). */
+  toggleDiagramCode(open?: boolean): void;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;

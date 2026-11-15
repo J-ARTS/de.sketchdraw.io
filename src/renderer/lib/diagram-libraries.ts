@@ -173,6 +173,22 @@ const ACTIVITIES: ReadonlyArray<readonly [string, string, string, ActivityOption
   ['bpmn.event-subprocess', L('Ereignis-Teilprozess'), 'Teilprozess', { marker: 'subprocess', look: { strokeDash: 'dotted' } }, 'event subprocess'],
 ];
 
+/** The kinds of events and activities by a short name, as the Mermaid code of a process names them (#206): `start-message`, `user-task`, … */
+export const BPMN_EVENT_TYPES: Readonly<Record<string, { kind: BpmnEvent; icon?: string; solid: boolean }>> = Object.freeze(
+  Object.fromEntries(EVENTS.map(([id, , kind, icon, solid]) => [id.slice('bpmn.'.length), { kind, ...(icon ? { icon } : {}), solid }])));
+export const BPMN_ACTIVITY_TYPES: Readonly<Record<string, ActivityOptions>> = Object.freeze(Object.fromEntries(ACTIVITIES.map(([id, , , options]) => [id.slice('bpmn.'.length), options])));
+export type FlowShape = 'event' | 'task' | 'gateway' | 'store' | 'data' | 'box' | 'round';
+/** A node of a process as the library would insert it: `type` is a key of the tables above for events and tasks. */
+export function createFlowNode(id: string, shapeOf: FlowShape, type: string | null, at: Point, text: string): SketchElement {
+  if (shapeOf === 'event') { const entry = BPMN_EVENT_TYPES[type ?? ''] ?? BPMN_EVENT_TYPES.start!; return { ...event(id, entry.kind, entry.icon, entry.solid, at), ...(text ? { text, label: text } : {}) }; }
+  if (shapeOf === 'task') return activity(id, at, text, BPMN_ACTIVITY_TYPES[type ?? ''] ?? {});
+  if (shapeOf === 'gateway') return gateway(id, at, text);
+  if (shapeOf === 'store') return shape('rectangle', id, { x: at.x, y: at.y, width: 100, height: 90 }, text, { shapeVariant: 'cylinder' }, { fontSize: 14 });
+  if (shapeOf === 'data') return shape('rectangle', id, { x: at.x, y: at.y, width: 80, height: 100 }, text, { shapeVariant: 'note' }, { fontSize: 14 });
+  if (shapeOf === 'round') return shape('ellipse', id, { x: at.x, y: at.y, width: 130, height: 60 }, text);
+  return shape('rectangle', id, { x: at.x, y: at.y, width: 150, height: 70 }, text);
+}
+
 /** A pool with its lanes stacked over the whole width, like in a BPMN tool. */
 function poolWithLanes(names: readonly string[], laneHeight = 150): SketchElement[] {
   const pool = createPool('p', { x: 0, y: 0, width: 760, height: names.length * laneHeight }, 'Pool');

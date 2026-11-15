@@ -47,6 +47,9 @@ import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } 
 import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
 import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
 import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
+import { diagramCodeDiagnostics, diagramCodeView } from '../lib/diagram-code';
+import { parseFlowCode } from '../lib/flow-code';
+import { planFlow, readFlow } from '../lib/flow-model';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelCentre, connectorLabelGripDrop, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
@@ -275,7 +278,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
-    transitioning: false, codeOpen: false, sequenceCodeOpen: false, catalogOpen: false,
+    transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
     previewCommand: null as DocumentCommand | null, drawing: null as SketchElement | null,
     get displayElements(): readonly SketchElement[] {
@@ -1506,22 +1509,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async addSequenceMessage(kind = 'sync') {
       await editSequence((selection, texts) => addSequenceMessage(pageEls(), selection, kind, state.activePageId, uid, texts), kind === 'reply' ? t('Antwort hinzugefügt.') : kind === 'self' ? t('Selbstnachricht hinzugefügt.') : t('Nachricht hinzugefügt.'));
     },
-    async applySequenceCode(code, anchorId) {
+    async applyDiagramCode(code, anchorId) {
       if (state.transitioning) return null;
-      const diagram = anchorId ? readSequence(pageEls(), anchorId) : sequenceSelection(pageEls(), state.selection)?.diagram;
-      const parsed = parseSequenceCode(code);
-      if (!diagram || parsed.diagnostics.some((entry) => entry.severity === 'error')) return null;
+      const view = diagramCodeView(pageEls(), anchorId);
+      if (!view || diagramCodeDiagnostics(view.kind, code).some((entry) => entry.severity === 'error')) return null;
       try {
-        const model = reconcileSequence(parsed.model, diagram.model, uid);
-        const command = planSequence(pageEls(), diagram, model, { pageId: state.activePageId }).command;
-        if (!command) return model.participants[0]!.id;
+        let command: DocumentCommand | null;
+        // The element that names the diagram afterwards; it is known before the command runs.
+        let anchor: string;
+        if (view.kind === 'sequence') {
+          const diagram = readSequence(pageEls(), anchorId)!;
+          const model = reconcileSequence(parseSequenceCode(code).model, diagram.model, uid);
+          command = planSequence(pageEls(), diagram, model, { pageId: state.activePageId }).command;
+          anchor = model.participants[0]!.id;
+        } else {
+          const model = parseFlowCode(code).model;
+          const plan = planFlow(pageEls(), readFlow(pageEls(), anchorId)!, model, uid, state.activePageId);
+          command = plan.command;
+          anchor = plan.elementOf.get(model.nodes[0]!.id)!;
+        }
+        if (!command) return anchor;
         const keep = [...state.selection];
         if (!(await dispatch(command))) return null;
         // What the code removed cannot stay selected.
         const left = keep.filter((id) => pageEls().some((element) => element.id === id));
         if (left.length !== keep.length) setSelection(left);
-        state.liveMessage = t('Sequenzdiagramm aus dem Code übernommen.');
-        return model.participants[0]!.id;
+        state.liveMessage = t('Diagramm aus dem Code übernommen.');
+        return anchor;
       } catch (error) { fail(error); return null; }
     },
     async toggleSequenceNumbers() {
@@ -1796,7 +1810,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         : { pageId: state.activePageId, anchor: { x: 0.5, y: 0.5 }, fallback: { x: at!.x, y: at!.y } };
       setSelection(element ? [element.id] : []);
       state.commentSidebarOpen = true; state.frameSidebarOpen = false;
-      state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.codeOpen = false; state.diagramCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.activeCommentId = null;
       state.workspaceView = 'canvas';
       state.liveMessage = element ? t('Kommentar an Element schreiben.') : t('Kommentar auf Zeichenfläche schreiben.');
@@ -1816,7 +1830,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId);
       if (!thread) return;
       state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true; state.frameSidebarOpen = false;
-      state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.codeOpen = false; state.diagramCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId);
       const element = thread.target.elementId ? pageEls().find((entry) => entry.id === thread.target.elementId) : undefined;
       if (element) {
@@ -2139,7 +2153,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     toggleFrameSidebar(open) {
       state.frameSidebarOpen = open ?? !state.frameSidebarOpen;
       if (state.frameSidebarOpen) {
-        state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+        state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.diagramCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
         state.liveMessage = t('Folienleiste geöffnet.');
       }
     },
@@ -2333,13 +2347,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     dismissNotice, holdNotice, releaseNotice,
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
-    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
-    toggleSequenceCode(open) { state.sequenceCodeOpen = open ?? !state.sequenceCodeOpen; if (state.sequenceCodeOpen) { state.codeOpen = false; state.catalogOpen = false; state.frameSidebarOpen = false; } },
+    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; state.diagramCodeOpen = false; } },
+    toggleDiagramCode(open) { state.diagramCodeOpen = open ?? !state.diagramCodeOpen; if (state.diagramCodeOpen) { state.codeOpen = false; state.catalogOpen = false; state.frameSidebarOpen = false; } },
     setCodeDraft(text) { if (state.canWrite && !state.transitioning) { state.code.text = text; state.code.dirty = text !== formatDiagram(codeBase); state.code.diagnostics = []; changedDraft(); } },
     applyCode() { return state.transitioning ? Promise.resolve(false) : applyCode(); },
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
-    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
-    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
+    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.diagramCodeOpen = false; } },
+    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.diagramCodeOpen = false; } },
     async insertComponent(set: ComponentSet, type: string, screenAt?: Point) {
       if (state.transitioning) return;
       try {

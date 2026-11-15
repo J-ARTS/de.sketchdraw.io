@@ -19,6 +19,7 @@ import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceSelection } from '@/renderer/lib/sequence-diagram';
+import { diagramCodeAnchor } from '@/renderer/lib/diagram-code';
 import { swimlaneRole } from '@/renderer/lib/bpmn';
 import { selectionHasMerge } from '@/renderer/lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
@@ -84,6 +85,8 @@ const swimlaneSelected = computed(() => info.value.count === 1 && Boolean(swimla
 const sequencePart = computed(() => (info.value.count ? sequenceSelection(s.document.elements.filter((element) => element.pageId === s.activePageId), s.selection) : null));
 const sequenceCapable = computed(() => Boolean(sequencePart.value));
 const sequenceNumbered = computed(() => Boolean(sequencePart.value?.diagram.model.autonumber));
+/** The selection belongs to a sequence diagram or a process: its Mermaid code is one click away (#206). */
+const hasDiagramCode = computed(() => Boolean(info.value.count && openSegment.value === 'actions' && diagramCodeAnchor(s.document.elements.filter((element) => element.pageId === s.activePageId), s.selection)));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
@@ -155,7 +158,7 @@ const position = computed(() => {
   if (y < minTop) y = bottom.y + gap;
   y = Math.max(minTop, Math.min(y, s.viewportSize.height - height - 84));
   // The code of a sequence diagram runs along in a panel on the right (#203): the bar stays beside it.
-  const beside = s.sequenceCodeOpen && s.viewportSize.width > 760 ? Math.min(440, s.viewportSize.width - 285) + 24 : 0;
+  const beside = s.diagramCodeOpen && s.viewportSize.width > 760 ? Math.min(440, s.viewportSize.width - 285) + 24 : 0;
   const x = Math.max(12, Math.min(top.x - width / 2, s.viewportSize.width - beside - width - 12));
   return { left: x, top: y };
 });
@@ -230,10 +233,10 @@ function openResourceEditor(): void {
   close(false);
   resourceEditorOpen.value = true;
 }
-/** The code of the diagram opens beside the canvas and runs along from there (#203). */
-function openSequenceCode(): void {
+/** The Mermaid code of the diagram opens beside the canvas and runs along from there (#203, #206). */
+function openDiagramCode(): void {
   close(false);
-  store.toggleSequenceCode(true);
+  store.toggleDiagramCode(true);
 }
 function closeResourceEditor(): void {
   resourceEditorOpen.value = false;
@@ -741,7 +744,6 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button type="button" class="choice" data-testid="sequence-add-self" @click="store.addSequenceMessage('self')">{{ t('Selbstnachricht hinzufügen') }}</button>
       <button type="button" class="choice" data-testid="sequence-add-async" @click="store.addSequenceMessage('async')">{{ t('Asynchrone Nachricht hinzufügen') }}</button>
       <button type="button" class="choice" data-testid="sequence-numbers" :aria-pressed="sequenceNumbered" @click="store.toggleSequenceNumbers()">{{ t('Nachrichten nummerieren') }}</button>
-      <button type="button" class="choice" data-testid="sequence-edit-code" :aria-pressed="s.sequenceCodeOpen" @click="openSequenceCode">{{ t('Als Code bearbeiten') }}</button>
     </div>
     <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" :aria-label="t('Zeilen und Spalten bearbeiten')">
       <button type="button" class="choice" :disabled="!canMergeCells" @click="store.mergeTableCells()">{{ t('Zellen verbinden') }}</button>
@@ -792,6 +794,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <span class="action-separator" aria-hidden="true" />
       <button type="button" class="action-button" :aria-label="t('Klonen')" :title="t('Klonen')" @click="runSelectionAction('clone')"><AppIcon name="duplicate" /></button>
       <button type="button" class="action-button" data-testid="save-as-component" :aria-label="t('Als Komponente speichern')" :title="t('Als Komponente speichern')" @click="saveAsComponent"><AppIcon name="component-add" /></button>
+      <button v-if="hasDiagramCode" type="button" class="action-button" data-testid="open-diagram-code" :aria-label="t('Mermaid-Code anzeigen')" :title="t('Mermaid-Code anzeigen')" :aria-pressed="s.diagramCodeOpen" @click="openDiagramCode"><AppIcon name="code" /></button>
       <button type="button" class="action-button danger" :aria-label="t('Löschen')" :title="t('Löschen')" @click="runSelectionAction('delete')"><AppIcon name="trash" /></button>
     </div>
 
