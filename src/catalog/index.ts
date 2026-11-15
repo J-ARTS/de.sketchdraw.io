@@ -48,6 +48,8 @@ export { builtInComponentSets } from './builtin';
 export * from './aws-groups';
 export * from './icon';
 export * from './resource-card';
+export { COMPONENT_PRESENTATION_KEY, ISOMETRIC_ICONS, ISOMETRIC_SET_ID, type IsometricIcon } from './isometric';
+export { figureLayout, isIconFigure, type FigureLayout } from './figure';
 
 export const CATALOG_LIMITS = Object.freeze({
   MAX_COMPONENT_SET_JSON_BYTES: 2 * 1024 * 1024,

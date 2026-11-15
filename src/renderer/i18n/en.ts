@@ -1351,4 +1351,8 @@ export const EN: Readonly<Record<string, string>> = {
   "Zellenverbindung aufheben": "Unmerge cells",
   "Zellen verbunden.": "Cells merged.",
   "Zellenverbindung aufgehoben.": "Cells unmerged.",
+  'Isometrische Icons': 'Isometric icons',
+  'Dienste und Daten': 'Services and data',
+  'Rechnen und Netz': 'Compute and network',
+  'Clients und Umgebung': 'Clients and environment',
 };

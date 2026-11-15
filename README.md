@@ -19,6 +19,7 @@ Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert.
 - Whiteboard mit Formen, Freihandzeichnungen, Text, Bildern, Verbindungen und Containern.
 - Erweiterbare Komponentenbibliothek für AWS, Azure, GCP und allgemeine Architekturen.
 - Bibliotheken für ER-, BPMN- und Sequenzdiagramme. Sequenzdiagramme ordnen sich selbst: Aktivierungen, Nummern und Abstände folgen aus den Nachrichten.
+- Isometrische Icons für Architekturdiagramme: 29 Symbole für IT-Bausteine (Dienste, Daten, Server, Netz, Clients), die frei auf der Zeichenfläche stehen und ihre Beschriftung darunter tragen.
 - Synchronisierter Diagrammtext mit Validierung, Konfliktprüfung und erhaltenen Entwürfen.
 - Mermaid-Code für Sequenzdiagramme und Abläufe (BPMN) neben der Zeichenfläche; Änderungen im Code erscheinen sofort im Diagramm und umgekehrt.
 - SVG- und draw.io-Austausch mit einer Vorschau möglicher Konvertierungsverluste.

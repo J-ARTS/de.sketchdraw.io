@@ -1,5 +1,6 @@
 <!-- @component One element of the document as it is drawn on the canvas: shape, text, connector, image, table, with its decorations. -->
 <script setup lang="ts">
+import { figureLayout, isIconFigure } from '@/catalog';
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
@@ -109,13 +110,16 @@ const cloudProviderY = computed(() => Math.min(
 const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? t('Schreib etwas, @erwähne jemanden') : text.value);
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
+/** A free-standing symbol with its label below (isometric icons); the definition may come from a built-in set. */
+const iconFigure = computed(() => isIconFigure(e.value));
 const lines = computed(() => {
-  const inset = chrome.value ? chrome.value.label.left + (e.value.width - chrome.value.label.right) : e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : 16;
-  // Group labels wrap at word boundaries like draw.io; other text wraps by character count.
-  const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * (group.value ? .55 : .6))));
+  const inset = chrome.value ? chrome.value.label.left + (e.value.width - chrome.value.label.right) : e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : iconFigure.value ? 0 : 16;
+  // Group labels and the labels of free-standing symbols wrap at word boundaries like draw.io; other text wraps by character count.
+  const byWords = Boolean(group.value) || iconFigure.value;
+  const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * (byWords ? .55 : .6))));
   let offset = 0;
   return displayText.value.split('\n').flatMap((line) => {
-    if (group.value) { const wrapped = wrapWords(line, offset, max); offset += line.length + 1; return wrapped; }
+    if (byWords) { const wrapped = wrapWords(line, offset, max); offset += line.length + 1; return wrapped; }
     const chars = Array.from(line); const result: Array<{ text: string; from: number }> = [];
     let at = offset;
     for (let i = 0; i < chars.length; i += max) { const chunk = chars.slice(i, i + max).join(''); result.push({ text: chunk, from: at }); at += chunk.length; }
@@ -124,10 +128,12 @@ const lines = computed(() => {
   }).map((entry) => ({ ...entry, bullet: e.value.style.listStyle === 'bullet' && entry.text !== '' }))
     .slice(0, Math.max(1, Math.floor((e.value.height - (e.value.kind === 'sticky-note' ? 68 : 0)) / (fontSize.value * 1.25))));
 });
+const figure = computed(() => iconFigure.value ? figureLayout(e.value, lines.value.length) : null);
+const figureIcon = computed(() => iconFigure.value ? (definition.value ?? definitions.value.find((candidate) => candidate.type === e.value.componentType))?.iconSvg : undefined);
 /** Hyperlinks on parts of the text, drawn underlined and opened with Ctrl/Cmd+click. */
 const textLinks = computed(() => (text.value ? parseTextLinks(e.value.metadata, text.value.length) : []));
 const textX = computed(() => chrome.value ? (e.value.style.textAlign === 'center' ? (chrome.value.label.left + chrome.value.label.right) / 2 : e.value.style.textAlign === 'right' ? chrome.value.label.right : chrome.value.label.left) : e.value.style.textAlign === 'center' ? e.value.width / 2 : e.value.style.textAlign === 'right' ? e.value.width - (e.value.kind === 'sticky-note' ? 20 : 8) : e.value.kind === 'text' ? 0 : e.value.kind === 'sticky-note' ? 20 : 8);
-const textY = computed(() => chrome.value ? chrome.value.label.top : e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
+const textY = computed(() => chrome.value ? chrome.value.label.top : e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : figure.value ? figure.value.labelTop : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
 const connectorPath = computed(() => e.value.kind === 'connector' ? connectorPathData(e.value) : '');
 const startMarker = computed(() => e.value.kind === 'connector' ? connectorStartMarker(e.value) : 'none');
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');
@@ -198,6 +204,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       </template>
       <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" :fill="cloudFill" :stroke="cloudStroke" :stroke-width="Math.max(1, e.style.strokeWidth)" />
       <rect v-else-if="group" data-testid="aws-group-surface" :data-group="group.id" :width="e.width" :height="e.height" rx="0" />
+      <rect v-else-if="iconFigure" data-testid="icon-figure-surface" :width="e.width" :height="e.height" fill="transparent" stroke="none" />
       <rect v-else-if="['container', 'component'].includes(e.kind)" :width="e.width" :height="e.height" :rx="e.kind === 'component' ? 10 : 3" />
       <rect v-else-if="e.kind === 'sticky-note'" data-testid="sticky-note-surface" :width="e.width" :height="e.height" :fill="fill" stroke="none" :filter="`url(#${uid}-sticky-shadow)`" />
       <rect v-else-if="e.kind === 'annotation'" data-testid="annotation-surface" :width="e.width" :height="e.height" rx="8" :fill="fill" :stroke="stroke" :filter="`url(#${uid}-annotation-shadow)`" />
@@ -212,6 +219,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
     <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
+    <svg v-else-if="figure" data-testid="icon-figure" :x="figure.icon.x" :y="figure.icon.y" :width="figure.icon.size" :height="figure.icon.size" pointer-events="none"><SafeIcon :source="figureIcon" :size="figure.icon.size" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
       <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" :fill="textColor" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">

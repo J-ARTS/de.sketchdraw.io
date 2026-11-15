@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
-import { RESOURCE_CARD_COMPONENT_TYPE, builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
+import { ISOMETRIC_SET_ID, RESOURCE_CARD_COMPONENT_TYPE, builtInComponentSets, searchCatalogComponents, type CatalogSearchResult } from '@/catalog';
 import type { ComponentDefinition, ComponentSet, ShapeVariant } from '@/domain';
 import { loadAllOfficialLibraries, loadOfficialLibrary, officialIconCount, searchOfficial, type OfficialProvider } from '@/renderer/lib/official-library';
 import { matchesShape, SHAPE_CATALOG, type ShapeEntry } from '@/renderer/lib/shapes';
@@ -26,9 +26,11 @@ const query = ref('');
 const activeLibrary = ref<ComponentDefinition['provider'] | null>(null);
 /** A library of diagram templates (#191): ER, BPMN, sequence. */
 const activeDiagramLibrary = ref<DiagramLibraryId | null>(null);
+/** The library of isometric icons (#212). */
+const isometricOpen = ref(false);
 const DIAGRAM_ICONS: Record<DiagramLibraryId, 'table' | 'shapes' | 'connect'> = { er: 'table', bpmn: 'shapes', sequence: 'connect' };
-const subLibrary = computed(() => Boolean(activeLibrary.value || activeDiagramLibrary.value));
-function leaveSubLibrary(): void { activeLibrary.value = null; activeDiagramLibrary.value = null; query.value = ''; }
+const subLibrary = computed(() => Boolean(activeLibrary.value || activeDiagramLibrary.value || isometricOpen.value));
+function leaveSubLibrary(): void { activeLibrary.value = null; activeDiagramLibrary.value = null; isometricOpen.value = false; query.value = ''; }
 const searchInput = ref<HTMLInputElement | null>(null);
 const opener = ref<HTMLElement | null>(null);
 const expanded = reactive<Record<string, boolean>>({
@@ -75,6 +77,7 @@ watch(activeLibrary, async (provider) => {
   catch { libraryError.value = true; }
   finally { libraryLoading.value = false; }
 });
+watch(isometricOpen, () => { if (scroller.value) scroller.value.scrollTop = 0; });
 const searching = computed(() => query.value.trim().length > 0);
 /** The own components are shown; a provider library (AWS, …) opened from the shapes tab takes precedence. */
 const searchLabel = computed(() => activeDiagramLibrary.value ? t('Vorlagen durchsuchen') : tab.value === 'custom' && !subLibrary.value ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen'));
@@ -89,8 +92,13 @@ const allComponents = computed(() => {
   return official ? [...base, ...searchOfficial(official, query.value, SEARCH_LIMIT)] : base;
 });
 const allComponentsCapped = computed(() => Boolean(officialAll.value) && allComponents.value.length >= SEARCH_LIMIT);
-const genericComponents = computed(() => searchCatalogComponents(sets.value, query.value, 'generic'));
+/** The catalogue names its categories in English; the library shows them in the language of the interface. */
+const ISOMETRIC_CATEGORIES: Record<string, string> = { 'Services and data': L('Dienste und Daten'), 'Compute and network': L('Rechnen und Netz'), 'Clients and environment': L('Clients und Umgebung') };
+/** The isometric icons are a library of their own and stay out of the short list of generic components. */
+const isometricSets = computed(() => sets.value.filter((set) => set.id === ISOMETRIC_SET_ID));
+const genericComponents = computed(() => searchCatalogComponents(sets.value.filter((set) => set.id !== ISOMETRIC_SET_ID), query.value, 'generic'));
 const libraryComponents = computed(() => {
+  if (isometricOpen.value) return searchCatalogComponents(isometricSets.value, query.value, 'generic');
   const provider = activeLibrary.value;
   if (!provider) return [];
   const loaded = officialSets.value[provider as OfficialProvider];
@@ -107,7 +115,7 @@ const tableMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
   return !needle || ['tabelle', 'table', 'grid', 'zellen', 'zeilen', 'spalten'].some((term) => term.includes(needle));
 });
-const libraryLabel = computed(() => activeDiagramLibrary.value ? t(diagramLibrary(activeDiagramLibrary.value).name) : providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
+const libraryLabel = computed(() => isometricOpen.value ? t('Isometrische Icons') : activeDiagramLibrary.value ? t(diagramLibrary(activeDiagramLibrary.value).name) : providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
 const groupedLibraryComponents = computed(() => {
   const groups = new Map<string, CatalogSearchResult[]>();
   for (const item of libraryComponents.value) {
@@ -119,7 +127,7 @@ const groupedLibraryComponents = computed(() => {
 });
 /** Categories start collapsed except the first; a search opens every matching category. */
 function categoryOpen(category: string, index: number): boolean {
-  return searching.value || (expandedCategories[category] ?? index === 0);
+  return searching.value || isometricOpen.value && expandedCategories[category] === undefined || (expandedCategories[category] ?? index === 0);
 }
 function toggleCategory(category: string, index: number): void {
   expandedCategories[category] = !categoryOpen(category, index);
@@ -249,17 +257,17 @@ onBeforeUnmount(() => {
 
     <div id="library-tabpanel" ref="scroller" class="library-scroll" :role="subLibrary ? undefined : 'tabpanel'" :aria-labelledby="subLibrary ? undefined : `library-tab-${tab}`">
       <DiagramLibraryView v-if="activeDiagramLibrary" :library="diagramLibrary(activeDiagramLibrary)" :query="query" />
-      <template v-else-if="activeLibrary">
+      <template v-else-if="activeLibrary || isometricOpen">
         <p v-if="libraryLoading" class="empty-state" role="status">{{ t('Bibliothek wird geladen …') }}</p>
         <p v-if="libraryError" class="empty-state" role="alert">{{ t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
         <section v-for="(group, index) in groupedLibraryComponents" :key="group.category" class="component-group">
-          <h3><button type="button" class="category-toggle" :aria-expanded="categoryOpen(group.category, index)" @click="toggleCategory(group.category, index)"><span>{{ group.category }}</span><span class="category-count">{{ group.items.length }}</span><span class="category-chevron" aria-hidden="true">⌄</span></button></h3>
+          <h3><button type="button" class="category-toggle" :aria-expanded="categoryOpen(group.category, index)" @click="toggleCategory(group.category, index)"><span>{{ isometricOpen ? t(ISOMETRIC_CATEGORIES[group.category] ?? group.category) : group.category }}</span><span class="category-count">{{ group.items.length }}</span><span class="category-chevron" aria-hidden="true">⌄</span></button></h3>
           <div v-if="categoryOpen(group.category, index)" class="component-grid">
             <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag">
               <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span>
-              <SafeIcon v-else :source="item.component.iconSvg" :size="42" />
+              <SafeIcon v-else :source="item.component.iconSvg" :size="isometricOpen ? 56 : 42" />
               <span>{{ item.component.name }}</span>
-              <small>{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
+              <small v-if="!isometricOpen">{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
         </section>
@@ -322,6 +330,11 @@ onBeforeUnmount(() => {
           <button v-for="diagram in DIAGRAM_LIBRARIES" :key="diagram.id" type="button" class="provider-row" :data-testid="`open-diagram-library-${diagram.id}`" @click="activeDiagramLibrary = diagram.id; query = ''">
             <span class="provider-logo diagram-logo"><AppIcon :name="DIAGRAM_ICONS[diagram.id]" :size="30" /></span>
             <span><strong>{{ t(diagram.name) }}</strong><small>{{ t(diagram.description) }}</small></span>
+            <span aria-hidden="true">›</span>
+          </button>
+          <button v-if="isometricSets.length" type="button" class="provider-row" data-testid="open-isometric-library" @click="isometricOpen = true; query = ''">
+            <span class="provider-logo"><SafeIcon :source="isometricSets[0]!.components[0]?.iconSvg" :size="48" /></span>
+            <span><strong>{{ t('Isometrische Icons') }}</strong><small>{{ t('{count} Symbole', { count: isometricSets[0]!.components.length }) }}</small></span>
             <span aria-hidden="true">›</span>
           </button>
           <button v-for="providerItem in providers" :key="providerItem.id" type="button" class="provider-row" @click="activeLibrary = providerItem.id">

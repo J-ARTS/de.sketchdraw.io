@@ -1,5 +1,6 @@
 import type { ComponentDefinition, ComponentSet } from '../domain/types';
 import { OFFICIAL_ICON_SVGS, type OfficialIconType } from './official-icons';
+import { ISOMETRIC_COMPONENTS, ISOMETRIC_SET_ID } from './isometric';
 
 export function deepFreezeComponentSet(set: ComponentSet): ComponentSet {
   for (const comp of set.components) {
@@ -316,6 +317,7 @@ const KUBERNETES_COMPONENTS: ComponentDefinition[] = [
 export const builtInComponentSets: ComponentSet[] = deepFreezeComponentSets([
   { id: 'sketchdraw.generic', name: 'Generic Architecture (Starter)', version: '1.0.0', components: GENERIC_COMPONENTS },
   { id: 'sketchdraw.resource-cards', name: 'Resource Cards', version: '1.0.0', components: RESOURCE_CARD_COMPONENTS },
+  { id: ISOMETRIC_SET_ID, name: 'Isometric Icons', version: '1.0.0', components: ISOMETRIC_COMPONENTS },
   { id: 'sketchdraw.aws', name: 'AWS Architecture (Official Starter)', version: '2026.10', components: AWS_COMPONENTS },
   { id: 'sketchdraw.azure', name: 'Azure Architecture (Official Starter)', version: '2026.10', components: AZURE_COMPONENTS },
   { id: 'sketchdraw.gcp', name: 'Google Cloud Architecture (Official Starter)', version: '2026.10', components: GCP_COMPONENTS },

@@ -1,5 +1,6 @@
 <!-- @component The canvas: it draws the page, takes pointer and keyboard input and hosts the text editor and the layers over the elements. -->
 <script setup lang="ts">
+import { figureLayout, isIconFigure } from '@/catalog';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
@@ -90,7 +91,10 @@ const editStyle = computed(() => {
   // AWS group frames (#143) edit their label in the header, next to the tile.
   const group = edit.kind === 'container' ? awsGroupOf(s.document.elements.find((element) => element.id === edit.elementId)) : undefined;
   const chrome = group ? groupChrome(group, edit.box.width, edit.style.fontSize) : null;
-  const topInset = chrome ? chrome.label.top : sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
+  // A free-standing symbol (isometric icons) edits its label where it stands, below the symbol.
+  const edited = edit.kind === 'component' ? s.document.elements.find((element) => element.id === edit.elementId) : undefined;
+  const figureElement = edited && isIconFigure(edited) ? { ...edited, width: edit.box.width, height: edit.box.height } : null;
+  const topInset = chrome ? chrome.label.top : sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : figureElement ? figureLayout(figureElement, (figureElement.text ?? '').split('\n').length).labelTop : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
   const sideInset = sticky ? 20 : free || annotation ? 0 : 8;
   return {
     left: `${x}px`, top: `${y}px`,

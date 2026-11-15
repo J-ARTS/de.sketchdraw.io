@@ -49,6 +49,7 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(builtInComponentSets.map((s) => s.id)).toEqual([
         'sketchdraw.generic',
         'sketchdraw.resource-cards',
+        'sketchdraw.isometric',
         'sketchdraw.aws',
         'sketchdraw.azure',
         'sketchdraw.gcp',
@@ -114,7 +115,8 @@ describe('Architecture Component Catalog & Safe Icon Tree (src/catalog)', () => 
       expect(awsOnlyHits.every((r) => r.component.provider === 'aws')).toBe(true);
 
       const allHits = searchCatalogComponents();
-      expect(allHits.length).toBe(38);
+      // 38 starter components and the 29 isometric icons (#212).
+      expect(allHits.length).toBe(67);
 
       const resourceCardHits = searchCatalogComponents(builtInComponentSets, 'Ressourcenkarte');
       expect(resourceCardHits.some((result) => result.component.type === 'generic.resource-card')).toBe(true);

@@ -2,7 +2,7 @@ import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData
 import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
-import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
+import { awsGroupOf, builtInComponentSets, figureLayout, groupChrome, groupTileSvg, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
 import { SVG_NS, OWN_NS, color, encodeEnvelope } from './common';
 import { parseXmlDocument } from './xml';
@@ -45,7 +45,9 @@ function nativeText(el: SketchElement, d: DiagnosticCollector): string {
   const group = awsGroupOf(el);
   const label = group ? groupChrome(group, el.width, font).label : null;
   const x = label ? (align === 'center' ? (label.left + label.right) / 2 : align === 'right' ? label.right : label.left) : align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
-  const y = label ? label.top + font * .93 : el.kind === 'connector' ? el.height / 2 : font + inset;
+  // A free-standing symbol (isometric icons) carries its label below the symbol.
+  const figure = isIconFigure(el) ? figureLayout(el, visibleText.split('\n').length) : null;
+  const y = label ? label.top + font * .93 : figure ? figure.labelTop + font * .93 : el.kind === 'connector' ? el.height / 2 : font + inset;
   const text = xmlText(visibleText, d, el);
   return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeTextColor(el, d), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
 }
@@ -223,8 +225,9 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
         diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'Component uses the safe generic icon; provider semantics remain metadata.');
       const tree = icon.tree;
       const footerHeight = isResourceCard(el) ? Math.max(28, Math.min(36, el.height * .24)) : 0;
-      const iconSize = isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
-      out.append(`<svg${attrs({ ...tree.attributes, x: isResourceCard(el) ? 20 : 4, y: isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+      const figure = isIconFigure(el) ? figureLayout(el, (el.text || el.label || '').split('\n').length).icon : null;
+      const iconSize = figure ? figure.size : isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
+      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : isResourceCard(el) ? 20 : 4, y: figure ? figure.y : isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
     const group = awsGroupOf(el);
     const groupIcon = group ? groupChrome(group, el.width, el.style.fontSize).icon : null;
