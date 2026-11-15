@@ -111,6 +111,9 @@ describe('bounded volunteer helper selection and ownership (R27)', () => {
       sessionId: 'a'.repeat(64), hostKeys: keys, retryMs: 100, steadyMs: 10_000, onChannel: () => {},
     });
     cleanups.push(() => hosts.stop());
+    // The hosts note the time of a lookup just before `discover` runs. With the clock held still until both
+    // helpers are up, `at[0]` is that very instant; a millisecond passing in between made this test fail (#193).
+    vi.useFakeTimers({ toFake: ['Date'] });
     hosts.start(); await until(() => hosts.activeHelpers === 2);
     vi.useFakeTimers(); vi.setSystemTime(at[0]! + 1);
     for (const socket of first.sockets) socket.close('LOST');
