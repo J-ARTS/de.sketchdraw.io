@@ -73,7 +73,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (missing.length) { console.error(`Components without an "<!-- @component … -->" description: ${missing.join(', ')}`); process.exit(1); }
   if (process.argv.includes('--check')) {
     let current = '';
-    try { current = readFileSync(target, 'utf8'); } catch { /* not written yet */ }
+    try { current = readFileSync(target, 'utf8').replace(/\r\n/g, '\n'); } catch { /* not written yet */ }
     if (current !== text) { console.error('docs/design-system/manifest.md is out of date. Run: npm run design-system:manifest'); process.exit(1); }
     console.log('docs/design-system/manifest.md is up to date.');
   } else {

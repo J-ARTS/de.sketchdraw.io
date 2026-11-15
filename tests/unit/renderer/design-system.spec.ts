@@ -103,7 +103,8 @@ describe('design system: catalogue', () => {
   it('has an up-to-date manifest for agents', () => {
     const { text, missing } = buildManifest() as { text: string; missing: string[] };
     expect(missing).toEqual([]);
-    expect(read('docs/design-system/manifest.md'), 'run: npm run design-system:manifest').toBe(text);
+    // A Windows checkout may hold the file with CRLF line ends; the content is what counts.
+    expect(read('docs/design-system/manifest.md').replace(/\r\n/g, '\n'), 'run: npm run design-system:manifest').toBe(text);
   }, 120_000);
 });
 
