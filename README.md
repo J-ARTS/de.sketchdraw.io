@@ -6,11 +6,11 @@ Ein lokaler Visual Workspace für Windows, macOS und Linux. Menschen und Agenten
 
 ## Download
 
-[Release v0.1.4](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4) enthält drei nativ geprüfte Installer:
+[Release v0.1.5](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.5) enthält drei nativ geprüfte Installer:
 
-- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe)
-- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg)
-- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb)
+- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.5/Sketchdraw-0.1.5-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.5/Sketchdraw-0.1.5-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.5/Sketchdraw-0.1.5-linux-x64.deb)
 
 Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert. Hinweise zum ersten Start und die konkreten nativen Prüfungen stehen in den Release-Notes und im [Release-Ablauf](docs/release.md).
 
@@ -18,7 +18,9 @@ Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert.
 
 - Whiteboard mit Formen, Freihandzeichnungen, Text, Bildern, Verbindungen und Containern.
 - Erweiterbare Komponentenbibliothek für AWS, Azure, GCP und allgemeine Architekturen.
+- Bibliotheken für ER-, BPMN- und Sequenzdiagramme. Sequenzdiagramme ordnen sich selbst: Aktivierungen, Nummern und Abstände folgen aus den Nachrichten.
 - Synchronisierter Diagrammtext mit Validierung, Konfliktprüfung und erhaltenen Entwürfen.
+- Mermaid-Code für Sequenzdiagramme und Abläufe (BPMN) neben der Zeichenfläche; Änderungen im Code erscheinen sofort im Diagramm und umgekehrt.
 - SVG- und draw.io-Austausch mit einer Vorschau möglicher Konvertierungsverluste.
 - Automatischer lokaler MCP-Zugriff auf das aktuell geöffnete Desktop-Dokument, ohne Freigabe-Tab.
 - Yjs-basierte kollaborative Dokumente mit lokaler IndexedDB-Wiederherstellung und actor-lokalem Undo/Redo.
