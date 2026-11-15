@@ -28,7 +28,7 @@ export { default as AppSelect } from './molecules/AppSelect.vue';
 export { default as BpmnDecor } from './molecules/BpmnDecor.vue';
 export { default as ColorPalette } from './molecules/ColorPalette.vue';
 export { default as ColorPicker } from './molecules/ColorPicker.vue';
-export { default as ImageFileInput } from './molecules/ImageFileInput.vue';
+export { default as ImageFileInput } from './organisms/ImageFileInput.vue';
 export { default as SequenceDecor } from './molecules/SequenceDecor.vue';
 export { default as TableContent } from './molecules/TableContent.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';

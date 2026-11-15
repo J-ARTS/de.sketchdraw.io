@@ -1,10 +1,7 @@
+<!-- @component A single-line text field. It needs a visible label (`AppFieldLabel` with the same `id`) or an `aria-label`. Attributes and listeners (`placeholder`, `maxlength`, `aria-describedby`, `@keydown`) go to the native input. -->
 <script setup lang="ts">
 import { ref } from 'vue';
 
-/**
- * A single-line text field. It needs a visible label (`AppFieldLabel` with the same `id`) or an `aria-label`.
- * Attributes and listeners (`placeholder`, `maxlength`, `aria-describedby`, `@keydown`) go to the native input.
- */
 withDefaults(defineProps<{
   /** The text in the field (`v-model`). */
   modelValue: string;

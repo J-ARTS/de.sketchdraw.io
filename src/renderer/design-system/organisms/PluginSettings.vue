@@ -1,3 +1,4 @@
+<!-- @component The side panel for plugins and their connection settings (Jira and others). -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';

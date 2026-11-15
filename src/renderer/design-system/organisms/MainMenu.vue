@@ -1,3 +1,4 @@
+<!-- @component The document card and workspace bar at the top: file actions, undo history, view, collaboration, settings. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
 import { useEventListener, useMediaQuery } from '@vueuse/core';

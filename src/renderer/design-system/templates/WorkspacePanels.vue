@@ -1,3 +1,4 @@
+<!-- @component The place for side panels at the right of the workspace: it decides which panel is shown and keeps them from overlapping. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';

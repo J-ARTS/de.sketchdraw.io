@@ -1,3 +1,4 @@
+<!-- @component The editor for the text and links of an annotation, shown beside the selected annotation. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { nextTick, onMounted, ref } from 'vue';

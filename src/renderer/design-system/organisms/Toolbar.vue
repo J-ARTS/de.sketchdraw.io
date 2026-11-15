@@ -1,3 +1,4 @@
+<!-- @component The tool bar: select, shapes, connector, text, pen and the entry to the shape library. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { shapeBaseKind, type ShapeVariant } from '@/domain';
@@ -7,7 +8,7 @@ import { useShapeToolbarState } from '@/renderer/lib/shape-toolbar-state';
 import { TOOL_DEFS, formatCombo } from '@/renderer/lib/shortcuts';
 import type { Tool } from '@/renderer/state/contract';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
-import ImageFileInput from '@/renderer/design-system/molecules/ImageFileInput.vue';
+import ImageFileInput from '@/renderer/design-system/organisms/ImageFileInput.vue';
 import ToolOptionsBar from '@/renderer/design-system/organisms/ToolOptionsBar.vue';
 import ConnectorOptionsBar from '@/renderer/design-system/organisms/ConnectorOptionsBar.vue';
 import WebEmbedDialog from '@/renderer/design-system/organisms/WebEmbedDialog.vue';

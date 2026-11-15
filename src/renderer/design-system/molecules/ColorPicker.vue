@@ -1,3 +1,4 @@
+<!-- @component The colour choice of the app: theme palette, recent colours and a free hex value. Use it wherever a colour is chosen. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, ref, watch } from 'vue';

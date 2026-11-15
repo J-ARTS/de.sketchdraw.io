@@ -1,3 +1,4 @@
+<!-- @component The full-screen presentation of the frames of a page, one after the other. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, onMounted, ref, watch } from 'vue';

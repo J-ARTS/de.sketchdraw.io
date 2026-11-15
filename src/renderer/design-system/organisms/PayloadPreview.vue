@@ -1,3 +1,4 @@
+<!-- @component A static picture of copied elements, for the tiles of the libraries and of the user's own components. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import { createDocument } from '@/domain';

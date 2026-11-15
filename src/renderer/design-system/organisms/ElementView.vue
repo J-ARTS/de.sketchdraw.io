@@ -1,3 +1,4 @@
+<!-- @component One element of the document as it is drawn on the canvas: shape, text, connector, image, table, with its decorations. -->
 <script setup lang="ts">
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';

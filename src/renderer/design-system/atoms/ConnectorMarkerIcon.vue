@@ -1,3 +1,4 @@
+<!-- @component A small picture of a connector end (arrow, circle, diamond …) for the menus that choose line ends. -->
 <script setup lang="ts">
 import type { ConnectorMarker } from '@/domain';
 

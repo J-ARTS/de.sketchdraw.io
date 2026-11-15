@@ -1,3 +1,4 @@
+<!-- @component The side panel for import and export (draw.io, SVG, Mermaid, PNG …). -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';

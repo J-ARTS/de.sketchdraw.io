@@ -1,3 +1,4 @@
+<!-- @component The side panel with the Mermaid code of a sequence diagram or process; typing applies to the canvas and the canvas shows in the code. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';

@@ -1,3 +1,4 @@
+<!-- @component The modal dialog for the settings of the app: language, theme, canvas. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';

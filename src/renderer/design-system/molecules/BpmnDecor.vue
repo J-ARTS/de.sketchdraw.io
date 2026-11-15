@@ -1,3 +1,4 @@
+<!-- @component What makes an ordinary shape a BPMN element on the canvas: event rings and symbols, task type icons, markers, pool and lane titles. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { SketchElement } from '@/domain';

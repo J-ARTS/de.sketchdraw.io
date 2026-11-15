@@ -1,3 +1,4 @@
+<!-- @component One task as a card: title, state, assignee, due date and cover, with its inline editing. -->
 <script setup lang="ts">
 import { intlLocale, t } from '@/renderer/i18n';
 import { computed } from 'vue';

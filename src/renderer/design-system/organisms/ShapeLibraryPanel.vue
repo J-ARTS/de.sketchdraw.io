@@ -1,3 +1,4 @@
+<!-- @component The shape library: basic shapes, cloud components, diagram libraries and the user's own components. -->
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';

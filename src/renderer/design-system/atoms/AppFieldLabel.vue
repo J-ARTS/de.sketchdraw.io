@@ -1,5 +1,5 @@
+<!-- @component The visible label of a form field. `for` is the `id` of the field it names. -->
 <script setup lang="ts">
-/** The visible label of a form field. `for` is the `id` of the field it names. */
 defineProps<{
   /** The `id` of the field this label names. */
   for?: string;

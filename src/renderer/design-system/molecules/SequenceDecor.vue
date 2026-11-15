@@ -1,3 +1,4 @@
+<!-- @component What makes an ordinary shape a part of a sequence diagram on the canvas: fragment heading, section condition, actor figure, message number. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import { connectorRoutePoints, type SketchElement } from '@/domain';

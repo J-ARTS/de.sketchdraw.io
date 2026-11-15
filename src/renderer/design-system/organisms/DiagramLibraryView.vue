@@ -1,3 +1,4 @@
+<!-- @component One diagram library (ER, BPMN, sequence …) inside the shape library: its templates as tiles, by section. -->
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed } from 'vue';

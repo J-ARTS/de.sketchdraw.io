@@ -1,3 +1,4 @@
+<!-- @component The task view of the workspace: tasks as columns of cards, with the forms to create and edit them. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { intlLocale, L, t } from '@/renderer/i18n';

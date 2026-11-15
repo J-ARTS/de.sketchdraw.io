@@ -1,3 +1,4 @@
+<!-- @component The side panel that lists the comment threads of the page. -->
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';

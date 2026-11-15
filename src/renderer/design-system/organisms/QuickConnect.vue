@@ -1,3 +1,4 @@
+<!-- @component The handles around a selected shape that draw a connector to a new or existing shape with one drag. -->
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';

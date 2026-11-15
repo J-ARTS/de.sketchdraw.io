@@ -1,3 +1,4 @@
+<!-- @component A date field with a calendar popover, for due dates and other calendar days. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';

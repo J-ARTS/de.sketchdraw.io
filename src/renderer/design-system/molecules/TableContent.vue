@@ -1,3 +1,4 @@
+<!-- @component The cells of a table element on the canvas, drawn inside the SVG of the element, merged cells included. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { SketchElement } from '@/domain';

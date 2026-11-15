@@ -1,3 +1,4 @@
+<!-- @component The floating bar of the selection: every property and action that fits what is selected. -->
 <script setup lang="ts">
 import { L, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';

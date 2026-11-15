@@ -1,3 +1,4 @@
+<!-- @component The content of an annotation on the canvas: its number badge and text, drawn inside the SVG of an element. -->
 <script setup lang="ts">
 import type { AnnotationBlock, AnnotationDocument } from '@/domain';
 

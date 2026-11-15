@@ -1,3 +1,4 @@
+<!-- @component The fading trail of the laser pointer over the canvas, the own one and those of peers. -->
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { appendLaserPoint, laserSegments, liveLaserPoints, type LaserPoint } from '@/renderer/lib/laser-pointer';

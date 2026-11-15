@@ -1,3 +1,4 @@
+<!-- @component A small static picture of a frame and what is in it, for the frame list and the presenter. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed } from 'vue';

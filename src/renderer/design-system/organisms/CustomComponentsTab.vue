@@ -1,3 +1,4 @@
+<!-- @component The tab of the shape library with the user's own components: insert, rename, delete. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, ref, watch } from 'vue';

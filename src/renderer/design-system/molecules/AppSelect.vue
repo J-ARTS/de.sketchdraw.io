@@ -1,3 +1,4 @@
+<!-- @component The select of the app: a combobox with a listbox popover, keyboard support and an optional free-text mode. Use it for every choice from a list; native `<select>` and `<datalist>` are not used in the renderer. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import { useEventListener } from '@vueuse/core';

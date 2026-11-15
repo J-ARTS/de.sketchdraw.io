@@ -1,3 +1,4 @@
+<!-- @component The side panel that lists the frames of the page for navigation and presenting. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';

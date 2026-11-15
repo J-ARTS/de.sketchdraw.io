@@ -1,3 +1,4 @@
+<!-- @component Start, join and leave a peer-to-peer session: link, participants and connection state. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';

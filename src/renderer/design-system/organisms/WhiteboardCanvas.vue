@@ -1,3 +1,4 @@
+<!-- @component The canvas: it draws the page, takes pointer and keyboard input and hosts the text editor and the layers over the elements. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';

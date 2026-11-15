@@ -1,9 +1,5 @@
+<!-- @component The frame of the workspace: one full-window region for the canvas and everything floating over it, and a place for what must stay usable while that region is blocked (the live region for announcements, modal dialogs, the presenter). It holds no content of its own; the page fills its two slots. -->
 <script setup lang="ts">
-/**
- * The frame of the workspace: one full-window region for the canvas and everything floating over it, and a
- * place for what must stay usable while that region is blocked (the live region for announcements, modal
- * dialogs, the presenter). It holds no content of its own; the page fills its two slots.
- */
 withDefaults(defineProps<{
   /** The accessible name of the workspace landmark. */
   label: string;

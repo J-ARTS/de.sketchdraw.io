@@ -1,3 +1,4 @@
+<!-- @component The side panel for working together: it hosts the session controls. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';

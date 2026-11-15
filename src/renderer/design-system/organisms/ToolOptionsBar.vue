@@ -1,3 +1,4 @@
+<!-- @component The options of the active drawing tool (colour, width, shape variant) below the toolbar. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';

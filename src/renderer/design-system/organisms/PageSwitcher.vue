@@ -1,3 +1,4 @@
+<!-- @component The pages of the document: switch, add, rename, reorder and delete them. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId } from 'vue';
 import { useEventListener } from '@vueuse/core';

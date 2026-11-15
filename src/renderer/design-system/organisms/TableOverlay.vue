@@ -1,3 +1,4 @@
+<!-- @component The editing layer over a selected table: cell selection, typing and keyboard navigation. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';

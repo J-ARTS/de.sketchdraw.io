@@ -1,3 +1,4 @@
+<!-- @component The modal dialog that edits a resource card: name, description, icon and links. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';

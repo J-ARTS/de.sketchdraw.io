@@ -1,3 +1,4 @@
+<!-- @component The options of the connector tool (routing, line ends) shown while the tool is active. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';

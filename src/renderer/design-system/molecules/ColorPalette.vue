@@ -1,3 +1,4 @@
+<!-- @component A grid of colour swatches to pick one from; the building block of the colour picker. -->
 <script setup lang="ts">
 import { t } from '@/renderer/i18n';
 import { computed, ref } from 'vue';

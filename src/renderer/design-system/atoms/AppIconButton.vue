@@ -1,12 +1,9 @@
+<!-- @component A button that shows only a symbol. Its `label` is what screen readers announce and what the tooltip shows, so it is required. Attributes and listeners go to the native button. -->
 <script setup lang="ts">
 import { ref } from 'vue';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import type { IconName } from '@/renderer/design-system/atoms/icons';
 
-/**
- * A button that shows only a symbol. Its `label` is what screen readers announce and what the tooltip shows,
- * so it is required. Attributes and listeners go to the native button.
- */
 withDefaults(defineProps<{
   /** The symbol, a name from `icons.ts`. */
   icon: IconName;

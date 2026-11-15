@@ -1,10 +1,7 @@
+<!-- @component A text field for several lines. It needs a visible label or an `aria-label`. Attributes and listeners go to the native textarea. -->
 <script setup lang="ts">
 import { ref } from 'vue';
 
-/**
- * A text field for several lines. It needs a visible label or an `aria-label`. Attributes and listeners go to
- * the native textarea.
- */
 withDefaults(defineProps<{
   /** The text in the field (`v-model`). */
   modelValue: string;

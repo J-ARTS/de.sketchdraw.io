@@ -1,3 +1,4 @@
+<!-- @component The workspace of the app: it creates the store and fills the workspace layout with canvas, bars, panels, feedback and dialogs. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';

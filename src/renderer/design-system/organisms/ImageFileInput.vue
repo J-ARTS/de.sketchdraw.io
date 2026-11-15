@@ -1,3 +1,4 @@
+<!-- @component The invisible file chooser behind the image tool: choosing the tool opens it, and the chosen picture is placed on the canvas. It draws nothing itself. -->
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';

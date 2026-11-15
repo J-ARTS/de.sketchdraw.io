@@ -1,3 +1,4 @@
+<!-- @component A symbol from the icon set in `icons.ts`, drawn as a 24-unit line icon in the current text colour. Decorative by itself: the control around it carries the name. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import { ICON_PATHS } from '@/renderer/design-system/atoms/icons';

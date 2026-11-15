@@ -1,3 +1,4 @@
+<!-- @component Comment pins and the open comment thread, laid over the canvas. -->
 <script setup lang="ts">
 import { intlLocale, t } from '@/renderer/i18n';
 import { computed, nextTick, ref, useId, watch } from 'vue';

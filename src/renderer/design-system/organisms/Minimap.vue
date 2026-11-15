@@ -1,3 +1,4 @@
+<!-- @component The small overview of the page with the visible area, for jumping around large boards. -->
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';

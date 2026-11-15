@@ -1,3 +1,4 @@
+<!-- @component The one shared modal dialog for help, unsaved changes and save conflicts, driven by `store.state.dialog`. Mounted once in the workspace page; extend it instead of adding a parallel dialog. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
