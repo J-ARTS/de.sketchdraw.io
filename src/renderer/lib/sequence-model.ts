@@ -34,6 +34,18 @@ export const SEQUENCE_LAYOUT = Object.freeze({
   noteLead: 14, notePad: 16, noteReach: 70, foot: 36, minBody: 120,
 });
 
+/**
+ * The colours of lifelines (#205): a pale fill with a border of the same hue. A new lifeline takes the first
+ * one its diagram does not use yet; the activations of a lifeline wear the colour of its head.
+ */
+export interface SequenceColour { fill: string; stroke: string }
+export const SEQUENCE_COLOURS: readonly SequenceColour[] = Object.freeze([
+  { fill: '#e7f5ff', stroke: '#1c7ed6' }, { fill: '#ebfbee', stroke: '#2f9e44' }, { fill: '#fff4e6', stroke: '#e8590c' }, { fill: '#f3f0ff', stroke: '#6741d9' },
+  { fill: '#e6fcf5', stroke: '#0c8599' }, { fill: '#fff0f6', stroke: '#c2255c' }, { fill: '#fff9db', stroke: '#e67700' }, { fill: '#f1f3f5', stroke: '#495057' },
+]);
+/** The colour of an activation on an actor's lifeline, whose head has none. */
+const PLAIN: SequenceColour = Object.freeze({ fill: '#ffffff', stroke: DEFAULT_STYLE.stroke });
+
 export type SequenceMessageKind = 'sync' | 'async' | 'reply';
 export const FRAGMENT_OPERATORS = ['loop', 'alt', 'opt', 'par', 'critical', 'break', 'rect'] as const;
 export type FragmentOperator = typeof FRAGMENT_OPERATORS[number];
@@ -444,7 +456,7 @@ function textRooms(model: SequenceModel, look: Look): Array<{ from: number; to: 
 // ───────────────────────────── Elements ─────────────────────────────
 
 /** One lifeline: an invisible container that holds the participant's head and the dashed line below it. */
-export function sequenceLifeline(id: string, at: Point, name: string, height: number = SEQUENCE_LIFELINE.height, actor = false): SketchElement[] {
+export function sequenceLifeline(id: string, at: Point, name: string, height: number = SEQUENCE_LIFELINE.height, actor = false, colour: SequenceColour = SEQUENCE_COLOURS[0]!): SketchElement[] {
   const { width } = SEQUENCE_LIFELINE;
   const headHeight = actor ? SEQUENCE_LIFELINE.actorHeadHeight : SEQUENCE_LIFELINE.headHeight;
   return [
@@ -452,7 +464,7 @@ export function sequenceLifeline(id: string, at: Point, name: string, height: nu
     createElement('rectangle', {
       id: `${id}:head`, parentId: id, x: at.x, y: at.y, width, height: headHeight, text: name, label: name,
       metadata: { ...role('head'), ...(actor ? { [SEQUENCE_HEAD_KEY]: 'actor' } : {}) },
-      style: style(actor ? { textAlign: 'center', fontSize: 16, fill: 'transparent', stroke: 'transparent', textColor: INK } : { textAlign: 'center', fontSize: 16, fill: '#e7f5ff' }),
+      style: style(actor ? { textAlign: 'center', fontSize: 16, fill: 'transparent', stroke: 'transparent', textColor: INK } : { textAlign: 'center', fontSize: 16, fill: colour.fill, stroke: colour.stroke, textColor: INK }),
     }),
     createElement('path', { id: `${id}:line`, parentId: id, x: at.x + width / 2, y: at.y + headHeight, width: 0, height: height - headHeight, points: [{ x: 0, y: 0 }, { x: 0, y: height - headHeight }], metadata: role('line'), style: style({ strokeDash: 'dashed', strokeWidth: 1, stroke: '#868e96' }) }),
   ];
@@ -580,13 +592,29 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
     return next;
   };
 
+  // A lifeline that gets a box as its head now (new, or no longer an actor) takes the first colour that no
+  // head of the diagram has yet; with all in use the colours start over.
+  const usedFills = new Set<string>();
+  for (const lifeline of existingLifelines) { const head = children(lifeline.id, 'head')[0]; if (head && !isActorHead(head)) usedFills.add(head.style.fill.toLowerCase()); }
+  let turn = usedFills.size;
+  const nextColour = (): SequenceColour => {
+    const colour = SEQUENCE_COLOURS.find((candidate) => !usedFills.has(candidate.fill)) ?? SEQUENCE_COLOURS[turn % SEQUENCE_COLOURS.length]!;
+    usedFills.add(colour.fill);
+    turn += 1;
+    return colour;
+  };
+
   // Lifelines with head, line and activations.
   for (const participant of model.participants) {
     const column = columns.get(participant.id)!;
     const box = { x: column.x, y: top, width: column.width, height: layout.height };
-    const created = sequenceLifeline(participant.id, { x: column.x, y: top }, participant.name, layout.height, participant.actor);
     const existing = byId.get(participant.id);
     const head = existing ? children(existing.id, 'head')[0] : undefined;
+    const keepsHead = Boolean(head && isActorHead(head) === participant.actor);
+    const created = sequenceLifeline(participant.id, { x: column.x, y: top }, participant.name, layout.height, participant.actor, keepsHead || participant.actor ? undefined : nextColour());
+    // Activations wear the colour of the head; an actor has no box, so its activations stay plain.
+    const headStyle = keepsHead ? head!.style : created[1]!.style;
+    const worn: SequenceColour = participant.actor || headStyle.fill === 'transparent' ? PLAIN : { fill: headStyle.fill, stroke: headStyle.stroke === 'transparent' ? PLAIN.stroke : headStyle.stroke };
     const line = existing ? children(existing.id, 'line')[0] : undefined;
     want(lifelineParts, participant.id, () => created[0]!, (now) => ({ ...now, ...box, label: participant.name || now.label }));
     const middle = column.x + column.width / 2;
@@ -608,12 +636,12 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
     layout.activations.get(participant.id)!.forEach((activation, index) => {
       const geometry = { x: middle - L.activation / 2 + (activation.depth - 1) * L.nest, y: activation.top, width: L.activation, height: activation.bottom - activation.top };
       const now = boxes[index];
-      if (now) { rest.push({ existing: now, element: { ...now, ...geometry } }); return; }
+      if (now) { rest.push({ existing: now, element: { ...now, ...geometry, style: { ...now.style, ...worn } } }); return; }
       let free = 1;
       while (taken.has(`${participant.id}:activation${free}`) || byId.has(`${participant.id}:activation${free}`)) free += 1;
       const id = `${participant.id}:activation${free}`;
       taken.add(id);
-      rest.push({ existing: undefined, element: onPage(createElement('rectangle', { id, parentId: participant.id, ...geometry, metadata: role('activation'), style: style({ fill: '#ffffff', strokeWidth: 1 }) })) });
+      rest.push({ existing: undefined, element: onPage(createElement('rectangle', { id, parentId: participant.id, ...geometry, metadata: role('activation'), style: style({ ...worn, strokeWidth: 1 }) })) });
     });
   }
 

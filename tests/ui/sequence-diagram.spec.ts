@@ -410,3 +410,24 @@ test('the end of a message can be dragged to any lifeline, also across others an
   await expect.poll(async () => Math.abs((await arrow(page, 'Anfrage').boundingBox())!.x - start.x)).toBeLessThanOrEqual(8);
   expect(await order(page)).toEqual(['Anfrage', 'Antwort']);
 });
+
+test('lifelines have colours of their own, and their activations wear them (#205)', async ({ page }) => {
+  await insertTemplate(page, 'Beispiel: Anfrage und Antwort');
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  const colours = (locator: Locator) => locator.locator('g[stroke] > rect').first().evaluate((node) => { const style = getComputedStyle(node); return { fill: style.fill, stroke: style.stroke }; });
+  const client = await colours(head(page, 'Client'));
+  const service = await colours(head(page, 'Dienst'));
+  expect(service).not.toEqual(client);
+  // The activation on the service has the fill and border of the service.
+  expect(await colours(part(page, 'activation'))).toEqual(service);
+
+  // A new lifeline takes a colour neither of the two has, and so do its activations.
+  await select(page, head(page, 'Dienst'));
+  await toolbar.getByRole('button', { name: 'Lebenslinie hinzufügen' }).click();
+  const added = await colours(head(page, 'Teilnehmer 3'));
+  expect([client, service]).not.toContainEqual(added);
+  // Its first message calls the service again: that box is in the colour of the service as well.
+  await toolbar.getByRole('button', { name: 'Nachricht hinzufügen' }).click();
+  await expect(part(page, 'activation')).toHaveCount(2);
+  expect(await Promise.all([0, 1].map((index) => colours(part(page, 'activation').nth(index))))).toEqual([service, service]);
+});

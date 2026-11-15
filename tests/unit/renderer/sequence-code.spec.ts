@@ -184,8 +184,10 @@ describe('a sequence diagram as code (#200)', () => {
     document = applyCommand(document, planSequence(page(document), current, next, { pageId: document.pages[0]!.id }).command!);
     expect(head('s')).toMatchObject({ style: { fill: 'transparent', stroke: 'transparent' } });
     expect(head('s').height).toBeGreaterThan(boxHeight);
-    expect(head('k')).toMatchObject({ height: boxHeight, style: { fill: '#e7f5ff' } });
+    // The new box takes a colour that the other boxes of the diagram do not have.
+    expect(head('k').height).toBe(boxHeight);
     expect(head('k').style.stroke).not.toBe('transparent');
+    expect(['transparent', head('b').style.fill]).not.toContain(head('k').style.fill);
     // The dashed line starts below each head.
     const line = (id: string) => document.elements.find((element) => element.id === `${id}:line`)!;
     expect(line('s').y).toBe(head('s').y + head('s').height);

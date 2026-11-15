@@ -5,7 +5,7 @@ import { diagramTemplate } from '@/renderer/lib/diagram-libraries';
 import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit } from '@/renderer/lib/sequence-diagram';
 import {
   buildSequence, messageKind, planSequence, readSequence, readSequences, sequenceFragmentElements, sequenceMessages, sequenceNoteElement, sequenceRole,
-  SEQUENCE_LAYOUT, SEQUENCE_LIFELINE, SEQUENCE_NUMBER_KEY, type SequenceFragment, type SequenceItem, type SequenceModel,
+  SEQUENCE_COLOURS, SEQUENCE_LAYOUT, SEQUENCE_LIFELINE, SEQUENCE_NUMBER_KEY, type SequenceFragment, type SequenceItem, type SequenceModel,
 } from '@/renderer/lib/sequence-model';
 import { planElementPaste } from '@/renderer/state/element-clipboard';
 
@@ -512,5 +512,62 @@ describe('a message is dragged to another place in the order (#201)', () => {
     const apply = (next: DocumentCommand) => page(applyCommand(document, next));
     expect(moveSequenceMessage(page(document), 'a:head', 50, pageId(document), apply)).toBeNull();
     expect(moveSequenceMessage(page(document), 'missing', 50, pageId(document), apply)).toBeNull();
+  });
+});
+
+describe('lifelines have colours, and their activations wear them (#205)', () => {
+  const run = (document: SketchDocument, command: DocumentCommand): SketchDocument => {
+    const apply = (next: DocumentCommand) => { try { return page(applyCommand(document, next)); } catch { return null; } };
+    return applyCommand(document, withSequenceLayout(page(document), command, pageId(document), apply));
+  };
+  const look = (element: SketchElement) => ({ fill: element.style.fill, stroke: element.style.stroke });
+  const calls = () => documentOf(three([message('m1', 'a', 'b'), message('m2', 'b', 'c'), message('m3', 'c', 'b', 'r', 'reply'), message('m4', 'b', 'a', 'r', 'reply')]));
+
+  test('every lifeline of a new diagram has its own colour, in the order of the palette, with dark text', () => {
+    const document = calls();
+    expect(['a', 'b', 'c'].map((id) => look(by(document, `${id}:head`)))).toEqual(SEQUENCE_COLOURS.slice(0, 3));
+    expect(new Set(['a', 'b', 'c'].map((id) => by(document, `${id}:head`).style.textColor)).size).toBe(1);
+    expect(by(document, 'a:head').style.textColor).not.toBe(by(document, 'a:head').style.stroke);
+  });
+
+  test('activations have the fill and border of the head of their lifeline', () => {
+    const document = calls();
+    expect(look(activations(document, 'b')[0]!)).toEqual(look(by(document, 'b:head')));
+    expect(look(activations(document, 'c')[0]!)).toEqual(look(by(document, 'c:head')));
+    expect(look(activations(document, 'b')[0]!)).not.toEqual(look(activations(document, 'c')[0]!));
+  });
+
+  test('a new lifeline takes the first colour its diagram does not use; with all in use the colours start over', () => {
+    let document = calls();
+    const added = edit(document, 'a', (selected) => addSequenceLifeline(page(document), selected, pageId(document), createId, texts));
+    expect(look(by(added.document, `${added.selection[0]}:head`))).toEqual(SEQUENCE_COLOURS[3]);
+    // A colour that was freed by recolouring a head is taken again first.
+    document = run(document, { type: 'update', changes: [{ id: 'a:head', patch: { style: { fill: '#123456' } } }] });
+    const reused = edit(document, 'a', (selected) => addSequenceLifeline(page(document), selected, pageId(document), createId, texts));
+    expect(look(by(reused.document, `${reused.selection[0]}:head`))).toEqual(SEQUENCE_COLOURS[0]);
+    // More lifelines than colours: no failure, the palette repeats.
+    let many = calls();
+    for (let index = 0; index < SEQUENCE_COLOURS.length; index += 1) many = edit(many, 'a', (selected) => addSequenceLifeline(page(many), selected, pageId(many), createId, texts)).document;
+    const fills = page(many).filter((element) => sequenceRole(element) === 'head').map((element) => element.style.fill);
+    expect(fills).toHaveLength(SEQUENCE_COLOURS.length + 3);
+    expect(new Set(fills).size).toBe(SEQUENCE_COLOURS.length);
+  });
+
+  test('recolouring a head recolours the activations of that lifeline, and only those', () => {
+    const document = calls();
+    const other = look(activations(document, 'c')[0]!);
+    const recoloured = run(document, { type: 'update', changes: [{ id: 'b:head', patch: { style: { fill: '#ffe3e3', stroke: '#c92a2a' } } }] });
+    expect(look(activations(recoloured, 'b')[0]!)).toEqual({ fill: '#ffe3e3', stroke: '#c92a2a' });
+    expect(look(activations(recoloured, 'c')[0]!)).toEqual(other);
+    // An activation cannot be coloured on its own: it follows its lifeline again.
+    const alone = run(document, { type: 'update', changes: [{ id: activations(document, 'b')[0]!.id, patch: { style: { fill: '#000000' } } }] });
+    expect(look(activations(alone, 'b')[0]!)).toEqual(look(by(alone, 'b:head')));
+  });
+
+  test('an actor has no box: its activations stay white with a dark border', () => {
+    const document = documentOf({ autonumber: false, participants: [{ id: 'a', name: 'Dienst', actor: false }, { id: 'k', name: 'Kunde', actor: true }], items: [message('m1', 'a', 'k')] });
+    expect(look(activations(document, 'k')[0]!)).toEqual({ fill: '#ffffff', stroke: by(document, 'm1').style.stroke });
+    // The actor does not use up a colour.
+    expect(look(by(document, 'a:head'))).toEqual(SEQUENCE_COLOURS[0]);
   });
 });
