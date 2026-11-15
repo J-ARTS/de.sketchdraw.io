@@ -133,6 +133,6 @@ describe('automatic transport: what the signaling broker and the console see', (
       .map(file => join(directory, file))
       .filter(file => /\bconsole\s*\./.test(readFileSync(file, 'utf8'))));
     expect(offenders).toEqual([]);
-    expect(readFileSync('src/renderer/components/CollaborationPanel.vue', 'utf8')).not.toMatch(/\bconsole\s*\./);
+    expect(readFileSync('src/renderer/design-system/organisms/CollaborationPanel.vue', 'utf8')).not.toMatch(/\bconsole\s*\./);
   });
 });
