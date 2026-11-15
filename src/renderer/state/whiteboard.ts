@@ -47,7 +47,7 @@ import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } 
 import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
-import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
+import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelCentre, connectorLabelGripDrop, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
   ERASER_RADIUS_DEFAULT, PENCIL_OPACITY_DEFAULT, PENCIL_SIZE_DEFAULT, pencilOption,
@@ -273,6 +273,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get displayElements(): readonly SketchElement[] {
       let elements: readonly SketchElement[] = this.document.elements;
       if (this.previewCommand) { try { elements = applyCommand(this.document, this.previewCommand).elements; } catch { /* keep the committed elements */ } }
+      // An open property draft shows on the canvas as well (#198), so a slider moves what it changes while it is dragged.
+      else if (this.propertyDraft) { try { elements = applyCommand(this.document, propertyDraftCommand(this.propertyDraft)).elements; } catch { /* keep the committed elements */ } }
       return elements.filter((e) => e.pageId === this.activePageId);
     },
     get draftElement() { return this.drawing; },
@@ -335,7 +337,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         // A selected connector with text offers a grip below the text to slide it along the line (#195).
         if (element === selectedElement && element.text && !this.textEdit) {
           const at = screenPoint(pointOnConnector(element, connectorLabelPosition(element)));
-          handles.push({ id: 'connector-label', elementId: element.id, x: at.x, y: at.y + element.style.fontSize * 0.8 * this.viewport.zoom + 10, kind: 'connector-label' });
+          handles.push({ id: 'connector-label', elementId: element.id, x: at.x, y: at.y + connectorLabelGripDrop(element) * this.viewport.zoom + 10, kind: 'connector-label' });
         }
         return handles;
       }
@@ -695,7 +697,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
 
   /** The editor box of a connector's text: centred on the text's point on the line. */
   function connectorTextBox(element: SketchElement, position: number) {
-    const at = pointOnConnector(element, position);
+    const at = connectorLabelCentre(element, position);
     const middle = rotatePoint({ x: element.x + at.x, y: element.y + at.y }, center(element), element.rotation);
     return { x: middle.x - 110, y: middle.y - 24, width: 220, height: 48 };
   }
@@ -768,17 +770,22 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (ok) recover();
     return ok;
   }
-  async function applyPropertyDraft(): Promise<boolean> {
-    const draft = state.propertyDraft;
-    if (!draft) return true;
+  /** The update an open property draft stands for; shared by the canvas preview and the commit. */
+  function propertyDraftCommand(draft: NonNullable<WhiteboardState['propertyDraft']>): DocumentCommand {
     const changes = draft.ids.map((id) => {
       const value = clone(draft.patch);
       const e = pageEls().find((element) => element.id === id);
       if (e?.points && (value.width !== undefined || value.height !== undefined)) value.points = e.points.map((p) => ({ x: value.width !== undefined && e.width ? p.x * value.width / e.width : p.x, y: value.height !== undefined && e.height ? p.y * value.height / e.height : p.y }));
       return { id, patch: value };
     });
+    return { type: 'update', changes };
+  }
+  async function applyPropertyDraft(): Promise<boolean> {
+    const draft = state.propertyDraft;
+    if (!draft) return true;
+    const command = propertyDraftCommand(draft);
     const recover = () => { if (state.propertyDraft === draft) { state.propertyDraft = null; changedDraft(); } };
-    const ok = await dispatch({ type: 'update', changes }, draft.baseRevision, 'human', recover);
+    const ok = await dispatch(command, draft.baseRevision, 'human', recover);
     if (ok) recover();
     return ok;
   }
@@ -1200,7 +1207,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } else if (g.kind === 'connector-point' && g.connectorLabel && g.targets[0]?.kind === 'connector') {
         const element = g.targets[0];
         // The grip sits below the text; the text itself follows the pointer's nearest point on the line.
-        const position = nearestConnectorPosition(element, worldToElementLocalPoint(element, { x: point.x, y: point.y - (element.style.fontSize * 0.8 + 10 / state.viewport.zoom) }));
+        const position = nearestConnectorPosition(element, worldToElementLocalPoint(element, { x: point.x, y: point.y - (connectorLabelGripDrop(element) + 10 / state.viewport.zoom) }));
         g.preview = { type: 'update', changes: [{ id: element.id, patch: { metadata: { [CONNECTOR_LABEL_POSITION_KEY]: formatConnectorLabelPosition(position) } } }] };
         state.previewCommand = g.preview;
       } else if (g.kind === 'connector-point' && g.targets[0]?.kind === 'connector' && g.connectorPoints && (g.connectorPointIndex !== undefined || g.connectorSegmentIndex !== undefined)) {

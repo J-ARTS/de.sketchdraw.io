@@ -99,3 +99,53 @@ test('the text stays on a curved arrow when its element moves (#195)', async ({ 
   expect(Math.abs(label.y + label.height / 2 - (curve.y + curve.height / 2))).toBeLessThanOrEqual(6);
   expect(Math.abs(label.x + label.width / 2 - (curve.x + curve.width / 2))).toBeLessThanOrEqual(6);
 });
+
+test('line breaks in the text of an arrow are drawn, and dragging the slider with the mouse moves and commits the text (#198)', async ({ page }) => {
+  // Two rectangles joined by a docked, elbowed arrow drawn with the connector tool.
+  await page.keyboard.press('r');
+  await page.mouse.move(300, 300); await page.mouse.down(); await page.mouse.move(420, 380, { steps: 4 }); await page.mouse.up();
+  await page.keyboard.press('r');
+  await page.mouse.move(700, 480); await page.mouse.down(); await page.mouse.move(820, 560, { steps: 4 }); await page.mouse.up();
+  await page.keyboard.press('l');
+  await page.mouse.move(418, 340); await page.mouse.down(); await page.mouse.move(600, 400, { steps: 6 }); await page.mouse.move(702, 520, { steps: 6 }); await page.mouse.up();
+  const canvas = page.locator('.whiteboard-canvas');
+  const label = canvas.getByTestId('connector-label');
+
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('erste Zeile');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('zweite');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  // Two rows, one below the other, both centred on the same point; the surface covers both.
+  const rows = label.locator('tspan');
+  await expect(rows).toHaveText(['erste Zeile', 'zweite']);
+  const [first, second] = [(await rows.nth(0).boundingBox())!, (await rows.nth(1).boundingBox())!];
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height - 4);
+  expect(Math.abs(first.x + first.width / 2 - (second.x + second.width / 2))).toBeLessThanOrEqual(1);
+  const surface = (await canvas.getByTestId('connector-label-surface').boundingBox())!;
+  expect(surface.y).toBeLessThanOrEqual(first.y);
+  expect(surface.y + surface.height).toBeGreaterThanOrEqual(second.y + second.height - 1);
+  // The grip sits below the whole block.
+  const grip = (await page.getByTestId('connector-label-handle').boundingBox())!;
+  expect(grip.y).toBeGreaterThanOrEqual(second.y + second.height - 4);
+
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await toolbar.getByRole('button', { name: 'Textposition' }).click();
+  const slider = page.getByRole('slider', { name: 'Textposition' });
+  const track = (await slider.boundingBox())!;
+  const before = (await label.boundingBox())!;
+  await page.mouse.move(track.x + track.width / 2, track.y + track.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(track.x + track.width * 0.85, track.y + track.height / 2, { steps: 8 });
+  // While dragging, the thumb stays under the pointer and the text already moves.
+  expect(Number(await slider.inputValue())).toBeGreaterThan(75);
+  await expect.poll(async () => (await label.boundingBox())!.y).toBeGreaterThan(before.y + 40);
+  await page.mouse.up();
+  // Released: committed, no draft left open, one undo step back to the middle.
+  await expect(page.getByText('Eigenschaftenentwurf noch nicht übernommen.')).toHaveCount(0);
+  expect(Number(await slider.inputValue())).toBeGreaterThan(75);
+  await page.keyboard.press('Escape');
+  await page.getByTestId('whiteboard-canvas').focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect.poll(async () => Math.abs((await label.boundingBox())!.y - before.y)).toBeLessThanOrEqual(2);
+});

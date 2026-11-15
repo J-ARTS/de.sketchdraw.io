@@ -7,7 +7,7 @@ import { themeColor } from '../lib/theme';
 import { lineSegments, parseTextLinks } from '../lib/text-links';
 import { wrapWords } from '../lib/text-metrics';
 import { fontFamilyCss } from '../lib/constants';
-import { connectorLabelPosition, pointOnConnector } from '../lib/connector-label';
+import { connectorLabelCentre, connectorLabelSize } from '../lib/connector-label';
 import { bpmnDecoration } from '../lib/bpmn';
 import BpmnDecor from './BpmnDecor.vue';
 import { describeElement } from '../lib/describe';
@@ -127,8 +127,10 @@ const startMarker = computed(() => e.value.kind === 'connector' ? connectorStart
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');
 const markerUrl = (marker: ConnectorMarker) => marker === 'none' ? undefined : `url(#${uid}-${marker})`;
 /** The text sits on the drawn line, at its share of the connector's length (#195). */
-const connectorLabelPoint = computed(() => pointOnConnector(e.value, connectorLabelPosition(e.value)));
-const connectorLabelWidth = computed(() => Math.max(36, text.value.length * fontSize.value * .62 + 16));
+const connectorLabelPoint = computed(() => connectorLabelCentre(e.value));
+/** Line breaks of the text are kept (#198): the block is centred on its point, every line on its own row. */
+const connectorLabel = computed(() => connectorLabelSize(text.value, fontSize.value));
+const connectorLabelWidth = computed(() => connectorLabel.value.width);
 const shape = computed(() => shapeEntryForElement(e.value));
 /** Rounded rectangles: the radius is capped to half the shorter side; the default matches the former icon-based corner. */
 const cornerRadius = computed(() => {
@@ -239,8 +241,8 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <text x="12" y="-19" fill="#ffffff" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" dominant-baseline="central">{{ frameTitle }}</text>
     </g>
     <g v-else-if="e.kind === 'connector' && text && !editing" pointer-events="none">
-      <rect data-testid="connector-label-surface" :x="connectorLabelPoint.x - connectorLabelWidth / 2" :y="connectorLabelPoint.y - fontSize * .8" :width="connectorLabelWidth" :height="fontSize * 1.6" rx="4" fill="var(--surface-canvas)" />
-      <text data-testid="connector-label" :x="connectorLabelPoint.x" :y="connectorLabelPoint.y" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central">{{ text }}</text>
+      <rect data-testid="connector-label-surface" :x="connectorLabelPoint.x - connectorLabelWidth / 2" :y="connectorLabelPoint.y - connectorLabel.height / 2" :width="connectorLabelWidth" :height="connectorLabel.height" rx="4" fill="var(--surface-canvas)" />
+      <text data-testid="connector-label" :x="connectorLabelPoint.x" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central"><tspan v-for="(line, index) in connectorLabel.lines" :key="index" :x="connectorLabelPoint.x" :y="connectorLabelPoint.y + (index - (connectorLabel.lines.length - 1) / 2) * connectorLabel.lineHeight">{{ line }}</tspan></text>
     </g>
     <foreignObject v-else-if="e.kind === 'annotation' && !editing" x="1" y="1" :width="Math.max(0, e.width - 2)" :height="Math.max(0, e.height - 2)" :clip-path="`url(#${uid}-clip)`" pointer-events="none">
       <div class="annotation-body" :style="{ color: textColor, fontSize: `${fontSize}px`, fontFamily: fontFamilyCss(e.style.fontFamily), textAlign: e.style.textAlign }"><AnnotationContent :document="annotation" /></div>

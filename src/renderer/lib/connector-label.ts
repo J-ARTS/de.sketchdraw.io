@@ -7,6 +7,15 @@ import { connectorRoutePoints, connectorRouting, type Point, type SketchElement 
  */
 export const CONNECTOR_LABEL_POSITION_KEY = 'connector:label-position';
 export const DEFAULT_CONNECTOR_LABEL_POSITION = 0.5;
+/**
+ * Where the text sits across the line: without an entry on the line, with `above` over it. Messages of a
+ * sequence diagram carry their text above the arrow, so several lines never cover it.
+ */
+export const CONNECTOR_LABEL_PLACEMENT_KEY = 'connector:label-placement';
+export type ConnectorLabelPlacement = 'on' | 'above';
+const LINE_HEIGHT = 1.25;
+/** Space between a text above the line and the line. */
+const ABOVE_GAP = 4;
 
 type Routed = Pick<SketchElement, 'points' | 'connectorRouting' | 'from' | 'to'>;
 
@@ -74,4 +83,32 @@ export function nearestConnectorPosition(element: Routed, point: Point): number 
     travelled += length;
   }
   return best.along / total;
+}
+
+export function connectorLabelPlacement(element: Pick<SketchElement, 'metadata'>): ConnectorLabelPlacement {
+  return element.metadata?.[CONNECTOR_LABEL_PLACEMENT_KEY] === 'above' ? 'above' : 'on';
+}
+/** The lines of a connector's text as the user broke them; empty lines at the end take no room. */
+export function connectorLabelLines(text: string | null | undefined): string[] {
+  const lines = (text ?? '').replace(/\r\n?/g, '\n').split('\n').map((line) => line.trimEnd());
+  while (lines.length > 1 && !lines.at(-1)) lines.pop();
+  return lines;
+}
+/** The room a connector's text takes; a single line keeps the size it always had. */
+export function connectorLabelSize(text: string | null | undefined, fontSize: number): { width: number; height: number; lines: string[]; lineHeight: number } {
+  const lines = connectorLabelLines(text);
+  const longest = Math.max(0, ...lines.map((line) => Array.from(line).length));
+  const lineHeight = fontSize * LINE_HEIGHT;
+  return { width: Math.max(36, longest * fontSize * 0.62 + 16), height: lines.length * lineHeight + fontSize * 0.35, lines, lineHeight };
+}
+type Labelled = Routed & Pick<SketchElement, 'metadata' | 'text' | 'style'>;
+/** Centre of the text block, in element-local coordinates. */
+export function connectorLabelCentre(element: Labelled, position: number = connectorLabelPosition(element)): Point {
+  const at = pointOnConnector(element, position);
+  if (connectorLabelPlacement(element) !== 'above') return at;
+  return { x: at.x, y: at.y - connectorLabelSize(element.text, element.style.fontSize).height / 2 - ABOVE_GAP };
+}
+/** How far below the point on the line the grip of the text sits (before the grip's own screen distance). */
+export function connectorLabelGripDrop(element: Labelled): number {
+  return connectorLabelPlacement(element) === 'above' ? 0 : connectorLabelSize(element.text, element.style.fontSize).height / 2;
 }
