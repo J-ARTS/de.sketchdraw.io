@@ -135,3 +135,15 @@ test('type, status and due date use custom components with full keyboard support
   await due.click();
   expect((await new AxeBuilder({ page }).include('[role=dialog]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
+
+test('the dark theme tones down the card cover only, not the whole page (#213)', async ({ page }) => {
+  await page.goto('/');
+  await openBoard(page);
+  await createTask(page, 'Abdeckung');
+  const cover = page.locator('.task-card .card-cover').first();
+  await expect(cover).toBeVisible();
+  expect(await cover.evaluate((node) => getComputedStyle(node).filter)).toBe('none');
+  await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
+  expect(await cover.evaluate((node) => getComputedStyle(node).filter)).toContain('brightness(0.72)');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).filter)).toBe('none');
+});

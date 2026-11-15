@@ -148,7 +148,8 @@ const due = computed(() => {
     linear-gradient(135deg, #e0e7ff, #e2e8f0 55%, #dbeafe);
 }
 
-:global(:root[data-theme='dark']) .card-cover {
+/* The whole selector goes into :global(): Vue keeps only what is inside, so `:global(A) B` would style A. */
+:global(:root[data-theme='dark'] .task-card .card-cover) {
   filter: saturate(0.85) brightness(0.72);
 }
 
