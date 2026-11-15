@@ -27,9 +27,13 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 480, height: 720 
     await expect(notice).toBeVisible();
     const recovery = page.locator('.property-draft');
     await expect(recovery).toBeVisible();
-    const noticeBounds = await notice.boundingBox();
-    const recoveryBounds = await recovery.boundingBox();
-    expect(noticeBounds!.y + noticeBounds!.height).toBeLessThanOrEqual(recoveryBounds!.y);
+    // The notice moves above the draft once the app has measured the draft (a ResizeObserver, so a moment
+    // later): wait for that instead of measuring in the same instant, which failed on busy machines (#193).
+    await expect(async () => {
+      const noticeBounds = await notice.boundingBox();
+      const recoveryBounds = await recovery.boundingBox();
+      expect(noticeBounds!.y + noticeBounds!.height).toBeLessThanOrEqual(recoveryBounds!.y);
+    }).toPass({ timeout: 5000 });
     await page.screenshot({ path: testInfo.outputPath('draft-feedback.png') });
     await recovery.getByRole('button', { name: 'Verwerfen', exact: true }).click();
     await expect(recovery).not.toBeVisible();
