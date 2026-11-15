@@ -1,0 +1,189 @@
+<!-- @component The workspace of the app: it creates the store and fills the workspace layout with canvas, bars, panels, feedback and dialogs. -->
+<script setup lang="ts">
+import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
+import { t } from '@/renderer/i18n';
+import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
+import { useElementSize, useEventListener } from '@vueuse/core';
+import { attachRendererAgentSession, type RendererAgentSession } from '@/agent-access/renderer-session';
+import type { DocumentAuthority } from '@/session';
+import { isHdhtLink } from '@/collaboration/hdht/invitation';
+import { getDesktopBridge } from '@/platform';
+import { createWhiteboardStore } from '@/renderer/state/whiteboard';
+import { WHITEBOARD_KEY, type KeyInput } from '@/renderer/state/contract';
+import MainMenu from '@/renderer/design-system/organisms/MainMenu.vue';
+import Toolbar from '@/renderer/design-system/organisms/Toolbar.vue';
+import WhiteboardCanvas from '@/renderer/design-system/organisms/WhiteboardCanvas.vue';
+import SelectionToolbar from '@/renderer/design-system/organisms/SelectionToolbar.vue';
+import WorkspacePanels from '@/renderer/design-system/templates/WorkspacePanels.vue';
+import WorkspaceLayout from '@/renderer/design-system/templates/WorkspaceLayout.vue';
+import AppDialog from '@/renderer/design-system/organisms/AppDialog.vue';
+import InteropPanel from '@/renderer/design-system/organisms/InteropPanel.vue';
+import CollaborationPanel from '@/renderer/design-system/organisms/CollaborationPanel.vue';
+import Minimap from '@/renderer/design-system/organisms/Minimap.vue';
+import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import CommentsLayer from '@/renderer/design-system/organisms/CommentsLayer.vue';
+import CommentSidebar from '@/renderer/design-system/organisms/CommentSidebar.vue';
+import TaskBoard from '@/renderer/design-system/organisms/TaskBoard.vue';
+import FrameSidebar from '@/renderer/design-system/organisms/FrameSidebar.vue';
+import PresenterMode from '@/renderer/design-system/organisms/PresenterMode.vue';
+import PluginSettings from '@/renderer/design-system/organisms/PluginSettings.vue';
+import ProfileDialog from '@/renderer/design-system/organisms/ProfileDialog.vue';
+import SettingsDialog from '@/renderer/design-system/organisms/SettingsDialog.vue';
+import { resolveCanvasBackground } from '@/renderer/lib/preferences';
+import { startJiraAutoSync } from '@/renderer/state/jira-auto-sync';
+
+const store = createWhiteboardStore(); const s = store.state;
+provide(WHITEBOARD_KEY, store);
+const stopJiraAutoSync = startJiraAutoSync({
+  isReady: () => Boolean(
+    s.file.handle && !s.roomGuest && s.canWrite && !s.transitioning && !s.pluginBusy
+    && s.pluginSettings?.available && s.pluginSettings.projectFolder
+    && s.pluginSettings.atlassian.installed && s.pluginSettings.atlassian.enabled
+    && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
+    && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey,
+  ),
+  sync: () => store.syncJiraTasks({ announce: false }),
+});
+const collaborationOpen = ref(false);
+/** A session link the app was opened with (`#sketchdraw-hdht=…` or a `sketchdraw://join` app link); the panel prefills it and the fragment is removed. */
+const inviteLink = ref<string | null>(null);
+function openInvite(link: string): void {
+  if (!isHdhtLink(link)) return;
+  interopOpen.value = false; pluginsOpen.value = false;
+  inviteLink.value = link;
+  collaborationOpen.value = true;
+}
+function readInviteFromLocation(): void {
+  const hash = window.location.hash.slice(1);
+  if (!isHdhtLink(hash)) return;
+  openInvite(hash);
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+/**
+ * Drafts and conflicts stay centred above the bottom bar. Notices sit in the bottom-right corner above the minimap
+ * (#166); without a minimap they rest above the bottom bar and any open draft. Floating comment UI keeps clear of
+ * both via --feedback-height (#88).
+ */
+const FEEDBACK_BASE = 76; // --panel-bottom-base: inset + chrome height + gap
+const CORNER_INSET = 16, CORNER_GAP = 8;
+const feedbackStack = ref<HTMLElement | null>(null);
+const { height: feedbackHeight } = useElementSize(feedbackStack, undefined, { box: 'border-box' });
+const minimap = ref<InstanceType<typeof Minimap> | null>(null);
+const { height: minimapHeight } = useElementSize(minimap, undefined, { box: 'border-box' });
+const noticeStack = ref<HTMLElement | null>(null);
+const { height: noticesHeight } = useElementSize(noticeStack, undefined, { box: 'border-box' });
+const noticesBottom = computed(() => Math.ceil(Math.max(
+  minimapHeight.value > 0 ? CORNER_INSET + minimapHeight.value + CORNER_GAP : 0,
+  FEEDBACK_BASE + (feedbackHeight.value > 0 ? feedbackHeight.value + CORNER_GAP : 0),
+)));
+const feedbackClearance = computed(() => Math.ceil(Math.max(
+  feedbackHeight.value,
+  noticesHeight.value > 0 ? noticesBottom.value + noticesHeight.value - FEEDBACK_BASE : 0,
+)));
+const pluginsOpen = ref(false);
+const settingsOpen = ref(false);
+const profilesOpen = ref(false);
+const authority = shallowRef(store.getAuthority());
+let agentSession: RendererAgentSession | undefined;
+function attachAgentAccess(value: DocumentAuthority | null) {
+  agentSession?.dispose(); agentSession = undefined;
+  const bridge = window.sketchdrawAgentAccess;
+  // A room guest holds a foreign document: no local agent (MCP) authority for it, editor or viewer, connected or not.
+  if (!value || store.getRoomGuest() || !bridge?.isAvailable) return;
+  try {
+    // A local agent works on the user's behalf: its changes go into the user's undo history (#176).
+    const session = attachRendererAgentSession(value, bridge, { historyActorId: store.getLocalActorId() });
+    agentSession = session;
+    void session.ready.catch(() => { if (agentSession === session) agentSession = undefined; });
+  } catch { agentSession = undefined; }
+}
+attachAgentAccess(authority.value);
+const offAuthority = store.subscribeAuthority(value => { authority.value = value; attachAgentAccess(value); });
+const interopOpen = ref(false); const interopMode = ref<'import' | 'export'>('import');
+function openInterop(mode: 'import' | 'export') { collaborationOpen.value = false; if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); interopMode.value = mode; interopOpen.value = true; }
+function toggleCollaboration() { interopOpen.value = false; if (!collaborationOpen.value) { if (s.codeOpen) store.toggleCode(); if (s.catalogOpen) store.toggleCatalog(); store.toggleObjects(false); } collaborationOpen.value = !collaborationOpen.value; }
+function togglePlugins() { collaborationOpen.value = false; interopOpen.value = false; pluginsOpen.value = !pluginsOpen.value; }
+watch(() => [s.codeOpen, s.catalogOpen, s.objectsOpen], values => { if (values.some(Boolean)) { collaborationOpen.value = false; interopOpen.value = false; pluginsOpen.value = false; } });
+watch(() => s.theme, value => { document.documentElement.dataset.theme = value; }, { immediate: true });
+watch(() => s.language, value => { document.documentElement.lang = value; }, { immediate: true });
+/** The user's canvas background overrides the theme's canvas token; the dot grid keeps its contrast to it. */
+watch(() => [s.canvasBackground, s.theme] as const, ([value, theme]) => {
+  const root = document.documentElement;
+  const color = resolveCanvasBackground(value, theme);
+  if (color) {
+    root.style.setProperty('--surface-canvas', color);
+    root.style.setProperty('--canvas-grid', `color-mix(in srgb, ${color} 78%, var(--text-muted))`);
+  } else {
+    root.style.removeProperty('--surface-canvas');
+    root.style.removeProperty('--canvas-grid');
+  }
+}, { immediate: true });
+function key(event: KeyboardEvent): KeyInput {
+  const target = event.target as Element;
+  return { key: event.key, code: event.code, shiftKey: event.shiftKey, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, repeat: event.repeat, isComposing: event.isComposing, clipboardEvents: true, scope: target?.closest('input,textarea,[contenteditable=true]') ? 'text' : target?.closest('[data-testid=whiteboard-canvas]') ? 'canvas' : 'other' };
+}
+function keydown(event: KeyboardEvent) { if (!event.defaultPrevented && store.handleKeyDown(key(event))) event.preventDefault(); }
+function keyup(event: KeyboardEvent) { store.handleKeyUp(key(event)); }
+/**
+ * Copy and paste on the workspace arrive as clipboard events (#174): they carry image files and need no clipboard
+ * permission, which the desktop app denies. Text fields, editors and dialogs keep their native behaviour.
+ */
+function ownsClipboard(event: ClipboardEvent): boolean {
+  const target = event.target instanceof Element ? event.target : null;
+  return !event.defaultPrevented && Boolean(event.clipboardData) && !s.dialog && !s.transitioning && !s.presenterOpen
+    && !target?.closest('input,textarea,[contenteditable]:not([contenteditable=false]),dialog');
+}
+function copy(event: ClipboardEvent) {
+  // Text marked in a panel is copied as text.
+  if (!ownsClipboard(event) || window.getSelection()?.toString()) return;
+  if (store.copyToClipboardData(event.clipboardData!)) event.preventDefault();
+}
+function paste(event: ClipboardEvent) {
+  if (!ownsClipboard(event)) return;
+  event.preventDefault();
+  const data = event.clipboardData!;
+  void store.pasteClipboardData({ text: data.getData('text/plain'), image: Array.from(data.files).find((file) => file.type.startsWith('image/')) ?? null });
+}
+function beforeUnload(event: BeforeUnloadEvent) { if (s.bridgePlatform === 'browser' && store.needsCloseWarning()) { event.preventDefault(); event.returnValue = ''; } }
+useEventListener(window, 'keydown', keydown);
+useEventListener(window, 'keyup', keyup);
+useEventListener(document, 'copy', copy);
+useEventListener(document, 'paste', paste);
+useEventListener(window, 'beforeunload', beforeUnload);
+useEventListener(window, 'hashchange', readInviteFromLocation);
+readInviteFromLocation();
+/** The desktop app forwards `sketchdraw://join` links it is opened with while it is already running. */
+const offInviteLink = getDesktopBridge().onInviteLink?.(openInvite);
+onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
+</script>
+
+<template>
+  <WorkspaceLayout :label="t('Sketchdraw Arbeitsbereich')" :inert="s.transitioning || s.presenterOpen" :feedback-height="feedbackClearance">
+      <WhiteboardCanvas v-if="s.workspaceView === 'canvas'" /><TaskBoard v-else /><div class="top-chrome"><MainMenu :collaboration-open="collaborationOpen" :plugins-open="pluginsOpen" @interop="openInterop" @collaboration="toggleCollaboration" @plugins="togglePlugins" @settings="settingsOpen = true" @profiles="profilesOpen = true" /><Toolbar v-if="s.workspaceView === 'canvas'" /></div><template v-if="s.workspaceView === 'canvas'"><SelectionToolbar /><WorkspacePanels /><CommentsLayer /><CommentSidebar /><FrameSidebar /></template><InteropPanel :open="interopOpen" :mode="interopMode" @close="interopOpen = false" /><CollaborationPanel :open="collaborationOpen" :invite-link="inviteLink" @link-consumed="inviteLink = null" @close="collaborationOpen = false" /><PluginSettings :open="pluginsOpen" @close="pluginsOpen = false" /><SettingsDialog :open="settingsOpen" @close="settingsOpen = false" /><ProfileDialog :open="profilesOpen" @close="profilesOpen = false" />
+      <div v-if="s.workspaceView === 'canvas'" class="bottom-tools sd-panel" role="group" :aria-label="t('Ansicht und Verlauf')">
+        <button class="sd-icon-btn zoom-btn" :aria-label="t('Verkleinern')" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" :aria-label="t('Zoom auf 100 Prozent')" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" :aria-label="t('Vergrößern')" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Alles anzeigen')" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Rückgängig')" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" :aria-label="t('Wiederholen')" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
+      </div>
+      <Minimap ref="minimap" v-if="s.workspaceView === 'canvas' && !(s.codeOpen || s.catalogOpen || s.objectsOpen || s.commentSidebarOpen || s.frameSidebarOpen || collaborationOpen || interopOpen)" />
+      <AppButton v-if="s.offscreenChanges" class="external-changes" @click="store.revealOffscreenChanges()">{{ t('{count} externe Änderungen anzeigen', { count: s.offscreenChanges }) }}</AppButton>
+      <div ref="noticeStack" class="notices" role="region" :aria-label="t('Meldungen')" :style="{ bottom: `${noticesBottom}px` }"><div v-for="notice in s.notices" :key="notice.id" class="notice sd-panel" :class="{ error: notice.kind === 'error' }" @pointerenter="store.holdNotice(notice.id)" @pointerleave="store.releaseNotice(notice.id)" @focusin="store.holdNotice(notice.id)" @focusout="store.releaseNotice(notice.id)"><span>{{ notice.text }}</span><button class="sd-icon-btn" :aria-label="t('Meldung schließen')" @click="store.dismissNotice(notice.id)">×</button></div></div>
+      <div ref="feedbackStack" class="feedback-stack">
+        <div v-if="s.pendingPeerWrite" class="property-draft sd-panel" role="alert"><span>{{ t('Peer-Änderung noch nicht bestätigt. Dein Entwurf bleibt erhalten.') }}</span><AppButton @click="store.resolvePendingWrite()">{{ t('Ausgang prüfen') }}</AppButton></div>
+        <div v-if="s.propertyDraft && !s.pendingPeerWrite" class="property-draft sd-panel" role="status"><span>{{ s.propertyDraft.baseRevision !== s.revision ? t('Eigenschaftenentwurf – das Dokument hat sich geändert.') : t('Eigenschaftenentwurf noch nicht übernommen.') }}</span><AppButton @click="store.commitPropertyDraft()">{{ t('Übernehmen') }}</AppButton><AppButton @click="store.discardPropertyDraft()">{{ t('Verwerfen') }}</AppButton></div>
+        <div v-if="s.gestureConflict && !s.pendingPeerWrite" class="gesture-conflict sd-panel" role="alert"><p>{{ s.gestureConflict.message }}</p><AppButton @click="store.resolveGestureConflict('discard')">{{ t('Vorschau verwerfen') }}</AppButton><AppButton v-if="s.gestureConflict.canRetry" @click="store.resolveGestureConflict('retry')">{{ t('Meine Änderung übernehmen') }}</AppButton></div>
+      </div>
+    <template #overlays>
+      <span class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ s.liveMessage }}</span>
+      <AppDialog />
+      <PresenterMode v-if="s.presenterOpen" />
+    </template>
+  </WorkspaceLayout>
+</template>
+
+<style scoped>
+/* Document card, tools and workspace bar share one grid so they can never overlap: the tools take the free
+   middle (centered while the side columns allow it) and wrap into a second row up to 1040 px. */
+.top-chrome{position:absolute;top:var(--chrome-inset);left:var(--chrome-inset);right:var(--chrome-inset);z-index:40;display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr);grid-template-areas:'doc tools ws';align-items:start;column-gap:var(--space-3);row-gap:var(--space-2);pointer-events:none}
+@media(max-width:1040px){.top-chrome{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'doc ws' 'tools tools';row-gap:var(--space-4)}}
+.bottom-tools{position:absolute;bottom:16px;left:16px;display:flex;align-items:center;gap:2px;height:var(--chrome-height);padding:0 6px;z-index:9}.zoom-btn{width:var(--chrome-control);height:var(--chrome-control);border-radius:10px}.zoom-value{min-width:60px;min-height:var(--chrome-control);padding:0 6px;border:0;border-radius:10px;background:none;font-size:var(--font-size-m);font-weight:500;font-variant-numeric:tabular-nums;cursor:pointer}.zoom-value:hover{background:var(--surface-raised)}.separator{height:24px;width:1px;background:var(--border-subtle);margin:0 6px}.feedback-stack{position:absolute;bottom:76px;left:16px;right:16px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}.notices{position:absolute;right:16px;z-index:30;width:min(360px,calc(100% - 32px));display:grid;justify-items:end;gap:6px;pointer-events:none}.notice{display:flex;gap:12px;align-items:center;max-width:100%;padding:4px 4px 4px 12px;font-size:12px;pointer-events:auto}.notice span{flex:1}.notice.error{border-color:var(--status-error)}.gesture-conflict{width:min(640px,100%);padding:14px;pointer-events:auto}.gesture-conflict p{margin-bottom:10px}.external-changes{position:absolute;bottom:84px;left:16px}@media(max-width:760px){.bottom-tools{bottom:12px;left:12px}}@media(max-width:360px){.bottom-tools .separator{margin:0 2px}.zoom-value{min-width:52px}}
+.property-draft{padding:8px;display:flex;gap:8px;align-items:center;font-size:12px;max-width:100%;flex-wrap:wrap;pointer-events:auto}@media(max-width:860px){.feedback-stack{left:12px;right:12px}.notices{right:12px;width:min(360px,calc(100% - 24px))}}
+</style>

@@ -1,0 +1,36 @@
+<!-- @component The side panel that lists the comment threads of the page. -->
+<script setup lang="ts">
+import { L, t } from '@/renderer/i18n';
+import { computed, ref } from 'vue';
+import { commentPageId, commentTargetLabel } from '@/renderer/lib/comments';
+import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
+import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+
+const store = useWhiteboard(); const s = store.state;
+const query = ref(''); const filter = ref<'open' | 'resolved' | 'all'>('open');
+const threads = computed(() => (s.document.commentThreads ?? []).filter((thread) => {
+  if (commentPageId(thread.target, s.document) !== s.activePageId) return false;
+  if (filter.value === 'open' && thread.resolved) return false;
+  if (filter.value === 'resolved' && !thread.resolved) return false;
+  const term = query.value.trim().toLocaleLowerCase('de');
+  return !term || thread.messages.some((message) => `${message.authorName} ${message.body}`.toLocaleLowerCase('de').includes(term)) || commentTargetLabel(thread.target, s.document).toLocaleLowerCase('de').includes(term);
+}).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)));
+function initials(name: string): string { return name.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || '?'; }
+</script>
+
+<template>
+  <aside v-if="s.commentSidebarOpen && s.workspaceView === 'canvas'" class="comment-sidebar sd-panel" data-testid="comment-sidebar" :aria-label="t('Alle Kommentare')">
+    <header><h2 class="sd-panel-title">{{ t('Kommentare') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Kommentarleiste schließen')" @click="store.closeCommentSidebar()"><AppIcon name="close" /></button></header>
+    <div class="search"><AppIcon name="search" :size="18" /><input v-model="query" type="search" :placeholder="t('Kommentare suchen')" :aria-label="t('Kommentare suchen')" /></div>
+    <div class="filters" role="group" :aria-label="t('Kommentare filtern')"><button v-for="entry in ([['open', L('Offen')],['resolved', L('Erledigt')],['all', L('Alle')]] as const)" :key="entry[0]" :aria-pressed="filter === entry[0]" @click="filter = entry[0]">{{ t(entry[1]) }}</button></div>
+    <ol class="comment-list">
+      <li v-for="thread in threads" :key="thread.id"><button :class="{ active: thread.id === s.activeCommentId, unread: s.unreadCommentIds.includes(thread.id) }" @click="store.openComment(thread.id)"><span class="avatar">{{ initials(t(thread.messages.at(-1)?.authorName ?? '')) }}</span><span class="summary"><span class="target">{{ commentTargetLabel(thread.target, s.document) }}</span><strong>{{ t(thread.messages.at(-1)?.authorName ?? '') }}</strong><span class="body">{{ thread.messages.at(-1)?.body }}</span><span v-if="thread.resolved" class="resolved-badge" data-testid="resolved-badge"><AppIcon name="check" :size="12" />{{ t('Erledigt') }}</span><small v-else>{{ thread.messages.length === 1 ? t('1 Beitrag') : t('{count} Beiträge', { count: thread.messages.length }) }}</small></span></button></li>
+    </ol>
+    <p v-if="!threads.length" class="empty">{{ t('Keine passenden Kommentare.') }}</p>
+  </aside>
+</template>
+
+<style scoped>
+.comment-sidebar{position:absolute;z-index:17;top:var(--panel-top);right:16px;bottom:16px;width:min(340px,calc(100vw - 32px));display:flex;flex-direction:column;overflow:hidden}.comment-sidebar header{display:flex;align-items:center;justify-content:space-between;padding:14px 12px 10px 18px;border-bottom:1px solid var(--border-subtle)}.search{display:flex;align-items:center;gap:8px;margin:12px;padding:0 10px;border-radius:10px;background:var(--surface-raised)}.search:focus-within{outline:2px solid var(--focus-ring);outline-offset:2px}.search input{width:100%;height:40px;border:0;background:transparent;color:var(--text-primary);outline:0}.filters{display:flex;gap:4px;padding:0 12px 10px}.filters button{min-height:32px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:var(--text-muted)}.filters button[aria-pressed='true']{background:var(--accent-soft);color:var(--accent-ink)}.comment-list{overflow:auto;padding:0 8px 14px}.comment-list li>button{display:flex;gap:10px;width:100%;padding:12px;border:0;border-radius:12px;background:transparent;color:var(--text-primary);text-align:left}.comment-list li>button:hover,.comment-list li>button.active{background:var(--surface-raised)}.comment-list li>button.active{box-shadow:inset 3px 0 var(--accent)}.avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);font-size:12px}.summary{display:grid;gap:3px;min-width:0}.target,.body{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.target,small{color:var(--text-muted);font-size:11px}.summary strong{font-size:13px}.body{font-size:13px}.unread .summary strong::after{content:' · Neu';color:var(--accent)}.empty{margin:auto;color:var(--text-muted)}
+.resolved-badge{display:inline-flex;align-items:center;align-self:flex-start;gap:4px;margin-top:2px;padding:2px 8px 2px 6px;border-radius:999px;background:color-mix(in srgb,var(--status-ok) 14%,transparent);color:var(--status-ok);font-size:12px;font-weight:600;line-height:1.4}
+</style>

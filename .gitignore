@@ -29,3 +29,5 @@ npm-debug.log*
 
 # Rebuildable local Graphify parser cache
 graphify-out/cache/
+
+storybook-static/

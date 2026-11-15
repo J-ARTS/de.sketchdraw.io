@@ -1,0 +1,45 @@
+<!-- @component The one shared modal dialog for help, unsaved changes and save conflicts, driven by `store.state.dialog`. Mounted once in the workspace page; extend it instead of adding a parallel dialog. -->
+<script setup lang="ts">
+import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
+import { t } from '@/renderer/i18n';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
+import { SHORTCUTS, formatCombo } from '@/renderer/lib/shortcuts';
+import { isMacPlatform } from '@/renderer/design-system/composables/platform';
+import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+const store = useWhiteboard(); const dialog = ref<HTMLDialogElement>(); let previous: HTMLElement | null = null;
+const isMac = isMacPlatform();
+const busy = computed(() => store.state.dialog?.kind === 'unsaved' && store.state.dialog.busy);
+watch(() => Boolean(store.state.dialog), async (open) => {
+  await nextTick();
+  if (open) { previous = document.activeElement as HTMLElement; dialog.value?.showModal(); }
+  else { dialog.value?.close(); if (previous?.isConnected) previous.focus(); }
+}, { immediate: true });
+onBeforeUnmount(() => dialog.value?.close());
+</script>
+
+<template>
+  <dialog ref="dialog" class="app-dialog sd-panel" aria-labelledby="dialog-title" @cancel.prevent="!busy && store.closeDialog()">
+    <template v-if="store.state.dialog?.kind === 'help'">
+      <div class="dialog-heading"><h2 id="dialog-title" class="sd-panel-title">{{ t('Schneller mit der Tastatur') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Hilfe schließen')" @click="store.closeDialog()"><AppIcon name="close" /></button></div>
+      <p class="intro">{{ t('Kürzel für die Zeichenfläche. In Textfeldern bleiben die gewohnten Textbefehle erhalten.') }}</p>
+      <dl class="shortcuts"><template v-for="item in SHORTCUTS" :key="item.id"><dt>{{ t(item.label) }}</dt><dd><kbd class="sd-kbd">{{ formatCombo(item.combo, isMac) }}</kbd></dd></template></dl>
+      <div class="buttons"><AppButton intent="primary" @click="store.closeDialog()">{{ t('Verstanden') }}</AppButton></div>
+    </template>
+    <template v-else-if="store.state.dialog?.kind === 'unsaved'">
+      <h2 id="dialog-title" class="sd-panel-title">{{ t('Änderungen behalten?') }}</h2><p class="intro">{{ t('Dein Dokument enthält ungespeicherte Änderungen oder offene Entwürfe. Beim Speichern werden gültige Entwürfe übernommen.') }}</p>
+      <p v-if="store.state.pendingPeerWrite || store.state.collaboration?.hasUnresolvedOutcome" class="error">{{ t('Eine Peer-Änderung hat noch keinen bestätigten Ausgang. Speichern ist bis zur Klärung gesperrt. Verwerfen beendet die Sitzung; eine lokale Kopie enthält ausschließlich den zuletzt bestätigten Stand, ohne diesen Entwurf.') }}</p>
+      <p v-else-if="store.state.dialog.reason === 'leave'" class="intro">{{ t('Beim Verlassen wird eine neue lokale Kopie des bestätigten Stands angelegt. Offene Entwürfe gehören erst nach bestätigter Übernahme dazu.') }}</p>
+      <p v-if="store.state.bridgePlatform === 'browser'" class="intro">{{ t('Im Browser wird die Datei als Download übergeben. Prüfe den Download, bevor du das Fenster schließt.') }}</p>
+      <p v-if="store.state.dialog.error" role="alert" class="error">{{ store.state.dialog.error }}</p>
+      <div class="buttons"><AppButton :disabled="busy" autofocus @click="store.resolveDialog('cancel')">{{ t('Abbrechen') }}</AppButton><AppButton intent="danger" :disabled="busy" @click="store.resolveDialog('discard')">{{ t('Verwerfen') }}</AppButton><AppButton intent="primary" :disabled="busy" @click="store.resolveDialog('save')">{{ busy ? t('Wird geprüft …') : t('Speichern') }}</AppButton></div>
+    </template>
+    <template v-else-if="store.state.dialog?.kind === 'save-conflict'">
+      <h2 id="dialog-title" class="sd-panel-title">{{ t('Datei wurde geändert') }}</h2><p class="intro">{{ store.state.dialog.message }}</p><div class="buttons"><AppButton @click="store.resolveDialog('cancel')">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" @click="store.resolveDialog('save-copy')">{{ t('Als Kopie speichern') }}</AppButton></div>
+    </template>
+  </dialog>
+</template>
+
+<style scoped>
+.app-dialog{width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:24px;overflow:auto;color:var(--text-primary)}.app-dialog::backdrop{background:var(--scrim)}.dialog-heading{display:flex;align-items:center;justify-content:space-between}.intro{color:var(--text-muted);font-size:13px;line-height:1.7;margin:12px 0 20px}.buttons{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;flex-wrap:wrap}.shortcuts{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;font-size:12px;max-height:48vh;overflow:auto;padding:4px}.shortcuts dd{text-align:right}.error{color:var(--status-error);line-height:1.6;font-size:13px}
+</style>

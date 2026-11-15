@@ -1,0 +1,35 @@
+<!-- @component A symbol from the icon set in `icons.ts`, drawn as a 24-unit line icon in the current text colour. Decorative by itself: the control around it carries the name. -->
+<script setup lang="ts">
+import { computed } from 'vue';
+import { ICON_PATHS } from '@/renderer/design-system/atoms/icons';
+import type { IconName } from '@/renderer/design-system/atoms/icons';
+
+const props = withDefaults(defineProps<{ name: IconName; size?: number }>(), { size: 20 });
+
+const paths = computed(() => ICON_PATHS[props.name]);
+</script>
+
+<template>
+  <svg
+    class="app-icon"
+    :width="size"
+    :height="size"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path v-for="(d, index) in paths" :key="index" :d="d" />
+  </svg>
+</template>
+
+<style scoped>
+.app-icon {
+  display: block;
+  flex: none;
+}
+</style>

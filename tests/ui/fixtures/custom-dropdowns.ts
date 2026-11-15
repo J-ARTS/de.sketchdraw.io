@@ -1,6 +1,6 @@
 /// <reference path="../../../src/renderer/env.d.ts" />
 import { createApp, defineComponent, h, nextTick, onMounted, ref } from 'vue';
-import AppSelect from '../../../src/renderer/components/AppSelect.vue';
+import AppSelect from '../../../src/renderer/design-system/molecules/AppSelect.vue';
 import '../../../src/renderer/styles/tokens.css';
 import '../../../src/renderer/styles/base.css';
 

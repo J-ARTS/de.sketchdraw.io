@@ -13,5 +13,7 @@ Sketchdraw is licensed under the PolyForm Noncommercial License 1.0.0. The follo
 | `@vueuse/core` | 15.0.0 | MIT | Vue renderer lifecycle and browser composables |
 | `@vueuse/shared` | 15.0.0 | MIT | Shared VueUse composable utilities (transitive dependency) |
 | `@vueuse/metadata` | 15.0.0 | MIT | VueUse composable metadata (transitive dependency) |
+| `class-variance-authority` | 0.7.1 | Apache-2.0 | Typed style variants of the design-system atoms |
+| `clsx` | 2.1.1 | MIT | Class-name composition (transitive dependency of class-variance-authority) |
 
 Complete dependency metadata and resolved transitive versions are recorded in `package-lock.json`. This notice does not replace the license files distributed by the packages.

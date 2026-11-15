@@ -25,7 +25,11 @@
     "package:dist": "npm run build && electron-builder --config electron-builder.json",
     "build:mcp": "node scripts/build-mcp.mjs",
     "icons:import": "node scripts/import-official-icons.mjs",
-    "mcp": "node dist-mcp/server.cjs"
+    "mcp": "node dist-mcp/server.cjs",
+    "storybook": "storybook dev --port 6006 --no-open",
+    "build:storybook": "storybook build --output-dir storybook-static",
+    "design-system:manifest": "node scripts/design-system-manifest.mjs",
+    "design-system:check": "node scripts/design-system-manifest.mjs --check"
   },
   "dependencies": {
     "@fontsource-variable/caveat": "5.3.0",
@@ -35,6 +39,7 @@
     "@modelcontextprotocol/server": "2.3.1",
     "@trystero-p2p/mqtt": "0.26.0",
     "@vueuse/core": "15.0.0",
+    "class-variance-authority": "0.7.1",
     "fflate": "0.8.3",
     "htmlparser2": "12.0.0",
     "hyperdht": "6.36.0",
@@ -52,6 +57,9 @@
     "@axe-core/playwright": "4.14.0",
     "@modelcontextprotocol/client": "2.3.1",
     "@playwright/test": "1.64.1",
+    "@storybook/addon-a11y": "10.6.7",
+    "@storybook/addon-docs": "10.6.7",
+    "@storybook/vue3-vite": "10.6.7",
     "@types/node": "22.20.5",
     "@types/ws": "8.18.2",
     "@vitejs/plugin-vue": "6.0.10",
@@ -59,9 +67,11 @@
     "electron-builder": "26.15.3",
     "esbuild": "0.28.2",
     "fake-indexeddb": "6.2.4",
+    "storybook": "10.6.7",
     "typescript": "6.0.3",
     "vite": "8.3.4",
     "vitest": "5.0.5",
+    "vue-component-meta": "3.3.13",
     "vue-tsc": "3.3.13",
     "ws": "8.22.2"
   },

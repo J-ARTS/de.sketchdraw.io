@@ -92,6 +92,10 @@ jobs:
       - name: Build renderer, Electron main/preload, and MCP adapter bundles
         run: npm run build
 
+      - name: Build the design-system catalogue (Storybook)
+        if: runner.os == 'Linux'
+        run: npm run build:storybook
+
       - name: Install Playwright Chromium browser for UI tests
         run: npx playwright install --with-deps chromium
 
