@@ -8,14 +8,17 @@ import { connectorRoutePoints, connectorRouting, type Point, type SketchElement 
 export const CONNECTOR_LABEL_POSITION_KEY = 'connector:label-position';
 export const DEFAULT_CONNECTOR_LABEL_POSITION = 0.5;
 /**
- * Where the text sits across the line: without an entry on the line, with `above` over it. Messages of a
- * sequence diagram carry their text above the arrow, so several lines never cover it.
+ * Where the text sits across the line: without an entry on the line, with `above` over it, with `right`
+ * beside it. Messages of a sequence diagram carry their text above the arrow, so several lines never cover
+ * it; a call to oneself carries it right of its loop.
  */
 export const CONNECTOR_LABEL_PLACEMENT_KEY = 'connector:label-placement';
-export type ConnectorLabelPlacement = 'on' | 'above';
+export type ConnectorLabelPlacement = 'on' | 'above' | 'right';
 const LINE_HEIGHT = 1.25;
 /** Space between a text above the line and the line. */
 const ABOVE_GAP = 4;
+/** Space between a text beside the line and the line. */
+const BESIDE_GAP = 6;
 
 type Routed = Pick<SketchElement, 'points' | 'connectorRouting' | 'from' | 'to'>;
 
@@ -86,7 +89,8 @@ export function nearestConnectorPosition(element: Routed, point: Point): number 
 }
 
 export function connectorLabelPlacement(element: Pick<SketchElement, 'metadata'>): ConnectorLabelPlacement {
-  return element.metadata?.[CONNECTOR_LABEL_PLACEMENT_KEY] === 'above' ? 'above' : 'on';
+  const value = element.metadata?.[CONNECTOR_LABEL_PLACEMENT_KEY];
+  return value === 'above' || value === 'right' ? value : 'on';
 }
 /** The lines of a connector's text as the user broke them; empty lines at the end take no room. */
 export function connectorLabelLines(text: string | null | undefined): string[] {
@@ -105,10 +109,12 @@ type Labelled = Routed & Pick<SketchElement, 'metadata' | 'text' | 'style'>;
 /** Centre of the text block, in element-local coordinates. */
 export function connectorLabelCentre(element: Labelled, position: number = connectorLabelPosition(element)): Point {
   const at = pointOnConnector(element, position);
-  if (connectorLabelPlacement(element) !== 'above') return at;
-  return { x: at.x, y: at.y - connectorLabelSize(element.text, element.style.fontSize).height / 2 - ABOVE_GAP };
+  const placement = connectorLabelPlacement(element);
+  if (placement === 'on') return at;
+  const size = connectorLabelSize(element.text, element.style.fontSize);
+  return placement === 'above' ? { x: at.x, y: at.y - size.height / 2 - ABOVE_GAP } : { x: at.x + size.width / 2 + BESIDE_GAP, y: at.y };
 }
 /** How far below the point on the line the grip of the text sits (before the grip's own screen distance). */
 export function connectorLabelGripDrop(element: Labelled): number {
-  return connectorLabelPlacement(element) === 'above' ? 0 : connectorLabelSize(element.text, element.style.fontSize).height / 2;
+  return connectorLabelPlacement(element) === 'on' ? connectorLabelSize(element.text, element.style.fontSize).height / 2 : 0;
 }

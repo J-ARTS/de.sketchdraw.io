@@ -44,7 +44,8 @@ import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickCon
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
-import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
+import { addSequenceLifeline, addSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
+import { isSequenceFragment, isSequenceLifeline } from '../lib/sequence-model';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelCentre, connectorLabelGripDrop, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
@@ -70,6 +71,8 @@ type Gesture = {
   connectorFromId?: string;
   /** The text handle of a connector is dragged: the text moves along the connector (#195). */
   connectorLabel?: boolean;
+  /** A lifeline of a sequence diagram is dragged by one of its parts: it moves sideways as a whole (#199). */
+  lifeline?: boolean;
   /** A press on a text line of the already selected resource card: released without a drag, it edits that line (#189). */
   editField?: ResourceCardField;
   connectorPoints?: Point[];
@@ -496,8 +499,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (command.type === 'batch') return { ...command, commands: command.commands.map(onActivePage) };
     return command;
   }
+  /**
+   * A change made by a person to a part of a sequence diagram is followed by the diagram's layout (#199):
+   * spacing, activations and numbers always follow from what the diagram says.
+   */
+  function laidOut(command: DocumentCommand, document: SketchDocument = state.document): DocumentCommand {
+    try {
+      return withSequenceLayout(pageElsOf(document), command, state.activePageId, (next) => { try { return pageElsOf(applyCommand(document, next)); } catch { return null; } });
+    } catch { return command; }
+  }
   function dispatch(command: DocumentCommand, revision = state.revision, source: 'human' | 'code' | 'import' = 'human', recover?: () => void) {
-    return write({ kind: 'dispatch', command: onActivePage(command) }, revision, source, recover);
+    const onPage = onActivePage(command);
+    return write({ kind: 'dispatch', command: source === 'human' ? laidOut(onPage) : onPage }, revision, source, recover);
   }
   function patch(patches: Array<{ id: string; patch: ElementPatch }>) { if (patches.length) void dispatch({ type: 'update', changes: patches }); }
   function deleteCommand(ids: readonly string[]): DocumentCommand {
@@ -592,7 +605,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       for (let current: SketchElement | undefined = element, depth = 0; current && depth < 64; current = current.parentId ? index.get(current.parentId) : undefined, depth += 1) if (moving.has(current.id)) return true;
       return false;
     };
-    return [...elements].reverse().find((e) => e.kind === 'container' && !blocked(e) && insideContainer(e, point));
+    // Lifelines and fragments of a sequence diagram are laid out by the diagram, they adopt nothing.
+    return [...elements].reverse().find((e) => e.kind === 'container' && !isSequenceLifeline(e) && !isSequenceFragment(e) && !blocked(e) && insideContainer(e, point));
   }
   /**
    * Dragging into a container makes the elements its children, dragging out detaches them (like draw.io, #143).
@@ -708,6 +722,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return resourceCardFieldAt(element, { x: local.x - element.x, y: local.y - element.y });
   }
   /** Writes the edited name or description of a resource card (#189), with style changes made meanwhile, as one update. */
+  /** Runs one editing action on the sequence diagram of the selection and selects what it made. */
+  async function editSequence(edit: (selection: NonNullable<ReturnType<typeof sequenceSelection>>, texts: SequenceTexts) => SequenceEdit, done: string): Promise<void> {
+    if (state.transitioning) return;
+    const selection = sequenceSelection(pageEls(), state.selection);
+    if (!selection) return;
+    try {
+      const result = edit(selection, { message: t('Nachricht'), reply: t('Antwort'), participant: t('Teilnehmer') });
+      if (result.command && await dispatch(result.command)) { setSelection(result.selection); state.liveMessage = done; }
+    } catch (error) { fail(error); }
+  }
   async function applyCardField(edit: NonNullable<WhiteboardState['textEdit']>, field: ResourceCardField, id: string, styleChanges: Partial<ElementStyle>): Promise<boolean> {
     const text = edit.draft.replace(/\s+/g, ' ').trim();
     const now = pageEls().find((e) => e.id === id);
@@ -1147,7 +1171,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const dockStart = state.tool === 'connector' && target && target.kind !== 'connector' ? target : null;
       // A lane is part of its pool: dragging it moves the whole pool with everything in it (#196).
       const lanePool = kind === 'move' && state.selection.length === 1 && swimlaneRole(selected()[0]) === 'lane' ? poolOf(state.document, selected()[0]) : null;
-      const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : lanePool ? [clone(lanePool)] : selected().map(clone);
+      // A lifeline is dragged as a whole, by its head, its line or an activation (#199).
+      const lifeline = kind === 'move' && state.tool === 'select' && state.selection.length === 1 ? selectedLifeline(pageEls(), state.selection[0]) : null;
+      const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : lanePool ? [clone(lanePool)] : lifeline ? [clone(lifeline)] : selected().map(clone);
       let connectorPoints: Point[] | undefined;
       let connectorPointIndex: number | undefined;
       let connectorSegmentIndex: number | undefined;
@@ -1166,7 +1192,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
         ...(dockStart ? { connectorFromId: dockStart.id } : {}),
         ...(handle?.id === 'connector-label' ? { connectorLabel: true } : {}),
-        ...(editField ? { editField } : {}) };
+        ...(editField ? { editField } : {}), ...(lifeline ? { lifeline: true } : {}) };
       if (dockStart) {
         state.connectorTargets = { fromId: dockStart.id, toId: null };
         state.connectorHoverTargetId = null;
@@ -1198,6 +1224,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         state.marquee = normalizedRect(g.start, point);
         const r = state.marquee;
         setSelection(pageEls().filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));
+      } else if (g.kind === 'move' && g.lifeline && g.targets[0]) {
+        // Sideways only: the diagram keeps its lifelines level, and the layout re-attaches the messages.
+        const move = moveCommand(g.base, [g.targets[0].id], dx, 0);
+        g.preview = Math.abs(dx) * state.viewport.zoom < 3 ? null : laidOut(move, g.base.document); state.previewCommand = g.preview; state.dropTargetId = null;
       } else if (g.kind === 'move') {
         const moved = moveIntoContainerCommand(g.base, g.targets.map((e) => e.id), dx, dy, point);
         g.preview = moved.command; state.previewCommand = g.preview; state.dropTargetId = moved.targetId;
@@ -1458,21 +1488,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (plan && await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Bahn hinzugefügt.'); }
     },
     async addSequenceLifeline() {
-      if (state.transitioning) return;
-      const context = sequenceContext(state.document, state.activePageId, state.selection);
-      if (!context) return;
-      const plan = planAddLifeline(context, uid, t('Teilnehmer'));
-      if (await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Lebenslinie hinzugefügt.'); }
+      await editSequence((selection, texts) => addSequenceLifeline(pageEls(), selection, state.activePageId, uid, texts), t('Lebenslinie hinzugefügt.'));
     },
-    async addSequenceMessage() {
-      if (state.transitioning) return;
-      const context = sequenceContext(state.document, state.activePageId, state.selection);
-      if (!context) return;
-      try {
-        const plan = planAddMessage(context, state.document, uid, t('Nachricht'), t('Teilnehmer'));
-        if (await dispatch(plan.command)) { setSelection(plan.selection); state.liveMessage = t('Nachricht hinzugefügt.'); }
-      }
-      catch (error) { fail(error); }
+    async addSequenceMessage(kind = 'sync') {
+      await editSequence((selection, texts) => addSequenceMessage(pageEls(), selection, kind, state.activePageId, uid, texts), kind === 'reply' ? t('Antwort hinzugefügt.') : kind === 'self' ? t('Selbstnachricht hinzugefügt.') : t('Nachricht hinzugefügt.'));
+    },
+    async toggleSequenceNumbers() {
+      const id = state.selection[0];
+      if (id) await editSequence((selection) => toggleSequenceNumbers(pageEls(), selection, state.activePageId, id), t('Nummerierung umgeschaltet.'));
     },
     async insertElements(payload, screenAt, name) {
       if (state.transitioning) return false;

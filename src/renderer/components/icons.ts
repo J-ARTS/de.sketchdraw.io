@@ -3,7 +3,7 @@ export type ToolIconName =
   | 'connector' | 'path' | 'eraser' | 'text' | 'sticky-note' | 'annotation' | 'table' | 'image' | 'container' | 'web-embed' | 'frame' | 'comment' | 'laser';
 
 export type ActionIconName =
-  | 'component' | 'component-add' | 'label-position' | 'lane-add' | 'cells-merge' | 'cells-split' | 'sequence-lifeline' | 'sequence-message' | 'layers' | 'external-link' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
+  | 'component' | 'component-add' | 'label-position' | 'lane-add' | 'cells-merge' | 'cells-split' | 'sequence-lifeline' | 'sequence-message' | 'sequence-reply' | 'sequence-diagram' | 'layers' | 'external-link' | 'undo' | 'redo' | 'plus' | 'minus' | 'fit-all' | 'fit-selection'
   | 'file' | 'file-plus' | 'folder-open' | 'save' | 'save-as' | 'help' | 'sun' | 'moon'
   | 'arrow-up' | 'chevron-up' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'close' | 'check'
   | 'warning' | 'info' | 'dot' | 'saving' | 'download'
@@ -47,6 +47,8 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   component: ['M12 3l8 4.5v9L12 21l-8-4.5v-9z', 'M12 12l8-4.5', 'M12 12v9', 'M12 12L4 7.5'],
   'sequence-lifeline': ['M5 3h10v5H5z', 'M10 8v2.5', 'M10 13v2.5', 'M10 18v3', 'M19 14v6', 'M16 17h6'],
   'sequence-message': ['M3 8h13', 'M12 4l4 4-4 4', 'M4 3v18', 'M19 14v6', 'M16 17h6'],
+  'sequence-reply': ['M20 3v8', 'M17 8h-3', 'M11.5 8h-3', 'M7 4L3 8l4 4', 'M19 14v6', 'M16 17h6'],
+  'sequence-diagram': ['M5 3v18', 'M19 3v18', 'M5 8h11', 'M13 5l3 3-3 3', 'M19 15h-3', 'M13.5 15h-3', 'M11 12l-3 3 3 3'],
   'cells-merge': ['M3 6h18v12H3z', 'M5.5 12h4', 'M7.5 10l2 2-2 2', 'M18.5 12h-4', 'M16.5 10l-2 2 2 2'],
   'cells-split': ['M3 6h18v12H3z', 'M12 6v12', 'M10 12H6', 'M8 10l-2 2 2 2', 'M14 12h4', 'M16 10l2 2-2 2'],
   'lane-add': ['M3 4h18v9H3z', 'M7 4v9', 'M3 13v7h9', 'M7 13v7', 'M18 15v6', 'M15 18h6'],

@@ -388,10 +388,12 @@ export interface WhiteboardStore {
   insertElements(payload: ElementClipboardPayload, screenAt?: Point, name?: string): Promise<boolean>;
   /** Adds a lane at the bottom of the BPMN pool of the selection; the pool grows by it (#196). */
   addBpmnLane(): Promise<void>;
-  /** Adds a lifeline to the sequence diagram of the selection, right of the outermost one (#192). */
+  /** Adds a lifeline to the sequence diagram of the selection, right of the selected lifeline (#192, #199). */
   addSequenceLifeline(): Promise<void>;
-  /** Adds a message from the selection's lifeline to its neighbour, below the lowest message (#192). */
-  addSequenceMessage(): Promise<void>;
+  /** Adds a message, a reply or a call to oneself: directly below a selected message, else at the end (#199). */
+  addSequenceMessage(kind?: 'sync' | 'async' | 'reply' | 'self'): Promise<void>;
+  /** Turns the running numbers at the messages of the selection's sequence diagram on or off (#199). */
+  toggleSequenceNumbers(): Promise<void>;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
   nudge(dx: number, dy: number): void;

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { createDocument } from '@/domain';
-import { DIAGRAM_LIBRARIES, diagramLibrary, diagramTemplate, SEQUENCE_ROLE_KEY } from '@/renderer/lib/diagram-libraries';
+import { DIAGRAM_LIBRARIES, diagramLibrary, diagramTemplate } from '@/renderer/lib/diagram-libraries';
+import { SEQUENCE_ROLE_KEY } from '@/renderer/lib/sequence-model';
 import { parseElementClipboard, planElementPaste } from '@/renderer/state/element-clipboard';
 
 describe('diagram libraries (#191)', () => {

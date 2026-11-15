@@ -135,6 +135,11 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
   }
   if (x < -tolerance || y < -tolerance || x > element.width + tolerance || y > element.height + tolerance) return false;
   if (element.kind === 'container' && fillless(element.style.fill) && awsGroupOf(element)) return hitGroupOutline(element, x, y, tolerance);
+  // A fragment of a sequence diagram frames messages: only its outline and its heading select it, so what it frames stays reachable.
+  if (element.kind === 'container' && fillless(element.style.fill) && element.metadata?.['sequence:role'] === 'fragment') {
+    const edge = Math.min(Math.abs(x), Math.abs(y), Math.abs(element.width - x), Math.abs(element.height - y));
+    return edge <= tolerance + element.style.strokeWidth / 2 || (y <= 24 && x <= Math.min(element.width, 160));
+  }
   const variant = effectiveShapeVariant(element);
   if (variant === 'circle' || variant === 'summing' || variant === 'or') {
     return ((x - element.width / 2) / (element.width / 2 + tolerance)) ** 2 + ((y - element.height / 2) / (element.height / 2 + tolerance)) ** 2 <= 1;

@@ -1,9 +1,10 @@
 import { createElement, type ConnectorMarker, type ConnectorRouting, type ElementStyle, type Point, type SketchElement, type TableDocument } from '@/domain';
 import { L } from '@/renderer/i18n';
-import { DEFAULT_STYLE, STYLE_BY_KIND } from './constants';
+import { DEFAULT_STYLE } from './constants';
 import { BPMN_EVENT_KEY, BPMN_ICON_KEY, BPMN_ICON_STYLE_KEY, BPMN_MARKER_KEY, createLane, createPool, type BpmnEvent, type BpmnMarker } from './bpmn';
 import { ELEMENT_CLIPBOARD_FORMAT, type ElementClipboardPayload } from '../state/element-clipboard';
 import { TABLE_MERGES_KEY } from './table-merge';
+import { buildSequence, freeSequenceMessage, sequenceFragmentElements, sequenceLifeline, sequenceNoteElement, SEQUENCE_LIFELINE, type FragmentOperator } from './sequence-model';
 
 /**
  * Libraries for diagram types (#191, #192): entity relationship, BPMN and sequence diagrams. A template is a
@@ -33,21 +34,12 @@ export interface DiagramLibrary {
   templates: readonly DiagramTemplate[];
 }
 
-/** Metadata keys that mark the parts of a sequence diagram, so the editor can extend it (#192). */
-export const SEQUENCE_ROLE_KEY = 'sequence:role';
-export type SequenceRole = 'lifeline' | 'head' | 'line' | 'message';
-export const SEQUENCE_LIFELINE = Object.freeze({ width: 160, height: 420, headHeight: 48, gap: 60, firstMessage: 96, messageStep: 48 });
-
-const INK = DEFAULT_STYLE.stroke;
 const style = (overrides: Partial<ElementStyle> = {}): ElementStyle => ({ ...DEFAULT_STYLE, ...overrides });
 const payload = (elements: SketchElement[]): ElementClipboardPayload => ({ format: ELEMENT_CLIPBOARD_FORMAT, version: 1, elements, assets: {}, componentSets: [] });
 
 interface Box { x: number; y: number; width: number; height: number }
 function shape(kind: 'rectangle' | 'ellipse' | 'diamond', id: string, box: Box, text: string, extra: Partial<SketchElement> = {}, look: Partial<ElementStyle> = {}): SketchElement {
   return createElement(kind, { id, ...box, text, label: text || undefined, style: style({ textAlign: 'center', fontSize: 16, fill: '#ffffff', ...look }), ...extra });
-}
-function container(id: string, box: Box, text: string, look: Partial<ElementStyle> = {}, extra: Partial<SketchElement> = {}): SketchElement {
-  return createElement('container', { id, ...box, text, label: text, style: style({ ...STYLE_BY_KIND.container, fontSize: 14, ...look }), ...extra });
 }
 interface End { id: string; anchor: Point }
 interface LinkOptions { start?: ConnectorMarker; end?: ConnectorMarker; dash?: ElementStyle['strokeDash']; text?: string; from?: End; to?: End; routing?: ConnectorRouting; extra?: Partial<SketchElement> }
@@ -223,43 +215,19 @@ const bpmn: DiagramLibrary = {
   ],
 };
 
-const role = (value: SequenceRole): Record<string, string> => ({ [SEQUENCE_ROLE_KEY]: value });
-
-/**
- * One lifeline: an invisible container that holds the participant's box and the dashed line below it. Moving
- * the container moves both; messages bind to the container, so they follow as well.
- */
-export function sequenceLifeline(id: string, at: Point, name: string, height: number = SEQUENCE_LIFELINE.height): SketchElement[] {
-  const { width, headHeight } = SEQUENCE_LIFELINE;
-  return [
-    createElement('container', { id, x: at.x, y: at.y, width, height, label: name, metadata: role('lifeline'), style: style({ stroke: 'transparent', strokeWidth: 1, fontSize: 14 }) }),
-    createElement('rectangle', { id: `${id}:head`, parentId: id, x: at.x, y: at.y, width, height: headHeight, text: name, label: name, metadata: role('head'), style: style({ textAlign: 'center', fontSize: 16, fill: '#e7f5ff' }) }),
-    createElement('path', { id: `${id}:line`, parentId: id, x: at.x + width / 2, y: at.y + headHeight, width: 0, height: height - headHeight, points: [{ x: 0, y: 0 }, { x: 0, y: height - headHeight }], metadata: role('line'), style: style({ strokeDash: 'dashed', strokeWidth: 1, stroke: '#868e96' }) }),
-  ];
-}
-
-export type SequenceMessageKind = 'sync' | 'async' | 'reply';
-/** A message between two lifelines at document height `y`; both ends are bound to the lifeline containers. */
-export function sequenceMessage(id: string, from: SketchElement, to: SketchElement, y: number, text: string, kind: SequenceMessageKind = 'sync'): SketchElement {
-  const anchor = (lifeline: SketchElement): Point => ({ x: 0.5, y: Math.max(0, Math.min(1, (y - lifeline.y) / Math.max(1, lifeline.height))) });
-  return link(id, { x: from.x + from.width / 2, y }, { x: to.x + to.width / 2, y }, {
-    end: kind === 'sync' ? 'solid-arrow' : 'line-arrow',
-    dash: kind === 'reply' ? 'dashed' : 'solid',
-    text,
-    from: { id: from.id, anchor: anchor(from) },
-    to: { id: to.id, anchor: anchor(to) },
-    extra: { metadata: role('message') },
-  });
-}
+const fragment = (operator: FragmentOperator, label: string, sections: readonly string[] = []): ElementClipboardPayload =>
+  payload(sequenceFragmentElements('s', { x: 0, y: 0, width: 420, height: sections.length ? 200 : 140 }, operator, label, sections));
 
 function sequenceExample(): ElementClipboardPayload {
-  const step = SEQUENCE_LIFELINE.width + SEQUENCE_LIFELINE.gap;
-  const a = sequenceLifeline('a', { x: 0, y: 0 }, 'Client');
-  const b = sequenceLifeline('b', { x: step, y: 0 }, 'Dienst');
-  const y = SEQUENCE_LIFELINE.firstMessage;
-  return payload([...a, ...b, sequenceMessage('m1', a[0]!, b[0]!, y, 'Anfrage'), sequenceMessage('m2', b[0]!, a[0]!, y + SEQUENCE_LIFELINE.messageStep, 'Antwort', 'reply')]);
+  return payload(buildSequence({
+    autonumber: false,
+    participants: [{ id: 'a', name: 'Client', actor: false }, { id: 'b', name: 'Dienst', actor: false }],
+    items: [
+      { type: 'message', id: 'm1', from: 'a', to: 'b', text: 'Anfrage', kind: 'sync' },
+      { type: 'message', id: 'm2', from: 'b', to: 'a', text: 'Antwort', kind: 'reply' },
+    ],
+  }));
 }
-const free = (text: string, kind: SequenceMessageKind): ElementClipboardPayload => payload([link('l', { x: 0, y: 0 }, { x: 220, y: 0 }, { end: kind === 'sync' ? 'solid-arrow' : 'line-arrow', dash: kind === 'reply' ? 'dashed' : 'solid', text, extra: { metadata: role('message') } })]);
 
 const sequence: DiagramLibrary = {
   id: 'sequence',
@@ -267,12 +235,19 @@ const sequence: DiagramLibrary = {
   description: L('Lebenslinien, Nachrichten und Fragmente'),
   templates: [
     { id: 'sequence.example', name: L('Beispiel: Anfrage und Antwort'), section: L('Start'), keywords: 'example beispiel request response', build: sequenceExample },
-    { id: 'sequence.lifeline', name: L('Lebenslinie'), section: L('Start'), keywords: 'lifeline participant teilnehmer achse actor akteur', build: () => payload(sequenceLifeline('a', { x: 0, y: 0 }, 'Teilnehmer')) },
-    { id: 'sequence.message', name: L('Nachricht'), section: L('Nachrichten'), keywords: 'message synchronous synchron call aufruf', build: () => free('Nachricht', 'sync') },
-    { id: 'sequence.async', name: L('Asynchrone Nachricht'), section: L('Nachrichten'), keywords: 'message asynchronous asynchron', build: () => free('Nachricht', 'async') },
-    { id: 'sequence.reply', name: L('Antwort'), section: L('Nachrichten'), keywords: 'reply return response rückgabe', build: () => free('Antwort', 'reply') },
-    { id: 'sequence.activation', name: L('Aktivierung'), section: L('Weitere'), keywords: 'activation execution balken', build: () => payload([shape('rectangle', 's', { x: 0, y: 0, width: 14, height: 90 }, '', {}, { strokeWidth: 1 })]) },
-    { id: 'sequence.fragment', name: L('Fragment (alt, loop, opt)'), section: L('Weitere'), keywords: 'fragment alt loop opt combined', build: () => payload([container('s', { x: 0, y: 0, width: 420, height: 160 }, 'alt', { stroke: INK, strokeDash: 'solid', strokeWidth: 1 })]) },
+    { id: 'sequence.lifeline', name: L('Lebenslinie'), section: L('Start'), keywords: 'lifeline participant teilnehmer achse', build: () => payload(sequenceLifeline('a', { x: 0, y: 0 }, 'Teilnehmer')) },
+    { id: 'sequence.actor', name: L('Akteur'), section: L('Start'), keywords: 'actor akteur person user benutzer strichmännchen', build: () => payload(sequenceLifeline('a', { x: 0, y: 0 }, 'Akteur', SEQUENCE_LIFELINE.height, true)) },
+    { id: 'sequence.message', name: L('Nachricht'), section: L('Nachrichten'), keywords: 'message synchronous synchron call aufruf', build: () => payload([freeSequenceMessage('l', 'Nachricht', 'sync')]) },
+    { id: 'sequence.async', name: L('Asynchrone Nachricht'), section: L('Nachrichten'), keywords: 'message asynchronous asynchron', build: () => payload([freeSequenceMessage('l', 'Nachricht', 'async')]) },
+    { id: 'sequence.reply', name: L('Antwort'), section: L('Nachrichten'), keywords: 'reply return response rückgabe', build: () => payload([freeSequenceMessage('l', 'Antwort', 'reply')]) },
+    { id: 'sequence.loop', name: L('Schleife (loop)'), section: L('Fragmente'), keywords: 'loop schleife wiederholung fragment', build: () => fragment('loop', 'Bedingung') },
+    { id: 'sequence.alt', name: L('Alternative (alt)'), section: L('Fragmente'), keywords: 'alt else alternative sonst fragment if', build: () => fragment('alt', 'Bedingung', ['sonst']) },
+    { id: 'sequence.opt', name: L('Optional (opt)'), section: L('Fragmente'), keywords: 'opt optional fragment', build: () => fragment('opt', 'Bedingung') },
+    { id: 'sequence.par', name: L('Parallel (par)'), section: L('Fragmente'), keywords: 'par parallel and gleichzeitig fragment', build: () => fragment('par', 'Erster Ablauf', ['Zweiter Ablauf']) },
+    { id: 'sequence.critical', name: L('Kritischer Bereich (critical)'), section: L('Fragmente'), keywords: 'critical kritisch option fragment', build: () => fragment('critical', 'Aktion', ['Fehlerfall']) },
+    { id: 'sequence.break', name: L('Abbruch (break)'), section: L('Fragmente'), keywords: 'break abbruch ausnahme exception fragment', build: () => fragment('break', 'Bedingung') },
+    { id: 'sequence.rect', name: L('Hervorhebung (rect)'), section: L('Fragmente'), keywords: 'rect highlight hervorhebung hintergrund background', build: () => fragment('rect', '') },
+    { id: 'sequence.note', name: L('Notiz'), section: L('Weitere'), keywords: 'note notiz anmerkung hinweis', build: () => payload([sequenceNoteElement('s', { x: 0, y: 0, width: 180, height: 40 }, 'Notiz')]) },
   ],
 };
 

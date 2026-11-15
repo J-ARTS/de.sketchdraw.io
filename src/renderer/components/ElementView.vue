@@ -9,6 +9,8 @@ import { wrapWords } from '../lib/text-metrics';
 import { fontFamilyCss } from '../lib/constants';
 import { connectorLabelCentre, connectorLabelSize } from '../lib/connector-label';
 import { bpmnDecoration } from '../lib/bpmn';
+import { SEQUENCE_HEAD_KEY, sequenceRole } from '../lib/sequence-model';
+import SequenceDecor from './SequenceDecor.vue';
 import BpmnDecor from './BpmnDecor.vue';
 import { describeElement } from '../lib/describe';
 import SafeIcon from './SafeIcon';
@@ -44,6 +46,9 @@ const definition = computed(() => props.document.componentSets.flatMap((set) => 
 const resourceCard = computed(() => isResourceCard(e.value));
 /** BPMN marks in the metadata (#196): title strip of pools and lanes, event rings, symbols and markers. */
 const bpmn = computed(() => bpmnDecoration(e.value));
+/** Parts of a sequence diagram (#199); some of them draw their own text. */
+const sequencePart = computed(() => sequenceRole(e.value));
+const sequenceOwnText = computed(() => sequencePart.value === 'fragment' || sequencePart.value === 'divider' || (sequencePart.value === 'head' && e.value.metadata?.[SEQUENCE_HEAD_KEY] === 'actor'));
 const cloudProvider = computed(() => {
   const provider = definition.value?.provider;
   return provider === 'aws' || provider === 'azure' || provider === 'gcp' || provider === 'kubernetes' ? provider : null;
@@ -156,7 +161,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
 </script>
 
 <template>
-  <g :data-element-id="e.id" :data-kind="e.kind" :data-shape-variant="shape?.id" :data-resource-icon-type="resourceCard ? resourceCardIconType(e) : undefined" :data-cloud-provider="cloudCard ? cloudProvider : undefined" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
+  <g :data-element-id="e.id" :data-kind="e.kind" :data-sequence-role="sequencePart" :data-shape-variant="shape?.id" :data-resource-icon-type="resourceCard ? resourceCardIconType(e) : undefined" :data-cloud-provider="cloudCard ? cloudProvider : undefined" :transform="`translate(${e.x} ${e.y}) rotate(${e.rotation} ${e.width / 2} ${e.height / 2})`" :opacity="e.style.opacity">
     <title>{{ describeElement(e, document) }}</title>
     <defs>
       <clipPath :id="`${uid}-clip`"><rect :width="e.width" :height="e.height" /></clipPath>
@@ -202,6 +207,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <image v-else-if="e.kind === 'image' && asset" :href="asset?.dataUrl" :width="e.width" :height="e.height" preserveAspectRatio="none" />
     </g>
     <BpmnDecor v-if="bpmn" :element="e" :decoration="bpmn" :stroke="stroke" :fill="fill" :text-color="textColor" :editing="editing" />
+    <SequenceDecor v-if="sequencePart" :element="e" :stroke="stroke" :text-color="textColor" :editing="editing" />
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
     <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
@@ -240,7 +246,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <rect x="0" y="-32" :width="Math.max(92, frameTitle.length * 9 + 28)" height="26" rx="7" :fill="stroke" stroke="none" />
       <text x="12" y="-19" fill="#ffffff" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" dominant-baseline="central">{{ frameTitle }}</text>
     </g>
-    <g v-else-if="e.kind === 'connector' && text && !editing" pointer-events="none">
+    <g v-else-if="e.kind === 'connector' && text && !editing && !sequenceOwnText" pointer-events="none">
       <rect data-testid="connector-label-surface" :x="connectorLabelPoint.x - connectorLabelWidth / 2" :y="connectorLabelPoint.y - connectorLabel.height / 2" :width="connectorLabelWidth" :height="connectorLabel.height" rx="4" fill="var(--surface-canvas)" />
       <text data-testid="connector-label" :x="connectorLabelPoint.x" :fill="textColor" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" text-anchor="middle" dominant-baseline="central"><tspan v-for="(line, index) in connectorLabel.lines" :key="index" :x="connectorLabelPoint.x" :y="connectorLabelPoint.y + (index - (connectorLabel.lines.length - 1) / 2) * connectorLabel.lineHeight">{{ line }}</tspan></text>
     </g>
@@ -273,7 +279,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
         </div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !bpmn?.role && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !bpmn?.role && !sequenceOwnText && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25"><template v-if="line.bullet">• </template><template v-for="(segment, j) in lineSegments(line.text, line.from, textLinks)" :key="j"><tspan v-if="segment.url" class="text-link" text-decoration="underline" pointer-events="visiblePainted" :data-text-link="segment.url">{{ segment.text }}</tspan><template v-else>{{ segment.text }}</template></template></tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="textColor" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>

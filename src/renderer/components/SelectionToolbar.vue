@@ -18,7 +18,7 @@ import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
 import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
-import { sequenceContext } from '@/renderer/lib/sequence-diagram';
+import { sequenceSelection } from '@/renderer/lib/sequence-diagram';
 import { swimlaneRole } from '@/renderer/lib/bpmn';
 import { selectionHasMerge } from '@/renderer/lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
@@ -26,7 +26,7 @@ import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'label-position' | 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'sequence' | 'label-position' | 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -80,7 +80,10 @@ const canMergeCells = computed(() => tableCells.value.length > 1);
 const canUnmergeCells = computed(() => Boolean(single.value) && selectionHasMerge(single.value!, single.value!.table, tableCells.value));
 /** A BPMN pool or lane is selected (#196): the bar offers another lane. */
 const swimlaneSelected = computed(() => info.value.count === 1 && Boolean(swimlaneRole(single.value)));
-const sequenceCapable = computed(() => Boolean(sequenceContext(s.document, s.activePageId, s.selection)));
+/** A part of a sequence diagram is selected (#199): the bar offers to extend the diagram. */
+const sequencePart = computed(() => (info.value.count === 1 ? sequenceSelection(s.document.elements.filter((element) => element.pageId === s.activePageId), s.selection) : null));
+const sequenceCapable = computed(() => Boolean(sequencePart.value));
+const sequenceNumbered = computed(() => Boolean(sequencePart.value?.diagram.model.autonumber));
 const textEditAllowsBar = computed(() => !s.textEdit || (s.textEdit.elementId !== null && s.textEdit.elementId === info.value.singleId));
 const visible = computed(() => Boolean(info.value.count && s.frame && s.canWrite && !s.transitioning && textEditAllowsBar.value && !s.hasElementPreview && !s.draftElement && !s.marquee));
 const connectorOnly = computed(() => info.value.count === 1 && info.value.kinds.length === 1 && info.value.kinds[0] === 'connector');
@@ -618,6 +621,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <span class="sep" aria-hidden="true" />
         <button type="button" class="tool-btn" data-testid="sequence-add-lifeline" :disabled="editing || s.transitioning" :aria-label="t('Lebenslinie hinzufügen')" :title="unavailable(t('Lebenslinie hinzufügen'))" @click="store.addSequenceLifeline()"><AppIcon name="sequence-lifeline" /></button>
         <button type="button" class="tool-btn" data-testid="sequence-add-message" :disabled="editing || s.transitioning" :aria-label="t('Nachricht hinzufügen')" :title="unavailable(t('Nachricht hinzufügen'))" @click="store.addSequenceMessage()"><AppIcon name="sequence-message" /></button>
+        <button type="button" class="tool-btn" data-testid="sequence-add-reply" :disabled="editing || s.transitioning" :aria-label="t('Antwort hinzufügen')" :title="unavailable(t('Antwort hinzufügen'))" @click="store.addSequenceMessage('reply')"><AppIcon name="sequence-reply" /></button>
+        <button :ref="(el) => setTrigger('sequence', el)" type="button" class="tool-btn" data-testid="sequence-menu" :disabled="editing || s.transitioning" :aria-label="t('Sequenzdiagramm')" :aria-expanded="openSegment === 'sequence'" :aria-controls="panelId('sequence')" :title="unavailable(t('Sequenzdiagramm'))" @click="toggle('sequence')"><AppIcon name="sequence-diagram" /></button>
       </template>
       <span class="sep" aria-hidden="true" />
       <button :ref="(el) => setTrigger('actions', el)" type="button" class="tool-btn" :aria-label="t('Elementaktionen')" :disabled="editing" :aria-expanded="openSegment === 'actions'" :aria-controls="panelId('actions')" :title="unavailable(t('Elementaktionen'))" @click="toggle('actions')">
@@ -635,7 +640,7 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     :class="{ compact: openSegment === 'align' }"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'label-position' ? t('Textposition') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
+    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'label-position' ? t('Textposition') : openSegment === 'sequence' ? t('Sequenzdiagramm') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -725,6 +730,11 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <label class="field">{{ t('Schriftgröße') }}<input :aria-label="t('Schriftgröße')" class="ctx-input" type="number" min="1" max="1000" :value="info.mixed.includes('fontSize') ? '' : info.values.fontSize" :placeholder="info.mixed.includes('fontSize') ? t('Verschieden') : undefined" @input="setFontSize(($event.target as HTMLInputElement).valueAsNumber)" @change="commitFontSize(($event.target as HTMLInputElement).valueAsNumber)" /></label>
     </template>
 
+    <div v-else-if="openSegment === 'sequence'" class="choices column sequence-actions" role="group" :aria-label="t('Sequenzdiagramm erweitern')">
+      <button type="button" class="choice" data-testid="sequence-add-self" @click="store.addSequenceMessage('self')">{{ t('Selbstnachricht hinzufügen') }}</button>
+      <button type="button" class="choice" data-testid="sequence-add-async" @click="store.addSequenceMessage('async')">{{ t('Asynchrone Nachricht hinzufügen') }}</button>
+      <button type="button" class="choice" data-testid="sequence-numbers" :aria-pressed="sequenceNumbered" :class="{ active: sequenceNumbered }" @click="store.toggleSequenceNumbers()">{{ t('Nachrichten nummerieren') }}</button>
+    </div>
     <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" :aria-label="t('Zeilen und Spalten bearbeiten')">
       <button type="button" class="choice" :disabled="!canMergeCells" @click="store.mergeTableCells()">{{ t('Zellen verbinden') }}</button>
       <button type="button" class="choice" :disabled="!canUnmergeCells" @click="store.unmergeTableCells()">{{ t('Zellenverbindung aufheben') }}</button>
