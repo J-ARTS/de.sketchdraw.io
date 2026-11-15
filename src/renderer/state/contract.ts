@@ -436,6 +436,10 @@ export interface WhiteboardStore {
   selectTableCells(elementId: string, cellIds: string[], mode: TableSelection['mode'], rowIndex: number, columnIndex: number): void;
   setTableCellText(elementId: string, cellId: string, text: string): void;
   formatTableSelection(patch: Partial<TableCellStyle>): void;
+  /** Merges the rectangle around the selected table cells into one cell (#197); the cells keep their content. */
+  mergeTableCells(): void;
+  /** Undoes every merge that holds one of the selected table cells. */
+  unmergeTableCells(): void;
   changeTableStructure(action: 'row-before' | 'row-after' | 'column-before' | 'column-after' | 'row-duplicate' | 'column-duplicate' | 'row-delete' | 'column-delete' | 'row-up' | 'row-down' | 'column-left' | 'column-right'): void;
 
   startComment(elementId?: string, tableCellId?: string, at?: Point): void;

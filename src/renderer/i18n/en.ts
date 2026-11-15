@@ -1283,4 +1283,8 @@ export const EN: Readonly<Record<string, string>> = {
   "Start: Zeit": "Start: timer",
   "Zugeklappter Pool": "Collapsed pool",
   "Zwischenereignis": "Intermediate event",
+  "Zellen verbinden": "Merge cells",
+  "Zellenverbindung aufheben": "Unmerge cells",
+  "Zellen verbunden.": "Cells merged.",
+  "Zellenverbindung aufgehoben.": "Cells unmerged.",
 };

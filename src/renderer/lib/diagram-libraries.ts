@@ -3,6 +3,7 @@ import { L } from '@/renderer/i18n';
 import { DEFAULT_STYLE, STYLE_BY_KIND } from './constants';
 import { BPMN_EVENT_KEY, BPMN_ICON_KEY, BPMN_ICON_STYLE_KEY, BPMN_MARKER_KEY, createLane, createPool, type BpmnEvent, type BpmnMarker } from './bpmn';
 import { ELEMENT_CLIPBOARD_FORMAT, type ElementClipboardPayload } from '../state/element-clipboard';
+import { TABLE_MERGES_KEY } from './table-merge';
 
 /**
  * Libraries for diagram types (#191, #192): entity relationship, BPMN and sequence diagrams. A template is a
@@ -67,7 +68,7 @@ function link(id: string, a: Point, b: Point, options: LinkOptions = {}): Sketch
   });
 }
 
-/** An entity as a table: a tinted header row with the entity's name, then one row per attribute. */
+/** An entity as a table: a tinted, merged header row with the entity's name, then one row per attribute. */
 function entityTable(id: string, at: Point, name: string, attributes: ReadonlyArray<readonly [string, string]>): SketchElement {
   const columns = [{ id: `${id}:c1`, width: 150 }, { id: `${id}:c2`, width: 110 }];
   const rows = [name, ...attributes.map(([attribute]) => attribute)].map((_, index) => ({ id: `${id}:r${index}`, height: 36 }));
@@ -82,11 +83,13 @@ function entityTable(id: string, at: Point, name: string, attributes: ReadonlyAr
       columnId: column.id,
       text: rowIndex === 0 ? (columnIndex === 0 ? name : '') : attributes[rowIndex - 1]![columnIndex]!,
       style: rowIndex === 0
-        ? { ...base, fill: '#dbe4ff', color: '#1e1e1e', fontWeight: 'bold' as const }
+        ? { ...base, fill: '#dbe4ff', color: '#1e1e1e', fontWeight: 'bold' as const, textAlign: 'center' as const }
         : { ...base, fill: '#ffffff', color: columnIndex === 0 ? '#1e1e1e' : '#5f5c74', fontWeight: 'normal' as const },
     }))),
   };
-  return createElement('table', { id, x: at.x, y: at.y, width: 260, height: rows.length * 36, label: name, table, style: style({ fill: '#ffffff', strokeWidth: 1 }) });
+  // The header is one merged row with the table's name (#197); it keeps covering columns that are added later.
+  const header = `${id}:0:0>${id}:0:${columns.length - 1}`;
+  return createElement('table', { id, x: at.x, y: at.y, width: 260, height: rows.length * 36, label: name, table, metadata: { [TABLE_MERGES_KEY]: header }, style: style({ fill: '#ffffff', strokeWidth: 1 }) });
 }
 
 /** Relationships are curved connectors, like the curved arrow: they bend towards the sides they dock on and can be shaped by their control points. */

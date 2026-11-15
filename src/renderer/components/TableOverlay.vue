@@ -6,6 +6,7 @@ import { docToScreen } from '../lib/viewport';
 import { fontFamilyCss } from '../lib/constants';
 import { themeColor } from '../lib/theme';
 import AppIcon from './AppIcon.vue';
+import { cellRange, mergeLayout } from '../lib/table-merge';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -25,13 +26,20 @@ const gridStyle = computed(() => ({
   gridTemplateColumns: table.value?.columns.map((column) => `${column.width}fr`).join(' '),
   gridTemplateRows: table.value?.rows.map((row) => `${row.height}fr`).join(' '),
 }));
-const ordered = computed(() => table.value?.rows.flatMap((row, rowIndex) => table.value!.columns.map((column, columnIndex) => ({
-  rowIndex, columnIndex, cell: table.value!.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)!,
-}))) ?? []);
+/** Merged cells (#197): a region is one grid cell at its top left cell; the cells it covers are not shown. */
+const merges = computed(() => mergeLayout(element.value ?? {}, table.value));
 const gridRows = computed(() => table.value?.rows.map((row, rowIndex) => ({
   id: row.id,
-  cells: table.value!.columns.map((column, columnIndex) => ({ rowIndex, columnIndex, cell: table.value!.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)! })),
+  cells: table.value!.columns.flatMap((column, columnIndex) => {
+    const cell = table.value!.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)!;
+    if (merges.value.covered.has(cell.id)) return [];
+    const region = merges.value.anchors.get(cell.id);
+    return [{ rowIndex, columnIndex, cell, rowSpan: region?.rowSpan ?? 1, columnSpan: region?.columnSpan ?? 1 }];
+  }),
 })) ?? []);
+const ordered = computed(() => gridRows.value.flatMap((row) => row.cells));
+/** A row whose cells are all covered by merges from above has nothing to show; an empty row would be invalid for assistive technology. */
+const shownRows = computed(() => gridRows.value.map((row, rowIndex) => ({ ...row, rowIndex })).filter((row) => row.cells.length));
 const columnInsertions = computed(() => {
   const columns = table.value?.columns ?? [];
   const total = columns.reduce((sum, column) => sum + column.width, 0);
@@ -42,10 +50,48 @@ const columnInsertions = computed(() => {
   });
 });
 const selectedIds = computed(() => { const selection = s.tableSelection; return new Set(selection && selection.elementId === element.value?.id ? selection.cellIds : []); });
-function selectCell(cellId: string, rowIndex: number, columnIndex: number): void {
-  if (!element.value) return;
+/** Where a range of cells starts: the cell that was clicked or reached last without Shift. */
+let rangeAnchor: { cellId: string; rowIndex: number; columnIndex: number } | null = null;
+let dragging = false;
+let dragged = false;
+function selectCell(cellId: string, rowIndex: number, columnIndex: number, extend = false): void {
+  if (!element.value || !table.value) return;
   if (s.tool === 'comment') { store.startComment(element.value.id, cellId); return; }
-  store.selectTableCells(element.value.id, [cellId], 'cell', rowIndex, columnIndex);
+  const from = extend && rangeAnchor && table.value.cells.some((cell) => cell.id === rangeAnchor!.cellId) ? rangeAnchor : null;
+  if (!from) { rangeAnchor = { cellId, rowIndex, columnIndex }; store.selectTableCells(element.value.id, [cellId], 'cell', rowIndex, columnIndex); return; }
+  // Shift+click, Shift+arrow and dragging select the rectangle between the two cells.
+  store.selectTableCells(element.value.id, cellRange(element.value, table.value, from.cellId, cellId), 'cell', from.rowIndex, from.columnIndex);
+}
+function clickCell(event: MouseEvent, cellId: string, rowIndex: number, columnIndex: number): void {
+  // The click that ends a drag over several cells must not shrink the range to its last cell.
+  if (dragged) { dragged = false; return; }
+  selectCell(cellId, rowIndex, columnIndex, event.shiftKey);
+}
+function pressCell(event: PointerEvent, cellId: string, rowIndex: number, columnIndex: number): void {
+  if (event.button !== 0 || event.shiftKey || s.tool === 'comment' || editingId.value) return;
+  dragging = true; dragged = false;
+  rangeAnchor = { cellId, rowIndex, columnIndex };
+  window.addEventListener('pointerup', endCellDrag, { once: true });
+}
+function enterCell(cellId: string, rowIndex: number, columnIndex: number): void {
+  if (!dragging || !rangeAnchor || rangeAnchor.cellId === cellId && !dragged) return;
+  dragged = true;
+  selectCell(cellId, rowIndex, columnIndex, true);
+}
+function endCellDrag(): void { dragging = false; }
+/** Arrow keys move between cells; with Shift they extend the selection from where it started. */
+function cellKeydown(event: KeyboardEvent, entry: { cell: { id: string }; rowIndex: number; columnIndex: number; rowSpan: number; columnSpan: number }): void {
+  const step = ({ ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] } as Record<string, [number, number]>)[event.key];
+  if (!step || event.altKey || event.ctrlKey || event.metaKey || s.tool === 'comment') return;
+  const row = entry.rowIndex + (step[0] > 0 ? entry.rowSpan : step[0]);
+  const column = entry.columnIndex + (step[1] > 0 ? entry.columnSpan : step[1]);
+  const target = ordered.value.find((candidate) => row >= candidate.rowIndex && row < candidate.rowIndex + candidate.rowSpan && column >= candidate.columnIndex && column < candidate.columnIndex + candidate.columnSpan);
+  if (!target) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.shiftKey && !rangeAnchor) rangeAnchor = { cellId: entry.cell.id, rowIndex: entry.rowIndex, columnIndex: entry.columnIndex };
+  selectCell(target.cell.id, target.rowIndex, target.columnIndex, event.shiftKey);
+  void nextTick(() => document.querySelector<HTMLElement>(`[data-testid="table-overlay"] [data-cell-id="${CSS.escape(target.cell.id)}"] .cell-button`)?.focus());
 }
 function selectRow(rowIndex: number): void {
   if (!element.value || !table.value) return;
@@ -132,7 +178,7 @@ function deleteSelectedStructure(event: KeyboardEvent): void {
   event.stopPropagation();
   store.changeTableStructure(selection.mode === 'row' ? 'row-delete' : 'column-delete');
 }
-onBeforeUnmount(cleanupGesture);
+onBeforeUnmount(() => { cleanupGesture(); window.removeEventListener('pointerup', endCellDrag); });
 </script>
 
 <template>
@@ -149,10 +195,10 @@ onBeforeUnmount(cleanupGesture);
       <button v-for="(_, index) in table.rows" :key="index" type="button" :aria-label="t('Zeile {index} auswählen', { index: index + 1 })" @click="selectRow(index)"><span /></button>
     </div>
     <div class="table-grid" :style="gridStyle" role="grid" :aria-rowcount="table.rows.length" :aria-colcount="table.columns.length">
-      <div v-for="row in gridRows" :key="row.id" class="grid-row" role="row">
-        <div v-for="entry in row.cells" :key="entry.cell.id" class="cell" :class="{ selected: selectedIds.has(entry.cell.id) }" :style="{ background: themeColor(entry.cell.style.fill, s.theme), color: themeColor(entry.cell.style.color, s.theme), fontSize: `${entry.cell.style.fontSize * s.viewport.zoom}px`, fontFamily: fontFamilyCss(entry.cell.style.fontFamily), fontWeight: entry.cell.style.fontWeight, textDecoration: entry.cell.style.textDecoration, textAlign: entry.cell.style.textAlign }" role="gridcell" :aria-rowindex="entry.rowIndex + 1" :aria-colindex="entry.columnIndex + 1">
+      <div v-for="row in shownRows" :key="row.id" class="grid-row" role="row" :aria-rowindex="row.rowIndex + 1">
+        <div v-for="entry in row.cells" :key="entry.cell.id" class="cell" :class="{ selected: selectedIds.has(entry.cell.id), merged: entry.rowSpan > 1 || entry.columnSpan > 1 }" :data-cell-id="entry.cell.id" :aria-rowspan="entry.rowSpan > 1 ? entry.rowSpan : undefined" :aria-colspan="entry.columnSpan > 1 ? entry.columnSpan : undefined" :aria-selected="selectedIds.has(entry.cell.id)" @pointerdown="pressCell($event, entry.cell.id, entry.rowIndex, entry.columnIndex)" @pointerenter="enterCell(entry.cell.id, entry.rowIndex, entry.columnIndex)" :style="{ gridRow: `${entry.rowIndex + 1} / span ${entry.rowSpan}`, gridColumn: `${entry.columnIndex + 1} / span ${entry.columnSpan}`, background: themeColor(entry.cell.style.fill, s.theme), color: themeColor(entry.cell.style.color, s.theme), fontSize: `${entry.cell.style.fontSize * s.viewport.zoom}px`, fontFamily: fontFamilyCss(entry.cell.style.fontFamily), fontWeight: entry.cell.style.fontWeight, textDecoration: entry.cell.style.textDecoration, textAlign: entry.cell.style.textAlign }" role="gridcell" :aria-rowindex="entry.rowIndex + 1" :aria-colindex="entry.columnIndex + 1">
           <textarea v-if="editingId === entry.cell.id" v-model="draft" data-testid="table-cell-editor" :aria-label="t('Tabellenzelle bearbeiten')" @keydown="keydown" @blur="blur(entry.cell.id)" />
-          <button v-else type="button" class="cell-button" :class="{ commenting: s.tool === 'comment' }" :aria-label="s.tool === 'comment' ? t('Kommentar an Zelle {rowIndex}, {columnIndex} anheften', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 }) : t('Zelle {rowIndex}, {columnIndex}', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 })" @click="selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex)" @dblclick="s.tool !== 'comment' && edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)" @keydown.enter.prevent="s.tool === 'comment' ? selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex) : edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)">{{ entry.cell.style.listStyle === 'bullet' && entry.cell.text ? `• ${entry.cell.text}` : entry.cell.text }}</button>
+          <button v-else type="button" class="cell-button" :class="{ commenting: s.tool === 'comment' }" :aria-label="s.tool === 'comment' ? t('Kommentar an Zelle {rowIndex}, {columnIndex} anheften', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 }) : t('Zelle {rowIndex}, {columnIndex}', { rowIndex: entry.rowIndex + 1, columnIndex: entry.columnIndex + 1 })" @click="clickCell($event, entry.cell.id, entry.rowIndex, entry.columnIndex)" @keydown="cellKeydown($event, entry)" @dblclick="s.tool !== 'comment' && edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)" @keydown.enter.prevent="s.tool === 'comment' ? selectCell(entry.cell.id, entry.rowIndex, entry.columnIndex) : edit(entry.cell.id, entry.cell.text, entry.rowIndex, entry.columnIndex)">{{ entry.cell.style.listStyle === 'bullet' && entry.cell.text ? `• ${entry.cell.text}` : entry.cell.text }}</button>
         </div>
       </div>
     </div>
@@ -162,6 +208,6 @@ onBeforeUnmount(cleanupGesture);
 </template>
 
 <style scoped>
-.table-overlay{position:absolute;z-index:7;transform-origin:center;pointer-events:none}.move-handle{position:absolute;z-index:7;top:-54px;left:50%;width:46px;height:36px;transform:translateX(-50%);border:0;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,var(--surface-panel));color:var(--accent);font-size:24px;line-height:1;touch-action:none;pointer-events:auto;cursor:move}.resize-handle{position:absolute;z-index:5;width:14px;height:14px;padding:0;border:2px solid var(--accent);border-radius:3px;background:var(--surface-panel);touch-action:none;pointer-events:auto}.resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.table-grid{position:absolute;inset:0;display:grid;pointer-events:auto}.grid-row{display:contents}.cell{position:relative;min-width:0;min-height:0;border:1px solid var(--border-default);overflow:hidden}.cell.selected{border:2px solid var(--accent);box-shadow:inset 0 0 0 1px var(--surface-panel)}.cell-button,.cell textarea{width:100%;height:100%;padding:calc(10px * var(--table-zoom));box-sizing:border-box;background:transparent;border:0;color:inherit;font:inherit;text-align:inherit;white-space:pre-wrap;overflow:hidden;resize:none}.cell-button{display:block;cursor:text}.cell textarea{outline:2px solid var(--accent);outline-offset:-2px}.column-handles,.row-handles{position:absolute;display:grid;pointer-events:auto}.column-handles{left:0;right:0;top:-18px;height:18px}.row-handles{top:0;bottom:0;left:-18px;width:18px}.column-handles button,.row-handles button{display:grid;place-items:center;padding:0;background:transparent;border:0;cursor:pointer}.column-handles span,.row-handles span{display:block;border-radius:999px;background:var(--accent)}.column-handles span{width:24px;height:5px}.row-handles span{width:5px;height:24px}.column-insertions{position:absolute;z-index:6;inset:0;pointer-events:none}.column-insertions button{position:absolute;top:-37px;display:grid;width:24px;height:24px;padding:0;place-items:center;transform:translateX(-50%);border:1px solid var(--accent);border-radius:50%;background:var(--surface-panel);color:var(--accent);opacity:.78;pointer-events:auto;cursor:pointer}.column-insertions button:hover,.column-insertions button:focus-visible{opacity:1;background:var(--accent-soft)}.add-column,.add-row{position:absolute;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 25%,var(--surface-panel));border:0;border-radius:10px;color:var(--accent);pointer-events:auto;cursor:pointer}.add-column{left:calc(100% + 10px);top:0;width:44px;height:100%}.add-row{left:0;top:calc(100% + 10px);width:100%;height:44px}
+.table-overlay{position:absolute;z-index:7;transform-origin:center;pointer-events:none}.move-handle{position:absolute;z-index:7;top:-54px;left:50%;width:46px;height:36px;transform:translateX(-50%);border:0;border-radius:10px;background:color-mix(in srgb,var(--accent) 16%,var(--surface-panel));color:var(--accent);font-size:24px;line-height:1;touch-action:none;pointer-events:auto;cursor:move}.resize-handle{position:absolute;z-index:5;width:14px;height:14px;padding:0;border:2px solid var(--accent);border-radius:3px;background:var(--surface-panel);touch-action:none;pointer-events:auto}.resize-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.resize-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.resize-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.resize-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.table-grid{position:absolute;inset:0;display:grid;pointer-events:auto}.grid-row{display:contents}.table-grid{user-select:none}.cell{position:relative;min-width:0;min-height:0;border:1px solid var(--border-default);overflow:hidden}.cell.selected{border:2px solid var(--accent);box-shadow:inset 0 0 0 1px var(--surface-panel)}.cell-button,.cell textarea{width:100%;height:100%;padding:calc(10px * var(--table-zoom));box-sizing:border-box;background:transparent;border:0;color:inherit;font:inherit;text-align:inherit;white-space:pre-wrap;overflow:hidden;resize:none}.cell-button{display:block;cursor:text}.cell textarea{outline:2px solid var(--accent);outline-offset:-2px}.column-handles,.row-handles{position:absolute;display:grid;pointer-events:auto}.column-handles{left:0;right:0;top:-18px;height:18px}.row-handles{top:0;bottom:0;left:-18px;width:18px}.column-handles button,.row-handles button{display:grid;place-items:center;padding:0;background:transparent;border:0;cursor:pointer}.column-handles span,.row-handles span{display:block;border-radius:999px;background:var(--accent)}.column-handles span{width:24px;height:5px}.row-handles span{width:5px;height:24px}.column-insertions{position:absolute;z-index:6;inset:0;pointer-events:none}.column-insertions button{position:absolute;top:-37px;display:grid;width:24px;height:24px;padding:0;place-items:center;transform:translateX(-50%);border:1px solid var(--accent);border-radius:50%;background:var(--surface-panel);color:var(--accent);opacity:.78;pointer-events:auto;cursor:pointer}.column-insertions button:hover,.column-insertions button:focus-visible{opacity:1;background:var(--accent-soft)}.add-column,.add-row{position:absolute;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 25%,var(--surface-panel));border:0;border-radius:10px;color:var(--accent);pointer-events:auto;cursor:pointer}.add-column{left:calc(100% + 10px);top:0;width:44px;height:100%}.add-row{left:0;top:calc(100% + 10px);width:100%;height:44px}
 .cell-button.commenting{cursor:crosshair;background:color-mix(in srgb,var(--accent) 8%,transparent)}
 </style>

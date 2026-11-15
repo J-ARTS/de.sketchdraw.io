@@ -46,6 +46,7 @@ import { elementClipboardPayload, parseElementClipboard, planElementPaste } from
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
 import { planAddLifeline, planAddMessage, sequenceContext } from '../lib/sequence-diagram';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
+import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition, nearestConnectorPosition, pointOnConnector } from '../lib/connector-label';
 import {
   clampEraserRadius, clampPencilOpacity, clampPencilSize,
@@ -922,8 +923,26 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const oldRowUnits = element.table?.rows.reduce((sum, row) => sum + row.height, 0) || element.height;
     const width = resizeToContent ? element.width * table.columns.reduce((sum, column) => sum + column.width, 0) / oldColumnUnits : element.width;
     const height = resizeToContent ? element.height * table.rows.reduce((sum, row) => sum + row.height, 0) / oldRowUnits : element.height;
-    void dispatch({ type: 'update', changes: [{ id: element.id, patch: { table, text: tablePlainText(table), width, height } }] }).then((ok) => {
+    // Merged cells (#197) follow the new structure: a merged header row keeps covering a new column.
+    const merges = element.table && parseTableMerges(element).length ? { metadata: { [TABLE_MERGES_KEY]: formatTableMerges(adjustTableMerges(element, element.table, table)) } } : {};
+    void dispatch({ type: 'update', changes: [{ id: element.id, patch: { table, text: tablePlainText(table), width, height, ...merges } }] }).then((ok) => {
       if (ok) { setSelection([element.id]); state.liveMessage = announcement; }
+    });
+  }
+  /** Writes the merges of the selected table and keeps the cell selection on the merge's top left cell. */
+  function commitTableMerges(plan: (element: SketchElement, table: TableDocument, cellIds: string[]) => TableMerge[] | null, announcement: string): void {
+    if (!state.canWrite || state.transitioning) return;
+    const selection = state.tableSelection;
+    const element = selection ? pageEls().find((entry) => entry.id === selection.elementId && entry.kind === 'table') : undefined;
+    if (!selection || !element?.table) return;
+    const merges = plan(element, element.table, selection.cellIds);
+    if (!merges) return;
+    const keep = { ...selection, cellIds: [...selection.cellIds] };
+    void dispatch({ type: 'update', changes: [{ id: element.id, patch: { metadata: { [TABLE_MERGES_KEY]: formatTableMerges(merges) } } }] }).then((ok) => {
+      if (!ok) return;
+      setSelection([element.id]);
+      state.tableSelection = keep;
+      state.liveMessage = announcement;
     });
   }
 
@@ -1682,6 +1701,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const ids = selection?.elementId === element.id ? selection.cellIds : [];
       commitTable(element, formatTableCells(element.table, ids, value), 'Tabellenformatierung aktualisiert.');
     },
+    mergeTableCells() { commitTableMerges(mergeCells, t('Zellen verbunden.')); },
+    unmergeTableCells() { commitTableMerges(unmergeCells, t('Zellenverbindung aufgehoben.')); },
     changeTableStructure(action) {
       if (!state.canWrite || state.transitioning) return;
       const selection = state.tableSelection;

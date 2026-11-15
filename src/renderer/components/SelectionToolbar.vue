@@ -20,6 +20,7 @@ import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceContext } from '@/renderer/lib/sequence-diagram';
 import { swimlaneRole } from '@/renderer/lib/bpmn';
+import { selectionHasMerge } from '@/renderer/lib/table-merge';
 import { CONNECTOR_LABEL_POSITION_KEY, connectorLabelPosition, formatConnectorLabelPosition } from '@/renderer/lib/connector-label';
 import ResourceCardEditor from './ResourceCardEditor.vue';
 import ConnectorMarkerIcon from './ConnectorMarkerIcon.vue';
@@ -73,6 +74,10 @@ const MARKERS: ReadonlyArray<{ value: ConnectorMarker; label: string }> = [
 const editing = computed(() => Boolean(s.textEdit));
 const resourceEditorOpen = ref(false);
 /** The selection is a lifeline or a message of a sequence diagram (#192): the bar offers to extend it. */
+/** Cells of the selected table (#197): several can be merged, and a merge among them can be undone. */
+const tableCells = computed(() => (tableOnly.value && s.tableSelection?.elementId === info.value.singleId ? s.tableSelection.cellIds : []));
+const canMergeCells = computed(() => tableCells.value.length > 1);
+const canUnmergeCells = computed(() => Boolean(single.value) && selectionHasMerge(single.value!, single.value!.table, tableCells.value));
 /** A BPMN pool or lane is selected (#196): the bar offers another lane. */
 const swimlaneSelected = computed(() => info.value.count === 1 && Boolean(swimlaneRole(single.value)));
 const sequenceCapable = computed(() => Boolean(sequenceContext(s.document, s.activePageId, s.selection)));
@@ -573,6 +578,11 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
         <button type="button" class="tool-btn format-letter" :aria-label="t('Fett')" :aria-pressed="info.values.fontWeight === 'bold'" :title="t('Fett')" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
         <button type="button" class="tool-btn format-letter strike" :aria-label="t('Durchgestrichen')" :aria-pressed="info.values.textDecoration === 'line-through'" :title="t('Durchgestrichen')" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
       </template>
+      <template v-if="tableOnly && (canMergeCells || canUnmergeCells)">
+        <button v-if="canMergeCells" type="button" class="tool-btn" data-testid="table-merge-cells" :disabled="editing || s.transitioning" :aria-label="t('Zellen verbinden')" :title="unavailable(t('Zellen verbinden'))" @click="store.mergeTableCells()"><AppIcon name="cells-merge" /></button>
+        <button v-if="canUnmergeCells" type="button" class="tool-btn" data-testid="table-unmerge-cells" :disabled="editing || s.transitioning" :aria-label="t('Zellenverbindung aufheben')" :title="unavailable(t('Zellenverbindung aufheben'))" @click="store.unmergeTableCells()"><AppIcon name="cells-split" /></button>
+        <span class="sep" aria-hidden="true" />
+      </template>
       <template v-if="tableOnly">
         <button type="button" class="tool-btn format-letter" :aria-label="t('Fett')" :aria-pressed="info.values.fontWeight === 'bold'" :title="t('Fett')" @click="style({ fontWeight: info.values.fontWeight === 'bold' ? 'normal' : 'bold' })">B</button>
         <button type="button" class="tool-btn format-letter strike" :aria-label="t('Durchgestrichen')" :aria-pressed="info.values.textDecoration === 'line-through'" :title="t('Durchgestrichen')" @click="style({ textDecoration: info.values.textDecoration === 'line-through' ? 'none' : 'line-through' })">S</button>
@@ -716,6 +726,8 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     </template>
 
     <div v-else-if="openSegment === 'table'" class="choices table-actions" role="group" :aria-label="t('Zeilen und Spalten bearbeiten')">
+      <button type="button" class="choice" :disabled="!canMergeCells" @click="store.mergeTableCells()">{{ t('Zellen verbinden') }}</button>
+      <button type="button" class="choice" :disabled="!canUnmergeCells" @click="store.unmergeTableCells()">{{ t('Zellenverbindung aufheben') }}</button>
       <button type="button" class="choice" @click="store.changeTableStructure('row-before')">{{ t('Zeile oberhalb einfügen') }}</button>
       <button type="button" class="choice" @click="store.changeTableStructure('row-after')">{{ t('Zeile unterhalb einfügen') }}</button>
       <button type="button" class="choice" @click="store.changeTableStructure('column-before')">{{ t('Spalte links einfügen') }}</button>
