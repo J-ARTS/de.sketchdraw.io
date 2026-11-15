@@ -44,8 +44,8 @@ import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickCon
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
-import { addSequenceLifeline, addSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
-import { isSequenceFragment, isSequenceLifeline, planSequence } from '../lib/sequence-model';
+import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
+import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
 import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
 import { adjustTableMerges, formatTableMerges, mergeCells, parseTableMerges, TABLE_MERGES_KEY, unmergeCells, type TableMerge } from '../lib/table-merge';
@@ -74,6 +74,10 @@ type Gesture = {
   connectorLabel?: boolean;
   /** A lifeline of a sequence diagram is dragged by one of its parts: it moves sideways as a whole (#199). */
   lifeline?: boolean;
+  /** A message of a sequence diagram is dragged up or down to another place in the order (#201). */
+  sequenceMessage?: boolean;
+  /** That message has not passed anything yet: released now, nothing changes. */
+  sequenceIdle?: boolean;
   /** A press on a text line of the already selected resource card: released without a drag, it edits that line (#189). */
   editField?: ResourceCardField;
   connectorPoints?: Point[];
@@ -271,7 +275,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
-    transitioning: false, codeOpen: false, catalogOpen: false,
+    transitioning: false, codeOpen: false, sequenceCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
     previewCommand: null as DocumentCommand | null, drawing: null as SketchElement | null,
     get displayElements(): readonly SketchElement[] {
@@ -504,10 +508,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
    * A change made by a person to a part of a sequence diagram is followed by the diagram's layout (#199):
    * spacing, activations and numbers always follow from what the diagram says.
    */
+  const applyOnPage = (document: SketchDocument) => (next: DocumentCommand): SketchElement[] | null => { try { return pageElsOf(applyCommand(document, next)); } catch { return null; } };
   function laidOut(command: DocumentCommand, document: SketchDocument = state.document): DocumentCommand {
-    try {
-      return withSequenceLayout(pageElsOf(document), command, state.activePageId, (next) => { try { return pageElsOf(applyCommand(document, next)); } catch { return null; } });
-    } catch { return command; }
+    try { return withSequenceLayout(pageElsOf(document), command, state.activePageId, applyOnPage(document)); } catch { return command; }
   }
   function dispatch(command: DocumentCommand, revision = state.revision, source: 'human' | 'code' | 'import' = 'human', recover?: () => void) {
     const onPage = onActivePage(command);
@@ -1174,6 +1177,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const lanePool = kind === 'move' && state.selection.length === 1 && swimlaneRole(selected()[0]) === 'lane' ? poolOf(state.document, selected()[0]) : null;
       // A lifeline is dragged as a whole, by its head, its line or an activation (#199).
       const lifeline = kind === 'move' && state.tool === 'select' && state.selection.length === 1 ? selectedLifeline(pageEls(), state.selection[0]) : null;
+      // A message between lifelines is dragged up or down to another place in the order (#201).
+      const only = state.selection.length === 1 ? selected()[0] : undefined;
+      const sequenceMessage = kind === 'move' && state.tool === 'select' && only?.kind === 'connector' && sequenceRole(only) === 'message' && Boolean(only.from && only.to);
       const targets = state.tool === 'connector' && target && !(kind === 'draw' && target.kind === 'connector') ? [clone(target)] : lanePool ? [clone(lanePool)] : lifeline ? [clone(lifeline)] : selected().map(clone);
       let connectorPoints: Point[] | undefined;
       let connectorPointIndex: number | undefined;
@@ -1193,7 +1199,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         ...(connectorPoints ? { connectorPoints, connectorPointIndex, connectorSegmentIndex, connectorStubLength: 24 / state.viewport.zoom } : {}),
         ...(dockStart ? { connectorFromId: dockStart.id } : {}),
         ...(handle?.id === 'connector-label' ? { connectorLabel: true } : {}),
-        ...(editField ? { editField } : {}), ...(lifeline ? { lifeline: true } : {}) };
+        ...(editField ? { editField } : {}), ...(lifeline ? { lifeline: true } : {}), ...(sequenceMessage ? { sequenceMessage: true } : {}) };
       if (dockStart) {
         state.connectorTargets = { fromId: dockStart.id, toId: null };
         state.connectorHoverTargetId = null;
@@ -1225,6 +1231,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         state.marquee = normalizedRect(g.start, point);
         const r = state.marquee;
         setSelection(pageEls().filter((e) => { const b = bounds([e])!; return b.x >= r.x && b.y >= r.y && b.x + b.width <= r.x + r.width && b.y + b.height <= r.y + r.height; }).map((e) => e.id));
+      } else if (g.kind === 'move' && g.sequenceMessage && g.targets[0]) {
+        // The message follows the pointer; once it has passed another one, the diagram shows the new order.
+        const moved = Math.abs(dy) * state.viewport.zoom < 3 ? null : moveSequenceMessage(pageElsOf(g.base.document), g.targets[0].id, dy, state.activePageId, applyOnPage(g.base.document));
+        g.preview = moved?.command ?? null; g.sequenceIdle = !moved?.reordered; state.previewCommand = g.preview; state.dropTargetId = null;
       } else if (g.kind === 'move' && g.lifeline && g.targets[0]) {
         // Sideways only: the diagram keeps its lifelines level, and the layout re-attaches the messages.
         const move = moveCommand(g.base, [g.targets[0].id], dx, 0);
@@ -1335,6 +1345,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const size = defaultSizeFor(g.tool, state.shapeVariant);
         if (size) { g.element = createDraw(g, { x: g.start.x + size.width, y: g.start.y + size.height }, false); state.drawing = g.element; }
       }
+      // A message that was dragged without passing anything goes back to its place.
+      if (g.sequenceMessage && g.sequenceIdle) { resetGesture(); return; }
       if (g.kind === 'pan' || g.kind === 'marquee' || (!g.preview && !g.element)) { resetGesture(); return; }
       if (g.kind === 'draw' && g.element && g.element.width + g.element.height < 4) { resetGesture(); return; }
       void finishGesture(g);
@@ -1494,22 +1506,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async addSequenceMessage(kind = 'sync') {
       await editSequence((selection, texts) => addSequenceMessage(pageEls(), selection, kind, state.activePageId, uid, texts), kind === 'reply' ? t('Antwort hinzugefügt.') : kind === 'self' ? t('Selbstnachricht hinzugefügt.') : t('Nachricht hinzugefügt.'));
     },
-    async applySequenceCode(code) {
-      if (state.transitioning) return false;
-      const selection = sequenceSelection(pageEls(), state.selection);
+    async applySequenceCode(code, anchorId) {
+      if (state.transitioning) return null;
+      const diagram = anchorId ? readSequence(pageEls(), anchorId) : sequenceSelection(pageEls(), state.selection)?.diagram;
       const parsed = parseSequenceCode(code);
-      if (!selection || parsed.diagnostics.some((entry) => entry.severity === 'error')) return false;
+      if (!diagram || parsed.diagnostics.some((entry) => entry.severity === 'error')) return null;
       try {
-        const model = reconcileSequence(parsed.model, selection.diagram.model, uid);
-        const command = planSequence(pageEls(), selection.diagram, model, { pageId: state.activePageId }).command;
-        if (!command) return true;
+        const model = reconcileSequence(parsed.model, diagram.model, uid);
+        const command = planSequence(pageEls(), diagram, model, { pageId: state.activePageId }).command;
+        if (!command) return model.participants[0]!.id;
         const keep = [...state.selection];
-        if (!(await dispatch(command))) return false;
+        if (!(await dispatch(command))) return null;
+        // What the code removed cannot stay selected.
         const left = keep.filter((id) => pageEls().some((element) => element.id === id));
-        setSelection(left.length ? left : [model.participants[0]!.id]);
+        if (left.length !== keep.length) setSelection(left);
         state.liveMessage = t('Sequenzdiagramm aus dem Code übernommen.');
-        return true;
-      } catch (error) { fail(error); return false; }
+        return model.participants[0]!.id;
+      } catch (error) { fail(error); return null; }
     },
     async toggleSequenceNumbers() {
       const keep = [...state.selection];
@@ -1783,7 +1796,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         : { pageId: state.activePageId, anchor: { x: 0.5, y: 0.5 }, fallback: { x: at!.x, y: at!.y } };
       setSelection(element ? [element.id] : []);
       state.commentSidebarOpen = true; state.frameSidebarOpen = false;
-      state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.activeCommentId = null;
       state.workspaceView = 'canvas';
       state.liveMessage = element ? t('Kommentar an Element schreiben.') : t('Kommentar auf Zeichenfläche schreiben.');
@@ -1803,7 +1816,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const thread = (state.document.commentThreads ?? []).find((entry) => entry.id === threadId);
       if (!thread) return;
       state.workspaceView = 'canvas'; state.activeCommentId = threadId; state.commentSidebarOpen = true; state.frameSidebarOpen = false;
-      state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+      state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
       state.unreadCommentIds = state.unreadCommentIds.filter((id) => id !== threadId);
       const element = thread.target.elementId ? pageEls().find((entry) => entry.id === thread.target.elementId) : undefined;
       if (element) {
@@ -2126,7 +2139,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     toggleFrameSidebar(open) {
       state.frameSidebarOpen = open ?? !state.frameSidebarOpen;
       if (state.frameSidebarOpen) {
-        state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
+        state.workspaceView = 'canvas'; state.commentSidebarOpen = false; state.codeOpen = false; state.sequenceCodeOpen = false; state.catalogOpen = false; state.objectsOpen = false;
         state.liveMessage = t('Folienleiste geöffnet.');
       }
     },
@@ -2320,12 +2333,13 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     dismissNotice, holdNotice, releaseNotice,
     async openDocumentationLink(url) { try { await bridge.openExternal(url); } catch (error) { fail(error); } },
-    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; } },
+    toggleCode() { state.codeOpen = !state.codeOpen; if (state.codeOpen) { state.catalogOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
+    toggleSequenceCode(open) { state.sequenceCodeOpen = open ?? !state.sequenceCodeOpen; if (state.sequenceCodeOpen) { state.codeOpen = false; state.catalogOpen = false; state.frameSidebarOpen = false; } },
     setCodeDraft(text) { if (state.canWrite && !state.transitioning) { state.code.text = text; state.code.dirty = text !== formatDiagram(codeBase); state.code.diagnostics = []; changedDraft(); } },
     applyCode() { return state.transitioning ? Promise.resolve(false) : applyCode(); },
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
-    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
-    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; } },
+    toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
+    setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.sequenceCodeOpen = false; } },
     async insertComponent(set: ComponentSet, type: string, screenAt?: Point) {
       if (state.transitioning) return;
       try {

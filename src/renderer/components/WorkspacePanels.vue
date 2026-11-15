@@ -4,6 +4,7 @@ import { nextTick, ref } from 'vue';
 import { useWhiteboard } from './use-whiteboard';
 import AppIcon from './AppIcon.vue';
 import ShapeLibraryPanel from './ShapeLibraryPanel.vue';
+import SequenceCodePanel from './SequenceCodePanel.vue';
 const store = useWhiteboard(); const s = store.state;
 const resetConfirm = ref(false); const codeEditor = ref<HTMLTextAreaElement>();
 function diagnostic(line: number, column: number) {
@@ -53,7 +54,8 @@ function onObjectKeydown(event: KeyboardEvent, id: string, index: number): void 
     <div class="panel-footer"><button class="sd-btn" :disabled="s.transitioning || !s.canWrite" @click="s.code.dirty ? resetConfirm = true : store.resetCodeDraft()">{{ t('Vom Canvas laden') }}</button><button class="sd-btn sd-btn--primary" :disabled="!s.code.dirty || s.transitioning || !s.canWrite" @click="store.applyCode()">{{ t('Übernehmen') }}</button></div>
   </aside>
   <ShapeLibraryPanel v-if="s.catalogOpen" />
-  <aside v-if="s.objectsOpen && !s.codeOpen && !s.catalogOpen" id="objects-drawer" class="workspace-panel sd-panel" :aria-label="t('Objekte')">
+  <SequenceCodePanel v-if="s.sequenceCodeOpen && !s.codeOpen && !s.catalogOpen" />
+  <aside v-if="s.objectsOpen && !s.codeOpen && !s.catalogOpen && !s.sequenceCodeOpen" id="objects-drawer" class="workspace-panel sd-panel" :aria-label="t('Objekte')">
     <div class="heading"><h2 class="sd-panel-title">{{ t('Objekte') }} <span>{{ s.objectList.length }}</span></h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Objekte schließen')" @click="store.toggleObjects(false)"><AppIcon name="close" /></button></div>
     <p v-if="!s.objectList.length" class="panel-intro">{{ t('Deine Elemente erscheinen hier. Mit einem Klick wählst du sie aus.') }}</p>
     <ul class="object-list" data-testid="object-list"><li v-for="(item, index) in s.objectList" :key="item.id" :draggable="s.canWrite" :data-object-id="item.id" :class="{ dragging: dragId === item.id, 'drop-before': dropAt?.id === item.id && dropAt.after === false, 'drop-after': dropAt?.id === item.id && dropAt.after === true }" @dragstart="onDragStart($event, item.id)" @dragover="onDragOver($event, item.id)" @drop.prevent="onDrop(item.id, index)" @dragend="onDragEnd"><button :aria-pressed="item.selected" :aria-keyshortcuts="s.canWrite ? 'Alt+ArrowUp Alt+ArrowDown' : undefined" :title="s.canWrite ? t('Ziehen oder Alt+↑/↓ ändert die Reihenfolge') : undefined" :style="{ paddingLeft: `${12 + Math.min(item.depth, 8) * 12}px` }" @click="store.select([item.id], $event.shiftKey)" @dblclick="store.focusElement(item.id)" @keydown="onObjectKeydown($event, item.id, index)"><span class="object-dot" aria-hidden="true">{{ item.kind === 'container' ? '▣' : '◇' }}</span>{{ item.name }}</button></li></ul>

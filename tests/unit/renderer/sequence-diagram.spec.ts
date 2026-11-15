@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { applyCommand, createDocument, type DocumentCommand, type SketchDocument, type SketchElement } from '@/domain';
-import { connectorLabelPlacement } from '@/renderer/lib/connector-label';
+import { connectorLabelPlacement, connectorLabelSize } from '@/renderer/lib/connector-label';
 import { diagramTemplate } from '@/renderer/lib/diagram-libraries';
-import { addSequenceLifeline, addSequenceMessage, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit } from '@/renderer/lib/sequence-diagram';
+import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit } from '@/renderer/lib/sequence-diagram';
 import {
   buildSequence, messageKind, planSequence, readSequence, readSequences, sequenceFragmentElements, sequenceMessages, sequenceNoteElement, sequenceRole,
   SEQUENCE_LAYOUT, SEQUENCE_LIFELINE, SEQUENCE_NUMBER_KEY, type SequenceFragment, type SequenceItem, type SequenceModel,
@@ -340,6 +340,34 @@ describe('changes to a sequence diagram are followed by its layout (#199)', () =
     expect(drawn(by(retexted, 'm3')).from.y - drawn(by(retexted, 'm2')).from.y).toBeGreaterThan(SEQUENCE_LAYOUT.step);
   });
 
+  test('an end dragged onto the line, the head or an activation of another lifeline joins that lifeline, also across lifelines', () => {
+    const document = start();
+    const before = drawn(by(document, 'm1')).from.y;
+    // "eins" ran from the client to the service; its end is dropped on the dashed line of the bank.
+    const onLine = run(document, { type: 'update', changes: [{ id: 'm1', patch: { to: { elementId: 'c:line', anchor: { x: 0.5, y: 0.1 } } } }] });
+    const message = by(onLine, 'm1');
+    expect([message.from!.elementId, message.to!.elementId]).toEqual(['a', 'c']);
+    expect(order(onLine)).toEqual(['eins', 'zwei', 'drei', 'vier']);
+    const ends = drawn(message);
+    expect([ends.from.y, ends.to.y]).toEqual([before, before]);
+    expect(ends.from.x).toBe(centre(by(onLine, 'a')));
+    expect(ends.to.x).toBe(centre(by(onLine, 'c')) - SEQUENCE_LAYOUT.activation / 2);
+    // It crosses the service, which is no longer called by it.
+    expect(readSequence(page(onLine), 'a')!.members.has('m1')).toBe(true);
+    expect(activations(onLine, 'b').map((box) => box.y)).not.toContain(before);
+    // A start dragged to another lifeline keeps the row of its message, wherever on the lifeline it is dropped.
+    const restart = run(document, { type: 'update', changes: [{ id: 'm2', patch: { from: { elementId: 'a', anchor: { x: 0, y: 0.9 } } } }] });
+    expect([by(restart, 'm2').from!.elementId, by(restart, 'm2').to!.elementId]).toEqual(['a', 'c']);
+    expect(order(restart)).toEqual(['eins', 'zwei', 'drei', 'vier']);
+    // The same for the start of a message dropped on a head or on an activation.
+    const onHead = run(document, { type: 'update', changes: [{ id: 'm4', patch: { to: { elementId: 'c:head', anchor: { x: 0.5, y: 1 } } } }] });
+    expect(by(onHead, 'm4').to!.elementId).toBe('c');
+    const box = activations(document, 'c')[0]!;
+    const onBox = run(document, { type: 'update', changes: [{ id: 'm1', patch: { to: { elementId: box.id, anchor: { x: 0, y: 0.5 } } } }] });
+    expect(by(onBox, 'm1').to!.elementId).toBe('c');
+    expect(readSequence(page(onBox), 'a')!.members.has('m1')).toBe(true);
+  });
+
   test('a command that changes nothing, or touches nothing of a diagram, comes back as it is', () => {
     const document = start();
     const apply = (next: DocumentCommand) => page(applyCommand(document, next));
@@ -350,5 +378,139 @@ describe('changes to a sequence diagram are followed by its layout (#199)', () =
     // Restyling a message into a reply is a change of the diagram.
     const dashed: DocumentCommand = { type: 'update', changes: [{ id: 'm2', patch: { style: { strokeDash: 'dashed' } } }] };
     expect(withSequenceLayout(page(document), dashed, pageId(document), apply)).not.toBe(dashed);
+  });
+});
+
+describe('long texts move the lifelines apart (#202)', () => {
+  const long = 'eine ziemlich lange Nachricht ohne Zeilenumbruch';
+  const width = connectorLabelSize(long, 14).width;
+  const step = SEQUENCE_LIFELINE.width + SEQUENCE_LIFELINE.gap;
+  const distance = (document: SketchDocument, a: string, b: string) => centre(by(document, b)) - centre(by(document, a));
+
+  test('short texts keep the usual distance; a long one widens it and takes the lifelines further right along', () => {
+    const short = documentOf(three([message('m1', 'a', 'b', 'kurz')]));
+    expect([distance(short, 'a', 'b'), distance(short, 'b', 'c')]).toEqual([step, step]);
+    const wide = documentOf(three([message('m1', 'a', 'b', long)]));
+    expect(distance(wide, 'a', 'b')).toBeGreaterThan(width);
+    expect(distance(wide, 'a', 'b')).toBeGreaterThan(step);
+    // The bank keeps its distance to the service.
+    expect(distance(wide, 'b', 'c')).toBe(step);
+    // The text fits between the two ends of its arrow.
+    const ends = drawn(by(wide, 'm1'));
+    expect(ends.to.x - ends.from.x).toBeGreaterThan(width);
+  });
+
+  test('across several lifelines the whole distance counts; numbers need room as well', () => {
+    // Too long for one step, but the message spans two: nothing moves.
+    const medium = 'dreißig Zeichen langer Text hier';
+    expect(connectorLabelSize(medium, 14).width).toBeGreaterThan(step);
+    const across = documentOf(three([message('m1', 'a', 'c', medium)]));
+    expect([distance(across, 'a', 'b'), distance(across, 'a', 'c')]).toEqual([step, 2 * step]);
+    const longer = `${long} ${long}`;
+    const far = documentOf(three([message('m1', 'a', 'c', longer)]));
+    expect(distance(far, 'a', 'c')).toBeGreaterThan(connectorLabelSize(longer, 14).width);
+    expect(distance(far, 'a', 'b')).toBe(step);
+    const plain = documentOf(three([message('m1', 'a', 'b', long)]));
+    const numbered = documentOf(three([message('m1', 'a', 'b', long)], true));
+    expect(distance(numbered, 'a', 'b')).toBeGreaterThan(distance(plain, 'a', 'b'));
+  });
+
+  test('the text beside a call to oneself and a note beside a lifeline keep the next lifeline away', () => {
+    const loop = documentOf(three([message('m1', 'a', 'a', long)]));
+    expect(distance(loop, 'a', 'b')).toBeGreaterThan(SEQUENCE_LAYOUT.loopWidth + width);
+    const label = by(loop, 'm1');
+    expect(label.x + SEQUENCE_LAYOUT.loopWidth + width).toBeLessThan(centre(by(loop, 'b')));
+    const note = documentOf(three([{ type: 'note', id: 'n', text: long, side: 'right', from: 'b', to: 'b' }]));
+    expect(by(note, 'n').x + by(note, 'n').width).toBeLessThan(centre(by(note, 'c')));
+    expect(distance(note, 'a', 'b')).toBe(step);
+    // On the last lifeline there is nothing to keep away.
+    const last = documentOf(three([message('m1', 'c', 'c', long)]));
+    expect(distance(last, 'b', 'c')).toBe(step);
+  });
+
+  test('typing a long text widens the diagram; a lifeline cannot be pulled closer than the text allows; a shorter text leaves it wide', () => {
+    const run = (document: SketchDocument, command: DocumentCommand): SketchDocument => {
+      const apply = (next: DocumentCommand) => { try { return page(applyCommand(document, next)); } catch { return null; } };
+      return applyCommand(document, withSequenceLayout(page(document), command, pageId(document), apply));
+    };
+    const start = documentOf(three([message('m1', 'a', 'b', 'kurz'), message('m2', 'b', 'c', 'auch kurz', 'async')]));
+    const typed = run(start, { type: 'update', changes: [{ id: 'm1', patch: { text: long } }] });
+    const needed = distance(typed, 'a', 'b');
+    expect(needed).toBeGreaterThan(width);
+    expect(distance(typed, 'b', 'c')).toBe(step);
+    // The second message still joins its lifelines.
+    expect(drawn(by(typed, 'm2')).to.x).toBe(centre(by(typed, 'c')));
+    const pulled = run(typed, { type: 'update', changes: [{ id: 'b', patch: { x: by(typed, 'b').x - 150 } }] });
+    expect(distance(pulled, 'a', 'b')).toBe(needed);
+    const shorter = run(typed, { type: 'update', changes: [{ id: 'm1', patch: { text: 'kurz' } }] });
+    expect(distance(shorter, 'a', 'b')).toBe(needed);
+  });
+});
+
+describe('a message is dragged to another place in the order (#201)', () => {
+  const start = () => documentOf(three([message('m1', 'a', 'b', 'eins'), message('m2', 'b', 'c', 'zwei'), message('m3', 'c', 'b', 'drei', 'reply'), message('m4', 'b', 'a', 'vier', 'reply')], true));
+  const drag = (document: SketchDocument, id: string, dy: number) => {
+    const apply = (next: DocumentCommand) => { try { return page(applyCommand(document, next)); } catch { return null; } };
+    const moved = moveSequenceMessage(page(document), id, dy, pageId(document), apply)!;
+    return { ...moved, document: applyCommand(document, moved.command) };
+  };
+  const y = (document: SketchDocument, id: string) => drawn(by(document, id)).from.y;
+
+  test('a short drag only moves the message with the pointer and reorders nothing', () => {
+    const document = start();
+    const moved = drag(document, 'm2', 20);
+    expect(moved.reordered).toBe(false);
+    expect(y(moved.document, 'm2')).toBeCloseTo(y(document, 'm2') + 20, 6);
+    expect(drawn(by(moved.document, 'm2')).to.y).toBeCloseTo(y(document, 'm2') + 20, 6);
+    expect(y(moved.document, 'm3')).toBe(y(document, 'm3'));
+  });
+
+  test('dragged past its neighbour the message takes its place; spacing, numbers and activations follow', () => {
+    const document = start();
+    const moved = drag(document, 'm1', SEQUENCE_LAYOUT.step * 2 + 10);
+    expect(moved.reordered).toBe(true);
+    expect(order(moved.document)).toEqual(['zwei', 'drei', 'eins', 'vier']);
+    const heights = ['m2', 'm3', 'm1', 'm4'].map((id) => y(moved.document, id));
+    expect(heights.map((height, index) => (index ? height - heights[index - 1]! : 0))).toEqual([0, SEQUENCE_LAYOUT.step, SEQUENCE_LAYOUT.step, SEQUENCE_LAYOUT.step]);
+    expect(['m2', 'm3', 'm1', 'm4'].map((id) => by(moved.document, id).metadata?.[SEQUENCE_NUMBER_KEY])).toEqual(['1', '2', '3', '4']);
+    // The service is now active from "eins" to "vier" only; before that its reply had nothing to close.
+    const [service] = activations(moved.document, 'b');
+    expect([service!.y, service!.y + service!.height]).toEqual([y(moved.document, 'm1'), y(moved.document, 'm4')]);
+    // Dragging up works the same way.
+    const back = drag(moved.document, 'm1', -(SEQUENCE_LAYOUT.step * 2 + 10));
+    expect(order(back.document)).toEqual(['eins', 'zwei', 'drei', 'vier']);
+  });
+
+  test('a message cannot leave its lifelines: far up it becomes the first, far down the last', () => {
+    const document = start();
+    expect(order(drag(document, 'm3', -5000).document)).toEqual(['drei', 'eins', 'zwei', 'vier']);
+    expect(order(drag(document, 'm1', 5000).document)).toEqual(['zwei', 'drei', 'vier', 'eins']);
+    // The first message does not climb onto the heads.
+    const up = drag(document, 'm1', -5000);
+    expect(up.reordered).toBe(false);
+    expect(y(up.document, 'm1')).toBeGreaterThan(by(document, 'a:head').y + by(document, 'a:head').height);
+  });
+
+  test('dragged into a fragment the message joins it, dragged out it leaves; a call to oneself moves as a whole', () => {
+    const loop: SequenceFragment = { type: 'fragment', id: 'f', operator: 'loop', sections: [{ id: null, label: 'x', items: [message('m2', 'b', 'c', 'zwei', 'async'), message('m3', 'b', 'b', 'selbst')] }] };
+    const document = documentOf(three([message('m1', 'a', 'b', 'eins', 'async'), loop, message('m4', 'b', 'a', 'vier', 'async')]));
+    const inside = (doc: SketchDocument) => sequenceMessages((readSequence(page(doc), 'a')!.model.items.find((item) => item.type === 'fragment') as SequenceFragment).sections[0]!.items).map((entry) => entry.text);
+    const into = drag(document, 'm1', y(document, 'm2') - y(document, 'm1') + 10);
+    expect(into.reordered).toBe(true);
+    expect(inside(into.document)).toEqual(['zwei', 'eins', 'selbst']);
+    const out = drag(document, 'm2', y(document, 'm4') - y(document, 'm2') + 10);
+    expect(inside(out.document)).toEqual(['selbst']);
+    expect(order(out.document)).toEqual(['eins', 'selbst', 'vier', 'zwei']);
+    // The loop of the call to oneself keeps its height while it is dragged.
+    const self = drag(document, 'm3', -10);
+    const ends = drawn(by(self.document, 'm3'));
+    expect(ends.to.y - ends.from.y).toBeCloseTo(SEQUENCE_LAYOUT.loopHeight, 6);
+  });
+
+  test('only messages between lifelines can be dragged this way', () => {
+    const document = start();
+    const apply = (next: DocumentCommand) => page(applyCommand(document, next));
+    expect(moveSequenceMessage(page(document), 'a:head', 50, pageId(document), apply)).toBeNull();
+    expect(moveSequenceMessage(page(document), 'missing', 50, pageId(document), apply)).toBeNull();
   });
 });

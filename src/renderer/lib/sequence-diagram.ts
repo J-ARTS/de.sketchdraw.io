@@ -1,6 +1,6 @@
 import type { DocumentCommand, SketchElement } from '@/domain';
 import {
-  isSequenceLifeline, locateSequenceItem, planSequence, readSequence, readSequences, sequenceRole,
+  isSequenceLifeline, locateSequenceItem, planSequence, readSequence, readSequences, sequenceMessageEnds, sequenceRole,
   type SequenceDiagram, type SequenceItem, type SequenceMessage, type SequenceMessageKind, type SequenceModel, type SequenceParticipant,
 } from './sequence-model';
 
@@ -189,6 +189,16 @@ export function withSequenceLayout(elements: readonly SketchElement[], command: 
   const was = new Map(elements.map((element) => [element.id, element]));
   const now = new Map(after.map((element) => [element.id, element]));
   if ([...touched].every((id) => JSON.stringify(was.get(id)) === JSON.stringify(now.get(id)))) return command;
+  // A message whose start was dragged to another lifeline keeps its row: the place it is dropped at on the
+  // new lifeline says which lifeline is meant, not when the message happens.
+  const heights = new Map<string, number>();
+  for (const id of touched) {
+    const [old, next] = [was.get(id), now.get(id)];
+    if (!old?.from || !next?.from || !old.to || !next.to) continue;
+    const same = (a: NonNullable<SketchElement['from']>, b: NonNullable<SketchElement['from']>): boolean => a.elementId === b.elementId && a.anchor.x === b.anchor.x && a.anchor.y === b.anchor.y;
+    const before = sequenceMessageEnds(old, was);
+    if (before && !same(old.from, next.from) && same(old.to, next.to)) heights.set(id, before.y);
+  }
   // Diagrams that lost a part are found again through their lifelines.
   const lifelinesBefore = new Set<string>();
   for (const diagram of readSequences(elements)) {
@@ -199,7 +209,7 @@ export function withSequenceLayout(elements: readonly SketchElement[], command: 
   const commands: DocumentCommand[] = [command];
   const done = new Set<string>();
   for (let pass = 0; pass < 32; pass += 1) {
-    const diagram = readSequences(after).find((candidate) => affected(candidate) && !done.has(candidate.model.participants[0]!.id));
+    const diagram = readSequences(after, heights).find((candidate) => affected(candidate) && !done.has(candidate.model.participants[0]!.id));
     if (!diagram) break;
     done.add(diagram.model.participants[0]!.id);
     const plan = planSequence(after, diagram, diagram.model, { pageId }).command;
@@ -210,4 +220,32 @@ export function withSequenceLayout(elements: readonly SketchElement[], command: 
     after = next;
   }
   return commands.length === 1 ? command : { type: 'batch', commands };
+}
+
+/**
+ * A message dragged up or down by `dy` (#201). It follows the pointer; once it has passed another item, or
+ * entered or left a fragment, the diagram is laid out with the new order (`reordered`). Null when the element
+ * is not a message between lifelines.
+ */
+export function moveSequenceMessage(elements: readonly SketchElement[], messageId: string, dy: number, pageId: string, apply: (command: DocumentCommand) => readonly SketchElement[] | null): { command: DocumentCommand; reordered: boolean } | null {
+  const message = elements.find((element) => element.id === messageId);
+  if (!message || message.kind !== 'connector' || sequenceRole(message) !== 'message' || !message.from || !message.to) return null;
+  const before = readSequence(elements, messageId);
+  if (!before || !before.members.has(messageId)) return null;
+  const end = (bound: NonNullable<SketchElement['from']>): NonNullable<SketchElement['from']> => {
+    const lifeline = selectedLifeline(elements, bound.elementId);
+    if (!lifeline) return bound;
+    const on = elements.find((element) => element.id === bound.elementId)!;
+    const head = elements.find((element) => element.parentId === lifeline.id && sequenceRole(element) === 'head');
+    // Always on the lifeline itself, not above its head and not below its foot.
+    const least = ((head?.height ?? 0) + 4) / Math.max(1, lifeline.height);
+    const y = (on.y + bound.anchor.y * on.height + dy - lifeline.y) / Math.max(1, lifeline.height);
+    return { elementId: lifeline.id, anchor: { x: on === lifeline ? bound.anchor.x : 0.5, y: Math.max(least, Math.min(1, y)) } };
+  };
+  const command: DocumentCommand = { type: 'update', changes: [{ id: messageId, patch: { from: end(message.from), to: end(message.to) } }] };
+  const after = apply(command);
+  const moved = after ? readSequence(after, messageId) : null;
+  if (!moved) return null;
+  const reordered = JSON.stringify(moved.model) !== JSON.stringify(before.model);
+  return { command: reordered ? withSequenceLayout(elements, command, pageId, apply) : command, reordered };
 }

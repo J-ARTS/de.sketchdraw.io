@@ -86,6 +86,26 @@ interface Box { x: number; y: number; width: number; height: number }
 const overlaps = (a: Box, b: Box): boolean => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
 /**
+ * The lifeline an end of a message stands on. An end dragged onto the head, the dashed line or an activation
+ * of a lifeline means that lifeline; the layout then attaches it to the lifeline itself.
+ */
+function lifelineOfEnd(end: SketchElement['from'], byId: ReadonlyMap<string, SketchElement>): { lifeline: SketchElement; y: number } | null {
+  const bound = end ? byId.get(end.elementId) : undefined;
+  if (!end || !bound) return null;
+  const part = sequenceRole(bound);
+  const parent = bound.parentId ? byId.get(bound.parentId) : undefined;
+  const lifeline = isSequenceLifeline(bound) ? bound : (part === 'head' || part === 'line' || part === 'activation') && isSequenceLifeline(parent) ? parent! : null;
+  return lifeline ? { lifeline, y: bound.y + end.anchor.y * bound.height } : null;
+}
+/** Both lifelines of a message, or null when an end is free or stands on something else. */
+export function sequenceMessageEnds(element: SketchElement, byId: ReadonlyMap<string, SketchElement>): { from: SketchElement; to: SketchElement; y: number } | null {
+  if (!isMessage(element)) return null;
+  const from = lifelineOfEnd(element.from, byId);
+  const to = lifelineOfEnd(element.to, byId);
+  return from && to ? { from: from.lifeline, to: to.lifeline, y: from.y } : null;
+}
+
+/**
  * Lifelines that belong together. Messages join them; a lifeline without any message joins the nearest one
  * beside it, so a copy of a diagram laid over the original stays a diagram of its own.
  */
@@ -95,10 +115,12 @@ function lifelineClusters(elements: readonly SketchElement[]): SketchElement[][]
   const find = (id: string): string => { let at = id; while (parent.get(at) !== at) at = parent.get(at)!; parent.set(id, at); return at; };
   const join = (a: string, b: string): void => { if (parent.has(a) && parent.has(b)) parent.set(find(a), find(b)); };
   const bound = new Set<string>();
+  const byId = new Map(elements.map((element) => [element.id, element]));
   for (const element of elements) {
-    if (!isMessage(element) || !element.from || !element.to || !parent.has(element.from.elementId) || !parent.has(element.to.elementId)) continue;
-    join(element.from.elementId, element.to.elementId);
-    bound.add(element.from.elementId); bound.add(element.to.elementId);
+    const ends = sequenceMessageEnds(element, byId);
+    if (!ends) continue;
+    join(ends.from.id, ends.to.id);
+    bound.add(ends.from.id); bound.add(ends.to.id);
   }
   for (const loose of lifelines) {
     if (bound.has(loose.id)) continue;
@@ -122,7 +144,7 @@ const areaOf = (lifelines: readonly SketchElement[]): Box => {
 };
 const shared = (a: Box, b: Box): number => Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
 
-function readCluster(elements: readonly SketchElement[], lifelines: readonly SketchElement[], extras: ReadonlySet<string>): SequenceDiagram {
+function readCluster(elements: readonly SketchElement[], lifelines: readonly SketchElement[], extras: ReadonlySet<string>, heights?: ReadonlyMap<string, number>): SequenceDiagram {
   const ids = new Set(lifelines.map((lifeline) => lifeline.id));
   const byId = new Map(elements.map((element) => [element.id, element]));
   const members = new Set<string>(ids);
@@ -141,11 +163,11 @@ function readCluster(elements: readonly SketchElement[], lifelines: readonly Ske
   const placed: Placed[] = [];
   let numbered = false;
   for (const element of elements) {
-    if (!isMessage(element) || !element.from || !element.to || !ids.has(element.from.elementId) || !ids.has(element.to.elementId)) continue;
-    const source = byId.get(element.from.elementId)!;
+    const ends = sequenceMessageEnds(element, byId);
+    if (!ends || !ids.has(ends.from.id) || !ids.has(ends.to.id)) continue;
     members.add(element.id);
     if (element.metadata?.[SEQUENCE_NUMBER_KEY]) numbered = true;
-    placed.push({ y: source.y + element.from.anchor.y * source.height, item: { type: 'message', id: element.id, from: source.id, to: element.to.elementId, text: element.text ?? '', kind: messageKind(element) } });
+    placed.push({ y: heights?.get(element.id) ?? ends.y, item: { type: 'message', id: element.id, from: ends.from.id, to: ends.to.id, text: element.text ?? '', kind: messageKind(element) } });
   }
   for (const element of elements) {
     if (!extras.has(element.id) || sequenceRole(element) !== 'note') continue;
@@ -210,8 +232,11 @@ function readCluster(elements: readonly SketchElement[], lifelines: readonly Ske
   return { model: { participants, items: top.sort((a, b) => a.y - b.y).map((entry) => entry.item), autonumber: numbered }, members };
 }
 
-/** Every sequence diagram among the elements of one page. */
-export function readSequences(elements: readonly SketchElement[]): SequenceDiagram[] {
+/**
+ * Every sequence diagram among the elements of one page. `heights` places single messages by another height
+ * than the one their start stands at (a start that was just dragged to another lifeline keeps its row).
+ */
+export function readSequences(elements: readonly SketchElement[], heights?: ReadonlyMap<string, number>): SequenceDiagram[] {
   const clusters = lifelineClusters(elements);
   if (!clusters.length) return [];
   const areas = clusters.map(areaOf);
@@ -224,7 +249,7 @@ export function readSequences(elements: readonly SketchElement[]): SequenceDiagr
     areas.forEach((area, index) => { const overlap = overlaps(element, area) ? Math.max(shared(element, area), EPSILON) : 0; if (overlap > most) { best = index; most = overlap; } });
     if (best >= 0) extras[best]!.add(element.id);
   }
-  return clusters.map((cluster, index) => readCluster(elements, cluster, extras[index]!));
+  return clusters.map((cluster, index) => readCluster(elements, cluster, extras[index]!, heights));
 }
 /** The sequence diagram an element belongs to. */
 export function readSequence(elements: readonly SketchElement[], elementId: string): SequenceDiagram | null {
@@ -382,6 +407,40 @@ function layoutSequence(model: SequenceModel, columns: Map<string, Column>, top:
   return { columns, top, height: Math.max(cursor + L.foot - top, head + L.minBody), messages, activations, fragments, notes };
 }
 
+/**
+ * How far apart the centres of two lifelines must be at least, so that the texts between them fit: the text
+ * of a message between its two lifelines, the text of a call to oneself and a note beside a lifeline before
+ * the next one. `from` and `to` are positions among the participants, `from` left of `to`.
+ */
+function textRooms(model: SequenceModel, look: Look): Array<{ from: number; to: number; distance: number }> {
+  const L = SEQUENCE_LAYOUT;
+  const position = new Map(model.participants.map((participant, index) => [participant.id, index]));
+  const last = model.participants.length - 1;
+  const rooms: Array<{ from: number; to: number; distance: number }> = [];
+  const number = model.autonumber ? 24 : 0;
+  const walk = (items: readonly SequenceItem[]): void => {
+    for (const item of items) {
+      if (item.type === 'fragment') { for (const section of item.sections) walk(section.items); continue; }
+      const a = position.get(item.from);
+      const b = position.get(item.to);
+      if (a === undefined || b === undefined || !item.text) continue;
+      const fontSize = look.fontSize(item.id, 14);
+      if (item.type === 'note') {
+        if (item.side === 'over') continue;
+        const wide = Math.max(120, textWidth(item.text, fontSize) + 28) + 2 * L.activation + 8;
+        if (item.side === 'right' && a < last) rooms.push({ from: a, to: a + 1, distance: wide });
+        if (item.side === 'left' && a > 0) rooms.push({ from: a - 1, to: a, distance: wide });
+        continue;
+      }
+      const label = connectorLabelSize(item.text, fontSize).width;
+      if (a === b) { if (a < last) rooms.push({ from: a, to: a + 1, distance: L.activation + L.loopWidth + label + 2 * L.activation }); }
+      else rooms.push({ from: Math.min(a, b), to: Math.max(a, b), distance: label + 2 * L.activation + number + 8 });
+    }
+  };
+  walk(model.items);
+  return rooms;
+}
+
 // ───────────────────────────── Elements ─────────────────────────────
 
 /** One lifeline: an invisible container that holds the participant's head and the dashed line below it. */
@@ -479,19 +538,25 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
   const existingLifelines = model.participants.map((participant) => byId.get(participant.id)).filter((element): element is SketchElement => Boolean(element));
   const top = existingLifelines.length ? Math.min(...existingLifelines.map((lifeline) => lifeline.y)) : options.origin?.y ?? 0;
 
-  // Columns: existing lifelines keep their places from left to right, new ones push the rest over.
+  const look: Look = { fontSize: (id, fallback) => byId.get(id)?.style.fontSize ?? fallback };
+  // Columns: existing lifelines keep their places from left to right, new ones push the rest over, and two
+  // lifelines stand at least as far apart as the texts between them need (#202).
+  const rooms = textRooms(model, look);
+  const centres: number[] = [];
   const slots = existingLifelines.map((lifeline) => lifeline.x).sort((a, b) => a - b);
   const columns = new Map<string, Column>();
   let previous: Column | null = null;
   let shift = 0;
   let slot = 0;
-  for (const participant of model.participants) {
+  for (const [index, participant] of model.participants.entries()) {
     const lifeline = byId.get(participant.id);
     const head = lifeline ? children(lifeline.id, 'head')[0] : undefined;
     const width = lifeline?.width ?? SEQUENCE_LIFELINE.width;
     const wanted: number = lifeline ? slots[slot++]! + shift : previous ? previous.x + previous.width + SEQUENCE_LIFELINE.gap : options.origin?.x ?? 0;
     const least: number = previous ? previous.x + previous.width + SEQUENCE_LIFELINE.gap : Number.NEGATIVE_INFINITY;
-    const x = Math.max(wanted, least);
+    const roomy = Math.max(Number.NEGATIVE_INFINITY, ...rooms.filter((room) => room.to === index).map((room) => centres[room.from]! + room.distance - width / 2));
+    const x = Math.max(wanted, least, roomy);
+    centres.push(x + width / 2);
     if (lifeline && x > wanted) shift += x - wanted;
     // A head keeps the height it was given, unless it just became an actor or stopped being one.
     const standard = participant.actor ? SEQUENCE_LIFELINE.actorHeadHeight : SEQUENCE_LIFELINE.headHeight;
@@ -499,7 +564,6 @@ export function planSequence(elements: readonly SketchElement[], diagram: Sequen
     columns.set(participant.id, column);
     previous = column;
   }
-  const look: Look = { fontSize: (id, fallback) => byId.get(id)?.style.fontSize ?? fallback };
   const layout = layoutSequence(model, columns, top, look);
   const pageId = options.pageId ?? existingLifelines[0]?.pageId;
   const onPage = <T extends SketchElement>(element: T): T => (pageId && !element.pageId ? { ...element, pageId } : element);
