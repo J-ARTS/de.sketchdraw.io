@@ -14,7 +14,7 @@ import {
   parseWebEmbedUrl, webEmbedLabel,
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
-  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type JiraIssueSummary, type PluginExternalEvent,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
 } from '@/domain';
 import {
   attachIndexedDbPersistence,
@@ -28,7 +28,7 @@ import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
 import { builtInComponentSets, instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
 import type {
-  CreateStoreOptions, DialogChoice, FileState, HandleId, HandleView, Rect,
+  CreateStoreOptions, DialogChoice, FileState, GitAnswer, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
@@ -165,6 +165,26 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
   const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
   /**
+   * One call of the Git dialog (#216). The dialog is modal, so it shows results and failures itself; a call
+   * therefore answers with the value or with the reason, and never raises a notice behind the dialog.
+   */
+  async function gitCall<T>(call: (plugins: NonNullable<DesktopBridge['plugins']>, handle: string) => Promise<T>, after?: (value: T) => void): Promise<GitAnswer<T>> {
+    const handle = currentPluginHandle(); const plugins = bridge.plugins;
+    if (!plugins || !handle || !hasPluginProject()) return { ok: false, message: t('Speichere das Dokument zuerst in einem Git-Repository.') };
+    const generation = pluginGeneration;
+    try {
+      const value = await call(plugins, handle);
+      if (!pluginContextCurrent(generation)) return { ok: false, message: t('Das Projekt hat gewechselt. Bitte den Git-Dialog neu öffnen.') };
+      after?.(value);
+      return { ok: true, value };
+    } catch (error) {
+      // Electron wraps what the main process answered; the sentence after the wrapper is the message.
+      const message = error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']*': (?:Error: )?/, '') : '';
+      return { ok: false, message: message ? tm(message) : t('Die Aktion konnte nicht ausgeführt werden.') };
+    }
+  }
+  const adoptGitResult = (result: GitWorkbenchResult): void => { if (state.pluginSettings) state.pluginSettings.git = result.workbench.settings; result.message = tm(result.message); };
+  /**
    * A profile change replaces the plugin settings of the editor. Work that started under the previous profile is
    * dropped; the open document and its project folder stay as they are.
    */
@@ -275,7 +295,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, language: savedPreferences.language, bridgePlatform: bridge.platform,
-    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false,
+    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
@@ -2090,6 +2110,30 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!bridge.plugins || !state.file.handle || !hasPluginProject()) { notice(t('Speichere das Dokument zuerst in einem Git-Repository.'), 'error'); return false; }
       state.pluginBusy = true; try { const result = await bridge.plugins.gitStatus(state.file.handle.handleId); if (!pluginContextCurrent(generation)) return false; if (state.pluginSettings) state.pluginSettings.git = result.settings; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    toggleGit(open) { state.gitOpen = open ?? !state.gitOpen; },
+    gitWorkbench() { return gitCall((plugins, handle) => plugins.gitWorkbench(handle), (workbench) => { if (state.pluginSettings) state.pluginSettings.git = workbench.settings; }); },
+    gitDiff(path, commit) { return gitCall((plugins, handle) => plugins.gitDiff(commit === undefined ? { handleId: handle, path } : { handleId: handle, path, commit })); },
+    gitCommit(message, paths, push) { return gitCall((plugins, handle) => plugins.gitCommit({ handleId: handle, message, paths: [...paths], push }), adoptGitResult); },
+    gitPush() { return gitCall((plugins, handle) => plugins.gitPush(handle), adoptGitResult); },
+    gitUpdate() {
+      if (state.saveStatus === 'dirty') return Promise.resolve({ ok: false as const, message: t('Speichere das Diagramm, bevor du den Stand vom Remote holst.') });
+      return gitCall((plugins, handle) => plugins.gitUpdate(handle), adoptGitResult);
+    },
+    gitLog(documentOnly) { return gitCall((plugins, handle) => plugins.gitLog({ handleId: handle, documentOnly })); },
+    gitDiscard(paths) { return gitCall((plugins, handle) => plugins.gitDiscard({ handleId: handle, paths: [...paths] }), adoptGitResult); },
+    gitRestoreDocument(commit) {
+      if (state.saveStatus === 'dirty') return Promise.resolve({ ok: false as const, message: t('Speichere das Diagramm, bevor du es auf einen alten Stand zurücksetzt.') });
+      return gitCall((plugins, handle) => plugins.gitRestoreDocument({ handleId: handle, commit }), adoptGitResult);
+    },
+    setGitAutomation(input) {
+      return gitCall(async (plugins, handle) => {
+        const settings = await plugins.gitAutomation({ autoCommit: input.autoCommit, autoPush: input.autoPush, autoPull: input.autoPull });
+        // The service dropped its watchers with the old settings; the open diagram is watched again.
+        await plugins.watchDocument(handle).catch(() => undefined);
+        if (state.pluginSettings) state.pluginSettings.git = settings;
+        return true as const;
+      });
     },
     async syncGit() {
       const generation = pluginGeneration;

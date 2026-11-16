@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { reactive } from 'vue';
 import { createCrdtController } from '@/crdt';
 import { createController, createDocument, serializeDocument, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type SketchDocument } from '@/domain';
+import { setLocale } from '@/renderer/i18n';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 
 async function setup(document: SketchDocument = createDocument('Plugins'), open = true) {
@@ -9,7 +10,7 @@ async function setup(document: SketchDocument = createDocument('Plugins'), open 
   const plugins: PluginBridge = {
     getSettings: vi.fn(async () => ({ available: true, projectFolder: '/project', profiles: [{ id: 'default', name: 'Standard' }, { id: 'work', name: 'Arbeit' }], activeProfileId: 'default', git: { installed: true, enabled: true, folderPath: '/project', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system' as const, username: '', credentialStored: false, health: 'ready' as const, message: 'Bereit' }, atlassian: { installed: true, enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '', credentialStored: true, health: 'ready' as const, message: 'Bereit' } })),
     selectProfile: vi.fn(), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(),
-    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
+    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
     listConfluencePages: vi.fn(async () => []),
     getConfluencePage: vi.fn(async () => ({ id: '7', title: 'Live Architecture', version: 4, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: '<h2>Architecture</h2><p>Editable page</p>' })),
     updateConfluencePage: vi.fn(async (input) => ({ id: input.pageId, title: input.title, version: input.version + 1, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: input.storageBody })),
@@ -297,6 +298,52 @@ describe('plugin store integration', () => {
     expect(store.state.pluginSettings?.projectFolder).toBe('');
     expect(store.state.notices.some((entry) => entry.text.includes('ist aktiv'))).toBe(false);
     store.dispose();
+  });
+
+  it('answers the Git dialog with values or reasons and takes over the repository state (#216)', async () => {
+    const { store, plugins } = await setup();
+    const settings = { ...store.state.pluginSettings!.git, branch: 'main', ahead: 2, changedFiles: 1 };
+    const workbench = { settings, changes: [{ path: 'board.sketchdraw.json', status: 'modified' as const, document: true }], documentPath: 'board.sketchdraw.json' };
+    vi.mocked(plugins.gitWorkbench).mockResolvedValue(workbench);
+    expect(await store.gitWorkbench()).toEqual({ ok: true, value: workbench });
+    expect(plugins.gitWorkbench).toHaveBeenCalledWith('hdl_0123456789abcdef0123456789abcdef');
+    expect(store.state.pluginSettings!.git).toMatchObject({ ahead: 2, changedFiles: 1 });
+
+    // A step that the service refused comes back as its result; the message is in the language of the interface.
+    vi.mocked(plugins.gitCommit).mockResolvedValue({ ok: false, message: 'Commit-Nachricht fehlt.', workbench });
+    setLocale('en');
+    expect(await store.gitCommit('', ['board.sketchdraw.json'], false)).toMatchObject({ ok: true, value: { ok: false, message: 'The commit message is missing.' } });
+    setLocale('de');
+    expect(plugins.gitCommit).toHaveBeenCalledWith({ handleId: 'hdl_0123456789abcdef0123456789abcdef', message: '', paths: ['board.sketchdraw.json'], push: false });
+
+    // What the main process throws arrives wrapped by Electron; only its sentence is shown, and no notice is raised behind the dialog.
+    const notices = store.state.notices.length;
+    vi.mocked(plugins.gitLog).mockRejectedValue(new Error("Error invoking remote method 'sketchdraw:plugin-invoke': Error: Der Verlauf konnte nicht gelesen werden."));
+    expect(await store.gitLog(true)).toEqual({ ok: false, message: 'Der Verlauf konnte nicht gelesen werden.' });
+    expect(store.state.notices).toHaveLength(notices);
+
+    vi.mocked(plugins.gitAutomation).mockResolvedValue({ ...settings, autoCommit: true, autoPush: true });
+    expect(await store.setGitAutomation({ autoCommit: true, autoPush: true, autoPull: false })).toEqual({ ok: true, value: true });
+    expect(store.state.pluginSettings!.git).toMatchObject({ autoCommit: true, autoPush: true });
+    expect(vi.mocked(plugins.watchDocument).mock.calls.at(-1)).toEqual(['hdl_0123456789abcdef0123456789abcdef']);
+
+    store.toggleGit(); expect(store.state.gitOpen).toBe(true); store.toggleGit(false); expect(store.state.gitOpen).toBe(false);
+    store.dispose();
+  });
+
+  it('does not fetch or go back to an old state over unsaved changes, and needs a saved diagram (#216)', async () => {
+    const { store, plugins } = await setup();
+    await store.createTask({ title: 'Unsaved work' });
+    expect(store.state.saveStatus).toBe('dirty');
+    expect(await store.gitUpdate()).toEqual({ ok: false, message: 'Speichere das Diagramm, bevor du den Stand vom Remote holst.' });
+    expect(await store.gitRestoreDocument('a'.repeat(40))).toEqual({ ok: false, message: 'Speichere das Diagramm, bevor du es auf einen alten Stand zurücksetzt.' });
+    expect(plugins.gitUpdate).not.toHaveBeenCalled(); expect(plugins.gitRestoreDocument).not.toHaveBeenCalled();
+    store.dispose();
+
+    const unsaved = await setup(createDocument('New'), false);
+    expect(await unsaved.store.gitWorkbench()).toEqual({ ok: false, message: 'Speichere das Dokument zuerst in einem Git-Repository.' });
+    expect(unsaved.plugins.gitWorkbench).not.toHaveBeenCalled();
+    unsaved.store.dispose();
   });
 
 });

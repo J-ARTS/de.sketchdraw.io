@@ -36,7 +36,7 @@ Entscheidungen und Implementierungen müssen sich an dieser Vision messen lassen
 Alle UI-Komponenten liegen in `src/renderer/design-system/` und folgen Atomic Design: `atoms/` → `molecules/` → `organisms/` → `templates/` → `pages/`, dazu `composables/`. Das Design System ist die einzige Quelle für UI-Bausteine; es wird genutzt und bei Bedarf ergänzt, nicht umgangen.
 
 - **Erst nachsehen, dann bauen:** `docs/design-system/manifest.md` (alle Komponenten mit Props, Events, Slots) oder Storybook (`npm run storybook`). Anleitung und Regeln: `docs/design-system/README.md` und der Abschnitt „Design System" in `AGENTS.md`.
-- **Grundbausteine verwenden:** `AppButton`, `AppIconButton`, `AppTextField`, `AppTextarea`, `AppFieldLabel`, `AppKbd`, `AppIcon`, `AppSelect`, `AppDatePicker`, `ColorPicker`, `AppDialog`. Kein rohes `<button class="sd-btn">`, kein natives `<select>`.
+- **Grundbausteine verwenden:** `AppButton`, `AppIconButton`, `AppTextField`, `AppTextarea`, `AppFieldLabel`, `AppKbd`, `AppSwitch`, `AppIcon`, `AppSelect`, `AppDatePicker`, `ColorPicker`, `AppDialog`. Kein rohes `<button class="sd-btn">`, kein natives `<select>`.
 - **Neue Komponente:** in die passende Ebene legen, erste Zeile `<!-- @component … -->`, Props/Events/Slots mit `/** … */` beschreiben, in `index.ts` eintragen, `*.stories.ts` daneben, danach `npm run design-system:manifest`.
 - **Ebenen einhalten:** Eine Ebene nutzt nur die Ebenen davor; Atoms und Molecules lesen den Store nicht. Varianten als `cva`-Tabelle (`*.variants.ts`), Werte aus den Tokens.
 - **Nach UI-Änderungen:** `npx vitest run --config vitest.config.ts tests/unit/renderer/design-system.spec.ts` und `npm run build:storybook`; die betroffene Story im Browser ansehen (hell und dunkel).

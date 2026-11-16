@@ -48,10 +48,12 @@ import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
 | Mehrzeilige Eingabe | `AppTextarea` |
 | Beschriftung eines Felds | `AppFieldLabel` (`for`) |
 | Tastenhinweis | `AppKbd` |
+| Einstellung, die sofort an oder aus ist | `AppSwitch` (`v-model`, Slot `description`) |
 | Symbol | `AppIcon` (Namen aus `atoms/icons.ts`) |
 | Auswahl aus einer Liste | `AppSelect` (auch mit freier Eingabe über `editable`) |
 | Datum | `AppDatePicker` |
 | Farbe | `ColorPicker` |
+| Änderungen einer Textdatei zeilenweise | `DiffView` |
 | Hilfe, ungespeicherte Änderungen, Speicherkonflikt | `AppDialog` über `store.state.dialog` |
 
 Attribute und Listener, die keine Props sind (`disabled`, `aria-*`, `data-testid`, `@click`, `class`), gehen bei den Atoms an das native Element.

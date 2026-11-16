@@ -453,6 +453,15 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'test-atlassian': return plugins.testAtlassian();
       case 'git-status': return plugins.gitStatus(String(request.payload ?? ''));
       case 'git-sync': return plugins.gitSync(String(request.payload ?? ''));
+      case 'git-workbench': return plugins.gitWorkbench(String(request.payload ?? ''));
+      case 'git-diff': return plugins.gitDiff(payload);
+      case 'git-commit': return plugins.gitCommit(payload);
+      case 'git-push': return plugins.gitPush(String(request.payload ?? ''));
+      case 'git-update': return plugins.gitUpdate(String(request.payload ?? ''));
+      case 'git-log': return plugins.gitLog(payload);
+      case 'git-discard': return plugins.gitDiscard(payload);
+      case 'git-restore-document': return plugins.gitRestoreDocument(payload);
+      case 'git-automation': return plugins.gitAutomation(payload);
       case 'watch-document': return plugins.watchDocument(String(request.payload ?? ''));
       case 'list-confluence-pages': return plugins.listConfluencePages(String(request.payload ?? ''));
       case 'get-confluence-page': return plugins.getConfluencePage(String(request.payload ?? ''));

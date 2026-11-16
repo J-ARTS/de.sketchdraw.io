@@ -1,4 +1,7 @@
+import type { GitWorkbenchBridge } from './git-workbench';
 import type { FileReference, TaskStatus } from './types';
+
+export * from './git-workbench';
 
 export type PluginHealth = 'disabled' | 'ready' | 'attention' | 'error';
 export type PluginId = 'git' | 'jira';
@@ -145,7 +148,7 @@ export type PluginExternalEvent = {
   file: FileReference;
 };
 
-export interface PluginBridge {
+export interface PluginBridge extends GitWorkbenchBridge {
   /** Switches the editor to another profile; its plugin settings apply at once. */
   selectProfile(id: string): Promise<PluginSettingsSnapshot>;
   /** Creates a profile, empty or as a copy of `copyFrom` including its stored tokens, and switches to it. */
