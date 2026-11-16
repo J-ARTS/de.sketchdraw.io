@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs, watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { GitWorkbench, gitFailure } from './git-workbench';
 import type {
   AtlassianPluginSettings,
   ConfigureAtlassianPluginInput,
@@ -10,8 +11,13 @@ import type {
   ConfluencePage,
   ConfluencePageSummary,
   CreateJiraIssueInput,
+  GitCommitInput,
+  GitCommitSummary,
+  GitFileDiff,
   GitPluginSettings,
   GitSyncResult,
+  GitWorkbenchResult,
+  GitWorkbenchSnapshot,
   JiraIssueSummary,
   PluginExternalEvent,
   PluginConfigurationIssue,
@@ -239,6 +245,14 @@ function jiraDueDate(value: unknown, allowEmpty = false): string {
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
   if (date.toISOString().slice(0, 10) !== dueDate) throw new Error('Jira-Fälligkeitsdatum ist ungültig.');
   return dueDate;
+}
+
+/** An error this service raised itself, with a message for the user; a failed git call carries the command and its output instead. */
+const isOwnError = (error: unknown): error is Error => error instanceof Error && !('cmd' in error) && !('stderr' in error) && !('code' in error);
+
+/** A step of the Git dialog that failed with a message of its own, for example a commit that was made but not pushed. */
+class GitStepError extends Error {
+  constructor(message: string, readonly reload = false) { super(message); }
 }
 
 export class PluginService {
@@ -720,6 +734,122 @@ export class PluginService {
       if (this.config.git.autoPull) await this.configuredGit(['pull', '--ff-only', this.config.git.remote], context.cwd, true); this.assertGeneration(generation); if (this.config.git.autoPush) await this.configuredGit(['push', this.config.git.remote], context.cwd, true); this.assertGeneration(generation);
       await this.emitReload(handleId); const settings = await this.readGitStatus(handleId, true); return { ok: true, message: 'Git-Synchronisation abgeschlossen.', settings };
     } catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Synchronisation fehlgeschlagen.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
+  }
+
+  // --- Git dialog (#216): the commands live in git-workbench.ts; here they get their repository, their document and their turn. ---
+
+  /** One Git command of the dialog at a time, so that two of them never meet at the index lock. */
+  private gitWork: Promise<unknown> = Promise.resolve();
+  private inGitTurn<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.gitWork.then(work, work);
+    this.gitWork = run.catch(() => undefined);
+    return run;
+  }
+
+  private async gitWorkbenchFor(handleId: unknown): Promise<{ bench: GitWorkbench; handle: string }> {
+    const handle = boundedString(handleId, 128, 'Dokument-Handle');
+    const context = await this.gitContext(handle);
+    return { handle, bench: new GitWorkbench((args, authenticated) => this.configuredGit(args, context.cwd, authenticated), context.cwd, context.filePath, this.config.git.remote) };
+  }
+
+  private async gitWorkbenchSnapshot(bench: GitWorkbench, refreshRemote = false): Promise<GitWorkbenchSnapshot> {
+    let settings: GitPluginSettings;
+    try { settings = await this.readGitStatusForFolder(refreshRemote); }
+    catch (error) { if (!refreshRemote) throw error; settings = await this.readGitStatusForFolder(false); }
+    return { settings: { ...settings }, changes: await bench.changes(), documentPath: bench.documentPath };
+  }
+
+  /** Runs one changing step and answers with the state of the repository afterwards, whether it worked or not. */
+  private gitWorkbenchStep(handleId: unknown, fallback: string, step: (bench: GitWorkbench, handle: string) => Promise<{ message: string; reload?: boolean; refreshRemote?: boolean }>): Promise<GitWorkbenchResult> {
+    return this.inGitTurn(async () => {
+      const generation = this.projectGeneration;
+      const { bench, handle } = await this.gitWorkbenchFor(handleId);
+      this.assertGeneration(generation);
+      let ok = true; let message: string; let reload = false; let refreshRemote = false;
+      try { const done = await step(bench, handle); message = done.message; reload = done.reload ?? false; refreshRemote = done.refreshRemote ?? false; }
+      catch (error) { this.assertGeneration(generation); ok = false; message = error instanceof GitStepError || isOwnError(error) ? (error as Error).message : gitFailure(error, fallback); reload = error instanceof GitStepError && error.reload; }
+      this.assertGeneration(generation);
+      if (reload) await this.emitReload(handle).catch(() => undefined);
+      const workbench = await this.gitWorkbenchSnapshot(bench, ok && refreshRemote);
+      this.assertGeneration(generation);
+      return { ok, message, workbench };
+    });
+  }
+
+  public gitWorkbench(handleId: string): Promise<GitWorkbenchSnapshot> {
+    return this.inGitTurn(async () => { const { bench, handle } = await this.gitWorkbenchFor(handleId); await this.watchDocument(handle); return this.gitWorkbenchSnapshot(bench); });
+  }
+
+  public gitDiff(input: { handleId: string; path: string; commit?: string }): Promise<GitFileDiff> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.inGitTurn(async () => {
+      const { bench } = await this.gitWorkbenchFor(input.handleId);
+      try { return await bench.diff(input.path, input.commit); }
+      catch (error) { if (isOwnError(error)) throw error; throw new Error(/maxBuffer/.test(String((error as Error | null)?.message)) ? 'Die Änderungen dieser Datei sind zu groß für die Anzeige.' : gitFailure(error, 'Die Änderungen konnten nicht gelesen werden.')); }
+    });
+  }
+
+  public gitCommit(input: GitCommitInput): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Der Commit ist fehlgeschlagen.', async (bench) => {
+      await bench.commit(input.message, input.paths);
+      if (!input.push) return { message: 'Commit erstellt.' };
+      try { await bench.push(); } catch (error) { throw new GitStepError(`Commit erstellt, aber nicht gepusht. ${gitFailure(error, 'Der Push ist fehlgeschlagen.')}`); }
+      return { message: 'Commit erstellt und gepusht.', refreshRemote: true };
+    });
+  }
+
+  public gitPush(handleId: string): Promise<GitWorkbenchResult> {
+    return this.gitWorkbenchStep(handleId, 'Der Push ist fehlgeschlagen.', async (bench) => { await bench.push(); return { message: 'Commits wurden gepusht.', refreshRemote: true }; });
+  }
+
+  public gitUpdate(handleId: string): Promise<GitWorkbenchResult> {
+    return this.gitWorkbenchStep(handleId, 'Das Aktualisieren ist fehlgeschlagen.', async (bench) => {
+      const changed = await bench.update();
+      return { message: changed ? 'Neue Commits vom Remote übernommen.' : 'Das Repository ist auf dem Stand des Remotes.', reload: changed, refreshRemote: true };
+    });
+  }
+
+  public gitLog(input: { handleId: string; documentOnly: boolean }): Promise<GitCommitSummary[]> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.inGitTurn(async () => {
+      const { bench } = await this.gitWorkbenchFor(input.handleId);
+      try { return await bench.log(input.documentOnly === true); }
+      catch (error) { if (isOwnError(error)) throw error; throw new Error(gitFailure(error, 'Der Verlauf konnte nicht gelesen werden.')); }
+    });
+  }
+
+  public gitDiscard(input: { handleId: string; paths: string[] }): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Die Änderungen konnten nicht verworfen werden.', async (bench) => {
+      const document = Array.isArray(input.paths) && input.paths.includes(bench.documentPath);
+      await bench.discard(input.paths);
+      return { message: 'Änderungen verworfen.', reload: document };
+    });
+  }
+
+  public gitRestoreDocument(input: { handleId: string; commit: string }): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Das Diagramm konnte nicht zurückgesetzt werden.', async (bench) => {
+      await bench.restoreDocument(input.commit);
+      return { message: 'Das Diagramm hat den Stand des gewählten Commits. Mit einem Commit hältst du das fest.', reload: true };
+    });
+  }
+
+  /** Switches the automatic steps of the active profile; connection and credentials stay as they are. */
+  public async gitAutomation(input: { autoCommit: boolean; autoPush: boolean; autoPull: boolean }): Promise<GitPluginSettings> {
+    await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Konfiguration.');
+    const generation = this.projectGeneration; const profileId = this.activeProfileId;
+    this.assertStoreWritable();
+    const preflight = this.storeQueue.then(() => this.assertStoreCurrent());
+    this.storeQueue = preflight.catch(() => undefined);
+    await preflight;
+    this.assertGeneration(generation);
+    if (!this.config.git.installed || !this.config.git.enabled) throw new Error('Git-Plugin ist deaktiviert.');
+    const next: PersistedPluginConfig = { ...this.config, git: { ...this.config.git, autoCommit: input.autoCommit === true, autoPush: input.autoPush === true, autoPull: input.autoPull === true } };
+    await this.saveConfig(next, profileId);
+    if (profileId === this.activeProfileId && generation === this.projectGeneration) { this.clearWatchers(); const { repositoryName, branch, changedFiles, ahead, behind, health, message } = this.gitRuntime; this.refreshRuntime(); this.gitRuntime = { ...this.gitRuntime, repositoryName, branch, changedFiles, ahead, behind, health, message }; }
+    return { ...this.gitRuntime };
   }
 
   private async emitReload(handleId: string): Promise<void> { const before = this.persistence.getHandleLocation(handleId)?.versionToken; const result = await this.persistence.reloadDocument(handleId); if (result.status === 'opened' && result.file.versionToken !== before) this.emitEvent({ type: 'document-changed', text: result.text, file: result.file }); }
