@@ -29,7 +29,7 @@ import type {
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
 import type { ElementClipboardPayload } from './element-clipboard';
-import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
+import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
@@ -227,6 +227,9 @@ export interface SelectionInfo {
   canEditText: boolean; hasStroke: boolean; hasFill: boolean; hasText: boolean;
 }
 
+/** The answer to a call of the Git dialog: the value, or the reason it could not be had, already in the language of the interface. */
+export type GitAnswer<T> = { ok: true; value: T } | { ok: false; message: string };
+
 export interface WhiteboardState {
   document: SketchDocument;
   revision: number;
@@ -322,6 +325,8 @@ export interface WhiteboardState {
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
   pluginBusy: boolean;
+  /** The Git dialog is open (#216). */
+  gitOpen: boolean;
   confluencePages: readonly ConfluencePageSummary[];
   pendingExternalDocument: boolean;
 }
@@ -492,6 +497,23 @@ export interface WhiteboardStore {
   testAtlassianPlugin(): Promise<boolean>;
   refreshGitStatus(): Promise<boolean>;
   syncGit(): Promise<boolean>;
+  /** Opens or closes the Git dialog (#216). */
+  toggleGit(open?: boolean): void;
+  /** What the Git dialog shows of the repository of the open diagram. */
+  gitWorkbench(): Promise<GitAnswer<GitWorkbenchSnapshot>>;
+  /** The changes of one file, in the working tree or in `commit`. */
+  gitDiff(path: string, commit?: string): Promise<GitAnswer<GitFileDiff>>;
+  gitCommit(message: string, paths: string[], push: boolean): Promise<GitAnswer<GitWorkbenchResult>>;
+  gitPush(): Promise<GitAnswer<GitWorkbenchResult>>;
+  /** Fetches the remote branch and fast-forwards to it. */
+  gitUpdate(): Promise<GitAnswer<GitWorkbenchResult>>;
+  gitLog(documentOnly: boolean): Promise<GitAnswer<GitCommitSummary[]>>;
+  /** Puts versioned files back to the last commit. */
+  gitDiscard(paths: string[]): Promise<GitAnswer<GitWorkbenchResult>>;
+  /** Gives the open diagram the content it had in `commit`; refused while the diagram has unsaved changes. */
+  gitRestoreDocument(commit: string): Promise<GitAnswer<GitWorkbenchResult>>;
+  /** Switches automatic commit, push and sync of the Git plugin. */
+  setGitAutomation(input: { autoCommit: boolean; autoPush: boolean; autoPull: boolean }): Promise<GitAnswer<true>>;
   searchConfluencePages(query: string): Promise<void>;
   insertConfluencePage(pageId: string): Promise<boolean>;
   syncConfluenceElement(elementId: string): Promise<boolean>;

@@ -84,6 +84,26 @@ A key or key combination as it is printed on the keyboard, for hints such as "St
 | --- | --- |
 | `default` | The key, for example `Esc`. |
 
+### AppSwitch
+
+A switch for a setting that is on or off and applies at once. The slot is its name, the optional description slot says what it does. For a choice that is only sent with a form use a checkbox.
+
+- File: `src/renderer/design-system/atoms/AppSwitch.vue`
+- Story: `src/renderer/design-system/atoms/AppSwitch.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `modelValue` | `boolean` | yes |  | Whether the setting is on (`v-model`). |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `update:modelValue` | `[value: boolean]` |  |
+
+| Slot | Description |
+| --- | --- |
+| `default` | The name of the setting. |
+| `description` | One sentence on what the setting does. |
+
 ### AppTextField
 
 A single-line text field. It needs a visible label (`AppFieldLabel` with the same `id`) or an `aria-label`. Attributes and listeners (`placeholder`, `maxlength`, `aria-describedby`, `@keydown`) go to the native input.
@@ -242,6 +262,19 @@ The colour choice of the app: theme palette, recent colours and a free hex value
 | --- | --- | --- |
 | `pick` | `[hex: string]` |  |
 
+### DiffView
+
+The changes of one text file, line by line with old and new line numbers; added and removed lines carry a sign as well as a colour. Used by the Git dialog.
+
+- File: `src/renderer/design-system/molecules/DiffView.vue`
+- Story: `src/renderer/design-system/molecules/DiffView.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `diff` | `GitFileDiff \| null` | yes |  | The changes to show; null while nothing is chosen. |
+| `label` | `string` | yes |  | The accessible name of the scrollable area, usually the file name. |
+| `emptyText` | `string \| undefined` | no |  | What to say when the diff has no lines. |
+
 ### SequenceDecor
 
 What makes an ordinary shape a part of a sequence diagram on the canvas: fragment heading, section condition, actor figure, message number.
@@ -399,6 +432,21 @@ A small static picture of a frame and what is in it, for the frame list and the 
 The side panel that lists the frames of the page for navigation and presenting.
 
 - File: `src/renderer/design-system/organisms/FrameSidebar.vue`
+
+### GitDialog
+
+The modal Git dialog of the Git plugin: see and commit changes, push, fetch the remote state, go back to an old state of the diagram and switch the automatic steps. Opened by the Git button beside help.
+
+- File: `src/renderer/design-system/organisms/GitDialog.vue`
+- Story: `src/renderer/design-system/organisms/GitDialog.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `open` | `boolean` | yes |  | Whether the dialog is shown. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `close` | `[]` |  |
 
 ### HdhtSession
 

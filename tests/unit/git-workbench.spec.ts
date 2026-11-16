@@ -68,7 +68,7 @@ describe('git workbench: reading git output (#216)', () => {
     expect(gitFailure({ stderr: 'fatal: Not possible to fast-forward, aborting.' }, 'x')).toContain('auseinandergelaufen');
     expect(gitFailure({ stderr: 'error: Your local changes to the following files would be overwritten by merge' }, 'x')).toContain('committen oder verwerfen');
     expect(gitFailure({ stderr: 'fatal: Authentication failed for https://example.com/' }, 'x')).toContain('Zugangsdaten');
-    expect(gitFailure({ stderr: 'fatal: something else happened\n' }, 'Fehlgeschlagen.')).toBe('Fehlgeschlagen. something else happened');
+    expect(gitFailure({ stderr: 'fatal: something else happened\n' }, 'Fehlgeschlagen.')).toBe('Fehlgeschlagen. Git meldet: something else happened');
     expect(gitFailure(new Error('Command failed: git push'), 'Fehlgeschlagen.')).toBe('Fehlgeschlagen.');
   });
 });

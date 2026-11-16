@@ -85,7 +85,7 @@ export function gitFailure(error: unknown, fallback: string): string {
   if (/would be overwritten/i.test(text)) return 'Lokale Änderungen stehen dem Aktualisieren im Weg. Bitte zuerst committen oder verwerfen.';
   if (/Authentication failed|could not read Username|Permission denied|403/i.test(text)) return 'Die Anmeldung am Remote ist fehlgeschlagen. Bitte die Git-Zugangsdaten in den Plugin-Einstellungen prüfen.';
   const line = text.split('\n').map((entry) => entry.replace(/^(fatal|error|hint):\s*/i, '').trim()).find((entry) => entry && !entry.startsWith('Command failed'));
-  return line ? `${fallback} ${line.slice(0, 300)}` : fallback;
+  return line ? `${fallback} Git meldet: ${line.slice(0, 300)}` : fallback;
 }
 
 export class GitWorkbench {

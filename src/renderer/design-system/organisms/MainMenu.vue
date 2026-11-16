@@ -3,15 +3,16 @@
 import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
 import { useEventListener, useMediaQuery } from '@vueuse/core';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import PageSwitcher from '@/renderer/design-system/organisms/PageSwitcher.vue';
 import type { IconName } from '@/renderer/design-system/atoms/icons';
 import { isMacPlatform, modHint } from '@/renderer/design-system/composables/platform';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
-import { L, t } from '@/renderer/i18n';
+import { L, t, tn } from '@/renderer/i18n';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
+type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
@@ -80,10 +81,15 @@ const fileItems: readonly FileItem[] = [
   { id: 'interopExport', label: t('menu.interopExport'), icon: 'download', hint: '' },
 ];
 
+/** The Git button appears with an installed and enabled Git plugin (#216). */
+const gitActive = computed(() => Boolean(s.pluginSettings?.available && s.pluginSettings.git.installed && s.pluginSettings.git.enabled));
+const gitChanges = computed(() => s.pluginSettings?.projectFolder ? s.pluginSettings.git.changedFiles ?? 0 : 0);
+const gitLabel = computed(() => gitChanges.value ? tn(gitChanges.value, 'Git, {count} geänderte Datei', 'Git, {count} geänderte Dateien') : t('Git'));
 const viewItems = computed<ViewItem[]>(() => [
   ...(compact.value ? [
     { id: 'objects', label: t('chrome.objects'), icon: 'objects', checked: s.objectsOpen },
     { id: 'help', label: t('chrome.help'), icon: 'help' },
+    ...(gitActive.value ? [{ id: 'git', label: L('Git'), icon: 'git' } satisfies ViewItem] : []),
   ] satisfies ViewItem[] : []),
   { id: 'collaboration', label: t('menu.collaboration'), icon: 'users', checked: props.collaborationOpen, separator: compact.value },
   { id: 'catalog', label: t('menu.catalog'), icon: 'component', checked: s.catalogOpen, separator: true },
@@ -216,6 +222,7 @@ function runView(id: ViewItemId): void {
   switch (id) {
     case 'objects': store.toggleObjects(); break;
     case 'help': store.openHelp(); break;
+    case 'git': store.toggleGit(true); break;
     case 'collaboration': emit('collaboration'); break;
     case 'catalog': store.toggleCatalog(); break;
     case 'code': store.toggleCode(); break;
@@ -333,6 +340,10 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
     >
       <AppIcon name="help" />
     </button>
+    <span v-if="!compact && gitActive" class="git-entry">
+      <AppIconButton class="bar-btn" icon="git" data-testid="git-button" data-git-opener aria-haspopup="dialog" :label="gitLabel" @click="store.toggleGit(true)" />
+      <span v-if="gitChanges" class="git-dot" aria-hidden="true" />
+    </span>
     <span v-if="!compact" class="bar-sep" aria-hidden="true" />
     <div class="view-wrap" @focusout="onFocusOut('view', $event)">
       <button
@@ -743,4 +754,6 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
     border: 1px solid CanvasText;
   }
 }
+.git-entry{position:relative;display:inline-flex}
+.git-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border:2px solid var(--surface-panel);border-radius:50%;background:var(--accent);box-sizing:content-box;pointer-events:none}
 </style>
