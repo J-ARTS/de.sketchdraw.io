@@ -100,7 +100,8 @@ async function project(options: { remote?: boolean } = {}) {
   return { root, dir, remote, documentPath, git, service, events, dispose: () => service.dispose() };
 }
 
-describe('git workbench: against a real repository (#216)', () => {
+// Every test runs dozens of git commands; starting a process is slow on Windows, so the default five seconds are too tight there.
+describe('git workbench: against a real repository (#216)', { timeout: 60_000 }, () => {
   it('lists the changes of the repository, the open diagram first, and shows what changed in a file', async () => {
     const p = await project();
     try {
