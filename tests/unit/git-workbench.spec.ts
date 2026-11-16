@@ -81,6 +81,8 @@ async function project(options: { remote?: boolean } = {}) {
   const git = async (args: string[], cwd = dir): Promise<string> => (await execFile('git', args, { cwd })).stdout;
   await git(['init', '-b', 'main']);
   await git(['config', 'user.email', 'test@example.com']); await git(['config', 'user.name', 'Sketchdraw Test']); await git(['config', 'commit.gpgsign', 'false']);
+  // The assertions read files back byte for byte; a Windows checkout must not turn their line ends into CRLF.
+  await git(['config', 'core.autocrlf', 'false']);
   const documentPath = path.join(dir, 'board.sketchdraw.json');
   await writeFile(documentPath, '{"version":1}\n'); await writeFile(path.join(dir, 'readme.md'), 'first\n');
   await git(['add', '.']); await git(['commit', '-m', 'Initial diagram']);

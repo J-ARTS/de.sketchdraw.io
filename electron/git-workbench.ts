@@ -53,7 +53,8 @@ export function parseUnifiedDiff(file: string, output: string, limit = GIT_DIFF_
 
 const FIELD = '\x1f';
 const RECORD = '\x1e';
-const LOG_FORMAT = `--pretty=format:%H${FIELD}%h${FIELD}%an${FIELD}%aI${FIELD}%s${RECORD}`;
+/** git writes the separators itself (%x1f, %x1e), so no control character has to travel in an argument. */
+const LOG_FORMAT = '--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1e';
 
 export function parseLog(output: string, unpushed: ReadonlySet<string>): GitCommitSummary[] {
   return output.split(RECORD).map((record) => record.replace(/^\n/, '')).filter(Boolean).map((record) => {
