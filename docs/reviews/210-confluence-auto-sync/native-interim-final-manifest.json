@@ -1,0 +1,40 @@
+{
+  "snapshot": "/private/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-native-snapshot-1jgu8un0",
+  "hashes": [
+    {
+      "file": "dist-electron/main.cjs",
+      "sha256": "44f8d84870794289e177677023043f4ce025fb53886fc3320aa8d4da6b083bc5"
+    },
+    {
+      "file": "dist-electron/preload.cjs",
+      "sha256": "3a3b5d0ce66b7fafe8830e836e2a795aeab416094d6260dde841e6c98ba896a2"
+    },
+    {
+      "file": "tests/electron/confluence-live.spec.ts",
+      "sha256": "c39caa56baf17a4789570202fb45cc5c9949a67ac0181e44f58f968455d56236"
+    },
+    {
+      "file": "tests/electron/confluence-fixture.ts",
+      "sha256": "d3eb33fa41acf9e76a2fe8a4af5850488398433cf77b43471f9c32f58fbf35bb"
+    }
+  ],
+  "deliveredFilesMatchSnapshot": true,
+  "runs": [
+    {
+      "id": 49798,
+      "status": "passed",
+      "testCount": 1,
+      "log": "/tmp/sketchdraw-210-native-test/rerun1.log"
+    },
+    {
+      "id": 6884,
+      "status": "passed",
+      "testCount": 1,
+      "durationMs": 73520,
+      "report": "/tmp/sketchdraw-210-native-test/rerun2-report.json"
+    }
+  ],
+  "productSourcesChanged": false,
+  "realTenantContacted": false,
+  "causeOfOriginalFailure": "Unresolved timing/fixture ambiguity; no product bug reproduced"
+}

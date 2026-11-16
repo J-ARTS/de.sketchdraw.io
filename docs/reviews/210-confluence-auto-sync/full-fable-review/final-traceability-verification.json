@@ -1,0 +1,112 @@
+{
+  "recordedAt": "2026-11-16T12:40:36.664345+00:00",
+  "status": "passed",
+  "serialProjectionCommands": [
+    {
+      "checkout": "original",
+      "command": [
+        "python3",
+        "tools/graphify-links.py"
+      ],
+      "startedAt": "2026-11-16T12:40:34.004782+00:00",
+      "endedAt": "2026-11-16T12:40:34.580165+00:00",
+      "exitCode": 0,
+      "output": "Merged 3230 traceability nodes and 4426 links; unknown metrics remain null."
+    },
+    {
+      "checkout": "original",
+      "command": [
+        "python3",
+        "tools/graphify-links.py",
+        "--check"
+      ],
+      "startedAt": "2026-11-16T12:40:34.580273+00:00",
+      "endedAt": "2026-11-16T12:40:35.116099+00:00",
+      "exitCode": 0,
+      "output": "Ledger references, metrics and generated Graphify projection are valid and current."
+    },
+    {
+      "checkout": "managed",
+      "command": [
+        "python3",
+        "tools/graphify-links.py"
+      ],
+      "startedAt": "2026-11-16T12:40:35.116208+00:00",
+      "endedAt": "2026-11-16T12:40:35.668210+00:00",
+      "exitCode": 0,
+      "output": "Merged 3230 traceability nodes and 4426 links; unknown metrics remain null."
+    },
+    {
+      "checkout": "managed",
+      "command": [
+        "python3",
+        "tools/graphify-links.py",
+        "--check"
+      ],
+      "startedAt": "2026-11-16T12:40:35.668290+00:00",
+      "endedAt": "2026-11-16T12:40:36.217503+00:00",
+      "exitCode": 0,
+      "output": "Ledger references, metrics and generated Graphify projection are valid and current."
+    }
+  ],
+  "checks": [
+    {
+      "checkout": "original",
+      "runs": 297,
+      "historicalRunMetricsPreserved": 289,
+      "nonLedgerGraphSemanticallyUnchanged": true,
+      "currentSourceHashesVerified": 22,
+      "finalArchiveHashesVerified": 27,
+      "freshFableSessionRunsCountedOnce": 4,
+      "freshFableSessionTokens": 31272508,
+      "freshFableSessionCostUsd": "21.6601698",
+      "issueStatuses": {
+        "208": "review",
+        "210": "review",
+        "217": "in-progress",
+        "218": "review",
+        "219": "planned",
+        "220": "planned",
+        "221": "planned"
+      },
+      "ledgerSha256": "dc4ae9c16d0df4b208df3c8ed014c88362a06f99f5bb8e33586c6792a5c9a94b",
+      "graphSha256": "41af7420b06ca0c9d00438a8dee1ba2a39218562093155e6bf7327b521922962"
+    },
+    {
+      "checkout": "managed",
+      "runs": 297,
+      "historicalRunMetricsPreserved": 289,
+      "nonLedgerGraphSemanticallyUnchanged": true,
+      "currentSourceHashesVerified": 33,
+      "finalArchiveHashesVerified": 27,
+      "freshFableSessionRunsCountedOnce": 4,
+      "freshFableSessionTokens": 31272508,
+      "freshFableSessionCostUsd": "21.6601698",
+      "issueStatuses": {
+        "208": "review",
+        "210": "review",
+        "217": "in-progress",
+        "218": "review",
+        "219": "planned",
+        "220": "planned",
+        "221": "planned"
+      },
+      "ledgerSha256": "dc4ae9c16d0df4b208df3c8ed014c88362a06f99f5bb8e33586c6792a5c9a94b",
+      "graphSha256": "41af7420b06ca0c9d00438a8dee1ba2a39218562093155e6bf7327b521922962"
+    }
+  ],
+  "sourceGraphRefresh": "One protected attempt refused222missingnonledgernodes, original graph bytes retained; noForce/noRepeat. Projection updates ledger-owned nodes only.",
+  "rootAdditionalConfirmedChecks": [
+    "Final GitHub readback confirms208/210/218review,217in-progress,219/220/221openplanned",
+    "Integration git diff --check Exit0 reported by Root",
+    "Final package still open with saved architecture after plugin settings closed; no new quit claimed"
+  ],
+  "limitations": [
+    "No targetbranchintegration",
+    "208speciallayouts/externalconflictopen",
+    "217registrationerrorsopen",
+    "219/220/221planned",
+    "No newChromevisualoractualQuit of finalpackage"
+  ],
+  "noProductFilesChangedByThisBookkeeping": true
+}

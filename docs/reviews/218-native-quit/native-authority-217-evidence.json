@@ -1,0 +1,38 @@
+{
+  "platform": "darwin",
+  "mainBundleSha256": "30ed806755c5de5443beb20e5e24bd0ee570ed1f55a4c775c37f03566f94a33a",
+  "rounds": [
+    {
+      "stage": "file replacement 1",
+      "width": 240,
+      "revision": 0,
+      "newGrant": true
+    },
+    {
+      "stage": "file replacement 2",
+      "width": 280,
+      "revision": 0,
+      "newGrant": true
+    },
+    {
+      "stage": "git replacement",
+      "width": 580,
+      "revision": 0,
+      "newGrant": true
+    },
+    {
+      "stage": "file replacement after restart",
+      "width": 620,
+      "revision": 0,
+      "newGrant": true
+    }
+  ],
+  "realGitPullHead": "33d4438f6f396c1f2f081053097e3d023ff617d7",
+  "officialSdkClient": true,
+  "ownRuntimeFile": true,
+  "normalQuit": [
+    true,
+    true
+  ],
+  "liveTenantContacted": false
+}

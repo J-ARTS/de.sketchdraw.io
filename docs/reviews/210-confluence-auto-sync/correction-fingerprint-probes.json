@@ -1,0 +1,48 @@
+{
+  "runtime": "v22.16.0",
+  "mockOnly": true,
+  "realStoreAndSvg": true,
+  "rasterAndDesktopMocked": true,
+  "sourceHashes": {
+    "src/renderer/state/whiteboard.ts": "7674802e0439fbc6b4c1d6afcc2adffbe5973c65d694413d7f11e70ee51d84cd",
+    "src/renderer/state/confluence-live-sync.ts": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766",
+    "src/renderer/lib/confluence-live-image.ts": "47e08ef4df287e23ba9196bb47447e99b9de932bf71d13dba07c5c65a2c2b867",
+    "src/interop/export.ts": "cf939fe572f13adbe02fc05459a6b901ad29dfc4902b75321365b628be0b193e"
+  },
+  "results": [
+    {
+      "kind": "component-icon",
+      "applied": true,
+      "diagnostics": [],
+      "initialCount": 1,
+      "automaticCount": 1,
+      "manualCount": 2,
+      "svgChanged": true,
+      "beforeSvgHash": "c069a6991c9aa47c1bda7acc70fd9a1ba1dcf8676b8a72601aed865c62dc4c67",
+      "afterSvgHash": "e14ef50e82011bac7594cbb2b5a07520fcab9d24086612a4109be32fe03d4f32",
+      "state": {
+        "state": "synced",
+        "message": "synced",
+        "syncedAt": "2026-11-15T22:21:38.496Z"
+      }
+    },
+    {
+      "kind": "same-length-asset",
+      "applied": true,
+      "diagnostics": [],
+      "initialCount": 1,
+      "automaticCount": 1,
+      "manualCount": 2,
+      "svgChanged": true,
+      "beforeSvgHash": "e00b3adf4f766fbab53ee2bf543d53e028cdf1f80789a37b6839d37fccceb22f",
+      "afterSvgHash": "b4bcc6882523e7e816e506b02e26ba30accc78b288a2f986f74bbea40ed5cce1",
+      "state": {
+        "state": "synced",
+        "message": "synced",
+        "syncedAt": "2026-11-15T22:21:38.945Z"
+      },
+      "beforeBytes": 118,
+      "afterBytes": 118
+    }
+  ]
+}

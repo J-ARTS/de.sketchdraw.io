@@ -1,0 +1,38 @@
+[
+  {
+    "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+    "status": "passed",
+    "duration": 84129,
+    "errors": []
+  },
+  {
+    "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+    "status": "passed",
+    "duration": 10287,
+    "errors": []
+  },
+  {
+    "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+    "status": "passed",
+    "duration": 5097,
+    "errors": []
+  },
+  {
+    "title": "a saved empty application exits normally (#218)",
+    "status": "passed",
+    "duration": 837,
+    "errors": []
+  },
+  {
+    "title": "a cancelled quit keeps the plugins working, a repeated quit keeps one question and saving completes the quit (#218)",
+    "status": "passed",
+    "duration": 14795,
+    "errors": []
+  },
+  {
+    "title": "closing only the window after a cancelled quit keeps the application, which reopens and then quits (#218)",
+    "status": "passed",
+    "duration": 4483,
+    "errors": []
+  }
+]

@@ -1,0 +1,108 @@
+{
+  "checkedAt": "2026-11-16T08:51:49.118Z",
+  "scope": "isolated in-memory fake-indexeddb; real product functions bundled into /tmp; no UI, real runtime, filesystem cache or Tenant",
+  "determinism": "Synthetic cached title mutation uses Y.Doc clientID 0xfffffffe so cache-vs-fresh-bootstrap winner ordering is stable. No production source modified.",
+  "pure": {
+    "before": {
+      "title": "Incoming Git document",
+      "revision": 0
+    },
+    "controllerAfter": {
+      "title": "Incoming Git document",
+      "revision": 0
+    },
+    "authorityAfter": {
+      "ok": true,
+      "value": {
+        "document": {
+          "schemaVersion": 2,
+          "id": "document:ddddd8f2-c47d-44e5-9790-02eaadfce4c5",
+          "title": "Incoming Git document",
+          "pages": [
+            {
+              "id": "page:1",
+              "name": "Seite 1"
+            }
+          ],
+          "elements": [],
+          "assets": {},
+          "componentSets": [],
+          "metadata": {},
+          "commentThreads": [],
+          "tasks": []
+        },
+        "revision": 0
+      }
+    },
+    "grantBindingAfter": {
+      "ok": true,
+      "value": {
+        "bindingId": "2e2a9d56f5e19dbf1c621aaea06f6e71",
+        "bindingGeneration": 1,
+        "scopeId": "88077a0144c5777d1cc4db3d36f46254",
+        "actorId": "agent:probe",
+        "source": {},
+        "gateway": {
+          "session": {
+            "documentId": "document:ddddd8f2-c47d-44e5-9790-02eaadfce4c5",
+            "controllerEpoch": "a12cf2a35a6a3c17e1bb29c80fdd034a"
+          }
+        }
+      }
+    },
+    "fatal": []
+  },
+  "store": {
+    "before": {
+      "ok": true,
+      "title": "Store cached",
+      "revision": 0
+    },
+    "storeTitle": "Authoritative Git state",
+    "storeRevision": 0,
+    "storeSaveStatus": "saved",
+    "controllerAfter": {
+      "title": "Store cached",
+      "revision": 1
+    },
+    "authorityAfter": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "fatal": [
+      {
+        "code": "AUTHORITY_DIVERGED"
+      }
+    ],
+    "closePrevented": true,
+    "closeEvent": {
+      "allowedToClose": false,
+      "requestId": "close_6f1ff8e1310ea65489bd822ccbd72bfc"
+    },
+    "closeReplies": [
+      {
+        "requestId": "close_6f1ff8e1310ea65489bd822ccbd72bfc",
+        "decision": "cancel"
+      }
+    ],
+    "windowCloseCalls": 0,
+    "closeConfirmed": false,
+    "saveResult": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "saveBridgeCalls": 0,
+    "notices": [
+      "Geöffnet: synthetic.sketchdraw.json",
+      "Extern geändert und neu geladen: synthetic.sketchdraw.json",
+      "AUTHORITY_DIVERGED"
+    ],
+    "disposeResult": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    }
+  }
+}

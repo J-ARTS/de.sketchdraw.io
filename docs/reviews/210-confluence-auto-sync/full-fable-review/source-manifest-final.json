@@ -1,0 +1,314 @@
+{
+  "integration": {
+    "root": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "head": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+    "files": [
+      {
+        "path": "electron/close-handshake.ts",
+        "sha256": "43533a2aef335649132a8fd603c84c426bf813a751fd9f002715a3b841cdd35e",
+        "untracked": false
+      },
+      {
+        "path": "electron/main.ts",
+        "sha256": "ab588c3f73215c971a90a96475b97f26d1c1769bf79a22084e29e82c3139b71c",
+        "untracked": false
+      },
+      {
+        "path": "electron/plugin-service.ts",
+        "sha256": "91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4",
+        "untracked": false
+      },
+      {
+        "path": "electron/preload.ts",
+        "sha256": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+        "untracked": false
+      },
+      {
+        "path": "src/crdt/persistence.ts",
+        "sha256": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+        "untracked": false
+      },
+      {
+        "path": "src/crdt/types.ts",
+        "sha256": "b32e7575e7d46deae93defd7af4282b372809cd6b854abfae4edc374a4a9a8bb",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/atlassian.ts",
+        "sha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/confluence-live.ts",
+        "sha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+        "untracked": true
+      },
+      {
+        "path": "src/domain/index.ts",
+        "sha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/plugins.ts",
+        "sha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/design-system/organisms/PluginSettings.vue",
+        "sha256": "a4256e5c8312179fdd84309024d38b3a73a61e633ecf8302d358e608f0dee4d1",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/design-system/organisms/panels.stories.ts",
+        "sha256": "7a6aa0378ad06c452774817a0b3fb7fc12e5951e992fd75ad4b2c6be72fe9576",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/design-system/pages/WorkspacePage.vue",
+        "sha256": "cfdfb294fbdec5e8b3b70a22121e39d22d3f30be7e414d71c47609caa3825d60",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/design-system/storybook/plugin-bridge.ts",
+        "sha256": "c0ccd8afe839261bcd2e91496a284c6cf2ea62f53d3c3bfdf39e8469930d7bbe",
+        "untracked": true
+      },
+      {
+        "path": "src/renderer/design-system/storybook/with-whiteboard.ts",
+        "sha256": "e7e5776c00146ff16d0def41537712ee1889cb7980195f84d7af1dd8107368c7",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/i18n/en.ts",
+        "sha256": "f7f690b6be8ebb8482b83684fcfb9d035d39fc6a38cc9d54305d399b47e000ef",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/lib/confluence-live-image.ts",
+        "sha256": "47e08ef4df287e23ba9196bb47447e99b9de932bf71d13dba07c5c65a2c2b867",
+        "untracked": true
+      },
+      {
+        "path": "src/renderer/state/confluence-live-sync.ts",
+        "sha256": "d8ff6e0ecf8f8d5c14eba576583134d3f22ee7cdef8ca83435fea443ed8a3688",
+        "untracked": true
+      },
+      {
+        "path": "src/renderer/state/contract.ts",
+        "sha256": "8e889b87677a23de5918b3525d44200cc05607f6a03b1be565f0f57ff38b5019",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/state/whiteboard.ts",
+        "sha256": "fa3747dc91839da9cb3e308580c5df5ced12c0bf48472a99e04d50d60421dce6",
+        "untracked": false
+      },
+      {
+        "path": "tests/electron/backend-shell.spec.ts",
+        "sha256": "656783942cbe98d13b1407b530ed6109a2b32d13ed3ae47eca969796679b0f29",
+        "untracked": false
+      },
+      {
+        "path": "tests/electron/confluence-fixture.ts",
+        "sha256": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37",
+        "untracked": true
+      },
+      {
+        "path": "tests/electron/confluence-live.spec.ts",
+        "sha256": "8f9f349e70b28388fd75ef4e06100f9be1dc38745233337178a19ac3ff2c159b",
+        "untracked": true
+      },
+      {
+        "path": "tests/ui/confluence-live.spec.ts",
+        "sha256": "fe3e7fe70e8bb69dc0f8b375317077d2b6b2c4dd39d2e06dbbce5c0dd5ff42df",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/confluence-live-service.spec.ts",
+        "sha256": "98c92a13c4e8a22397fba5063b78486baf7c04bfbd3c13c1d95c4e787c9ff6b4",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/crdt.spec.ts",
+        "sha256": "15d5c73211c878d372c351b23c469ff58493d67983f7d65a7ab18d4b76229567",
+        "untracked": false
+      },
+      {
+        "path": "tests/unit/domain/confluence-live.spec.ts",
+        "sha256": "e9c0d0752f740afa70122a3cf6e56617b8e50cf900cb1f0a9fa646b371fe4fc1",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/platform/security-and-ipc.spec.ts",
+        "sha256": "71261ea8391a1a7093cde3d08e4e1012ed167b900b78a448eef10b12eb8f71c5",
+        "untracked": false
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-image.spec.ts",
+        "sha256": "6e835c3f732e3ded6fa185818730a7372b26df332b3729df4df0bd8b2126da8e",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-scheduler.spec.ts",
+        "sha256": "dcdbfd35b82c1f25421e3c2a0db11648c3c7218df51565cb2da23ce3807e0655",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-store.spec.ts",
+        "sha256": "0073cdb3a04926d8d7a15d905e08f33fd0602acac0e4bfe08632f82fe601ee62",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/design-system.spec.ts",
+        "sha256": "ca8272d1d0a2a34ecf7703230331841c18aeef0477f7365be7d03362c72e269d",
+        "untracked": false
+      },
+      {
+        "path": "tests/unit/renderer/document-cache.spec.ts",
+        "sha256": "43b739ff0b25957e4f25285a823e83e9bd2ecb99ae4c73dadb4921983ea76547",
+        "untracked": true
+      }
+    ]
+  },
+  "original": {
+    "root": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io",
+    "head": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+    "files": [
+      {
+        "path": "electron/main.ts",
+        "sha256": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+        "untracked": false
+      },
+      {
+        "path": "electron/plugin-service.ts",
+        "sha256": "8b509dd9b25839f682eb52af14413f91f50061ad851737cf16abee80afad3380",
+        "untracked": false
+      },
+      {
+        "path": "electron/preload.ts",
+        "sha256": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/atlassian.ts",
+        "sha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/confluence-live.ts",
+        "sha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+        "untracked": true
+      },
+      {
+        "path": "src/domain/index.ts",
+        "sha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+        "untracked": false
+      },
+      {
+        "path": "src/domain/plugins.ts",
+        "sha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/App.vue",
+        "sha256": "9bb6a5537c45bae5d82a7dd680eb620c38e345177b8e6f83f29728db7db33383",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/components/PluginSettings.vue",
+        "sha256": "57ab3b895f9b799378a026fd1ecd7f10e91c39135c37aa55bb0520a206fcb034",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/i18n/en.ts",
+        "sha256": "49d7fb20cccf1000348f596c758d05db4bb0ba96dbda344c805d42717d28f9ab",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/lib/confluence-live-image.ts",
+        "sha256": "47e08ef4df287e23ba9196bb47447e99b9de932bf71d13dba07c5c65a2c2b867",
+        "untracked": true
+      },
+      {
+        "path": "src/renderer/state/confluence-live-sync.ts",
+        "sha256": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766",
+        "untracked": true
+      },
+      {
+        "path": "src/renderer/state/contract.ts",
+        "sha256": "8e889b87677a23de5918b3525d44200cc05607f6a03b1be565f0f57ff38b5019",
+        "untracked": false
+      },
+      {
+        "path": "src/renderer/state/whiteboard.ts",
+        "sha256": "4dbba88658312bd9257fbc26a8dfa3da5fece3fe40776f21b47a4acc9f05b19a",
+        "untracked": false
+      },
+      {
+        "path": "tests/electron/confluence-fixture.ts",
+        "sha256": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37",
+        "untracked": true
+      },
+      {
+        "path": "tests/electron/confluence-live.spec.ts",
+        "sha256": "edfb828d5811bddb7335b53ff59d610bf6189db219acecfb2a1ec662a07ab6e9",
+        "untracked": true
+      },
+      {
+        "path": "tests/ui/confluence-live.spec.ts",
+        "sha256": "fe3e7fe70e8bb69dc0f8b375317077d2b6b2c4dd39d2e06dbbce5c0dd5ff42df",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/confluence-live-service.spec.ts",
+        "sha256": "dba975a9c45139769e2d06b24eec7f332641718a4fe439656e307afd395cf42c",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/domain/confluence-live.spec.ts",
+        "sha256": "e9c0d0752f740afa70122a3cf6e56617b8e50cf900cb1f0a9fa646b371fe4fc1",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-image.spec.ts",
+        "sha256": "6e835c3f732e3ded6fa185818730a7372b26df332b3729df4df0bd8b2126da8e",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-scheduler.spec.ts",
+        "sha256": "5700c641e78ef93406d14466028295aacb5919b85801436095f4ddda44fb6590",
+        "untracked": true
+      },
+      {
+        "path": "tests/unit/renderer/confluence-live-store.spec.ts",
+        "sha256": "0073cdb3a04926d8d7a15d905e08f33fd0602acac0e4bfe08632f82fe601ee62",
+        "untracked": true
+      }
+    ]
+  },
+  "createdAt": "2026-11-16T12:27:56.979987+00:00",
+  "changedSinceFirstReview": {
+    "integration": [
+      "electron/plugin-service.ts",
+      "src/renderer/i18n/en.ts",
+      "src/renderer/state/confluence-live-sync.ts",
+      "tests/unit/confluence-live-service.spec.ts",
+      "tests/unit/renderer/confluence-live-scheduler.spec.ts"
+    ],
+    "original": []
+  },
+  "currentlyIdentical": [
+    "electron/preload.ts",
+    "src/domain/atlassian.ts",
+    "src/domain/confluence-live.ts",
+    "src/domain/index.ts",
+    "src/domain/plugins.ts",
+    "src/renderer/lib/confluence-live-image.ts",
+    "src/renderer/state/contract.ts",
+    "tests/electron/confluence-fixture.ts",
+    "tests/ui/confluence-live.spec.ts",
+    "tests/unit/domain/confluence-live.spec.ts",
+    "tests/unit/renderer/confluence-live-image.spec.ts",
+    "tests/unit/renderer/confluence-live-store.spec.ts"
+  ]
+}

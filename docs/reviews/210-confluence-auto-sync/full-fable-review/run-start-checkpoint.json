@@ -1,0 +1,20 @@
+{
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "status": "running",
+  "manifest": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/docs/reviews/210-confluence-auto-sync/full-fable-review/source-manifest-before.json",
+  "startedAt": "2026-11-16T11:49:32.027305+00:00",
+  "checkpointOnly": true,
+  "capturedAt": "2026-11-16T11:56:48.354759+00:00",
+  "actualTool": "Claude Code CLI 2.1.323",
+  "rootExecution": 91576,
+  "registeredAt": "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6915692578",
+  "metrics": {
+    "observedSeconds": null,
+    "tokens": null,
+    "costUsd": null
+  },
+  "freshSession": true,
+  "note": "Actual running review, not completed. Root owns active run.json and events.jsonl; no running events copied. Graph links intentionally deferred until terminal review final."
+}

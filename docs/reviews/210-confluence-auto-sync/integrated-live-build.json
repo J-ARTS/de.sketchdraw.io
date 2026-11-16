@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-11-15T23:18:36.131084+00:00",
+  "build": "local macOS arm64 directory package, unsigned, not installed/released",
+  "app": "/tmp/sketchdraw-210-integrated-live-build/mac-arm64/Sketchdraw.app",
+  "asarSha256": "1d4d56c292224691c58c1e8be48f367dafb99f0ce35e48f9766a074906c1e86f",
+  "sourceWorktree": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+  "baseCommit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+  "sourceUncommitted": true,
+  "nativeFinalTests": "2/2 passed",
+  "actualTenantAcceptance": false
+}

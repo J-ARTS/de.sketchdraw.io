@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-11-16T08:54:32.877058+00:00",
+  "firstRunAt": "2026-11-16T08:51:49.118Z",
+  "originalExitCode": 2,
+  "exitCodeReason": "Harness required divergence in both low-level and store scenarios. Store reproduced; low-level did not. The captured bundle is exact, but no pre-run source-file hash manifest was made.",
+  "determinismCorrection": "The original harness/result incorrectly claimed changing clientID after bootstrap gave stable winner ordering. The pure scenario disproves that; store reproduction is observed, not claimed deterministic.",
+  "files": {
+    "first-probe.ts": "6406cb993df20bd6c392bb77863865afd131bdb2144e2f2872233766c15fe3e0",
+    "first-probe.cjs": "164b13ace1f1cad170da5a43bf92a5fe676cb2831e55184dd5498c9a9e468e0d",
+    "first-result.json": "5eb6d658e01d14419776e51d41db9649fdfa1312454506c24bec1d6217004fd2"
+  }
+}

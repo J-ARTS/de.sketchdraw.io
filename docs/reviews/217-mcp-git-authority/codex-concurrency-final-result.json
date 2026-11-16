@@ -1,0 +1,194 @@
+{
+  "startedAt": "2026-11-16T09:22:46.378Z",
+  "endedAt": "2026-11-16T09:22:46.496Z",
+  "scope": "One bounded isolated two-active-handles/same-cacheKey case; fake-indexeddb only, real controller/persistence/authority functions. No UI, native app, Tenant, runtime files or real user cache.",
+  "sameInitialDocument": true,
+  "firstBefore": {
+    "document": {
+      "schemaVersion": 2,
+      "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+      "title": "Shared initial state",
+      "pages": [
+        {
+          "id": "page:1",
+          "name": "Seite 1"
+        }
+      ],
+      "elements": [],
+      "assets": {},
+      "componentSets": [],
+      "metadata": {},
+      "commentThreads": [],
+      "tasks": []
+    },
+    "revision": 0
+  },
+  "beforeWrite": {
+    "firstEvents": [
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "ready"
+      }
+    ],
+    "secondEvents": [
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "ready"
+      }
+    ]
+  },
+  "applied": {
+    "status": "committed",
+    "requestId": "330f952f3ff5310e9461a58d0c7503fc:1",
+    "revision": 1
+  },
+  "afterWrite": {
+    "firstController": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+        "title": "Unsaved edit in still-active first instance",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 1
+    },
+    "secondController": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+        "title": "Shared initial state",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 0
+    },
+    "firstAuthority": {
+      "ok": true,
+      "value": {
+        "document": {
+          "schemaVersion": 2,
+          "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+          "title": "Unsaved edit in still-active first instance",
+          "pages": [
+            {
+              "id": "page:1",
+              "name": "Seite 1"
+            }
+          ],
+          "elements": [],
+          "assets": {},
+          "componentSets": [],
+          "metadata": {},
+          "commentThreads": [],
+          "tasks": []
+        },
+        "revision": 1
+      }
+    },
+    "secondAuthority": {
+      "ok": true,
+      "value": {
+        "document": {
+          "schemaVersion": 2,
+          "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+          "title": "Shared initial state",
+          "pages": [
+            {
+              "id": "page:1",
+              "name": "Seite 1"
+            }
+          ],
+          "elements": [],
+          "assets": {},
+          "componentSets": [],
+          "metadata": {},
+          "commentThreads": [],
+          "tasks": []
+        },
+        "revision": 0
+      }
+    },
+    "firstEvents": [
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "ready"
+      }
+    ],
+    "secondEvents": [
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:579284e9-3399-469d-8b5d-05762d897637",
+        "state": "ready"
+      }
+    ],
+    "fatal": []
+  },
+  "recovery": {
+    "recovered": true,
+    "snapshot": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:2c26846b-97d8-4216-b832-06e17ac48426",
+        "title": "Unsaved edit in still-active first instance",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 0
+    }
+  },
+  "observations": {
+    "bothCachesHealthy": true,
+    "firstAuthorityHealthy": true,
+    "secondAuthorityHealthy": true,
+    "firstEditPresentInController": true,
+    "firstEditRecovered": true,
+    "firstWriteCommitted": true,
+    "noAuthorityFatal": true
+  }
+}

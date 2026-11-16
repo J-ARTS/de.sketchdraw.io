@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-16T09:54:17.091308+00:00",
+  "status": "packaged",
+  "exitCode": 0,
+  "appPath": "/tmp/sketchdraw-218-live-build/mac-arm64/Sketchdraw.app",
+  "asarSha256": "de7f5688991f3c058bd01464ba1731ef4411cc13709ad892ab59142f74fc9998",
+  "hashes": {
+    "electron/main.ts": "ab588c3f73215c971a90a96475b97f26d1c1769bf79a22084e29e82c3139b71c",
+    "electron/close-handshake.ts": "43533a2aef335649132a8fd603c84c426bf813a751fd9f002715a3b841cdd35e",
+    "src/crdt/persistence.ts": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+    "dist-electron/main.cjs": "30ed806755c5de5443beb20e5e24bd0ee570ed1f55a4c775c37f03566f94a33a",
+    "dist-mcp/server.cjs": "a4f86f229a0683fa7716766328873807032f704ac637167c1ad4b1d178332169"
+  },
+  "sameAsPassedRootNative": true,
+  "liveStarted": false
+}

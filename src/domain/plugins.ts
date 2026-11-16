@@ -42,6 +42,25 @@ export interface AtlassianPluginSettings {
   message: string;
 }
 
+/**
+ * The live link of the open local diagram to one Confluence page (#210). It belongs to the active profile on this
+ * device and names the diagram file, the diagram and the Atlassian site it was made for. Diagrams never carry it,
+ * so a diagram received from somebody else cannot start a transmission.
+ */
+export interface ConfluenceLiveLink {
+  pageId: string;
+  pageTitle: string;
+  pageUrl: string;
+  /** The Atlassian site the link was made for. */
+  siteUrl: string;
+  /** The diagram the link was made for; another diagram stored under the same file name is never published. */
+  documentId: string;
+  /** False while the profile points to another Atlassian site than the link; nothing is transmitted then. */
+  usable: boolean;
+  /** Time of the last publication that Confluence confirmed. */
+  lastSyncedAt?: string;
+}
+
 /** A named set of plugin settings of the editor. Diagrams never store plugin configuration (#168). */
 export interface PluginProfileSummary {
   id: string;
@@ -69,6 +88,8 @@ export interface PluginSettingsSnapshot {
   configurationIssue?: PluginConfigurationIssue;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
+  /** Live link of the open local diagram under the active profile; absent without a link or a local diagram. */
+  confluenceLive?: ConfluenceLiveLink;
 }
 
 export interface ConfigureGitPluginInput {
@@ -114,6 +135,45 @@ export interface ConfluencePageSummary {
 
 export interface ConfluencePage extends ConfluencePageSummary {
   storageBody: string;
+  /** Digest of `storageBody`. Sending back requires that the page still has exactly this content. */
+  bodyHash?: string;
+}
+
+/** One diagram page as a rendered image. `hash` identifies the rendered content, independent of the device. */
+export interface ConfluenceLiveImage {
+  pageId: string;
+  name: string;
+  /** SHA-256 (hex) of the rendered source. */
+  hash: string;
+  /** Size of the diagram in CSS pixels. */
+  width: number;
+  height: number;
+  png: Uint8Array;
+}
+
+export interface ConfluenceLivePublishInput {
+  handleId: string;
+  documentId: string;
+  title: string;
+  /** Every page of the diagram, in page order. */
+  images: ConfluenceLiveImage[];
+}
+
+/**
+ * `synced`: Confluence confirmed every step. `retry`: nothing is lost, a later attempt can succeed (network, rate
+ * limit, the page is being edited). `failed`: needs the user (access, missing page, foreign diagram).
+ * `cancelled`: the diagram, profile or site changed while the publication was running.
+ */
+export interface ConfluenceLivePublishResult {
+  status: 'synced' | 'retry' | 'failed' | 'cancelled';
+  message: string;
+  /** Images that received a new attachment version. */
+  uploaded: number;
+  /** Whether the page text itself was changed (only to add or remove images of the diagram). */
+  bodyUpdated: boolean;
+  syncedAt?: string;
+  /** With `retry`: the server asked for a pause (Retry-After); no attempt reaches it before this moment. */
+  retryAt?: string;
 }
 
 export interface JiraIssueSummary {
@@ -169,7 +229,12 @@ export interface PluginBridge extends GitWorkbenchBridge {
   gitSync(handleId: string): Promise<GitSyncResult>;
   listConfluencePages(query: string): Promise<ConfluencePageSummary[]>;
   getConfluencePage(pageId: string): Promise<ConfluencePage>;
-  updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number }): Promise<ConfluencePage>;
+  /** Replaces the page text. `expectedBodyHash` is the digest of the content the text was loaded from; without it nothing is written. */
+  updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number; expectedBodyHash: string }): Promise<ConfluencePage>;
+  /** Links the open local diagram to a Confluence page, or removes the link with `pageId: null`. */
+  setConfluenceLiveLink?(input: { handleId: string; documentId: string; pageId: string | null }): Promise<PluginSettingsSnapshot>;
+  /** Publishes the rendered pages of the linked diagram. Runs one after another; never throws for remote problems. */
+  publishConfluenceLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
   createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary>;
   listJiraIssues(): Promise<JiraIssueSummary[]>;
   updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary>;

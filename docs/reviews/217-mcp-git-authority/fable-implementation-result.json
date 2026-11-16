@@ -1,0 +1,63 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 968922,
+  "duration_api_ms": 883727,
+  "num_turns": 86,
+  "total_cost_usd": 9.212315200000003,
+  "usage": {
+    "input_tokens": 112,
+    "cache_creation_input_tokens": 229186,
+    "cache_read_input_tokens": 8795216,
+    "output_tokens": 94635,
+    "output_tokens_details": {
+      "thinking_tokens": 43045
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 229186,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2023,
+        "cache_read_input_tokens": 233363,
+        "cache_creation_input_tokens": 7418,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7418
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 112,
+      "outputTokens": 94635,
+      "cacheReadInputTokens": 8795216,
+      "cacheCreationInputTokens": 229186,
+      "webSearchRequests": 0,
+      "costUSD": 9.212315200000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 43045,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 229186,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "session_id": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "result": "Die Ursache von #217 ist reproduziert und in `src/crdt/persistence.ts` behoben; Unit-Regressionen, Typecheck und Build sind gr\u00fcn. Der native Test ist vorbereitet, aber nicht ausgef\u00fchrt \u2013 die Abnahme in der echten App und am Tenant steht aus.\n\n## Ursache\nDer Recovery-Cache (`document:<id>` in IndexedDB) wurde in den frisch geladenen Controller zur\u00fcckgeschrieben, an der Autorit\u00e4t vorbei. Nach einer Git-Ersetzung mit gleicher Dokument-ID stand deshalb im Reproducer der alte Stand aus dem Cache im Dokument (Revision 1 statt 0). Danach folgten `AUTHORITY_DIVERGED`, die abgelehnte MCP-Registrierung (\u201eApplication rejected access change\") und wirkungslose Schreibversuche.\n\nDer Fehler trat pro Ersetzung nur in etwa der H\u00e4lfte der F\u00e4lle auf, weil der Gewinner der Zusammenf\u00fchrung von zuf\u00e4lligen Yjs-Client-IDs abh\u00e4ngt. Er betraf auch das erneute \u00d6ffnen derselben Datei nach einem Neustart.\n\n## Fix\n- **Einweg-Cache:** `attachIndexedDbPersistence` verwirft einen \u00e4lteren Stand unter dem Schl\u00fcssel und schreibt nur noch den Stand des Controllers hinein. Aus dem Cache gelangt nichts mehr in einen Controller; die geladene Datei bleibt exakt erhalten.\n- **Wiederherstellung:** `createPersistedCrdtController` bleibt der ausdr\u00fcckliche Weg und verh\u00e4lt sich wie bisher.\n- **Abbau:** `destroy()` beendet den Fluss sofort, meldet nichts mehr an abgel\u00f6ste Controller und kehrt immer zur\u00fcck. Vorher blieb das Promise h\u00e4ngen, wenn der Controller schon zerst\u00f6rt war.\n- **Unver\u00e4ndert:** `renderer-session.ts`, `WorkspacePage.vue`, `authority.ts` und die Quit-Gates. Es gibt keine Wiederholungslogik; `whiteboard.ts` hat nur eine Kommentarzeile bekommen, `types.ts` nur Kommentare.\n\n`y-indexeddb` bindet daf\u00fcr an eine Kopie des CRDT-Stands statt an `controller.ydoc`. Das kostet doppelten Speicher je verwaltetem Dokument, schlie\u00dft den R\u00fcckweg aber auch bei einer zweiten Verbindung auf dieselbe Datenbank aus.\n\n## Nachweise\n- **Kontrolllauf gegen den alten Code:** Die fertigen Tests ergeben 5 fehlgeschlagen, 19 bestanden.\n- **Nach dem Fix:** Die beiden Regressions-Specs bestehen 24/24, viermal in Folge.\n- **Betroffene Suites:** CRDT, Store, R\u00e4ume/G\u00e4ste, MCP-Session, Authority und Kollaboration bestehen mit 427/427, die Boundary- und MCP-Suites mit 69/69.\n- **Typecheck und Build:** `npm run typecheck` und `npm run build` laufen durch.\n- **Nicht gelaufen:** vollst\u00e4ndige Unit-Suite, `test:ui`, `test:electron`.\n\nNeu sind `tests/unit/renderer/document-cache.spec.ts` (Store, Autorit\u00e4t, MCP-Grant, Schlie\u00dfanfrage) und f\u00fcnf Tests in `tests/unit/crdt.spec.ts`. Die Ersetzung wird wegen der Zufallsabh\u00e4ngigkeit jeweils mehrfach wiederholt.\n\n## Nativer Test f\u00fcr Root\nIn `tests/electron/confluence-live.spec.ts` ist ein #217-Test angeh\u00e4ngt. Er nutzt das vorhandene Fixture mit eigenem Profil und eigenem Runtime-File sowie den offiziellen SDK-Client. Gepr\u00fcft werden Datei- und Git-Ersetzungen, Lesen und Schreiben per MCP, normales Beenden ohne Signal und dasselbe nach einem Neustart. Er ist typgepr\u00fcft, aber nie gelaufen; Selektoren und UI-Texte stammen aus dem bestehenden #210-Test.\n\n## Offene Punkte\n- Chromiums IndexedDB-Verhalten (L\u00f6schen bei offener Verbindung) ist nur mit `fake-indexeddb` belegt.\n- Ein \u00fcbernommenes Raumdokument ersetzt jetzt den lokalen Cache derselben ID, statt mit ihm gemischt zu werden.\n- Ein ungespeicherter Stand nach einem Absturz bleibt im Cache, bis ein Dokument derselben ID installiert wird; dann gilt die Datei. Einen Wiederherstellungsdialog gibt es im Produkt nicht.\n- Ob der Datei-Watcher nach Gits \u201el\u00f6schen und neu anlegen\" weitere \u00c4nderungen derselben Datei meldet, ist ungepr\u00fcft; die Git-Ersetzung liegt im nativen Test deshalb am Ende des ersten Laufs.\n- `docs/architecture.md` beschreibt die Einweg-Regel noch nicht; Graphify, Ledger und Ticket sind nicht nachgef\u00fchrt.\n\nDer vollst\u00e4ndige Bericht mit Befehlen, Hashes und Grenzen liegt in `/tmp/sketchdraw-217-fable-implementation.md`, das Ergebnis des Kontrolllaufs in `/tmp/sketchdraw-217-fable-before.json`."
+}

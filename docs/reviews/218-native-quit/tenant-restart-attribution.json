@@ -1,0 +1,198 @@
+{
+  "at": "2026-11-16T11:51:32.079Z",
+  "adapterPid": 36054,
+  "response": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"documentId\":\"document:aws-bedrock-agentcore-live-doc-208\",\"revision\":0,\"title\":\"AWS Bedrock & AgentCore · Live-Architektur\",\"pages\":[{\"id\":\"page:architecture\",\"name\":\"01 · AWS Bedrock & AgentCore\",\"elementCount\":60},{\"id\":\"page:live-doc\",\"name\":\"02 · Entscheidungen & Quellen\",\"elementCount\":2}],\"summary\":{\"pageCount\":2,\"totalElements\":62,\"countsByKind\":{\"rectangle\":13,\"ellipse\":0,\"diamond\":0,\"text\":34,\"path\":0,\"image\":0,\"connector\":14,\"container\":0,\"component\":0,\"sticky-note\":0,\"annotation\":1,\"table\":0,\"web-embed\":0,\"frame\":0},\"containerCount\":0,\"maxContainerDepth\":0,\"connectorCount\":14,\"boundConnectorCount\":14,\"unboundConnectorCount\":0,\"partiallyBoundConnectorCount\":0,\"assetCount\":0,\"totalAssetDataUrlBytes\":0,\"componentSetCount\":0,\"totalComponentDefinitions\":0},\"findings\":[{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"band:rag\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:auth\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:client\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:runtime\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:model\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:gateway\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:identity\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:tools\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:memory\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:observe\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:s3\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:kb\",\"message\":\"Element has no human-readable label.\"},{\"code\":\"UNLABELED_ELEMENT\",\"severity\":\"info\",\"elementId\":\"node:vectors\",\"message\":\"Element has no human-readable label.\"}]}"
+      }
+    ],
+    "structuredContent": {
+      "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+      "revision": 0,
+      "title": "AWS Bedrock & AgentCore · Live-Architektur",
+      "pages": [
+        {
+          "id": "page:architecture",
+          "name": "01 · AWS Bedrock & AgentCore",
+          "elementCount": 60
+        },
+        {
+          "id": "page:live-doc",
+          "name": "02 · Entscheidungen & Quellen",
+          "elementCount": 2
+        }
+      ],
+      "summary": {
+        "pageCount": 2,
+        "totalElements": 62,
+        "countsByKind": {
+          "rectangle": 13,
+          "ellipse": 0,
+          "diamond": 0,
+          "text": 34,
+          "path": 0,
+          "image": 0,
+          "connector": 14,
+          "container": 0,
+          "component": 0,
+          "sticky-note": 0,
+          "annotation": 1,
+          "table": 0,
+          "web-embed": 0,
+          "frame": 0
+        },
+        "containerCount": 0,
+        "maxContainerDepth": 0,
+        "connectorCount": 14,
+        "boundConnectorCount": 14,
+        "unboundConnectorCount": 0,
+        "partiallyBoundConnectorCount": 0,
+        "assetCount": 0,
+        "totalAssetDataUrlBytes": 0,
+        "componentSetCount": 0,
+        "totalComponentDefinitions": 0
+      },
+      "findings": [
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "band:rag",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:auth",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:client",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:runtime",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:model",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:gateway",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:identity",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:tools",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:memory",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:observe",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:s3",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:kb",
+          "message": "Element has no human-readable label."
+        },
+        {
+          "code": "UNLABELED_ELEMENT",
+          "severity": "info",
+          "elementId": "node:vectors",
+          "message": "Element has no human-readable label."
+        }
+      ]
+    }
+  },
+  "socketMetadata": [
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "63u",
+      "type": "unix",
+      "device": "0x5fbfba51fbbe317e",
+      "peer": null
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "67u",
+      "type": "unix",
+      "device": "0x632bf1d55ae9e340",
+      "peer": null
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "68u",
+      "type": "unix",
+      "device": "0xd0013527cfc903a6",
+      "peer": "0xfc7051f4e1f2c5b0"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "36054",
+      "fd": "0u",
+      "type": "unix",
+      "device": "0xfda60d17cfc42c7e",
+      "peer": "0x33d636f20e73ff38"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "36054",
+      "fd": "1u",
+      "type": "unix",
+      "device": "0x9366ae2409607551",
+      "peer": "0xfbe1ffb7ee4b732b"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "36054",
+      "fd": "2u",
+      "type": "unix",
+      "device": "0x9c46e121bc426a2a",
+      "peer": "0xfdd6fa711a678691"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "36054",
+      "fd": "21u",
+      "type": "unix",
+      "device": "0x5285460eddbe0e5d",
+      "peer": "0x632bf1d55ae9e340"
+    }
+  ],
+  "scope": "Official adapter read only; Unix socket metadata only, no runtime file contents or endpoint names retained"
+}

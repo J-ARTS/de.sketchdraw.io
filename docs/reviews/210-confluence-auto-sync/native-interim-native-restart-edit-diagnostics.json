@@ -1,0 +1,680 @@
+[
+  {
+    "stage": "before-restart-draw",
+    "dom": {
+      "viewport": {
+        "width": 1280,
+        "height": 772,
+        "scale": 2
+      },
+      "focused": true,
+      "active": {
+        "tag": "BUTTON",
+        "testId": "workspace-menu-button",
+        "role": null,
+        "label": "Arbeitsbereich",
+        "className": "profile-btn",
+        "onCanvas": false
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 772
+      },
+      "saveStatus": "saved",
+      "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+      "openDialogs": [],
+      "pressed": [
+        {
+          "tag": "BUTTON",
+          "testId": null,
+          "role": null,
+          "label": "Auswahl",
+          "className": "tool sd-icon-btn",
+          "onCanvas": false
+        }
+      ],
+      "rectangles": [
+        {
+          "id": "rectangle:d7810072-1fd9-4ffe-a33f-238a18aa65d4",
+          "box": {
+            "x": 420,
+            "y": 316,
+            "width": 200,
+            "height": 140
+          },
+          "width": "200",
+          "height": "140"
+        },
+        {
+          "id": "rectangle:1b51966f-ce85-477f-916d-a94147598432",
+          "box": {
+            "x": 720,
+            "y": 336,
+            "width": 140,
+            "height": 100
+          },
+          "width": "140",
+          "height": "100"
+        }
+      ],
+      "points": [
+        {
+          "x": 360,
+          "y": 440,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        },
+        {
+          "x": 490,
+          "y": 530,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        }
+      ]
+    },
+    "ipc": {
+      "published": [
+        {
+          "images": [
+            {
+              "pageId": "page:1",
+              "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+              "uint8Array": true,
+              "bytes": 19384,
+              "decoded": {
+                "width": 1044,
+                "height": 508
+              }
+            },
+            {
+              "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+              "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+              "uint8Array": true,
+              "bytes": 17812,
+              "decoded": {
+                "width": 1044,
+                "height": 428
+              }
+            }
+          ],
+          "done": true,
+          "status": "synced"
+        }
+      ],
+      "actions": [
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "watch-document",
+        "get-settings",
+        "watch-document",
+        "publish-confluence-live"
+      ],
+      "blockedFetches": []
+    },
+    "uploads": [
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 1,
+        "sha256": "14d4f827e55f52aa8e045f680bc3bb887caf1fabfb56edb21902c08bdd42ec5b",
+        "bytes": 18375,
+        "width": 960,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 1,
+        "sha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+        "bytes": 16969,
+        "width": 960,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 2,
+        "sha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+        "bytes": 19384,
+        "width": 1044,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 2,
+        "sha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+        "bytes": 17812,
+        "width": 1044,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211002/data",
+        "method": "POST"
+      }
+    ]
+  },
+  {
+    "stage": "after-restart-draw",
+    "dom": {
+      "viewport": {
+        "width": 1280,
+        "height": 772,
+        "scale": 2
+      },
+      "focused": true,
+      "active": {
+        "tag": "svg",
+        "testId": "whiteboard-canvas",
+        "role": "application",
+        "label": "Zeichenfläche",
+        "className": null,
+        "onCanvas": true
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 772
+      },
+      "saveStatus": "dirty",
+      "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+      "openDialogs": [],
+      "pressed": [
+        {
+          "tag": "BUTTON",
+          "testId": null,
+          "role": null,
+          "label": "Auswahl",
+          "className": "tool sd-icon-btn",
+          "onCanvas": false
+        }
+      ],
+      "rectangles": [
+        {
+          "id": "rectangle:d7810072-1fd9-4ffe-a33f-238a18aa65d4",
+          "box": {
+            "x": 420,
+            "y": 316,
+            "width": 200,
+            "height": 140
+          },
+          "width": "200",
+          "height": "140"
+        },
+        {
+          "id": "rectangle:1b51966f-ce85-477f-916d-a94147598432",
+          "box": {
+            "x": 720,
+            "y": 336,
+            "width": 140,
+            "height": 100
+          },
+          "width": "140",
+          "height": "100"
+        },
+        {
+          "id": "rectangle:a79fdd5a-eafc-4896-80e6-12e321d6f0ad",
+          "box": {
+            "x": 360,
+            "y": 440,
+            "width": 130,
+            "height": 90
+          },
+          "width": "130",
+          "height": "90"
+        }
+      ],
+      "points": [
+        {
+          "x": 360,
+          "y": 440,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        },
+        {
+          "x": 490,
+          "y": 530,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        }
+      ]
+    },
+    "ipc": {
+      "published": [
+        {
+          "images": [
+            {
+              "pageId": "page:1",
+              "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+              "uint8Array": true,
+              "bytes": 19384,
+              "decoded": {
+                "width": 1044,
+                "height": 508
+              }
+            },
+            {
+              "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+              "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+              "uint8Array": true,
+              "bytes": 17812,
+              "decoded": {
+                "width": 1044,
+                "height": 428
+              }
+            }
+          ],
+          "done": true,
+          "status": "synced"
+        }
+      ],
+      "actions": [
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "watch-document",
+        "get-settings",
+        "watch-document",
+        "publish-confluence-live"
+      ],
+      "blockedFetches": []
+    },
+    "uploads": [
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 1,
+        "sha256": "14d4f827e55f52aa8e045f680bc3bb887caf1fabfb56edb21902c08bdd42ec5b",
+        "bytes": 18375,
+        "width": 960,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 1,
+        "sha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+        "bytes": 16969,
+        "width": 960,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 2,
+        "sha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+        "bytes": 19384,
+        "width": 1044,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 2,
+        "sha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+        "bytes": 17812,
+        "width": 1044,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211002/data",
+        "method": "POST"
+      }
+    ]
+  },
+  {
+    "stage": "cleanup",
+    "ipc": {
+      "published": [
+        {
+          "images": [
+            {
+              "pageId": "page:1",
+              "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+              "uint8Array": true,
+              "bytes": 19384,
+              "decoded": {
+                "width": 1044,
+                "height": 508
+              }
+            },
+            {
+              "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+              "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+              "uint8Array": true,
+              "bytes": 17812,
+              "decoded": {
+                "width": 1044,
+                "height": 428
+              }
+            }
+          ],
+          "done": true,
+          "status": "synced"
+        },
+        {
+          "images": [
+            {
+              "pageId": "page:1",
+              "pngSha256": "30823b2fb644301234db465da6d7fc2f08012446a4d667b25aed590047591481",
+              "uint8Array": true,
+              "bytes": 24662,
+              "decoded": {
+                "width": 1164,
+                "height": 656
+              }
+            },
+            {
+              "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+              "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+              "uint8Array": true,
+              "bytes": 17812,
+              "decoded": {
+                "width": 1044,
+                "height": 428
+              }
+            }
+          ],
+          "done": true,
+          "status": "synced"
+        }
+      ],
+      "actions": [
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "get-settings",
+        "watch-document",
+        "get-settings",
+        "watch-document",
+        "publish-confluence-live",
+        "list-jira-issues",
+        "publish-confluence-live"
+      ],
+      "blockedFetches": []
+    },
+    "uploads": [
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 1,
+        "sha256": "14d4f827e55f52aa8e045f680bc3bb887caf1fabfb56edb21902c08bdd42ec5b",
+        "bytes": 18375,
+        "width": 960,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 1,
+        "sha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+        "bytes": 16969,
+        "width": 960,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 2,
+        "sha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+        "bytes": 19384,
+        "width": 1044,
+        "height": 508,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      },
+      {
+        "id": "att211002",
+        "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+        "version": 2,
+        "sha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+        "bytes": 17812,
+        "width": 1044,
+        "height": 428,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211002/data",
+        "method": "POST"
+      },
+      {
+        "id": "att211001",
+        "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+        "version": 3,
+        "sha256": "30823b2fb644301234db465da6d7fc2f08012446a4d667b25aed590047591481",
+        "bytes": 24662,
+        "width": 1164,
+        "height": 656,
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      }
+    ],
+    "requests": [
+      {
+        "path": "/wiki/api/v2/pages",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "PUT"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211002/data",
+        "method": "POST"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/rest/api/3/search/jql",
+        "method": "POST"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/api/v2/pages/210001/attachments",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment",
+        "method": "GET"
+      },
+      {
+        "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+        "method": "POST"
+      }
+    ],
+    "fixtureFailures": [],
+    "pageErrorCount": 0
+  }
+]

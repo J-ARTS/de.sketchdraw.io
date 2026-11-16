@@ -1,0 +1,155 @@
+{
+  "source": "src/domain/confluence-live.ts",
+  "sha256": "745001554f17732e711d1d92159f29c9bcd095659b682cc8f3da477b2f1f317b",
+  "sha256After": "745001554f17732e711d1d92159f29c9bcd095659b682cc8f3da477b2f1f317b",
+  "node": "v22.16.0",
+  "results": [
+    {
+      "name": "foreign-page-attachment",
+      "body": "<p>Before</p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\"><ri:page ri:content-title=\"External architecture\" ri:space-key=\"DOC\" /></ri:attachment></ac:image><p>After</p>",
+      "images": [],
+      "detected": [
+        "sketchdraw-12345678-abcdef12.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<p>Before</p><p>After</p>",
+        "added": [],
+        "removed": [
+          "sketchdraw-12345678-abcdef12.png"
+        ]
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "foreign-page-satisfies-current-page-image",
+      "body": "<p>Before</p><ac:image><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\"><ri:page ri:content-title=\"External architecture\" ri:space-key=\"DOC\" /></ri:attachment></ac:image><p>After</p>",
+      "images": [
+        {
+          "filename": "sketchdraw-12345678-abcdef12.png",
+          "alt": "Diagram",
+          "width": 760
+        }
+      ],
+      "detected": [
+        "sketchdraw-12345678-abcdef12.png"
+      ],
+      "result": {
+        "status": "unchanged"
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "entity-in-prefix-duplicate",
+      "body": "<p>Before</p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw&#45;12345678-abcdef12.png\" /></ac:image><p>After</p>",
+      "images": [
+        {
+          "filename": "sketchdraw-12345678-abcdef12.png",
+          "alt": "Diagram",
+          "width": 760
+        }
+      ],
+      "detected": [],
+      "result": {
+        "status": "changed",
+        "body": "<p>Before</p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw&#45;12345678-abcdef12.png\" /></ac:image><p>After</p><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"Diagram\" ac:width=\"760\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-12345678-abcdef12.png"
+        ],
+        "removed": []
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "entity-in-page-key-replaces-existing-image",
+      "body": "<p>Before</p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-&#97;bcdef12.png\" /></ac:image><p>After</p>",
+      "images": [
+        {
+          "filename": "sketchdraw-12345678-abcdef12.png",
+          "alt": "Diagram",
+          "width": 760
+        }
+      ],
+      "detected": [
+        "sketchdraw-12345678-&#97;bcdef12.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<p>Before</p><p>After</p><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"Diagram\" ac:width=\"760\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-12345678-abcdef12.png"
+        ],
+        "removed": [
+          "sketchdraw-12345678-&#97;bcdef12.png"
+        ]
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "two-copies-existing-image",
+      "body": "<p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image></p><p>Foreign text</p><p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image></p>",
+      "images": [
+        {
+          "filename": "sketchdraw-12345678-abcdef12.png",
+          "alt": "Diagram",
+          "width": 760
+        }
+      ],
+      "detected": [
+        "sketchdraw-12345678-abcdef12.png",
+        "sketchdraw-12345678-abcdef12.png"
+      ],
+      "result": {
+        "status": "unchanged"
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png",
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "stale-local-image-control",
+      "body": "<p>Before</p><ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image><p>After</p>",
+      "images": [],
+      "detected": [
+        "sketchdraw-12345678-abcdef12.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<p>Before</p><p>After</p>",
+        "added": [],
+        "removed": [
+          "sketchdraw-12345678-abcdef12.png"
+        ]
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": [
+        "sketchdraw-12345678-abcdef12.png"
+      ]
+    },
+    {
+      "name": "comment-cdata-literal-control",
+      "body": "<ac:structured-macro ac:name=\"code\"><ac:plain-text-body><![CDATA[<ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image>]]></ac:plain-text-body></ac:structured-macro><!-- <ac:image ac:width=\"340\"><ri:attachment ri:filename=\"sketchdraw-12345678-abcdef12.png\" /></ac:image> --><p>After</p>",
+      "images": [],
+      "detected": [],
+      "result": {
+        "status": "unchanged"
+      },
+      "xmlParsed": true,
+      "xmlAttachmentFilenames": []
+    }
+  ]
+}

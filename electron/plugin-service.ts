@@ -8,6 +8,9 @@ import type {
   AtlassianPluginSettings,
   ConfigureAtlassianPluginInput,
   ConfigureGitPluginInput,
+  ConfluenceLiveLink,
+  ConfluenceLivePublishInput,
+  ConfluenceLivePublishResult,
   ConfluencePage,
   ConfluencePageSummary,
   CreateJiraIssueInput,
@@ -29,6 +32,8 @@ import type {
   UpdateJiraIssueInput,
 } from '../src/domain/index';
 import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } from '../src/domain/plugins';
+import { confluenceStorageLoss } from '../src/domain/atlassian';
+import { CONFLUENCE_LIVE_MAX_IMAGE_BYTES, CONFLUENCE_LIVE_MAX_IMAGES, confluenceLiveFilePrefix, confluenceLiveFilename, isPngImage, managedImageFilenames, planManagedImages, type ManagedImage } from '../src/domain/confluence-live';
 import type { DocumentPersistenceService } from './persistence';
 
 const execFile = promisify(execFileCallback);
@@ -39,6 +44,83 @@ const LEGACY_PROJECT_CONFIG_NAME = '.sketchdraw-plugins.json';
 const DEFAULT_PROFILE_ID = 'default';
 const DEFAULT_PROFILE_NAME = 'Standard';
 const MAX_REMOTE_BODY_BYTES = 2_000_000;
+const MAX_CONFLUENCE_LINKS = 200;
+/** A page body is only written when it did not change for this long; a page somebody is typing in is left alone. */
+const LIVE_QUIET_WINDOW_MS = 1_500;
+const LIVE_UPLOAD_TIMEOUT_MS = 60_000;
+
+/** The live link of one diagram file (#210). It lives in the profile, never in the diagram. */
+interface PersistedConfluenceLink {
+  /** Identifies this one act of linking; a link made anew is another link, even to the same page. Never shown. */
+  token: string;
+  documentPath: string;
+  documentId: string;
+  siteUrl: string;
+  pageId: string;
+  pageTitle: string;
+  pageUrl: string;
+  lastSyncedAt?: string;
+  /**
+   * The attachments this link created or took over, per file name: the attachment's id, the version this device
+   * confirmed last and the rendered content of that version. Only these are ever updated; a version nobody here
+   * wrote is somebody else's change.
+   */
+  published?: Record<string, PublishedAttachment>;
+  /**
+   * Uploads that were sent without a confirmed answer yet, written before the request leaves. `baseVersion` is the
+   * attachment version before the upload (0: the attachment did not exist). A later run settles each of them
+   * against Confluence before anything is uploaded again.
+   */
+  pending?: Record<string, PendingUpload>;
+}
+
+interface PublishedAttachment { id: string; hash: string; version: number }
+interface PendingUpload { hash: string; baseVersion: number; attachmentId: string | null }
+
+class AtlassianHttpError extends Error {
+  /** `retryAt`: the moment the server asked to wait for (Retry-After), as a timestamp. */
+  constructor(public readonly status: number, public readonly retryAt?: number) { super(`Atlassian antwortete mit ${status}.`); }
+}
+
+/** The server asked for a pause that is not over; no request was sent. */
+class AtlassianCooldownError extends Error {
+  constructor(public readonly retryAt: number) { super('Atlassian hat um eine Pause gebeten. Anfragen werden bis zum genannten Zeitpunkt zurückgehalten.'); }
+}
+
+/** The authority an operation was started under is gone: diagram, profile, account, site, link or window changed. */
+class AuthorityChanged extends Error {
+  constructor() { super('Die Aktion wurde abgebrochen, weil sich Diagramm, Profil, Konto oder Verknüpfung geändert haben. Bitte erneut starten.'); }
+}
+
+/** A step that can succeed later without the user. */
+class LiveSyncRetry extends Error {
+  constructor(message: string, public readonly retryAt?: number) { super(message); }
+}
+
+/** A step that needs the user. */
+class LiveSyncFailure extends Error {}
+
+/**
+ * What a running publication was started for. `epoch` is the authority epoch of that moment: it never comes back,
+ * so a job cannot be revived by returning to the same diagram, profile, account or setting later.
+ */
+interface LiveJob {
+  epoch: number;
+  linkToken: string;
+  profileId: string;
+  documentPath: string;
+  documentId: string;
+  siteUrl: string;
+  pageId: string;
+}
+
+/** Longest pause a server may impose through Retry-After; a longer or absurd value does not lock publishing for days. */
+const MAX_SERVER_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const DIGEST_COMMENT = /^Sketchdraw ([0-9a-f]{64})$/;
+/** Attachment ids appear with and without the `att` prefix depending on the API version. */
+const attachmentKey = (id: string): string => id.replace(/^att/i, '');
+
+const sha256 = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex');
 
 interface PersistedGitConfig {
   installed: boolean;
@@ -64,6 +146,7 @@ interface PersistedAtlassianConfig {
   jiraProjectKey: string;
   jiraIssueType: string;
   jqlFilter: string;
+  confluenceLinks?: PersistedConfluenceLink[];
 }
 
 interface PersistedPluginConfig {
@@ -101,6 +184,10 @@ export interface PluginServiceOptions {
   emitEvent: (event: PluginExternalEvent) => void;
   fetchFn?: typeof fetch;
   runGit?: (args: string[], cwd: string, environment?: GitEnvironment) => Promise<{ stdout: string; stderr: string }>;
+  /** How long a Confluence page must stay unchanged before its text is written; tests shorten it. */
+  liveQuietWindowMs?: number;
+  /** The clock for server-imposed pauses; tests control it. */
+  now?: () => number;
 }
 
 const DEFAULT_CONFIG: PersistedPluginConfig = {
@@ -123,6 +210,66 @@ function sameFields(left: object, right: object): boolean {
 /** A profile nobody configured yet; only such a profile adopts an old per-folder configuration. */
 function isPristine(config: PersistedPluginConfig): boolean {
   return sameFields(config.git, DEFAULT_CONFIG.git) && sameFields(config.atlassian, DEFAULT_CONFIG.atlassian);
+}
+
+/** Links are stored data like everything else in the profile file: wrong shapes are rejected, not repaired. */
+function parseConfluenceLinks(value: unknown): PersistedConfluenceLink[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length > MAX_CONFLUENCE_LINKS) throw new Error('PROFILE_STORE_INVALID');
+  const paths = new Set<string>();
+  const links = value.map((entry): PersistedConfluenceLink => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('PROFILE_STORE_INVALID');
+    const record = entry as Record<string, unknown>;
+    const text = (key: string, max: number, allowEmpty = false): string => {
+      const field = record[key];
+      if (typeof field !== 'string' || field.length > max || (!allowEmpty && !field) || /[\u0000-\u001f\u007f]/.test(field)) throw new Error('PROFILE_STORE_INVALID');
+      return field;
+    };
+    const link: PersistedConfluenceLink = {
+      token: '', documentPath: text('documentPath', 4096), documentId: text('documentId', 256), siteUrl: normalizeSiteUrl(text('siteUrl', 2048)),
+      pageId: text('pageId', 128), pageTitle: text('pageTitle', 500, true), pageUrl: text('pageUrl', 4096),
+    };
+    if (record.token !== undefined && (typeof record.token !== 'string' || !/^[0-9a-f-]{8,64}$/.test(record.token))) throw new Error('PROFILE_STORE_INVALID');
+    link.token = typeof record.token === 'string' ? record.token : sha256(`${link.documentPath}\n${link.pageId}`).slice(0, 32);
+    if (!path.isAbsolute(link.documentPath) || paths.has(link.documentPath) || !/^[0-9A-Za-z_-]+$/.test(link.pageId)) throw new Error('PROFILE_STORE_INVALID');
+    paths.add(link.documentPath);
+    if (record.lastSyncedAt !== undefined) {
+      if (typeof record.lastSyncedAt !== 'string' || Number.isNaN(Date.parse(record.lastSyncedAt))) throw new Error('PROFILE_STORE_INVALID');
+      link.lastSyncedAt = record.lastSyncedAt;
+    }
+    const records = (value: unknown): Array<[string, Record<string, unknown>]> => {
+      if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length > CONFLUENCE_LIVE_MAX_IMAGES * 4) throw new Error('PROFILE_STORE_INVALID');
+      return Object.entries(value as Record<string, unknown>).map(([filename, state]) => {
+        if (!/^[a-z0-9.-]{1,128}$/.test(filename) || !state || typeof state !== 'object' || Array.isArray(state)) throw new Error('PROFILE_STORE_INVALID');
+        const item = state as Record<string, unknown>;
+        if (typeof item.hash !== 'string' || !/^[0-9a-f]{64}$/.test(item.hash)) throw new Error('PROFILE_STORE_INVALID');
+        return [filename, item];
+      });
+    };
+    const attachmentId = (value: unknown): string => {
+      if (typeof value !== 'string' || !/^[0-9A-Za-z_-]{1,64}$/.test(value)) throw new Error('PROFILE_STORE_INVALID');
+      return value;
+    };
+    if (record.published !== undefined) {
+      link.published = {};
+      for (const [filename, item] of records(record.published)) {
+        // A record without the attachment's id proves no ownership; it is dropped, not trusted.
+        if (item.id === undefined) continue;
+        if (!Number.isSafeInteger(item.version) || (item.version as number) < 1) throw new Error('PROFILE_STORE_INVALID');
+        link.published[filename] = { id: attachmentId(item.id), hash: item.hash as string, version: item.version as number };
+      }
+    }
+    if (record.pending !== undefined) {
+      link.pending = {};
+      for (const [filename, item] of records(record.pending)) {
+        if (!Number.isSafeInteger(item.baseVersion) || (item.baseVersion as number) < 0) throw new Error('PROFILE_STORE_INVALID');
+        link.pending[filename] = { hash: item.hash as string, baseVersion: item.baseVersion as number, attachmentId: item.attachmentId === null ? null : attachmentId(item.attachmentId) };
+      }
+      if (Object.keys(link.pending).length === 0) delete link.pending;
+    }
+    return link;
+  });
+  return links.length ? links : undefined;
 }
 
 function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atlassian'> {
@@ -156,6 +303,8 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   atlassian.jiraIssueType = boundedString(atlassian.jiraIssueType, 128, 'Jira-Vorgangstyp');
   atlassian.jqlFilter = boundedString(atlassian.jqlFilter, 2000, 'Jira-Filter', true);
   if (atlassian.enabled && (!atlassian.siteUrl || !atlassian.encryptedApiToken)) throw new Error('PROFILE_STORE_INVALID');
+  const confluenceLinks = parseConfluenceLinks((record.atlassian as Record<string, unknown>).confluenceLinks);
+  if (confluenceLinks) atlassian.confluenceLinks = confluenceLinks; else delete atlassian.confluenceLinks;
   return { git, atlassian };
 }
 
@@ -272,6 +421,22 @@ export class PluginService {
   private storeRevision: string | null = null;
   private storeQueue: Promise<void> = Promise.resolve();
   private projectFolder = '';
+  /** Canonical path of the open local diagram; live links are looked up by it. */
+  private activeDocumentPath = '';
+  /** Publications to Confluence run one after another. */
+  private liveQueue: Promise<unknown> = Promise.resolve();
+  private readonly liveQuietWindowMs: number;
+  private readonly now: () => number;
+  private disposed = false;
+  /**
+   * Counts every change of what Atlassian work is done on behalf of: the open diagram, the active profile, the
+   * Atlassian settings and account, the live link, and the window that asked. An operation keeps the value it
+   * started with and stops as soon as the counter moved on; going back to an earlier state gives a new value.
+   */
+  private authorityEpoch = 0;
+  private authorityAbort = new AbortController();
+  /** Until when the server of a site asked for no further requests (Retry-After). */
+  private cooldown: { siteUrl: string; until: number } | null = null;
   /** Changes with the project folder and with the active profile; pending work of the old context stops. */
   private projectGeneration = 0;
   private activation: Promise<void> = Promise.resolve();
@@ -284,7 +449,9 @@ export class PluginService {
   constructor(options: PluginServiceOptions) {
     this.persistence = options.persistence; this.credentials = options.credentials; this.emitEvent = options.emitEvent; this.fetchFn = options.fetchFn ?? fetch;
     this.storePath = options.configPath ?? '';
-    this.runGit = options.runGit ?? (async (args, cwd, environment) => {
+    this.liveQuietWindowMs = Math.max(0, options.liveQuietWindowMs ?? LIVE_QUIET_WINDOW_MS);
+    this.now = options.now ?? Date.now;
+    this.runGit =options.runGit ?? (async (args, cwd, environment) => {
       const result = await execFile('git', args, { cwd, timeout: 30_000, maxBuffer: 2_000_000, windowsHide: true, env: { ...process.env, ...(environment ?? {}) } });
       return { stdout: result.stdout, stderr: result.stderr };
     });
@@ -407,7 +574,7 @@ export class PluginService {
 
   /** The running configuration follows the active profile; work that started under another profile stops. */
   private async adoptActiveProfile(): Promise<void> {
-    this.projectGeneration++; this.clearWatchers();
+    this.projectGeneration++; this.revokeAuthority(); this.clearWatchers();
     this.legacyIssue = undefined;
     this.config = this.configOf(this.activeProfile()); this.refreshRuntime();
     await this.refreshFolderStatus();
@@ -440,8 +607,10 @@ export class PluginService {
     if (this.profiles.length >= PLUGIN_PROFILE_LIMIT) throw new Error('Es sind höchstens zwölf Profile möglich.');
     const name = this.profileName(input.name);
     const source = input.copyFrom === undefined ? null : this.knownProfile(input.copyFrom);
+    // A live link is an explicit decision in one profile; a copy starts without the links of its source.
+    const { confluenceLinks: _links, ...sourceAtlassian } = source?.atlassian ?? DEFAULT_CONFIG.atlassian;
     const created: PersistedProfile = source
-      ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...source.atlassian } }
+      ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...sourceAtlassian } }
       : { ...defaultProfile(), id: randomUUID(), name };
     await this.mutateStore((profiles) => {
       if (profiles.length >= PLUGIN_PROFILE_LIMIT) throw new Error('Es sind höchstens zwölf Profile möglich.');
@@ -475,7 +644,7 @@ export class PluginService {
 
   /** The folder only decides where Git works; the configuration belongs to the active profile. */
   private resetProject(folder = ''): void {
-    this.projectGeneration++; this.clearWatchers(); this.projectFolder = folder;
+    this.projectGeneration++; this.revokeAuthority(); this.clearWatchers(); this.projectFolder = folder; this.activeDocumentPath = '';
     this.legacyIssue = undefined;
     this.refreshRuntime();
   }
@@ -485,8 +654,12 @@ export class PluginService {
     const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle'));
     if (!location) throw new Error('Das Dokument muss zuerst gespeichert oder geöffnet werden.');
     const nextFolder = path.dirname(location.canonicalPath);
-    if (nextFolder === this.projectFolder) { await this.activation; return this.getSettings(); }
-    this.resetProject(nextFolder);
+    if (nextFolder === this.projectFolder) {
+      // Another diagram of the same folder is another diagram: work for the previous one ends for good.
+      if (this.activeDocumentPath !== location.canonicalPath) { this.revokeAuthority(); this.activeDocumentPath = location.canonicalPath; }
+      await this.activation; return this.getSettings();
+    }
+    this.resetProject(nextFolder); this.activeDocumentPath = location.canonicalPath;
     this.activation = this.adoptLegacyProjectConfig(nextFolder, this.projectGeneration);
     await this.activation; return this.getSettings();
   }
@@ -506,9 +679,11 @@ export class PluginService {
     let legacy: PersistedPluginConfig;
     try {
       legacy = { version: CONFIG_VERSION, ...parsePluginConfig(result.value) };
+      // A file that travels with the folder never brings a live link along: links are made on this device only.
+      delete legacy.atlassian.confluenceLinks;
     } catch { this.legacyIssue = this.configurationIssue('legacy', 'invalid-data', file); return; }
     if (generation !== this.projectGeneration || profileId !== this.activeProfileId || !isPristine(this.config)) return;
-    try { await this.saveConfig(legacy, profileId); } catch { return; }
+    try { await this.saveConfig(legacy, profileId); this.revokeAuthority(); } catch { return; }
     if (generation === this.projectGeneration && profileId === this.activeProfileId) this.refreshRuntime();
   }
 
@@ -529,7 +704,37 @@ export class PluginService {
     if (handleId === null) { this.resetProject(); this.activation = Promise.resolve(); }
     else if (handleId !== undefined) return this.activateDocument(handleId);
     const issue = this.storeIssue ?? this.legacyIssue;
-    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime } };
+    const live = this.liveLinkView();
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, ...(live ? { confluenceLive: live } : {}) };
+  }
+
+  private activeLiveLink(): PersistedConfluenceLink | undefined {
+    if (!this.activeDocumentPath) return undefined;
+    return this.config.atlassian.confluenceLinks?.find((link) => link.documentPath === this.activeDocumentPath);
+  }
+
+  /** What the renderer may know about the link: the target and whether it can be used, never a credential. */
+  private liveLinkView(): ConfluenceLiveLink | undefined {
+    const link = this.activeLiveLink();
+    if (!link || !this.config.atlassian.installed) return undefined;
+    return { pageId: link.pageId, pageTitle: link.pageTitle, pageUrl: link.pageUrl, siteUrl: link.siteUrl, documentId: link.documentId, usable: link.siteUrl === this.config.atlassian.siteUrl, ...(link.lastSyncedAt ? { lastSyncedAt: link.lastSyncedAt } : {}) };
+  }
+
+  /** Changes the links of one profile starting from what is stored now, so a background update never drops a newer setting. */
+  private async updateLiveLinks(profileId: string, update: (links: PersistedConfluenceLink[]) => PersistedConfluenceLink[]): Promise<void> {
+    await this.mutateStore((profiles, activeProfileId) => ({
+      activeProfileId,
+      profiles: profiles.map((profile) => {
+        if (profile.id !== profileId) return profile;
+        const { confluenceLinks, ...atlassian } = profile.atlassian;
+        const links = update(confluenceLinks ?? []);
+        return { ...profile, atlassian: links.length ? { ...atlassian, confluenceLinks: links } : atlassian };
+      }),
+    }));
+    if (profileId !== this.activeProfileId) return;
+    const { confluenceLinks: _previous, ...atlassian } = this.config.atlassian;
+    const links = this.activeProfile().atlassian.confluenceLinks;
+    this.config = { ...this.config, atlassian: links ? { ...atlassian, confluenceLinks: links } : atlassian };
   }
 
   public async installPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
@@ -537,7 +742,7 @@ export class PluginService {
     const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
     if (id === 'git') next.git.installed = true; else if (id === 'jira') next.atlassian.installed = true; else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+    await this.saveConfig(next, profileId); if (id === 'jira') this.revokeAuthority(); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
   public async uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
@@ -545,7 +750,7 @@ export class PluginService {
     const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
     if (id === 'git') next.git = { ...DEFAULT_CONFIG.git, installed: false }; else if (id === 'jira') next.atlassian = { ...DEFAULT_CONFIG.atlassian, installed: false }; else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
+    await this.saveConfig(next, profileId); if (id === 'jira') this.revokeAuthority(); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
   }
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
@@ -595,8 +800,11 @@ export class PluginService {
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
     const email = boundedString(input.email, 320, 'E-Mail', !input.enabled); const confluenceSpaceKey = boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true); const jiraProjectKey = boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !input.enabled).toUpperCase();
     if (input.enabled && (!siteUrl || !encryptedApiToken)) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}) } };
-    await this.saveConfig(next, profileId); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}) } };
+    // Saved Atlassian settings are a new authority even when every value is as before: work that ran under the
+    // previous site, account or switch never continues, and a pause a server asked the previous site for ends.
+    await this.saveConfig(next, profileId); this.revokeAuthority(); if (this.cooldown && this.cooldown.siteUrl !== siteUrl) this.cooldown = null;
+    if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
   /** Jira and Confluence work on behalf of an open local diagram; unsaved, imported and guest diagrams never trigger them. */
@@ -622,14 +830,68 @@ export class PluginService {
     return this.runGit(args, cwd, this.gitCredentialEnvironment(remoteUrl));
   }
 
-  private async atlassian(pathname: string, init: RequestInit = {}): Promise<unknown> {
+  /**
+   * `guard` belongs to background work: it runs right before the request is built from the current configuration and
+   * again after every wait, so work that was started for one profile, site or diagram never uses another one's.
+   */
+  private async atlassian(pathname: string, init: RequestInit = {}, options: { guard?: () => void; multipart?: boolean; timeoutMs?: number } = {}): Promise<unknown> {
     await this.ensureLoaded();
     const generation = this.projectGeneration;
+    const check = () => { this.assertGeneration(generation); options.guard?.(); };
+    options.guard?.();
     if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
     const base = normalizeSiteUrl(this.config.atlassian.siteUrl);
-    const response = await this.fetchFn(`${base}${pathname}`, { ...init, redirect: 'error', headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(`${this.config.atlassian.email}:${this.jiraCredential()}`, 'utf8').toString('base64')}`, ...(init.headers ?? {}) }, signal: AbortSignal.timeout(20_000) });
-    this.assertGeneration(generation);
-    const raw = await response.text(); this.assertGeneration(generation); if (Buffer.byteLength(raw, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Atlassian-Antwort ist zu groß.'); if (!response.ok) throw new Error(`Atlassian antwortete mit ${response.status}.`); return raw ? JSON.parse(raw) : {};
+    // A pause the server asked for holds for every request to that site, whoever starts it and however often.
+    if (this.cooldown && this.cooldown.siteUrl === base) {
+      if (this.now() < this.cooldown.until) throw new AtlassianCooldownError(this.cooldown.until);
+      this.cooldown = null;
+    }
+    // A multipart body brings its own content type with the boundary. A request that ends because its authority was
+    // revoked reports that, not the technical abort.
+    const response = await this.fetchFn(`${base}${pathname}`, { ...init, redirect: 'error', headers: { Accept: 'application/json', ...(options.multipart ? {} : { 'Content-Type': 'application/json' }), Authorization: `Basic ${Buffer.from(`${this.config.atlassian.email}:${this.jiraCredential()}`, 'utf8').toString('base64')}`, ...(init.headers ?? {}) }, signal: options.guard ? AbortSignal.any([AbortSignal.timeout(options.timeoutMs ?? 20_000), this.authorityAbort.signal]) : AbortSignal.timeout(options.timeoutMs ?? 20_000) }).catch((error: unknown) => { check(); throw error; });
+    // The pause belongs to the site that asked for it, also when the operation itself is no longer wanted.
+    const retryAt = response.ok ? undefined : this.retryDeadline(response);
+    if (retryAt !== undefined) this.cooldown = { siteUrl: base, until: retryAt };
+    check();
+    const raw = await response.text(); check(); if (Buffer.byteLength(raw, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Atlassian-Antwort ist zu groß.'); if (!response.ok) throw new AtlassianHttpError(response.status, retryAt); return raw ? JSON.parse(raw) : {};
+  }
+
+  /** The moment a `Retry-After` header names (seconds or a date), limited so a broken header cannot lock the site for days. */
+  private retryDeadline(response: Response): number | undefined {
+    if (response.status !== 429 && response.status !== 503) return undefined;
+    const header = response.headers?.get('Retry-After')?.trim();
+    if (!header) return undefined;
+    const now = this.now();
+    const seconds = /^\d{1,9}$/.test(header) ? Number(header) : Number.NaN;
+    const until = Number.isFinite(seconds) ? now + seconds * 1000 : Date.parse(header);
+    if (!Number.isFinite(until) || until <= now) return undefined;
+    return Math.min(until, now + MAX_SERVER_COOLDOWN_MS);
+  }
+
+  /**
+   * Ends the current authority for good. Requests that guarded work still has on the wire are aborted, so nothing
+   * of it lingers and work for the next authority does not wait behind it; whether an aborted upload still arrived
+   * is settled like every lost answer.
+   */
+  private revokeAuthority(): void {
+    this.authorityEpoch++;
+    const abort = this.authorityAbort;
+    this.authorityAbort = new AbortController();
+    abort.abort();
+  }
+
+  /** The current authority, as a check that fails for good once anything it rests on has changed. */
+  private authorityGuard(): () => void {
+    const epoch = this.authorityEpoch;
+    return () => { if (this.disposed || epoch !== this.authorityEpoch) throw new AuthorityChanged(); };
+  }
+
+  /**
+   * The window that asked for Atlassian work is gone (navigation, crash, close). Everything running or queued on its
+   * behalf stops; a new window starts again by naming its diagram.
+   */
+  public releaseRenderer(): void {
+    this.resetProject(); this.activation = Promise.resolve();
   }
 
   public async testAtlassian(): Promise<PluginOperationResult> {
@@ -873,18 +1135,337 @@ export class PluginService {
     return (response.results ?? []).map((page) => ({ id: String(page.id ?? ''), title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), url: `${base}/wiki/spaces/${encodeURIComponent(this.config.atlassian.confluenceSpaceKey)}/pages/${encodeURIComponent(String(page.id ?? ''))}` })).filter((page) => page.id && (!needle || page.title.toLocaleLowerCase('de').includes(needle))).slice(0, 100);
   }
 
-  public async getConfluencePage(pageId: string): Promise<ConfluencePage> {
-    this.assertDocumentProject();
-    const id = boundedString(pageId, 128, 'Confluence-Seiten-ID'); const page = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(id)}?body-format=storage`) as Record<string, unknown>;
+  private async readConfluencePage(pageId: string, guard?: () => void): Promise<ConfluencePage> {
+    const id = boundedString(pageId, 128, 'Confluence-Seiten-ID'); const page = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(id)}?body-format=storage`, {}, guard ? { guard } : {}) as Record<string, unknown>;
     const body = page.body as Record<string, unknown> | undefined; const storage = body?.storage as Record<string, unknown> | undefined;
-    return { id, title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), storageBody: String(storage?.value ?? ''), url: `${this.config.atlassian.siteUrl}/wiki/pages/viewpage.action?pageId=${encodeURIComponent(id)}` };
+    const storageBody = String(storage?.value ?? '');
+    return { id, title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), storageBody, bodyHash: sha256(storageBody), url: `${this.config.atlassian.siteUrl}/wiki/pages/viewpage.action?pageId=${encodeURIComponent(id)}` };
   }
 
-  public async updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number }): Promise<ConfluencePage> {
+  public async getConfluencePage(pageId: string): Promise<ConfluencePage> {
     this.assertDocumentProject();
+    return this.readConfluencePage(pageId);
+  }
+
+  /**
+   * Replaces the whole page text with an annotation (the manual "Senden" of an embedded page). The annotation model
+   * keeps only plain headings, paragraphs, bullets and quotes (#209), so nothing is written unless the page still has
+   * exactly the content it was loaded with and survives that conversion. The whole operation belongs to the site,
+   * account, profile and diagram it was started for: once any of them changed, no further request is sent.
+   */
+  public async updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number; expectedBodyHash?: string }): Promise<ConfluencePage> {
+    const guard = this.authorityGuard();
+    await this.ensureLoaded();
+    guard();
+    this.assertDocumentProject();
+    if (!input || typeof input !== 'object') throw new Error('Ungültiger Seiteninhalt.');
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID'); const title = boundedString(input.title, 500, 'Seitentitel');
-    if (!Number.isSafeInteger(input.version) || input.version < 1 || Buffer.byteLength(input.storageBody, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Ungültiger Seiteninhalt.');
-    await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(pageId)}`, { method: 'PUT', body: JSON.stringify({ id: pageId, status: 'current', title, body: { representation: 'storage', value: input.storageBody }, version: { number: input.version + 1, message: 'Updated from Sketchdraw' } }) }); return this.getConfluencePage(pageId);
+    if (!Number.isSafeInteger(input.version) || input.version < 1 || typeof input.storageBody !== 'string' || Buffer.byteLength(input.storageBody, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new Error('Ungültiger Seiteninhalt.');
+    // Without the content the annotation was loaded from, nobody can tell whether the page changed inside one version.
+    if (input.expectedBodyHash === undefined) throw new Error('Diese eingebundene Seite hat keinen gesicherten Ausgangsstand. Lade sie neu, bevor du sendest.');
+    if (typeof input.expectedBodyHash !== 'string' || !/^[0-9a-f]{64}$/.test(input.expectedBodyHash)) throw new Error('Ungültiger Seiteninhalt.');
+    const current = await this.readConfluencePage(pageId, guard);
+    guard();
+    // A Live Doc can change without a new version number, so the content itself is compared as well.
+    if (current.version !== input.version || current.bodyHash !== input.expectedBodyHash) throw new Error('Die Confluence-Seite wurde seit dem letzten Laden geändert. Lade sie neu, bevor du sendest.');
+    if (confluenceStorageLoss(current.storageBody).length > 0) throw new Error('Senden würde Inhalte der Confluence-Seite entfernen, die eine Annotation nicht abbilden kann (zum Beispiel Formatierungen, Links, Tabellen, Bilder oder Makros). Die Seite wurde nicht geändert.');
+    await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(pageId)}`, { method: 'PUT', body: JSON.stringify({ id: pageId, status: 'current', title, body: { representation: 'storage', value: input.storageBody }, version: { number: input.version + 1, message: 'Updated from Sketchdraw' } }) }, { guard });
+    return this.readConfluencePage(pageId, guard);
+  }
+
+  /** Links the open local diagram to a Confluence page of the active profile's site, or removes the link. */
+  public async setConfluenceLiveLink(input: { handleId: string; documentId: string; pageId: string | null }): Promise<PluginSettingsSnapshot> {
+    const guard = this.authorityGuard();
+    await this.ensureLoaded();
+    guard();
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Confluence-Verknüpfung.');
+    this.assertDocumentProject();
+    const profileId = this.activeProfileId;
+    const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
+    if (!location || location.canonicalPath !== this.activeDocumentPath) throw new Error('Das Dokument gehört nicht zum aktuellen Projektordner.');
+    const documentPath = location.canonicalPath;
+    if (input.pageId === null) {
+      await this.updateLiveLinks(profileId, (links) => links.filter((link) => link.documentPath !== documentPath));
+      this.revokeAuthority();
+      return this.getSettings();
+    }
+    const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
+    const siteUrl = this.config.atlassian.siteUrl;
+    const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID');
+    if (!/^[0-9A-Za-z_-]+$/.test(pageId)) throw new Error('Confluence-Seiten-ID ist ungültig.');
+    // Reading the page proves that it exists on this site and that the stored account may see it.
+    const page = await this.readConfluencePage(pageId, guard);
+    guard();
+    // A new link starts without any remembered attachment: what it may update is decided again from Confluence.
+    const link: PersistedConfluenceLink = { token: randomUUID(), documentPath, documentId, siteUrl, pageId, pageTitle: page.title.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 500), pageUrl: page.url };
+    await this.updateLiveLinks(profileId, (links) => {
+      const others = links.filter((entry) => entry.documentPath !== documentPath);
+      if (others.length >= MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Confluence-Verknüpfungen gespeichert.');
+      return [...others, link];
+    });
+    this.revokeAuthority();
+    return this.getSettings();
+  }
+
+  private assertLiveJob(job: LiveJob): void {
+    if (this.disposed || job.epoch !== this.authorityEpoch) throw new AuthorityChanged();
+    // The epoch alone decides; the values are checked as well so a missed invalidation cannot send anything elsewhere.
+    const atlassian = this.config.atlassian;
+    const link = this.activeLiveLink();
+    if (job.profileId !== this.activeProfileId || job.documentPath !== this.activeDocumentPath || !atlassian.installed || !atlassian.enabled || atlassian.siteUrl !== job.siteUrl
+      || !link || link.token !== job.linkToken || link.pageId !== job.pageId || link.documentId !== job.documentId || link.siteUrl !== job.siteUrl) throw new AuthorityChanged();
+  }
+
+  /**
+   * Publishes the rendered pages of the open diagram to its linked Confluence page. The job belongs to the authority
+   * of the moment of the call (diagram file, diagram, profile, site, account, link, window); it runs after earlier
+   * publications and stops for good as soon as that authority changed, whatever it changed to.
+   */
+  public async publishConfluenceLive(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult> {
+    const epoch = this.authorityEpoch;
+    await this.ensureLoaded();
+    const done = (status: ConfluenceLivePublishResult['status'], message: string): ConfluenceLivePublishResult => ({ status, message, uploaded: 0, bodyUpdated: false });
+    if (this.disposed || epoch !== this.authorityEpoch) return done('cancelled', new AuthorityChanged().message);
+    let job: LiveJob; let images: ConfluenceLivePublishInput['images']; let title: string;
+    try {
+      if (!input || typeof input !== 'object') throw new LiveSyncFailure('Ungültige Confluence-Veröffentlichung.');
+      this.assertDocumentProject();
+      const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
+      if (!location || location.canonicalPath !== this.activeDocumentPath) throw new LiveSyncFailure('Das Dokument gehört nicht zum aktuellen Projektordner.');
+      const link = this.activeLiveLink();
+      if (!link) throw new LiveSyncFailure('Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.');
+      const atlassian = this.config.atlassian;
+      if (!atlassian.installed || !atlassian.enabled) throw new LiveSyncFailure('Jira-Plugin ist deaktiviert.');
+      if (!atlassian.encryptedApiToken || !this.credentials.available()) throw new LiveSyncFailure('Kein sicher gespeichertes Atlassian-Token vorhanden.');
+      if (link.siteUrl !== atlassian.siteUrl) throw new LiveSyncFailure('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe das Diagramm neu.');
+      if (boundedString(input.documentId, 256, 'Diagramm-ID') !== link.documentId) throw new LiveSyncFailure('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe dieses Diagramm neu.');
+      title = boundedString(input.title, 500, 'Dokumenttitel', true);
+      if (!Array.isArray(input.images) || input.images.length < 1 || input.images.length > CONFLUENCE_LIVE_MAX_IMAGES) throw new LiveSyncFailure('Ungültige Confluence-Veröffentlichung.');
+      const pageIds = new Set<string>();
+      images = input.images.map((image) => {
+        if (!image || typeof image !== 'object' || typeof image.pageId !== 'string' || !image.pageId || image.pageId.length > 256 || pageIds.has(image.pageId) || typeof image.name !== 'string' || image.name.length > 500
+          || typeof image.hash !== 'string' || !/^[0-9a-f]{64}$/.test(image.hash) || !Number.isFinite(image.width) || !Number.isFinite(image.height) || image.width <= 0 || image.height <= 0
+          || !(image.png instanceof Uint8Array) || image.png.byteLength > CONFLUENCE_LIVE_MAX_IMAGE_BYTES || !isPngImage(image.png)) throw new LiveSyncFailure('Ungültige Confluence-Veröffentlichung.');
+        pageIds.add(image.pageId);
+        return { pageId: image.pageId, name: image.name, hash: image.hash, width: image.width, height: image.height, png: image.png };
+      });
+      job = { epoch, linkToken: link.token, profileId: this.activeProfileId, documentPath: link.documentPath, documentId: link.documentId, siteUrl: link.siteUrl, pageId: link.pageId };
+    } catch (error) {
+      return done('failed', error instanceof Error ? error.message : 'Ungültige Confluence-Veröffentlichung.');
+    }
+    const run = this.liveQueue.then(() => this.runLivePublish(job, title, images));
+    this.liveQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  private async liveReadPage(job: LiveJob): Promise<{ version: number; title: string; body: string }> {
+    const page = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(job.pageId)}?body-format=storage`, {}, { guard: () => this.assertLiveJob(job) }) as Record<string, unknown>;
+    const body = page.body as Record<string, unknown> | undefined; const storage = body?.storage as Record<string, unknown> | undefined;
+    const version = Number((page.version as Record<string, unknown> | undefined)?.number);
+    if (typeof storage?.value !== 'string' || !Number.isSafeInteger(version) || version < 1 || typeof page.title !== 'string' || !page.title) throw new LiveSyncRetry('Confluence hat die Seite unvollständig geliefert. Die Veröffentlichung wird wiederholt.');
+    return { version, title: page.title, body: storage.value };
+  }
+
+  /** The digest a publication of this app left in a version comment; null for any other text. */
+  private digestOf(...comments: unknown[]): string | null {
+    for (const comment of comments) {
+      const match = typeof comment === 'string' ? DIGEST_COMMENT.exec(comment.trim()) : null;
+      if (match) return match[1]!;
+    }
+    return null;
+  }
+
+  /**
+   * The attachment of this name on the linked page: its id, its current version and, if a publication of this app
+   * wrote that version, the digest of the rendered content it was uploaded for.
+   */
+  private async liveFindAttachment(job: LiveJob, filename: string): Promise<{ id: string; version: number; digest: string | null } | null> {
+    const response = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(job.pageId)}/attachments?filename=${encodeURIComponent(filename)}&limit=25`, {}, { guard: () => this.assertLiveJob(job) }) as { results?: Array<Record<string, unknown>> };
+    const matches = (response.results ?? []).filter((entry) => entry.title === filename && (entry.status === undefined || entry.status === 'current'));
+    if (matches.length === 0) return null;
+    if (matches.length > 1) throw new LiveSyncFailure(`Auf der Confluence-Seite liegen mehrere Anhänge mit dem Namen „${filename}“. Sketchdraw kann nicht entscheiden, welcher gemeint ist, und ändert keinen davon.`);
+    const attachment = matches[0]!;
+    const versionInfo = attachment.version as Record<string, unknown> | undefined;
+    const version = Number(versionInfo?.number);
+    const id = typeof attachment.id === 'string' ? attachment.id : '';
+    if (!/^[0-9A-Za-z_-]{1,64}$/.test(id) || !Number.isSafeInteger(version) || version < 1) throw new LiveSyncRetry('Confluence hat den Anhang unvollständig geliefert. Die Veröffentlichung wird wiederholt.');
+    const digest = this.digestOf(attachment.comment, versionInfo?.message) ?? await this.liveAttachmentDigestV1(job, filename, id, version);
+    return { id, version, digest };
+  }
+
+  /** The classic API is a second documented source for the comment of the current attachment version. */
+  private async liveAttachmentDigestV1(job: LiveJob, filename: string, id: string, version: number): Promise<string | null> {
+    let response: { results?: Array<Record<string, unknown>> };
+    try {
+      response = await this.atlassian(`/wiki/rest/api/content/${encodeURIComponent(job.pageId)}/child/attachment?filename=${encodeURIComponent(filename)}&expand=version&limit=25`, {}, { guard: () => this.assertLiveJob(job) }) as { results?: Array<Record<string, unknown>> };
+    } catch (error) {
+      // Without this source the content of the version stays unconfirmed, which is handled; other problems are real.
+      if (error instanceof AtlassianHttpError && [400, 404, 405, 410, 501].includes(error.status)) return null;
+      throw error;
+    }
+    const entry = (response.results ?? []).find((item) => item.title === filename && typeof item.id === 'string' && attachmentKey(item.id) === attachmentKey(id));
+    const versionInfo = entry?.version as Record<string, unknown> | undefined;
+    if (!entry || Number(versionInfo?.number) !== version) return null;
+    return this.digestOf((entry.metadata as Record<string, unknown> | undefined)?.comment, versionInfo?.message, (entry.extensions as Record<string, unknown> | undefined)?.comment);
+  }
+
+  /**
+   * Sends the image. Without an id a new attachment is created; that request fails if the name exists, so it can
+   * never replace a file. With an id exactly that attachment gets new data. Confluence offers no "only if still
+   * version N" for either: a version somebody adds between the check before and this request is not detected here.
+   */
+  private async liveUpload(job: LiveJob, filename: string, image: ConfluenceLivePublishInput['images'][number], attachmentId: string | null): Promise<{ id: string; version: number } | null> {
+    const form = new FormData();
+    form.append('file', new Blob([image.png as Uint8Array<ArrayBuffer>], { type: 'image/png' }), filename);
+    form.append('minorEdit', 'true');
+    // The content digest travels with the version; a later run recognises its own upload even if the answer got lost.
+    form.append('comment', `Sketchdraw ${image.hash}`);
+    const base = `/wiki/rest/api/content/${encodeURIComponent(job.pageId)}/child/attachment`;
+    const target = attachmentId === null ? base : `${base}/${encodeURIComponent(/^\d+$/.test(attachmentId) ? `att${attachmentId}` : attachmentId)}/data`;
+    const response = await this.atlassian(target, { method: 'POST', body: form, headers: { 'X-Atlassian-Token': 'nocheck' } }, { guard: () => this.assertLiveJob(job), multipart: true, timeoutMs: LIVE_UPLOAD_TIMEOUT_MS }) as Record<string, unknown>;
+    const entry = Array.isArray(response.results) ? (response.results as Array<Record<string, unknown>>).find((item) => item.title === filename) : response;
+    const version = Number((entry?.version as Record<string, unknown> | undefined)?.number);
+    const id = typeof entry?.id === 'string' ? entry.id : '';
+    return /^[0-9A-Za-z_-]{1,64}$/.test(id) && Number.isSafeInteger(version) && version >= 1 ? { id, version } : null;
+  }
+
+  private async runLivePublish(job: LiveJob, title: string, images: ConfluenceLivePublishInput['images']): Promise<ConfluenceLivePublishResult> {
+    let uploaded = 0; let bodyUpdated = false;
+    const stored = (): PersistedConfluenceLink | undefined => this.profiles.find((profile) => profile.id === job.profileId)?.atlassian.confluenceLinks?.find((entry) => entry.token === job.linkToken);
+    /**
+     * What is certain about the attachments, and which uploads are sent but unconfirmed; kept however the run ends.
+     * Both are the stored state of the link plus what this run learned. Until the stored state has been taken over
+     * (`started`), this run knows nothing and must write nothing: a job that is cancelled before it begins leaves
+     * the record of earlier publications exactly as it is.
+     */
+    let published: Record<string, PublishedAttachment> = {};
+    let pending: Record<string, PendingUpload> = {};
+    let started = false;
+    const remember = async (syncedAt?: string): Promise<void> => {
+      if (!started) return;
+      const entry = stored();
+      if (!entry) return;
+      if (syncedAt === undefined && JSON.stringify(entry.published ?? {}) === JSON.stringify(published) && JSON.stringify(entry.pending ?? {}) === JSON.stringify(pending)) return;
+      await this.updateLiveLinks(job.profileId, (links) => links.map((link) => {
+        if (link.token !== job.linkToken) return link;
+        const { published: _published, pending: _pending, ...rest } = link;
+        return { ...rest, ...(syncedAt ? { lastSyncedAt: syncedAt } : {}), ...(Object.keys(published).length ? { published } : {}), ...(Object.keys(pending).length ? { pending } : {}) };
+      }));
+    };
+    try {
+      this.assertLiveJob(job);
+      const link = this.activeLiveLink()!;
+      published = { ...(link.published ?? {}) }; pending = { ...(link.pending ?? {}) };
+      started = true;
+      const documentKey = sha256(job.documentId).slice(0, 12);
+      const prefix = confluenceLiveFilePrefix(documentKey);
+      const before = await this.liveReadPage(job);
+      const readAt = Date.now();
+
+      // 1. What each attachment is right now, and whether this link may write it.
+      const uploads: Array<{ filename: string; image: ConfluenceLivePublishInput['images'][number]; attachmentId: string | null; baseVersion: number }> = [];
+      const managed: ManagedImage[] = [];
+      for (const image of images) {
+        const filename = confluenceLiveFilename(documentKey, sha256(image.pageId).slice(0, 12));
+        managed.push({ filename, alt: images.length > 1 && image.name ? `${title} – ${image.name}` : title || image.name, width: Math.min(image.width, 1200) });
+        const remote = await this.liveFindAttachment(job, filename);
+        const sent = pending[filename];
+        if (sent) {
+          // An earlier upload whose answer never arrived. Only Confluence can say what became of it.
+          const sameAttachment = remote !== null && (sent.attachmentId === null || attachmentKey(sent.attachmentId) === attachmentKey(remote.id));
+          if (remote !== null && sameAttachment && remote.version > sent.baseVersion) {
+            if (remote.digest === sent.hash) published[filename] = { id: remote.id, version: remote.version, hash: sent.hash };
+            else if (remote.digest === null) throw new LiveSyncFailure(`Ein Upload von „${filename}“ wurde gesendet, aber Confluence bestätigt seinen Inhalt nicht. Damit keine doppelte Version entsteht, ist die Übertragung angehalten. Prüfe das Bild in Confluence; wenn du den Anhang dort löschst, legt Sketchdraw ihn neu an.`);
+            // A version with another digest followed: judged below like every version this device did not write.
+          }
+          delete pending[filename];
+        }
+        const known = published[filename];
+        if (remote === null) {
+          // Nothing of anybody's is replaced by creating the file (again).
+          delete published[filename];
+          uploads.push({ filename, image, attachmentId: null, baseVersion: 0 });
+        } else if (!known) {
+          if (remote.digest === null) throw new LiveSyncFailure(`Auf der Confluence-Seite liegt bereits ein Anhang „${filename}“, der nicht von Sketchdraw stammt. Er wird nicht überschrieben. Benenne oder lösche ihn in Confluence; danach wird das Diagramm übertragen.`);
+          // The current version was written by a publication of this diagram (another device, or before the link was made anew).
+          if (remote.digest === image.hash) published[filename] = { id: remote.id, version: remote.version, hash: image.hash };
+          else uploads.push({ filename, image, attachmentId: remote.id, baseVersion: remote.version });
+        } else if (attachmentKey(known.id) !== attachmentKey(remote.id) || remote.version !== known.version) {
+          // Not the version this device wrote last. Identical content needs nothing; anything else is not ours to replace.
+          if (attachmentKey(known.id) === attachmentKey(remote.id) && remote.digest === image.hash) published[filename] = { id: remote.id, version: remote.version, hash: image.hash };
+          else throw new LiveSyncFailure(`Der Anhang „${filename}“ wurde in Confluence von anderer Stelle geändert. Sketchdraw überschreibt ihn nicht. Prüfe ihn in Confluence; wenn das Diagramm ihn ersetzen soll, lösche ihn dort, er wird dann neu angelegt.`);
+        } else if (known.hash !== image.hash) {
+          uploads.push({ filename, image, attachmentId: known.id, baseVersion: known.version });
+        }
+      }
+
+      // 2. The uploads. What is about to be sent is on disk first, so a lost answer is never mistaken for "not sent".
+      if (uploads.length > 0) {
+        for (const upload of uploads) pending[upload.filename] = { hash: upload.image.hash, baseVersion: upload.baseVersion, attachmentId: upload.attachmentId };
+        try { await remember(); }
+        catch { for (const upload of uploads) delete pending[upload.filename]; throw new LiveSyncFailure('Der Stand der Veröffentlichung konnte nicht im Profil gespeichert werden. Es wurde nichts übertragen.'); }
+        this.assertLiveJob(job);
+        for (const upload of uploads) {
+          const result = await this.liveUpload(job, upload.filename, upload.image, upload.attachmentId);
+          if (result === null) throw new LiveSyncRetry('Confluence hat das hochgeladene Diagramm nicht bestätigt. Die Veröffentlichung wird wiederholt.');
+          uploaded++;
+          published[upload.filename] = { id: result.id, version: result.version, hash: upload.image.hash };
+          delete pending[upload.filename];
+        }
+      }
+
+      // 3. The page text, only when it does not show exactly the pages of the diagram.
+      const plan = planManagedImages(before.body, prefix, managed);
+      if (plan.status === 'unsafe') throw new LiveSyncFailure('Der Inhalt der Confluence-Seite konnte nicht sicher gelesen werden. Die Seite wurde nicht geändert.');
+      if (plan.status === 'changed') {
+        if (Buffer.byteLength(plan.body, 'utf8') > MAX_REMOTE_BODY_BYTES) throw new LiveSyncFailure('Die Confluence-Seite ist zu groß, um den Diagrammabschnitt einzufügen.');
+        const wait = this.liveQuietWindowMs - (Date.now() - readAt);
+        if (wait > 0) await new Promise<void>((resolve) => { setTimeout(resolve, wait); });
+        const fresh = await this.liveReadPage(job);
+        // Version numbers alone do not show edits in a Live Doc; the text must be the one the change was planned on.
+        if (fresh.version !== before.version || fresh.body !== before.body) throw new LiveSyncRetry('Die Confluence-Seite wird gerade bearbeitet. Das Diagramm wird eingefügt, sobald die Seite ruhig ist.');
+        try {
+          await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(job.pageId)}`, { method: 'PUT', body: JSON.stringify({ id: job.pageId, status: 'current', title: fresh.title, body: { representation: 'storage', value: plan.body }, version: { number: fresh.version + 1, message: 'Sketchdraw: Diagramm aktualisiert' } }) }, { guard: () => this.assertLiveJob(job) });
+        } catch (error) {
+          if (error instanceof AtlassianHttpError && error.status === 409) throw new LiveSyncRetry('Die Confluence-Seite wurde gleichzeitig geändert. Die Veröffentlichung wird wiederholt.');
+          throw error;
+        }
+        const after = await this.liveReadPage(job);
+        const shown = managedImageFilenames(after.body, prefix);
+        if (!shown || managed.some((image) => !shown.includes(image.filename))) throw new LiveSyncRetry('Confluence hat den Diagrammabschnitt nicht übernommen. Die Veröffentlichung wird wiederholt.');
+        bodyUpdated = true;
+      }
+
+      this.assertLiveJob(job);
+      // A check that found Confluence up to date writes nothing: the profile file only changes when something was published or learned.
+      const current = stored();
+      if (uploaded === 0 && !bodyUpdated && current?.lastSyncedAt && JSON.stringify(current.published ?? {}) === JSON.stringify(published) && JSON.stringify(current.pending ?? {}) === JSON.stringify(pending)) return { status: 'synced', message: 'Confluence ist auf dem aktuellen Stand.', uploaded, bodyUpdated, syncedAt: current.lastSyncedAt };
+      const syncedAt = new Date().toISOString();
+      // Remembering the result is a convenience; Confluence already confirmed the publication.
+      await remember(syncedAt).catch(() => undefined);
+      return { status: 'synced', message: uploaded > 0 || bodyUpdated ? 'Diagramm in Confluence aktualisiert.' : 'Confluence ist auf dem aktuellen Stand.', uploaded, bodyUpdated, syncedAt };
+    } catch (error) {
+      // Whatever stopped the run: confirmed uploads stay known, unconfirmed ones stay marked as sent.
+      await remember().catch(() => undefined);
+      const result = (status: ConfluenceLivePublishResult['status'], message: string, retryAt?: number): ConfluenceLivePublishResult => ({ status, message, uploaded, bodyUpdated, ...(retryAt !== undefined ? { retryAt: new Date(retryAt).toISOString() } : {}) });
+      if (error instanceof AuthorityChanged) return result('cancelled', error.message);
+      // A changed project or profile can also reach here as a plain error of the shared request path.
+      try { this.assertLiveJob(job); } catch { return result('cancelled', new AuthorityChanged().message); }
+      if (error instanceof LiveSyncRetry) return result('retry', error.message, error.retryAt);
+      if (error instanceof LiveSyncFailure) return result('failed', error.message);
+      if (error instanceof AtlassianCooldownError) return result('retry', 'Confluence hat um eine Pause gebeten. Die Veröffentlichung wird danach automatisch fortgesetzt.', error.retryAt);
+      if (error instanceof AtlassianHttpError) {
+        if (error.status === 401 || error.status === 403) return result('failed', 'Confluence verweigert den Zugriff. Prüfe das API-Token und die Rechte für die Seite.');
+        if (error.status === 404) return result('failed', 'Die verknüpfte Confluence-Seite wurde nicht gefunden oder ist für dieses Konto nicht sichtbar.');
+        if (error.retryAt !== undefined) return result('retry', 'Confluence hat um eine Pause gebeten. Die Veröffentlichung wird danach automatisch fortgesetzt.', error.retryAt);
+        if (error.status === 409 || error.status === 429 || error.status >= 500) return result('retry', `Confluence ist gerade nicht bereit (Status ${error.status}). Die Veröffentlichung wird wiederholt.`);
+        return result('failed', error.message);
+      }
+      if (error instanceof Error && error.message === 'Atlassian-Antwort ist zu groß.') return result('failed', error.message);
+      // No answer at all: the request may or may not have arrived. The next run reads Confluence before it writes.
+      return result('retry', 'Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.');
+    }
   }
 
   private jiraIssue(value: Record<string, unknown>): JiraIssueSummary {
@@ -962,7 +1543,7 @@ export class PluginService {
     if (!transition?.id) throw new Error('Für diesen Jira-Workflow wurde kein passender Statusübergang gefunden.'); await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, { method: 'POST', body: JSON.stringify({ transition: { id: transition.id } }) }); return this.getJiraIssue(key);
   }
 
-  public dispose(): void { this.clearWatchers(); }
+  public dispose(): void { this.disposed = true; this.revokeAuthority(); this.clearWatchers(); }
 
   private clearWatchers(): void { for (const watcher of this.watchers.values()) watcher.close(); for (const timer of this.watcherTimers.values()) clearTimeout(timer); for (const timer of this.pullTimers.values()) clearInterval(timer); this.watchers.clear(); this.watcherTimers.clear(); this.pullTimers.clear(); }
 }

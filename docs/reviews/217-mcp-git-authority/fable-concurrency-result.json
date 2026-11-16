@@ -1,0 +1,63 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 448442,
+  "duration_api_ms": 1285250,
+  "num_turns": 22,
+  "total_cost_usd": 12.401998600000002,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 54790,
+    "cache_read_input_tokens": 3571377,
+    "output_tokens": 39964,
+    "output_tokens_details": {
+      "thinking_tokens": 20572
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 54790,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1803,
+        "cache_read_input_tokens": 290117,
+        "cache_creation_input_tokens": 5454,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5454
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 138,
+      "outputTokens": 134599,
+      "thinkingTokens": 63617,
+      "cacheReadInputTokens": 12366593,
+      "cacheCreationInputTokens": 283976,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 283976,
+      "webSearchRequests": 0,
+      "costUSD": 12.401998600000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "session_id": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "result": "Der P2-Befund stimmt und ist in `src/crdt/persistence.ts` behoben: Zwei aktive Handles unter demselben Schl\u00fcssel st\u00f6ren einander nicht mehr, und die Recovery liefert die \u00c4nderung des ersten. Unit-Tests, Typecheck und Build sind gr\u00fcn; nativ ist nichts gelaufen.\n\n## Befund\nMeine Aussage im ersten Bericht war falsch: `lib0` schlie\u00dft bestehende Verbindungen bei `versionchange`, das `clearDocument` des zweiten Attach hat also die Verbindung des ersten Handles still geschlossen. Die neuen Tests habe ich zuerst gegen den Stand `727cd549\u2026` laufen lassen: 4 fehlgeschlagen, 20 bestanden, jeweils mit `['loading', 'ready', 'error']` im betroffenen Handle (`/tmp/sketchdraw-217-fable-concurrency-before.json`).\n\n## Semantik\nDer Cache h\u00e4lt genau einen vollst\u00e4ndigen Stand: den des Handles, der zuletzt geschrieben hat; Anh\u00e4ngen z\u00e4hlt als Schreiben.\n\n- **Eine Transaktion je \u00c4nderung:** Sie h\u00e4ngt die \u00c4nderung an, wenn der Cache den Stand dieses Handles l\u00fcckenlos fortsetzt. Sonst ersetzt dieselbe Transaktion den Cache durch den vollst\u00e4ndigen Stand des Handles.\n- **Kein L\u00f6schen der Datenbank beim Anh\u00e4ngen:** Damit gibt es keine geschlossene fremde Verbindung und kein leeres Zwischenfenster mehr.\n- **Ausdr\u00fcckliches Leeren:** Ein aktiver Handle gibt seine Verbindung frei, statt zu blockieren, und schreibt seinen Stand mit der n\u00e4chsten \u00c4nderung neu.\n- **Fehler:** Ein fehlgeschlagener Schreibvorgang wird als `error` gemeldet und von der n\u00e4chsten \u00c4nderung repariert. Es gibt keine Timer und keine Schleifen.\n- **Einbahnregel bleibt:** Der Schreiber kodiert nur und wendet nie etwas auf ein Dokument an.\n\nDaf\u00fcr schreibt der Handle jetzt selbst in das Layout, das die Recovery \u00fcber `y-indexeddb` liest; `y-indexeddb` schreibt nicht mehr. Die Kopie des CRDT-Stands aus der ersten Fassung entf\u00e4llt, und damit auch der doppelte Speicher. Ge\u00e4ndert sind nur `persistence.ts` und ein Kommentar in `types.ts`; eine weitere Produktdatei war nicht n\u00f6tig.\n\n## Nachweise\n- **Persistenz-Specs:** `tests/unit/crdt.spec.ts` und `tests/unit/renderer/document-cache.spec.ts` bestehen 30/30, viermal in Folge.\n- **Betroffene Suites:** 43 Dateien, 433/433.\n- **Typecheck und Build:** `npm run typecheck` und `npm run build` laufen durch.\n- **Neue Tests:** der exakte Review-Fall, wechselnde \u00c4nderungen zweier Handles, ein Handle, der direkt nach seiner letzten \u00c4nderung endet, Leeren unter einem aktiven Handle, 1100 \u00c4nderungen \u00fcber die Verdichtungsgrenze und zwei Stores auf derselben Datei.\n- **Unver\u00e4ndert bestanden:** Git-Ersetzung, MCP-Grant, schnelle Ersetzungen, Abbau ohne sp\u00e4te Meldungen und der bestehende Recovery-Test.\n\nDie geb\u00fcndelte Probe des Reviewers habe ich nicht erneut ausgef\u00fchrt, weil `probe.cjs` den alten Stand enth\u00e4lt; der Fall l\u00e4uft stattdessen als Test im Repository.\n\n## Grenzen\n- Alles ist nur mit `fake-indexeddb` belegt; Transaktionsreihenfolge \u00fcber Verbindungen hinweg und `versionchange` in Chromium sind nicht nativ gepr\u00fcft.\n- Bei zwei aktiven Handles ist nur der Stand des letzten Schreibers wiederherstellbar; der andere erst wieder nach seiner n\u00e4chsten \u00c4nderung.\n- \u00c4ndern zwei Handles abwechselnd, schreibt jeder Wechsel den vollst\u00e4ndigen Stand.\n- Der Schreiber ist an Store-Namen und Update-Format von `y-indexeddb` 9.0.12 gekoppelt; die Recovery-Tests sichern das ab.\n- `error` bleibt ein Ereignis am Controller, das die Oberfl\u00e4che nicht auswertet.\n- F\u00fcr den neuen Store-Test gibt es keinen Kontrolllauf gegen den Vorstand, nur f\u00fcr die vier CRDT-Tests.\n\n`tests/electron/confluence-live.spec.ts` hat einen anderen Hash als im ersten Bericht (`66325edc\u2026` statt `3fe01cae\u2026`). Ich habe die Datei in diesem Durchgang nicht angefasst.\n\nDer Bericht mit Befehlen und Hashes liegt in `/tmp/sketchdraw-217-fable-concurrency.md`; der erste Bericht ist unver\u00e4ndert."
+}

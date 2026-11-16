@@ -62,6 +62,7 @@ protocol.registerSchemesAsPrivileged([
 app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
 
 let mainWindow: BrowserWindow | null = null;
+let pluginService: PluginService | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
 let activeTarget: RendererTarget | null = null;
 let directService: DirectService | null = null;
@@ -101,6 +102,15 @@ deliverInviteLink(findAppLink(process.argv));
 
 function sendDirectEvent(event: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.DIRECT_EVENT, event);
+}
+
+/**
+ * Plugin work (Git watching, Jira, Confluence publication) is done on behalf of the page in the window. When that
+ * page goes away (reload or navigation, crash, closed window) everything running or queued for it ends, also while
+ * the app process itself lives on without a window (macOS). A new page starts again by naming its diagram (#210).
+ */
+function releasePluginRenderer(): void {
+  pluginService?.releaseRenderer();
 }
 
 /** Ends every native direct connection and the DHT nodes of this window (close, reload, crash, quit). */
@@ -466,6 +476,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'list-confluence-pages': return plugins.listConfluencePages(String(request.payload ?? ''));
       case 'get-confluence-page': return plugins.getConfluencePage(String(request.payload ?? ''));
       case 'update-confluence-page': return plugins.updateConfluencePage(payload);
+      case 'set-confluence-live-link': return plugins.setConfluenceLiveLink(payload);
+      case 'publish-confluence-live': return plugins.publishConfluenceLive(payload);
       case 'create-jira-issue': return plugins.createJiraIssue(payload);
       case 'list-jira-issues': return plugins.listJiraIssues();
       case 'update-jira-issue': return plugins.updateJiraIssue(payload);
@@ -519,12 +531,13 @@ async function createMainWindow(target: RendererTarget): Promise<BrowserWindow> 
   });
 
   win.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
-    if (isMainFrame && !isInPlace) disposeDirectService();
+    if (isMainFrame && !isInPlace) { disposeDirectService(); releasePluginRenderer(); }
   });
-  win.webContents.on('render-process-gone', disposeDirectService);
+  win.webContents.on('render-process-gone', () => { disposeDirectService(); releasePluginRenderer(); });
 
   win.on('closed', () => {
     disposeDirectService();
+    releasePluginRenderer();
     if (mainWindow === win) {
       mainWindow = null;
       closeCoordinator = null;
@@ -627,7 +640,8 @@ void app
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.PLUGIN_EVENT, event);
       },
     });
-    app.once('before-quit', () => { plugins.dispose(); disposeDirectService(); });
+    pluginService = plugins;
+    app.once('before-quit', () => { pluginService = null; plugins.dispose(); disposeDirectService(); });
     registerIpcHandlers(persistence, plugins);
     Menu.setApplicationMenu(buildApplicationMenu());
 

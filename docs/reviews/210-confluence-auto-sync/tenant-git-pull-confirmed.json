@@ -1,0 +1,15 @@
+{
+  "observedAt": "2026-11-16T08:22:44.331979+00:00",
+  "head": "6aa1e14df8f67115e9fe577ca0613f5cde676fa7",
+  "clean": true,
+  "manualApplicationPull": false,
+  "pluginStatus": "Diagramm in Confluence aktualisiert. Zuletzt übertragen: 16.11.2026, 09:20",
+  "browserVisualVerification": "passed-both-pages-original-tab-no-reload",
+  "mcpObservation": "Repeated ACCESS_DENIED after Git document replacement: no open local document; cause unclassified, separate read-only diagnosis in progress.",
+  "visualVerificationAt": "2026-11-16T08:30:18.296406+00:00",
+  "evidence": [
+    "tenant-git-update-page1.png",
+    "tenant-git-update-page2.png",
+    "tenant-git-readable-decisions.png"
+  ]
+}

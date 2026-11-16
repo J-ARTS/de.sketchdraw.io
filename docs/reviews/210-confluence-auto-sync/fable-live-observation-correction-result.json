@@ -1,0 +1,128 @@
+{
+  "duration_api_ms": 1134010,
+  "stop_reason": "end_turn",
+  "session_id": "728fee98-1c17-4d6b-88d8-8669564c95e6",
+  "total_cost_usd": 17.89574680000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 18255,
+    "cache_read_input_tokens": 1077095,
+    "output_tokens": 5199,
+    "output_tokens_details": {
+      "thinking_tokens": 749
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18255,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 817,
+        "cache_read_input_tokens": 364525,
+        "cache_creation_input_tokens": 3567,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3567
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 154,
+      "outputTokens": 116200,
+      "thinkingTokens": 55392,
+      "cacheReadInputTokens": 15340654,
+      "cacheCreationInputTokens": 636149,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 636149,
+      "webSearchRequests": 0,
+      "costUSD": 17.89574680000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01LUh99PH7fFjXr9LDeFgsWr",
+      "tool_input": {
+        "command": "git hash-object /tmp/sketchdraw-210-fable-pw/hang.config.mts /tmp/sketchdraw-210-fable-pw/hang/render-repro.spec.cjs /tmp/sketchdraw-210-fable-pw/hang-out/render-repro.json /tmp/sketchdraw-210-fable-pw/hang-out/fixture-facts.json",
+        "description": "Compute git blob ids of the temporary reproduction files"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Ich habe die Arbeit am vermeintlichen Hänger gestoppt: Es gibt keinen reproduzierten Hänger und keine Korrektur. Der Bericht liegt unter `docs/reviews/210-confluence-auto-sync/fable-live-hang.md` und ist die einzige neue Datei im Worktree.\n\n- **Keine Änderungen am Produkt:** Im unterbrochenen Lauf habe ich keine Produkt-, Test- oder Konfigurationsdatei im Worktree angefasst. Die Stände der fünf geprüften Läufe sind unberührt.\n- **Ein isolierter Lauf:** Die exakte AWS-Zeichnung lief in Chromium headless über den echten Renderer auf eigenem Port 5184 mit erfundener Bridge. Beide Seiten wurden in rund 0,35 s gerendert und übergeben (PNG 571 969 und 774 755 Bytes); 2 von 2 Tests bestanden.\n- **Grenzen dieses Laufs:** kein Electron, kein gepackter Build, kein verdecktes Fenster, kein Hauptprozess, kein Tenant.\n- **Beobachtungen nur aus dem Lesen, nicht als Fehler beobachtet:**\n  - Der Rasterizer wartet ohne Frist auf das Bild und auf `canvas.toBlob`.\n  - „syncing\" deckt Rendern und Übertragen gemeinsam ab.\n  - Der Hauptprozess begrenzt jede Anfrage einzeln, hat aber keine Gesamtfrist.\n  - Einen unbegrenzten Wartepunkt im Hauptprozess habe ich nicht gefunden.\n- **Temporäre Dateien:** Skript, Konfiguration und Messprotokoll liegen unter `/tmp/sketchdraw-210-fable-pw/`; die genaue Liste steht im Bericht.\n- **Hashes:** Ich kann nur den vom Lauf gemessenen Fixture-Hash liefern (`bdf30385…cc888`). `shasum` und `git hash-object` wurden abgelehnt, weitere Testläufe waren untersagt; die übrigen Hashes müsstest du selbst bilden.\n\nÜber Erfolg oder Misserfolg am Tenant sagt dieser Lauf nichts aus.",
+  "ttft_ms": 9812,
+  "type": "result",
+  "duration_ms": 50597,
+  "uuid": "50c14b40-49c3-4974-8f49-4412c6f1e3eb",
+  "ttft_stream_ms": 2780,
+  "time_to_request_ms": 308,
+  "first_content_frame_ms": 2780,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 8,
+      "outputTokens": 5199,
+      "cacheReadInputTokens": 1077095,
+      "cacheCreationInputTokens": 18255,
+      "webSearchRequests": 0,
+      "costUSD": 0.7155229999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 749,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18255,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

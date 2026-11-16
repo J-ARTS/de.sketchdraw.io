@@ -1,0 +1,141 @@
+{
+  "duration_api_ms": 1083764,
+  "stop_reason": "tool_use",
+  "session_id": "728fee98-1c17-4d6b-88d8-8669564c95e6",
+  "total_cost_usd": 17.180223800000007,
+  "usage": {
+    "input_tokens": 28,
+    "cache_creation_input_tokens": 344689,
+    "cache_read_input_tokens": 3817710,
+    "output_tokens": 23151,
+    "output_tokens_details": {
+      "thinking_tokens": 14665
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 344689,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3235,
+        "cache_read_input_tokens": 346872,
+        "cache_creation_input_tokens": 2965,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2965
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 146,
+      "outputTokens": 111001,
+      "thinkingTokens": 54643,
+      "cacheReadInputTokens": 14263559,
+      "cacheCreationInputTokens": 617894,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 617894,
+      "webSearchRequests": 0,
+      "costUSD": 17.180223800000007,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_0118946enwYBBGfshFXhcxwi",
+      "tool_input": {
+        "command": "node -e \"\nconst d=JSON.parse(require('fs').readFileSync('docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json','utf8'));\nconsole.log(Object.keys(d));\nconst doc=d.document??d;\nconsole.log(Object.keys(doc), doc.title, doc.pages);\nconst els=doc.elements;\nconst by={};for(const e of els){const k=e.pageId+':'+e.kind;by[k]=(by[k]||0)+1}\nconsole.log(by);\nconsole.log('assets',Object.keys(doc.assets??{}).length);\nconst big=els.map(e=>[e.id,e.kind,JSON.stringify(e).length]).sort((a,b)=>b[2]-a[2]).slice(0,8);console.log(big);\nfor(const e of els.filter(e=>e.pageId==='page:live-doc'))console.log(JSON.stringify(e).slice(0,1500));\n\"",
+        "description": "Summarise the AWS reference fixture: pages, element kinds, largest elements"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_019mRrsJXP7vGThT75raqFmE",
+      "tool_input": {
+        "command": "head -c 2500 docs/reviews/208-confluence-live/aws-bedrock-agentcore.svg; echo; echo ----; head -c 1800 docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json; echo; echo ----; grep -o '\"kind\": *\"[a-z-]*\"' docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json | sort | uniq -c; grep -o '\"pageId\": *\"[^\"]*\"' docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json | sort | uniq -c; shasum -a 256 docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json",
+        "description": "Inspect the reference SVG head and the fixture's structure and hash"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_0135hCsRRfZ92SATU8cQeYH4",
+      "tool_input": {
+        "command": "shasum -a 256 docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json",
+        "description": "Hash the AWS fixture document"
+      }
+    }
+  ],
+  "terminal_reason": "aborted_streaming",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": true,
+  "num_turns": 27,
+  "subtype": "error_during_execution",
+  "errors": [
+    "[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use"
+  ],
+  "type": "result",
+  "duration_ms": 336215,
+  "uuid": "09af6c74-3e4f-4824-9dcb-a7c2dee392cb",
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 28,
+      "outputTokens": 23151,
+      "cacheReadInputTokens": 3817710,
+      "cacheCreationInputTokens": 344689,
+      "webSearchRequests": 0,
+      "costUSD": 7.204829999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 14665,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 344689,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

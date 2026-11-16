@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-11-16T12:20:11.413493+00:00",
+  "pageId": "164037",
+  "pageTitle": "Architektur",
+  "site": "https://j-art.atlassian.net",
+  "persistedLinkObserved": true,
+  "beforeStatus": "Confluence ist auf dem aktuellen Stand. Zuletzt \u00fcbertragen: 16.11.2026, 09:20",
+  "afterStatus": "Diagramm in Confluence aktualisiert. Zuletzt \u00fcbertragen: 16.11.2026, 13:17",
+  "newHeadingVisuallyObserved": "AWS Bedrock & AgentCore \u00b7 Live nach Neustart \u00b7 01 \u00b7 AWS Bedrock & AgentCore",
+  "manualSync": false,
+  "relink": false,
+  "adapterEvidence": "tenant-restart-edit.json",
+  "screenshot": "tenant-restart-live-page1.png",
+  "buildAsarSha256": "de7f5688991f3c058bd01464ba1731ef4411cc13709ad892ab59142f74fc9998",
+  "scope": "Packaged #217/#218 build before fresh full-review corrections; no final-source acceptance claim"
+}

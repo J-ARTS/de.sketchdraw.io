@@ -310,3 +310,219 @@ Tatsächliche unabhängige Quellreviews: Claude Code 2.1.323 / `claude-fable-5-2
 | Graphify, #145/#183: Ledger-Ghost-Dedupe und fehlende Vue-SFC-Symbole werden in einer Knotenzahl vermischt. | #145 isoliert Quellrebuild und eigene Ledgerprojektion, prüft tatsächliche IDs und schützt vor Race/Verlust. Die historische 5201→5174-Differenz ist zerlegt. Der externe Vue-Extraktorfehler wird getrennt in #183 verfolgt, nicht als durch den Wrapper behoben ausgegeben. |
 
 Unabhängiger Codex-Nachreview von `b524af8` (#176): Lokales menschliches Undo/Redo und Peer-Abgrenzung abgenommen. Bestätigter P2: Gemeinsame Connector-Routenberechnung darf explizit fehlerhafte `points`, `anchor` oder `connectorRouting` nicht still ersetzen. Zehn Ablehnungsregressionen waren vorher rot, nach Beschränkung auf tatsächlich ausgelassene Felder grün. Bericht: `docs/reviews/2026-11-13-mcp-b524af8-codex.md`; Gesamtstand `c2988e1`.
+
+
+## Confluence Live-Doc-Abnahme (#208 / #209, 15.11.2026)
+
+Quelle: Codex-Subagent `/root/plugins_audit`, Root-Quellabgleich auf `96c0039`; kein Claude-/Fable-Beitrag in diesem Teilauftrag.
+
+- **CF-208-01 — Verlustbehafteter vollständiger Export:** Lokaler Codec-Probe bestätigt Verlust von Fettformatierung, Linkzielen, Nummerierung und Tabellenstruktur. Der vollständige Seitenbody wird beim Senden ersetzt. Entscheidung: separate Korrektur #209; Live-Abnahme zunächst nur am vom Nutzer bestimmten leeren Ziel und ausschließlich mit bewusst erzeugten Referenzinhalten. Verantwortlich Antigravity Logik, Claude Code UI, Codex Tests. Nachweis offen: Erhalt bzw. wirksamer Verlustschutz und isolierter Live-Roundtrip.
+- **CF-208-02 — Live-Doc-Version ist kein vollständiger Inhaltsvergleich:** Laut [Atlassian](https://community.developer.atlassian.com/t/please-test-update-your-confluence-cloud-apps-to-function-in-live-docs-by-may-30-2025/89849) kann Inhalt innerhalb einer Version weiter verändert werden. Der aktuelle Pluginvertrag bewahrt nur die Seitenversion und sendet den vollständigen Body. Entscheidung: Pages v2/current nicht pauschal durch draft ersetzen; Subtyp/Status und Importgrundlage als künftigen Schutzvertrag prüfen. Ein zusätzlicher Vorabvergleich kann sichtbare Änderungen erkennen, garantiert aber keine atomare Konkurrenzkontrolle. Verantwortlich Codex Architektur/Testing, Antigravity Integration. Nachweis offen: kontrollierte Paralleländerung an nativen Live Docs, inklusive gleicher Version; keine tatsächliche Tenant-Datenüberschreibung beobachtet. [Update-Vertrag](https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-id-put), [bekannte draft-Live-Doc-Probleme](https://jira.atlassian.com/browse/CONFCLOUD-83848).
+
+### CF-210 — Vorläufige Gegenprüfung der laufenden Fable-Implementierung
+
+Quelle: unabhängiger Codex-Prüfer `/root/plugins_audit`; genaue Quellhashes und reproduzierte Proben in `docs/reviews/210-confluence-auto-sync/codex-early-domain-review.md`. Fable schreibt noch; keine endgültige Freigabe.
+
+- **CF-210-01 (P1):** Gleichnamige Anhänge fremder Confluence-Seiten werden als eigene Bilder erkannt. Das kann fremde Bilder entfernen oder eine nicht vorhandene lokale Einbettung als vollständig melden. Entscheidung: Containerreferenz berücksichtigen, Fremdreferenzen erhalten. Fable korrigiert; Codex verlangt beide Regressionen und Nachreview.
+- **CF-210-02 (P2):** XML-Zeichenreferenzen im Dateinamen verursachen Duplikate oder ersetzen ein bestehendes Bild unter Verlust seiner Platzierung/Breite. Entscheidung: sichere Dekodierung für den Identitätsvergleich, bei Unsicherheit keine Umschreibung. Fable korrigiert; Codex prüft unveränderte Original-Markup-Ausgabe.
+
+- **CF-210-03 (P1):** Legacy-Senden liest Tenant A und schreibt nach zwischenzeitlichem Wechsel an B; operationweiter Kontextschutz erforderlich. **CF-210-04 (P2):** Fehlender Body-Hash umgeht den Schutz gegen gleichversionige Live-Doc-Änderungen; ältere Annotationen müssen vor Schreiben neu geladen werden.
+- **CF-210-05 (P1):** Fremde gleichnamige Anhänge und fremde Folgeversionen werden überschrieben. Anhang-ID und bestätigte Eigentums-/Versionsbasis persistieren, Konflikte sichtbar stoppen. Keine atomare CAS-Garantie aus bloßem Vorabvergleich ableiten.
+- **CF-210-06 (P2):** Retry-After wird verworfen; Serverfrist durchgehend erzwingen. **CF-210-07 (P2):** Bei verlorenem Uploadergebnis und fehlendem Digest entsteht eine zweite Version; unbekannten Ausgang abgleichen oder ausdrücklich pausieren, nicht blind wiederholen.
+- **CF-210-08 (P2):** Deaktivieren/Reaktivieren und direktes A→B→A lassen alte Jobs wieder gültig werden; unwiderrufliche Kontextepoche erforderlich. **CF-210-09 (Quellbefund P2):** Renderer-/Fensterende invalidiert Plugin-Jobs noch nicht; native Laufzeitregression erforderlich.
+
+CF-210-03 bis -08 sind mit synthetischen PluginService-Mockantworten reproduziert; -09 ist bislang Quellreview. Belege/Hashes: `docs/reviews/210-confluence-auto-sync/codex-early-backend-review.md` und `backend-review-probes.json`. Verantwortlich Fable-Korrekturrunde; Codex prüft unabhängig nach. Keine Tenantüberschreibung beobachtet.
+
+### Tatsächliche Fable-Bedenken B1–B12 (#210)
+
+Quelle: Claude Code 2.1.323 / `claude-fable-5-2` / high, Sitzung `1e3c6764-0512-4678-a4f5-36c774ecb57b`, Original `docs/reviews/210-confluence-auto-sync/fable-implementation.md`. Dies sind explizite offene Grenzen/Entscheidungen, keine bestätigte Live-Freigabe.
+
+| Quelle | Entscheidung / erforderlicher Nachweis |
+| --- | --- |
+| B1/B3: offene Live-Doc-Ansicht kann eine alte Medienversion halten; eingefügtes Storage-Markup könnte normalisiert werden. | Tatsächliches Ziel 164037 mit lokalem und Git-Update prüfen, ohne manuelles Senden/Reload. Uploadbestätigung genügt nicht; nötige Folgekorrektur durch Fable. |
+| B2: Eingabe zwischen letztem Body-Vergleich und Page PUT. | Ruhefenster/Vollvergleich mindern das Risiko, liefern keine atomare Sperre. Fremdinhalt beim Einrichten und bei Seitenänderung prüfen; verbleibende API-Grenze offen benennen. Keine absolute Konkurrenzgarantie behaupten. |
+| B4: fehlender Digest in Attachment-Metadaten. | Fables Vorschlag einer zusätzlichen Version ist für unbekannten Ausgang nicht ausreichend: CF-210-07 verlangt Abgleich oder sichtbaren Stopp; nicht blind wiederholen. |
+| B5: bestätigte lokale Änderungen werden bereits vor Dateispeicherung veröffentlicht. | Vom Nutzerwunsch nach Aktualisierung bei lokalen Änderungen gedeckt. Entwürfe/Konflikte separat schützen; Betriebsbedingung in UI und Abnahme prüfen. |
+| B6: gelöschte Diagrammseite entfernt Einbettung, belässt Anhang. | Angemessene begrenzte Änderung; keine automatische Anhangslöschung. Eigentumsprüfung CF-210-01/-05 bleibt zwingend. |
+| B7: Schrift- und Rasterunterschiede, maximale Kante 4096 Pixel. | Reales Browser-Rastern plus visuelle AWS-Referenzabnahme, keine pixelgleiche Canvas-Darstellung behaupten. |
+| B8: verschobene/kopierte Datei muss neu verknüpft werden. | Bewusste lokale Autoritätsbindung; Save As/Kopie darf keine zweite unbemerkte Publikationsinstanz erzeugen. |
+| B9: strenger Schutz blockiert reichhaltige Legacy-Seiten. | Geeigneter vorläufiger Schutz; #209 bleibt bis vollständigem Codec-/UI-/Live-Nachweis offen. Alte Annotation ohne Basis-Hash muss neu laden (CF-210-04). |
+| B10: zwei App-Instanzen können Profil-Dateikonflikt auslösen. | Bestehenden Schutz gegen externe Profiländerungen erhalten. Nicht als Mehrprozess-CAS ausgeben; keine zweite Produktinstanz mit demselben Profil parallel zur Live-Abnahme starten. |
+| B11: vollständiger sichtbarer Dokumentfingerabdruck je Snapshot. | Noch keine Leistungsregression gemessen; bei auffälligen großen Dokumenten gezielt messen, keine unbelegten Leistungsversprechen. |
+| B12: Status nur im Plugin-Dialog sichtbar. | Für aktuelle Abnahme zulässig; dauerhafte Sichtbarkeit im Hauptfenster bleibt mögliche Folgeverbesserung, keine zusätzliche automatische Benachrichtigungsflut. |
+
+
+### CF-210 Nachprüfung der ersten Korrekturrunde (2026-11-15)
+
+- CF-210-01/-02: unabhängig bestätigt korrigiert am Domain-SHA256 `58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a`; neun reine Domain-Gegenproben bestanden (`docs/reviews/210-confluence-auto-sync/domain-correction-recheck.json`). Keine Aussage über native oder Tenant-Abnahme.
+- CF-210-03 bis -08: unabhängige synthetische Backend-Proben am Snapshot `c539133102c2bb45e1518414606fa28123e000a54adf429ab877b0f6914b226a` bestätigen die jeweiligen Schutzpfade. `releaseRenderer()` invalidiert aktive und wartende Jobs; echte native Fensterlebensdauer bleibt zu prüfen. Fable führt parallel abschließende Tests aus; finale Quellgleichheit vor Freigabe verifizieren.
+- **CF-210-10 (P1, neuer Nachreviewbefund):** Ein bereits wartender Auftrag trifft nach Kontextwechsel sofort auf `assertLiveJob`; seine noch leeren lokalen `published`/`pending`-Maps werden im `catch` trotzdem durch `remember()` gespeichert. Das löscht bestätigte Attachment-Zuordnungen. Nachfolgende Veröffentlichung kann eine fremde Sketchdraw-Version als unbekannten eigenen Anhang übernehmen und überschreiben. Synthetischer Ablauf: bestätigte v1 → aktiver verzögerter + wartender Auftrag → Konfiguration ändern → beide abgebrochen → Ownership gelöscht → fremde v20 wird zu v21 überschrieben. Quelle: unabhängige Codex-Probe unter `/tmp/sketchdraw-210-correction-review/`, oben genannter Backend-Snapshot. Entscheidung: abgebrochene, nie initialisierte Aufträge dürfen keine Linkzustände speichern; bestätigte und unklare Uploadstände anderer Aufträge erhalten. Verantwortlich nächste tatsächliche Fable-Korrektur; Regression für Queueabbruch und nachfolgenden Fremdversionskonflikt erforderlich. Noch keine abschließende Korrektur.
+
+- **CF-210-11 (P2, neuer Nachreviewbefund):** Der visuelle Fingerabdruck berücksichtigt Component-Set-Icons nicht und Bilddaten nur über die Länge. Zwei gültige lokale Code-Ersetzungen (verwendetes SVG-Icon Rot→Blau und verwendetes PNG mit gleich langer DataURL) ändern den echten SVG-Export, lösen aber keine automatische Veröffentlichung aus; erst manuelles Synchronisieren aktualisiert. Echter Store/Codeparser/SVG, Desktop/Raster synthetisch; kein behaupteter Git-spezifischer Fehler. Beleg: `docs/reviews/210-confluence-auto-sync/correction-fingerprint-probes.json`, Store-SHA256 `7674802e0439fbc6b4c1d6afcc2adffbe5973c65d694413d7f11e70ee51d84cd`. Entscheidung: alle sichtbaren Exportdaten bzw. belastbare Inhaltsidentität erfassen; Task-/Kommentaränderungen weiterhin nicht unnötig übertragen. Verantwortlich nächste Fable-Korrektur mit beiden automatischen Regressionen.
+- CF-210-10 bleibt nach zusätzlicher Fable-Abbruchkorrektur am Backend-SHA256 `f35b01385dcb4dba3cc2fc5c7bee95a1ec91cac6db2fdca5bc2aa685ea04ef51` bestätigt, auch mit AbortSignal beachtendem Fake. Der tatsächliche Fetch-Abbruch selbst ist zusätzlich bestätigt (`correction-abort-probes.json`). Vollständiger unabhängiger Bericht: `codex-correction-review.md`.
+
+### CF-210-10 / CF-210-11: unabhängiger Korrektur-Nachweis (2026-11-15 22:40 UTC)
+
+Codex `/root/live_correction_review` bestätigt beide Korrekturen auf Backend-SHA `8b509dd9b25839f682eb52af14413f91f50061ad851737cf16abee80afad3380` und Store-SHA `4dbba88658312bd9257fbc26a8dfa3da5fece3fe40776f21b47a4acc9f05b19a`. Zwölf Backendproben einschließlich erhaltener Anhangszuordnung/fremder Version20, zwei Abort-Proben und beide automatischen Icon-/Bilddatenveröffentlichungen bestanden. Vorherige fehlschlagende Belege erhalten. Bericht: `docs/reviews/210-confluence-auto-sync/codex-final-correction-review.md`; Hashes und strukturierte Resultate nebenan. Fable-Prozess noch aktiv; Endstand-Hashvergleich erforderlich. Native/Tenant-Abnahme dadurch nicht ersetzt.
+
+### #210 Design-System-Integration und Prüfherkunft (2026-11-15)
+- **UI-210-INTEGRATION-01 (P2):** Unabhängiger Codex-Nachreview findet feste Designwerte im neuen Live-CSS-Block. AGENTS.md verlangt gemeinsame Tokens. Entscheidung: tatsächlicher Fable-Lauf korrigiert nur neuen Block/tokens.css; bestehende Legacy-Styles und Logik erhalten. Nachweis: `docs/reviews/210-confluence-auto-sync/final-integration-review.md`; gezielte Story-/Designsystemprüfung und terminaler Hashvergleich ausstehend.
+- **Fable-Integrationsbericht, fremder UI-Server5173:** Standard-Playwright-Konfiguration kann einen fremden Arbeitsbaum still wiederverwenden. Der erste29-Testlauf zählt nicht. Tatsächlich gültige29+56UI-Prüfungen laufen mit eigenem Server5183/reuseExistingServerfalse, neun Storyproben mit eigenen synthetischen Dateien. Root hält die Testherkunft fest. Keine Behauptung, der fremde Server sei beendet.
+- **Native Eingabeunterbrechung:** Der integrierte Haupttest besteht einschließlich Git/Neustart; der zweite Schließtest wird schon beim Zeichnen durch buttons0/lostpointercapture an fremden Koordinaten unterbrochen. Keine CUA während dieses Laufs, Ursache daher offen. Gezielter exklusiver Nachlauf statt geschwächter Form-/Upload-Assertions.
+- **Graph-Refresh #183:** Guard verweigert20fehlende Nicht-Ledger-Knoten; erste zehn Vue-Funktionen im Quelltext weiterhin vorhanden. Bestehendes Extraktionsissue183 fortgeführt; kein erzwungener Knotenverlust und kein Rückfall von behobenem Wrapperissue145 behauptet. Ledger-Projektion separat prüfen.
+
+### #210 endgültiger lokaler Nachweis (2026-11-15 23:17 UTC)
+- UI-210-INTEGRATION-01 unabhängig behoben bestätigt; finaler PluginSettings-SHA256 a4256e5c8312179fdd84309024d38b3a73a61e633ecf8302d358e608f0dee4d1. Nur neuer Live-CSS-Block verändert;13Reviewdateien und11Coredateien terminal abgeglichen.
+- Native Endstandprüfung2/2 bestanden ohne Quelländerung oder parallele UI-Arbeit. Captureverlust aus Vorlauf bleibt als historische Eingabeunterbrechung dokumentiert; endgültiger Lifecycle-Nachweis10.301s bestanden. Native Hauptfall83.114s. Belege integration-native-final-*.json.
+- B1/B3 echte geöffnete LiveDoc-Medienaktualisierung weiterhin offen; keine Tenant-Veröffentlichung. Alter App-Prozess kann durch CUA nicht beendet werden, manueller Beenden-Schritt ausstehend. #208/#210 deshalb offen/blockiert.
+- Fables fremde Dev-Server-Bedenken separat in #214 aufgenommen; derzeit keine Implementierung dieses Folgeissues.
+
+- Integrationsarbeitsbaum-Graphrefresh gesondert geprüft: Guard verweigert222fehlende alte IDs, darunter App.vue-Symbole nach upstream-Verlagerung nach WorkspacePage.vue (#211). Das ist zusätzlich zur ursprünglichen20Symbol-Extraktionslücke #183 zu bewerten, keine pauschale Zuordnung aller222zu#183. Bisheriger Graph bleibt erhalten; Kandidat nicht erzwungen. Beleg integration-graph-refresh-blocked.log.
+
+
+### CF-217-01 — Alter Cache stoppt neue Datei-/Git-Authority (16.11.2026)
+
+Quelle: unabhängiger Codex-Reproducer mit realen Produktfunktionen und ausschließlich synthetischem fake-indexeddb; docs/reviews/217-mcp-git-authority/review.md, controlled-result.json und controlled-manifest.json. Root-Livehinweis: tenant-authority-diverged-before-restart.png. Zugehöriges Issue217, Ursprung208/210.
+
+- **Befund (P1, isoliert bestätigt):** Nach Datei-/Git-Installation mit gleicher Dokument-ID wird der alte CRDT-Cache asynchron außerhalb der Authority eingespielt. Er kann maßgebliche neue Dateiinhalte überschreiben; Authority beendet sich mit AUTHORITY_DIVERGED. Store zeigt weiterhin neuen Inhalt und saved. Echtes Agent-Binding und Save scheitern; echter CloseHandshakeCoordinator erhält cancel. Die frühere alleinige CUA-Erklärung des nicht beendeten Prozesses genügt nicht. Tatsächlicher Neustart ist weiterhin nicht belegt.
+- **Entscheidung:** Datei-/Git-Zustand hat Vorrang; veraltete Hydrierung bei normaler Installation verhindern. Bloß authority.applyExternalUpdate einzusetzen genügt nicht, weil damit Cache-Rückfall erlaubt bliebe. Explizite Wiederherstellung durch createPersistedCrdtController erhalten. Keine Umgehung von Authority-, Grant-, P2P-Gast- oder Quit-Sicherheitsgrenzen. Späte alte Generationen dürfen keine neue Session beeinflussen.
+- **Verantwortung:** Claude Code/Fable5.2 implementiert auf ausdrücklichen Nutzerauftrag; Codex Architektur/Testing und native/live Abnahme. Lauf42982/session64f445c3-ea0d-4cab-9925-03e9d2364df9 ist aktiv, keine Freigabe.
+- **Erforderlicher Nachweis:** Same-ID älterer Cache + neue Datei/Git-Inhalte bleiben nach asynchroner Verarbeitung exakt erhalten; neue Agent-Lese-/Schreibverbindung, altes Binding ungültig, normaler Save und Quit. Schneller Switch/Dispose, späte Cachearbeit und explizite Recovery zusätzlich prüfen. Root bestätigt danach echten Prozesswechsel/Neustart und persistierte Live-Verknüpfung.
+- **Beweisgrenze:** Erstlauf Exit2 bleibt erhalten (Store reproduziert, Low-Level gesund); kontrollierte synthetische Cache-Reihenfolge auf identischem Produktpräfix Exit0. Keine exakte native Registrierungs-IPC-Stufe aus Mocks behaupten; keine Benutzer-Caches, Runtime-Inhalte oder Zugangsdaten gelesen.
+
+
+### CF-217-02 — Zweiter Cachehalter unterbricht die Recovery des ersten (16.11.2026)
+
+Quelle: unabhängiger Codex-Lauf `/root/live_correction_review`, delegiert in #217 Kommentar 6912104646; `docs/reviews/217-mcp-git-authority/concurrency-review.md`, `concurrency-result.json` und `concurrency-source-manifest.json`. Root bestätigte das Ergebnis. Die Prüfung gilt für den archivierten Zwischenstand mit Persistence-SHA256 `727cd5490975d45d8d25e2581290cff0555b19d00e17850256c5d7035c4242fd`; kein Tenant- oder nativer Mehrfensternachweis.
+
+- **Befund (P2, isoliert bestätigt):** Zwei aktive Persistenzhandles verwenden denselben Schlüssel. Das zweite Attach löscht die Datenbank und schließt dadurch die Verbindung des ersten. Dessen folgende gültige Änderung wird in der gesunden Authority committed, löst aber bei der Persistierung `InvalidStateError` aus. Die explizite Recovery enthält diese Änderung nicht. Exit 0 bestätigt die Fehlerreproduktion, keine Korrekturfreigabe.
+- **Entscheidung:** Cachebesitz bzw. Generationen so regeln, dass ein zweites Attach kein still gebrochenes Persistenzversprechen für einen aktiven Halter hinterlässt. Die Einweggrenze bleibt bestehen: alter Cache darf nicht zurück in eine maßgebliche Datei-/Git-Authority gelangen. Authority-, Gast- und Quit-Sicherheitsprüfungen erhalten.
+- **Verantwortung und Stand:** Hauptlauf Claude Code CLI 2.1.323 / `claude-fable-5-2` / high endete erfolgreich am 16.11.2026 um 09:10:03 UTC; die Produktabnahme bleibt wegen dieses unabhängigen Befunds offen. Fable-Korrekturlauf exec 26260 läuft seit 09:12:36 UTC in derselben Session. Codex verantwortet Nachreview und native/live Abnahme; der Codex-Befund ist kein Fable-Ergebnis.
+- **Erforderlicher Nachweis:** Zwei weiterhin aktive Halter desselben Schlüssels, gültige Änderung des ersten nach Attach des zweiten und nachvollziehbares Recovery-Ergebnis ohne InvalidStateError oder stillen Verlust. Anschließend gezielte Cache-/Authority-Regressionsprüfung sowie native MCP-, Save-, reguläre Quit- und Neustartprüfung durch Root.
+- **Historie und Grenzen:** CF-217-01 bleibt als ursprünglicher Befund erhalten. Der erste Fable-Lauf meldet 427 + 69 betroffene Unit-Prüfungen, Typecheck und Build bestanden; der native Test ist lediglich vorbereitet. Kein tatsächlicher Neustart belegt: alter PID 99302 läuft mit AUTHORITY_DIVERGED, CUA-Auswahl in der Aktivitätsanzeige meldet `noWindowsAvailable`. Kein zweiter Prozess mit demselben Profil starten.
+
+
+### CF-217-02 — Korrekturbericht vom 16.11.2026, 09:20 UTC
+
+- Tatsächlicher Fable-Korrekturlauf terminal erfolgreich; `docs/reviews/217-mcp-git-authority/fable-concurrency.md` meldet den Befund behoben. Attach löscht keine Datenbank mehr; atomare Transaktionen schreiben ausschließlich aus dem Controller. Recovery enthält den vollständigen Stand des letzten Schreibers. Die alte Spiegelkopie entfällt.
+- Fable-Nachweis: 30/30 gezielte Tests viermal, 433/433 betroffene Unit-Prüfungen, Typecheck und Build bestanden; keine native Ausführung durch Fable. Prüfstand Persistence-SHA256 `581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd`. Root startet die unabhängige native Abnahme (exec 11937); gestartet ist nicht bestanden. Unabhängiger Review und natives Ergebnis stehen aus, deshalb keine abschließende Freigabe des Concerns.
+- Grenzen bleiben ausdrücklich: nur ein Stand im Cache; bei wechselnden Haltern vollständige Neuschreibung, an y-indexeddb 9.0.12 gekoppeltes Speicherlayout, Transaktions-/versionchange-Verhalten in Chromium noch abzunehmen. Reale App-Beendigung/Neustart, Tenant-Konfliktnachweis und Zielbranchintegration weiterhin offen. Hauptlauf- und Repro-Historie bleibt erhalten.
+
+
+### CF-217-02 — Unabhängig bestätigte Korrektur, 16.11.2026
+
+Codex bestätigt den begrenzten Konkurrenzfall auf dem Freeze vom 09:21:02 UTC: zwei aktive Halter bleiben fehlerfrei, beide Authorities gesund, der Edit des ersten nach dem zweiten Attach erscheint in der expliziten Recovery. `docs/reviews/217-mcp-git-authority/codex-concurrency-final-review.md` und zugehörige Probe-/Hashartefakte. Dieser konkrete Concern ist im isolierten Prüfumfang behoben; native Quit- und echte Neustartabnahme werden dadurch nicht ersetzt.
+
+### CF-218-01 — macOS beendet die Anwendung regulär nicht (16.11.2026)
+
+Quelle: Root-Nativabnahme `docs/reviews/217-mcp-git-authority/native-final-report.json`, Stufe `normal quit`, und zusätzlicher unveränderter Test `docs/reviews/218-macos-quit/217-quit-diagnostic.json`. Neues Issue [#218](https://github.com/J-ARTS/de.sketchdraw.io/issues/218), Ursprung #217/#210/#208.
+
+- **Befund:** Nach erfolgreichem Datei-/Git-Austausch, neuer MCP-Verbindung, Schreiben und Speichern beendet sich die macOS-Anwendung auf reguläre Quit-Anfrage nicht. Der #217-Neustartabschnitt ist deshalb nicht erreicht. Root untersucht die fehlende explizite Quit-Absicht und den vorzeitigen `before-quit`-Cleanup als Implementierungsursachen; laufende Leerfensterdiagnose nicht als abgeschlossen ausgeben.
+- **Entscheidung:** Quit-Absicht, Renderer-Freigabe und endgültiges Aufräumen geordnet prüfen. Dokument-/Authority- und Unsaved-/Cancel-Schutz erhalten; kein erzwungener Prozessabbruch als regulärer Quit-Nachweis.
+- **Verantwortung:** Root Codex diagnostiziert, prüft Architektur und führt native Tests aus. Tatsächliche Fable-Implementierung ist geplant; erst nach bestätigtem Start als laufend erfassen. UI-/Tenant-Aktionen bleiben exklusiv bei Root.
+- **Nachweis:** Regulärer Quit eines vorher laufenden Prozesses endet mit Exit 0 ohne Signal; anschließend Neustart und funktionsfähige MCP-/Datei-/Git-Verbindung. Unsaved-/Cancel-Pfade dürfen keine Dienste vorzeitig verlieren.
+- **Beweisgrenzen:** Der Folgeversuch `218-quit-diagnostic.json` scheitert bereits beim Zeichnen, daher kein Quit-Nachweis. Der vorherige Versuch behielt wegen Python-KeyError den alten Test bei. #210 besteht zwei native Fälle; dies ist kein erfolgreicher #217-Quit. 512 Quell-/Testdateien im ursprünglichen nativen Freeze unverändert; kein tatsächlicher Nutzer-App-Neustart bestätigt.
+
+
+### CF-218-01 — Gespeicherte Leerfensterprobe bestätigt; Korrektur läuft
+
+Root reproduzierte am 16.11.2026 um 09:33 UTC den Fehler auch mit einer wirklich gespeicherten leeren App: nach regulärem Quit kein Fenster mehr, aber Prozess-Exit und Signal weiterhin null. Belege `docs/reviews/218-native-quit/native-saved-before-{report,diagnostic}.json`. Die frühere Leerfensterprobe scheiterte vor Quit an einer falschen saved-Erwartung für unsaved-new und zählt nicht als Quit-Beweis. Tatsächlicher Fable-Lauf exec 25024 läuft seit 09:33:52 UTC; keine terminale Korrektur oder Abnahme. Unabhängiger Review und native komplette Quit-/Neustartprüfung bleiben erforderlich.
+
+
+### CF-218-01 — Fable-Korrektur terminal, unabhängige Gesamtprüfung offen
+
+Fable beendete die Korrektur am 16.11.2026 um 09:49:29 UTC erfolgreich. Laut Bericht hält die Anwendung die Quit-Absicht bis zur bestätigten Schließantwort, löscht sie bei Ablehnung und räumt Dienste erst in `will-quit` auf. Wiederholte Close-Anfragen erhalten die laufende Anfrage. 43 Unit-Prüfungen, Typecheck und Build sowie sechs abschließende isolierte native #218-Prüfungen bestanden. Belege `docs/reviews/218-native-quit/fable-implementation.md` und `fable-native-final-report.json`.
+
+Roots komplette native Prüfung mit sechs Tests (exec 71449) und der unabhängige finale Read-only-Review laufen beim Übergabestand noch. Keine abschließende Concern-Freigabe, kein echter App-/Tenant-Neustart und keine Zielbranchintegration aus dem Fable-Ergebnis ableiten. Frühere Fehlproben und aktuelle Plattformgrenzen bleiben erhalten.
+
+
+### CF-217-01 / CF-218-01 — Native Gesamtprüfung und begrenzter Review abgeschlossen
+
+Root bestätigt am 16.11.2026 um 09:52:16 UTC den terminalen nativen Gesamtlauf mit 6/6 und Exit 0. Datei-/Git-Wechsel behalten funktionsfähige MCP-Grants; Lesen, Schreiben, Speichern, reguläres Beenden, Neustart und erneute Dateibearbeitung funktionieren im isolierten macOS-Fixture. Quit-Abbruch erhält Plugins, Wiederholungen behalten eine offene Frage, endgültiges Speichern beendet ohne Signal. Unabhängiger finaler Review: kein offener materieller Lifecycle-Befund. Die konkreten Codekorrekturen sind in diesem Umfang bestätigt; echter Nutzer-App-/Tenant-Neustart und Zielbranchintegration bleiben offen.
+
+### CF-218-02 — Backend-Test erwartete alte Close-ID-Rotation (behoben)
+
+Der unabhängige Review fand im vorhandenen Backend-Test einen P2-Vertragskonflikt: Wiederholung ohne Antwort erwartete eine neue Nachricht/ID, obwohl eine offene Anfrage jetzt erhalten bleibt. Root änderte nur den Test: gleiche ID bei Wiederholung, danach Cancel und neue ID bei nächster Anfrage, alte Antwort weiterhin zurückgewiesen. Vollständige Backend-Suite 4/4 bestanden, 13,279 Sekunden. Belege `docs/reviews/218-native-quit/codex-final-review.md` und `backend-report.json`. Das ist eine Root-Codex-Testkorrektur, keine Fable-Implementierung und kein abgeschwächter Sicherheitstest. Im Quellreview wird dieser Testbefund ebenfalls als CF-218-01 bezeichnet; diese lokale getrennte Kennung vermeidet Verwechslung mit dem ursprünglichen Quit-Bug.
+
+### Graph-Refresh nach #217/#218 — Bestandsschutz weiterhin aktiv
+
+Genau ein geschützter Refresh im Integrationsarbeitsbaum verweigert 222 fehlende Nicht-Ledger-Knoten, unter anderem alte `src/renderer/App.vue`-Symbole. Der bestehende Graph bleibt bytegleich; kein Force, kein manueller Knotenverlust. Beleg `docs/reviews/218-native-quit/graph-refresh-result.json`. Die frühere Differenz nach App.vue-/WorkspacePage-Verlagerung bleibt getrennt von der ursprünglichen Vue-Extraktionslücke #183; nicht pauschal alle 222 Knoten als legitime Löschungen oder als #183 freigeben. Ledgerprojektion wird separat geprüft.
+
+
+### #210/#217/#218 — Vollständige Fable-Abstimmung und genaue Live-Zuordnung
+
+Frischer tatsächlicher Fable-5.2-Review aller ausstehenden Codeänderungen läuft seit 16.11.2026 11:49:32 UTC; 33 Integrationsdateien und 22 Originaldateien, 35 unterschiedliche Pfade, 16 identische gemeinsame Fassungen. Noch keine terminale Freigabe. Originalcode enthält weiterhin ältere Cache-/Quit-Fassungen; kopierte Prüfberichte gelten für ihren dokumentierten Integrationsstand.
+
+Der neue Live-MCP-Beleg um 11:51:32 UTC ist über Unix-Socket-Peer-Metadaten eindeutig dem gepackten Prozess PID 33132 zugeordnet. Die frühere 11:44-Antwort bleibt ohne diese rückwirkende Zuordnung. Die alte App PID 99302 wurde beendet; erfolgreicher Analyze belegt Dokumentzugriff nach Neustart, nicht bereits persistierte Atlassian-Verknüpfung, erneute Tenant-Publikation oder reguläres Quit im Nutzerprofil. Diese Abnahmen bleiben offen. Keine Secrets-/Runtime-Inhalte zur Zuordnung gelesen.
+
+
+### FABLE-FULL-210 — Gesamtreview mit offenen Befunden und begrenzter Abdeckung
+
+Quelle: tatsächlicher frischer Claude-Code-/Fable-5.2-Review, Session `5aa92638-1d2c-4ecc-b644-a106b55ff379`, `docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md`. Terminal CLI success ist keine vollständige Akzeptanz. Rein statisch, keine eigenen Tests oder Builds. Original-Diff und Graphabfrage wurden vom Harness verweigert; mehrere Test-/Originaldateien bleiben teilweise oder nicht zeilenweise geprüft.
+
+- **B1/P2, #210:** Konfigurationsspeicherung kann laut Review parallel fortgeschriebenen Anhangsstand zurücksetzen. Root prüft unabhängig, anschließend gegebenenfalls Fable-Korrektur und Konkurrenzregression.
+- **B2/P2, #210:** Schreibpfad kann laut Review nicht mehr lesbaren Profilzustand persistieren (zu viele historische Seiten bzw. ungültiger Dokumentpfad). Unabhängige Prüfung und Schreib-/Lesevertragsregression offen.
+- **B3, #217:** Explizite Recovery-Anbindung oder bewusste Cache-Reduktion/-Dokumentation als Produkt-/Architekturentscheidung festhalten. Kein stillschweigender Ausbau aus dem Review.
+- **B4/B5/B7, #210:** Unsichere Seite vor Upload ablehnen; Fehler-Haltezeit auch bei Bearbeitung während eines Laufs beachten; Bildgröße verständlich melden.
+- **B6, vorbestehend:** Renderer-Absturz verhindert reguläres Schließen; separat nachverfolgen, keine erfundene Issue-Nummer oder automatische Scope-Ausweitung.
+
+Tatsächlicher Folge-Korrekturlauf und Abdeckungsreview werden erst nach Root-Prüfung gestartet. Bisherige native Prüfungen bleiben ihrem Code-Freeze zugeordnet; sie ersetzen die neuen offenen Befunde nicht.
+
+
+### FABLE-FULL-210 — Root-Bestätigung, begrenzte Korrektur und getrennte Folgeissues
+
+B1 und B2 wurden von Root unabhängig bestätigt; tatsächlicher Fable-Korrekturlauf exec 74582 läuft seit 16.11.2026 12:05:43 UTC. Scope: B1/B2/B4/B5/B7 und vollständiger Abdeckungsreview. Keine terminale Korrekturabnahme. Quelle `docs/reviews/210-confluence-auto-sync/full-fable-review/correction-prompt.md`, Registrierung #210 Kommentar 6915919024.
+
+Für B2 wird blindes Löschen historischer Anhangs-Ownership abgelehnt: IDs und Versionen sichern den Konfliktschutz bei zurückkehrenden Diagrammseiten. Stattdessen gleiche Schreib-/Lesevalidierung und Kapazitätsprüfung vor entfernten Mutationen; Ownership- und Pending-Belege erhalten. Geforderte Regressionen noch ausstehend.
+
+B3 ist als geplante Produktlücke in [#219](https://github.com/J-ARTS/de.sketchdraw.io/issues/219) separat erfasst; #217 behauptet keine Recovery-Oberfläche. B6 ist als vorbestehender Crash-/Close-Fall in [#220](https://github.com/J-ARTS/de.sketchdraw.io/issues/220) geplant; keine native Reproduktion oder Implementierung in diesem Korrekturlauf.
+
+
+Unabhängige statische Bestätigung von B1/B2/B4/B5/B7 durch Root und `live_correction_review` archiviert: `docs/reviews/210-confluence-auto-sync/full-fable-review/codex-findings-review.md`. Keine neue Testausführung in diesem Review. Exakte Folgetitel: #219 „CRDT-Recovery nach Authority-Korrektur ausdrücklich anbieten und vom Datei-/Git-Stand trennen“; #220 „Abgestürzter Renderer kann reguläres Schließen und Beenden dauerhaft verhindern“. Beide bleiben geplant.
+
+
+### FABLE-FULL-210 — Korrekturen gemeldet, Teilupload-Journalalias weiter offen
+
+Checkpoint 2026-11-16T12:21:55.350472+00:00; Quelle: tatsächlicher Fable-Korrekturlauf `full-fable-review/fable-correction.md` und Roots anschließende unabhängige statische Bewertung. B1/B2/B4/B5/B7 sind laut Fable korrigiert und mit 137/137 gezielten Unit-Tests, Typecheck und Build belegt; unabhängige Abnahme und frische native Prüfung bleiben ausstehend. Alle 33 Integrations- und 22 Originaländerungseinträge laut Fable gelesen; unveränderte Reste teils nicht vollständig gelesen. Originalcode bleibt unverändert und enthält die alten Befunde.
+
+**B8, #210 — Alias im Teilupload-Journal:** Root bestätigt den Fehlerfall statisch; isolierte Reproduktion läuft, tatsächliche Fable-Korrektur wird erst nach gesonderter Startmeldung erfasst. Risiko: der Besitz-/Fortschrittsnachweis eines begonnenen Teiluploads ist nicht zuverlässig vom Konfigurationszustand getrennt. Konkreter Reproduktionsnachweis und geeignete Journal-Snapshot-Korrektur bleiben offen; keine erfundenen Prüfresultate. Historische Ownership nicht pauschal entfernen. Zuständigkeit: Claude Code für Korrektur nach Root-Freigabe, Codex für unabhängige Prüfung.
+
+**Live-Abnahme:** Jira-Verknüpfung „Architektur“ / 164037 nach Neustart sichtbar, keine Neuverknüpfung; frische lokale Titeländerung dem Paketprozess PID 33132 zugeordnet. Weiterhin alte UI-Synchronisationszeit 09:20, daher noch kein Nachweis erneuter Tenant-Übertragung. Beleg `docs/reviews/218-native-quit/tenant-restart-edit.json`. #219 Recovery und #220 Renderer-Crash-Schließen bleiben separat geplant. Graphprojektion weiterhin ausdrücklich ausstehend; kein Quellgraphrefresh.
+
+
+### FABLE-FULL-210 B8 — Unabhängig reproduziert, tatsächliche Korrektur läuft
+
+Checkpoint 2026-11-16T12:23:41.419676+00:00. Codex-Probe `docs/reviews/210-confluence-auto-sync/full-fable-review/codex-b8-alias-probe-result.json` bestätigt den Fehler am Service-SHA `87caa6ee618fa3cfcd8d0e215d9a96474d5f2fb161a57e9e2da05d0699f686dc`: nach bestätigtem Ersatz von Bild 1 und abgelehntem Ersatz von Bild 2 bleibt die Platte bei altem published-Stand und beiden pending; Speicher enthält den bestätigten Fortschritt. Neustart ohne entfernten Digest blockiert Bild 1 fälschlich. Kein Netzwerk, keine parallelen Einstellungen, kein Produkt-PASS.
+
+Tatsächlicher Fable-B8-Lauf exec 33672 seit `2026-11-16T12:21:47.168043+00:00`, gleiche Session, Scope Service und passende Unit-Spec. Parserkopie übernehmen bzw. Snapshots trennen; Ownership-/Unknown-Upload-Schutz und Historie erhalten. Unabhängiger Nachreview und frische native Abnahme bleiben offen. Verursachungs-/Reproduktionsbeitrag ist Codex zugeordnet, nicht Fable.
+
+Spätere echte Live-Beobachtung schließt die frühere Tenant-Lücke für das alte #218-Paket: automatischer Upload nach Neustart, UI 13:17 MEZ und neue Chrome-Überschrift bestätigt. Root meldet reguläres Speichern und Beenden ohne Force-Quit; finaler Quit-Beleg folgt. Das ist keine Abnahme neuer Korrekturquellen. Graphprojektion bleibt aufgeschoben.
+
+
+B8-/Live-Nachweisergänzung 2026-11-16T12:24:46.759454+00:00: kanonischer unabhängiger Reproduktionsbericht `docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md` mit Ergebnis/Manifest/Harness archiviert; Erkenntnis unverändert, Korrekturlauf aktiv. Tatsächliches reguläres Beenden des alten #218-Pakets im Nutzerprofil nun durch `docs/reviews/218-native-quit/tenant-normal-quit.json` belegt: Cmd+S, Cmd+Q, PID 33132 abwesend ohne Force-Quit. Prozessabfrage Exit 1 ist kein App-Exit-Code. Frische Korrekturquellen weiterhin unabgenommen; Graphprojektion bleibt aufgeschoben.
+
+
+### FABLE-FULL-210 B8 — Korrektur gemeldet, unabhängige Abnahme ausstehend
+
+Checkpoint 2026-11-16T12:26:02.616087+00:00. Tatsächlicher Fable-Bericht `docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md`: normalisierte Parserkopie in den Profilzustand übernommen; veränderliche Jobmaps entkoppelt. Gezielte Regressionen vor Fix 2/2 rot, danach 139/139 Tests grün. Fund/Reproduktion weiterhin Codex zugeordnet. Finaler Service-SHA laut Root `91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4`.
+
+Status **behoben laut Fable; unabhängiger Review läuft**. Typecheck/Build/native nach B8 noch ausstehend bei Root. Reale Tenant-Neustartbelege stammen aus dem älteren Paket und gelten nicht als jetzige Source-Abnahme. #219/#220 und die gesonderte #217-Registrierungsbeobachtung unverändert; finale Graphprojektion bleibt aufgeschoben.
+
+
+### FABLE-FULL-210 — Sechs Korrekturen unabhängig abgenommen, Abdeckung geklärt
+
+Checkpoint 2026-11-16T12:33:56.378257+00:00: `codex-correction-review.md` und `b8-independent-after/review.md` bestätigen B1/B2/B4/B5/B7/B8 im begrenzten finalen Quellstand; B8 vor/nach unabhängig reproduziert/geprüft. Fables `fable-final-review.md` korrigiert frühere Volllektüre-/Übersetzungs-/Hashangaben und bestätigt sämtliche Änderungshunks33+22, mit17ganz/16Hunk-Dateien in der Integration und offengelegter geerbter Originalabdeckung. Root AST64/64identisch, aktuell12gemeinsameHashfassungen. Ältere Berichte bleiben historisch erhalten.
+
+Direkter Root-Typecheck und Build Exit0 schließen die früher nicht separat gesicherte Typecheck-Pipeline ab. Native5/6initial plus1/1Einzelwiederholung,447Quellen unverändert; kein6/6Erstlauf behauptet. Finales Paket bestätigt bestehenden Link und automatischen Upload13:30in derPluginUI; leerer Chrome-Screenshot und leere Prozessliste sind keine neuen Browser-/PID-/Quitnachweise.
+
+Offen bleiben Zielbranchintegration, #217-Registrierungsfehlersichtbarkeit sowie separat #219Recovery/#220RendererCrash; Layout-Seiten und Zwei-Geräte-Konflikt nicht neu akzeptiert. Original enthält ältere Produktfassungen. Root autorisiert einmaligen geschützten Quellgraphversuch und anschließende serielle Ledgerprojektion; Guard-Ergebnis noch offen, kein Force.
+
+
+### FABLE-FULL-210 — Settings-Konkurrenz als #221 separat geplant
+
+Checkpoint 2026-11-16T12:37:01.105814+00:00. Exaktes Folgeticket [#221 „Gleichzeitige Plugin-Einstellungsänderungen können unabhängige Werte überschreiben“](https://github.com/J-ARTS/de.sketchdraw.io/issues/221) von Root nach Duplikatsuche bestätigt. Vorbestehende statische Beobachtung aus Fables Korrekturbericht: unabhängige Einstellungen können denselben alten Snapshot verwenden. Reproduktion/Behebung ausstehend; keine Scope-Erweiterung der sechs korrigierten Befunde. B1-Schutz der Live-Links ist hiervon abgegrenzt.
+
+Neuer einmaliger Quellrefresh mit Schutz verweigert weiterhin 222 fehlende Nicht-Ledger-Knoten; Bestand bytegleich, kein Force. Quellgraph nicht aktualisiert, Ledgerprojektion folgt separat. Finales App-Paket über `/private/tmp` korrekt PID 55685 zugeordnet; frühere leere Prozessanzeige als Zwischenstand klargestellt, kein neuer Quit-Nachweis.
+
+
+Finale Übergabe 2026-11-16T12:39:37.583018+00:00: Root bestätigt #208/#210/#218 offen auf Review, #217 offen In Arbeit. Siehe `docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md` und dortige GitHub-Kommentarlinks. #208 Layout-/externe Konfliktabnahme, #217 Registrierungsfehlersichtbarkeit und Zielbranchintegration bleiben offen. #219/#220/#221 separat geplant. Keine erneute Quellgraphaktualisierung; finale Ledgerprojektion und Prüfung folgen seriell nach diesem Statusabgleich.

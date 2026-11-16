@@ -1,0 +1,197 @@
+{
+  "startedAt": "2026-11-16T09:08:46.363Z",
+  "endedAt": "2026-11-16T09:08:46.475Z",
+  "scope": "One bounded isolated two-active-handles/same-cacheKey case; fake-indexeddb only, real controller/persistence/authority functions. No UI, native app, Tenant, runtime files or real user cache.",
+  "sameInitialDocument": true,
+  "firstBefore": {
+    "document": {
+      "schemaVersion": 2,
+      "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+      "title": "Shared initial state",
+      "pages": [
+        {
+          "id": "page:1",
+          "name": "Seite 1"
+        }
+      ],
+      "elements": [],
+      "assets": {},
+      "componentSets": [],
+      "metadata": {},
+      "commentThreads": [],
+      "tasks": []
+    },
+    "revision": 0
+  },
+  "beforeWrite": {
+    "firstEvents": [
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "ready"
+      }
+    ],
+    "secondEvents": [
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "ready"
+      }
+    ]
+  },
+  "applied": {
+    "status": "committed",
+    "requestId": "760eb09b19acf40fa636c04f4a91dcd9:1",
+    "revision": 1
+  },
+  "afterWrite": {
+    "firstController": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+        "title": "Unsaved edit in still-active first instance",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 1
+    },
+    "secondController": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+        "title": "Shared initial state",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 0
+    },
+    "firstAuthority": {
+      "ok": true,
+      "value": {
+        "document": {
+          "schemaVersion": 2,
+          "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+          "title": "Unsaved edit in still-active first instance",
+          "pages": [
+            {
+              "id": "page:1",
+              "name": "Seite 1"
+            }
+          ],
+          "elements": [],
+          "assets": {},
+          "componentSets": [],
+          "metadata": {},
+          "commentThreads": [],
+          "tasks": []
+        },
+        "revision": 1
+      }
+    },
+    "secondAuthority": {
+      "ok": true,
+      "value": {
+        "document": {
+          "schemaVersion": 2,
+          "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+          "title": "Shared initial state",
+          "pages": [
+            {
+              "id": "page:1",
+              "name": "Seite 1"
+            }
+          ],
+          "elements": [],
+          "assets": {},
+          "componentSets": [],
+          "metadata": {},
+          "commentThreads": [],
+          "tasks": []
+        },
+        "revision": 0
+      }
+    },
+    "firstEvents": [
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "ready"
+      },
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "error",
+        "error": "An operation was called on an object on which it is not allowed or at a time when it is not allowed. Also occurs if a request is made on a source object that has been deleted or removed. Use TransactionInactiveError or ReadOnlyError when possible, as they are more specific variations of InvalidStateError."
+      }
+    ],
+    "secondEvents": [
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "loading"
+      },
+      {
+        "cacheKey": "probe217:f8242a97-9466-44c4-87ff-37591f7f6ebf",
+        "state": "ready"
+      }
+    ],
+    "fatal": []
+  },
+  "recovery": {
+    "recovered": true,
+    "snapshot": {
+      "document": {
+        "schemaVersion": 2,
+        "id": "document:bc91b3f3-b6d9-4c40-ab7b-8a0cf4d51728",
+        "title": "Shared initial state",
+        "pages": [
+          {
+            "id": "page:1",
+            "name": "Seite 1"
+          }
+        ],
+        "elements": [],
+        "assets": {},
+        "componentSets": [],
+        "metadata": {},
+        "commentThreads": [],
+        "tasks": []
+      },
+      "revision": 0
+    }
+  },
+  "observations": {
+    "firstCacheError": true,
+    "firstAuthorityHealthy": true,
+    "secondAuthorityHealthy": true,
+    "firstEditPresentInController": true,
+    "firstEditAbsentFromRecovery": true
+  }
+}

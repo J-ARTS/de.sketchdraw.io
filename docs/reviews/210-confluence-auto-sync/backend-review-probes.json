@@ -1,0 +1,253 @@
+{
+  "sha": "4735bc34dc328c9c59d162852734087fd7e79b728b1c7c64186de05df28313fd",
+  "createdAt": "2026-11-15T21:48:15.882Z",
+  "revision": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+  "runtime": "v22.16.0",
+  "mockOnly": true,
+  "results": [
+    {
+      "case": "existing foreign attachment overwritten by name",
+      "before": {
+        "id": "att-foreign",
+        "title": "sketchdraw-7048cab46bb7-697c568322e5.png",
+        "pageId": "7",
+        "status": "current",
+        "comment": "Human uploaded image",
+        "version": {
+          "number": 9
+        }
+      },
+      "result": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.450Z"
+      },
+      "after": {
+        "id": "att-foreign",
+        "title": "sketchdraw-7048cab46bb7-697c568322e5.png",
+        "pageId": "7",
+        "status": "current",
+        "comment": "Sketchdraw 559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+        "version": {
+          "number": 10
+        }
+      },
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET",
+          "time": 1794779518449
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7/attachments?filename=sketchdraw-7048cab46bb7-697c568322e5.png&limit=25",
+          "method": "GET",
+          "time": 1794779518449
+        },
+        {
+          "url": "https://old.example.test/wiki/rest/api/content/7/child/attachment",
+          "method": "PUT",
+          "time": 1794779518449
+        }
+      ]
+    },
+    {
+      "case": "foreign update after known version overwritten",
+      "remoteVersionBefore": 20,
+      "result": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.451Z"
+      },
+      "remoteVersionAfter": 21,
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET",
+          "time": 1794779518451
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7/attachments?filename=sketchdraw-7048cab46bb7-697c568322e5.png&limit=25",
+          "method": "GET",
+          "time": 1794779518451
+        },
+        {
+          "url": "https://old.example.test/wiki/rest/api/content/7/child/attachment",
+          "method": "PUT",
+          "time": 1794779518451
+        }
+      ]
+    },
+    {
+      "case": "unknown outcome without returned digest repeats upload",
+      "first": {
+        "status": "retry",
+        "message": "Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.",
+        "uploaded": 0,
+        "bodyUpdated": false
+      },
+      "second": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.453Z"
+      },
+      "uploads": 2,
+      "remoteVersion": 2
+    },
+    {
+      "case": "Retry-After discarded and immediate repeated request allowed",
+      "first": {
+        "status": "retry",
+        "message": "Confluence ist gerade nicht bereit (Status 429). Die Veröffentlichung wird wiederholt.",
+        "uploaded": 0,
+        "bodyUpdated": false
+      },
+      "second": {
+        "status": "retry",
+        "message": "Confluence ist gerade nicht bereit (Status 429). Die Veröffentlichung wird wiederholt.",
+        "uploaded": 0,
+        "bodyUpdated": false
+      },
+      "requests": 2,
+      "betweenRequestsMs": 0,
+      "serverRetryAfterSeconds": 3600
+    },
+    {
+      "case": "legacy whole-body write changes tenant between GET and PUT",
+      "outcome": {
+        "status": "resolved",
+        "page": {
+          "id": "7",
+          "title": "Original",
+          "version": 3,
+          "storageBody": "<p>Original text</p>",
+          "bodyHash": "6e4970f7d7117b063ee149232713b07e428e7af292dbe61a1ca30a04d13c4fce",
+          "url": "https://new.example.test/wiki/pages/viewpage.action?pageId=7"
+        }
+      },
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET"
+        },
+        {
+          "url": "https://new.example.test/wiki/api/v2/pages/7",
+          "method": "PUT"
+        },
+        {
+          "url": "https://new.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "case": "missing expectedBodyHash bypasses same-version content guard",
+      "outcome": "resolved",
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET"
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7",
+          "method": "PUT",
+          "body": {
+            "id": "7",
+            "status": "current",
+            "title": "Local",
+            "body": {
+              "representation": "storage",
+              "value": "<p>Old imported text plus local edit</p>"
+            },
+            "version": {
+              "number": 4,
+              "message": "Updated from Sketchdraw"
+            }
+          }
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "case": "document A B A in same folder does not cancel old job",
+      "outcome": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.456Z"
+      },
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET",
+          "time": 1794779518456
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7/attachments?filename=sketchdraw-7048cab46bb7-697c568322e5.png&limit=25",
+          "method": "GET",
+          "time": 1794779518456
+        },
+        {
+          "url": "https://old.example.test/wiki/rest/api/content/7/child/attachment",
+          "method": "PUT",
+          "time": 1794779518456
+        }
+      ]
+    },
+    {
+      "case": "disable then reenable does not cancel old job",
+      "outcome": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.457Z"
+      },
+      "uploads": 1,
+      "calls": [
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7?body-format=storage",
+          "method": "GET",
+          "time": 1794779518456
+        },
+        {
+          "url": "https://old.example.test/wiki/api/v2/pages/7/attachments?filename=sketchdraw-7048cab46bb7-697c568322e5.png&limit=25",
+          "method": "GET",
+          "time": 1794779518456
+        },
+        {
+          "url": "https://old.example.test/wiki/rest/api/content/7/child/attachment",
+          "method": "PUT",
+          "time": 1794779518456
+        }
+      ]
+    },
+    {
+      "case": "positive control unknown outcome with digest avoids repeat upload",
+      "first": {
+        "status": "retry",
+        "message": "Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.",
+        "uploaded": 0,
+        "bodyUpdated": false
+      },
+      "second": {
+        "status": "synced",
+        "message": "Confluence ist auf dem aktuellen Stand.",
+        "uploaded": 0,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T21:51:58.457Z"
+      },
+      "uploads": 1,
+      "remoteVersion": 1
+    }
+  ]
+}

@@ -1,0 +1,353 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--grep",
+      "#218",
+      "--repeat-each=2",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-218-fable-artifacts"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/sketchdraw-218-fable-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/sketchdraw-218-fable-artifacts",
+        "repeatEach": 2,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/tmp/sketchdraw-218-fable-artifacts",
+        "repeatEach": 2,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a saved empty application exits normally (#218)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 756,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:47:29.283Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            },
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 730,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:47:50.032Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-38bc9c7f48cb291280c4",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 560,
+          "column": 1
+        },
+        {
+          "title": "a cancelled quit keeps the plugins working, a repeated quit keeps one question and saving completes the quit (#218)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14959,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:47:30.059Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzUwLDIyMF0sInRvIjpbNTUwLDM2MF0sImJlZm9yZSI6W10sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4IjozNzUsInkiOjIzNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM3NSwieSI6MjM3LjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDAwLCJ5IjoyNTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDI1LCJ5IjoyNzIuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NTAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzUsInkiOjMwNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUwMCwieSI6MzI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUyNSwieSI6MzQyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NTUwLCJ5IjozNjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6Imxvc3Rwb2ludGVyY2FwdHVyZSIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9XSwiZG9tIjp7InZpZXdwb3J0Ijp7IndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Miwic2NhbGUiOjJ9LCJmb2N1c2VkIjp0cnVlLCJhY3RpdmUiOnsidGFnIjoic3ZnIiwidGVzdElkIjoid2hpdGVib2FyZC1jYW52YXMiLCJyb2xlIjoiYXBwbGljYXRpb24iLCJsYWJlbCI6IlplaWNoZW5mbMOkY2hlIiwiY2xhc3NOYW1lIjpudWxsLCJvbkNhbnZhcyI6dHJ1ZX0sImNhbnZhcyI6eyJ4IjowLCJ5IjowLCJ3aWR0aCI6MTI4MCwiaGVpZ2h0Ijo3NzJ9LCJzYXZlU3RhdHVzIjoidW5zYXZlZC1uZXciLCJwYWdlTGFiZWwiOiJTZWl0ZW4gKDEpLCBha3R1ZWxsZSBTZWl0ZTogU2VpdGUgMSIsIm9wZW5EaWFsb2dzIjpbXSwicHJlc3NlZCI6W3sidGFnIjoiQlVUVE9OIiwidGVzdElkIjpudWxsLCJyb2xlIjpudWxsLCJsYWJlbCI6IkF1c3dhaGwiLCJjbGFzc05hbWUiOiJ0b29sIHNkLWljb24tYnRuIiwib25DYW52YXMiOmZhbHNlfV0sInNpbGhvdWV0dGVWaXNpYmxlIjpmYWxzZSwiZHJhZnRDb3VudCI6MCwicmVjdGFuZ2xlcyI6W3siaWQiOiJyZWN0YW5nbGU6ZDExZmU3ZjctOGI2OS00MmVhLWE5NTQtZDZkNmZhMjY2ZWJhIiwiYm94Ijp7IngiOjM1MCwieSI6MjIwLCJ3aWR0aCI6MjAwLCJoZWlnaHQiOjE0MH0sIndpZHRoIjoiMjAwIiwiaGVpZ2h0IjoiMTQwIn1dLCJwb2ludHMiOlt7IngiOjM1MCwieSI6MjIwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjU1MCwieSI6MzYwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbNjUwLDI0MF0sInRvIjpbNzkwLDM0MF0sImJlZm9yZSI6WyJyZWN0YW5nbGU6ZDExZmU3ZjctOGI2OS00MmVhLWE5NTQtZDZkNmZhMjY2ZWJhIl0sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NjUwLCJ5IjoyNDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6NjUwLCJ5IjoyNDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4Ijo2NjcuNSwieSI6MjUyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NjY3LjUsInkiOjI1Mi41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjY4NSwieSI6MjY1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjcwMi41LCJ5IjoyNzcuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo3MjAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo3MzcuNSwieSI6MzAyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NzU1LCJ5IjozMTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NzcyLjUsInkiOjMyNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjc5MCwieSI6MzQwLCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVydXAiLCJ4Ijo3OTAsInkiOjM0MCwiYnV0dG9uIjowLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJsb3N0cG9pbnRlcmNhcHR1cmUiLCJ4Ijo3OTAsInkiOjM0MCwiYnV0dG9uIjowLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfV0sImRvbSI6eyJ2aWV3cG9ydCI6eyJ3aWR0aCI6MTI4MCwiaGVpZ2h0Ijo3NzIsInNjYWxlIjoyfSwiZm9jdXNlZCI6dHJ1ZSwiYWN0aXZlIjp7InRhZyI6InN2ZyIsInRlc3RJZCI6IndoaXRlYm9hcmQtY2FudmFzIiwicm9sZSI6ImFwcGxpY2F0aW9uIiwibGFiZWwiOiJaZWljaGVuZmzDpGNoZSIsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9LCJjYW52YXMiOnsieCI6MCwieSI6MCwid2lkdGgiOjEyODAsImhlaWdodCI6NzcyfSwic2F2ZVN0YXR1cyI6ImRpcnR5IiwicGFnZUxhYmVsIjoiU2VpdGVuICgxKSwgYWt0dWVsbGUgU2VpdGU6IFNlaXRlIDEiLCJvcGVuRGlhbG9ncyI6W10sInByZXNzZWQiOlt7InRhZyI6IkJVVFRPTiIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOiJBdXN3YWhsIiwiY2xhc3NOYW1lIjoidG9vbCBzZC1pY29uLWJ0biIsIm9uQ2FudmFzIjpmYWxzZX1dLCJzaWxob3VldHRlVmlzaWJsZSI6ZmFsc2UsImRyYWZ0Q291bnQiOjAsInJlY3RhbmdsZXMiOlt7ImlkIjoicmVjdGFuZ2xlOmQxMWZlN2Y3LThiNjktNDJlYS1hOTU0LWQ2ZDZmYTI2NmViYSIsImJveCI6eyJ4IjozNTAsInkiOjIyMCwid2lkdGgiOjIwMCwiaGVpZ2h0IjoxNDB9LCJ3aWR0aCI6IjIwMCIsImhlaWdodCI6IjE0MCJ9LHsiaWQiOiJyZWN0YW5nbGU6YzViYTE5MDUtYjIwNS00M2FiLWE3ZWMtNDJhYjdjMGM0Njk0IiwiYm94Ijp7IngiOjY1MCwieSI6MjQwLCJ3aWR0aCI6MTQwLCJoZWlnaHQiOjEwMH0sIndpZHRoIjoiMTQwIiwiaGVpZ2h0IjoiMTAwIn1dLCJwb2ludHMiOlt7IngiOjY1MCwieSI6MjQwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjc5MCwieSI6MzQwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzYwLDQ0MF0sInRvIjpbNDkwLDUzMF0sImJlZm9yZSI6WyJyZWN0YW5nbGU6ZDExZmU3ZjctOGI2OS00MmVhLWE5NTQtZDZkNmZhMjY2ZWJhIiwicmVjdGFuZ2xlOmM1YmExOTA1LWIyMDUtNDNhYi1hN2VjLTQyYWI3YzBjNDY5NCJdLCJwb2ludGVyIjpbeyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo1MjYuMzQ5OTc1NTg1OTM3NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjUyNi4zNDk5NzU1ODU5Mzc1LCJ5Ijo0MCwiYnV0dG9uIjowLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjpmYWxzZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoicG9pbnRlcnVwIiwieCI6NTI2LjM0OTk3NTU4NTkzNzUsInkiOjQwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM2MCwieSI6NDQwLCJidXR0b24iOi0xLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjM2MCwieSI6NDQwLCJidXR0b24iOjAsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6ImdvdHBvaW50ZXJjYXB0dXJlIiwieCI6Mzc2LjI1LCJ5Ijo0NTEuMjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6Mzc2LjI1LCJ5Ijo0NTEuMjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzkyLjUsInkiOjQ2Mi41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQwOC43NSwieSI6NDczLjc1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQyNSwieSI6NDg1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ0MS4yNSwieSI6NDk2LjI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ1Ny41LCJ5Ijo1MDcuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzMuNzUsInkiOjUxOC43NSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0OTAsInkiOjUzMCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcnVwIiwieCI6NDkwLCJ5Ijo1MzAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoibG9zdHBvaW50ZXJjYXB0dXJlIiwieCI6NDkwLCJ5Ijo1MzAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH1dLCJkb20iOnsidmlld3BvcnQiOnsid2lkdGgiOjEyODAsImhlaWdodCI6NzcyLCJzY2FsZSI6Mn0sImZvY3VzZWQiOnRydWUsImFjdGl2ZSI6eyJ0YWciOiJzdmciLCJ0ZXN0SWQiOiJ3aGl0ZWJvYXJkLWNhbnZhcyIsInJvbGUiOiJhcHBsaWNhdGlvbiIsImxhYmVsIjoiWmVpY2hlbmZsw6RjaGUiLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfSwiY2FudmFzIjp7IngiOjAsInkiOjAsIndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Mn0sInNhdmVTdGF0dXMiOiJkaXJ0eSIsInBhZ2VMYWJlbCI6IlNlaXRlbiAoMSksIGFrdHVlbGxlIFNlaXRlOiBTZWl0ZSAxIiwib3BlbkRpYWxvZ3MiOltdLCJwcmVzc2VkIjpbeyJ0YWciOiJCVVRUT04iLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjoiQXVzd2FobCIsImNsYXNzTmFtZSI6InRvb2wgc2QtaWNvbi1idG4iLCJvbkNhbnZhcyI6ZmFsc2V9XSwic2lsaG91ZXR0ZVZpc2libGUiOmZhbHNlLCJkcmFmdENvdW50IjowLCJyZWN0YW5nbGVzIjpbeyJpZCI6InJlY3RhbmdsZTpkMTFmZTdmNy04YjY5LTQyZWEtYTk1NC1kNmQ2ZmEyNjZlYmEiLCJib3giOnsieCI6MzUwLCJ5IjoyMjAsIndpZHRoIjoyMDAsImhlaWdodCI6MTQwfSwid2lkdGgiOiIyMDAiLCJoZWlnaHQiOiIxNDAifSx7ImlkIjoicmVjdGFuZ2xlOmM1YmExOTA1LWIyMDUtNDNhYi1hN2VjLTQyYWI3YzBjNDY5NCIsImJveCI6eyJ4Ijo2NTAsInkiOjI0MCwid2lkdGgiOjE0MCwiaGVpZ2h0IjoxMDB9LCJ3aWR0aCI6IjE0MCIsImhlaWdodCI6IjEwMCJ9LHsiaWQiOiJyZWN0YW5nbGU6MjgwZTBlY2UtZmFmNi00MWFlLTg1ZGUtYzk4YTFkMGUzNDY2IiwiYm94Ijp7IngiOjM2MCwieSI6NDQwLCJ3aWR0aCI6MTMwLCJoZWlnaHQiOjkwfSwid2lkdGgiOiIxMzAiLCJoZWlnaHQiOiI5MCJ9XSwicG9pbnRzIjpbeyJ4IjozNjAsInkiOjQ0MCwidG9wIjp7InRhZyI6InJlY3QiLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjpudWxsLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfX0seyJ4Ijo0OTAsInkiOjUzMCwidG9wIjp7InRhZyI6InJlY3QiLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjpudWxsLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfX1dfX0="
+                    },
+                    {
+                      "name": "native-quit-218-cancel-evidence",
+                      "contentType": "application/json",
+                      "body": "ewogICJwbGF0Zm9ybSI6ICJkYXJ3aW4iLAogICJhZnRlckNhbmNlbCI6IHsKICAgICJ1cGxvYWRzIjogMywKICAgICJsYXN0UHVibGljYXRpb24iOiAic3luY2VkIiwKICAgICJjbG9zZVJlcXVlc3RzIjogMSwKICAgICJhbGl2ZSI6IHRydWUKICB9LAogICJhZnRlclNhdmUiOiB7CiAgICAiZXhpdCI6IHsKICAgICAgImNvZGUiOiAwLAogICAgICAic2lnbmFsIjogbnVsbAogICAgfSwKICAgICJzYXZlZFJlY3RhbmdsZXMiOiAzCiAgfSwKICAibGl2ZVRlbmFudENvbnRhY3RlZCI6IGZhbHNlCn0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            },
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14869,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:47:50.783Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzUwLDIyMF0sInRvIjpbNTUwLDM2MF0sImJlZm9yZSI6W10sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4IjozNzUsInkiOjIzNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM3NSwieSI6MjM3LjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDAwLCJ5IjoyNTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDI1LCJ5IjoyNzIuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NTAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzUsInkiOjMwNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUwMCwieSI6MzI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUyNSwieSI6MzQyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NTUwLCJ5IjozNjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6Imxvc3Rwb2ludGVyY2FwdHVyZSIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9XSwiZG9tIjp7InZpZXdwb3J0Ijp7IndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Miwic2NhbGUiOjJ9LCJmb2N1c2VkIjp0cnVlLCJhY3RpdmUiOnsidGFnIjoic3ZnIiwidGVzdElkIjoid2hpdGVib2FyZC1jYW52YXMiLCJyb2xlIjoiYXBwbGljYXRpb24iLCJsYWJlbCI6IlplaWNoZW5mbMOkY2hlIiwiY2xhc3NOYW1lIjpudWxsLCJvbkNhbnZhcyI6dHJ1ZX0sImNhbnZhcyI6eyJ4IjowLCJ5IjowLCJ3aWR0aCI6MTI4MCwiaGVpZ2h0Ijo3NzJ9LCJzYXZlU3RhdHVzIjoidW5zYXZlZC1uZXciLCJwYWdlTGFiZWwiOiJTZWl0ZW4gKDEpLCBha3R1ZWxsZSBTZWl0ZTogU2VpdGUgMSIsIm9wZW5EaWFsb2dzIjpbXSwicHJlc3NlZCI6W3sidGFnIjoiQlVUVE9OIiwidGVzdElkIjpudWxsLCJyb2xlIjpudWxsLCJsYWJlbCI6IkF1c3dhaGwiLCJjbGFzc05hbWUiOiJ0b29sIHNkLWljb24tYnRuIiwib25DYW52YXMiOmZhbHNlfV0sInNpbGhvdWV0dGVWaXNpYmxlIjpmYWxzZSwiZHJhZnRDb3VudCI6MCwicmVjdGFuZ2xlcyI6W3siaWQiOiJyZWN0YW5nbGU6ZmE3NGVjM2ItYjM1Ny00MjNkLWFjZTQtZTJlNTU3MjcxMmFhIiwiYm94Ijp7IngiOjM1MCwieSI6MjIwLCJ3aWR0aCI6MjAwLCJoZWlnaHQiOjE0MH0sIndpZHRoIjoiMjAwIiwiaGVpZ2h0IjoiMTQwIn1dLCJwb2ludHMiOlt7IngiOjM1MCwieSI6MjIwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjU1MCwieSI6MzYwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbNjUwLDI0MF0sInRvIjpbNzkwLDM0MF0sImJlZm9yZSI6WyJyZWN0YW5nbGU6ZmE3NGVjM2ItYjM1Ny00MjNkLWFjZTQtZTJlNTU3MjcxMmFhIl0sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NjUwLCJ5IjoyNDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6NjUwLCJ5IjoyNDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4Ijo2NjcuNSwieSI6MjUyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NjY3LjUsInkiOjI1Mi41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjY4NSwieSI6MjY1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjcwMi41LCJ5IjoyNzcuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo3MjAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo3MzcuNSwieSI6MzAyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NzU1LCJ5IjozMTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NzcyLjUsInkiOjMyNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjc5MCwieSI6MzQwLCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVydXAiLCJ4Ijo3OTAsInkiOjM0MCwiYnV0dG9uIjowLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJsb3N0cG9pbnRlcmNhcHR1cmUiLCJ4Ijo3OTAsInkiOjM0MCwiYnV0dG9uIjowLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfV0sImRvbSI6eyJ2aWV3cG9ydCI6eyJ3aWR0aCI6MTI4MCwiaGVpZ2h0Ijo3NzIsInNjYWxlIjoyfSwiZm9jdXNlZCI6dHJ1ZSwiYWN0aXZlIjp7InRhZyI6InN2ZyIsInRlc3RJZCI6IndoaXRlYm9hcmQtY2FudmFzIiwicm9sZSI6ImFwcGxpY2F0aW9uIiwibGFiZWwiOiJaZWljaGVuZmzDpGNoZSIsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9LCJjYW52YXMiOnsieCI6MCwieSI6MCwid2lkdGgiOjEyODAsImhlaWdodCI6NzcyfSwic2F2ZVN0YXR1cyI6ImRpcnR5IiwicGFnZUxhYmVsIjoiU2VpdGVuICgxKSwgYWt0dWVsbGUgU2VpdGU6IFNlaXRlIDEiLCJvcGVuRGlhbG9ncyI6W10sInByZXNzZWQiOlt7InRhZyI6IkJVVFRPTiIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOiJBdXN3YWhsIiwiY2xhc3NOYW1lIjoidG9vbCBzZC1pY29uLWJ0biIsIm9uQ2FudmFzIjpmYWxzZX1dLCJzaWxob3VldHRlVmlzaWJsZSI6ZmFsc2UsImRyYWZ0Q291bnQiOjAsInJlY3RhbmdsZXMiOlt7ImlkIjoicmVjdGFuZ2xlOmZhNzRlYzNiLWIzNTctNDIzZC1hY2U0LWUyZTU1NzI3MTJhYSIsImJveCI6eyJ4IjozNTAsInkiOjIyMCwid2lkdGgiOjIwMCwiaGVpZ2h0IjoxNDB9LCJ3aWR0aCI6IjIwMCIsImhlaWdodCI6IjE0MCJ9LHsiaWQiOiJyZWN0YW5nbGU6ZDI3OWY3YmUtYjVlNy00YjMyLThkMzUtNzI5NzE4Y2JjNmNlIiwiYm94Ijp7IngiOjY1MCwieSI6MjQwLCJ3aWR0aCI6MTQwLCJoZWlnaHQiOjEwMH0sIndpZHRoIjoiMTQwIiwiaGVpZ2h0IjoiMTAwIn1dLCJwb2ludHMiOlt7IngiOjY1MCwieSI6MjQwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjc5MCwieSI6MzQwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzYwLDQ0MF0sInRvIjpbNDkwLDUzMF0sImJlZm9yZSI6WyJyZWN0YW5nbGU6ZmE3NGVjM2ItYjM1Ny00MjNkLWFjZTQtZTJlNTU3MjcxMmFhIiwicmVjdGFuZ2xlOmQyNzlmN2JlLWI1ZTctNGIzMi04ZDM1LTcyOTcxOGNiYzZjZSJdLCJwb2ludGVyIjpbeyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo1MjYuMzQ5OTc1NTg1OTM3NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjUyNi4zNDk5NzU1ODU5Mzc1LCJ5Ijo0MCwiYnV0dG9uIjowLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjpmYWxzZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoicG9pbnRlcnVwIiwieCI6NTI2LjM0OTk3NTU4NTkzNzUsInkiOjQwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM2MCwieSI6NDQwLCJidXR0b24iOi0xLCJidXR0b25zIjowLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjM2MCwieSI6NDQwLCJidXR0b24iOjAsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6ImdvdHBvaW50ZXJjYXB0dXJlIiwieCI6Mzc2LjI1LCJ5Ijo0NTEuMjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6Mzc2LjI1LCJ5Ijo0NTEuMjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzkyLjUsInkiOjQ2Mi41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQwOC43NSwieSI6NDczLjc1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQyNSwieSI6NDg1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ0MS4yNSwieSI6NDk2LjI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ1Ny41LCJ5Ijo1MDcuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzMuNzUsInkiOjUxOC43NSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0OTAsInkiOjUzMCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcnVwIiwieCI6NDkwLCJ5Ijo1MzAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoibG9zdHBvaW50ZXJjYXB0dXJlIiwieCI6NDkwLCJ5Ijo1MzAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH1dLCJkb20iOnsidmlld3BvcnQiOnsid2lkdGgiOjEyODAsImhlaWdodCI6NzcyLCJzY2FsZSI6Mn0sImZvY3VzZWQiOnRydWUsImFjdGl2ZSI6eyJ0YWciOiJzdmciLCJ0ZXN0SWQiOiJ3aGl0ZWJvYXJkLWNhbnZhcyIsInJvbGUiOiJhcHBsaWNhdGlvbiIsImxhYmVsIjoiWmVpY2hlbmZsw6RjaGUiLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfSwiY2FudmFzIjp7IngiOjAsInkiOjAsIndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Mn0sInNhdmVTdGF0dXMiOiJkaXJ0eSIsInBhZ2VMYWJlbCI6IlNlaXRlbiAoMSksIGFrdHVlbGxlIFNlaXRlOiBTZWl0ZSAxIiwib3BlbkRpYWxvZ3MiOltdLCJwcmVzc2VkIjpbeyJ0YWciOiJCVVRUT04iLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjoiQXVzd2FobCIsImNsYXNzTmFtZSI6InRvb2wgc2QtaWNvbi1idG4iLCJvbkNhbnZhcyI6ZmFsc2V9XSwic2lsaG91ZXR0ZVZpc2libGUiOmZhbHNlLCJkcmFmdENvdW50IjowLCJyZWN0YW5nbGVzIjpbeyJpZCI6InJlY3RhbmdsZTpmYTc0ZWMzYi1iMzU3LTQyM2QtYWNlNC1lMmU1NTcyNzEyYWEiLCJib3giOnsieCI6MzUwLCJ5IjoyMjAsIndpZHRoIjoyMDAsImhlaWdodCI6MTQwfSwid2lkdGgiOiIyMDAiLCJoZWlnaHQiOiIxNDAifSx7ImlkIjoicmVjdGFuZ2xlOmQyNzlmN2JlLWI1ZTctNGIzMi04ZDM1LTcyOTcxOGNiYzZjZSIsImJveCI6eyJ4Ijo2NTAsInkiOjI0MCwid2lkdGgiOjE0MCwiaGVpZ2h0IjoxMDB9LCJ3aWR0aCI6IjE0MCIsImhlaWdodCI6IjEwMCJ9LHsiaWQiOiJyZWN0YW5nbGU6ZGVlOGQ3MDEtNjlhOC00ZGEwLThkNGQtNzhiYmEzNjIwZWU0IiwiYm94Ijp7IngiOjM2MCwieSI6NDQwLCJ3aWR0aCI6MTMwLCJoZWlnaHQiOjkwfSwid2lkdGgiOiIxMzAiLCJoZWlnaHQiOiI5MCJ9XSwicG9pbnRzIjpbeyJ4IjozNjAsInkiOjQ0MCwidG9wIjp7InRhZyI6InJlY3QiLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjpudWxsLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfX0seyJ4Ijo0OTAsInkiOjUzMCwidG9wIjp7InRhZyI6InJlY3QiLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjpudWxsLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfX1dfX0="
+                    },
+                    {
+                      "name": "native-quit-218-cancel-evidence",
+                      "contentType": "application/json",
+                      "body": "ewogICJwbGF0Zm9ybSI6ICJkYXJ3aW4iLAogICJhZnRlckNhbmNlbCI6IHsKICAgICJ1cGxvYWRzIjogMywKICAgICJsYXN0UHVibGljYXRpb24iOiAic3luY2VkIiwKICAgICJjbG9zZVJlcXVlc3RzIjogMSwKICAgICJhbGl2ZSI6IHRydWUKICB9LAogICJhZnRlclNhdmUiOiB7CiAgICAiZXhpdCI6IHsKICAgICAgImNvZGUiOiAwLAogICAgICAic2lnbmFsIjogbnVsbAogICAgfSwKICAgICJzYXZlZFJlY3RhbmdsZXMiOiAzCiAgfSwKICAibGl2ZVRlbmFudENvbnRhY3RlZCI6IGZhbHNlCn0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-853b7315627e0c13cca2",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 612,
+          "column": 1
+        },
+        {
+          "title": "closing only the window after a cancelled quit keeps the application, which reopens and then quits (#218)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4540,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:47:45.024Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-quit-218-window-evidence",
+                      "contentType": "application/json",
+                      "body": "eyJwbGF0Zm9ybSI6ImRhcndpbiIsImFsaXZlV2l0aG91dFdpbmRvd0FmdGVyQ2FuY2VsbGVkUXVpdCI6dHJ1ZSwicmVvcGVuZWRPbkFjdGl2YXRlIjp0cnVlLCJleGl0Ijp7ImNvZGUiOjAsInNpZ25hbCI6bnVsbH19"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            },
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4405,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:48:05.659Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-quit-218-window-evidence",
+                      "contentType": "application/json",
+                      "body": "eyJwbGF0Zm9ybSI6ImRhcndpbiIsImFsaXZlV2l0aG91dFdpbmRvd0FmdGVyQ2FuY2VsbGVkUXVpdCI6dHJ1ZSwicmVvcGVuZWRPbkFjdGl2YXRlIjp0cnVlLCJleGl0Ijp7ImNvZGUiOjAsInNpZ25hbCI6bnVsbH19"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-e1df6cf4d8f1b452357e",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 681,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T09:47:28.784Z",
+    "duration": 41297.325,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-11-15T23:16:50.887013+00:00",
+  "baseCommit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+  "branch": "codex/210-confluence-integration",
+  "uncommitted": true,
+  "environment": "macOS arm64; isolated Electron app, synthetic local HTTP credentials/profile, real PNG and local Git bare remote; no real Tenant",
+  "exitCode": 0,
+  "tests": [
+    {
+      "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+      "status": "passed",
+      "durationMs": 83114,
+      "errors": []
+    },
+    {
+      "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+      "status": "passed",
+      "durationMs": 10301,
+      "errors": []
+    }
+  ],
+  "productAndTestFilesChangedDuringRun": [],
+  "realTenantAcceptance": false
+}

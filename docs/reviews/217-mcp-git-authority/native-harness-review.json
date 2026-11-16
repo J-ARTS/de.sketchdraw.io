@@ -1,0 +1,10 @@
+{
+  "at": "2026-11-16T09:16:03.673604+00:00",
+  "executor": "OpenAI Codex Root",
+  "issue": 217,
+  "scope": "Native test only: wait for restarted watcher through Git status UI; count quit only for live process exiting0 with no signal.",
+  "beforeSha256": "3fe01caec1ee4b8ab603dcbed265c3568c740d34fc6d1cc89f3bdd52980c04a3",
+  "afterSha256": "66325edc64db474a5d0e2ca6b9421a1093a3a48fd445f2b47e5721217f12a00f",
+  "nativeRun": "not yet executed",
+  "referenceComment": 6912291055
+}

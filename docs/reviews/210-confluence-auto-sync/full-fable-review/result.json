@@ -1,0 +1,152 @@
+{
+  "duration_api_ms": 611433,
+  "stop_reason": "end_turn",
+  "session_id": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "total_cost_usd": 8.1385424,
+  "usage": {
+    "input_tokens": 46,
+    "cache_creation_input_tokens": 320437,
+    "cache_read_input_tokens": 3154512,
+    "output_tokens": 59507,
+    "output_tokens_details": {
+      "thinking_tokens": 42607
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 320437,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 12767,
+        "cache_read_input_tokens": 310480,
+        "cache_creation_input_tokens": 14521,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 14521
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 46,
+      "outputTokens": 59507,
+      "cacheReadInputTokens": 3154512,
+      "cacheCreationInputTokens": 320437,
+      "webSearchRequests": 0,
+      "costUSD": 8.1385424,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 42607,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 320437,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01JnhFXc5Qs3Teyea4sM9oqa",
+      "tool_input": {
+        "command": "cd /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io && git rev-parse --abbrev-ref HEAD && git rev-parse HEAD && git status --short | head -120",
+        "description": "Show branch and status of the original Desktop checkout"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01TC4FDFn2U8AsBrkiCt3VAA",
+      "tool_input": {
+        "command": "graphify query \"How does the Confluence live sync interact with CRDT persistence and the close handshake?\" 2>&1 | head -40",
+        "description": "Query the knowledge graph for the Confluence sync, persistence and close handshake relations"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01Wqwi2qhDGDNKv6i2WSkQEg",
+      "tool_input": {
+        "command": "git -C /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io status --short | head -80; git -C /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io rev-parse HEAD",
+        "description": "Show status of the original checkout without changing directory"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_019mCqidzAJb29A4eGonrGYC",
+      "tool_input": {
+        "command": "O=/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io; diff -u \"$O/electron/main.ts\" electron/main.ts; echo \"=== exit $?\"; diff -u \"$O/tests/electron/confluence-live.spec.ts\" tests/electron/confluence-live.spec.ts; echo \"=== exit $?\"",
+        "description": "Compare main.ts and the native Confluence test between original checkout and integration worktree"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 55,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Unabh\u00e4ngiger Review #210 / #217 / #218 \u2013 Integrations-Worktree\n\n**Ergebnis:** Keine Blocker gefunden, aber zwei mittlere Defekte in `electron/plugin-service.ts`, die ich vor dem Merge beheben w\u00fcrde, und eine offene Architekturfrage zu #217. Keine pauschale Freigabe: Mehrere Testdateien und der Original-Checkout sind nur teilweise gepr\u00fcft (Tabelle unten).\n\n**Pr\u00fcfbasis:** Rein statisch, nur Lesen, Suchen und `git diff`/`git status` im Integrations-Worktree. Keine Tests, kein Build, keine App, kein Netz. `graphify query` wurde vom Harness verweigert. Jeder Bash-Zugriff auf den Original-Checkout wurde ebenfalls verweigert; dort habe ich nur Manifest-Hashes und gezielte Suchen verwendet.\n\n**Identit\u00e4t:** Modell laut Systemkontext `claude-fable-5-2` (Claude Agent SDK). CLI-Version und Effort-Stufe sind f\u00fcr mich nicht einsehbar.\n\n## Befunde\n\n### B1 (Mittel) \u2013 Einstellungs-Speichern kann den Anhangs-Stand einer Verkn\u00fcpfung zur\u00fccksetzen\n- **Ort:** `electron/plugin-service.ts:543-546` (`saveConfig`), Aufrufer `:729-731`, `:737-739`, `:774-775`, `:789-792`; Gegenst\u00fcck `:710-724` (`updateLiveLinks`).\n- **Ursache:** `saveConfig` schreibt `next.atlassian` samt `confluenceLinks` aus einem Schnappschuss von `this.config`. `updateLiveLinks` aktualisiert `this.config` aber erst nach Abschluss seiner Store-Mutation. Der Schutz gilt also nur in eine Richtung.\n- **Ausl\u00f6ser:** Git- oder Atlassian-Einstellungen speichern oder ein Plugin (de)installieren, w\u00e4hrend das `remember()` einer Ver\u00f6ffentlichung (`:1220`, `:1316`) noch auf die Datei schreibt. Das Fenster ist wenige Millisekunden breit; bei `configureGit` reicht es, dass ein Git-Kommando (`:766-771`) genau dann zur\u00fcckkehrt.\n- **Auswirkung:** `published`, `pending` und `lastSyncedAt` fallen auf den alten Stand zur\u00fcck. Bei der n\u00e4chsten inhaltlich ge\u00e4nderten Ver\u00f6ffentlichung greift `:1264-1267`: Die eigene, neuere Version gilt als \u201evon anderer Stelle ge\u00e4ndert\u201c. Die Verkn\u00fcpfung bleibt blockiert, bis der Nutzer den Anhang in Confluence l\u00f6scht.\n- **Korrektur:** In der `saveConfig`-Mutation `confluenceLinks` aus dem gespeicherten Profil \u00fcbernehmen, nicht aus `next`. Danach `this.config` aus dem gespeicherten Profil ableiten. Deinstallation l\u00f6scht die Verkn\u00fcpfungen weiterhin ausdr\u00fccklich.\n- **Testl\u00fccke:** `confluence-live-service.spec.ts:181` pr\u00fcft nur den sequenziellen Fall.\n\n### B2 (Mittel, latent) \u2013 Schreibpfad kann eine Profildatei erzeugen, die der Lesepfad komplett verwirft\n- **Ort:** Lesen `electron/plugin-service.ts:219-228`, `:234-235`; Schreiben `:1056`, `:1071`, `:1215-1224`, `:1229`; Folge `:504-510`.\n- **Ausl\u00f6ser a:** `published` w\u00e4chst um jede je ver\u00f6ffentlichte Diagrammseite. Eintr\u00e4ge werden nur bei `remote === null` einer aktuellen Seite gel\u00f6scht (`:1257`). Ab 401 Dateinamen wirft `records()` beim n\u00e4chsten Start.\n- **Ausl\u00f6ser b:** `documentPath` wird ungepr\u00fcft gespeichert. Ein Pfad mit Steuerzeichen, auf macOS/Linux zul\u00e4ssig, wird beim Laden abgelehnt.\n- **Auswirkung:** `PROFILE_STORE_INVALID` f\u00fcr die ganze Datei. Alle Profile erscheinen als Standard, und alle Plugin-\u00c4nderungen sind gesperrt \u2013 nicht nur die betroffene Verkn\u00fcpfung.\n- **Korrektur:** Vor `remember()` `published` und `pending` auf die Dateinamen der aktuellen `images` beschr\u00e4nken. Zus\u00e4tzlich jeden neuen oder ge\u00e4nderten Link vor dem Persistieren durch dieselbe Validierung wie `parseConfluenceLinks` schicken und bei Versto\u00df mit einer Nutzermeldung ablehnen.\n\n### B3 (Mittel, Architektur) \u2013 Der neue Cache-Schreiber hat keinen Leser im Produkt\n- **Ort:** `src/crdt/persistence.ts:53-177`, `:187-217`; `src/renderer/state/whiteboard.ts:131-141`.\n- **Befund:** `createPersistedCrdtController` hat keine Aufrufstelle in `src/` au\u00dfer Definition und Export. Nur Tests lesen den Cache.\n- **Auswirkung:** Rund 170 Zeilen Schreiblogik (Writer-Marke, Sequenz, Kompaktierung, Reconnect) plus eine IndexedDB-Transaktion pro \u00c4nderung ohne Produktnutzen. Bei zwei wechselnden Haltern wird je \u00c4nderung der Vollstand geschrieben.\n- **Vertrags\u00e4nderung:** Die bisherige implizite Wiederherstellung ungespeicherter \u00c4nderungen entf\u00e4llt. Das ist gewollt und getestet (`tests/unit/renderer/document-cache.spec.ts:213-235`), aber nirgends als Produktentscheidung benannt.\n- **Vorbestehend, nicht neu:** Auch Raum-Dokumente von P2P-G\u00e4sten landen in diesem Cache (`whiteboard.ts:917`), ohne Aufr\u00e4umpfad.\n- **Entscheidung n\u00f6tig:** Entweder eine explizite Recovery mit Nutzerentscheidung anbinden, oder den Cache als bewusst ungenutzt dokumentieren und f\u00fcr Raum-Dokumente abschalten.\n\n### B4 (Niedrig) \u2013 Anh\u00e4nge werden hochgeladen, bevor feststeht, dass die Seite lesbar ist\n- **Ort:** `electron/plugin-service.ts:1273-1290`.\n- **Ausl\u00f6ser:** Der Seitenk\u00f6rper ist f\u00fcr den Scanner `unsafe`.\n- **Auswirkung:** Neue Anh\u00e4nge oder Versionen liegen auf einer Seite, die Sketchdraw dann nicht anfasst; Status \u201efehlgeschlagen\u201c.\n- **Korrektur:** `planManagedImages(before.body, \u2026)` und die `unsafe`-Pr\u00fcfung vor Schritt 2 ziehen; `before` liegt dort schon vor.\n\n### B5 (Niedrig) \u2013 Fehler-Haltezeit wird durch \u00c4nderungen w\u00e4hrend eines Laufs umgangen\n- **Ort:** `src/renderer/state/confluence-live-sync.ts:134`, `:170-172`, `:183-186`.\n- **Ausl\u00f6ser:** Dauerhaft fehlschlagende Verkn\u00fcpfung (z. B. 403) und eine Bearbeitung, die in einen laufenden Versuch f\u00e4llt. `finally` plant dann mit `debounceMs` neu, ohne `holdUntil`.\n- **Auswirkung:** Rendern, IPC und HTTP etwa alle drei Sekunden statt alle 60.\n- **Korrektur:** `schedule(Math.max(debounceMs, holdUntil - now()))`.\n\n### B6 (Niedrig, vorbestehend) \u2013 Fenster mit abgest\u00fcrztem Renderer l\u00e4sst sich nicht schlie\u00dfen oder beenden\n- **Ort:** `electron/main.ts:512-518`, `:538`; `electron/close-handshake.ts:61-66`.\n- **Ausl\u00f6ser:** Renderer-Absturz, danach Schlie\u00dfen oder Cmd+Q. `isCrashed()` f\u00fchrt zu \u201eabgelehnt\u201c, und `quitRequested` wird gel\u00f6scht.\n- **Auswirkung:** Nur Force-Quit hilft. Das war vor #218 faktisch genauso, ist jetzt aber ausdr\u00fccklich so kodiert.\n- **Korrektur:** Bei abgest\u00fcrztem oder zerst\u00f6rtem `webContents` das Schlie\u00dfen erlauben; nur \u201el\u00e4dt noch\u201c ablehnen.\n- **Restrisiko:** Eine nie beantwortete Frage blockiert alle sp\u00e4teren Versuche, weil keine neue Anfrage mehr gesendet wird. Einen erreichbaren Renderer-Pfad daf\u00fcr habe ich in `whiteboard.ts:937-990` und `:2304-2316` nicht gefunden.\n\n### B7 (Niedrig) \u2013 Zu gro\u00dfes Bild liefert nur eine generische Meldung\n- **Ort:** `electron/plugin-service.ts:1117-1119`; `src/renderer/lib/confluence-live-image.ts:77-97`.\n- **Ausl\u00f6ser:** Eine Seite mit gro\u00dfen eingebetteten Fotos ergibt ein PNG \u00fcber 10 MB.\n- **Auswirkung:** \u201eUng\u00fcltige Confluence-Ver\u00f6ffentlichung.\u201c f\u00fcr das ganze Diagramm, ohne Seite oder Grenze zu nennen.\n- **Korrektur:** Eigene Meldung mit Seitenname und Limit, oder im Renderer mit kleinerem Ma\u00dfstab neu rastern.\n\n## Erwartete Vertrags\u00e4nderungen (kein Defekt)\n- **Close-ID:** Eine wiederholte Schlie\u00dfanfrage beh\u00e4lt ihre ID; nach Cancel gibt es eine neue ID, die alte Antwort wird abgelehnt. Die Root-\u00c4nderung in `tests/electron/backend-shell.spec.ts:373-387` bildet das korrekt ab.\n- **Aufr\u00e4umen bei Quit:** Plugins und P2P-Verbindungen enden erst in `will-quit`. Ein abgebrochenes Beenden l\u00e4sst sie jetzt weiterlaufen.\n- **Manuelles Senden:** `updateConfluencePage` verlangt `expectedBodyHash` und verweigert verlustbehaftetes Senden. Alte Einbindungen m\u00fcssen einmal neu geladen werden.\n- **Fremde Anhangsversion:** Bei bekanntem Anhang ist eine fremde Folgeversion mit anderem Inhalt ein harter Konflikt (getestet in `confluence-live-service.spec.ts:351`, `:398`).\n- **Grenze daraus:** Zwei Ger\u00e4te mit divergierendem Stand desselben Diagramms blockieren sich gegenseitig. Der L\u00f6schhinweis in der Meldung l\u00f6st das nicht dauerhaft.\n\n## Abdeckung: Integrations-Worktree\n\n| Datei | Status | Anmerkung |\n|---|---|---|\n| `electron/close-handshake.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `electron/main.ts` | gepr\u00fcft | Diff vollst\u00e4ndig, Zeilen 380\u2013674 gelesen; unver\u00e4nderter Rest nicht |\n| `electron/plugin-service.ts` | gepr\u00fcft | vollst\u00e4ndig (1419 Zeilen) |\n| `electron/preload.ts` | gepr\u00fcft | Diff |\n| `src/crdt/persistence.ts` | gepr\u00fcft | Diff vollst\u00e4ndig |\n| `src/crdt/types.ts` | gepr\u00fcft | Diff |\n| `src/domain/atlassian.ts` | gepr\u00fcft | Diff; #209-Codec nicht vertieft |\n| `src/domain/confluence-live.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `src/domain/index.ts` | gepr\u00fcft | Diff |\n| `src/domain/plugins.ts` | gepr\u00fcft | Diff |\n| `organisms/PluginSettings.vue` | teilweise | Diff gelesen; `runOperation` und Altbestand nicht; keine visuelle Pr\u00fcfung |\n| `organisms/panels.stories.ts` | gepr\u00fcft | Diff |\n| `pages/WorkspacePage.vue` | gepr\u00fcft | Diff |\n| `storybook/plugin-bridge.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `storybook/with-whiteboard.ts` | gepr\u00fcft | Diff |\n| `src/renderer/i18n/en.ts` | gepr\u00fcft | Diff; Schl\u00fcssel nicht maschinell abgeglichen |\n| `src/renderer/lib/confluence-live-image.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `src/renderer/state/confluence-live-sync.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `src/renderer/state/contract.ts` | gepr\u00fcft | Diff |\n| `src/renderer/state/whiteboard.ts` | gepr\u00fcft | Diff vollst\u00e4ndig plus Close-/Plugin-/Install-Pfade; Rest der Datei nicht |\n| `tests/electron/backend-shell.spec.ts` | gepr\u00fcft | Diff und Zeilen 335\u2013399 |\n| `tests/electron/confluence-fixture.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `tests/electron/confluence-live.spec.ts` | teilweise | Zeilen 556\u2013735 (#218) und alle Titel; 1\u2013555 nicht |\n| `tests/ui/confluence-live.spec.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `tests/unit/confluence-live-service.spec.ts` | teilweise | Zeilen 1\u2013260, 334\u2013412 und alle Titel; rund 60 % nicht zeilenweise |\n| `tests/unit/crdt.spec.ts` | gepr\u00fcft | Diff |\n| `tests/unit/domain/confluence-live.spec.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `tests/unit/platform/security-and-ipc.spec.ts` | gepr\u00fcft | Diff |\n| `tests/unit/renderer/confluence-live-image.spec.ts` | nicht gepr\u00fcft | nur Testtitel |\n| `tests/unit/renderer/confluence-live-scheduler.spec.ts` | gepr\u00fcft | vollst\u00e4ndig |\n| `tests/unit/renderer/confluence-live-store.spec.ts` | nicht gepr\u00fcft | nur Testtitel |\n| `tests/unit/renderer/design-system.spec.ts` | gepr\u00fcft | Diff (Baseline 15 \u2192 13) |\n| `tests/unit/renderer/document-cache.spec.ts` | gepr\u00fcft | vollst\u00e4ndig |\n\n## Abdeckung: Original-Checkout\n\nKein Diff m\u00f6glich. \u201eDuplikat\u201c hei\u00dft: Manifest-Hash identisch mit der gepr\u00fcften Integrationsdatei.\n\n| Datei | Status | Anmerkung |\n|---|---|---|\n| `electron/main.ts` | teilweise, veraltet | enth\u00e4lt #210, aber nicht #218: Aufr\u00e4umen noch in `before-quit` (`:635`), kein `coordinator.reset`, kein `quitRequested` |\n| `electron/plugin-service.ts` | Duplikat | B1, B2, B4, B7 gelten identisch |\n| `electron/preload.ts` | Duplikat | |\n| `src/domain/atlassian.ts` | Duplikat | |\n| `src/domain/confluence-live.ts` | Duplikat | |\n| `src/domain/index.ts` | Duplikat | |\n| `src/domain/plugins.ts` | Duplikat | |\n| `src/renderer/App.vue` | teilweise, altes Layout | nur `behindModal` (`:127-132`) als Gegenst\u00fcck zu `WorkspacePage.vue` best\u00e4tigt |\n| `src/renderer/components/PluginSettings.vue` | teilweise, altes Layout | Live-Abschnitt und Fokuslogik per Suche vorhanden; nicht zeilenweise verglichen |\n| `src/renderer/i18n/en.ts` | teilweise | 5 von 5 Stichproben-Schl\u00fcsseln vorhanden; Hash weicht ab |\n| `src/renderer/lib/confluence-live-image.ts` | Duplikat | |\n| `src/renderer/state/confluence-live-sync.ts` | Duplikat | B5 gilt identisch |\n| `src/renderer/state/contract.ts` | Duplikat | |\n| `src/renderer/state/whiteboard.ts` | teilweise | #210-Teile per Suche vorhanden; \u00fcbrige Abweichungen nicht aufgelistet |\n| `tests/electron/confluence-fixture.ts` | Duplikat | |\n| `tests/electron/confluence-live.spec.ts` | teilweise, veraltet | nur die zwei #210-Tests; #217- und #218-Tests fehlen |\n| `tests/ui/confluence-live.spec.ts` | Duplikat | |\n| `tests/unit/confluence-live-service.spec.ts` | Duplikat | teilweise gepr\u00fcft wie oben |\n| `tests/unit/domain/confluence-live.spec.ts` | Duplikat | |\n| `tests/unit/renderer/confluence-live-image.spec.ts` | Duplikat | selbst nicht gepr\u00fcft |\n| `tests/unit/renderer/confluence-live-scheduler.spec.ts` | Duplikat | |\n| `tests/unit/renderer/confluence-live-store.spec.ts` | Duplikat | selbst nicht gepr\u00fcft |\n\nDer Original-Checkout enth\u00e4lt weder die #217-Persistenz noch den #218-Handshake; `src/crdt/persistence.ts:37` bindet dort weiterhin `y-indexeddb` direkt an den Controller. Er tr\u00e4gt also CF-217-01 und CF-218-01 noch in sich. Das ist ein veralteter Stand, kein Integrationsdefekt, taugt aber nicht als Produktbasis.\n\n## Akzeptierte Aspekte\n- **Fremdinhalt:** Der Scanner serialisiert nie neu, gibt bei jeder Unsicherheit `unsafe` zur\u00fcck und erkennt Fremdcontainer, Mehrfachquellen und Zeichenreferenzen. Die Domain-Tests decken das ab.\n- **Autorit\u00e4t:** Unwiderrufliche Epoche plus Abbruch laufender Requests plus Wertvergleich in `assertLiveJob`. Jeder Wechsel von Dokument, Profil, Site, Konto, Verkn\u00fcpfung oder Fenster widerruft.\n- **Lokalit\u00e4t der Verkn\u00fcpfung:** Sie liegt nur im Profil auf dem Ger\u00e4t, wird bei Profilkopie und Ordner-Altkonfiguration nicht \u00fcbernommen, und G\u00e4ste oder ungespeicherte Dokumente ver\u00f6ffentlichen nie.\n- **Geheimnisse:** Weder Token noch Link-Token erreichen den Renderer; Weiterleitungen sind gesperrt.\n- **Quit-Ablauf:** `before-quit` \u2192 Handshake \u2192 `window-all-closed` \u2192 `will-quit` ist schl\u00fcssig, einschlie\u00dflich Cancel, Reload und macOS ohne Fenster.\n- **Cache-Richtung:** Der Cache schreibt nie in den Controller. Der Zwei-Halter-Fall ist transaktional sauber gel\u00f6st.\n- **UI:** Der neue Abschnitt nutzt `AppButton`, `AppTextField` und Tokens; der Altbestand sinkt.\n\n## Offene L\u00fccken\n- Der Neustart mit persistierter Verkn\u00fcpfung gegen den echten Tenant ist nicht belegt.\n- Der Body-Schreibpfad hat ein Restfenster zwischen letztem Lesen und PUT, und Anh\u00e4nge haben kein \u201enur wenn noch Version N\u201c (im Code dokumentiert).\n- Das Anh\u00e4ngen am Seitenende bei Seiten mit `ac:layout` ist nur gegen Fakes gepr\u00fcft, die nicht normalisieren.\n- Die #218-Pfade f\u00fcr Windows und Linux sind nur als Unit-Test abgedeckt; zwei native Tests werden au\u00dferhalb von macOS \u00fcbersprungen.\n- Eine Verkn\u00fcpfung h\u00e4ngt am Pfad. Verwaiste Eintr\u00e4ge verschobener Dateien lassen sich nicht entfernen und z\u00e4hlen gegen das Limit von 200 (`plugin-service.ts:1072-1076`).\n- #209, #215, #183/#211, die #217-Registrierungsbeobachtung und Ledger/Graph habe ich nicht bewertet.\n\n## Empfohlene n\u00e4chste Pr\u00fcfungen\n1. **B1:** Unit-Test mit `gate` auf den Profil-Schreibvorgang: `configureGit` und `installPlugin` w\u00e4hrend des abschlie\u00dfenden `remember()`. Danach muss `published` den neuen Stand halten, und eine Ver\u00f6ffentlichung mit ge\u00e4ndertem Inhalt muss `synced` liefern.\n2. **B2:** Unit-Test mit mehr als 400 nacheinander ver\u00f6ffentlichten Seiten-IDs und einem Dokumentpfad mit Zeilenumbruch, jeweils mit Neustart des Dienstes. Erwartung: kein `configurationIssue`.\n3. **B3:** Entscheidung im Ticket #217 dokumentieren (Recovery anbinden oder Cache reduzieren).\n4. **B4, B5:** Je ein gezielter Unit-Test: `unsafe`-Seite ohne POST; \u00c4nderung w\u00e4hrend eines fehlgeschlagenen Laufs ohne zweiten Versuch vor Ablauf der Haltezeit.\n5. **Tenant:** Erstverkn\u00fcpfung auf eine Seite mit Layout-Abschnitten; Neustart mit bestehender Verkn\u00fcpfung; Zwei-Ger\u00e4te-Konflikt.\n6. **B6:** Nativ den Renderer per `forcefullyCrashRenderer` abst\u00fcrzen lassen, dann Schlie\u00dfen und Quit pr\u00fcfen.",
+  "ttft_ms": 2129,
+  "type": "result",
+  "duration_ms": 614409,
+  "uuid": "c76de148-0bf6-42aa-9fdc-576e28ebe5b1",
+  "ttft_stream_ms": 1315,
+  "time_to_request_ms": 336,
+  "first_content_frame_ms": 1315,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 46,
+      "outputTokens": 59507,
+      "cacheReadInputTokens": 3154512,
+      "cacheCreationInputTokens": 320437,
+      "webSearchRequests": 0,
+      "costUSD": 8.1385424,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 42607,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 320437,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

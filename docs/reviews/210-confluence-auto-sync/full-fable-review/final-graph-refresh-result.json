@@ -1,0 +1,17 @@
+{
+  "command": [
+    "python3",
+    "tools/graphify-update.py"
+  ],
+  "cwd": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+  "startedAt": "2026-11-16T12:34:22.008602+00:00",
+  "endedAt": "2026-11-16T12:34:29.474515+00:00",
+  "durationSeconds": 7.465738333994523,
+  "exitCode": 1,
+  "beforeGraphSha256": "164b795aa93d83b5407deb47bdf2403ec2a1a0622e2d0d699036bbcca4f2686f",
+  "afterGraphSha256": "164b795aa93d83b5407deb47bdf2403ec2a1a0622e2d0d699036bbcca4f2686f",
+  "graphByteUnchanged": true,
+  "force": false,
+  "attempts": 1,
+  "log": "final-graph-refresh.log"
+}

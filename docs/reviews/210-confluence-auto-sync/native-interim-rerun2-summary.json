@@ -1,0 +1,125 @@
+{
+  "snapshot": "/private/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-native-snapshot-1jgu8un0",
+  "outcomes": [
+    {
+      "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+      "status": "passed",
+      "durationMs": 73520,
+      "artifacts": [
+        "/tmp/sketchdraw-210-native-test/native-confluence-evidence.json",
+        "/tmp/sketchdraw-210-native-test/native-final-page-one.png",
+        "/tmp/sketchdraw-210-native-test/native-final-page-two.png",
+        "/tmp/sketchdraw-210-native-test/native-restart-edit-diagnostics.json"
+      ]
+    }
+  ],
+  "focusedDiagnostics": [
+    {
+      "stage": "before-restart-draw",
+      "viewport": {
+        "width": 1280,
+        "height": 772,
+        "scale": 2
+      },
+      "focused": true,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 772
+      },
+      "openDialogs": [],
+      "rectangles": 2,
+      "saveStatus": "saved",
+      "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+      "points": [
+        {
+          "x": 360,
+          "y": 440,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        },
+        {
+          "x": 490,
+          "y": 530,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        }
+      ],
+      "completedPublishes": [
+        {
+          "done": true,
+          "status": "synced"
+        }
+      ],
+      "uploads": 4
+    },
+    {
+      "stage": "after-restart-draw",
+      "viewport": {
+        "width": 1280,
+        "height": 772,
+        "scale": 2
+      },
+      "focused": true,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 772
+      },
+      "openDialogs": [],
+      "rectangles": 3,
+      "saveStatus": "dirty",
+      "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+      "points": [
+        {
+          "x": 360,
+          "y": 440,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        },
+        {
+          "x": 490,
+          "y": 530,
+          "top": {
+            "tag": "rect",
+            "testId": null,
+            "role": null,
+            "label": null,
+            "className": null,
+            "onCanvas": true
+          }
+        }
+      ],
+      "completedPublishes": [
+        {
+          "done": true,
+          "status": "synced"
+        }
+      ],
+      "uploads": 4
+    }
+  ],
+  "tenantContacted": false,
+  "privateRuntimeRead": false,
+  "originalFailureCause": "Unresolved timing or fixture ambiguity; no product defect reproduced."
+}

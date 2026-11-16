@@ -1,0 +1,1204 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "test-results/integration-runner/playwright.config.ts",
+      "tests/ui/confluence-live.spec.ts",
+      "tests/ui/plugins.spec.ts",
+      "tests/ui/isometric-icons.spec.ts",
+      "--reporter=line,json"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36",
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          },
+          "screen": {
+            "width": 1920,
+            "height": 1080
+          },
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "defaultBrowserType": "chromium",
+          "baseURL": "http://127.0.0.1:5188",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "ui"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "command": "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5188 --strictPort",
+      "cwd": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+      "url": "http://127.0.0.1:5188",
+      "reuseExistingServer": false,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "confluence-live.spec.ts",
+      "file": "confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a diagram is linked to a Confluence page in the plugin dialog and published after every edit without sending (#210)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 17304,
+                  "error": {
+                    "message": "Error: browserContext.close: ENOENT: no such file or directory, open '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/.playwright-artifacts-0/traces/f2696f5ae2cf6b092703-bd5d62c0a0d84e13728c.trace'",
+                    "stack": "Error: browserContext.close: ENOENT: no such file or directory, open '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/.playwright-artifacts-0/traces/f2696f5ae2cf6b092703-bd5d62c0a0d84e13728c.trace'"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: browserContext.close: ENOENT: no such file or directory, open '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/.playwright-artifacts-0/traces/f2696f5ae2cf6b092703-bd5d62c0a0d84e13728c.trace'"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:30.780Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/confluence-live-a-diagram--9fc46-y-edit-without-sending-210--ui/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/confluence-live-a-diagram--9fc46-y-edit-without-sending-210--ui/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-ui/confluence-live-a-diagram--9fc46-y-edit-without-sending-210--ui/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-bd5d62c0a0d84e13728c",
+          "file": "confluence-live.spec.ts",
+          "line": 83,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "isometric-icons.spec.ts",
+      "file": "isometric-icons.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the isometric library offers its symbols by category and places them as free-standing figures (#212)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js",
+                    "stack": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js\n    at eval (<anonymous>:1:1)",
+                    "location": {
+                      "file": "<anonymous>",
+                      "column": 1,
+                      "line": 1
+                    }
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "<anonymous>",
+                        "column": 1,
+                        "line": 1
+                      },
+                      "message": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js\n    at eval (<anonymous>:1:1)"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.632Z",
+                  "annotations": [],
+                  "attachments": [],
+                  "errorLocation": {
+                    "file": "<anonymous>",
+                    "column": 1,
+                    "line": 1
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "eb39aee8d666178fe54c-35e28ec9e80aa787d61b",
+          "file": "isometric-icons.spec.ts",
+          "line": 15,
+          "column": 1
+        },
+        {
+          "title": "isometric symbols keep their colours and get a readable label in the dark theme (#212)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.632Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "eb39aee8d666178fe54c-09fb05230a5067c2bbb9",
+          "file": "isometric-icons.spec.ts",
+          "line": 64,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "plugins.spec.ts",
+      "file": "plugins.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "damaged profile storage explains recovery and disables mutations in both dialogs (light, #161)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "failed",
+                  "duration": 0,
+                  "error": {
+                    "message": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js",
+                    "stack": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js\n    at eval (<anonymous>:1:1)",
+                    "location": {
+                      "file": "<anonymous>",
+                      "column": 1,
+                      "line": 1
+                    }
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "<anonymous>",
+                        "column": 1,
+                        "line": 1
+                      },
+                      "message": "Error: Cannot find module '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/test-results/integration-runner/playwright.config.ts' imported from /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/playwright/lib/common/index.js\n    at eval (<anonymous>:1:1)"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": [],
+                  "errorLocation": {
+                    "file": "<anonymous>",
+                    "column": 1,
+                    "line": 1
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-9da3e096b2eaadf346dc",
+          "file": "plugins.spec.ts",
+          "line": 220,
+          "column": 3
+        },
+        {
+          "title": "damaged profile storage explains recovery and disables mutations in both dialogs (dark, #161)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-e53b31b58976f04eaba3",
+          "file": "plugins.spec.ts",
+          "line": 220,
+          "column": 3
+        },
+        {
+          "title": "a legacy configuration warning preserves access to independent editor profiles (#161)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-05cdb5efd12c97669fe4",
+          "file": "plugins.spec.ts",
+          "line": 242,
+          "column": 1
+        },
+        {
+          "title": "bundled plugins start installed, are configurable in the profile right away, and saving the diagram gives Git its folder",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-b89540efc86a0d357805",
+          "file": "plugins.spec.ts",
+          "line": 253,
+          "column": 1
+        },
+        {
+          "title": "Git and Jira configurations persist independently and secrets are never refilled on reopen",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-7946b27c97adbb6c72f2",
+          "file": "plugins.spec.ts",
+          "line": 282,
+          "column": 1
+        },
+        {
+          "title": "Jira synchronizes automatically and exposes no manual sync button",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-7c66f10d4b6f774c76a0",
+          "file": "plugins.spec.ts",
+          "line": 309,
+          "column": 1
+        },
+        {
+          "title": "saving or testing another plugin preserves unfinished form drafts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-73bfab63508480269456",
+          "file": "plugins.spec.ts",
+          "line": 327,
+          "column": 1
+        },
+        {
+          "title": "save errors are visible inside the dialog and preserve the draft for a successful retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-9876b6e174faf6fffc01",
+          "file": "plugins.spec.ts",
+          "line": 357,
+          "column": 1
+        },
+        {
+          "title": "cancelling the document save leaves Git without a folder and allows retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-d932255b758ac56b0f2c",
+          "file": "plugins.spec.ts",
+          "line": 372,
+          "column": 1
+        },
+        {
+          "title": "marketplace configuration and keyboard tabs lead to the installed form and return focus on Escape",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-6fc7db5a6ef992e13d3a",
+          "file": "plugins.spec.ts",
+          "line": 389,
+          "column": 1
+        },
+        {
+          "title": "disabled configuration fields do not trap reverse Tab navigation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-41cc194bbe04c111181e",
+          "file": "plugins.spec.ts",
+          "line": 416,
+          "column": 1
+        },
+        {
+          "title": "a request from the previous document neither blocks the next one nor clears its pending operation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-bcfa97e4c5a439399b48",
+          "file": "plugins.spec.ts",
+          "line": 429,
+          "column": 1
+        },
+        {
+          "title": "the project save action reports an invalid code draft instead of a cancelled file dialog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-ac7c3c6ad046786b5aa8",
+          "file": "plugins.spec.ts",
+          "line": 462,
+          "column": 1
+        },
+        {
+          "title": "plugin configuration remains reachable at 360px in light theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-b79d9328a04cb761e660",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin configuration remains reachable at 360px in dark theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.835Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-f6fce8d3242043a3acac",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin configuration remains reachable at 960px in light theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-323c284f4ba3ca643c68",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin configuration remains reachable at 960px in dark theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-5ce7fde88bef3e94ff8b",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin configuration remains reachable at 1280px in light theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-9766a20f3d926153f40e",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin configuration remains reachable at 1280px in dark theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-33064039c3e456ab3d80",
+          "file": "plugins.spec.ts",
+          "line": 482,
+          "column": 5
+        },
+        {
+          "title": "plugin tiles show the vendor logos on white in the light theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-d841db9a7a5ddf3b0cb4",
+          "file": "plugins.spec.ts",
+          "line": 521,
+          "column": 3
+        },
+        {
+          "title": "plugin tiles show the vendor logos on white in the dark theme",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-93c75486e1821a61d0b7",
+          "file": "plugins.spec.ts",
+          "line": 521,
+          "column": 3
+        },
+        {
+          "title": "browser shows the bundled plugins but explains why native configuration is unavailable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-3ae850869ff7b6563f4a",
+          "file": "plugins.spec.ts",
+          "line": 543,
+          "column": 1
+        },
+        {
+          "title": "profiles are created, copied, renamed, activated and deleted in their own dialog and keep their own plugin settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-88293580f9176eba6848",
+          "file": "plugins.spec.ts",
+          "line": 586,
+          "column": 1
+        },
+        {
+          "title": "the workspace menu switches the profile in a dropdown above Zusammenarbeiten and opens the profile dialog (light)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-a27825f805d2930cb615",
+          "file": "plugins.spec.ts",
+          "line": 731,
+          "column": 3
+        },
+        {
+          "title": "the workspace menu switches the profile in a dropdown above Zusammenarbeiten and opens the profile dialog (dark)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-29400665879ca12eba50",
+          "file": "plugins.spec.ts",
+          "line": 731,
+          "column": 3
+        },
+        {
+          "title": "the browser preview has no profiles in the menu or the plugin dialog",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "ui",
+              "projectName": "ui",
+              "results": [
+                {
+                  "workerIndex": -1,
+                  "parallelIndex": -1,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T23:02:48.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "96f8ba936a84dfbe1804-c2b037826409d4df7096",
+          "file": "plugins.spec.ts",
+          "line": 815,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-15T23:02:29.860Z",
+    "duration": 18989.406000000003,
+    "expected": 0,
+    "skipped": 26,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

@@ -1,4 +1,4 @@
-import { reactive } from 'vue';
+import { effectScope, reactive, watch } from 'vue';
 import {
   applyCommand, createDocument, createElement, deserializeDocument,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
@@ -14,8 +14,10 @@ import {
   parseWebEmbedUrl, webEmbedLabel,
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
-  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
 } from '@/domain';
+import { createConfluenceLiveSync, type ConfluenceLiveContext, type ConfluenceLiveSync } from './confluence-live-sync';
+import { rasterizeSvgToPng, renderLivePages } from '../lib/confluence-live-image';
 import {
   attachIndexedDbPersistence,
   createCrdtController,
@@ -107,6 +109,8 @@ function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: 
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const uid = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
+/** Digest of the page text an embedded Confluence page was loaded with; sending back requires the page to still have it. */
+const CONFLUENCE_BODY_HASH_KEY = 'sketchdraw.atlassian.pageBodyHash';
 /** How long a hint stays on screen before it leaves on its own. */
 export const NOTICE_DURATION_MS = 3000;
 
@@ -159,6 +163,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
+  /** Keeps the linked Confluence page up to date (#210); created once the store exists. */
+  let liveSync: ConfluenceLiveSync | null = null;
+  /**
+   * What the pictures of the last seen document are made of. Everything of the document counts, including the icon
+   * definitions of its component sets, except tasks and comments, which no picture shows. Embedded images count by
+   * their content; they are compared as they are instead of being copied into a text.
+   */
+  interface LiveSeen { rest: string; assets: Map<string, string> }
+  let liveSeen: LiveSeen | null = null;
+  function liveSee(document: SketchDocument): LiveSeen {
+    const { tasks: _tasks, commentThreads: _comments, assets, ...visible } = document;
+    const entries = Object.entries(assets);
+    return { rest: JSON.stringify([visible, entries.map(([key, asset]) => [key, asset.id, asset.mimeType])]), assets: new Map(entries.map(([key, asset]) => [key, asset.dataUrl])) };
+  }
+  function liveLooksDifferent(previous: LiveSeen, next: LiveSeen): boolean {
+    if (previous.rest !== next.rest || previous.assets.size !== next.assets.size) return true;
+    for (const [key, data] of next.assets) if (previous.assets.get(key) !== data) return true;
+    return false;
+  }
   let pluginGeneration = 0;
   let pluginRefreshRequest = 0;
   const currentPluginHandle = () => guest || state.roomGuest ? null : state.file.handle?.handleId ?? null;
@@ -297,6 +320,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
+    confluenceLive: { state: 'off', message: '' } as WhiteboardState['confluenceLive'],
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -479,6 +503,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.code.dirty) { state.code.text = formatDiagram(snapshot.document); state.code.baseRevision = snapshot.revision; codeBase = snapshot.document; }
     if (titleDraft === before.title) titleDraft = snapshot.document.title;
     if (!localCommit && before !== snapshot.document) state.offscreenChanges += 1;
+    // Whatever changed what the pages look like (own edits, undo, code, agents) is published to the linked Confluence page.
+    // Snapshots are detached copies, so the content decides; tasks and comments alone never start a publication.
+    if (liveSync && state.confluenceLive.state !== 'off') {
+      const seen = liveSee(snapshot.document);
+      const changed = !liveSeen || liveLooksDifferent(liveSeen, seen);
+      liveSeen = seen;
+      if (changed) liveSync.documentChanged();
+    } else liveSeen = null;
     if (!state.frameSlides.length) { state.presenterOpen = false; state.presenterIndex = 0; }
     else state.presenterIndex = Math.min(state.presenterIndex, state.frameSlides.length - 1);
   }
@@ -2153,7 +2185,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!bridge.plugins || !hasPluginProject() || !state.canWrite || state.transitioning) return false; state.pluginBusy = true;
       try {
         const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const p = currentCenter();
-        const element = createElement('annotation', { x: p.x - 260, y: p.y - 180, width: 520, height: 360, label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageId': page.id, 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } });
+        const element = createElement('annotation', { x: p.x - 260, y: p.y - 180, width: 520, height: 360, label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageId': page.id, 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url, ...(page.bodyHash ? { [CONFLUENCE_BODY_HASH_KEY]: page.bodyHash } : {}) } });
         const ok = await dispatch({ type: 'add', elements: [element] }, state.revision, 'import'); if (ok) { setSelection([element.id]); state.workspaceView = 'canvas'; notice(t('Confluence-Seite „{title}“ eingebunden.', { title: page.title })); } return ok;
       } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
@@ -2161,16 +2193,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const generation = pluginGeneration;
       if (!bridge.plugins || !hasPluginProject()) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId']; const version = Number(element?.metadata?.['sketchdraw.atlassian.pageVersion']);
       if (!element?.annotation || !pageId || !Number.isSafeInteger(version)) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version }); if (!pluginContextCurrent(generation)) return false; const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
+      // The main process writes only if the page still is the one that was loaded and survives the annotation model (#209, #210).
+      const expectedBodyHash = element.metadata?.[CONFLUENCE_BODY_HASH_KEY];
+      // Pages embedded before the content was recorded have no trusted starting point; they are loaded again first.
+      if (!expectedBodyHash) { notice(t('Diese eingebundene Seite hat keinen gesicherten Ausgangsstand. Lade sie neu, bevor du sendest.'), 'error'); return false; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.updateConfluencePage({ pageId, title: element.label || state.title, storageBody: annotationToConfluenceStorage(element.annotation), version, expectedBodyHash }); if (!pluginContextCurrent(generation)) return false; const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url, ...(page.bodyHash ? { [CONFLUENCE_BODY_HASH_KEY]: page.bodyHash } : {}) } } }] }); if (ok) notice(t('Confluence-Seite aktualisiert.')); return ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async refreshConfluenceElement(elementId) {
       const generation = pluginGeneration;
       if (!bridge.plugins || !hasPluginProject()) return false; const element = pageEls().find((entry) => entry.id === elementId); const pageId = element?.metadata?.['sketchdraw.atlassian.pageId'];
       if (!element || !pageId) { notice(t('Das Element ist nicht mit einer Confluence-Seite verknüpft.'), 'error'); return false; }
-      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
+      state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url, ...(page.bodyHash ? { [CONFLUENCE_BODY_HASH_KEY]: page.bodyHash } : {}) } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
+    async setConfluenceLiveLink(pageId) {
+      const generation = pluginGeneration; const handle = currentPluginHandle();
+      if (!bridge.plugins?.setConfluenceLiveLink || !handle || !hasPluginProject() || state.pluginBusy) return false;
+      state.pluginBusy = true;
+      try {
+        const settings = await bridge.plugins.setConfluenceLiveLink({ handleId: handle, documentId: state.document.id, pageId });
+        if (!pluginContextCurrent(generation) || handle !== currentPluginHandle()) return false;
+        state.pluginSettings = settings;
+        notice(pageId === null ? t('Live-Verknüpfung mit Confluence gelöst.') : t('Diagramm mit Confluence-Seite „{title}“ verknüpft. Änderungen werden automatisch übertragen.', { title: settings.confluenceLive?.pageTitle ?? '' }));
+        return true;
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    syncConfluenceLive() { liveSync?.syncNow(); },
     async syncJiraTasks(options) {
       const generation = pluginGeneration;
       if (!bridge.plugins || !hasPluginProject() || !state.pluginSettings?.atlassian.enabled || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
@@ -2431,7 +2480,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     whenIdle() { return lastWrite; },
     needsCloseWarning() { return needsClosePrompt(state.file, state.revision, state.hasDraft) || pendingWrites > 0 || Boolean(unknownWrite) || guest?.getStatus().hasUnresolvedOutcome === true; },
-    dispose() { disposed = true; for (const timer of noticeTimers.values()) clearTimeout(timer); noticeTimers.clear(); settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } releaseLocalCrdt(); },
+    dispose() { disposed = true; disposeLive(); for (const timer of noticeTimers.values()) clearTimeout(timer); noticeTimers.clear(); settleTransition(false); authorityListeners.clear(); unsubscribe(); unsubscribeStatus(); if (guest) void guest.leave(); unsubscribeClose(); unsubscribeMenu(); unsubscribePluginEvents(); for (const binding of Object.values(bindings)) { try { authority?.revokeBinding(binding.bindingId); } catch (error) { if (!(error instanceof SessionAccessError && error.code === 'SESSION_CHANGED')) throw error; } } releaseLocalCrdt(); },
   };
   const unsubscribeClose = bridge.onCloseRequested((requestId) => { void requestTransition('close', requestId); });
   const unsubscribeMenu = bridge.onMenuCommand((command) => {
@@ -2446,6 +2495,70 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (state.saveStatus === 'saved' && !state.hasDraft && !state.transitioning) void store.acceptExternalDocument();
     else notice(t('Die Datei wurde extern geändert. Lokale Entwürfe bleiben erhalten; neu laden ist in den Plugin-Einstellungen möglich.'), 'error');
   }) ?? (() => {});
+
+  // --- Automatic publication to the linked Confluence page (#210) ---
+  /**
+   * Who may publish what, right now. Only the local owner of a saved diagram with an explicit link publishes; guests,
+   * unsaved or foreign diagrams, a disabled plugin and open conflicts never do.
+   */
+  function liveContext(): ConfluenceLiveContext {
+    const settings = state.pluginSettings; const link = settings?.confluenceLive; const handle = currentPluginHandle();
+    if (disposed || !bridge.plugins?.publishConfluenceLive || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
+    const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id].join('\n');
+    const paused = (message: string): ConfluenceLiveContext => ({ kind: 'paused', key, message });
+    if (!settings.atlassian.installed || !settings.atlassian.enabled) return paused(t('Das Jira-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
+    if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
+    if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe das Diagramm neu.'));
+    if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe dieses Diagramm neu.'));
+    if (state.pendingExternalDocument) return paused(t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
+    if (state.file.conflict) return paused(t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
+    if (state.transitioning) return paused('');
+    return { kind: 'active', key, handleId: handle, document: state.document, ...(link.lastSyncedAt ? { syncedAt: link.lastSyncedAt } : {}) };
+  }
+  const rasterizeLive = options.confluenceLive?.rasterize ?? rasterizeSvgToPng;
+  /** Pages whose rendered content did not change are not drawn again. */
+  const liveImageCache = new Map<string, { hash: string; png: Uint8Array }>();
+  async function renderLiveImages(document: SketchDocument): Promise<ConfluenceLiveImage[]> {
+    const pages = await renderLivePages(document, { empty: t('Diese Seite ist leer.') });
+    const images: ConfluenceLiveImage[] = [];
+    for (const page of pages) {
+      const cached = liveImageCache.get(page.pageId);
+      const png = cached?.hash === page.hash ? cached.png : await rasterizeLive(page.svg, page.width, page.height);
+      liveImageCache.set(page.pageId, { hash: page.hash, png });
+      images.push({ pageId: page.pageId, name: page.name, hash: page.hash, width: page.width, height: page.height, png });
+    }
+    for (const pageId of [...liveImageCache.keys()]) if (!pages.some((page) => page.pageId === pageId)) liveImageCache.delete(pageId);
+    return images;
+  }
+  liveSync = createConfluenceLiveSync({
+    context: liveContext,
+    render: renderLiveImages,
+    async publish(input) {
+      const generation = pluginGeneration;
+      const result = await bridge.plugins!.publishConfluenceLive!(input);
+      // A result that arrives after the diagram, profile or project changed belongs to nobody any more.
+      if (!pluginContextCurrent(generation)) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
+      return result;
+    },
+    onStatus(status) { state.confluenceLive = status; },
+    ...(options.confluenceLive?.debounceMs !== undefined ? { debounceMs: options.confluenceLive.debounceMs } : {}),
+    ...(options.confluenceLive?.retryDelaysMs !== undefined ? { retryDelaysMs: options.confluenceLive.retryDelaysMs } : {}),
+    ...(options.confluenceLive?.failureHoldMs !== undefined ? { failureHoldMs: options.confluenceLive.failureHoldMs } : {}),
+  });
+  const liveScope = effectScope(true);
+  liveScope.run(() => {
+    // Every change of the link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
+    watch(() => { const context = liveContext(); return context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`; }, () => { liveImageCacheReset(); liveSync?.contextChanged(); }, { flush: 'sync' });
+  });
+  function liveImageCacheReset(): void {
+    if (liveContext().kind === 'off') { liveImageCache.clear(); liveSeen = null; }
+    // The first publication of a context covers the document as it is now; later snapshots are compared with it.
+    else liveSeen ??= liveSee(state.document);
+  }
+  const recoverLive = () => { liveSync?.recover(); };
+  if (typeof window !== 'undefined') window.addEventListener('online', recoverLive);
+  const disposeLive = () => { liveSync?.dispose(); liveScope.stop(); liveImageCache.clear(); if (typeof window !== 'undefined') window.removeEventListener('online', recoverLive); };
+
   void store.refreshPluginSettings();
   return store;
 }

@@ -1,0 +1,7 @@
+{
+  "startedAt": "2026-11-16T09:50:15.123845+00:00",
+  "status": "terminal",
+  "command": "npx playwright test --config playwright.config.ts --project=electron tests/electron/confluence-live.spec.ts --reporter=json --output=/tmp/sketchdraw-218-root-native-artifacts",
+  "exitCode": 0,
+  "endedAt": "2026-11-16T09:52:16.145800+00:00"
+}

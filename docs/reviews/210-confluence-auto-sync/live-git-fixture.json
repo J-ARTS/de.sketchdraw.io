@@ -1,0 +1,11 @@
+{
+  "createdAt": "2026-11-15T21:27:58.104742+00:00",
+  "root": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv",
+  "document": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/diagram/aws-bedrock-agentcore.sketchdraw.json",
+  "localRepository": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/diagram",
+  "bareRemote": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/remote.git",
+  "updaterRepository": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/updater",
+  "initialCommit": "4b820a57988dbadc9f4d92c5ce16cc0fe7ab36f8",
+  "purpose": "Controlled real Git push/pull test into the live Confluence document; local remote fixture, not a GitHub push.",
+  "status": "prepared; app not switched; no remote test edit yet"
+}

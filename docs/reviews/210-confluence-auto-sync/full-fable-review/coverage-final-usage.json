@@ -1,0 +1,196 @@
+{
+  "recordedAt": "2026-11-16T12:33:56.378257+00:00",
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "tool": "Claude Code CLI 2.1.323",
+  "effort": "high",
+  "status": "terminal_changed_hunk_review_completed",
+  "startedAt": "2026-11-16T12:27:57.071090+00:00",
+  "endedAt": "2026-11-16T12:29:36.852285+00:00",
+  "providerDurationMs": 98859,
+  "observedSeconds": 98.859,
+  "wrapperSecondsSeparateNotAdded": 99.78102400002535,
+  "turns": 14,
+  "previousCumulativeCostUsd": 19.817224200000002,
+  "cumulativeCostUsd": 21.6601698,
+  "incrementalCostUsd": 1.8429456,
+  "serializedCostDelta": "1.842945599999998",
+  "incrementalModelCounters": {
+    "inputTokens": 12,
+    "outputTokens": 10396,
+    "thinkingTokens": 4813,
+    "cacheReadInputTokens": 3464968,
+    "cacheCreationInputTokens": 45876,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 45876,
+    "webSearchRequests": 0
+  },
+  "tokens": 3521252,
+  "allCountersVerifiedAgainstB8": true,
+  "topLevelUsageMatches": true,
+  "thinkingAndCacheSubcategoriesNotDoubleCounted": true,
+  "coverage": {
+    "integrationEntries": 33,
+    "originalEntries": 22,
+    "integrationFullFile": 17,
+    "integrationChangedHunksOnly": 16,
+    "currentIdenticalPaths": 12,
+    "historicalIdenticalPaths": 16,
+    "originalInheritedCoverageExplicit": true,
+    "rootAstTranslationComparison": {
+      "count": 64,
+      "identical": 64
+    },
+    "fableTranslationReview": "Read all64 JSON entries and current en.ts entries; readable.txt first5 only",
+    "unchangedRemainderCoverageNotClaimed": true
+  },
+  "independentAcceptance": "Six bounded fixes independently reviewed; B8 probe PASS; no whole-product or target integration claim",
+  "finalManifestHashesVerified": {
+    "managed": 33,
+    "original": 22
+  },
+  "archives": [
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-prompt.md",
+      "sha256": "b1730d1d60daf93a55a95cbbdd45250de7d6cc56236a25f99a0bae3f6db671c3",
+      "bytes": 2731
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-run.json",
+      "sha256": "093a2e0c4cdbf51d73335a28d10155cf7f949ef5dfef6e7e253247b1c87b20bd",
+      "bytes": 369
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-result.json",
+      "sha256": "9197dc6418cf28c23117673ab2d1f9ffdea88f414287641e1a72d175e354e337",
+      "bytes": 10543
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+      "sha256": "1d83daf7c49e983abcf2b16619a7ccf4ec9b9f7e22fba60961812b8635f5da8c",
+      "bytes": 7063
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/source-manifest-final.json",
+      "sha256": "fc731b78e8429a4be3d1d26cf16742044ccbf22830e43e7c734fd332d5490f0c",
+      "bytes": 11387
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/original-translations-readable.txt",
+      "sha256": "5640aa6571e4066ed422f744e8fa093269b04f1fa2500803fc57450a9ec36022",
+      "bytes": 19403
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/original-translations-comparison.json",
+      "sha256": "3cb986c4aa5fb447ef3dea6850ad8318ff27a20b269d63c719cc955d2baf9f37",
+      "bytes": 20830
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+      "sha256": "2d5afd8802df785c80c4c0bc9826723f0b76f2d27eeec91f79c8a1d580bc2baa",
+      "bytes": 999
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-summary.json",
+      "sha256": "b0c135d2867a72a677a3c1efa445608796034f0fa36db4e4ba0b975a689c1128",
+      "bytes": 2706
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+      "sha256": "282e8ac16385eadb31765c44fb26177925f1cab4a78b43bc00f4b182b084550b",
+      "bytes": 729
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-source-before.json",
+      "sha256": "b310d1c7825bbdd57384fbfa8098e47b23e674ed1da613c10f23c4cacc5e616d",
+      "bytes": 50537
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-source-after.json",
+      "sha256": "1b0bbaec513ae2a1fcf19d6123c02adc4a2d627c04a5fe141db6eb96d72974cd",
+      "bytes": 82
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-typecheck.log",
+      "sha256": "66583e0b7c51cbb6b6d7737f99729d0be2b723fd7c4972551ab8b58de72982fe",
+      "bytes": 250
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-typecheck-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-build.log",
+      "sha256": "dd2a9aba0e7969233d455b3b3405487ca165389078a68da9326bf9f8504e58ad",
+      "bytes": 3264
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-build-stderr.log",
+      "sha256": "647a61af6c33ec43bde68d81446a0e2270fcfc1e95bb557ec8070d1fb5bdabb5",
+      "bytes": 648
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native.log",
+      "sha256": "20a711ba068a7525e3b3d71b15eb171d3e21b6bf8bfb3eadbca1407c45116052",
+      "bytes": 50182
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat.log",
+      "sha256": "47573485ae6adb4b4106095db52045b27616ad3099b093b80de51b8b89897a76",
+      "bytes": 114283
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+      "sha256": "923963335b672c6ff13abd0dd2af6ad510d9b8244426aaaab670d9dd0ad4ec37",
+      "bytes": 8440
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+      "sha256": "465ad142bf8b6f34265f1b612a43e04d2c7e905427ee6374031b48a54b180f49",
+      "bytes": 843
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+      "sha256": "354287f851116b3a9ff61591a5cd74df7ea8978ac51a502c33773649591d7ac5",
+      "bytes": 1309
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/result.json",
+      "sha256": "104a9b38b4c46e06287d384d700a610e92899654049e5da5339c406572eb0c17",
+      "bytes": 3613
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/review.md",
+      "sha256": "75e5949bf32cd316580ae9a574d85f8d40ba2c7e0f0b132534a1049ac377728a",
+      "bytes": 3347
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/manifest.json",
+      "sha256": "c04f660ba46675d3048901b9f21440dbdcedae774382e98e6845f50965bd2bfb",
+      "bytes": 8276
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/probe.ts",
+      "sha256": "edfba1db49049584e88aeb83ec0966605fccffadfd4a19741ac7971e41f4bb33",
+      "bytes": 17387
+    }
+  ],
+  "nextStep": "Root synchronizes latest GitHub handoff and remaining acceptance gaps: changes remain local/uncommitted and not integrated in target branch; #217 registration-failure visibility, #219 explicit recovery and #220 renderer-crash close stay separately open. Final source has139/139focused tests, Root typecheck/build, all6native scenarios across initial5/6 plus1/1repeat, independent B8 PASS and final Fable33+22changed-hunk coverage. Final package existing-link autosync13:30 confirmed by plugin; no new Chrome proof. Perform one protected sourcegraph refresh and serial ledger projections/checks, preserving guard refusal without force.",
+  "archiveRevisionNote": {
+    "recordedAt": "2026-11-16T12:37:01.105814+00:00",
+    "path": "final-live-observation.json",
+    "currentSha256": "354287f851116b3a9ff61591a5cd74df7ea8978ac51a502c33773649591d7ac5",
+    "reason": "Root resolved /tmp to /private/tmp and recorded exact running process PID55685. The initial model-visible read had an empty process list; by archival time the final file was already corrected. No reconstructed historical artifact created."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "reviewedAt": "2026-11-16T08:05:29.408891+00:00",
+  "sessionId": "728fee98-1c17-4d6b-88d8-8669564c95e6",
+  "runs": [
+    {
+      "sourceStream": "/tmp/sketchdraw-210-fable-live-hang.events.jsonl",
+      "resultArtifact": "docs/reviews/210-confluence-auto-sync/fable-live-hang-result.json",
+      "subtype": "error_during_execution",
+      "isError": true,
+      "terminalReason": "aborted_streaming",
+      "durationSeconds": 336.215,
+      "turns": 27,
+      "tokens": 4185578,
+      "costUsd": 7.20483,
+      "cumulativeCostUsd": 17.180223800000007,
+      "previousCumulativeCostUsd": 9.975393800000003,
+      "measurementMethod": "duration_ms and model_usage_since_last_result; input+output+cache_creation+cache_read. thinkingTokens already belongs to outputTokens; cumulative modelUsage/total_cost_usd not counted again."
+    },
+    {
+      "sourceStream": "/tmp/sketchdraw-210-fable-live-observation-correction.events.jsonl",
+      "resultArtifact": "docs/reviews/210-confluence-auto-sync/fable-live-observation-correction-result.json",
+      "subtype": "success",
+      "isError": false,
+      "terminalReason": "completed",
+      "durationSeconds": 50.597,
+      "turns": 4,
+      "tokens": 1100557,
+      "costUsd": 0.715523,
+      "cumulativeCostUsd": 17.89574680000001,
+      "previousCumulativeCostUsd": 17.180223800000007,
+      "measurementMethod": "duration_ms and model_usage_since_last_result; input+output+cache_creation+cache_read. thinkingTokens already belongs to outputTokens; cumulative modelUsage/total_cost_usd not counted again."
+    }
+  ],
+  "rawArchiveScope": "Terminal result objects only; numeric thinking-token counters retained as usage, no thinking text or raw conversation stream archived."
+}

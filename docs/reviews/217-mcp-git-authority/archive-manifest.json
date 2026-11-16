@@ -1,0 +1,31 @@
+{
+  "archivedAt": "2026-11-16T09:01:23.622527+00:00",
+  "scope": "Existing isolated probe evidence and documentation/coordination only; no additional probe, product/UI/Tenant/runtime action.",
+  "firstRun": {
+    "exitCode": 2,
+    "interpretation": "Historical Store failure reproduced; low-level control remained healthy. Original aggregate assertion failed. Invalid determinism claim corrected in first-manifest.json and review.md."
+  },
+  "controlledRun": {
+    "exitCode": 0,
+    "checkedAt": "2026-11-16T08:55:39.019Z",
+    "interpretation": "Real Store/controller/persistence/authority and close coordinator reproduce cache rollback, AUTHORITY_DIVERGED, agent-binding failure, save-before-bridge failure and close cancel."
+  },
+  "bundleRetention": {
+    "path": "/tmp/sketchdraw-217-authority-probe",
+    "productPrefixSha256": "a2524104785f0aba51582c25ef9defbbea1de9f38f7afda608e8a406abc75d51",
+    "reason": "Large bundles not copied into repository; exact hashes retained in manifests. first-probe.ts is byte-identical to the original probe.ts; controlled-harness.patch records the only exercised harness changes."
+  },
+  "sourceBoundary": "No individual pre-probe source-file hash capture. source-before.json is separately recorded by Root before Fable implementation, not retroactively assigned to this earlier probe.",
+  "files": {
+    "review.md": "ab02c680000955a66f1e8f3bfe501bbcd74b9618135b7cd11744e1694208a5a2",
+    "controlled-result.json": "a8ab796ff34353ca89439351b3a447808d4fbcbf7840b7125d00921a481c727d",
+    "controlled-manifest.json": "a0ffc7d2628b0bad77ef6993e0bef5ea1657489165a761f3530aeba9ebb28762",
+    "first-probe.ts": "6406cb993df20bd6c392bb77863865afd131bdb2144e2f2872233766c15fe3e0",
+    "first-result.json": "5eb6d658e01d14419776e51d41db9649fdfa1312454506c24bec1d6217004fd2",
+    "first-manifest.json": "27d7fc9183c3bb261459a0234d92eab12b39fb04f52844a993e455e2a355e245",
+    "controlled-harness.patch": "a21f8a1c01052b5c08f5a6a1c1106f152d63497658a240904960a326239993b9",
+    "fable-implementation-prompt.md": "3f1471f3bd260d3a9a8773b62f40a85e71ca0ff641bfe07e7079c9b1b77e31ef",
+    "source-before.json": "5a0c85fd669059c37c1a7b5a597abcb4c002a7cf61c2da8f8f42c76d39149f5a",
+    "fable-run-start-checkpoint.json": "9bb102c67986d38b8c58312c71c78c60058b2a281b997302ba750d9a888c5c51"
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "revision": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+  "timestamp": "2026-11-15T21:39:58.095Z",
+  "sourceSha256": "745001554f17732e711d1d92159f29c9bcd095659b682cc8f3da477b2f1f317b",
+  "pluginsSha256": "6045f3b7eb320262475bbc5a2cef27cd63295d6d9320116bf54aa3ad68254f74",
+  "probes": [
+    {
+      "name": "cross-page attachment is treated as owned and removed",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\"><ri:page ri:content-title=\"Foreign page\" ri:space-key=\"OTHER\" /></ri:attachment></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p>",
+      "desired": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-bbbbbbbb.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-deadbeef-bbbbbbbb.png"
+        ],
+        "removed": [
+          "sketchdraw-deadbeef-aaaaaaaa.png"
+        ]
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ]
+    },
+    {
+      "name": "reordered pages are unchanged",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-bbbbbbbb.png",
+        "sketchdraw-deadbeef-aaaaaaaa.png"
+      ],
+      "result": {
+        "status": "unchanged"
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ]
+    },
+    {
+      "name": "existing duplicate remains",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-aaaaaaaa.png"
+      ],
+      "result": {
+        "status": "unchanged"
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-aaaaaaaa.png"
+      ]
+    },
+    {
+      "name": "duplicate desired image creates duplicate",
+      "before": "<p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p>",
+      "desired": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-aaaaaaaa.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-aaaaaaaa.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-aaaaaaaa.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-deadbeef-aaaaaaaa.png",
+          "sketchdraw-deadbeef-aaaaaaaa.png"
+        ],
+        "removed": []
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-aaaaaaaa.png"
+      ]
+    },
+    {
+      "name": "insert middle preserves foreign content",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-cccccccc.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-bbbbbbbb.png",
+        "sketchdraw-deadbeef-cccccccc.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-bbbbbbbb.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-cccccccc.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-deadbeef-bbbbbbbb.png"
+        ],
+        "removed": []
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-bbbbbbbb.png",
+        "sketchdraw-deadbeef-cccccccc.png"
+      ]
+    },
+    {
+      "name": "remove middle preserves foreign content",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-cccccccc.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-cccccccc.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><p>Foreign <strong>rich text</strong> <a href=\"https://example.com\">link</a></p><ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-cccccccc.png\" /></ac:image>",
+        "added": [],
+        "removed": [
+          "sketchdraw-deadbeef-bbbbbbbb.png"
+        ]
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-aaaaaaaa.png",
+        "sketchdraw-deadbeef-cccccccc.png"
+      ]
+    },
+    {
+      "name": "duplicate attributes are not unsafe",
+      "before": "<ac:image><ri:attachment ri:filename=\"foreign.png\" ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-bbbbbbbb.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-deadbeef-bbbbbbbb.png"
+        ],
+        "removed": [
+          "sketchdraw-deadbeef-aaaaaaaa.png"
+        ]
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ]
+    },
+    {
+      "name": "mixed image sources are not unsafe",
+      "before": "<ac:image><ri:attachment ri:filename=\"sketchdraw-deadbeef-aaaaaaaa.png\" /><ri:url ri:value=\"https://example.com/foreign.png\" /></ac:image>",
+      "desired": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ],
+      "result": {
+        "status": "changed",
+        "body": "<ac:image ac:align=\"center\" ac:layout=\"center\" ac:alt=\"sketchdraw-deadbeef-bbbbbbbb.png\" ac:width=\"640\"><ri:attachment ri:filename=\"sketchdraw-deadbeef-bbbbbbbb.png\" /></ac:image>",
+        "added": [
+          "sketchdraw-deadbeef-bbbbbbbb.png"
+        ],
+        "removed": [
+          "sketchdraw-deadbeef-aaaaaaaa.png"
+        ]
+      },
+      "afterNames": [
+        "sketchdraw-deadbeef-bbbbbbbb.png"
+      ]
+    }
+  ],
+  "pngAcceptsNineByteSignature": true
+}

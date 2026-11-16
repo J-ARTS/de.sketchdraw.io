@@ -1,0 +1,196 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--grep",
+      "#218",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-218-empty-quit-artifacts"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/sketchdraw-218-empty-quit-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/sketchdraw-218-empty-quit-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/tmp/sketchdraw-218-empty-quit-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a saved empty application exits normally (#218)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5642,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"saved\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mun\u001b[27msaved\u001b[7m-new\u001b[27m\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-909f75c2=\"\" data-testid=\"save-status\" data-status=\"unsaved-new\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"unsaved-new\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"saved\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mun\u001b[27msaved\u001b[7m-new\u001b[27m\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-909f75c2=\"\" data-testid=\"save-status\" data-status=\"unsaved-new\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"unsaved-new\"\u001b[22m\n\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:566:60",
+                    "location": {
+                      "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                      "column": 60,
+                      "line": 566
+                    },
+                    "snippet": "  564 |     await installBuiltFixture(root, remote.origin);\n  565 |     const launched = await launch(root); app = launched.app;\n> 566 |     await expect(launched.page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved');\n      |                                                            ^\n  567 |     expect(await quitNormally(app), 'regular quit ends the application without a signal').toBe(true);\n  568 |     app = undefined;\n  569 |   } catch (error) {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                        "column": 60,
+                        "line": 566
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"saved\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7mun\u001b[27msaved\u001b[7m-new\u001b[27m\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-909f75c2=\"\" data-testid=\"save-status\" data-status=\"unsaved-new\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"unsaved-new\"\u001b[22m\n\n\n  564 |     await installBuiltFixture(root, remote.origin);\n  565 |     const launched = await launch(root); app = launched.app;\n> 566 |     await expect(launched.page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved');\n      |                                                            ^\n  567 |     expect(await quitNormally(app), 'regular quit ends the application without a signal').toBe(true);\n  568 |     app = undefined;\n  569 |   } catch (error) {\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:566:60"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:31:33.406Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-quit-218-diagnostic",
+                      "contentType": "application/json",
+                      "body": "eyJsaWZlY3ljbGUiOnsid2luZG93Q291bnQiOjF9LCJjaGlsZCI6eyJleGl0Q29kZSI6bnVsbCwic2lnbmFsQ29kZSI6bnVsbH19"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/sketchdraw-218-empty-quit-artifacts/confluence-live-a-saved-em-d9915-ication-exits-normally-218--electron/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                    "column": 60,
+                    "line": 566
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-38bc9c7f48cb291280c4",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 560,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T09:31:32.769Z",
+    "duration": 6311.887000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

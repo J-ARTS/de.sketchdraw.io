@@ -1,0 +1,52 @@
+{
+  "worktree": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+  "reviewStart": "2026-11-15T23:14:51.418523+00:00",
+  "reviewEnd": "2026-11-15T23:16:28.707792+00:00",
+  "priorSnapshot": "2026-11-15T23:07:30.614746+00:00",
+  "files": {
+    "src/renderer/App.vue": "deffd020be8e82b8fe2afcbbdd2a3b40f221bf0aa7b1496c5208e4e0b267aec2",
+    "src/renderer/design-system/organisms/PluginSettings.vue": "a4256e5c8312179fdd84309024d38b3a73a61e633ecf8302d358e608f0dee4d1",
+    "src/renderer/design-system/pages/WorkspacePage.vue": "cfdfb294fbdec5e8b3b70a22121e39d22d3f30be7e414d71c47609caa3825d60",
+    "src/renderer/design-system/organisms/panels.stories.ts": "7a6aa0378ad06c452774817a0b3fb7fc12e5951e992fd75ad4b2c6be72fe9576",
+    "src/renderer/design-system/storybook/with-whiteboard.ts": "e7e5776c00146ff16d0def41537712ee1889cb7980195f84d7af1dd8107368c7",
+    "src/renderer/design-system/storybook/plugin-bridge.ts": "c0ccd8afe839261bcd2e91496a284c6cf2ea62f53d3c3bfdf39e8469930d7bbe",
+    "src/renderer/i18n/en.ts": "30886b1cdc03d4b83b404f5002f873564f25b26563df6127cc560066b01e54e4",
+    "src/renderer/styles/tokens.css": "085ce27d8a88f6b90403f6dd1871ce2f38ec16db4d85b296daafb47643f1914c",
+    "src/interop/export.ts": "7c217f278c5a09c137ced74978a5740df8b627b43d46148568497cf450c214d0",
+    "tests/unit/renderer/design-system.spec.ts": "ca8272d1d0a2a34ecf7703230331841c18aeef0477f7365be7d03362c72e269d",
+    "docs/design-system/README.md": "1d6f8ff57e92ff3f703cf59117cc6625690bd4e935ac0506882c5a0d736a9fa8",
+    "docs/design-system/manifest.md": "36a4c92ee5441736a7351a3a4003753df63f824a484c11b7817d2cd8840b545d",
+    "tests/ui/confluence-live.spec.ts": "fe3e7fe70e8bb69dc0f8b375317077d2b6b2c4dd39d2e06dbbce5c0dd5ff42df"
+  },
+  "changedFromPriorSnapshot": [
+    "src/renderer/design-system/organisms/PluginSettings.vue"
+  ],
+  "changedDuringReview": [],
+  "contextSHA256": {
+    "src/renderer/styles/base.css": "b95abbc99a9a34c2184755a8222f5d09e5d77d750faf1a8443bbf5c4414f2709"
+  },
+  "cssOnlyProof": {
+    "file": "src/renderer/design-system/organisms/PluginSettings.vue",
+    "expectedPriorSHA256": "bce03b523f6f7ae1ad243b5bcf1bb3a7352ab6366c5dcc0dac1a94b4e8a62493",
+    "reconstructedPriorSHA256": "bce03b523f6f7ae1ad243b5bcf1bb3a7352ab6366c5dcc0dac1a94b4e8a62493",
+    "onlyChangeIsNewCssCommentAndBlock": true,
+    "newCssLine": 362,
+    "remainingPxLiterals": [
+      "border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border-subtle))"
+    ],
+    "designTokens": [
+      "--accent",
+      "--border-subtle",
+      "--font-size-l",
+      "--font-size-s",
+      "--radius-2",
+      "--space-1",
+      "--space-2",
+      "--space-3",
+      "--status-error",
+      "--status-ok",
+      "--surface-raised",
+      "--text-muted"
+    ]
+  }
+}

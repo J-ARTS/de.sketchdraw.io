@@ -1,0 +1,118 @@
+{
+  "probeStartedAt": "2026-11-16T12:25:20.632Z",
+  "scenario": "Two successful published images; first replacement acknowledged; second replacement rejected before apply; restart with no remote digest",
+  "externalNetwork": false,
+  "concurrentSettingsWrites": false,
+  "first": {
+    "status": "synced",
+    "message": "Diagramm in Confluence aktualisiert.",
+    "uploaded": 2,
+    "bodyUpdated": true,
+    "syncedAt": "2026-11-16T12:25:20.664Z"
+  },
+  "baseline": {
+    "published": {
+      "sketchdraw-f2b6dcc28028-00f081779b83.png": {
+        "id": "att1",
+        "hash": "92a7cfdee2938578be5ab421042823605a66cdb6d31fe3b6ed4f7aefece5643a",
+        "version": 1
+      },
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "id": "att2",
+        "hash": "4cdbe9dabf71e685f319c3914962730e2b74050f81997f282df0847f5ac53435",
+        "version": 1
+      }
+    },
+    "pending": {}
+  },
+  "partial": {
+    "status": "failed",
+    "message": "Confluence verweigert den Zugriff. Prüfe das API-Token und die Rechte für die Seite.",
+    "uploaded": 1,
+    "bodyUpdated": false
+  },
+  "remoteAfterPartial": {
+    "page1Versions": 2,
+    "page2Versions": 1,
+    "page1Contents": [
+      "first-v1",
+      "first-v2"
+    ],
+    "page2Contents": [
+      "second-v1"
+    ]
+  },
+  "persistedAfterPartial": {
+    "published": {
+      "sketchdraw-f2b6dcc28028-00f081779b83.png": {
+        "id": "att1",
+        "hash": "1cb158412effd6599df2333fec82a4468783277e6cc11cc0b11b73beea74da73",
+        "version": 2
+      },
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "id": "att2",
+        "hash": "4cdbe9dabf71e685f319c3914962730e2b74050f81997f282df0847f5ac53435",
+        "version": 1
+      }
+    },
+    "pending": {
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "hash": "9675e91e50756a1644a21c1a26ea70fb9f69e82757e49de0b63980f6986a02ed",
+        "baseVersion": 1,
+        "attachmentId": "att2"
+      }
+    }
+  },
+  "inMemoryAfterPartial": {
+    "published": {
+      "sketchdraw-f2b6dcc28028-00f081779b83.png": {
+        "id": "att1",
+        "hash": "1cb158412effd6599df2333fec82a4468783277e6cc11cc0b11b73beea74da73",
+        "version": 2
+      },
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "id": "att2",
+        "hash": "4cdbe9dabf71e685f319c3914962730e2b74050f81997f282df0847f5ac53435",
+        "version": 1
+      }
+    },
+    "pending": {
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "hash": "9675e91e50756a1644a21c1a26ea70fb9f69e82757e49de0b63980f6986a02ed",
+        "baseVersion": 1,
+        "attachmentId": "att2"
+      }
+    }
+  },
+  "restartedResult": {
+    "status": "synced",
+    "message": "Diagramm in Confluence aktualisiert.",
+    "uploaded": 1,
+    "bodyUpdated": false,
+    "syncedAt": "2026-11-16T12:25:20.669Z"
+  },
+  "restartUploadCount": 1,
+  "persistedAfterRestart": {
+    "published": {
+      "sketchdraw-f2b6dcc28028-00f081779b83.png": {
+        "id": "att1",
+        "hash": "1cb158412effd6599df2333fec82a4468783277e6cc11cc0b11b73beea74da73",
+        "version": 2
+      },
+      "sketchdraw-f2b6dcc28028-4950184b9187.png": {
+        "id": "att2",
+        "hash": "9675e91e50756a1644a21c1a26ea70fb9f69e82757e49de0b63980f6986a02ed",
+        "version": 2
+      }
+    },
+    "pending": {}
+  },
+  "filenames": {
+    "page1": "sketchdraw-f2b6dcc28028-00f081779b83.png",
+    "page2": "sketchdraw-f2b6dcc28028-4950184b9187.png"
+  },
+  "findingReproduced": false,
+  "productRegressionPass": true,
+  "probeOutcome": "PASS: confirmed first upload persisted; restart publishes only the second image",
+  "finishedAt": "2026-11-16T12:25:20.671Z"
+}

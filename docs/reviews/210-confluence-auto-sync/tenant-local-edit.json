@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-11-16T07:54:31.253Z",
+  "operation": "local MCP title change; automatic Confluence sync expected, no manual send",
+  "request": {
+    "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+    "expectedRevision": 0,
+    "commandId": "84d26d80-c483-417d-92a7-24c639f3c3d1",
+    "command": {
+      "type": "rename",
+      "title": "AWS Bedrock & AgentCore · Live-Architektur"
+    }
+  },
+  "result": {
+    "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+    "commandId": "84d26d80-c483-417d-92a7-24c639f3c3d1",
+    "previousRevision": 0,
+    "revision": 1,
+    "changed": true,
+    "saved": false,
+    "persistence": "unsaved-open-document",
+    "deduplicated": false,
+    "elementCount": 62
+  }
+}

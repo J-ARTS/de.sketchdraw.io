@@ -1,0 +1,54 @@
+{
+  "recordedAt": "2026-11-16T12:03:58.414966+00:00",
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "freshSession": true,
+  "terminalProcess": "success",
+  "processExitCode": 0,
+  "reviewAcceptance": "findings_require_correction_and_coverage_incomplete",
+  "endedAt": "2026-11-16T11:59:47.405992+00:00",
+  "durationMs": 614409,
+  "recordedSeconds": 614.409,
+  "wrapperSecondsSeparateNotAdded": 615.3796890419908,
+  "turns": 55,
+  "tokenCategories": {
+    "input_tokens": 46,
+    "output_tokens": 59507,
+    "cache_read_input_tokens": 3154512,
+    "cache_creation_input_tokens": 320437
+  },
+  "tokens": 3534502,
+  "costUsd": 8.1385424,
+  "usageMatchesModelUsageAndIncrementalCounters": true,
+  "thinkingNotDoubleCounted": true,
+  "costNote": "First result of a fresh session; USD8.1385424 counted once. Prior session totals are not added to this run.",
+  "scope": "Static read-only review; no test/build/app/network execution. Partial coverage of several integration tests and original checkout.",
+  "findings": {
+    "B1": "P2 #210: settings/config write may reset link attachment state; independent validation pending",
+    "B2": "P2 #210: write path may create profile store rejected on restart; independent validation pending",
+    "B3": "#217 product/architecture decision: explicit recovery path or intentional cache reduction/documentation",
+    "B4": "minor #210: reject unsafe page before attachment upload",
+    "B5": "minor #210: honor failure hold time when edits arrive during a run",
+    "B6": "pre-existing renderer-crash close issue, separate follow-up; no issue number invented",
+    "B7": "minor #210: distinguish oversized PNG error and page/limit"
+  },
+  "next": "Root independent B1/B2 verification, then actual Fable corrections and complete coverage review; no new correction run started in this checkpoint.",
+  "graphProjection": "Deferred until follow-up terminal review final; no graph writes.",
+  "archives": [
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/result.json",
+      "sha256": "137c047203de40f3af2a24634bf499e2ceae7e32da1d97605706b93919b24a19",
+      "bytes": 21395
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md",
+      "sha256": "5cd4612baf41e57e0a7dd858341023817b6dac5bed83ef404796f8ac29574fe1",
+      "bytes": 15539
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/run.json",
+      "sha256": "b4b394be3cb6c66ec0c373689c7280eeeece7562aca005bb0a54c54e411ab8a1",
+      "bytes": 503
+    }
+  ]
+}

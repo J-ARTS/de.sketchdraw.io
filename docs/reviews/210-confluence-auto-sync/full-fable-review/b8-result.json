@@ -1,0 +1,146 @@
+{
+  "duration_api_ms": 1383202,
+  "stop_reason": "end_turn",
+  "session_id": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "total_cost_usd": 19.817224200000002,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 26586,
+    "cache_read_input_tokens": 4890846,
+    "output_tokens": 14972,
+    "output_tokens_details": {
+      "thinking_tokens": 7497
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26586,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2452,
+        "cache_read_input_tokens": 551473,
+        "cache_creation_input_tokens": 525,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 525
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 146,
+      "outputTokens": 141115,
+      "thinkingTokens": 81922,
+      "cacheReadInputTokens": 27062561,
+      "cacheCreationInputTokens": 547434,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 547434,
+      "webSearchRequests": 0,
+      "costUSD": 19.817224200000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_0154SnjQ2tE6HtCTfneBw5Qe",
+      "tool_input": {
+        "command": "shasum -a 256 electron/plugin-service.ts tests/unit/confluence-live-service.spec.ts",
+        "description": "Compute hashes of the two changed files"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01K3ZnahBhB8Kgv4czJpekfU",
+      "tool_input": {
+        "command": "npx tsc -p tsconfig.electron.json --noEmit",
+        "timeout": 300000,
+        "description": "Typecheck the Electron main-process sources"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_011Be9u3KmqwiEaHNtZDCT2V",
+      "tool_input": {
+        "command": "npm run typecheck",
+        "timeout": 600000,
+        "description": "Run the project typecheck"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# B8 \u2013 Korrektur des Codex-Befunds\n\nB8 ist behoben und durch eine Regression belegt, die gegen den unkorrigierten Stand fehlschl\u00e4gt. Der Befund stammt aus der unabh\u00e4ngigen Codex-Pr\u00fcfung (`/tmp/sketchdraw-210-b8-alias-probe/result.json`); ich habe ihn weder im Erstreview noch im Korrekturlauf gefunden. Typecheck und Build sind nach dieser Korrektur nicht gelaufen (im Harness gesperrt) und bleiben bei Root.\n\n**Identit\u00e4t:** Modell laut Systemkontext `claude-fable-5-2` (Claude Agent SDK), dieselbe Sitzung. CLI-Version und Effort-Stufe sind f\u00fcr mich nicht einsehbar.\n\n## Ursache\n`remember()` reichte die jobeigenen Maps `published` und `pending` per Referenz in `updateLiveLinks`. Die dort von `parseConfluenceLinks` gebaute Kopie wurde nur zur Pr\u00fcfung benutzt und verworfen. Damit war der gespeicherte Profilstand im Speicher dasselbe Objekt wie die Arbeitskopie des Laufs.\n\nDie Upload-Schleife \u00e4nderte nach dem Vorab-Journal also auch den vermeintlich gespeicherten Stand. Das `remember()` im `catch` fand dann keinen Unterschied und schrieb nichts. Die Voraussetzung ist eine bereits nicht leere `published`-Map; deshalb fiel der Fehler bei Erstver\u00f6ffentlichungen nicht auf.\n\nDas Aliasing bestand schon vor meinem Korrekturlauf. Meine B2-\u00c4nderung hatte die Pr\u00fcfung eingef\u00fchrt, das Ergebnis aber nicht \u00fcbernommen.\n\n## Korrektur\n`updateLiveLinks` (`electron/plugin-service.ts:752-755`) speichert jetzt die frisch gebaute, gepr\u00fcfte Kopie des Parsers statt der \u00fcbergebenen Objekte. Persistierter Stand und Arbeits-Maps sind damit getrennt.\n\nUnver\u00e4ndert bleiben:\n- Token-, Profil- und Autorit\u00e4tspr\u00fcfungen,\n- die Historie der Besitznachweise,\n- atomares Schreiben,\n- das Vorab-Journal vor dem ersten Upload,\n- der Schutz bei unbest\u00e4tigten Uploads,\n- die Fehler aus dem `update`-Callback (z. B. zu viele Verkn\u00fcpfungen), die weiterhin unverf\u00e4lscht durchgereicht werden.\n\n## Regression\nNeuer Block in `tests/unit/confluence-live-service.spec.ts:927`, ohne gleichzeitige Einstellungs\u00e4nderung, mit zwei zuvor erfolgreich ver\u00f6ffentlichten Seiten und einem Confluence-Fake ohne Digest.\n\n**Upload 2 wird vor dem Anwenden abgelehnt (`:949`):**\n- Upload 1 wird best\u00e4tigt, Upload 2 bekommt ein synthetisches 403.\n- Auf Platte steht danach Bild 1 als Version 2 mit neuem Hash, Bild 2 als Version 1, und nur Bild 2 ist als gesendet vermerkt.\n- Dieselbe Instanz versucht beim n\u00e4chsten Lauf nur Bild 2; der Record bleibt unver\u00e4ndert.\n- Nach Neustart ohne Remote-Digest gibt es keine Blockade wegen Bild 1 und keinen erneuten Upload von Bild 1.\n- Sobald Confluence annimmt, wird genau Bild 2 gesendet. Sein fr\u00fcherer Upload ist nachweislich nie angekommen (Version unver\u00e4ndert), also ist erneutes Senden vertragsgem\u00e4\u00df.\n- Endstand: beide Bilder Version 2, kein Vermerk mehr.\n\n**Antwort auf Upload 2 geht verloren (`:985`):**\n- Der Upload kommt an, die Antwort nicht. Der Record ist derselbe wie oben.\n- Der Lauf stoppt weiterhin mit \u201ebest\u00e4tigt seinen Inhalt nicht\u201c, aber ausschlie\u00dflich f\u00fcr die Datei von Bild 2.\n- Es folgt kein weiterer Upload, auch nach Neustart. Der Schutz ist also nicht gelockert.\n\n## Pr\u00fcfl\u00e4ufe\n\n| Befehl | Stand | Ergebnis |\n|---|---|---|\n| `npx vitest run --config vitest.config.ts tests/unit/confluence-live-service.spec.ts -t \"stops between two uploads\"` | vor der Korrektur | 2 von 2 fehlgeschlagen |\n| `npx vitest run --config vitest.config.ts` mit Service-, `plugin-service`-, Scheduler-, Image-, Store-, Domain- und `i18n-coverage`-Spec | nach der Korrektur | 7 Dateien, 139/139 bestanden |\n\nDer Fehlschlag vor der Korrektur zeigt auf Platte `published` v1/v1 und `pending` f\u00fcr beide Bilder, mit denselben Dateinamen und Hashes wie in `result.json`.\n\nNicht ausgef\u00fchrt:\n- `npm run typecheck` und `npm run build` nach dieser Korrektur,\n- Hash-Berechnung (`shasum` gesperrt),\n- native Tests, Browser, Tenant.\n\nVitest pr\u00fcft keine Typen. Die neue Zuweisung im `try` mit werfendem `catch` und der Testcode sind nur per Durchsicht typgepr\u00fcft.\n\n## Ge\u00e4nderte Dateien\n- `electron/plugin-service.ts`: nur `updateLiveLinks` und der Kommentar dar\u00fcber.\n- `tests/unit/confluence-live-service.spec.ts`: ein neuer `describe`-Block mit zwei Tests.\n\nSonst ist nichts angefasst. Die Abdeckung der \u00fcbrigen Dateien aus dem vorigen Lauf gilt weiter.\n\n## Verbleibende Grenzen\n- **Gespeicherte Form:** Der gespeicherte Linkstand ist jetzt immer die normalisierte Form des Parsers. Ein Record ohne Anhangs-ID, den der Ladepfad ohnehin verwirft, wird damit auch beim n\u00e4chsten Schreiben nicht mehr mitgef\u00fchrt. Das entspricht dem bisherigen Ladeverhalten.\n- **Andere Aliasing-Stellen:** Ich habe keine weitere gefunden. `saveConfig` und `configOf` teilen das Link-Array weiterhin per Referenz, es wird aber nirgends in place ver\u00e4ndert. `runLivePublish` kopiert die Maps beim Start und ersetzt Eintr\u00e4ge nur in der eigenen Kopie.\n- **B3/#219, B6/#220 und die #217-Registrierungsbeobachtung** sind unver\u00e4ndert offen.\n- **Abnahme:** Native Abnahme, Tenant-Pr\u00fcfung und Zielbranch-Integration sind nicht erfolgt und werden nicht beansprucht.",
+  "ttft_ms": 30191,
+  "type": "result",
+  "duration_ms": 150658,
+  "uuid": "de1b6a27-1051-4918-a08c-87dea7d18b84",
+  "ttft_stream_ms": 1173,
+  "time_to_request_ms": 341,
+  "first_content_frame_ms": 1173,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 18,
+      "outputTokens": 14972,
+      "cacheReadInputTokens": 4890846,
+      "cacheCreationInputTokens": 26586,
+      "webSearchRequests": 0,
+      "costUSD": 2.0025692,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 7497,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26586,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

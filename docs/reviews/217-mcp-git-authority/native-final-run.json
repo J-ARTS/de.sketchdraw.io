@@ -1,0 +1,8 @@
+{
+  "startedAt": "2026-11-16T09:21:27.992636+00:00",
+  "status": "terminal",
+  "scope": "Exclusive native #210 and #217 tests, own profiles and MCP runtime, no real Tenant",
+  "command": "npx playwright test --config playwright.config.ts --project=electron tests/electron/confluence-live.spec.ts --reporter=json --output=/tmp/sketchdraw-217-native-final-artifacts",
+  "endedAt": "2026-11-16T09:23:29.721829+00:00",
+  "exitCode": 1
+}

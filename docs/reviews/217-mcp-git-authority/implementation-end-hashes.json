@@ -1,0 +1,8 @@
+{
+  "src/crdt/persistence.ts": "727cd5490975d45d8d25e2581290cff0555b19d00e17850256c5d7035c4242fd",
+  "src/crdt/types.ts": "9e42349eb0b38982389ff2256d69608ede90fd9d36333336b7ad9cef7f92525a",
+  "src/renderer/state/whiteboard.ts": "fa3747dc91839da9cb3e308580c5df5ced12c0bf48472a99e04d50d60421dce6",
+  "tests/unit/crdt.spec.ts": "5933ec0308fbd6c57ecb4c939a4a84c234acb60a3417fedc3a174148ee2a0e7c",
+  "tests/unit/renderer/document-cache.spec.ts": "cf8aba8df3e59a24854defdec298431955cd86a54007543854dbe42b9bafe5f8",
+  "tests/electron/confluence-live.spec.ts": "3fe01caec1ee4b8ab603dcbed265c3568c740d34fc6d1cc89f3bdd52980c04a3"
+}

@@ -1,0 +1,109 @@
+{
+  "outcome": "handed over",
+  "status": "Diagramm in Confluence aktualisiert.",
+  "statusClass": "live-status live-status--synced",
+  "errors": [],
+  "log": [
+    {
+      "at": 3533,
+      "stage": "image:src",
+      "chars": 32924
+    },
+    {
+      "at": 3555,
+      "stage": "canvas:toBlob",
+      "width": 3202,
+      "height": 2608
+    },
+    {
+      "at": 3566,
+      "stage": "image:load",
+      "naturalWidth": 1601,
+      "naturalHeight": 1304
+    },
+    {
+      "at": 3596,
+      "stage": "canvas:blob",
+      "bytes": 571969
+    },
+    {
+      "at": 3596,
+      "stage": "image:src",
+      "chars": 9620
+    },
+    {
+      "at": 3604,
+      "stage": "canvas:toBlob",
+      "width": 2562,
+      "height": 3606
+    },
+    {
+      "at": 3848,
+      "stage": "image:load",
+      "naturalWidth": 1281,
+      "naturalHeight": 1803
+    },
+    {
+      "at": 3874,
+      "stage": "canvas:blob",
+      "bytes": 774755
+    },
+    {
+      "at": 3874,
+      "stage": "publish:enter",
+      "images": 2
+    },
+    {
+      "at": 3908,
+      "stage": "publish:answer"
+    }
+  ],
+  "published": [
+    {
+      "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+      "title": "AWS Bedrock & AgentCore · Referenzarchitektur",
+      "images": [
+        {
+          "pageId": "page:architecture",
+          "name": "01 · AWS-Architektur",
+          "hash": "3ebef500713fa3147480ddd472481a833b8beeff8ec1d114df719334cb414537",
+          "width": 1601,
+          "height": 1304,
+          "bytes": 571969,
+          "pixelWidth": 3202,
+          "pixelHeight": 2608,
+          "signature": [
+            137,
+            80,
+            78,
+            71,
+            13,
+            10,
+            26,
+            10
+          ]
+        },
+        {
+          "pageId": "page:live-doc",
+          "name": "02 · Architektur-Dokumentation",
+          "hash": "91ecdd93bb728510464d4c63f7bee4849e6388a7ac4cfc094422b32d7eff1df9",
+          "width": 1281,
+          "height": 1803,
+          "bytes": 774755,
+          "pixelWidth": 2562,
+          "pixelHeight": 3606,
+          "signature": [
+            137,
+            80,
+            78,
+            71,
+            13,
+            10,
+            26,
+            10
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "startedAt": "2026-11-16T12:25:17.247Z",
+  "root": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+  "sourceFiles": [
+    {
+      "path": "src/domain/index.ts",
+      "sha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "afterBundleSha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "afterProbeSha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb"
+    },
+    {
+      "path": "electron/plugin-service.ts",
+      "sha256": "91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4",
+      "afterBundleSha256": "91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4",
+      "afterProbeSha256": "91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4"
+    },
+    {
+      "path": "src/domain/serialization.ts",
+      "sha256": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52",
+      "afterBundleSha256": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52",
+      "afterProbeSha256": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52"
+    },
+    {
+      "path": "src/domain/shapes.ts",
+      "sha256": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401",
+      "afterBundleSha256": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401",
+      "afterProbeSha256": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401"
+    },
+    {
+      "path": "src/domain/connectors.ts",
+      "sha256": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1",
+      "afterBundleSha256": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1",
+      "afterProbeSha256": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1"
+    },
+    {
+      "path": "src/domain/types.ts",
+      "sha256": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a",
+      "afterBundleSha256": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a",
+      "afterProbeSha256": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a"
+    },
+    {
+      "path": "src/domain/plugins.ts",
+      "sha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "afterBundleSha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "afterProbeSha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12"
+    },
+    {
+      "path": "src/domain/commands.ts",
+      "sha256": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a",
+      "afterBundleSha256": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a",
+      "afterProbeSha256": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a"
+    },
+    {
+      "path": "src/domain/errors.ts",
+      "sha256": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60",
+      "afterBundleSha256": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60",
+      "afterProbeSha256": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60"
+    },
+    {
+      "path": "src/domain/limits.ts",
+      "sha256": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b",
+      "afterBundleSha256": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b",
+      "afterProbeSha256": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b"
+    },
+    {
+      "path": "src/domain/pages.ts",
+      "sha256": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345",
+      "afterBundleSha256": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345",
+      "afterProbeSha256": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345"
+    },
+    {
+      "path": "src/domain/migration.ts",
+      "sha256": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086",
+      "afterBundleSha256": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086",
+      "afterProbeSha256": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086"
+    },
+    {
+      "path": "src/domain/confluence-live.ts",
+      "sha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "afterBundleSha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "afterProbeSha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a"
+    },
+    {
+      "path": "src/domain/geometry.ts",
+      "sha256": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678",
+      "afterBundleSha256": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678",
+      "afterProbeSha256": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678"
+    },
+    {
+      "path": "src/domain/web-embed.ts",
+      "sha256": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1",
+      "afterBundleSha256": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1",
+      "afterProbeSha256": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1"
+    },
+    {
+      "path": "src/domain/validation.ts",
+      "sha256": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233",
+      "afterBundleSha256": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233",
+      "afterProbeSha256": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233"
+    },
+    {
+      "path": "src/domain/factories.ts",
+      "sha256": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0",
+      "afterBundleSha256": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0",
+      "afterProbeSha256": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0"
+    },
+    {
+      "path": "src/domain/frames.ts",
+      "sha256": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7",
+      "afterBundleSha256": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7",
+      "afterProbeSha256": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7"
+    },
+    {
+      "path": "src/domain/atlassian.ts",
+      "sha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "afterBundleSha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "afterProbeSha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310"
+    },
+    {
+      "path": "src/domain/annotation.ts",
+      "sha256": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe",
+      "afterBundleSha256": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe",
+      "afterProbeSha256": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe"
+    },
+    {
+      "path": "src/domain/table.ts",
+      "sha256": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a",
+      "afterBundleSha256": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a",
+      "afterProbeSha256": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a"
+    },
+    {
+      "path": "src/domain/controller.ts",
+      "sha256": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b",
+      "afterBundleSha256": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b",
+      "afterProbeSha256": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b"
+    }
+  ],
+  "harnessSha256": "edfba1db49049584e88aeb83ec0966605fccffadfd4a19741ac7971e41f4bb33",
+  "helperSourcePath": "tests/unit/confluence-live-service.spec.ts",
+  "helperSourceSha256": "98c92a13c4e8a22397fba5063b78486baf7c04bfbd3c13c1d95c4e787c9ff6b4",
+  "nodeVersion": "v22.16.0",
+  "command": "node /tmp/sketchdraw-210-b8-final-probe/build.mjs && node /tmp/sketchdraw-210-b8-final-probe/probe.mjs",
+  "bundleSha256": "70a804be73ae393a8cdbe4953c47e3af38cdbae0984a69a73c5916a9830417c6",
+  "finishedAt": "2026-11-16T12:25:17.276Z",
+  "sourcesStableDuringBundle": true,
+  "sourcesStableThroughProbe": true,
+  "helperSourceAfterProbeSha256": "98c92a13c4e8a22397fba5063b78486baf7c04bfbd3c13c1d95c4e787c9ff6b4",
+  "helperSourceStable": true,
+  "resultSha256": "104a9b38b4c46e06287d384d700a610e92899654049e5da5339c406572eb0c17",
+  "probeCommand": "node /tmp/sketchdraw-210-b8-final-probe/probe.mjs",
+  "probeExitCode": 0,
+  "checkedAt": "2026-11-16T12:26:30.603Z"
+}

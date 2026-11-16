@@ -1,0 +1,201 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--grep",
+      "#217",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-217-quit-diagnostic-artifacts"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/sketchdraw-217-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/sketchdraw-217-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/tmp/sketchdraw-217-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 24266,
+                  "error": {
+                    "message": "Error: the saved document lets the application quit on its own\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                    "stack": "Error: the saved document lets the application quit on its own\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:523:96",
+                    "location": {
+                      "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                      "column": 96,
+                      "line": 523
+                    },
+                    "snippet": "  521 |     stage = 'normal quit';\n  522 |     const firstPid = app.process().pid;\n> 523 |     expect(await quitNormally(app), 'the saved document lets the application quit on its own').toBe(true);\n      |                                                                                                ^\n  524 |     app = undefined;\n  525 |\n  526 |     stage = 'restart';"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                        "column": 96,
+                        "line": 523
+                      },
+                      "message": "Error: the saved document lets the application quit on its own\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  521 |     stage = 'normal quit';\n  522 |     const firstPid = app.process().pid;\n> 523 |     expect(await quitNormally(app), 'the saved document lets the application quit on its own').toBe(true);\n      |                                                                                                ^\n  524 |     app = undefined;\n  525 |\n  526 |     stage = 'restart';\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:523:96"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:29:32.721Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzUwLDIyMF0sInRvIjpbNTUwLDM2MF0sImJlZm9yZSI6W10sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4IjozNzUsInkiOjIzNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM3NSwieSI6MjM3LjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDAwLCJ5IjoyNTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDI1LCJ5IjoyNzIuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NTAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzUsInkiOjMwNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUwMCwieSI6MzI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUyNSwieSI6MzQyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NTUwLCJ5IjozNjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6Imxvc3Rwb2ludGVyY2FwdHVyZSIsIngiOjU1MCwieSI6MzYwLCJidXR0b24iOjAsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9XSwiZG9tIjp7InZpZXdwb3J0Ijp7IndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Miwic2NhbGUiOjJ9LCJmb2N1c2VkIjp0cnVlLCJhY3RpdmUiOnsidGFnIjoic3ZnIiwidGVzdElkIjoid2hpdGVib2FyZC1jYW52YXMiLCJyb2xlIjoiYXBwbGljYXRpb24iLCJsYWJlbCI6IlplaWNoZW5mbMOkY2hlIiwiY2xhc3NOYW1lIjpudWxsLCJvbkNhbnZhcyI6dHJ1ZX0sImNhbnZhcyI6eyJ4IjowLCJ5IjowLCJ3aWR0aCI6MTI4MCwiaGVpZ2h0Ijo3NzJ9LCJzYXZlU3RhdHVzIjoidW5zYXZlZC1uZXciLCJwYWdlTGFiZWwiOiJTZWl0ZW4gKDEpLCBha3R1ZWxsZSBTZWl0ZTogU2VpdGUgMSIsIm9wZW5EaWFsb2dzIjpbXSwicHJlc3NlZCI6W3sidGFnIjoiQlVUVE9OIiwidGVzdElkIjpudWxsLCJyb2xlIjpudWxsLCJsYWJlbCI6IkF1c3dhaGwiLCJjbGFzc05hbWUiOiJ0b29sIHNkLWljb24tYnRuIiwib25DYW52YXMiOmZhbHNlfV0sInNpbGhvdWV0dGVWaXNpYmxlIjpmYWxzZSwiZHJhZnRDb3VudCI6MCwicmVjdGFuZ2xlcyI6W3siaWQiOiJyZWN0YW5nbGU6NTMzZThkMWEtNzg2ZC00MmExLWEzNmEtZWVjYzY5MzRkNTlmIiwiYm94Ijp7IngiOjM1MCwieSI6MjIwLCJ3aWR0aCI6MjAwLCJoZWlnaHQiOjE0MH0sIndpZHRoIjoiMjAwIiwiaGVpZ2h0IjoiMTQwIn1dLCJwb2ludHMiOlt7IngiOjM1MCwieSI6MjIwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjU1MCwieSI6MzYwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-authority-217-failed-stage",
+                      "contentType": "application/json",
+                      "body": "eyJzdGFnZSI6Im5vcm1hbCBxdWl0Iiwicm91bmRzIjpbeyJzdGFnZSI6ImZpbGUgcmVwbGFjZW1lbnQgMSIsIndpZHRoIjoyNDAsInJldmlzaW9uIjowLCJuZXdHcmFudCI6dHJ1ZX0seyJzdGFnZSI6ImZpbGUgcmVwbGFjZW1lbnQgMiIsIndpZHRoIjoyODAsInJldmlzaW9uIjowLCJuZXdHcmFudCI6dHJ1ZX0seyJzdGFnZSI6ImdpdCByZXBsYWNlbWVudCIsIndpZHRoIjo1ODAsInJldmlzaW9uIjowLCJuZXdHcmFudCI6dHJ1ZX1dLCJwYWdlRXJyb3JDb3VudCI6MH0="
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/sketchdraw-217-quit-diagnostic-artifacts/confluence-live-the-local--fe8be-ram-also-after-restart-217--electron/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                    "column": 96,
+                    "line": 523
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-e6a634029f8615da3f1c",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 396,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T09:29:32.171Z",
+    "duration": 24852.043999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

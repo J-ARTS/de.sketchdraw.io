@@ -1,0 +1,553 @@
+1. Identical: true
+Original German:
+Suche nach Seiten, um das Diagramm live zu verknüpfen oder sie als editierbare Annotation
+einzubinden.
+Original English:
+Search for pages to link the diagram live or to embed them as an editable annotation.
+Integration English:
+Search for pages to link the diagram live or to embed them as an editable annotation.
+
+2. Identical: true
+Original German:
+Diagramm live in Confluence
+Original English:
+Diagram live in Confluence
+Integration English:
+Diagram live in Confluence
+
+3. Identical: true
+Original German:
+Sketchdraw zeigt alle Seiten dieses Diagramms als Bilder auf einer Confluence-Seite und hält sie
+nach jeder Änderung automatisch aktuell. Andere Inhalte der Seite bleiben unverändert.
+Original English:
+Sketchdraw shows every page of this diagram as an image on a Confluence page and keeps them up to
+date automatically after each change. Other content on the page stays as it is.
+Integration English:
+Sketchdraw shows every page of this diagram as an image on a Confluence page and keeps them up to
+date automatically after each change. Other content on the page stays as it is.
+
+4. Identical: true
+Original German:
+Verknüpft mit
+Original English:
+Linked to
+Integration English:
+Linked to
+
+5. Identical: true
+Original German:
+In Confluence öffnen
+Original English:
+Open in Confluence
+Integration English:
+Open in Confluence
+
+6. Identical: true
+Original German:
+Verknüpfung lösen
+Original English:
+Remove link
+Integration English:
+Remove link
+
+7. Identical: true
+Original German:
+Live verknüpfen
+Original English:
+Link live
+Integration English:
+Link live
+
+8. Identical: true
+Original German:
+Live verknüpft
+Original English:
+Linked live
+Integration English:
+Linked live
+
+9. Identical: true
+Original German:
+„{title}“ live verknüpfen
+Original English:
+Link “{title}” live
+Integration English:
+Link “{title}” live
+
+10. Identical: true
+Original German:
+„{title}“ als Annotation einbinden
+Original English:
+Embed “{title}” as an annotation
+Integration English:
+Embed “{title}” as an annotation
+
+11. Identical: true
+Original German:
+Suche unten die Zielseite und wähle „Live verknüpfen“. Danach ist kein weiteres Senden nötig.
+Original English:
+Search for the target page below and choose “Link live”. After that, no further sending is needed.
+Integration English:
+Search for the target page below and choose “Link live”. After that, no further sending is needed.
+
+12. Identical: true
+Original German:
+Speichere das Diagramm lokal und aktiviere das Jira-Plugin, um es mit einer Confluence-Seite zu
+verknüpfen.
+Original English:
+Save the diagram locally and enable the Jira plugin to link it to a Confluence page.
+Integration English:
+Save the diagram locally and enable the Jira plugin to link it to a Confluence page.
+
+13. Identical: true
+Original German:
+Die Übertragung läuft, solange die Desktop-App mit diesem Diagramm geöffnet ist. Änderungen, die
+über Git eintreffen, werden übertragen, wenn das Git-Plugin aktiv ist und „Automatisch abrufen“
+eingeschaltet ist. Die Verknüpfung gilt für dieses Profil auf diesem Gerät und wird nicht im
+Diagramm gespeichert.
+Original English:
+Publishing runs while the desktop app is open with this diagram. Changes that arrive through Git are
+published when the Git plugin is active and “Pull automatically” is switched on. The link applies to
+this profile on this device and is not stored in the diagram.
+Integration English:
+Publishing runs while the desktop app is open with this diagram. Changes that arrive through Git are
+published when the Git plugin is active and “Pull automatically” is switched on. The link applies to
+this profile on this device and is not stored in the diagram.
+
+14. Identical: true
+Original German:
+Diagramme automatisch auf einer Confluence-Seite aktuell halten
+Original English:
+Keep diagrams up to date on a Confluence page automatically
+Integration English:
+Keep diagrams up to date on a Confluence page automatically
+
+15. Identical: true
+Original German:
+Noch nicht übertragen.
+Original English:
+Not published yet.
+Integration English:
+Not published yet.
+
+16. Identical: true
+Original German:
+Übertragung pausiert.
+Original English:
+Publishing paused.
+Integration English:
+Publishing paused.
+
+17. Identical: true
+Original German:
+Änderungen werden gleich nach Confluence übertragen.
+Original English:
+Changes will be published to Confluence in a moment.
+Integration English:
+Changes will be published to Confluence in a moment.
+
+18. Identical: true
+Original German:
+Diagramm wird nach Confluence übertragen …
+Original English:
+Publishing the diagram to Confluence …
+Integration English:
+Publishing the diagram to Confluence …
+
+19. Identical: true
+Original German:
+Confluence ist auf dem aktuellen Stand.
+Original English:
+Confluence is up to date.
+Integration English:
+Confluence is up to date.
+
+20. Identical: true
+Original German:
+Übertragung wird wiederholt.
+Original English:
+Publishing is being retried.
+Integration English:
+Publishing is being retried.
+
+21. Identical: true
+Original German:
+Übertragung fehlgeschlagen.
+Original English:
+Publishing failed.
+Integration English:
+Publishing failed.
+
+22. Identical: true
+Original German:
+Zuletzt übertragen: {time}
+Original English:
+Last published: {time}
+Integration English:
+Last published: {time}
+
+23. Identical: true
+Original German:
+Diagramm mit Confluence verknüpft.
+Original English:
+Diagram linked to Confluence.
+Integration English:
+Diagram linked to Confluence.
+
+24. Identical: true
+Original German:
+Live-Verknüpfung mit Confluence gelöst.
+Original English:
+Live link to Confluence removed.
+Integration English:
+Live link to Confluence removed.
+
+25. Identical: true
+Original German:
+Diagramm mit Confluence-Seite „{title}“ verknüpft. Änderungen werden automatisch übertragen.
+Original English:
+Diagram linked to the Confluence page “{title}”. Changes are published automatically.
+Integration English:
+Diagram linked to the Confluence page “{title}”. Changes are published automatically.
+
+26. Identical: true
+Original German:
+Das Diagramm konnte nicht für Confluence gerendert werden: {message}
+Original English:
+The diagram could not be rendered for Confluence: {message}
+Integration English:
+The diagram could not be rendered for Confluence: {message}
+
+27. Identical: true
+Original German:
+{message} Automatische Wiederholungen sind pausiert; die nächste Änderung oder „Jetzt
+synchronisieren“ startet einen neuen Versuch.
+Original English:
+{message} Automatic retries are paused; the next change or “Sync now” starts a new attempt.
+Integration English:
+{message} Automatic retries are paused; the next change or “Sync now” starts a new attempt.
+
+28. Identical: true
+Original German:
+Das Jira-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen
+werden.
+Original English:
+The Jira plugin is disabled. Enable it so that changes are published to Confluence again.
+Integration English:
+The Jira plugin is disabled. Enable it so that changes are published to Confluence again.
+
+29. Identical: true
+Original German:
+Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe das Diagramm
+neu.
+Original English:
+The link belongs to a different Atlassian site than the active profile. Link the diagram again.
+Integration English:
+The link belongs to a different Atlassian site than the active profile. Link the diagram again.
+
+30. Identical: true
+Original German:
+Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe dieses Diagramm neu.
+Original English:
+The link belongs to a different diagram. Link this diagram again.
+Integration English:
+The link belongs to a different diagram. Link this diagram again.
+
+31. Identical: true
+Original German:
+Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version
+geladen ist.
+Original English:
+An external change is waiting. Confluence is updated again once the external version has been
+loaded.
+Integration English:
+An external change is waiting. Confluence is updated again once the external version has been
+loaded.
+
+32. Identical: true
+Original German:
+Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.
+Original English:
+Save conflict: Confluence is only updated again once the conflict is resolved.
+Integration English:
+Save conflict: Confluence is only updated again once the conflict is resolved.
+
+33. Identical: true
+Original German:
+Diese Seite ist leer.
+Original English:
+This page is empty.
+Integration English:
+This page is empty.
+
+34. Identical: true
+Original German:
+Die Aktion wurde abgebrochen, weil sich Diagramm, Profil, Konto oder Verknüpfung geändert haben.
+Bitte erneut starten.
+Original English:
+The action was cancelled because the diagram, profile, account or link changed. Please start it
+again.
+Integration English:
+The action was cancelled because the diagram, profile, account or link changed. Please start it
+again.
+
+35. Identical: true
+Original German:
+Atlassian hat um eine Pause gebeten. Anfragen werden bis zum genannten Zeitpunkt zurückgehalten.
+Original English:
+Atlassian asked for a pause. Requests are held back until the time it named.
+Integration English:
+Atlassian asked for a pause. Requests are held back until the time it named.
+
+36. Identical: true
+Original German:
+Confluence hat um eine Pause gebeten. Die Veröffentlichung wird danach automatisch fortgesetzt.
+Original English:
+Confluence asked for a pause. Publishing continues automatically afterwards.
+Integration English:
+Confluence asked for a pause. Publishing continues automatically afterwards.
+
+37. Identical: true
+Original German:
+Nächster Versuch nicht vor {time}
+Original English:
+Next attempt not before {time}
+Integration English:
+Next attempt not before {time}
+
+38. Identical: true
+Original German:
+Diese eingebundene Seite hat keinen gesicherten Ausgangsstand. Lade sie neu, bevor du sendest.
+Original English:
+This embedded page has no trusted starting point. Reload it before you send.
+Integration English:
+This embedded page has no trusted starting point. Reload it before you send.
+
+39. Identical: true
+Original German:
+Auf der Confluence-Seite liegen mehrere Anhänge mit dem Namen „{name}“. Sketchdraw kann nicht
+entscheiden, welcher gemeint ist, und ändert keinen davon.
+Original English:
+The Confluence page has several attachments named “{name}”. Sketchdraw cannot decide which one is
+meant and changes none of them.
+Integration English:
+The Confluence page has several attachments named “{name}”. Sketchdraw cannot decide which one is
+meant and changes none of them.
+
+40. Identical: true
+Original German:
+Confluence hat den Anhang unvollständig geliefert. Die Veröffentlichung wird wiederholt.
+Original English:
+Confluence returned the attachment incompletely. Publishing will be retried.
+Integration English:
+Confluence returned the attachment incompletely. Publishing will be retried.
+
+41. Identical: true
+Original German:
+Ein Upload von „{name}“ wurde gesendet, aber Confluence bestätigt seinen Inhalt nicht. Damit keine
+doppelte Version entsteht, ist die Übertragung angehalten. Prüfe das Bild in Confluence; wenn du den
+Anhang dort löschst, legt Sketchdraw ihn neu an.
+Original English:
+An upload of “{name}” was sent, but Confluence does not confirm its content. Publishing is on hold
+so that no duplicate version is created. Check the image in Confluence; if you delete the attachment
+there, Sketchdraw creates it again.
+Integration English:
+An upload of “{name}” was sent, but Confluence does not confirm its content. Publishing is on hold
+so that no duplicate version is created. Check the image in Confluence; if you delete the attachment
+there, Sketchdraw creates it again.
+
+42. Identical: true
+Original German:
+Auf der Confluence-Seite liegt bereits ein Anhang „{name}“, der nicht von Sketchdraw stammt. Er wird
+nicht überschrieben. Benenne oder lösche ihn in Confluence; danach wird das Diagramm übertragen.
+Original English:
+The Confluence page already has an attachment “{name}” that does not come from Sketchdraw. It is not
+overwritten. Rename or delete it in Confluence; the diagram is published after that.
+Integration English:
+The Confluence page already has an attachment “{name}” that does not come from Sketchdraw. It is not
+overwritten. Rename or delete it in Confluence; the diagram is published after that.
+
+43. Identical: true
+Original German:
+Der Anhang „{name}“ wurde in Confluence von anderer Stelle geändert. Sketchdraw überschreibt ihn
+nicht. Prüfe ihn in Confluence; wenn das Diagramm ihn ersetzen soll, lösche ihn dort, er wird dann
+neu angelegt.
+Original English:
+The attachment “{name}” was changed in Confluence by someone else. Sketchdraw does not overwrite it.
+Check it in Confluence; if the diagram should replace it, delete it there and it is created again.
+Integration English:
+The attachment “{name}” was changed in Confluence by someone else. Sketchdraw does not overwrite it.
+Check it in Confluence; if the diagram should replace it, delete it there and it is created again.
+
+44. Identical: true
+Original German:
+Der Stand der Veröffentlichung konnte nicht im Profil gespeichert werden. Es wurde nichts
+übertragen.
+Original English:
+The state of the publication could not be saved in the profile. Nothing was transferred.
+Integration English:
+The state of the publication could not be saved in the profile. Nothing was transferred.
+
+45. Identical: true
+Original German:
+Die Confluence-Seite wurde seit dem letzten Laden geändert. Lade sie neu, bevor du sendest.
+Original English:
+The Confluence page has changed since it was last loaded. Reload it before you send.
+Integration English:
+The Confluence page has changed since it was last loaded. Reload it before you send.
+
+46. Identical: true
+Original German:
+Senden würde Inhalte der Confluence-Seite entfernen, die eine Annotation nicht abbilden kann (zum
+Beispiel Formatierungen, Links, Tabellen, Bilder oder Makros). Die Seite wurde nicht geändert.
+Original English:
+Sending would remove content of the Confluence page that an annotation cannot represent (for example
+formatting, links, tables, images or macros). The page was not changed.
+Integration English:
+Sending would remove content of the Confluence page that an annotation cannot represent (for example
+formatting, links, tables, images or macros). The page was not changed.
+
+47. Identical: true
+Original German:
+Ungültige Confluence-Verknüpfung.
+Original English:
+Invalid Confluence link.
+Integration English:
+Invalid Confluence link.
+
+48. Identical: true
+Original German:
+Es sind zu viele Confluence-Verknüpfungen gespeichert.
+Original English:
+Too many Confluence links are stored.
+Integration English:
+Too many Confluence links are stored.
+
+49. Identical: true
+Original German:
+Ungültige Confluence-Veröffentlichung.
+Original English:
+Invalid Confluence publication.
+Integration English:
+Invalid Confluence publication.
+
+50. Identical: true
+Original German:
+Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.
+Original English:
+This diagram is not linked to a Confluence page.
+Integration English:
+This diagram is not linked to a Confluence page.
+
+51. Identical: true
+Original German:
+Confluence hat die Seite unvollständig geliefert. Die Veröffentlichung wird wiederholt.
+Original English:
+Confluence returned the page incompletely. Publishing will be retried.
+Integration English:
+Confluence returned the page incompletely. Publishing will be retried.
+
+52. Identical: true
+Original German:
+Confluence hat das hochgeladene Diagramm nicht bestätigt. Die Veröffentlichung wird wiederholt.
+Original English:
+Confluence did not confirm the uploaded diagram. Publishing will be retried.
+Integration English:
+Confluence did not confirm the uploaded diagram. Publishing will be retried.
+
+53. Identical: true
+Original German:
+Der Inhalt der Confluence-Seite konnte nicht sicher gelesen werden. Die Seite wurde nicht geändert.
+Original English:
+The content of the Confluence page could not be read safely. The page was not changed.
+Integration English:
+The content of the Confluence page could not be read safely. The page was not changed.
+
+54. Identical: true
+Original German:
+Die Confluence-Seite ist zu groß, um den Diagrammabschnitt einzufügen.
+Original English:
+The Confluence page is too large to insert the diagram section.
+Integration English:
+The Confluence page is too large to insert the diagram section.
+
+55. Identical: true
+Original German:
+Die Confluence-Seite wird gerade bearbeitet. Das Diagramm wird eingefügt, sobald die Seite ruhig
+ist.
+Original English:
+The Confluence page is being edited right now. The diagram is inserted as soon as the page is quiet.
+Integration English:
+The Confluence page is being edited right now. The diagram is inserted as soon as the page is quiet.
+
+56. Identical: true
+Original German:
+Die Confluence-Seite wurde gleichzeitig geändert. Die Veröffentlichung wird wiederholt.
+Original English:
+The Confluence page was changed at the same time. Publishing will be retried.
+Integration English:
+The Confluence page was changed at the same time. Publishing will be retried.
+
+57. Identical: true
+Original German:
+Confluence hat den Diagrammabschnitt nicht übernommen. Die Veröffentlichung wird wiederholt.
+Original English:
+Confluence did not apply the diagram section. Publishing will be retried.
+Integration English:
+Confluence did not apply the diagram section. Publishing will be retried.
+
+58. Identical: true
+Original German:
+Confluence verweigert den Zugriff. Prüfe das API-Token und die Rechte für die Seite.
+Original English:
+Confluence denies access. Check the API token and the permissions for the page.
+Integration English:
+Confluence denies access. Check the API token and the permissions for the page.
+
+59. Identical: true
+Original German:
+Die verknüpfte Confluence-Seite wurde nicht gefunden oder ist für dieses Konto nicht sichtbar.
+Original English:
+The linked Confluence page was not found or is not visible to this account.
+Integration English:
+The linked Confluence page was not found or is not visible to this account.
+
+60. Identical: true
+Original German:
+Confluence ist gerade nicht bereit (Status {status}). Die Veröffentlichung wird wiederholt.
+Original English:
+Confluence is not ready right now (status {status}). Publishing will be retried.
+Integration English:
+Confluence is not ready right now (status {status}). Publishing will be retried.
+
+61. Identical: true
+Original German:
+Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.
+Original English:
+Confluence cannot be reached. Publishing will be retried as soon as the connection is back.
+Integration English:
+Confluence cannot be reached. Publishing will be retried as soon as the connection is back.
+
+62. Identical: true
+Original German:
+Diagramm in Confluence aktualisiert.
+Original English:
+Diagram updated in Confluence.
+Integration English:
+Diagram updated in Confluence.
+
+63. Identical: true
+Original German:
+Confluence-Seiten-ID ist ungültig.
+Original English:
+Confluence page ID is invalid.
+Integration English:
+Confluence page ID is invalid.
+
+64. Identical: true
+Original German:
+Diagramm-ID
+Original English:
+Diagram ID
+Integration English:
+Diagram ID

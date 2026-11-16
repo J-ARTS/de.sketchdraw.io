@@ -1,0 +1,222 @@
+{
+  "recordedAt": "2026-11-16T09:35:20.956523+00:00",
+  "source": "Root delegated bookkeeping in #218 comment6912642926; terminal native reports and independent review",
+  "nativeRun": {
+    "startedAt": "2026-11-16T09:21:27.992636+00:00",
+    "endedAt": "2026-11-16T09:23:29.721829+00:00",
+    "exitCode": 1,
+    "stats": {
+      "startTime": "2026-11-16T09:21:28.935Z",
+      "duration": 120770.214,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "cases": [
+      {
+        "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+        "status": "passed",
+        "durationMs": 85924,
+        "startTime": "2026-11-16T09:21:29.637Z",
+        "error": null,
+        "location": null
+      },
+      {
+        "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+        "status": "passed",
+        "durationMs": 10289,
+        "startTime": "2026-11-16T09:22:55.582Z",
+        "error": null,
+        "location": null
+      },
+      {
+        "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+        "status": "failed",
+        "durationMs": 23810,
+        "startTime": "2026-11-16T09:23:05.879Z",
+        "error": "Error: the saved document lets the application quit on its own\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+        "location": {
+          "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+          "column": 96,
+          "line": 523
+        }
+      }
+    ],
+    "environment": "Exclusive native #210 and #217 tests, own profiles and MCP runtime, no real Tenant",
+    "passed210Cases": 2,
+    "failed217CaseStage": "normal quit",
+    "passed217Prerequisites": [
+      "MCP read after file replacement 1 with new grant",
+      "MCP read after file replacement 2 with new grant",
+      "MCP read after Git replacement with new grant",
+      "MCP write",
+      "save"
+    ],
+    "restart217": "not reached",
+    "tenant": "No real Tenant in these isolated native tests"
+  },
+  "sourceIntegrity": {
+    "at": "2026-11-16T09:29:54.684713+00:00",
+    "checked": 512,
+    "changed": []
+  },
+  "independentConcurrencyReview": {
+    "result": "passed bounded review and real-function fake-indexeddb probe",
+    "persistenceSha256": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+    "nativeOrTenantAcceptance": false
+  },
+  "followupDiagnostics": [
+    {
+      "artifact": "217-quit-diagnostic.json",
+      "stats": {
+        "startTime": "2026-11-16T09:29:32.171Z",
+        "duration": 24852.043999999998,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+          "status": "failed",
+          "durationMs": 24266,
+          "startTime": "2026-11-16T09:29:32.721Z",
+          "error": "Error: the saved document lets the application quit on its own\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+          "location": {
+            "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+            "column": 96,
+            "line": 523
+          }
+        }
+      ],
+      "interpretation": "Repeated normal-quit failure on unchanged test; initial Python preparation failed with KeyError before modifying the test."
+    },
+    {
+      "artifact": "218-quit-diagnostic.json",
+      "stats": {
+        "startTime": "2026-11-16T09:30:40.496Z",
+        "duration": 6564.116,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+          "status": "failed",
+          "durationMs": 5876,
+          "startTime": "2026-11-16T09:30:41.125Z",
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\u001b[22m\n\u001b[2m    14 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n",
+          "location": {
+            "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+            "column": 90,
+            "line": 79
+          }
+        }
+      ],
+      "interpretation": "Drawing gesture failed before the quit stage. Not evidence for successful or failed quit."
+    }
+  ],
+  "issue218": {
+    "status": "in-progress",
+    "rootDiagnosis": "saved-empty quit failure confirmed; diagnostic/test coordination remains active",
+    "fableImplementation": "actual Fable running since2026-11-16T09:33:52.245767+00:00, exec25024, no terminal result",
+    "actualUserAppRestart": "pending"
+  },
+  "archives": [
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-final-report.json",
+      "sha256": "342879f8975602f5c4b1b2d6013b7b988c888799d8e2370d3d2a77a163f1f9d4",
+      "bytes": 134809
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-final-run.json",
+      "sha256": "dd25044719d339dc4bd32e349de9d73e37c38c4da9963d88286b0e6366aae583",
+      "bytes": 433
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-final-source-before.json",
+      "sha256": "87b460fa2f390b52bed4559a67c161e114a0d48f8b91f6f1b9a97461a83c7ec7",
+      "bytes": 58334
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-final-source-after.json",
+      "sha256": "a8d0fb759f58e7f56d2892df6753b2190f804f1486b9243604840baddc76f1f0",
+      "bytes": 82
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-authority-217-failed-stage.json",
+      "sha256": "b6def821e826531ec35d4b7236568f6e5f454c820de063b24a100a807ed11ce4",
+      "bytes": 266
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-window-cancellation.json",
+      "sha256": "f6ec8c21b28625c7c8da06d8ea66f6fd5c770895a93ef20f1440afc9bb06c6a0",
+      "bytes": 803
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/native-confluence-evidence.json",
+      "sha256": "9dd12134a4360ff6f36edda01c4934506cf5882b230d64892e187bd851626e35",
+      "bytes": 7817
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/codex-concurrency-final-review.md",
+      "sha256": "d3a66e0f1f708be01d2ea11119cdb2a3a854033591483f32ed3e323a0f7fecb1",
+      "bytes": 4251
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/codex-concurrency-final-probe.ts",
+      "sha256": "8e9b65b34e60fcb524870c322cfbfef2e00f5eba5938683847e6a530d615d885",
+      "bytes": 4166
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/codex-concurrency-final-result.json",
+      "sha256": "594f0c1ad8d438039a609bd86463811ea2079b702548a4e1caffe82be311b7fc",
+      "bytes": 4837
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/codex-concurrency-final-source-manifest.json",
+      "sha256": "43311a1fe8f66c643466e8f3d05f2381194cc9841def056a97d9db5f893bcbc0",
+      "bytes": 12060
+    },
+    {
+      "path": "docs/reviews/217-mcp-git-authority/codex-concurrency-final-historical-integrity-before.json",
+      "sha256": "9046590d0af9e120f5b99d8279f362361bac7fb2c448f1addeed424461237dd2",
+      "bytes": 347
+    },
+    {
+      "path": "docs/reviews/218-macos-quit/217-quit-diagnostic.json",
+      "sha256": "72a034aaaa46f239cb4a0522b63eb6b7be152952ecd7e2e9cfc11300049f5462",
+      "bytes": 12728
+    },
+    {
+      "path": "docs/reviews/218-macos-quit/218-quit-diagnostic.json",
+      "sha256": "fcf63150f2209279ccbd4addbb071f936a1f6c2d84f9761d5534ce04b5af2e5b",
+      "bytes": 14914
+    }
+  ],
+  "projectionChecks": {
+    "original": "passed",
+    "managed": "passed",
+    "traceabilityNodes": 3034,
+    "traceabilityLinks": 4187,
+    "runCount": 286
+  },
+  "savedEmptyReproduction": {
+    "testDurationMs": 21233,
+    "windowCount": 0,
+    "exitCode": null,
+    "signalCode": null,
+    "firstEmptyProbe": "failed before quit due to invalid saved expectation; not quit evidence"
+  },
+  "preservation": {
+    "allPrior282MeasurementRecordsUnchanged": true,
+    "unrelatedPrior281RunRecordsUnchanged": true,
+    "unrelatedIssuesUnchanged": true,
+    "sourceGraphUnchanged": true,
+    "activeFableRunFileNotWritten": true
+  }
+}

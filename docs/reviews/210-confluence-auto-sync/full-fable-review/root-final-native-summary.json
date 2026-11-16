@@ -1,0 +1,78 @@
+{
+  "stats": {
+    "startTime": "2026-11-16T12:25:14.897Z",
+    "duration": 43167.878,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "duration": 6179,
+          "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\u001b[22m\n\u001b[2m    14 \u00d7 locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n"
+        }
+      ]
+    },
+    {
+      "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 10704,
+          "error": null
+        }
+      ]
+    },
+    {
+      "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 5095,
+          "error": null
+        }
+      ]
+    },
+    {
+      "title": "a saved empty application exits normally (#218)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 804,
+          "error": null
+        }
+      ]
+    },
+    {
+      "title": "a cancelled quit keeps the plugins working, a repeated quit keeps one question and saving completes the quit (#218)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 14836,
+          "error": null
+        }
+      ]
+    },
+    {
+      "title": "closing only the window after a cancelled quit keeps the application, which reopens and then quits (#218)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 4473,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

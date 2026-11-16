@@ -1,0 +1,34 @@
+import 'fake-indexeddb/auto';
+import { createDocument } from '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/src/domain/index.ts';
+import { createCrdtController } from '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/src/crdt/controller.ts';
+import { attachIndexedDbPersistence, createPersistedCrdtController } from '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/src/crdt/persistence.ts';
+import { createDocumentAuthority } from '/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/src/session/authority.ts';
+import { writeFile } from 'node:fs/promises';
+const pause=(ms=30)=>new Promise(resolve=>setTimeout(resolve,ms));
+const checked=(fn:()=>unknown)=>{try{return {ok:true,value:fn()};}catch(e:any){return {ok:false,name:e.name,code:e.code,message:e.message};}};
+(async()=>{
+ const startedAt=new Date().toISOString();
+ const doc=createDocument('Shared initial state');
+ const cacheKey=`probe217:${crypto.randomUUID()}`;
+ const first=createCrdtController(doc), second=createCrdtController(doc);
+ const firstEvents:any[]=[],secondEvents:any[]=[],fatal:any[]=[];
+ first.on('persistence',event=>firstEvents.push(event));
+ second.on('persistence',event=>secondEvents.push(event));
+ const firstAuthority=createDocumentAuthority({controller:first,onFatal:event=>fatal.push({side:'first',...event})});
+ const secondAuthority=createDocumentAuthority({controller:second,onFatal:event=>fatal.push({side:'second',...event})});
+ const firstCache=attachIndexedDbPersistence(first,cacheKey);await firstCache.ready;await pause();
+ const firstBefore=first.getSnapshot();
+ const secondCache=attachIndexedDbPersistence(second,cacheKey);await secondCache.ready;await pause();
+ const beforeWrite={firstEvents:[...firstEvents],secondEvents:[...secondEvents]};
+ // Real authority gateway is used to keep this write valid independently of cache behavior.
+ const firstBinding=firstAuthority.bindActor({actorId:'human:probe217',source:'human',grantId:'grant:probe217',grantGeneration:1,guard:()=>({allowed:true})});
+ const applied=await firstBinding.gateway.submit({requestId:firstBinding.gateway.nextRequestId()!,expectedRevision:0,action:{kind:'dispatch',command:{type:'rename',title:'Unsaved edit in still-active first instance'}}});
+ await pause();
+ const afterWrite={firstController:first.getSnapshot(),secondController:second.getSnapshot(),firstAuthority:checked(()=>firstAuthority.source.getSnapshot()),secondAuthority:checked(()=>secondAuthority.source.getSnapshot()),firstEvents:[...firstEvents],secondEvents:[...secondEvents],fatal};
+ await firstCache.destroy();await secondCache.destroy();first.destroy();second.destroy();
+ const recovered=await createPersistedCrdtController(cacheKey,doc);const recovery={recovered:recovered.recovered,snapshot:recovered.controller.getSnapshot()};
+ await recovered.persistence.destroy();recovered.controller.destroy();
+ const result={startedAt,endedAt:new Date().toISOString(),scope:'One bounded isolated two-active-handles/same-cacheKey case; fake-indexeddb only, real controller/persistence/authority functions. No UI, native app, Tenant, runtime files or real user cache.',sameInitialDocument:true,firstBefore,beforeWrite,applied,afterWrite,recovery,observations:{bothCachesHealthy:!afterWrite.firstEvents.some(x=>x.state==='error')&&!afterWrite.secondEvents.some(x=>x.state==='error'),firstAuthorityHealthy:afterWrite.firstAuthority.ok,secondAuthorityHealthy:afterWrite.secondAuthority.ok,firstEditPresentInController:afterWrite.firstController.document.title==='Unsaved edit in still-active first instance',firstEditRecovered:recovery.recovered&&recovery.snapshot.document.title==='Unsaved edit in still-active first instance',firstWriteCommitted:applied.status==='committed',noAuthorityFatal:fatal.length===0}};
+ await writeFile('/tmp/sketchdraw-217-concurrency-final-probe/result.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));
+ process.exit(Object.values(result.observations).every(Boolean)?0:2);
+})().catch(error=>{console.error(error);process.exit(1)});

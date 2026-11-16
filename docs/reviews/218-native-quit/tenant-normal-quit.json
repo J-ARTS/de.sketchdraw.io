@@ -1,0 +1,16 @@
+{
+  "observedAt": "2026-11-16T12:22:33.555503+00:00",
+  "appPid": 33132,
+  "nativeUiSaveAction": "Cmd+S",
+  "nativeUiSaveResult": "Gespeichert: aws-bedrock-agentcore.sketchdraw.json",
+  "title": "AWS Bedrock & AgentCore \u00b7 Live nach Neustart",
+  "fileBytes": 56096,
+  "fileSha256": "151f951925dbd1be942e36274b8e46d907a4dba4280c15626a59150bbd4d75a6",
+  "nativeQuitAction": "Cmd+Q",
+  "processQueryExitCode": 1,
+  "processQueryOutput": "",
+  "processAbsent": true,
+  "forceQuit": false,
+  "asarSha256": "de7f5688991f3c058bd01464ba1731ef4411cc13709ad892ab59142f74fc9998",
+  "scope": "Actual existing user profile, old packaged #218 build before full-review corrections; no claim about current source build"
+}
