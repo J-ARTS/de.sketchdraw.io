@@ -1,0 +1,149 @@
+{
+  "duration_api_ms": 3105137,
+  "stop_reason": "end_turn",
+  "session_id": "1e3c6764-0512-4678-a4f5-36c774ecb57b",
+  "total_cost_usd": 34.3336884,
+  "usage": {
+    "input_tokens": 126,
+    "cache_creation_input_tokens": 208094,
+    "cache_read_input_tokens": 33190659,
+    "output_tokens": 146889,
+    "output_tokens_details": {
+      "thinking_tokens": 48606
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 208094,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2187,
+        "cache_read_input_tokens": 616984,
+        "cache_creation_input_tokens": 1074,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1074
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 280,
+      "outputTokens": 342177,
+      "thinkingTokens": 120918,
+      "cacheReadInputTokens": 54105932,
+      "cacheCreationInputTokens": 612061,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 612061,
+      "webSearchRequests": 0,
+      "costUSD": 34.3034824,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 57125,
+      "outputTokens": 8987,
+      "thinkingTokens": 4829,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 0,
+      "webSearchRequests": 2,
+      "costUSD": 0.030206,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01Cd4fNMoWTPvNs9LygpwYB2",
+      "tool_input": {
+        "command": "cd /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io && git diff --stat -- electron src tests | tail -15",
+        "description": "Return to repo root and confirm source state"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01HhWXjXRVAoWHiHZCfkTocD",
+      "tool_input": {
+        "command": "for d in test-results/*/; do echo \"== $d\"; sed -n '7,40p' \"$d/error-context.md\" 2>/dev/null | cut -c1-400; done 2>&1 | head -120",
+        "description": "Inspect failures recorded so far by the background UI run"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 125,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Alle sieben Pflichtkorrekturen und der UI-Befund sind umgesetzt und lokal geprüft; Tenant und Electron habe ich nicht angefasst, die Abnahme bleibt bei Root.\n\nAuf dem Endstand bestanden:\n- `npm run typecheck`\n- `npx vitest run --config vitest.config.ts`: 119 Dateien, 1225 Tests\n- `npm run test:ui`: 233 Tests, darin `tests/ui/confluence-live.spec.ts`\n\nEine Gegenprobe mit entferntem Epochenvergleich ließ die zwei zuständigen Tests wie erwartet rot werden; die Änderung ist zurückgenommen.\n\n## UI-Befund: Escape\n\nDer Fehler lag im Produkt, nicht im Test. Eine laufende Aktion sperrt die Bedienelemente des Dialogs, der Browser lässt den Fokus dabei ohne Ereignis auf die Seite fallen, und der globale Tastenhandler hat Escape dann als „Auswahl aufheben“ geschluckt. Entf und Rücktaste hätten in diesem Zustand auch Elemente hinter dem modalen Dialog gelöscht.\n\n- **`App.vue`:** Tasten von außerhalb eines offenen modalen Dialogs sind keine Canvas-Kürzel mehr.\n- **`PluginSettings.vue`:** Der Fokus bleibt im Dialog und kehrt zum Bedienelement zurück, sobald es wieder nutzbar ist.\n- **Nach „Verknüpfung lösen“:** Der Fokus geht auf die Abschnittsüberschrift statt ins Suchfeld, wo das erste Escape nur den Suchtext geleert hätte.\n\nDie Abnahme-Assertions sind nicht abgeschwächt, sondern um Fokus- und Lösch-Prüfungen erweitert.\n\n## Pflichtkorrekturen\n\n1. **Fremde Container und Zeichenreferenzen:** Ein Anhang mit `ri:page` oder anderem Inhalt gilt als fremd – nie entfernt, nie als „gezeigt“ gezählt. Dateinamen werden für den Vergleich dekodiert, das Markup bleibt unverändert. Unklare Fälle (unbekannte Entity, doppeltes Attribut) blockieren das Schreiben der Seite.\n2. **Keine Überschreibung fremder Anhänge:** Gespeichert werden Anhangs-ID, selbst bestätigte Version und Hash. Neue Anhänge entstehen über den reinen Anlege-Aufruf, bekannte über `…/{id}/data`. Eine fremde Version ist ein Konflikt; der alte Wiederherstellungs-Test ist durch das Gegenteil ersetzt.\n3. **Legacy-„Senden“:** Die ganze Operation ist an die Autorität vom Aufruf gebunden; nach „GET auf A, Umstellung“ geht keine Anfrage mehr hinaus. `expectedBodyHash` ist Pflicht, ältere Annotationen müssen erst neu geladen werden. #209 bleibt offen.\n4. **Retry-After:** Der Dienst hält bis zum Zeitpunkt des Servers jede Anfrage an die Site zurück, der Scheduler startet vorher nichts – auch nicht durch Bearbeitungen oder „Jetzt synchronisieren“. Getestet mit kontrollierter Uhr und 3600 Sekunden.\n5. **Verlorene Upload-Antwort:** Vor dem Senden wird ein Vermerk im Profil gespeichert. Mit lesbarem Digest wird der eigene Upload erkannt, ohne Digest pausiert die Übertragung sichtbar – auch nach Neustart – statt eine zweite Version anzulegen.\n6. **Epochen und Fenster:** Jede Änderung der Autorität zählt einen Zähler hoch, auch bei zurückgestellten Werten; alte Aufträge enden endgültig und laufende Anfragen werden abgebrochen. Reload, Absturz und geschlossenes Fenster lösen das im Hauptprozess aus; ein neues Fenster arbeitet normal weiter.\n7. **Abdeckung:** Die Tests für alle Seiten, lokale Änderungen und Git-Reload sind erhalten.\n\n## Was bleibt\n\n- **Kein atomarer Schutz bei Anhängen:** Eine Version, die jemand zwischen Prüfung und Upload einfügt, wird überschrieben und nicht erkannt.\n- **Eigentum ohne lokalen Eintrag hängt am Versionskommentar** `Sketchdraw <sha256>`. Liefert ein Tenant diesen Kommentar über keine der beiden APIs, endet neues Verknüpfen im Konflikt, bis der Anhang in Confluence gelöscht ist.\n- **Unklarer Upload ohne lesbaren Digest pausiert**, bis ein Mensch den Anhang löscht. Einen Inhaltsvergleich per Download habe ich nicht gebaut, weil der Download auf einen fremden Host umleitet.\n- **Fenster-Verdrahtung in `electron/main.ts`** ist nur als Quelltext-Prüfung abgesichert; das Verhalten von `releaseRenderer()` selbst ist getestet.\n- **Am Tenant ungeprüft:**\n  - die Form der Anhangs-ID (mit oder ohne `att`)\n  - der Daten-Endpunkt\n  - ob ein offenes Live Doc eine neue Anhangsversion ohne Seitenänderung zeigt\n\n`gh` und `graphify` waren gesperrt: Issue #210 habe ich nicht gelesen und nichts kommentiert. Ledger, `docs/concerns.md`, `graphify-out/` und die Codex-Reviewdateien sind unangetastet; es gibt keine Commits.\n\nDer vollständige Bericht mit der Zuordnung jeder Probe zu ihrem Regressionstest, neun Restgrenzen und der Liste der Abnahmelücken liegt in `docs/reviews/210-confluence-auto-sync/fable-corrections.md`.",
+  "ttft_ms": 2338,
+  "type": "result",
+  "duration_ms": 2035763,
+  "uuid": "e9feb283-6f7d-4a47-915d-e5f76e7e6485",
+  "ttft_stream_ms": 1880,
+  "time_to_request_ms": 323,
+  "first_content_frame_ms": 1881,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 126,
+      "outputTokens": 146889,
+      "cacheReadInputTokens": 33190659,
+      "cacheCreationInputTokens": 208094,
+      "webSearchRequests": 0,
+      "costUSD": 15.844203800000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 48606,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 208094,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

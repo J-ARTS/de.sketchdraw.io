@@ -1,0 +1,8 @@
+{
+  "command": "npm run test:ui -- tests/ui/confluence-live.spec.ts",
+  "result": "failed",
+  "tests": 1,
+  "failedAssertion": "tests/ui/confluence-live.spec.ts:117 - Escape leaves Plugins dialog visible",
+  "revision": "96c0039431dcee973ff94f80ce1e4a707d07abcb plus completed Fable implementation",
+  "tenantAccess": false
+}

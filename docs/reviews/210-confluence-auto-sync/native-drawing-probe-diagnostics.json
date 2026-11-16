@@ -1,0 +1,1591 @@
+[
+  {
+    "name": "native-drag-diagnostics",
+    "data": {
+      "from": [
+        350,
+        220
+      ],
+      "to": [
+        550,
+        360
+      ],
+      "before": [],
+      "pointer": [
+        {
+          "type": "pointermove",
+          "x": 462.75,
+          "y": 40,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 462.75,
+          "y": 40,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerup",
+          "x": 462.75,
+          "y": 40,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 350,
+          "y": 220,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 350,
+          "y": 220,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "gotpointercapture",
+          "x": 375,
+          "y": 237.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 375,
+          "y": 237.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 400,
+          "y": 255,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 425,
+          "y": 272.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 450,
+          "y": 290,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 475,
+          "y": 307.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 500,
+          "y": 325,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 525,
+          "y": 342.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 550,
+          "y": 360,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointerup",
+          "x": 550,
+          "y": 360,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "lostpointercapture",
+          "x": 550,
+          "y": 360,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        }
+      ],
+      "dom": {
+        "viewport": {
+          "width": 1280,
+          "height": 772,
+          "scale": 2
+        },
+        "focused": true,
+        "active": {
+          "tag": "svg",
+          "testId": "whiteboard-canvas",
+          "role": "application",
+          "label": "Zeichenfl\u00e4che",
+          "className": null,
+          "onCanvas": true
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 772
+        },
+        "saveStatus": "unsaved-new",
+        "pageLabel": "Seiten (1), aktuelle Seite: Seite 1",
+        "openDialogs": [],
+        "pressed": [
+          {
+            "tag": "BUTTON",
+            "testId": null,
+            "role": null,
+            "label": "Auswahl",
+            "className": "tool sd-icon-btn",
+            "onCanvas": false
+          }
+        ],
+        "silhouetteVisible": false,
+        "draftCount": 0,
+        "rectangles": [
+          {
+            "id": "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+            "box": {
+              "x": 350,
+              "y": 220,
+              "width": 200,
+              "height": 140
+            },
+            "width": "200",
+            "height": "140"
+          }
+        ],
+        "points": [
+          {
+            "x": 350,
+            "y": 220,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          },
+          {
+            "x": 550,
+            "y": 360,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "native-drag-diagnostics",
+    "data": {
+      "from": [
+        350,
+        220
+      ],
+      "to": [
+        490,
+        320
+      ],
+      "before": [],
+      "pointer": [
+        {
+          "type": "pointermove",
+          "x": 466.4100036621094,
+          "y": 40,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 466.4100036621094,
+          "y": 40,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerup",
+          "x": 466.4100036621094,
+          "y": 40,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 350,
+          "y": 220,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 350,
+          "y": 220,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "gotpointercapture",
+          "x": 367.5,
+          "y": 232.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 367.5,
+          "y": 232.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 385,
+          "y": 245,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 402.5,
+          "y": 257.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 420,
+          "y": 270,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 437.5,
+          "y": 282.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 455,
+          "y": 295,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 472.5,
+          "y": 307.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 490,
+          "y": 320,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointerup",
+          "x": 490,
+          "y": 320,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "lostpointercapture",
+          "x": 490,
+          "y": 320,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        }
+      ],
+      "dom": {
+        "viewport": {
+          "width": 1280,
+          "height": 772,
+          "scale": 2
+        },
+        "focused": true,
+        "active": {
+          "tag": "svg",
+          "testId": "whiteboard-canvas",
+          "role": "application",
+          "label": "Zeichenfl\u00e4che",
+          "className": null,
+          "onCanvas": true
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 772
+        },
+        "saveStatus": "unsaved-new",
+        "pageLabel": "Seiten (2), aktuelle Seite: Seite 2",
+        "openDialogs": [],
+        "pressed": [
+          {
+            "tag": "BUTTON",
+            "testId": null,
+            "role": null,
+            "label": "Auswahl",
+            "className": "tool sd-icon-btn",
+            "onCanvas": false
+          }
+        ],
+        "silhouetteVisible": false,
+        "draftCount": 0,
+        "rectangles": [
+          {
+            "id": "rectangle:d718425e-afd0-40b4-b432-12d5fe6bddfb",
+            "box": {
+              "x": 350,
+              "y": 220,
+              "width": 140,
+              "height": 100
+            },
+            "width": "140",
+            "height": "100"
+          }
+        ],
+        "points": [
+          {
+            "x": 350,
+            "y": 220,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          },
+          {
+            "x": 490,
+            "y": 320,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "native-drag-diagnostics",
+    "data": {
+      "from": [
+        650,
+        240
+      ],
+      "to": [
+        790,
+        340
+      ],
+      "before": [
+        "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35"
+      ],
+      "pointer": [
+        {
+          "type": "pointermove",
+          "x": 463.4100036621094,
+          "y": 40,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 463.4100036621094,
+          "y": 40,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerup",
+          "x": 463.4100036621094,
+          "y": 40,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 650,
+          "y": 240,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 650,
+          "y": 240,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "gotpointercapture",
+          "x": 667.5,
+          "y": 252.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 667.5,
+          "y": 252.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 685,
+          "y": 265,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 702.5,
+          "y": 277.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 720,
+          "y": 290,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 737.5,
+          "y": 302.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 755,
+          "y": 315,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 772.5,
+          "y": 327.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 790,
+          "y": 340,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointerup",
+          "x": 790,
+          "y": 340,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "lostpointercapture",
+          "x": 790,
+          "y": 340,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        }
+      ],
+      "dom": {
+        "viewport": {
+          "width": 1280,
+          "height": 772,
+          "scale": 2
+        },
+        "focused": true,
+        "active": {
+          "tag": "svg",
+          "testId": "whiteboard-canvas",
+          "role": "application",
+          "label": "Zeichenfl\u00e4che",
+          "className": null,
+          "onCanvas": true
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 772
+        },
+        "saveStatus": "unsaved-new",
+        "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+        "openDialogs": [],
+        "pressed": [
+          {
+            "tag": "BUTTON",
+            "testId": null,
+            "role": null,
+            "label": "Auswahl",
+            "className": "tool sd-icon-btn",
+            "onCanvas": false
+          }
+        ],
+        "silhouetteVisible": false,
+        "draftCount": 0,
+        "rectangles": [
+          {
+            "id": "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+            "box": {
+              "x": 350,
+              "y": 220,
+              "width": 200,
+              "height": 140
+            },
+            "width": "200",
+            "height": "140"
+          },
+          {
+            "id": "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3",
+            "box": {
+              "x": 650,
+              "y": 240,
+              "width": 140,
+              "height": 100
+            },
+            "width": "140",
+            "height": "100"
+          }
+        ],
+        "points": [
+          {
+            "x": 650,
+            "y": 240,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          },
+          {
+            "x": 790,
+            "y": 340,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "native-drag-diagnostics",
+    "data": {
+      "from": [
+        360,
+        440
+      ],
+      "to": [
+        490,
+        530
+      ],
+      "before": [
+        "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+        "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3"
+      ],
+      "pointer": [
+        {
+          "type": "pointermove",
+          "x": 462.75,
+          "y": 40,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 462.75,
+          "y": 40,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerup",
+          "x": 462.75,
+          "y": 40,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": false,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 360,
+          "y": 440,
+          "button": -1,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointerdown",
+          "x": 360,
+          "y": 440,
+          "button": 0,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "gotpointercapture",
+          "x": 376.25,
+          "y": 451.25,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 376.25,
+          "y": 451.25,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        },
+        {
+          "type": "pointermove",
+          "x": 392.5,
+          "y": 462.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 408.75,
+          "y": 473.75,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 425,
+          "y": 485,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 441.25,
+          "y": 496.25,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 457.5,
+          "y": 507.5,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 473.75,
+          "y": 518.75,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointermove",
+          "x": 490,
+          "y": 530,
+          "button": -1,
+          "buttons": 1,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "pointerup",
+          "x": 490,
+          "y": 530,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 1
+        },
+        {
+          "type": "lostpointercapture",
+          "x": 490,
+          "y": 530,
+          "button": 0,
+          "buttons": 0,
+          "pointerId": 1,
+          "trusted": true,
+          "onCanvas": true,
+          "draftCount": 0
+        }
+      ],
+      "dom": {
+        "viewport": {
+          "width": 1280,
+          "height": 772,
+          "scale": 2
+        },
+        "focused": true,
+        "active": {
+          "tag": "svg",
+          "testId": "whiteboard-canvas",
+          "role": "application",
+          "label": "Zeichenfl\u00e4che",
+          "className": null,
+          "onCanvas": true
+        },
+        "canvas": {
+          "x": 0,
+          "y": 0,
+          "width": 1280,
+          "height": 772
+        },
+        "saveStatus": "dirty",
+        "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+        "openDialogs": [],
+        "pressed": [
+          {
+            "tag": "BUTTON",
+            "testId": null,
+            "role": null,
+            "label": "Auswahl",
+            "className": "tool sd-icon-btn",
+            "onCanvas": false
+          }
+        ],
+        "silhouetteVisible": false,
+        "draftCount": 0,
+        "rectangles": [
+          {
+            "id": "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+            "box": {
+              "x": 420,
+              "y": 316,
+              "width": 200,
+              "height": 140
+            },
+            "width": "200",
+            "height": "140"
+          },
+          {
+            "id": "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3",
+            "box": {
+              "x": 720,
+              "y": 336,
+              "width": 140,
+              "height": 100
+            },
+            "width": "140",
+            "height": "100"
+          },
+          {
+            "id": "rectangle:7635bd4b-abaf-45d7-a937-b1ce14c4453f",
+            "box": {
+              "x": 360,
+              "y": 440,
+              "width": 130,
+              "height": 90
+            },
+            "width": "130",
+            "height": "90"
+          }
+        ],
+        "points": [
+          {
+            "x": 360,
+            "y": 440,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          },
+          {
+            "x": 490,
+            "y": 530,
+            "top": {
+              "tag": "rect",
+              "testId": null,
+              "role": null,
+              "label": null,
+              "className": null,
+              "onCanvas": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "drawing-pointer-diagnostics",
+    "data": [
+      {
+        "stage": "before",
+        "dom": {
+          "viewport": {
+            "width": 1280,
+            "height": 772,
+            "scale": 2
+          },
+          "focused": true,
+          "active": {
+            "tag": "BUTTON",
+            "testId": "workspace-menu-button",
+            "role": null,
+            "label": "Arbeitsbereich",
+            "className": "profile-btn",
+            "onCanvas": false
+          },
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 772
+          },
+          "saveStatus": "saved",
+          "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+          "openDialogs": [],
+          "pressed": [
+            {
+              "tag": "BUTTON",
+              "testId": null,
+              "role": null,
+              "label": "Auswahl",
+              "className": "tool sd-icon-btn",
+              "onCanvas": false
+            }
+          ],
+          "silhouetteVisible": false,
+          "draftCount": 0,
+          "rectangles": [
+            {
+              "id": "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+              "box": {
+                "x": 420,
+                "y": 316,
+                "width": 200,
+                "height": 140
+              },
+              "width": "200",
+              "height": "140"
+            },
+            {
+              "id": "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3",
+              "box": {
+                "x": 720,
+                "y": 336,
+                "width": 140,
+                "height": 100
+              },
+              "width": "140",
+              "height": "100"
+            }
+          ],
+          "points": [
+            {
+              "x": 360,
+              "y": 440,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            },
+            {
+              "x": 490,
+              "y": 530,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            }
+          ]
+        },
+        "window": {
+          "focused": false,
+          "bounds": {
+            "x": 116,
+            "y": 91,
+            "width": 1280,
+            "height": 800
+          }
+        }
+      },
+      {
+        "stage": "after",
+        "dom": {
+          "viewport": {
+            "width": 1280,
+            "height": 772,
+            "scale": 2
+          },
+          "focused": true,
+          "active": {
+            "tag": "svg",
+            "testId": "whiteboard-canvas",
+            "role": "application",
+            "label": "Zeichenfl\u00e4che",
+            "className": null,
+            "onCanvas": true
+          },
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 772
+          },
+          "saveStatus": "dirty",
+          "pageLabel": "Seiten (2), aktuelle Seite: Seite 1",
+          "openDialogs": [],
+          "pressed": [
+            {
+              "tag": "BUTTON",
+              "testId": null,
+              "role": null,
+              "label": "Auswahl",
+              "className": "tool sd-icon-btn",
+              "onCanvas": false
+            }
+          ],
+          "silhouetteVisible": false,
+          "draftCount": 0,
+          "rectangles": [
+            {
+              "id": "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+              "box": {
+                "x": 420,
+                "y": 316,
+                "width": 200,
+                "height": 140
+              },
+              "width": "200",
+              "height": "140"
+            },
+            {
+              "id": "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3",
+              "box": {
+                "x": 720,
+                "y": 336,
+                "width": 140,
+                "height": 100
+              },
+              "width": "140",
+              "height": "100"
+            },
+            {
+              "id": "rectangle:7635bd4b-abaf-45d7-a937-b1ce14c4453f",
+              "box": {
+                "x": 360,
+                "y": 440,
+                "width": 130,
+                "height": 90
+              },
+              "width": "130",
+              "height": "90"
+            }
+          ],
+          "points": [
+            {
+              "x": 360,
+              "y": 440,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            },
+            {
+              "x": 490,
+              "y": 530,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            }
+          ]
+        },
+        "pointer": [
+          {
+            "type": "pointermove",
+            "x": 462.75,
+            "y": 40,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": null,
+              "onCanvas": false
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointerdown",
+            "x": 462.75,
+            "y": 40,
+            "button": 0,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": null,
+              "onCanvas": false
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointerup",
+            "x": 462.75,
+            "y": 40,
+            "button": 0,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": null,
+              "onCanvas": false
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointermove",
+            "x": 360,
+            "y": 440,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "rect",
+              "testId": null,
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointerdown",
+            "x": 360,
+            "y": 440,
+            "button": 0,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "rect",
+              "testId": null,
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "gotpointercapture",
+            "x": 376.25,
+            "y": 451.25,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointermove",
+            "x": 376.25,
+            "y": 451.25,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "saved"
+          },
+          {
+            "type": "pointermove",
+            "x": 392.5,
+            "y": 462.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 408.75,
+            "y": 473.75,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 425,
+            "y": 485,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 441.25,
+            "y": 496.25,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 457.5,
+            "y": 507.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 473.75,
+            "y": 518.75,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointermove",
+            "x": 490,
+            "y": 530,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "pointerup",
+            "x": 490,
+            "y": 530,
+            "button": 0,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 1,
+            "saved": "dirty"
+          },
+          {
+            "type": "lostpointercapture",
+            "x": 490,
+            "y": 530,
+            "button": 0,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "target": {
+              "tag": "svg",
+              "testId": "whiteboard-canvas",
+              "onCanvas": true
+            },
+            "focused": true,
+            "draft": 0,
+            "saved": "dirty"
+          }
+        ]
+      }
+    ]
+  }
+]

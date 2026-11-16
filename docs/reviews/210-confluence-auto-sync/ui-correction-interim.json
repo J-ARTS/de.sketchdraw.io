@@ -1,0 +1,14 @@
+{
+  "status": "passed_interim_fable_run",
+  "command": "npm run test:ui -- tests/ui/confluence-live.spec.ts",
+  "testsPassed": 1,
+  "durationSecondsReported": 18.1,
+  "executedBy": "Claude Code / claude-fable-5-2 correction run",
+  "observedEvidence": "stream-json tool_result, final focused UI retry before backend corrections",
+  "nativeOrTenantAcceptance": false,
+  "sourceHashesObservedAfterRun": {
+    "src/renderer/App.vue": "5dd4fb0e62fe611566e2f3a8337fecb68b70deebdfac0c60e3f3c023adde986a",
+    "src/renderer/components/PluginSettings.vue": "a5f489397653775bf0a044eb8a78c2bea4dd5fc80ab84261ccbfb7c2f63ae0c1",
+    "tests/ui/confluence-live.spec.ts": "fe3e7fe70e8bb69dc0f8b375317077d2b6b2c4dd39d2e06dbbce5c0dd5ff42df"
+  }
+}

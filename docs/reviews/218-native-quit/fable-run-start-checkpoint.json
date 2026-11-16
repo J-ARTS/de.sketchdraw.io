@@ -1,0 +1,13 @@
+{
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "startedAt": "2026-11-16T09:33:52.245767+00:00",
+  "status": "running",
+  "previousCumulativeCostUsd": 12.4019986,
+  "events": "/tmp/sketchdraw-218-fable.events.jsonl",
+  "stderr": "/tmp/sketchdraw-218-fable.stderr.log",
+  "checkpointOnly": true,
+  "capturedAt": "2026-11-16T09:36:35.338356+00:00",
+  "note": "Actual Fable start confirmed by Root, exec25024, #218comment6912689486. Active managed fable-run.json remains exclusively Root-owned. Use incremental cost above USD12.4019986 at terminal completion; all current metrics unknown."
+}

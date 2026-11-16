@@ -1,0 +1,12 @@
+{
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "startedAt": "2026-11-16T09:12:36.536187+00:00",
+  "status": "process-ended-awaiting-result-review",
+  "events": "/tmp/sketchdraw-217-fable-concurrency.events.jsonl",
+  "stderr": "/tmp/sketchdraw-217-fable-concurrency.stderr.log",
+  "previousCumulativeCostUsd": 9.212315200000003,
+  "processExitCode": 0,
+  "endedAt": "2026-11-16T09:20:05.876090+00:00"
+}

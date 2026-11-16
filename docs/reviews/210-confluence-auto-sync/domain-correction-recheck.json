@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-11-15T22:13:40.101Z",
+  "environment": "v22.16.0",
+  "source": "src/domain/confluence-live.ts",
+  "sha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+  "scope": "Independent pure-domain probes only; Fable backend correction still running.",
+  "results": [
+    {
+      "name": "CF-210-01 cross-page image not treated as owned",
+      "pass": true
+    },
+    {
+      "name": "CF-210-01 foreign image not removed when source page deleted",
+      "pass": true
+    },
+    {
+      "name": "CF-210-01 own missing image inserted while foreign bytes preserved",
+      "pass": true
+    },
+    {
+      "name": "CF-210-02 numeric entity sketchdraw&#45;12345678-abcdef12.png",
+      "pass": true
+    },
+    {
+      "name": "CF-210-02 numeric entity sketchdr&#97;w-12345678-abcdef12.png",
+      "pass": true
+    },
+    {
+      "name": "CF-210-02 numeric entity sketchdraw&#x2D;12345678-abcdef12.png",
+      "pass": true
+    },
+    {
+      "name": "ambiguous two resources preserved",
+      "pass": true
+    },
+    {
+      "name": "unknown filename entity pauses",
+      "pass": true
+    },
+    {
+      "name": "duplicate XML filename attributes pause",
+      "pass": true
+    }
+  ]
+}

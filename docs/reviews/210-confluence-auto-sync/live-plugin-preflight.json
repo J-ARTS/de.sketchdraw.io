@@ -1,0 +1,34 @@
+{
+  "observedAt": "2026-11-15T22:37:43.469591+00:00",
+  "tool": "CUA native AX, actual SketchDraw Atlassian plugin",
+  "app": "current development instance; existing main process predates live-sync changes",
+  "targetPage": {
+    "id": "164037",
+    "title": "Architektur",
+    "url": "https://j-art.atlassian.net/wiki/spaces/~5b63fda9e288ee2d9b4bc60a/pages/164037/Architektur"
+  },
+  "results": [
+    {
+      "action": "test saved Atlassian connection",
+      "observed": "Jira: connected",
+      "passed": true
+    },
+    {
+      "action": "search while unsaved document",
+      "observed": "Search complete, no results",
+      "interpretation": "Store silently skips search without saved project; not an API or LiveDoc subtype failure."
+    },
+    {
+      "action": "open saved AWS reference from controlled Git fixture and search Architektur",
+      "observed": "Architektur Version 1; Link live button present",
+      "passed": true
+    }
+  ],
+  "tenantWrites": false,
+  "linkCreated": false,
+  "boundaries": [
+    "Main process requires fresh build before live binding",
+    "Native Chrome screenshots remain white; browser DOM tool errors, AX content readable",
+    "No visual live-update acceptance inferred"
+  ]
+}

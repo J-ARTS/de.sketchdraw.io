@@ -1,0 +1,39 @@
+{
+  "sha256": "bdf3038570b04d6b0141faa0bf2405238f2d24ff3923c0754eef1c10f62cc888",
+  "bytes": 53000,
+  "id": "document:aws-bedrock-agentcore-live-doc-208",
+  "title": "AWS Bedrock & AgentCore · Referenzarchitektur",
+  "pages": [
+    {
+      "id": "page:architecture",
+      "name": "01 · AWS-Architektur",
+      "elements": 60
+    },
+    {
+      "id": "page:live-doc",
+      "name": "02 · Architektur-Dokumentation",
+      "elements": 2
+    }
+  ],
+  "kinds": {
+    "page:architecture:rectangle": 13,
+    "page:architecture:connector": 14,
+    "page:architecture:text": 33,
+    "page:live-doc:text": 1,
+    "page:live-doc:annotation": 1
+  },
+  "assets": 0,
+  "componentSets": 0,
+  "keys": [
+    "assets",
+    "commentThreads",
+    "componentSets",
+    "elements",
+    "id",
+    "metadata",
+    "pages",
+    "schemaVersion",
+    "tasks",
+    "title"
+  ]
+}

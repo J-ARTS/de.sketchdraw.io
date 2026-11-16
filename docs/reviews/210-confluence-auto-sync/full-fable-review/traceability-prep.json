@@ -1,0 +1,35 @@
+{
+  "recordedAt": "2026-11-16T11:56:48.354759+00:00",
+  "status": "prepared_waiting_terminal_review",
+  "runId": "claude-fable-2026-11-16-full-code-review-210",
+  "scope": {
+    "integrationFiles": 33,
+    "originalFiles": 22,
+    "uniquePaths": 35,
+    "identicalCommonPaths": 16
+  },
+  "preservation": {
+    "priorRunCount": 289,
+    "currentRunCount": 290,
+    "allPriorMeasurementsUnchanged": true,
+    "unrelatedPriorRunsUnchanged": 288,
+    "graphByteIdenticalDuringPrep": true
+  },
+  "graphProjection": "intentionally pending until terminal review final; no projection or source refresh executed",
+  "attributedMcp": {
+    "at": "2026-11-16T11:51:32.079Z",
+    "adapterPid": 36054,
+    "appPid": 33132,
+    "revision": 0,
+    "pages": 2,
+    "elements": 62,
+    "earlier1144Attributed": false
+  },
+  "remaining": [
+    "terminal full Fable review",
+    "persisted Atlassian link",
+    "renewed Tenant publication",
+    "regular quit in user profile",
+    "target branch integration"
+  ]
+}

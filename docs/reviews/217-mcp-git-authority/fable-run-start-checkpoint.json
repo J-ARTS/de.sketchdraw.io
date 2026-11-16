@@ -1,0 +1,19 @@
+{
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "startedAt": "2026-11-16T08:53:53.953548+00:00",
+  "status": "running",
+  "events": "/tmp/sketchdraw-217-fable-implementation.events.jsonl",
+  "stderr": "/tmp/sketchdraw-217-fable-implementation.stderr.log",
+  "checkpointCapturedAt": "2026-11-16T09:01:23.622527+00:00",
+  "checkpointOnly": true,
+  "owner": "Root wrapper owns managed fable-run.json; this copy is a start checkpoint, not a terminal result.",
+  "cliVersion": "2.1.323",
+  "execHandle": 42982,
+  "initializationVerifiedBy": "Root",
+  "endedAt": null,
+  "observedSeconds": null,
+  "tokens": null,
+  "costUsd": null
+}

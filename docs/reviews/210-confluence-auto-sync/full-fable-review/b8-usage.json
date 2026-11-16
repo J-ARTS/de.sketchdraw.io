@@ -1,0 +1,68 @@
+{
+  "recordedAt": "2026-11-16T12:26:02.616087+00:00",
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "tool": "Claude Code CLI 2.1.323",
+  "effort": "high",
+  "previousResult": "correction-result.json",
+  "result": "b8-result.json",
+  "status": "terminal_success_fix_reported_independent_acceptance_pending",
+  "startedAt": "2026-11-16T12:21:47.168043+00:00",
+  "endedAt": "2026-11-16T12:24:18.688783+00:00",
+  "providerDurationMs": 150658,
+  "observedSeconds": 150.658,
+  "wrapperSecondsSeparateNotAdded": 151.52076774998568,
+  "turns": 13,
+  "previousCumulativeCostUsd": 17.814655,
+  "cumulativeCostUsd": 19.817224200000002,
+  "incrementalCostUsd": 2.0025692,
+  "exactDecimalDifferenceFromSerializedCumulativeCost": "2.002569200000002",
+  "incrementalCostSource": "model_usage_since_last_result.costUSD agrees with cumulative difference within floating-point serialization precision",
+  "incrementalModelCounters": {
+    "inputTokens": 18,
+    "outputTokens": 14972,
+    "thinkingTokens": 7497,
+    "cacheReadInputTokens": 4890846,
+    "cacheCreationInputTokens": 26586,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 26586,
+    "webSearchRequests": 0
+  },
+  "tokens": 4932422,
+  "allModelCounterDeltasMatch": true,
+  "topLevelUsageMatches": true,
+  "thinkingAndCacheSubcategoriesNotAddedAgain": true,
+  "fableReportedChecks": [
+    "139/139 focused tests passed after correction",
+    "2/2 targeted regression tests failed before correction as expected"
+  ],
+  "notExecutedByFableAfterB8": [
+    "typecheck",
+    "build",
+    "native tests",
+    "browser",
+    "Tenant"
+  ],
+  "sourceSha256FromRoot": "91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4",
+  "findingOwner": "Independent Codex review and reproduction; not discovered by Fable",
+  "independentAcceptance": "running per Root; no terminal acceptance yet",
+  "archives": [
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-run.json",
+      "sha256": "2bf527a0f806feef01011983ec94a13cb866697fc570b8b271b584bd2a77ec70",
+      "bytes": 361
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-result.json",
+      "sha256": "8906ac950e6de64b594bc4a1b09561b78426550567360ee37e428a70c289f6f7",
+      "bytes": 9287
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+      "sha256": "f501ccc2f8f84d60546b761539774b7d3141dcf58f2e7b85713f321731ff8ecc",
+      "bytes": 5069
+    }
+  ],
+  "graphProjection": "deferred",
+  "nextStep": "Root independently verifies the terminal Fable B8 fix and same partial-upload/restart probe, then runs typecheck/build and native acceptance on fresh source. Fable reports139/139focused tests and2/2expected pre-fix failures; no terminal overall acceptance yet. Actual prior packaged #218 restart/link/autosync/save/normalquit are evidenced but do not validate new corrections. Target integration and separate#219/#220 remain open; graph projection still deferred."
+}

@@ -1,0 +1,10 @@
+{
+  "productBundlePrefixUnchanged": true,
+  "prefixSha256": "a2524104785f0aba51582c25ef9defbbea1de9f38f7afda608e8a406abc75d51",
+  "bundleSha256": "64d2be0e595cc6201e43e493382e0765cb8303e8d1607b178983c2c4800a9df7",
+  "fixtureChange": "Only harness seeded() constructs a known valid cached CRDT root with max 32-bit client ID before creation; cached document ID is retained in incoming Git text. No product source edited or rebundled during Fable run.",
+  "checkedAt": "2026-11-16T08:55:39.019Z",
+  "exitCode": 0,
+  "resultSha256": "a8ab796ff34353ca89439351b3a447808d4fbcbf7840b7125d00921a481c727d",
+  "snapshotBoundary": "Product bundle frozen before Fable run started at 08:53:50Z; controlled run reused exact product prefix, did not bundle changing workspace. Individual pre-run source hashes were not collected; do not equate current source hashes with this snapshot."
+}

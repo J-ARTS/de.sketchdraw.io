@@ -1,0 +1,192 @@
+{
+  "builtAt": "2026-11-16T09:22:46.296Z",
+  "root": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+  "rootFreezeAt": "2026-11-16T09:21:02.962005+00:00",
+  "scope": "One original concurrency regression rerun; only tmp generated files",
+  "bundleSha256": "9b7472b33adfaaba8ecea967c0d7dc6b72895384996001a0a131c7e580c7f0b8",
+  "sources": {
+    "src/domain/types.ts": {
+      "before": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a",
+      "afterBuild": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a",
+      "rootFreeze": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a",
+      "afterRun": "9ecc5d8175faca407faf96a9df53e6d2e7dda70986f824eacdb38c1b854e860a"
+    },
+    "src/domain/plugins.ts": {
+      "before": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "afterBuild": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "rootFreeze": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "afterRun": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12"
+    },
+    "src/domain/limits.ts": {
+      "before": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b",
+      "afterBuild": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b",
+      "rootFreeze": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b",
+      "afterRun": "8de9f9d999b386e03525249cca4a5ec39927c82b0d132378ae154592608d306b"
+    },
+    "src/domain/errors.ts": {
+      "before": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60",
+      "afterBuild": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60",
+      "rootFreeze": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60",
+      "afterRun": "b88453fa26ee5d50cadad1a494296f67102947b127261dd7877b6b00e3404b60"
+    },
+    "src/domain/migration.ts": {
+      "before": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086",
+      "afterBuild": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086",
+      "rootFreeze": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086",
+      "afterRun": "0f88449ec15e37461299c75945a23b78c609b811781c73b16b3b2befcad75086"
+    },
+    "src/domain/annotation.ts": {
+      "before": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe",
+      "afterBuild": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe",
+      "rootFreeze": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe",
+      "afterRun": "300a913552ceaf594e882a3e6c5102753605a50c7466eb9c9ff6bcfe57a287fe"
+    },
+    "src/domain/connectors.ts": {
+      "before": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1",
+      "afterBuild": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1",
+      "rootFreeze": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1",
+      "afterRun": "30c864ee47773d9e4bb404f8c0f112231540a506f59abb21989c664ef6592cf1"
+    },
+    "src/domain/table.ts": {
+      "before": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a",
+      "afterBuild": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a",
+      "rootFreeze": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a",
+      "afterRun": "d8594d3b81c363b3e4b8bacb9de1abd6b759ac46e354250a51cd7e623577730a"
+    },
+    "src/domain/geometry.ts": {
+      "before": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678",
+      "afterBuild": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678",
+      "rootFreeze": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678",
+      "afterRun": "2596c4ff2d4e0cd7a6a14f52624a4935a3b41a7ae5cfc0da0a4d97c92480b678"
+    },
+    "src/domain/shapes.ts": {
+      "before": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401",
+      "afterBuild": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401",
+      "rootFreeze": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401",
+      "afterRun": "2428f665dd3f6f56861797f40614e73ede6bf8cbc21abea73b3a2d488882c401"
+    },
+    "src/domain/validation.ts": {
+      "before": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233",
+      "afterBuild": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233",
+      "rootFreeze": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233",
+      "afterRun": "40a95cddcd57607f2ec9f801c019d1efccfcbbbd37fff4f123e8e8d8a9138233"
+    },
+    "src/domain/factories.ts": {
+      "before": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0",
+      "afterBuild": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0",
+      "rootFreeze": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0",
+      "afterRun": "7169f557d130afa14cb61c32bb948878e59e5d7f902e4ff6272723fba19b7af0"
+    },
+    "src/domain/commands.ts": {
+      "before": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a",
+      "afterBuild": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a",
+      "rootFreeze": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a",
+      "afterRun": "760ccba46fe1fd60369f7b6804f6b11b6d6ef70953f7eb17a64dbfa79442005a"
+    },
+    "src/domain/serialization.ts": {
+      "before": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52",
+      "afterBuild": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52",
+      "rootFreeze": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52",
+      "afterRun": "2c9e3b142e91fc6fe6ae0c7f2858139e70a609d4a7dc4cedd0504ea861fead52"
+    },
+    "src/domain/controller.ts": {
+      "before": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b",
+      "afterBuild": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b",
+      "rootFreeze": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b",
+      "afterRun": "aa00ba2b3bbabfb7368e6f95f3f3c058252c044a8c32d5ac6a1d94d4706ee73b"
+    },
+    "src/domain/web-embed.ts": {
+      "before": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1",
+      "afterBuild": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1",
+      "rootFreeze": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1",
+      "afterRun": "1eef3e1ca874d012f2d35edc97eff2a45c46ba392eb19e26dabb601a332c1bc1"
+    },
+    "src/domain/frames.ts": {
+      "before": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7",
+      "afterBuild": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7",
+      "rootFreeze": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7",
+      "afterRun": "96d856ba9a6cfc05fa3cc0fb3ebb64f477d0af294aaefd42ee1b0876351edff7"
+    },
+    "src/domain/atlassian.ts": {
+      "before": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "afterBuild": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "rootFreeze": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "afterRun": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310"
+    },
+    "src/domain/confluence-live.ts": {
+      "before": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "afterBuild": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "rootFreeze": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "afterRun": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a"
+    },
+    "src/domain/pages.ts": {
+      "before": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345",
+      "afterBuild": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345",
+      "rootFreeze": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345",
+      "afterRun": "17f58ab1e8caa4544f53eb92b31a1183e0acd94c33b6049fc2f5888a92ac6345"
+    },
+    "src/domain/index.ts": {
+      "before": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "afterBuild": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "rootFreeze": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "afterRun": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb"
+    },
+    "src/crdt/types.ts": {
+      "before": "b32e7575e7d46deae93defd7af4282b372809cd6b854abfae4edc374a4a9a8bb",
+      "afterBuild": "b32e7575e7d46deae93defd7af4282b372809cd6b854abfae4edc374a4a9a8bb",
+      "rootFreeze": "b32e7575e7d46deae93defd7af4282b372809cd6b854abfae4edc374a4a9a8bb",
+      "afterRun": "b32e7575e7d46deae93defd7af4282b372809cd6b854abfae4edc374a4a9a8bb"
+    },
+    "src/crdt/projection.ts": {
+      "before": "9f9b818d1feb32027cca00d37584b91f4497adedde7124ca8cd075739b9c3515",
+      "afterBuild": "9f9b818d1feb32027cca00d37584b91f4497adedde7124ca8cd075739b9c3515",
+      "rootFreeze": "9f9b818d1feb32027cca00d37584b91f4497adedde7124ca8cd075739b9c3515",
+      "afterRun": "9f9b818d1feb32027cca00d37584b91f4497adedde7124ca8cd075739b9c3515"
+    },
+    "src/crdt/controller.ts": {
+      "before": "77d50bcd87cc00dda39b2f937c29f8871b41f748a1d26c7b9d1a149ccd99e94b",
+      "afterBuild": "77d50bcd87cc00dda39b2f937c29f8871b41f748a1d26c7b9d1a149ccd99e94b",
+      "rootFreeze": "77d50bcd87cc00dda39b2f937c29f8871b41f748a1d26c7b9d1a149ccd99e94b",
+      "afterRun": "77d50bcd87cc00dda39b2f937c29f8871b41f748a1d26c7b9d1a149ccd99e94b"
+    },
+    "src/crdt/persistence.ts": {
+      "before": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+      "afterBuild": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+      "rootFreeze": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+      "afterRun": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd"
+    },
+    "src/session/errors.ts": {
+      "before": "62eed4a9d10b076ebc4541404db57e535e7622a44275590910a9465c6bbb8f63",
+      "afterBuild": "62eed4a9d10b076ebc4541404db57e535e7622a44275590910a9465c6bbb8f63",
+      "rootFreeze": "62eed4a9d10b076ebc4541404db57e535e7622a44275590910a9465c6bbb8f63",
+      "afterRun": "62eed4a9d10b076ebc4541404db57e535e7622a44275590910a9465c6bbb8f63"
+    },
+    "src/session/validation.ts": {
+      "before": "98b72fa4f253b1a1708ec28580b5830619930740c53e3d459f4a2726abd566cc",
+      "afterBuild": "98b72fa4f253b1a1708ec28580b5830619930740c53e3d459f4a2726abd566cc",
+      "rootFreeze": "98b72fa4f253b1a1708ec28580b5830619930740c53e3d459f4a2726abd566cc",
+      "afterRun": "98b72fa4f253b1a1708ec28580b5830619930740c53e3d459f4a2726abd566cc"
+    },
+    "src/session/authority.ts": {
+      "before": "fc98a538196537a4cf72b95a303752cb3afb540dc2958f0e2cc3f3d32665ed1d",
+      "afterBuild": "fc98a538196537a4cf72b95a303752cb3afb540dc2958f0e2cc3f3d32665ed1d",
+      "rootFreeze": "fc98a538196537a4cf72b95a303752cb3afb540dc2958f0e2cc3f3d32665ed1d",
+      "afterRun": "fc98a538196537a4cf72b95a303752cb3afb540dc2958f0e2cc3f3d32665ed1d"
+    }
+  },
+  "dependencyHashes": {
+    "node_modules/y-indexeddb/src/y-indexeddb.js": "a0149aeaf093c394a1d4e93b940bbd2a7bd6f22dc470d87bbfddc0ec12d2abbf",
+    "node_modules/lib0/indexeddb.js": "3d4b7bb5b62d5b67f89d0a93a4ddda68e8f94e9050d86c3d1e44faca95ee0cfa",
+    "node_modules/yjs/dist/yjs.cjs": "a2b78549b6a0f742bc6fe21b6e1d4345c7e2100710cd3b018b3abebdab689c33",
+    "node_modules/fake-indexeddb/package.json": "5dcf5d05e3c8ff20d2fca6a507420e55490a4c5158b1bbf608103710101413db"
+  },
+  "allSourceHashesStableAcrossBuild": true,
+  "allSourcesMatchRootFreeze": true,
+  "allSourceHashesStableThroughRun": true,
+  "checkedAfterRunAt": "2026-11-16T09:23:23.362401+00:00",
+  "exitCode": 0,
+  "resultSha256": "594f0c1ad8d438039a609bd86463811ea2079b702548a4e1caffe82be311b7fc",
+  "harnessSha256": "8e9b65b34e60fcb524870c322cfbfef2e00f5eba5938683847e6a530d615d885",
+  "dependenciesStableThroughRun": true,
+  "historicalProbeUnchanged": true
+}

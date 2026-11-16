@@ -1,0 +1,305 @@
+{
+  "file": "/tmp/sketchdraw-208/aws-bedrock-agentcore.sketchdraw.json",
+  "format": "Native SketchDraw JSON schemaVersion 2",
+  "bytes": 51583,
+  "sha256": "ecd97e8217691558c6a5de3f94147c250ef82c26a621d8ce11c01b3560f443f5",
+  "pages": [
+    {
+      "id": "page:architecture",
+      "name": "01 · AWS-Architektur"
+    },
+    {
+      "id": "page:live-doc",
+      "name": "02 · Architektur-Dokumentation"
+    }
+  ],
+  "nodes": 12,
+  "connectors": 14,
+  "elements": 62,
+  "checks": [
+    "validateDocument",
+    "serializeDocument / deserializeDocument exact canonical roundtrip",
+    "formatDiagram / parseDiagram exact canonical roundtrip",
+    "12 architecture nodes and 14 bound same-page connectors"
+  ],
+  "svgDiagnostics": [
+    {
+      "code": "PAGE_EXPORTED_SINGLE",
+      "severity": "info",
+      "effect": "preserved-as-data",
+      "message": "SVG contains one page (\"01 · AWS-Architektur\"); the other 1 page(s) are not part of this file.",
+      "property": "projection"
+    },
+    {
+      "code": "SEMANTICS_OMITTED",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Portable projection omits native document identity, catalog, binding and metadata semantics.",
+      "property": "projection"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "title:architecture"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "subtitle:architecture"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "section:access"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "section:agent"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "section:models"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "section:services"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "section:rag"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:auth"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:client"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:runtime"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:model"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:gateway"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:identity"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:tools"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:memory"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:observe"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:s3"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:kb"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "caption:node:vectors"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:login"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:request"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:auth"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:model"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:mcp"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:tools"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:identity"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:memory"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:rag"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:ingest"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:vector"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "label:telemetry"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "footer:architecture"
+    },
+    {
+      "code": "FONT_RENDERING_DEPENDENT",
+      "severity": "warning",
+      "effect": "approximated",
+      "message": "Editable text depends on fonts available in the receiving application.",
+      "property": "projection",
+      "elementId": "footer:status"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "file": "src/renderer/design-system/organisms/PluginSettings.vue",
+  "expectedPriorSHA256": "bce03b523f6f7ae1ad243b5bcf1bb3a7352ab6366c5dcc0dac1a94b4e8a62493",
+  "reconstructedPriorSHA256": "bce03b523f6f7ae1ad243b5bcf1bb3a7352ab6366c5dcc0dac1a94b4e8a62493",
+  "onlyChangeIsNewCssCommentAndBlock": true,
+  "newCssLine": 362,
+  "cssBlock": ".plugin-shell:focus{outline:none}.integration-section h3:focus-visible{outline-offset:var(--space-1)}.live-copy{margin:0 0 var(--space-3);color:var(--text-muted);font-size:var(--font-size-s)}.live-card{display:grid;gap:var(--space-2);padding:var(--space-3);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border-subtle));border-radius:var(--radius-2);background:color-mix(in srgb,var(--accent) 5%,var(--surface-raised))}.live-target{display:grid;min-width:0}.live-target strong{font-size:var(--font-size-l)}.live-target span,.live-synced{color:var(--text-muted);font-size:var(--font-size-s)}.live-label{text-transform:uppercase}.live-status{display:flex;align-items:flex-start;gap:var(--space-2);margin:0;font-size:var(--font-size-s)}.live-dot{flex:0 0 auto;width:var(--space-2);height:var(--space-2);margin-top:calc((1lh - var(--space-2)) / 2);border-radius:50%;background:var(--text-muted)}.live-status--synced .live-dot{background:var(--status-ok)}.live-status--error{color:var(--status-error)}.live-status--error .live-dot{background:var(--status-error)}.live-status--syncing .live-dot,.live-status--pending .live-dot,.live-status--retrying .live-dot{background:var(--accent)}.live-synced{margin:0}.live-actions{flex-wrap:wrap;margin-top:var(--space-1)}.live-actions .live-unlink{margin-left:auto}.live-note{display:flex;gap:var(--space-2);margin:var(--space-3) 0 0;color:var(--text-muted);font-size:var(--font-size-s)}.live-note :deep(svg){width:1lh;height:1lh;flex:0 0 auto;color:var(--accent)}.result-list .row-actions{flex:0 0 auto}",
+  "remainingPxLiterals": [
+    "border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border-subtle))"
+  ],
+  "designTokens": [
+    "--accent",
+    "--border-subtle",
+    "--font-size-l",
+    "--font-size-s",
+    "--radius-2",
+    "--space-1",
+    "--space-2",
+    "--space-3",
+    "--status-error",
+    "--status-ok",
+    "--surface-raised",
+    "--text-muted"
+  ]
+}

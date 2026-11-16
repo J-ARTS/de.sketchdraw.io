@@ -1,0 +1,220 @@
+{
+  "recordedAt": "2026-11-16T09:57:05.848076+00:00",
+  "delegation": "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6913120498",
+  "nativeRoot": {
+    "run": {
+      "startedAt": "2026-11-16T09:50:15.123845+00:00",
+      "status": "terminal",
+      "command": "npx playwright test --config playwright.config.ts --project=electron tests/electron/confluence-live.spec.ts --reporter=json --output=/tmp/sketchdraw-218-root-native-artifacts",
+      "exitCode": 0,
+      "endedAt": "2026-11-16T09:52:16.145800+00:00"
+    },
+    "stats": {
+      "startTime": "2026-11-16T09:50:15.885Z",
+      "duration": 120246.148,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+        "status": "passed",
+        "duration": 84129,
+        "errors": []
+      },
+      {
+        "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+        "status": "passed",
+        "duration": 10287,
+        "errors": []
+      },
+      {
+        "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+        "status": "passed",
+        "duration": 5097,
+        "errors": []
+      },
+      {
+        "title": "a saved empty application exits normally (#218)",
+        "status": "passed",
+        "duration": 837,
+        "errors": []
+      },
+      {
+        "title": "a cancelled quit keeps the plugins working, a repeated quit keeps one question and saving completes the quit (#218)",
+        "status": "passed",
+        "duration": 14795,
+        "errors": []
+      },
+      {
+        "title": "closing only the window after a cancelled quit keeps the application, which reopens and then quits (#218)",
+        "status": "passed",
+        "duration": 4483,
+        "errors": []
+      }
+    ],
+    "sourceIntegrity": {
+      "at": "2026-11-16T09:52:16.186952+00:00",
+      "checked": 512,
+      "changed": []
+    },
+    "scope": "Native macOS fixture only; isolated profiles, runtime and synthetic Confluence. No actual user app or Tenant restart."
+  },
+  "backend": {
+    "stats": {
+      "startTime": "2026-11-16T09:52:45.824Z",
+      "duration": 13279.091999999999,
+      "expected": 4,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "executor": "OpenAI Codex Root",
+    "change": "Test-only contract adjustment: repeated close retains ID; cancel then next close creates new ID; stale first answer remains rejected.",
+    "finalTestSha256": "656783942cbe98d13b1407b530ed6109a2b32d13ed3ae47eca969796679b0f29",
+    "freezeBoundary": "After main native freeze, only backend-shell.spec.ts changed; final review confirms other511entries unchanged."
+  },
+  "independentReview": {
+    "artifact": "codex-final-review.md",
+    "result": "No open material finding in bounded lifecycle review; backend test concern fixed and4/4verified.",
+    "executor": "OpenAI Codex subagent live_correction_review",
+    "ownTests": "none"
+  },
+  "graphRefresh": {
+    "startedAt": "2026-11-16T09:54:51.870769+00:00",
+    "endedAt": "2026-11-16T09:54:58.844676+00:00",
+    "command": "python3 tools/graphify-update.py",
+    "checkout": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "attempts": 1,
+    "exitCode": 1,
+    "force": false,
+    "stdoutLog": "/tmp/sketchdraw-218-graph-refresh.log",
+    "graphByteIdentical": true
+  },
+  "remaining": [
+    "Actual user app exit/restart (old PID99302) and persisted live link",
+    "Actual Tenant conflict/preservation acceptance",
+    "Target-branch integration and ticket closure conditions"
+  ],
+  "archives": [
+    {
+      "path": "docs/reviews/218-native-quit/root-native-run.json",
+      "bytes": 335,
+      "sha256": "871b4f3261b5358a122d8e8b5c7e3016678deb74b895c5877a8a725ba7ca16e5"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/root-native-report.json",
+      "bytes": 149066,
+      "sha256": "8c74a24986ee542df6401c2c071557365318f02433826709b702f742adae2bd0"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/root-native-summary.json",
+      "bytes": 1131,
+      "sha256": "091ffd194552cbe5cd7a70dc4067fa6380e0e273ee26096206b6d74a68d53be3"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/root-source-before.json",
+      "bytes": 58334,
+      "sha256": "e4eb77c7f66f8143578f2ee634bdda16f5b8eaaddc5e94b5c84164039acaab03"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/root-source-after.json",
+      "bytes": 82,
+      "sha256": "690ef7b2a99ba9fd294a687ad15e2ff8c3fbfd871724b36e2de305c3ddbc32e3"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-authority-217-evidence.json",
+      "bytes": 793,
+      "sha256": "a55053ab23cd7b77efbb4bac9a2158db869e133853424b7b37cc89867b98337d"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-confluence-evidence.json",
+      "bytes": 7791,
+      "sha256": "b0c722bef8f1f3db2814c691e769c886be12e4e75412bc65e2a8e211b7c8acf8"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-window-cancellation.json",
+      "bytes": 803,
+      "sha256": "f6ec8c21b28625c7c8da06d8ea66f6fd5c770895a93ef20f1440afc9bb06c6a0"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-quit-218-cancel-evidence.json",
+      "bytes": 281,
+      "sha256": "61d3fff5613afd9df78df0458257eb490185817dbe36a0527eb402afbc00e654"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-quit-218-window-evidence.json",
+      "bytes": 123,
+      "sha256": "76ea71e341e440b1e332a6d7d2dcc47c624b53ef44f20974771d8f43b2619fb6"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-drag-diagnostics.json",
+      "bytes": 3356,
+      "sha256": "c071816dc5ed6896b249e4621a7acc3f2063f5580f60eaccafb9433a6e35a6c5"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/native-restart-edit-diagnostics.json",
+      "bytes": 18393,
+      "sha256": "533e6511aead2ad64621db5b1cb2ddc81188bf3f5ae89fd61fa235f1f84529b3"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/backend-report.json",
+      "bytes": 15175,
+      "sha256": "fdff9d31279bc1c892dff6131cb69fab3a926a43d29f09fd40ff0617a445db25"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/codex-final-review.md",
+      "bytes": 8225,
+      "sha256": "a6f368a514b8e007e492d5f92dfae961cc9f7e53326240d671f5eeafdce131c4"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/graph-refresh.log",
+      "bytes": 1641,
+      "sha256": "433b4126f9502c54e26b0ebb487dc76ee956d6dc0d4c8fbdf432a3f59dae185d"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/graph-refresh-result.json",
+      "bytes": 391,
+      "sha256": "648ee37b8d28c9549b816942e8ef3518d9ab3d63af90410f4366bd151dc80b4c"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/package-result.json",
+      "bytes": 807,
+      "sha256": "79948c1fc65bbcd374133c4e3d9522b347919445eadc5f915376ebd15b8b5122"
+    }
+  ],
+  "projectionChecks": {
+    "original": "passed",
+    "managed": "passed",
+    "traceabilityNodes": 3077,
+    "traceabilityLinks": 4249,
+    "runCount": 289
+  },
+  "package": {
+    "at": "2026-11-16T09:54:17.091308+00:00",
+    "status": "packaged",
+    "exitCode": 0,
+    "appPath": "/tmp/sketchdraw-218-live-build/mac-arm64/Sketchdraw.app",
+    "asarSha256": "de7f5688991f3c058bd01464ba1731ef4411cc13709ad892ab59142f74fc9998",
+    "hashes": {
+      "electron/main.ts": "ab588c3f73215c971a90a96475b97f26d1c1769bf79a22084e29e82c3139b71c",
+      "electron/close-handshake.ts": "43533a2aef335649132a8fd603c84c426bf813a751fd9f002715a3b841cdd35e",
+      "src/crdt/persistence.ts": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+      "dist-electron/main.cjs": "30ed806755c5de5443beb20e5e24bd0ee570ed1f55a4c775c37f03566f94a33a",
+      "dist-mcp/server.cjs": "a4f86f229a0683fa7716766328873807032f704ac637167c1ad4b1d178332169"
+    },
+    "sameAsPassedRootNative": true,
+    "liveStarted": false
+  },
+  "actualAppState": "Old PID99302 remains; Root one-time user-assisted Force Quit request pending. No actual new package launch or Tenant restart claimed.",
+  "preservation": {
+    "allPrior286MeasurementRecordsUnchanged": true,
+    "unrelatedPrior285RunRecordsUnchanged": true,
+    "unrelatedIssuesUnchanged": true,
+    "sourceGraphUnchanged": true,
+    "codeGraphRefreshAttempts": 1,
+    "forceUsed": false
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "revision": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+  "sourcePath": "src/domain/atlassian.ts",
+  "sourceSha256": "84f7924ff5ad91c4491cb6e1886eea8adc8c84f3384f4372a8f77138ecc8951b",
+  "runtime": "v22.16.0",
+  "scope": "Pure in-memory domain conversion; no app, network or credentials",
+  "storageBefore": "<h2>Confluence codec probe 208</h2><p>Text <strong>fett</strong> und <a href=\"https://example.com/docs\">Dokumentation</a>.</p><ol><li>Erster Schritt</li><li>Zweiter Schritt</li></ol><table><tbody><tr><th><p>Feld</p></th><th><p>Wert</p></th></tr><tr><td><p>Status</p></td><td><p>Offen</p></td></tr></tbody></table>",
+  "imported": {
+    "version": 1,
+    "blocks": [
+      {
+        "type": "heading-2",
+        "runs": [
+          {
+            "text": "Confluence codec probe 208"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Text fett und Dokumentation."
+          }
+        ]
+      },
+      {
+        "type": "bullet",
+        "runs": [
+          {
+            "text": "Erster Schritt"
+          }
+        ]
+      },
+      {
+        "type": "bullet",
+        "runs": [
+          {
+            "text": "Zweiter Schritt"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Feld"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Wert"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Status"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Offen"
+          }
+        ]
+      }
+    ]
+  },
+  "storageAfter": "<h2>Confluence codec probe 208</h2><p>Text fett und Dokumentation.</p><ul><li>Erster Schritt</li></ul><ul><li>Zweiter Schritt</li></ul><p>Feld</p><p>Wert</p><p>Status</p><p>Offen</p>",
+  "reimported": {
+    "version": 1,
+    "blocks": [
+      {
+        "type": "heading-2",
+        "runs": [
+          {
+            "text": "Confluence codec probe 208"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Text fett und Dokumentation."
+          }
+        ]
+      },
+      {
+        "type": "bullet",
+        "runs": [
+          {
+            "text": "Erster Schritt"
+          }
+        ]
+      },
+      {
+        "type": "bullet",
+        "runs": [
+          {
+            "text": "Zweiter Schritt"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Feld"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Wert"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Status"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "runs": [
+          {
+            "text": "Offen"
+          }
+        ]
+      }
+    ]
+  },
+  "facts": {
+    "tagsBefore": {
+      "h2": 1,
+      "strong": 1,
+      "a": 1,
+      "ol": 1,
+      "ul": 0,
+      "li": 2,
+      "table": 1,
+      "tr": 2,
+      "th": 2,
+      "td": 2
+    },
+    "tagsAfter": {
+      "h2": 1,
+      "strong": 0,
+      "a": 0,
+      "ol": 0,
+      "ul": 2,
+      "li": 2,
+      "table": 0,
+      "tr": 0,
+      "th": 0,
+      "td": 0
+    },
+    "importedBoldRuns": 0,
+    "importedNumberedBlocks": 0,
+    "importedBulletBlocks": 2,
+    "linkTargetPresentAfter": false,
+    "headingAndVisibleWordsPreserved": true,
+    "tableCellTextFlattenedToParagraphs": true,
+    "annotationStableAfterSecondImport": true
+  }
+}

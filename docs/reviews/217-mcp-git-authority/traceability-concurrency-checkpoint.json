@@ -1,0 +1,45 @@
+{
+  "updatedAt": "2026-11-16T09:18:40.116661+00:00",
+  "status": "completed",
+  "delegation": "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6912252088",
+  "scope": "Bookkeeping only; no product/test/UI/Tenant/GitHub/commit or source graph refresh. Root-only native harness review archived; no test file copied.",
+  "mainRun": {
+    "id": "claude-fable-2026-11-16-mcp-git-authority-217",
+    "observedSeconds": 968.922,
+    "tokens": 9119149,
+    "costUsd": 9.212315200000003,
+    "terminalResult": "fable-implementation-result.json"
+  },
+  "correctionRun": {
+    "id": "claude-fable-2026-11-16-mcp-git-concurrency-217",
+    "status": "running_at_start_checkpoint",
+    "metrics": null,
+    "previousCumulativeCostUsd": 9.212315200000003
+  },
+  "preservation": {
+    "priorRunCount": 279,
+    "currentRunCount": 282,
+    "priorMetricsUnchangedExceptTerminalMainRun": true,
+    "preservedPriorMetricRecords": 278,
+    "unrelatedIssuesAndRunsUnchanged": true,
+    "sourceGraphUnchanged": true,
+    "preservedUnrelatedRunRecords": 277,
+    "activeFableRunFileNotWrittenByThisTask": true
+  },
+  "projectionChecks": [
+    {
+      "checkout": "original",
+      "merge": "passed",
+      "check": "passed",
+      "traceabilityNodes": 2977,
+      "traceabilityLinks": 4110
+    },
+    {
+      "checkout": "managed",
+      "merge": "passed",
+      "check": "passed",
+      "traceabilityNodes": 2977,
+      "traceabilityLinks": 4110
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "command": [
+    "npx",
+    "playwright",
+    "test",
+    "--config",
+    "playwright.config.ts",
+    "--project=electron",
+    "tests/electron/confluence-live.spec.ts",
+    "--grep",
+    "native edits and automatic Git pull",
+    "--reporter=json",
+    "--output=/tmp/sketchdraw-210-fable-final-native-repeat"
+  ],
+  "startedAt": "2026-11-16T12:26:28.931262+00:00",
+  "reason": "First native run: 5/6 pass; failed initial drag has unexpected lostpointercapture/buttons=0 at unrelated position before Confluence or Git setup. Source unchanged; repeat only failed case.",
+  "exitCode": 0,
+  "endedAt": "2026-11-16T12:27:54.331164+00:00",
+  "durationSeconds": 85.39997558388859,
+  "sourceChecked": 447,
+  "sourceChanged": []
+}

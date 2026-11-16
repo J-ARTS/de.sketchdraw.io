@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-13T10:23:43Z",
+  "updatedAt": "2026-11-16T12:39:37.583018+00:00",
   "issues": [
     {
       "number": 1,
@@ -2535,6 +2535,420 @@
         "publication": "https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4",
         "remoteCi": "GitHub Actions release run 43404154496 passed all 10 jobs"
       }
+    },
+    {
+      "number": 208,
+      "title": "Live-Abnahme Confluence Live Docs mit AWS-Bedrock-/AgentCore-Referenzarchitektur",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/208",
+      "owner": "OpenAI Codex",
+      "phase": "GitHub bestätigt: offen / status: review; begrenzte Fable-/Codex-/Live-Nachweise dokumentiert, Zielbranchintegration bzw. benannte Abnahmelücken offen.",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        69,
+        209
+      ],
+      "currentImplementer": "OpenAI Codex (testing and coordination; no source implementation)",
+      "localIntegration": {
+        "branch": "codex/210-confluence-integration",
+        "commit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+        "publication": "Local uncommitted changes; no target-branch integration, push or merge."
+      },
+      "nextStep": "Geprüften lokalen Stand integrieren; besondere Layout-Inhalte und kontrollierten externen Live-Doc-/Zwei-Geräte-Konflikt noch live abnehmen. Kein atomarer Konfliktschutz aus dem Restfenster vor Seiten-PUT ableiten.",
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "docs/reviews/218-native-quit/tenant-normal-quit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/208#issuecomment-6916612671"
+      ],
+      "relatedIssues": [
+        221
+      ],
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/208#issuecomment-6916612671"
+    },
+    {
+      "number": 209,
+      "title": "Confluence: Inhaltsverlust beim Einbinden und ungeschütztes vollständiges Zurückschreiben",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/209",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Confluence live acceptance 2026-11-15",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        69
+      ],
+      "currentImplementer": "Claude Code / Fable 5.2: conservative legacy-write guard through #210; full rich codec pending",
+      "localIntegration": {
+        "branch": "main",
+        "commit": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+        "publication": "Local review artifacts only; not integrated"
+      }
+    },
+    {
+      "number": 210,
+      "title": "Confluence Live Docs: Architekturdiagramme automatisch aus lokalen und Git-Änderungen aktualisieren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/210",
+      "owner": "OpenAI Codex (architecture/testing), Claude Code (implementation), Google Antigravity (interface responsibility)",
+      "phase": "GitHub bestätigt: offen / status: review; begrenzte Fable-/Codex-/Live-Nachweise dokumentiert, Zielbranchintegration bzw. benannte Abnahmelücken offen.",
+      "status": "review",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        208,
+        209
+      ],
+      "currentImplementer": "Claude Code / Fable 5.2 (explicit user request)",
+      "localIntegration": {
+        "branch": "codex/210-confluence-integration",
+        "commit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+        "publication": "Local uncommitted changes; no target-branch integration, push or merge."
+      },
+      "nextStep": "Geprüften lokalen Integrationsstand in den Zielbranch übernehmen; lokale uncommittete Korrekturen sind noch nicht veröffentlicht. Offene Folgeaufgaben #219/#220/#221 getrennt fortführen.",
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "docs/reviews/218-native-quit/tenant-normal-quit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916613185"
+      ],
+      "relatedIssues": [
+        221
+      ],
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916613185"
+    },
+    {
+      "number": 214,
+      "title": "UI-Tests können unbemerkt den Dev-Server eines anderen Arbeitsbaums prüfen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/214",
+      "owner": "OpenAI Codex",
+      "phase": "Testing follow-up discovered during #210; not implemented",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        210
+      ],
+      "currentImplementer": null,
+      "localIntegration": {
+        "branch": null,
+        "commit": null,
+        "publication": "No implementation; issue recorded with reproduction and acceptance criteria."
+      }
+    },
+    {
+      "number": 215,
+      "title": "SVG-/Confluence-Export: Lange Annotation-Absätze werden nicht umgebrochen und abgeschnitten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/215",
+      "owner": "Google Antigravity (interop logic), Claude Code (rendering), OpenAI Codex (architecture/testing and coordination)",
+      "phase": "Planned separate annotation wrapping correction; discovered during #208/#210 Tenant acceptance, no general product fix in #210",
+      "status": "planned",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        56,
+        208,
+        210
+      ],
+      "currentImplementer": "Unassigned; no product implementation started",
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/tenant-initial-page2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-reference-validation.json"
+      ],
+      "nextStep": "Review existing text layout and design shared annotation wrapping with regression coverage. Local reference-only short-block workaround does not complete this issue."
+    },
+    {
+      "number": 217,
+      "title": "MCP-Zugang nach Git-Dokumentwechsel nicht mehr auffindbar; Registrierungsfehler bleiben unsichtbar",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/217",
+      "owner": "Google Antigravity (interfaces), Claude Code (UI integration), OpenAI Codex (architecture/testing and coordination)",
+      "phase": "GitHub bestätigt: offen / status: in-progress; native MCP-/Authority-Prüfungen bestanden, Registrierungsfehler-Sichtbarkeit noch offen.",
+      "status": "in-progress",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [
+        218
+      ],
+      "relatedIssues": [
+        176,
+        208,
+        210,
+        219,
+        221
+      ],
+      "currentImplementer": "Actual Claude Code CLI 2.1.323 / claude-fable-5-2 / high; Codex architecture/testing/coordination",
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/tenant-mcp-after-git-review.md",
+        "docs/reviews/210-confluence-auto-sync/tenant-after-git-mcp-read.json",
+        "docs/reviews/217-mcp-git-authority/review.md",
+        "docs/reviews/217-mcp-git-authority/controlled-result.json",
+        "docs/reviews/217-mcp-git-authority/controlled-manifest.json",
+        "docs/reviews/217-mcp-git-authority/first-probe.ts",
+        "docs/reviews/217-mcp-git-authority/first-result.json",
+        "docs/reviews/217-mcp-git-authority/first-manifest.json",
+        "docs/reviews/217-mcp-git-authority/controlled-harness.patch",
+        "docs/reviews/217-mcp-git-authority/archive-manifest.json",
+        "docs/reviews/217-mcp-git-authority/fable-implementation-prompt.md",
+        "docs/reviews/217-mcp-git-authority/source-before.json",
+        "docs/reviews/217-mcp-git-authority/fable-run-start-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-authority-diverged-before-restart.png",
+        "agent-state/tasks/217-mcp-git-authority.md",
+        "docs/reviews/217-mcp-git-authority/fable-implementation-result.json",
+        "docs/reviews/217-mcp-git-authority/fable-implementation.md",
+        "docs/reviews/217-mcp-git-authority/fable-run.json",
+        "docs/reviews/217-mcp-git-authority/implementation-end-hashes.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-review.md",
+        "docs/reviews/217-mcp-git-authority/concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-source-manifest.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-prompt.md",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-start-checkpoint.json",
+        "docs/reviews/217-mcp-git-authority/native-harness-review.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency.md",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-run.json",
+        "docs/reviews/217-mcp-git-authority/native-final-source-before.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-usage-review.json",
+        "docs/reviews/217-mcp-git-authority/native-final-report.json",
+        "docs/reviews/217-mcp-git-authority/native-final-run.json",
+        "docs/reviews/217-mcp-git-authority/native-final-source-after.json",
+        "docs/reviews/217-mcp-git-authority/native-authority-217-failed-stage.json",
+        "docs/reviews/217-mcp-git-authority/native-window-cancellation.json",
+        "docs/reviews/217-mcp-git-authority/native-confluence-evidence.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-review.md",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-probe.ts",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-result.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-source-manifest.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-historical-integrity-before.json",
+        "docs/reviews/218-macos-quit/217-quit-diagnostic.json",
+        "docs/reviews/218-macos-quit/218-quit-diagnostic.json",
+        "docs/reviews/218-native-quit/root-native-summary.json",
+        "docs/reviews/218-native-quit/root-native-report.json",
+        "docs/reviews/218-native-quit/root-source-after.json",
+        "docs/reviews/218-native-quit/backend-report.json",
+        "docs/reviews/218-native-quit/codex-final-review.md",
+        "docs/reviews/218-native-quit/graph-refresh-result.json",
+        "docs/reviews/218-native-quit/final-acceptance-checkpoint.json",
+        "docs/reviews/218-native-quit/package-result.json",
+        "docs/reviews/218-native-quit/tenant-restart-attribution.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "docs/reviews/218-native-quit/tenant-normal-quit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6916613603"
+      ],
+      "nextStep": "Sichtbarkeit und sichere Wiederherstellung injizierter MCP-Registrierungsfehler umsetzen und prüfen; danach zusammen mit bereits geprüften Authority-/Neustartkorrekturen im Zielbranch integrieren.",
+      "localIntegration": {
+        "branch": "codex/210-confluence-integration",
+        "commit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+        "publication": "Local uncommitted implementation and concurrency correction completed; independent/native acceptance pending. No target-branch integration, push or merge."
+      },
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6916613603"
+    },
+    {
+      "number": 218,
+      "title": "macOS: Reguläres Beenden ohne Quit-Absicht; vorzeitiges before-quit-Cleanup",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218",
+      "owner": "OpenAI Codex (architecture/testing and diagnosis), Google Antigravity (application lifecycle responsibility)",
+      "phase": "GitHub bestätigt: offen / status: review; begrenzte Fable-/Codex-/Live-Nachweise dokumentiert, Zielbranchintegration bzw. benannte Abnahmelücken offen.",
+      "status": "review",
+      "dependencies": [],
+      "relatedIssues": [
+        217,
+        210,
+        208,
+        220,
+        221
+      ],
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "currentImplementer": "Claude Code / claude-fable-5-2 / high completed implementation; Root Codex independent testing and coordination active",
+      "evidence": [
+        "docs/reviews/218-macos-quit/native-acceptance-checkpoint.json",
+        "docs/reviews/217-mcp-git-authority/native-final-report.json",
+        "docs/reviews/218-macos-quit/217-quit-diagnostic.json",
+        "docs/reviews/218-macos-quit/218-quit-diagnostic.json",
+        "docs/reviews/218-native-quit/native-saved-before-report.json",
+        "docs/reviews/218-native-quit/native-saved-before-diagnostic.json",
+        "docs/reviews/218-native-quit/native-before-report.json",
+        "docs/reviews/218-native-quit/fable-run-start-checkpoint.json",
+        "docs/reviews/218-native-quit/fable-result.json",
+        "docs/reviews/218-native-quit/fable-implementation.md",
+        "docs/reviews/218-native-quit/fable-native-final-report.json",
+        "docs/reviews/218-native-quit/fable-usage-review.json",
+        "docs/reviews/218-native-quit/root-native-summary.json",
+        "docs/reviews/218-native-quit/root-native-report.json",
+        "docs/reviews/218-native-quit/root-source-after.json",
+        "docs/reviews/218-native-quit/backend-report.json",
+        "docs/reviews/218-native-quit/codex-final-review.md",
+        "docs/reviews/218-native-quit/graph-refresh-result.json",
+        "docs/reviews/218-native-quit/final-acceptance-checkpoint.json",
+        "docs/reviews/218-native-quit/package-result.json",
+        "docs/reviews/218-native-quit/tenant-restart-attribution.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "docs/reviews/218-native-quit/tenant-normal-quit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998"
+      ],
+      "nextStep": "Geprüfte Quit-Korrektur zusammen mit dem lokalen Integrationsstand in den Zielbranch übernehmen. Echte reguläre Quit-Abnahme gilt für das vorangegangene #218-Paket; kein zusätzlicher Quit des final geöffneten Pakets behauptet.",
+      "localIntegration": {
+        "branch": "codex/210-confluence-integration",
+        "commit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
+        "publication": "Local uncommitted #210/#217 changes; #218 diagnosis in progress. No target-branch integration, push or merge."
+      },
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998"
+    },
+    {
+      "number": 219,
+      "title": "CRDT-Recovery nach Authority-Korrektur ausdrücklich anbieten und vom Datei-/Git-Stand trennen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/219",
+      "owner": "OpenAI Codex (architecture/testing and coordination), Google Antigravity (application logic), Claude Code (UI when applicable)",
+      "phase": "Planned product gap: explicit recovery UI is not wired; file/Git authority must remain canonical",
+      "status": "planned",
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        71,
+        217,
+        208,
+        210
+      ],
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-findings-review.md"
+      ],
+      "nextStep": "Root maintains the separate GitHub backlog item; implementation is not part of the active #210 correction run.",
+      "titleSource": "Exact GitHub title supplied by Root"
+    },
+    {
+      "number": 220,
+      "title": "Abgestürzter Renderer kann reguläres Schließen und Beenden dauerhaft verhindern",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/220",
+      "owner": "OpenAI Codex (architecture/testing and coordination), Google Antigravity (application logic), Claude Code (UI when applicable)",
+      "phase": "Planned pre-existing crash/close issue; no native reproduction or implementation in current correction scope",
+      "status": "planned",
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        218,
+        217,
+        210
+      ],
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-findings-review.md"
+      ],
+      "nextStep": "Root maintains the separate GitHub backlog item; implementation is not part of the active #210 correction run.",
+      "titleSource": "Exact GitHub title supplied by Root"
+    },
+    {
+      "number": 221,
+      "title": "Gleichzeitige Plugin-Einstellungsänderungen können unabhängige Werte überschreiben",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+      "owner": "Google Antigravity (Anwendungslogik), OpenAI Codex (Architektur/Testing und Koordination)",
+      "phase": "Vorbestehender statischer Befund; unabhängige Reproduktion und Implementierung ausstehend. Außerhalb des abgeschlossenen Fable-Korrekturumfangs.",
+      "status": "planned",
+      "estimatedEffort": {
+        "kind": "planning_estimate",
+        "unit": "story_points",
+        "value": null
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        210
+      ],
+      "evidence": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md"
+      ],
+      "titleSource": "Exakter von Root bestätigter GitHub-Titel nach Duplikatsuche.",
+      "nextStep": "Konkurrierende unabhängige Einstellungsänderungen isoliert reproduzieren und den Vertrag für atomare Teiländerungen festlegen; keine Umsetzung im aktuellen Korrekturlauf."
     }
   ],
   "runs": [
@@ -9884,6 +10298,1183 @@
       ],
       "parentRunId": "codex-2026-11-13-release-v0.1.4-186",
       "measurementSource": "Actual GitHub Actions timestamps and outcome for release run 43404154496. All 10 jobs passed; native Windows x64, macOS arm64 and Linux x64 installers were extracted and started, then published as exactly three assets. Tokens and cost are not applicable or unavailable."
+    },
+    {
+      "id": "codex-2026-11-15-confluence-live-208",
+      "tool": "OpenAI Codex + SketchDraw Atlassian plugin + computer use",
+      "model": null,
+      "issues": [
+        208,
+        209,
+        210,
+        214,
+        215,
+        217,
+        218
+      ],
+      "status": "bounded_live_acceptance_verified_remaining_work_documented",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/208-confluence-live/result.json",
+        "docs/reviews/208-confluence-live/validation.json",
+        "docs/reviews/208-confluence-live/codec-probe.json",
+        "docs/reviews/208-confluence-live/aws-bedrock-agentcore.sketchdraw.json",
+        "docs/reviews/210-confluence-auto-sync/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/domain-correction-recheck.json",
+        "docs/reviews/210-confluence-auto-sync/correction-backend-probes.json",
+        "docs/reviews/210-confluence-auto-sync/correction-abort-probes.json",
+        "docs/reviews/210-confluence-auto-sync/correction-fingerprint-probes.json",
+        "docs/reviews/210-confluence-auto-sync/native-interim-snapshot.json",
+        "docs/reviews/210-confluence-auto-sync/terminal-source-verification.json",
+        "docs/reviews/210-confluence-auto-sync/codex-final-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/native-final-first-report.json",
+        "docs/reviews/210-confluence-auto-sync/native-final-second-report.json",
+        "docs/reviews/210-confluence-auto-sync/native-final-second-diagnostics.json",
+        "docs/reviews/210-confluence-auto-sync/native-after-save-check.json",
+        "docs/reviews/210-confluence-auto-sync/live-build.json",
+        "docs/reviews/210-confluence-auto-sync/live-plugin-preflight.json",
+        "docs/reviews/210-confluence-auto-sync/native-final-third-report.json",
+        "docs/reviews/210-confluence-auto-sync/native-third-native-confluence-evidence.json",
+        "docs/reviews/210-confluence-auto-sync/native-lifecycle-final-report.json",
+        "docs/reviews/210-confluence-auto-sync/native-drawing-probe-summary.json",
+        "docs/reviews/210-confluence-auto-sync/graph-refresh-existing-symbols.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-first-report.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-first-summary.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-first-source-before.json",
+        "docs/reviews/210-confluence-auto-sync/final-integration-review.md",
+        "docs/reviews/210-confluence-auto-sync/integration-native-final-summary.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-final-report.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-final-evidence.json",
+        "docs/reviews/210-confluence-auto-sync/integration-native-final-source-before.json",
+        "docs/reviews/210-confluence-auto-sync/integrated-live-build.json",
+        "docs/reviews/210-confluence-auto-sync/integration-review-terminal-check.json",
+        "docs/reviews/210-confluence-auto-sync/integration-core-terminal-check.json",
+        "docs/reviews/210-confluence-auto-sync/integration-graph-refresh-blocked.log",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/208#issuecomment-6909839294",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6909840188",
+        "agent-state/tasks/210-confluence-live-sync.md",
+        "docs/reviews/210-confluence-auto-sync/fable-live-hang-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-observation-correction-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-hang.md",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-fixture-facts.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-probe.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-last-run.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-run-evidence.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-usage-review.json",
+        "docs/reviews/210-confluence-auto-sync/live-observation-source-verification.json",
+        "docs/reviews/210-confluence-auto-sync/live-observation-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/tenant-first-transfer-pending.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-first-transfer-pending.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-transfer-later-observation.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-initial-page1.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-initial-page2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-local-edit.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-local-update-page1.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-local-update-page2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-reference-validation.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6910746850",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/215",
+        "docs/reviews/210-confluence-auto-sync/tenant-live-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-version-history-v2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-mcp-after-git-review.md",
+        "docs/reviews/210-confluence-auto-sync/tenant-after-git-mcp-read.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-push.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-pull-confirmed.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-update-page1.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-update-page2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-readable-decisions.png",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6911345713",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6911436582",
+        "docs/reviews/208-confluence-live/aws-bedrock-agentcore-live.sketchdraw.json",
+        "docs/reviews/217-mcp-git-authority/review.md",
+        "docs/reviews/217-mcp-git-authority/controlled-result.json",
+        "docs/reviews/217-mcp-git-authority/controlled-manifest.json",
+        "docs/reviews/217-mcp-git-authority/first-probe.ts",
+        "docs/reviews/217-mcp-git-authority/first-result.json",
+        "docs/reviews/217-mcp-git-authority/first-manifest.json",
+        "docs/reviews/217-mcp-git-authority/controlled-harness.patch",
+        "docs/reviews/217-mcp-git-authority/archive-manifest.json",
+        "docs/reviews/217-mcp-git-authority/fable-implementation-prompt.md",
+        "docs/reviews/217-mcp-git-authority/source-before.json",
+        "docs/reviews/217-mcp-git-authority/fable-run-start-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-authority-diverged-before-restart.png",
+        "agent-state/tasks/217-mcp-git-authority.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6911915029",
+        "docs/reviews/217-mcp-git-authority/fable-implementation-result.json",
+        "docs/reviews/217-mcp-git-authority/fable-implementation.md",
+        "docs/reviews/217-mcp-git-authority/fable-run.json",
+        "docs/reviews/217-mcp-git-authority/implementation-end-hashes.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-review.md",
+        "docs/reviews/217-mcp-git-authority/concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-source-manifest.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-prompt.md",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-start-checkpoint.json",
+        "docs/reviews/217-mcp-git-authority/native-harness-review.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6912291055",
+        "docs/reviews/218-macos-quit/native-acceptance-checkpoint.json",
+        "docs/reviews/217-mcp-git-authority/native-final-report.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-review.md",
+        "docs/reviews/218-native-quit/final-acceptance-checkpoint.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6913120498",
+        "docs/reviews/218-native-quit/package-result.json",
+        "docs/reviews/218-native-quit/tenant-restart-attribution.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/run-start-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-prompt.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/219",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/220",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-findings-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+        "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-b8-alias-probe-result.json",
+        "docs/reviews/218-native-quit/tenant-normal-quit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-package-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-live-observation.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/208#issuecomment-6916612671",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916613185",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6916613603",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998"
+      ],
+      "concerns": [
+        "Full Confluence body codec remains tracked in #209; managed live block avoids legacy full-body export.",
+        "Final Fable CF10/CF11 corrections independently confirmed; terminal source hashes match.",
+        "Actual Atlassian plugin links saved AWS reference to LiveDoc 164037. Root confirms initial two-page PNG publication and automatic local title update visible on both images in the already-open original Chrome tab without reload or manual sync.",
+        "Resolved on this continuation: prior old-app quit dependency ended after user unlocked desktop and quit SketchDraw; Root verified PID 13513 absent and launched the verified integrated bundle. Historical blocked checkpoints remain in the task file.",
+        "Graph refresh refused20nonledger IDs while sampled Vue functions still exist; known #183 extraction gap, no deletion/force.",
+        "Separate testing issue214 records silent reuse of another checkout server; #210 valid UI evidence uses own server5183.",
+        "Final integrated native 2/2 PASS: 83.114s main + 10.301s lifecycle, unchanged source/tests. Current read-only integrity check: 275/275 source/test, 11/11 core and 14/14 UI/context hashes match. Initial publication and both local title images are now confirmed by Root at the real Tenant; actual Git auto-pull and both changed Tenant images are now confirmed by Root. Restart and Tenant conflict acceptance remain pending.",
+        "Managedworktree refresh guard refuses222missing old IDs including upstream#211 App.vue→WorkspacePage moves; distinct from original20retained-symbol#183 finding. Source graph kept, noforce; ledger projection checked separately.",
+        "Jira and Git settings access hurdles are resolved. Root confirmed Git enabled, existing autoCommit=1 retained, autoPull=1 and autoPush=0. Commit 6aa1e14df8f67115e9fe577ca0613f5cde676fa7 was pushed only to the local bare remote at 08:19:24.631840Z and automatically adopted cleanly; both updated images and readable decisions appeared in the original LiveDoc without reload or manual sync.",
+        "Earlier empty/syncing AX and screenshot observations were stale. Root refreshed the observation with a harmless heading click, not sync, and the app showed successful publication; the original Chrome LiveDoc shows both PNGs and both updated local-title headers without reload. Historical pending artifacts remain unchanged and explicitly classified stale; browser-extension DOM timeoutMs error is a separate tool limitation.",
+        "The first Unbenannt observation occurred before file loading completed; later correct AWS title, saved state and two pages confirm successful opening. No opening defect is established.",
+        "Goal tool remains technically blocked because there is no active setter. Operational work resumed; no additional blocked update or completion claim follows.",
+        "Separate planned #215 records annotation paragraph clipping. The reference-only short-block workaround and renamed pages were transmitted successfully through actual Git auto-pull, but no general export correction is included in #210 and #215 remains open.",
+        "Fable CLI 6 was interrupted by Root (process exit 0, terminal error_during_execution/aborted_streaming); CLI 7 completed report correction. Isolated headless render evidence is 2/2, but uses a preseeded fake link and fake publish bridge; no native/Tenant conclusion follows from it.",
+        "MCP local rename at 2026-11-16T07:54:31.253Z initially reported saved:false/unsaved-open-document; subsequent fixture baseline a68fb10 and clean automatic Git adoption of 6aa1e14 are independently recorded. Git-to-Tenant acceptance passed; restart, Tenant conflict proof and target-branch integration remain open.",
+        "Separately refreshed version history confirms initial page version 1 to 2 at 08:43 and still version 2 after the local title edit. The two image refreshes are visually evidenced; no page version 3 is claimed.",
+        "New separate planned #217: repeated official MCP ACCESS_DENIED after Git document replacement; safe lstat at 08:31:17Z confirms missing default runtime file while Root reports app still running without restart. Registration error is silently dropped in WorkspacePage; exact trigger remains unproven, no transient-state claim and no Fable diagnosis contribution.",
+        "Current continuation dependency: regular quit of actual PID 99302 awaits user help. Root confirmed it running at 08:30:51; CUA menu/shortcut quit did not end it and later noWindowsAvailable prevented reliable input. No restart has occurred; do not launch a second same-profile app. Historical PID 13513 blocker was resolved separately.",
+        "Root reconfirmed at 08:36:34Z that PID 99302 and helpers 99303/99304/99305 are still running; regular user quit answer pending. Current live fixture archived separately as aws-bedrock-agentcore-live.sketchdraw.json, SHA256 b328c2b615922b1cfbcb850296885570b128017212b1bc4f87be3e1d537ffd13, 34733 bytes, 62 elements, 2 pages. Original initial reference preserved; app source remains temporary Git fixture for restart acceptance.",
+        "2026-11-16 08:45 correction to prior continuation: user reported quitting, but Root confirmed the same PID 99302 remains running and captured AUTHORITY_DIVERGED. Restart is not proven. The inability to close is not solely a CUA limitation: the isolated real Store + CloseHandshakeCoordinator reproduces an authority error followed by cancel.",
+        "2026-11-16 isolated #217 mechanism confirmed: delayed old same-ID IndexedDB state overrides canonical file/Git contents outside authority, stops authority, blocks agent binding/save/close. First probe exit 2 remains historical; corrected controlled fixture on identical product prefix exits 0. Actual Fable fix running; no code/native/tenant acceptance follows yet.",
+        "2026-11-16 continuation: first #217 Fable implementation ended successfully but independent Codex CF-217-02 blocks acceptance. Same-session Fable correction is running; actual PID99302 still has AUTHORITY_DIVERGED and no confirmed exit/restart. CUA Activity Monitor selection also returns noWindowsAvailable.",
+        "2026-11-16T09:16:03.673604+00:00: Root Codex separately corrected only the native test harness (comment6912291055): normal quit requires an initially live process ending with exit0 and no signal; after restart wait for the Git status UI barrier before editing the watched file. This is not Fable work and no native test has run yet.",
+        "Terminal #210/#217 native run11937 has two #210 passes and a #217 normal-quit failure after successful MCP/file/Git/write/save prerequisites. #217 restart not reached. Independent cache-concurrency review passed. New #218 Root quit diagnosis is active; Fable implementation only planned. Follow-up draw-stage interruption is not quit evidence.",
+        "2026-11-16 terminal update: Root combined native6/6 plus backend4/4 passed; final independent lifecycle review has no open material finding. Actual user app/Tenant restart and target integration remain pending. Protected graph refresh refused222missing non-ledger nodes and preserved live graph; ledger projection checked separately.",
+        "Final package metadata confirms exit0, ASARde7f5688991f3c058bd01464ba1731ef4411cc13709ad892ab59142f74fc9998 and code/build hashes matching passed Root native tests; liveStartedfalse. Actual old PID99302 remains. Root requested one user-assisted Force Quit; actual Tenant restart is pending.",
+        "Actual restart now confirmed: oldPID99302 gone, packagedAppPID33132 running. Fresh11:51:32Z official adapterPID36054 FD21 socket peer identifies app33132 FD67; expected rev0/two pages/62elements. Earlier11:44response remains unattributed. Persisted Atlassian link, renewed Tenant upload and regular quit in user profile pending. Fresh Fable full-code review running; original checkout retains old cache/quit product code.",
+        "Fresh Fable full-code review terminal success but findings require correction and coverage incomplete; no overall acceptance. Original checkout still older cache/quit code. Root independently verifies B1/B2 before follow-up Fable correction/coverage review; graph projection remains deferred.",
+        "Root independently confirmed B1/B2 and started actual same-session Fable corrections for B1/B2/B4/B5/B7 plus complete review coverage. Blind historical-ownership pruning rejected; use shared validation/capacity preflight before remote writes. Explicit recovery gap is planned#219, pre-existing crash close planned#220; neither implemented here.",
+        "Root and live_correction_review independently confirmed B1/B2/B4/B5/B7 statically, no new tests executed in that review. Evidence codex-findings-review.md. Actual correction initialization verified CLI2.1.323/claude-fable-5-2/high/acceptEdits; no Git operation or real Tenant use in correction scope.",
+        "Correction terminal and measured once: Fable claims137/137unit/typecheck/build and33+22change coverage; Root independent review still required, B8partial-upload journal alias newly open. Actual restarted Jira UI retains Architektur/164037 link without reconnect; fresh attributed MCP edit rev0→1 confirmed. Old09:20sync time means renewed Tenant autosync not yet proven; regular user-profile quit pending.",
+        "Later checkpoint supersedes earlier pending Tenant observation: prior packaged #218 build autosynced after real restart, UI13:17MEZ and Chrome new heading confirmed without reconnect/manualsync. Root reported normal save and Cmd+Q, PID33132 gone; final quit artifact pending. B8 independently reproduced and actual Fable correction now running. New-source acceptance not covered by old package evidence.",
+        "Terminal tenant-normal-quit.json now archives real existing-profile save and Cmd+Q, PID33132 absent, no ForceQuit. Query Exit1 is process-absence status, not app exit code. Evidence restricted to prior packaged #218 build; no fresh-source acceptance.",
+        "B8 actual Fable correction terminal and measured incrementally once;139/139reportedtests, pre-fix2/2red. Independent review running; fresh typecheck/build/native pending. No final acceptance or graph projection claimed. Original product remains unchanged.",
+        "Final Fable33+22changed-hunk coverage accepted with explicit corrections to earlier claims;17full/16hunkintegration,12currentidentical,RootAST64/64. Independent six-fix review and B8afterPASS. Root directtypecheck/build and native5/6+1/1repeat at447unchangedsources. Finalpackage pluginautosync13:30; no newChromevisual or PIDattribution from emptyprocess list. Local unintegrated code and separate#217/#219/#220gaps remain. One protectedgraphrefresh newlyauthorized; finalprojectionpending.",
+        "Finales Paket nun über aufgelösten /private/tmp-Pfad PID 55685 zugeordnet; frühere leere Prozessanzeige als Zwischenstand klargestellt, kein neuer Quit-Nachweis. Vorbestehende Settings-Konkurrenz separat #221 geplant, nur statisch. Genau ein neuer geschützter Quellrefresh verweigert erneut 222 fehlende Nicht-Ledger-Knoten; Graph bytegleich, kein Force. Serielle Ledgerprojektion folgt.",
+        "Root bestätigte finale GitHub-Statuswerte: #208/#210/#218 review, #217 in-progress. Abschlussbericht und Kommentar-IDs archiviert. Keine Zielbranchintegration, kein Commit/Push durch diese Nachweisarbeit. Quellrefresh wegen222fehlendenKnoten verweigert; nur finale Ledgerprojektion erneut prüfen."
+      ],
+      "parentRunId": null,
+      "measurementSource": "Root-confirmed actual initial/local/Git updates on both images in existing LiveDoc 164037 without original-tab reload/manual sync. Local fixture push at 08:19:24.631840Z and clean automatic adoption of 6aa1e14 are archived, not a product GitHub push. Codex read-only MCP diagnosis and safe metadata evidence belong to separate planned #217. Existing 276 run measurements preserved; no new measured Codex duration/tokens/cost, no repeated product tests. Subsequent isolated #217 reproduction is recorded in its own Codex run; actual Fable correction is a separate running run with unknown usage. Earlier observed quit/tool-only hypotheses are historical and corrected by the 08:45 native toast plus isolated close-cancel evidence.",
+      "nextStep": "GitHub-Übergabe fortsetzen: #208 besondere Layouts/externen Konflikt live prüfen; #210/#218 integrieren; #217 Registrierungsfehlersichtbarkeit bearbeiten. #219/#220/#221 separat geplant. Keine Tickets ohne erfüllte Bedingungen schließen."
+    },
+    {
+      "id": "claude-fable-2026-11-15-confluence-auto-sync-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "issues": [
+        210,
+        209
+      ],
+      "status": "completed_review_changes_required",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 1924.752,
+      "tokens": 21514682,
+      "costUsd": 18.489484600000004,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-implementation-prompt.md",
+        "agent-state/tasks/210-confluence-live-sync.md",
+        "docs/reviews/210-confluence-auto-sync/codex-early-domain-review.md",
+        "docs/reviews/210-confluence-auto-sync/domain-probe.json",
+        "docs/reviews/210-confluence-auto-sync/adversarial-domain-probes.json",
+        "docs/reviews/210-confluence-auto-sync/codex-early-backend-review.md",
+        "docs/reviews/210-confluence-auto-sync/backend-review-probes.json",
+        "docs/reviews/210-confluence-auto-sync/fable-corrections-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/fable-implementation-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-implementation.md"
+      ],
+      "concerns": [
+        "Live Doc same-version changes and image refresh semantics require live proof.",
+        "No implementation or acceptance success inferred from started process.",
+        "CF-210-01: cross-page attachment reference ownership (P1), independently reproduced.",
+        "CF-210-02: XML character-reference filename identity (P2), independently reproduced.",
+        "CF-210-03/04: legacy cross-tenant race and missing baseline hash, reproduced with Mock service.",
+        "CF-210-05/06/07/08: attachment ownership/version conflict, Retry-After, unknown write outcome and reversible context guard, reproduced with Mock service.",
+        "CF-210-09: renderer/window lifecycle invalidation source concern; native regression still required."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Actual terminal Claude Code result: completed, 177 turns, session 1e3c6764-0512-4678-a4f5-36c774ecb57b. Fable 5.2 primary model; result also records auxiliary claude-haiku-5-5 usage. Token total follows provider aggregate input/output/cache-creation/cache-read counters; detailed categories and auxiliary model usage are retained in the result artifact. Typecheck and 1198 unit tests passed per terminal report/tool outputs; independent review requires corrections. No UI/Electron/live success claimed.",
+      "effort": "high",
+      "nextStep": "Actual Fable correction run addressing independently reproduced P1/P2 findings, then independent review and live local/Git acceptance."
+    },
+    {
+      "id": "claude-fable-2026-11-15-confluence-corrections-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210,
+        209
+      ],
+      "status": "completed_review_changes_required",
+      "startedAt": "2026-11-15T22:01:31.731805+00:00",
+      "endedAt": "2026-11-15T22:35:32.078255+00:00",
+      "observedSeconds": 2035.763,
+      "tokens": 33545768,
+      "costUsd": 15.844203800000003,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-corrections-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/codex-early-domain-review.md",
+        "docs/reviews/210-confluence-auto-sync/codex-early-backend-review.md",
+        "docs/reviews/210-confluence-auto-sync/ui-first-run/result.json",
+        "docs/reviews/210-confluence-auto-sync/ui-correction-interim.json",
+        "docs/reviews/210-confluence-auto-sync/fable-corrections.md",
+        "docs/reviews/210-confluence-auto-sync/codex-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/fable-final-corrections-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/fable-corrections-result.json"
+      ],
+      "concerns": [
+        "Independent domain/backend findings CF-210-01 through CF-210-09 require correction and regression.",
+        "First authored UI test failed at Escape dialog close; actual Tenant/native acceptance remains open."
+      ],
+      "parentRunId": "claude-fable-2026-11-15-confluence-auto-sync-210",
+      "measurementSource": "Terminal success:125 turns,2035.763s, typecheck1225unit233fullUI passed on final correction snapshot. Cost uses model_usage_since_last_result (15.8442038 USD), NOT cumulative total_cost_usd34.3336884; aggregate provider token categories include repeated cache reads. Independent review still requires CF10/CF11. Native/Tenant acceptance not inferred.",
+      "nextStep": "Actual Fable CF10/CF11 final focused correction, independent reproduction and native plus Tenant acceptance."
+    },
+    {
+      "id": "claude-fable-2026-11-15-confluence-final-corrections-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "completed_pending_native_live_acceptance",
+      "startedAt": "2026-11-15T22:36:16.361533+00:00",
+      "endedAt": "2026-11-15T22:42:18.450468+00:00",
+      "observedSeconds": 313.935,
+      "tokens": 12274285,
+      "costUsd": 4.2307356,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-final-corrections-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/fable-final-corrections-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-final-corrections.md",
+        "docs/reviews/210-confluence-auto-sync/codex-final-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/terminal-source-verification.json"
+      ],
+      "concerns": [
+        "CF10 uninitialized obsolete queued job persistence",
+        "CF11 visible component icon and equal-length asset fingerprint"
+      ],
+      "parentRunId": "claude-fable-2026-11-15-confluence-corrections-210",
+      "measurementSource": "Actual terminal success; typecheck1232unit81focusedunit1focusedUI passed. Incremental provider model_usage_since_last_result cost; aggregate input/output/cache counters. Independent CF10/CF11 probes pass and all terminal source hashes match.",
+      "nextStep": "Root native final test and real Confluence local/Git/open-browser acceptance; no integration yet."
+    },
+    {
+      "id": "claude-fable-2026-11-15-confluence-main-integration-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "completed_review_changes_required",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 1080.153,
+      "tokens": 7590870,
+      "costUsd": 8.094476800000002,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-integration-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/main-integration-review.md",
+        "docs/reviews/210-confluence-auto-sync/design-system-integration-review.md",
+        "docs/reviews/210-confluence-auto-sync/fable-integration-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-integration.md",
+        "docs/reviews/210-confluence-auto-sync/final-integration-review.md",
+        "docs/reviews/210-confluence-auto-sync/final-stories-review.md"
+      ],
+      "concerns": [
+        "Preserve new design-system components and App.vue wrapper from c572671",
+        "Migrate focus refs and submit-button semantics to shared atoms; do not weaken test baselines",
+        "UI-210-INTEGRATION-01: new live CSS still has fixed design values instead of required design tokens; scoped actual Fable correction active."
+      ],
+      "parentRunId": "claude-fable-2026-11-15-confluence-final-corrections-210",
+      "measurementSource": "Actual terminal result success,119turns,session728fee98-1c17-4d6b-88d8-8669564c95e6. Typecheck1255unit/121files,29targetedUI,56modalUI,9storybook smoke pass on own worktree server5183. Cost and categorized tokens from actual provider counters; includes cache reads. Independent review requires scoped token correction.",
+      "nextStep": "Actual Fable fixes only new Live CSS/tokens; Root final hash review and native/Tenant acceptance."
+    },
+    {
+      "id": "claude-fable-2026-11-15-confluence-token-correction-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "completed_pending_live_acceptance",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 192.59,
+      "tokens": 3216152,
+      "costUsd": 1.8809170000000002,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-token-correction-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/fable-token-correction-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-token-correction.md",
+        "docs/reviews/210-confluence-auto-sync/token-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/token-final-hashes.json",
+        "docs/reviews/210-confluence-auto-sync/integration-review-terminal-check.json"
+      ],
+      "concerns": [
+        "UI-210-INTEGRATION-01 scoped Live CSS token correction only."
+      ],
+      "parentRunId": "claude-fable-2026-11-15-confluence-main-integration-210",
+      "measurementSource": "Actual terminal success22turns192.590s. Incremental model_usage_since_last_result1.880917USD, not cumulative9.9753938USD. Aggregate category counters including cache reads. 14design-system unit,9story smoke,1focused ConfluenceUI and Storybook build pass. No native/Tenant tests.",
+      "nextStep": "All scoped independent review and final native tests pass. Actual target164037 local/Git/open-browser acceptance pending; no target integration."
+    },
+    {
+      "id": "codex-2026-11-16-confluence-live-resume-coordination-210",
+      "tool": "OpenAI Codex subagent / live_correction_review",
+      "model": null,
+      "issues": [
+        208,
+        210
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "agent-state/tasks/210-confluence-live-sync.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6909840188"
+      ],
+      "concerns": [
+        "No source, UI, Tenant, GitHub or commit writes; no source-graph refresh or repeated product tests. Existing measurements and unrelated results preserved."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Bounded coordination delegated by Root in #210 comment6909840188. Root-confirmed user/app/browser observations recorded in both checkouts. Serial graphify-links.py merge and --check passed in both checkouts; source graph not refreshed. No product tests rerun and no usage estimates."
+    },
+    {
+      "id": "claude-fable-2026-11-16-confluence-live-hang-investigation-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "interrupted_investigation",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 336.215,
+      "tokens": 4185578,
+      "costUsd": 7.20483,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-live-hang-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-hang.md",
+        "docs/reviews/210-confluence-auto-sync/fable-live-usage-review.json",
+        "docs/reviews/210-confluence-auto-sync/live-observation-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/live-observation-source-verification.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-fixture-facts.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-probe.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-last-run.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-render-run-evidence.json"
+      ],
+      "concerns": [
+        "Root sent SIGINT. Process exit 0 is not a successful investigation result: actual terminal result error_during_execution, is_error true, aborted_streaming.",
+        "Actual isolated headless Chromium render result: 2/2 passed (7.0s); raster 341 ms. Fake getSettings preseeded the live link and fake publish handled the upload. Complete network isolation was not proven; no native/Tenant evidence is claimed."
+      ],
+      "parentRunId": "claude-fable-2026-11-15-confluence-token-correction-210",
+      "measurementSource": "Actual terminal result: 27 turns, duration_ms 336215. Incremental model_usage_since_last_result: 4185578 input/output/cache-creation/cache-read tokens and 7.204830 USD. Cumulative total_cost_usd 17.180223800000007 follows 9.975393800000003 and is not counted again. Thinking tokens already included in output; no raw thinking or conversation logs archived.",
+      "nextStep": "Continue actual live acceptance under the Root run; no additional product tests or correction inferred from stale CUA observations."
+    },
+    {
+      "id": "claude-fable-2026-11-16-confluence-live-observation-correction-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "completed_report_correction",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": 50.597,
+      "tokens": 1100557,
+      "costUsd": 0.715523,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/fable-live-observation-correction-result.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-hang.md",
+        "docs/reviews/210-confluence-auto-sync/fable-live-usage-review.json",
+        "docs/reviews/210-confluence-auto-sync/live-observation-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/live-observation-source-verification.json"
+      ],
+      "concerns": [
+        "Actual terminal success/completed. Corrected report only; no product/test/config changes established by 275/275 current source/test hashes, 11 core hashes and 14 UI/context hashes.",
+        "Root Tenant observations are separate from the synthetic render evidence; Git/restart/target-branch acceptance remain pending."
+      ],
+      "parentRunId": "claude-fable-2026-11-16-confluence-live-hang-investigation-210",
+      "measurementSource": "Actual terminal result: 4 turns, duration_ms 50597. Incremental model_usage_since_last_result: 1100557 input/output/cache-creation/cache-read tokens and 0.715523 USD. Cumulative total_cost_usd 17.89574680000001 follows 17.180223800000007 and is not counted again. Thinking tokens already included in output; no raw thinking or conversation logs archived.",
+      "nextStep": "Continue actual live acceptance under the Root run; no additional product tests or correction inferred from stale CUA observations."
+    },
+    {
+      "id": "codex-2026-11-16-confluence-live-observation-coordination-210",
+      "tool": "OpenAI Codex subagent / live_correction_review",
+      "model": null,
+      "issues": [
+        208,
+        210,
+        215
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/live-observation-correction-review.md",
+        "docs/reviews/210-confluence-auto-sync/live-observation-source-verification.json",
+        "docs/reviews/210-confluence-auto-sync/fable-live-usage-review.json",
+        "agent-state/tasks/210-confluence-live-sync.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6910746850",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/215"
+      ],
+      "concerns": [
+        "Only report/result archives, ledger/task and ledger graph projections changed. No product, test, config, UI, Tenant, GitHub or commit writes; no source graph refresh or product-test reruns. Prior measurements and unrelated results are preserved."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Bounded delegation registered in #210 comment 6910746850. Terminal results and actual incremental usage extracted without raw thinking logs; prior source hashes independently checked. Root observations and separate planned #215 recorded; serial graphify-links.py merge and --check passed in both checkouts; final projection refreshed after this completion marker. No Codex usage estimates."
+    },
+    {
+      "id": "codex-2026-11-16-mcp-after-git-review-217",
+      "tool": "OpenAI Codex subagent / live_correction_review",
+      "model": null,
+      "issues": [
+        208,
+        210,
+        217
+      ],
+      "status": "completed_diagnosis_cause_unproven",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/tenant-mcp-after-git-review.md",
+        "docs/reviews/210-confluence-auto-sync/tenant-after-git-mcp-read.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-push.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-pull-confirmed.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-update-page1.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-update-page2.png",
+        "docs/reviews/210-confluence-auto-sync/tenant-git-readable-decisions.png",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6911345713",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6911436582",
+        "agent-state/tasks/210-confluence-live-sync.md"
+      ],
+      "concerns": [
+        "Read-only diagnosis confirms missing discovery file, not a closed document; the precise registration failure trigger is unproven.",
+        "No runtime contents, secrets or process environments read. No Fable contribution or product/test/UI/Tenant/GitHub/Git mutation. Only approved report/archive, ledger/task and ledger graph projections written.",
+        "Existing 276 measured runs and unrelated issue/run records preserved; no inferred usage."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Actual Root MCP failures and safe lstat observation, static source review. Archive/ledger continuation registered in #210 comment 6911436582; serial graphify-links.py projection and --check passed in both checkouts; final projections refreshed after this completion marker. Duration, tokens and cost unmeasured.",
+      "archiveStatus": "completed",
+      "nextStep": "Root handles regular app exit/restart and missing Tenant checks; follow-up #217 owns bounded reproduction and recovery regression.",
+      "supersededBy": "codex-2026-11-16-mcp-git-authority-probe-217"
+    },
+    {
+      "id": "codex-2026-11-16-mcp-git-authority-probe-217",
+      "tool": "OpenAI Codex subagent / live_correction_review + isolated fake-indexeddb",
+      "model": null,
+      "issues": [
+        208,
+        210,
+        217
+      ],
+      "status": "completed_reproduction_confirmed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/review.md",
+        "docs/reviews/217-mcp-git-authority/controlled-result.json",
+        "docs/reviews/217-mcp-git-authority/controlled-manifest.json",
+        "docs/reviews/217-mcp-git-authority/first-probe.ts",
+        "docs/reviews/217-mcp-git-authority/first-result.json",
+        "docs/reviews/217-mcp-git-authority/first-manifest.json",
+        "docs/reviews/217-mcp-git-authority/controlled-harness.patch",
+        "docs/reviews/217-mcp-git-authority/archive-manifest.json",
+        "docs/reviews/210-confluence-auto-sync/tenant-authority-diverged-before-restart.png",
+        "agent-state/tasks/217-mcp-git-authority.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6911717877",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6911915029"
+      ],
+      "concerns": [
+        "Initial exit 2 preserved: Store reproduction succeeded, low-level scenario did not; initial claimed determinism corrected. Controlled fixture reused identical product bundle prefix and reproduced all claimed failure paths with exit 0.",
+        "No native runtime/MCP registration-stage trace or successful restart inferred from isolated results. No Fable attribution for independent Codex reproduction.",
+        "Archive only small source/result/manifest/patch files. Large exact bundles remain /tmp; no individual earlier source-file hashes invented."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Two bounded real-function probes in /tmp with fake-indexeddb. Checked instants 08:51:49.118Z and 08:55:39.019Z; no measured aggregate duration/tokens/cost. Archive/ledger delegated in comment6911915029; projection checks recorded separately after execution.",
+      "nextStep": "Finish actual Fable #217 fix, independently review terminal diff and cache/file-content regressions, then Root performs exclusive native MCP/quit tests and a confirmed actual app exit/restart. Complete Tenant conflict proof and target-branch integration before #208/#210 closure."
+    },
+    {
+      "id": "claude-fable-2026-11-16-mcp-git-authority-217",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        217,
+        208,
+        210
+      ],
+      "status": "completed_review_changes_required",
+      "startedAt": "2026-11-16T08:53:53.953548+00:00",
+      "endedAt": "2026-11-16T09:10:03.837894+00:00",
+      "observedSeconds": 968.922,
+      "tokens": 9119149,
+      "costUsd": 9.212315200000003,
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/fable-implementation-prompt.md",
+        "docs/reviews/217-mcp-git-authority/source-before.json",
+        "docs/reviews/217-mcp-git-authority/fable-run-start-checkpoint.json",
+        "agent-state/tasks/217-mcp-git-authority.md",
+        "docs/reviews/217-mcp-git-authority/fable-implementation-result.json",
+        "docs/reviews/217-mcp-git-authority/fable-implementation.md",
+        "docs/reviews/217-mcp-git-authority/fable-run.json",
+        "docs/reviews/217-mcp-git-authority/implementation-end-hashes.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-review.md",
+        "docs/reviews/217-mcp-git-authority/concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-source-manifest.json"
+      ],
+      "concerns": [
+        "Actual CLI initialization verified by Root; no terminal result, test pass or code acceptance claimed.",
+        "Canonical file/Git contents must survive older cache; preserve explicit persisted-document recovery and authority/security boundaries.",
+        "Terminal success supersedes the historical running checkpoint. Independent CF-217-02 reproduced broken persistence/recovery for an older still-active same-key handle; Root confirmed the result. Native/actual restart and final integration are not accepted."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Actual terminal Claude Code result success, 86 turns, session64f445c3-ea0d-4cab-9925-03e9d2364df9; duration_ms968922. First result in this session: total_cost_usd9.212315200000003 is counted once. Token total sums aggregate input/output/cache-creation/cache-read counters, excludes nested thinking to avoid double count. Fable report records 427+69 targeted unit tests, typecheck and build passed; native test prepared but not run. Independent Codex concurrency P2 prevents acceptance.",
+      "nextStep": "Finish actual Fable concurrency correction for CF-217-02, independently review terminal changes and recovery regression; then Root exclusively runs native MCP/save/regular-quit tests and confirms actual app exit/restart with the persisted Confluence link. Tenant conflict proof and target-branch integration remain pending."
+    },
+    {
+      "id": "codex-2026-11-16-mcp-git-concurrency-probe-217",
+      "tool": "OpenAI Codex subagent / live_correction_review + isolated fake-indexeddb",
+      "model": null,
+      "issues": [
+        217,
+        208,
+        210
+      ],
+      "status": "completed_reproduction_confirmed",
+      "startedAt": "2026-11-16T09:08:46.363Z",
+      "endedAt": "2026-11-16T09:08:46.475Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/concurrency-review.md",
+        "docs/reviews/217-mcp-git-authority/concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/concurrency-source-manifest.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6912104646"
+      ],
+      "concerns": [
+        "Independent P2: second same-key attach invalidates the first active persistence connection; first valid committed edit absent from recovery. Authorities remain healthy. Exit0 confirms defect reproduction, not fix acceptance.",
+        "28 bundled product sources and dependency hashes unchanged across the isolated probe. No native, Tenant or user-cache access; no Fable attribution."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Actual isolated probe timestamps from concurrency-result.json. Aggregate duration/tokens/cost unmeasured and left null; no elapsed duration inferred from timestamps. Root independently confirmed InvalidStateError and missing first edit in recovery.",
+      "nextStep": "Finish actual Fable concurrency correction for CF-217-02, independently review terminal changes and recovery regression; then Root exclusively runs native MCP/save/regular-quit tests and confirms actual app exit/restart with the persisted Confluence link. Tenant conflict proof and target-branch integration remain pending."
+    },
+    {
+      "id": "claude-fable-2026-11-16-mcp-git-concurrency-217",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        217,
+        208,
+        210
+      ],
+      "status": "completed_pending_independent_native_acceptance",
+      "startedAt": "2026-11-16T09:12:36.536187+00:00",
+      "endedAt": "2026-11-16T09:20:05.876090+00:00",
+      "observedSeconds": 448.442,
+      "tokens": 3666157,
+      "costUsd": 3.1896834,
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-prompt.md",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-start-checkpoint.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-result.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency.md",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-run.json",
+        "docs/reviews/217-mcp-git-authority/native-final-source-before.json",
+        "docs/reviews/217-mcp-git-authority/fable-concurrency-usage-review.json"
+      ],
+      "concerns": [
+        "Active correction of independently confirmed CF-217-02; no terminal outcome or acceptance claimed.",
+        "Same session resumes after USD9.212315200000003 cumulative cost. On completion record only incremental measured cost; preserve the main run history.",
+        "Terminal success supersedes the start checkpoint. CF-217-02 is fixed according to Fable; independent review and native Chromium/MCP/quit acceptance are still pending. Root native harness corrections are separate Codex work."
+      ],
+      "parentRunId": "claude-fable-2026-11-16-mcp-git-authority-217",
+      "measurementSource": "Actual terminal success:448442ms,22turns,session64f445c3-ea0d-4cab-9925-03e9d2364df9. Incremental token categories exactly match cumulative modelUsage deltas from the main run: input26+output39964+cacheRead3571377+cacheCreation54790=3666157. Nested thinking20572 already included in output. Incremental cost12.4019986-9.2123152=3.1896834USD; cumulative cost is not counted again. Fable reports 30/30 four times,433focused unit,typecheck/build passed. Independent review and Root native run11937 remain pending.",
+      "nextStep": "Review the terminal Fable concurrency correction independently and await Root native run11937 without treating an active run as passed. Then confirm actual old-app exit/restart, persisted Confluence link, Tenant conflict preservation and target-branch integration."
+    },
+    {
+      "id": "codex-2026-11-16-mcp-git-traceability-217",
+      "tool": "OpenAI Codex subagent / traceability_217",
+      "model": null,
+      "issues": [
+        217,
+        208,
+        210
+      ],
+      "status": "completed",
+      "startedAt": null,
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/traceability-concurrency-checkpoint.json",
+        "agent-state/tasks/217-mcp-git-authority.md",
+        "agent-state/tasks/210-confluence-live-sync.md",
+        "docs/concerns.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/217#issuecomment-6912252088"
+      ],
+      "concerns": [
+        "Bookkeeping-only delegation. No product/test edits, native/UI/Tenant/GitHub/commit actions or source graph refresh. Active Fable run file is never overwritten.",
+        "Existing unrelated records and all old metrics except newly terminal main-run metrics must remain unchanged; projection alone does not validate product claims."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Bounded bookkeeping delegation registered by Root in #217 comment6912252088. Terminal usage copied from actual provider result. Both checkouts passed serial graphify-links.py and --check; 2977 traceability nodes, 4110 links. All 278 prior metrics except newly terminal main-run metrics preserved, 277 unrelated prior run records unchanged, unrelated issues and source graph unchanged. Codex aggregate duration/tokens/cost unmeasured. Final projections regenerated after this completion marker.",
+      "nextStep": "Root continues actual Fable concurrency correction, independent review and exclusive native/actual restart acceptance."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "id": "codex-2026-11-16-native-authority-validation-217",
+      "tool": "OpenAI Codex Root / native Electron Playwright + official MCP SDK",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "status": "completed_partial_failure",
+      "startedAt": "2026-11-16T09:21:27.992636+00:00",
+      "endedAt": "2026-11-16T09:23:29.721829+00:00",
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/native-final-run.json",
+        "docs/reviews/217-mcp-git-authority/native-final-report.json",
+        "docs/reviews/217-mcp-git-authority/native-final-source-before.json",
+        "docs/reviews/217-mcp-git-authority/native-final-source-after.json",
+        "docs/reviews/217-mcp-git-authority/native-authority-217-failed-stage.json",
+        "docs/reviews/217-mcp-git-authority/native-confluence-evidence.json",
+        "docs/reviews/217-mcp-git-authority/native-window-cancellation.json"
+      ],
+      "concerns": [
+        "Two #210 tests passed; #217 MCP/read/write/save after two file and one Git replacement passed, but normal quit failed and restart was not reached. Own profile/runtime and synthetic Confluence only.",
+        "512 source/test files unchanged in frozen native check. No cumulative Codex duration/tokens/cost measured; per-test durations remain in report."
+      ],
+      "measurementSource": "Actual terminal Root run11937 and archived native report; no product or actual Tenant success inferred beyond the explicit stages.",
+      "nextStep": "Root isolates #218 macOS quit intent and cleanup ordering, then starts actual Fable implementation if required. Review the terminal fix and repeat native regular-quit/restart acceptance; then finish actual app restart, Tenant preservation and target-branch integration."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "id": "codex-2026-11-16-concurrency-final-review-217",
+      "tool": "OpenAI Codex subagent / live_correction_review + isolated fake-indexeddb",
+      "issues": [
+        217,
+        208,
+        210
+      ],
+      "status": "completed_bounded_review_passed",
+      "startedAt": "2026-11-16T09:22:46.378Z",
+      "endedAt": "2026-11-16T09:22:46.496Z",
+      "artifacts": [
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-review.md",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-probe.ts",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-result.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-source-manifest.json",
+        "docs/reviews/217-mcp-git-authority/codex-concurrency-final-historical-integrity-before.json"
+      ],
+      "concerns": [
+        "CF-217-02 independently fixed on frozen source: first handle edit after second attach survives recovery; authorities healthy and no persistence errors. Bounded probe only, no native/Tenant conclusion.",
+        "Prior failing probe preserved. 28 bundled product files and dependencies unchanged. Timestamps refer only to bounded probe; no aggregate duration/tokens/cost measured."
+      ],
+      "measurementSource": "Independent report and isolated probe artifacts, delegation #217comment6912405878. Not Fable work.",
+      "nextStep": "Root isolates #218 macOS quit intent and cleanup ordering, then starts actual Fable implementation if required. Review the terminal fix and repeat native regular-quit/restart acceptance; then finish actual app restart, Tenant preservation and target-branch integration."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "id": "codex-2026-11-16-macos-quit-diagnosis-218",
+      "tool": "OpenAI Codex Root / isolated native quit diagnosis",
+      "issues": [
+        218,
+        217,
+        210,
+        208
+      ],
+      "status": "running_diagnosis_reproduction_confirmed",
+      "startedAt": null,
+      "endedAt": null,
+      "artifacts": [
+        "docs/reviews/218-macos-quit/217-quit-diagnostic.json",
+        "docs/reviews/218-macos-quit/218-quit-diagnostic.json",
+        "docs/reviews/218-macos-quit/native-acceptance-checkpoint.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6912642926",
+        "docs/reviews/218-native-quit/native-saved-before-report.json",
+        "docs/reviews/218-native-quit/native-saved-before-diagnostic.json",
+        "docs/reviews/218-native-quit/native-before-report.json",
+        "docs/reviews/218-native-quit/native-before-diagnostic.json"
+      ],
+      "concerns": [
+        "Root empty quit probe is ongoing at handoff; do not mark complete. Repeated normal-quit failure followed unchanged test because Python preparation hit KeyError. Later drawing failure occurred before quit, not quit evidence.",
+        "Investigate macOS quit intent and early before-quit cleanup; preserve save/cancel/authority protections. No successful actual user app restart yet.",
+        "Saved-empty native reproduction now confirmed: windowCount0 but process exitCode/signalCode null after regular quit. Earlier empty-case run failed because unsaved-new was wrongly expected saved; that first run is not quit evidence. Root diagnostic and review coordination remain ongoing, no overall completion claim."
+      ],
+      "measurementSource": "Root-confirmed ongoing diagnosis; archived terminal prior attempts classified separately. No inferred start/end or usage for the ongoing diagnostic work.",
+      "nextStep": "Await actual Fable #218 terminal result, review quit-intent and final-cleanup ordering independently, then Root repeats the saved-empty native case and full MCP/file/Git/save/normal-quit/restart regression before actual app and Tenant acceptance."
+    },
+    {
+      "model": "claude-fable-5-2",
+      "observedSeconds": 936.335,
+      "tokens": 20640491,
+      "costUsd": 8.5941202,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "id": "claude-fable-2026-11-16-macos-quit-218",
+      "tool": "Claude Code CLI",
+      "effort": "high",
+      "issues": [
+        218
+      ],
+      "status": "completed_pending_root_native_and_review",
+      "startedAt": "2026-11-16T09:33:52.245767+00:00",
+      "endedAt": "2026-11-16T09:49:29.735815+00:00",
+      "artifacts": [
+        "agent-state/tasks/218-macos-quit.md",
+        "docs/reviews/218-native-quit/fable-prompt.md",
+        "docs/reviews/218-native-quit/source-before.json",
+        "docs/reviews/218-native-quit/fable-run-start-checkpoint.json",
+        "docs/reviews/218-native-quit/fable-result.json",
+        "docs/reviews/218-native-quit/fable-implementation.md",
+        "docs/reviews/218-native-quit/fable-run.json",
+        "docs/reviews/218-native-quit/fable-native-final-report.json",
+        "docs/reviews/218-native-quit/fable-usage-review.json"
+      ],
+      "concerns": [
+        "Requested actual Fable implementation has not started at this checkpoint. No CLI initialization, session, outcome or usage is claimed.",
+        "Actual start now confirmed by Root in #218comment6912689486, exec25024. Historical planned checkpoint superseded. Same session cumulative prior cost12.4019986USD; terminal usage not yet available.",
+        "Terminal success supersedes the running checkpoint. Fable-only #218 native checks pass, but Root full #210/#217/#218 native run and independent final review are ongoing. No actual app/Tenant acceptance or target integration follows yet."
+      ],
+      "measurementSource": "Actual terminal success93turns,duration_ms936335. Incremental categories verified against previous fable-concurrency-result.json modelUsage: input110+output64586+cacheRead20455881+cacheCreation119914=20640491. Nested thinking29923 already included in output. Incremental cost20.9961188-12.4019986=8.5941202USD, cumulative cost not counted again. Fable reports43unit/typecheck/build passed and final6/6 isolated #218 native checks. Root full six-test native run71449 and independent final review remain active.",
+      "nextStep": "Await Root full six-test native run71449 and independent final review of terminal #218 correction. Do not infer complete acceptance from Fable-only #218 tests. Then confirm actual app restart, persistent LiveDoc link, Tenant preservation and target-branch integration."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "id": "codex-2026-11-16-final-native-validation-218",
+      "tool": "OpenAI Codex Root / isolated native Electron Playwright + official MCP SDK",
+      "status": "completed_native_validation_passed",
+      "startedAt": "2026-11-16T09:50:15.123845+00:00",
+      "endedAt": null,
+      "artifacts": [
+        "docs/reviews/218-native-quit/root-native-run.json",
+        "docs/reviews/218-native-quit/root-native-report.json",
+        "docs/reviews/218-native-quit/root-native-summary.json",
+        "docs/reviews/218-native-quit/root-source-before.json",
+        "docs/reviews/218-native-quit/root-source-after.json",
+        "docs/reviews/218-native-quit/native-authority-217-evidence.json",
+        "docs/reviews/218-native-quit/native-confluence-evidence.json",
+        "docs/reviews/218-native-quit/native-window-cancellation.json",
+        "docs/reviews/218-native-quit/native-quit-218-cancel-evidence.json",
+        "docs/reviews/218-native-quit/native-quit-218-window-evidence.json",
+        "docs/reviews/218-native-quit/native-drag-diagnostics.json",
+        "docs/reviews/218-native-quit/native-restart-edit-diagnostics.json",
+        "docs/reviews/218-native-quit/backend-report.json"
+      ],
+      "concerns": [
+        "Combined #210/#217/#218 native6/6 passed with source/build freeze512unchanged. Later Root test-only backend contract correction passed full backend4/4; other511freezeentries unchanged.",
+        "Native evidence is macOS isolated fixture only, not actual Tenant or user-app restart. Aggregate Root validation end and usage not separately measured; individual report timings retained."
+      ],
+      "measurementSource": "Actual terminal combined Root run71449 Exit0 ending09:52:16.145800Z and backend report4/4 duration13.279s. Scope includes sequential native runs; no inferred aggregate seconds/tokens/cost. Root test correction is separate from Fable implementation.",
+      "nextStep": "Root completes packaged-build metadata and actual user app exit/restart with the persisted LiveDoc link. Then finish real Tenant conflict/preservation checks and target-branch integration. Native combined6/6, backend4/4 and bounded independent review are complete; source graph guard refusal remains recorded."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "id": "codex-2026-11-16-final-lifecycle-review-218",
+      "tool": "OpenAI Codex subagent / live_correction_review",
+      "status": "completed_bounded_final_review_passed",
+      "startedAt": null,
+      "endedAt": null,
+      "artifacts": [
+        "docs/reviews/218-native-quit/codex-final-review.md",
+        "docs/reviews/218-native-quit/backend-report.json"
+      ],
+      "concerns": [
+        "No open material lifecycle finding. Existing backend test contract conflict reported to Root, fixed by Root test-only change and verified with full4/4suite. Reviewer itself ran no tests.",
+        "Review is bounded static/evidence review; actual app/Tenant acceptance and target integration remain pending."
+      ],
+      "measurementSource": "Final independent review artifact recorded2026-11-16T09:54:08.807582+00:00, not an inferred execution start/end. No measured aggregate duration/tokens/cost.",
+      "nextStep": "Root completes packaged-build metadata and actual user app exit/restart with the persisted LiveDoc link. Then finish real Tenant conflict/preservation checks and target-branch integration. Native combined6/6, backend4/4 and bounded independent review are complete; source graph guard refusal remains recorded."
+    },
+    {
+      "model": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "id": "codex-2026-11-16-protected-graph-refresh-218",
+      "tool": "OpenAI Codex subagent / traceability_217 + protected Graphify wrapper",
+      "status": "completed_guard_refused_refresh",
+      "startedAt": "2026-11-16T09:54:51.870769+00:00",
+      "endedAt": "2026-11-16T09:54:58.844676+00:00",
+      "artifacts": [
+        "docs/reviews/218-native-quit/graph-refresh.log",
+        "docs/reviews/218-native-quit/graph-refresh-result.json",
+        "docs/reviews/218-native-quit/final-acceptance-checkpoint.json"
+      ],
+      "concerns": [
+        "Exactly one managed-worktree python3 tools/graphify-update.py invocation; guard refused222missing non-ledger nodes. Existing graph byte-identical; noforce and no repeat.",
+        "Ledger-only projections are separate and do not certify source graph refresh. Prior measured runs remain unchanged."
+      ],
+      "measurementSource": "Actual captured wrapper exit1 and byte-integrity evidence. No duration calculated from timestamps; tokens/cost unknown. Bookkeeping registered#217comment6913120498.",
+      "nextStep": "Keep source graph and reconcile specific missing-node origins separately; use serial canonical ledger projection/check for current status."
+    },
+    {
+      "id": "claude-fable-2026-11-16-full-code-review-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "status": "completed_review_findings_coverage_pending",
+      "startedAt": "2026-11-16T11:49:32.027305+00:00",
+      "endedAt": "2026-11-16T11:59:47.405992+00:00",
+      "observedSeconds": 614.409,
+      "tokens": 3534502,
+      "costUsd": 8.1385424,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/source-manifest-before.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/run-start-checkpoint.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6915692578",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/review-usage.json"
+      ],
+      "concerns": [
+        "Fresh actual review session5aa92638-1d2c-4ecc-b644-a106b55ff379, Rootexec91576. No terminal outcome or measured usage yet. Earlier session usage is not attributed here.",
+        "33 integration/22 original files,35unique paths,16identical common versions. Original retains older cache/quit code; copied evidence is not original-code acceptance.",
+        "Read-only full-code coordination requested by user. Root owns active run.json/events.jsonl. Ledger projections deferred until terminal review final; no source graph refresh.",
+        "CLI terminal success does not accept the code. B1/B2 P2 in #210 need independent verification/correction; B3 recovery/cache decision in #217; B4/B5/B7 minor #210 findings; B6 pre-existing crash/quit concern separate. Coverage incomplete for integration tests and original checkout; follow-up actual Fable correction/review pending."
+      ],
+      "parentRunId": "codex-2026-11-15-confluence-live-208",
+      "measurementSource": "Actual first terminal result of fresh session5aa92638-1d2c-4ecc-b644-a106b55ff379: CLI success,55turns,duration_ms614409. First-result modelUsage and model_usage_since_last_result match top-level categories: input46+output59507+cacheRead3154512+cacheCreation320437=3534502tokens; nested thinking42607 already in output. USD8.1385424 counted once. Wrapper615.379689s retained only as separate provenance, not added. Static review findings and partial coverage mean no code acceptance.",
+      "nextStep": "Independently validate Fable B1/B2, then actual Fable correction plus missing coverage review before any overall code acceptance. B3 needs an explicit #217 recovery/cache product decision; B6 is pre-existing and separate. Persisted Atlassian link, renewed Tenant write, regular user-profile quit and integration remain pending. Ledger projections stay deferred until terminal follow-up review final."
+    },
+    {
+      "id": "claude-fable-2026-11-16-full-review-corrections-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "status": "completed_corrections_reported_B8_acceptance_pending",
+      "startedAt": "2026-11-16T12:05:43.991460+00:00",
+      "endedAt": "2026-11-16T12:16:44.863087+00:00",
+      "observedSeconds": 660.034,
+      "tokens": 19284332,
+      "costUsd": 9.6761126,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-run-start-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6915919024",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-findings-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-run.json",
+        "docs/reviews/218-native-quit/tenant-restart-edit.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-usage.json"
+      ],
+      "concerns": [
+        "Actual same-session correctionexec74582 after independent Root B1/B2 confirmation. Scope B1/B2/B4/B5/B7 and complete33+22file coverage only; original checkout remains read-only.",
+        "Historical attachment ownership must not be pruned blindly; preserve conflict protection with write/read validation and capacity preflight before remote writes.",
+        "B3/#219 recovery product gap and B6/#220 pre-existing crash close remain separate planned issues, not implemented or accepted. #217 has no recovery UI claim.",
+        "Previous cumulative cost8.1385424USD; current metrics unknown. Use modelUsage delta vs result.json at terminal completion, no double counting. Graph projection deferred.",
+        "Terminal checkpoint: B1/B2/B4/B5/B7 corrected and137/137unit/typecheck/build reported by actual Fable; independent validation pending. All33+22change entries reviewed per Fable, not every unchanged line. New B8 partial-upload journal alias independently statically confirmed; isolated reproduction and follow-up Fable correction pending. Original code remains older. Previous running/null note retained as history."
+      ],
+      "parentRunId": "claude-fable-2026-11-16-full-code-review-210",
+      "measurementSource": "Actual terminal correction-result.json: duration_ms660034,76turns; wrapper660.8726899169851seconds retained separately. Cumulative model counters minus first fresh-session result: input82+output66636+cacheRead19017203+cacheCreation200411=19284332tokens. Thinking31818 and cache subcategories already included. Cost17.814655−8.1385424=9.6761126USD, counted once. All numeric model counter deltas match model_usage_since_last_result and usage; provider metadata stable. CLI2.1.323/model/high independently confirmed by Root init. CLI success is not independent acceptance; B8 open.",
+      "nextStep": "Independently verify Fable B1/B2/B4/B5/B7 corrections and all 33 integration plus 22 original change entries; fix newly confirmed B8 partial-upload journal alias via actual Fable, then repeat affected checks and native acceptance on the fresh build. Persisted Jira link and attributed restart edit are confirmed, renewed Tenant autosync and regular user-profile quit remain open. #219 recovery and #220 renderer-crash close stay separate planned issues. No source graph refresh; final ledger projection deferred."
+    },
+    {
+      "id": "codex-2026-11-16-partial-upload-journal-probe-210",
+      "tool": "OpenAI Codex independent isolated actual-service probe",
+      "model": null,
+      "issues": [
+        210
+      ],
+      "status": "completed_defect_reproduced",
+      "startedAt": "2026-11-16T12:20:39.021Z",
+      "endedAt": "2026-11-16T12:20:39.050Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-b8-alias-probe-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916257395",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/manifest.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/probe.ts"
+      ],
+      "concerns": [
+        "Independent Codex B8 reproduction, not Fable. No network or concurrent settings writes. Memory/disk diverge after one acknowledged replacement and one failed upload; restart without remote digest falsely blocks confirmed image. Probe exit success means defect reproduced, not product acceptance."
+      ],
+      "measurementSource": "Probe timestamps from result artifact; aggregate effort/token/cost measurements unavailable and kept null. No elapsed duration inferred from timestamps. Source SHA supplied in Root Fable handoff prompt.",
+      "nextStep": "Finish actual Fable B8 correction, independently verify snapshots and restart regression, then Root typecheck/build and native acceptance on the fresh source. Actual prior packaged #218 user-profile restart, persisted link, autosync, save and normal Cmd+Q are evidenced; they do not accept the new full-review corrections. Target integration and separate #219/#220 remain open. Final ledger projection deferred; no source graph refresh."
+    },
+    {
+      "id": "claude-fable-2026-11-16-journal-alias-correction-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        210
+      ],
+      "status": "completed_fix_reported_independent_acceptance_pending",
+      "startedAt": "2026-11-16T12:21:47.168043+00:00",
+      "endedAt": "2026-11-16T12:24:18.688783+00:00",
+      "observedSeconds": 150.658,
+      "tokens": 4932422,
+      "costUsd": 2.0025692,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-run-start-checkpoint.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-b8-alias-probe-result.json",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916257395",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/manifest.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-before/probe.ts",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-b8.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-usage.json"
+      ],
+      "concerns": [
+        "Actual same-session Fable B8 correction exec33672 running; only plugin service and its unit spec. Root owns independent and native acceptance.",
+        "Independent discovery/reproduction belongs to Codex; Fable receives the finding. Preserve ownership/history and unknown-upload protection.",
+        "Previous cumulative USD17.814655; all current measurements null until terminal result. Use modelUsage deltas vs correction-result.json without double counting.",
+        "Terminal Fable report: parser snapshot adopted,139/139focused tests pass and2/2new regression tests fail beforefix. Typecheck/build/native afterB8 not executed by Fable; Root independent review active and validations pending. SourceSHA91b4310efad6c074dcc9cd29565395005eb5fe169f20ae60b356ff360a59a2c4 supplied by Root. B8 was independently discovered/reproduced by Codex; prior running/null note retained as history."
+      ],
+      "parentRunId": "claude-fable-2026-11-16-full-review-corrections-210",
+      "measurementSource": "Actual terminal b8-result.json: duration_ms150658,13turns; wrapper151.52076774998568seconds separate. ModelUsage minus correction-result.json gives input18+output14972+cacheRead4890846+cacheCreation26586=4932422tokens. Thinking7497 and cache subcategories already included. Incremental cost2.0025692USD matches serialized cumulative19.817224200000002−17.814655 within floating precision. All numeric model counters and top-level usage match; stable provider metadata. CLI success does not imply independent acceptance.",
+      "nextStep": "Root independently verifies the terminal Fable B8 fix and same partial-upload/restart probe, then runs typecheck/build and native acceptance on fresh source. Fable reports139/139focused tests and2/2expected pre-fix failures; no terminal overall acceptance yet. Actual prior packaged #218 restart/link/autosync/save/normalquit are evidenced but do not validate new corrections. Target integration and separate#219/#220 remain open; graph projection still deferred."
+    },
+    {
+      "id": "claude-fable-2026-11-16-final-coverage-review-210",
+      "tool": "Claude Code CLI 2.1.323",
+      "model": "claude-fable-5-2",
+      "effort": "high",
+      "issues": [
+        208,
+        210,
+        217,
+        218
+      ],
+      "status": "completed_changed_hunk_review",
+      "startedAt": "2026-11-16T12:27:57.071090+00:00",
+      "endedAt": "2026-11-16T12:29:36.852285+00:00",
+      "observedSeconds": 98.859,
+      "tokens": 3521252,
+      "costUsd": 1.8429456,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-prompt.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-final-review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/coverage-final-usage.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/source-manifest-final.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/original-translations-comparison.json"
+      ],
+      "concerns": [
+        "All33integration+22original changed entries reviewed;17integration files full,16hunks only. Original inherited coverage via hash/blob identity disclosed. Earlier full-file/64translation/historical16identity claims explicitly corrected; currently12identical.",
+        "Read-only final run; no tests/build/native/Tenant. Separate#219/#220 and#217registration visibility remain open. Original code older; target integration absent."
+      ],
+      "parentRunId": "claude-fable-2026-11-16-journal-alias-correction-210",
+      "measurementSource": "Actual duration_ms98859,14turns, wrapper99.781024seconds separate. All modelUsage deltas vs b8-result match incremental/usage: input12+output10396+cacheRead3464968+cacheCreation45876=3521252tokens; thinking4813already included. IncrementalUSD1.8429456 equals cumulative21.6601698−19.817224200000002 within floating precision. Cost counted once.",
+      "nextStep": "Root synchronizes latest GitHub handoff and remaining acceptance gaps: changes remain local/uncommitted and not integrated in target branch; #217 registration-failure visibility, #219 explicit recovery and #220 renderer-crash close stay separately open. Final source has139/139focused tests, Root typecheck/build, all6native scenarios across initial5/6 plus1/1repeat, independent B8 PASS and final Fable33+22changed-hunk coverage. Final package existing-link autosync13:30 confirmed by plugin; no new Chrome proof. Perform one protected sourcegraph refresh and serial ledger projections/checks, preserving guard refusal without force."
+    },
+    {
+      "id": "codex-2026-11-16-post-b8-validation-210",
+      "tool": "OpenAI Codex Root typecheck/build/native verification",
+      "model": null,
+      "issues": [
+        210,
+        217,
+        218
+      ],
+      "status": "completed_all_scenarios_passed_after_single_repeat",
+      "startedAt": "2026-11-16T12:24:57.887681+00:00",
+      "endedAt": "2026-11-16T12:27:54.331164+00:00",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-verification.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-summary.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-run.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-source-before.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-source-after.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-typecheck.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-typecheck-stderr.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-build.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-build-stderr.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-stderr.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat.log",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/root-final-native-repeat-stderr.log"
+      ],
+      "concerns": [
+        "Typecheck/build Exit0. Native first5/6, initial pointer interruption before Confluence/Git setup; unchanged-source targetedrepeat1/1passed. All6scenarios covered across two runs, firstfailure preserved.447sources unchanged.",
+        "Codex execution, not Fable; synthetic native environment not actualTenant."
+      ],
+      "measurementSource": "Actual component timings retained in root-final-verification.json and repeat-run.json; unknown aggregate effort/tokens/cost remain null.",
+      "nextStep": "Root synchronizes latest GitHub handoff and remaining acceptance gaps: changes remain local/uncommitted and not integrated in target branch; #217 registration-failure visibility, #219 explicit recovery and #220 renderer-crash close stay separately open. Final source has139/139focused tests, Root typecheck/build, all6native scenarios across initial5/6 plus1/1repeat, independent B8 PASS and final Fable33+22changed-hunk coverage. Final package existing-link autosync13:30 confirmed by plugin; no new Chrome proof. Perform one protected sourcegraph refresh and serial ledger projections/checks, preserving guard refusal without force."
+    },
+    {
+      "id": "codex-2026-11-16-b8-final-probe-210",
+      "tool": "OpenAI Codex independent isolated service probe",
+      "model": null,
+      "issues": [
+        210
+      ],
+      "status": "completed_pass",
+      "startedAt": "2026-11-16T12:25:20.632Z",
+      "endedAt": "2026-11-16T12:25:20.671Z",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/manifest.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/probe.ts",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-independent-after/review.md",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-correction-review.md"
+      ],
+      "concerns": [
+        "Independent B8 post-fix probe PASS: disk/memoryv2/v1,pendingonly2,restart withoutdigest uploads image2only,then synced.22sourcehashes and fixture stable.",
+        "No native/Tenant/source edits. Lost-response variant is covered by separately reviewed Fable tests, not rerun in this probe."
+      ],
+      "measurementSource": "Probe start/end from result; no duration inferred. Aggregate effort/token/cost unavailable null.",
+      "nextStep": "Root synchronizes latest GitHub handoff and remaining acceptance gaps: changes remain local/uncommitted and not integrated in target branch; #217 registration-failure visibility, #219 explicit recovery and #220 renderer-crash close stay separately open. Final source has139/139focused tests, Root typecheck/build, all6native scenarios across initial5/6 plus1/1repeat, independent B8 PASS and final Fable33+22changed-hunk coverage. Final package existing-link autosync13:30 confirmed by plugin; no new Chrome proof. Perform one protected sourcegraph refresh and serial ledger projections/checks, preserving guard refusal without force."
+    },
+    {
+      "id": "codex-2026-11-16-final-protected-graph-refresh-210",
+      "tool": "OpenAI Codex / protected graphify-update.py wrapper",
+      "model": null,
+      "issues": [
+        210,
+        217,
+        218
+      ],
+      "status": "guard_refused_source_graph_preserved",
+      "startedAt": "2026-11-16T12:34:22.008602+00:00",
+      "endedAt": "2026-11-16T12:34:29.474515+00:00",
+      "observedSeconds": 7.465738333994523,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
+        "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh.log"
+      ],
+      "concerns": [
+        "Genau ein neuer autorisierter Versuch; Guard verweigert 222 fehlende Nicht-Ledger-Knoten. Quellgraph bytegleich erhalten, kein Force und keine Wiederholung.",
+        "Kandidat mit 5526 Knoten und 10631 Kanten nicht übernommen. Ledgerprojektion wird getrennt seriell aktualisiert."
+      ],
+      "measurementSource": "Tatsächliche Wrapper-Zeit mit time.monotonic gemessen; Exit 1 und Vor-/Nachherhashes im Resultat. Keine Modellnutzung gemessen; Tokens/Kosten null.",
+      "nextStep": "Quellknotenverlust separat anhand tatsächlich gelöschter oder verschobener Symbole abgleichen; kein Force und kein weiterer Refresh in dieser Übergabe. Ledgerprojektion und Check getrennt dokumentieren."
     }
   ],
   "evidencePolicy": {

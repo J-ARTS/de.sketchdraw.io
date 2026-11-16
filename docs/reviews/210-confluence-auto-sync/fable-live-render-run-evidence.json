@@ -1,0 +1,11 @@
+{
+  "sourceStream": "/tmp/sketchdraw-210-fable-live-hang.events.jsonl",
+  "sourceEventLine": 160,
+  "contentType": "tool_result",
+  "toolUseId": "toolu_015aSAv9ubKoguADRYEuNxKH",
+  "evidenceLines": [
+    "Running 2 tests using 1 worker",
+    "2 passed (7.0s)"
+  ],
+  "archivedContent": "Only test summary lines; no assistant thinking or conversation logs."
+}

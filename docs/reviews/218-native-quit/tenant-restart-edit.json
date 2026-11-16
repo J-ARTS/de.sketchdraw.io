@@ -1,0 +1,331 @@
+{
+  "startedAt": "2026-11-16T12:17:22.942Z",
+  "targetPid": "33132",
+  "scope": "Official MCP adapter and application Atlassian autosync only; no direct Atlassian request",
+  "adapterPid": 46858,
+  "before": {
+    "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+    "revision": 0,
+    "title": "AWS Bedrock & AgentCore · Live-Architektur",
+    "pages": [
+      {
+        "id": "page:architecture",
+        "name": "01 · AWS Bedrock & AgentCore",
+        "elementCount": 60
+      },
+      {
+        "id": "page:live-doc",
+        "name": "02 · Entscheidungen & Quellen",
+        "elementCount": 2
+      }
+    ],
+    "summary": {
+      "pageCount": 2,
+      "totalElements": 62,
+      "countsByKind": {
+        "rectangle": 13,
+        "ellipse": 0,
+        "diamond": 0,
+        "text": 34,
+        "path": 0,
+        "image": 0,
+        "connector": 14,
+        "container": 0,
+        "component": 0,
+        "sticky-note": 0,
+        "annotation": 1,
+        "table": 0,
+        "web-embed": 0,
+        "frame": 0
+      },
+      "containerCount": 0,
+      "maxContainerDepth": 0,
+      "connectorCount": 14,
+      "boundConnectorCount": 14,
+      "unboundConnectorCount": 0,
+      "partiallyBoundConnectorCount": 0,
+      "assetCount": 0,
+      "totalAssetDataUrlBytes": 0,
+      "componentSetCount": 0,
+      "totalComponentDefinitions": 0
+    },
+    "findings": [
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "band:rag",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:auth",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:client",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:runtime",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:model",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:gateway",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:identity",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:tools",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:memory",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:observe",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:s3",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:kb",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:vectors",
+        "message": "Element has no human-readable label."
+      }
+    ]
+  },
+  "socketMetadata": [
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "63u",
+      "type": "unix",
+      "device": "0x5fbfba51fbbe317e",
+      "peer": null
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "67u",
+      "type": "unix",
+      "device": "0xfda60d17cfc42c7e",
+      "peer": null
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "33132",
+      "fd": "68u",
+      "type": "unix",
+      "device": "0xd0013527cfc903a6",
+      "peer": "0xfc7051f4e1f2c5b0"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "46858",
+      "fd": "0u",
+      "type": "unix",
+      "device": "0x8c543876513a6407",
+      "peer": "0xa3758aa9b7c07cad"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "46858",
+      "fd": "1u",
+      "type": "unix",
+      "device": "0x4327afa32a19f892",
+      "peer": "0x7c83bf2949ccea27"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "46858",
+      "fd": "2u",
+      "type": "unix",
+      "device": "0xfbe1ffb7ee4b732b",
+      "peer": "0xf7b499a76e1fdd37"
+    },
+    {
+      "command": "Sketchdra",
+      "pid": "46858",
+      "fd": "21u",
+      "type": "unix",
+      "device": "0x33d636f20e73ff38",
+      "peer": "0xfda60d17cfc42c7e"
+    }
+  ],
+  "attributed": true,
+  "edit": {
+    "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+    "commandId": "restart-live-title-1794831443115",
+    "previousRevision": 0,
+    "revision": 1,
+    "changed": true,
+    "saved": false,
+    "persistence": "unsaved-open-document",
+    "deduplicated": false,
+    "elementCount": 62
+  },
+  "after": {
+    "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+    "revision": 1,
+    "title": "AWS Bedrock & AgentCore · Live nach Neustart",
+    "pages": [
+      {
+        "id": "page:architecture",
+        "name": "01 · AWS Bedrock & AgentCore",
+        "elementCount": 60
+      },
+      {
+        "id": "page:live-doc",
+        "name": "02 · Entscheidungen & Quellen",
+        "elementCount": 2
+      }
+    ],
+    "summary": {
+      "pageCount": 2,
+      "totalElements": 62,
+      "countsByKind": {
+        "rectangle": 13,
+        "ellipse": 0,
+        "diamond": 0,
+        "text": 34,
+        "path": 0,
+        "image": 0,
+        "connector": 14,
+        "container": 0,
+        "component": 0,
+        "sticky-note": 0,
+        "annotation": 1,
+        "table": 0,
+        "web-embed": 0,
+        "frame": 0
+      },
+      "containerCount": 0,
+      "maxContainerDepth": 0,
+      "connectorCount": 14,
+      "boundConnectorCount": 14,
+      "unboundConnectorCount": 0,
+      "partiallyBoundConnectorCount": 0,
+      "assetCount": 0,
+      "totalAssetDataUrlBytes": 0,
+      "componentSetCount": 0,
+      "totalComponentDefinitions": 0
+    },
+    "findings": [
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "band:rag",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:auth",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:client",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:runtime",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:model",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:gateway",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:identity",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:tools",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:memory",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:observe",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:s3",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:kb",
+        "message": "Element has no human-readable label."
+      },
+      {
+        "code": "UNLABELED_ELEMENT",
+        "severity": "info",
+        "elementId": "node:vectors",
+        "message": "Element has no human-readable label."
+      }
+    ]
+  },
+  "finishedAt": "2026-11-16T12:17:23.147Z"
+}

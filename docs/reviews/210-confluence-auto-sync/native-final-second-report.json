@@ -1,0 +1,236 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--reporter=line,json"
+    ],
+    "configFile": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 84427,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"dirty\"\u001b[39m\nReceived: \u001b[31m\"saved\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-86cbd526=\"\" data-status=\"saved\" data-testid=\"save-status\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"saved\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"dirty\"\u001b[39m\nReceived: \u001b[31m\"saved\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-86cbd526=\"\" data-status=\"saved\" data-testid=\"save-status\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"saved\"\u001b[22m\n\n    at /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:280:51",
+                    "location": {
+                      "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                      "column": 51,
+                      "line": 280
+                    },
+                    "snippet": "  278 |     diagnostics.push({ stage: 'after-restart-draw', dom: await canvasDiagnostic(page, [[360, 440], [490, 530]]), ipc: await probe(app), uploads: [...remote.uploads] });\n  279 |     await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=\"rectangle\"]')).toHaveCount(3);\n> 280 |     await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'dirty');\n      |                                                   ^\n  281 |     await expect.poll(() => remote.uploads.length, { timeout: 25_000 }).toBe(5);\n  282 |     await expect.poll(async () => (await probe(app!)).published.every(entry => entry.done), { timeout: 25_000 }).toBe(true);\n  283 |     expect((await probe(app)).published.at(-1)).toMatchObject({ done: true, status: 'synced' });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                        "column": 51,
+                        "line": 280
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('save-status')\nExpected: \u001b[32m\"dirty\"\u001b[39m\nReceived: \u001b[31m\"saved\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" getByTestId('save-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('save-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <p class=\"status\" aria-live=\"off\" data-v-86cbd526=\"\" data-status=\"saved\" data-testid=\"save-status\">…</p>\u001b[22m\n\u001b[2m       - unexpected value \"saved\"\u001b[22m\n\n\n  278 |     diagnostics.push({ stage: 'after-restart-draw', dom: await canvasDiagnostic(page, [[360, 440], [490, 530]]), ipc: await probe(app), uploads: [...remote.uploads] });\n  279 |     await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=\"rectangle\"]')).toHaveCount(3);\n> 280 |     await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'dirty');\n      |                                                   ^\n  281 |     await expect.poll(() => remote.uploads.length, { timeout: 25_000 }).toBe(5);\n  282 |     await expect.poll(async () => (await probe(app!)).published.every(entry => entry.done), { timeout: 25_000 }).toBe(true);\n  283 |     expect((await probe(app)).published.at(-1)).toMatchObject({ done: true, status: 'synced' });\n    at /Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:280:51"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T22:48:28.841Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-restart-edit-diagnostics",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJzdGFnZSI6ICJiZWZvcmUtcmVzdGFydC1kcmF3IiwKICAgICJkb20iOiB7CiAgICAgICJ2aWV3cG9ydCI6IHsKICAgICAgICAid2lkdGgiOiAxMjgwLAogICAgICAgICJoZWlnaHQiOiA3NzIsCiAgICAgICAgInNjYWxlIjogMgogICAgICB9LAogICAgICAiZm9jdXNlZCI6IHRydWUsCiAgICAgICJhY3RpdmUiOiB7CiAgICAgICAgInRhZyI6ICJCVVRUT04iLAogICAgICAgICJ0ZXN0SWQiOiAid29ya3NwYWNlLW1lbnUtYnV0dG9uIiwKICAgICAgICAicm9sZSI6IG51bGwsCiAgICAgICAgImxhYmVsIjogIkFyYmVpdHNiZXJlaWNoIiwKICAgICAgICAiY2xhc3NOYW1lIjogInByb2ZpbGUtYnRuIiwKICAgICAgICAib25DYW52YXMiOiBmYWxzZQogICAgICB9LAogICAgICAiY2FudmFzIjogewogICAgICAgICJ4IjogMCwKICAgICAgICAieSI6IDAsCiAgICAgICAgIndpZHRoIjogMTI4MCwKICAgICAgICAiaGVpZ2h0IjogNzcyCiAgICAgIH0sCiAgICAgICJzYXZlU3RhdHVzIjogInNhdmVkIiwKICAgICAgInBhZ2VMYWJlbCI6ICJTZWl0ZW4gKDIpLCBha3R1ZWxsZSBTZWl0ZTogU2VpdGUgMSIsCiAgICAgICJvcGVuRGlhbG9ncyI6IFtdLAogICAgICAicHJlc3NlZCI6IFsKICAgICAgICB7CiAgICAgICAgICAidGFnIjogIkJVVFRPTiIsCiAgICAgICAgICAidGVzdElkIjogbnVsbCwKICAgICAgICAgICJyb2xlIjogbnVsbCwKICAgICAgICAgICJsYWJlbCI6ICJBdXN3YWhsIiwKICAgICAgICAgICJjbGFzc05hbWUiOiAidG9vbCBzZC1pY29uLWJ0biIsCiAgICAgICAgICAib25DYW52YXMiOiBmYWxzZQogICAgICAgIH0KICAgICAgXSwKICAgICAgInJlY3RhbmdsZXMiOiBbCiAgICAgICAgewogICAgICAgICAgImlkIjogInJlY3RhbmdsZTpiZTUwZTE4YS0yYzZiLTRiYTgtODMxYi0xMGEyYjU4ZmZmOWYiLAogICAgICAgICAgImJveCI6IHsKICAgICAgICAgICAgIngiOiA0MjAsCiAgICAgICAgICAgICJ5IjogMzE2LAogICAgICAgICAgICAid2lkdGgiOiAyMDAsCiAgICAgICAgICAgICJoZWlnaHQiOiAxNDAKICAgICAgICAgIH0sCiAgICAgICAgICAid2lkdGgiOiAiMjAwIiwKICAgICAgICAgICJoZWlnaHQiOiAiMTQwIgogICAgICAgIH0sCiAgICAgICAgewogICAgICAgICAgImlkIjogInJlY3RhbmdsZTpjYjE3N2E3NC1iNjA1LTQ0M2MtYWUxYS1hYjQwYjhhMTMxZTYiLAogICAgICAgICAgImJveCI6IHsKICAgICAgICAgICAgIngiOiA3MjAsCiAgICAgICAgICAgICJ5IjogMzM2LAogICAgICAgICAgICAid2lkdGgiOiAxNDAsCiAgICAgICAgICAgICJoZWlnaHQiOiAxMDAKICAgICAgICAgIH0sCiAgICAgICAgICAid2lkdGgiOiAiMTQwIiwKICAgICAgICAgICJoZWlnaHQiOiAiMTAwIgogICAgICAgIH0KICAgICAgXSwKICAgICAgInBvaW50cyI6IFsKICAgICAgICB7CiAgICAgICAgICAieCI6IDM2MCwKICAgICAgICAgICJ5IjogNDQwLAogICAgICAgICAgInRvcCI6IHsKICAgICAgICAgICAgInRhZyI6ICJyZWN0IiwKICAgICAgICAgICAgInRlc3RJZCI6IG51bGwsCiAgICAgICAgICAgICJyb2xlIjogbnVsbCwKICAgICAgICAgICAgImxhYmVsIjogbnVsbCwKICAgICAgICAgICAgImNsYXNzTmFtZSI6IG51bGwsCiAgICAgICAgICAgICJvbkNhbnZhcyI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJ4IjogNDkwLAogICAgICAgICAgInkiOiA1MzAsCiAgICAgICAgICAidG9wIjogewogICAgICAgICAgICAidGFnIjogInJlY3QiLAogICAgICAgICAgICAidGVzdElkIjogbnVsbCwKICAgICAgICAgICAgInJvbGUiOiBudWxsLAogICAgICAgICAgICAibGFiZWwiOiBudWxsLAogICAgICAgICAgICAiY2xhc3NOYW1lIjogbnVsbCwKICAgICAgICAgICAgIm9uQ2FudmFzIjogdHJ1ZQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgXQogICAgfSwKICAgICJpcGMiOiB7CiAgICAgICJwdWJsaXNoZWQiOiBbCiAgICAgICAgewogICAgICAgICAgImltYWdlcyI6IFsKICAgICAgICAgICAgewogICAgICAgICAgICAgICJwYWdlSWQiOiAicGFnZToxIiwKICAgICAgICAgICAgICAicG5nU2hhMjU2IjogImJlYzYyODY3ZWY3NDA4NjMxNDY2NzBhM2JiYzk3YzZjMDIzNDJmMzU4YTBhODBiMWM4MTBjOWNkMDU2OTU2MzUiLAogICAgICAgICAgICAgICJ1aW50OEFycmF5IjogdHJ1ZSwKICAgICAgICAgICAgICAiYnl0ZXMiOiAxOTM4NCwKICAgICAgICAgICAgICAiZGVjb2RlZCI6IHsKICAgICAgICAgICAgICAgICJ3aWR0aCI6IDEwNDQsCiAgICAgICAgICAgICAgICAiaGVpZ2h0IjogNTA4CiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LAogICAgICAgICAgICB7CiAgICAgICAgICAgICAgInBhZ2VJZCI6ICJwYWdlOjE1M2E1ODU5LTFkNTgtNDIyZS1iZTY4LTU5MjE0YWE1ZDBmOCIsCiAgICAgICAgICAgICAgInBuZ1NoYTI1NiI6ICJkMTVhNWYyMmRkNmI0YzMyMTgxYWViMjJjNzdjNWU5NDA2MWRlMmJkZGYzNmRiYzU1ZGFhOGM3YWVkZGQ0MDQzIiwKICAgICAgICAgICAgICAidWludDhBcnJheSI6IHRydWUsCiAgICAgICAgICAgICAgImJ5dGVzIjogMTc4MTIsCiAgICAgICAgICAgICAgImRlY29kZWQiOiB7CiAgICAgICAgICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICAgICAgICAgImhlaWdodCI6IDQyOAogICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgXSwKICAgICAgICAgICJkb25lIjogdHJ1ZSwKICAgICAgICAgICJzdGF0dXMiOiAic3luY2VkIgogICAgICAgIH0KICAgICAgXSwKICAgICAgImFmdGVyU2F2ZXMiOiB7CiAgICAgICAgInN0YXJ0ZWQiOiAwLAogICAgICAgICJjb21wbGV0ZWQiOiAwLAogICAgICAgICJyZWplY3RlZCI6IDAKICAgICAgfSwKICAgICAgImFjdGlvbnMiOiBbCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgIndhdGNoLWRvY3VtZW50IiwKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAid2F0Y2gtZG9jdW1lbnQiLAogICAgICAgICJwdWJsaXNoLWNvbmZsdWVuY2UtbGl2ZSIKICAgICAgXSwKICAgICAgImJsb2NrZWRGZXRjaGVzIjogW10KICAgIH0sCiAgICAidXBsb2FkcyI6IFsKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDEiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTAwZjA4MTc3OWI4My5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAic2hhMjU2IjogIjE0ZDRmODI3ZTU1ZjUyYWE4ZTA0NWY2ODBiYzNiYjg4N2NhZjFmYWJmYjU2ZWRiMjE5MDJjMDhiZGQ0MmVjNWIiLAogICAgICAgICJieXRlcyI6IDE4Mzc1LAogICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAiaGVpZ2h0IjogNTA4LAogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDIiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTk1NDg1MDE2MWUyYS5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAic2hhMjU2IjogImFlNGM3ZWFlMWJiMWNiN2IzZmM3MDQ5MWIwNThkZGY2MmNkMjYxMTBmY2YzNDQ4ZmU1N2IzNmJmMTRhMGYwMzgiLAogICAgICAgICJieXRlcyI6IDE2OTY5LAogICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAiaGVpZ2h0IjogNDI4LAogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDEiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTAwZjA4MTc3OWI4My5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMiwKICAgICAgICAic2hhMjU2IjogImJlYzYyODY3ZWY3NDA4NjMxNDY2NzBhM2JiYzk3YzZjMDIzNDJmMzU4YTBhODBiMWM4MTBjOWNkMDU2OTU2MzUiLAogICAgICAgICJieXRlcyI6IDE5Mzg0LAogICAgICAgICJ3aWR0aCI6IDEwNDQsCiAgICAgICAgImhlaWdodCI6IDUwOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50L2F0dDIxMTAwMS9kYXRhIiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAyIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LTc5YTAxZDVmYzJjMC05NTQ4NTAxNjFlMmEucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDIsCiAgICAgICAgInNoYTI1NiI6ICJkMTVhNWYyMmRkNmI0YzMyMTgxYWViMjJjNzdjNWU5NDA2MWRlMmJkZGYzNmRiYzU1ZGFhOGM3YWVkZGQ0MDQzIiwKICAgICAgICAiYnl0ZXMiOiAxNzgxMiwKICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICJoZWlnaHQiOiA0MjgsCiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudC9hdHQyMTEwMDIvZGF0YSIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9CiAgICBdCiAgfSwKICB7CiAgICAic3RhZ2UiOiAiYWZ0ZXItcmVzdGFydC1kcmF3IiwKICAgICJkb20iOiB7CiAgICAgICJ2aWV3cG9ydCI6IHsKICAgICAgICAid2lkdGgiOiAxMjgwLAogICAgICAgICJoZWlnaHQiOiA3NzIsCiAgICAgICAgInNjYWxlIjogMgogICAgICB9LAogICAgICAiZm9jdXNlZCI6IHRydWUsCiAgICAgICJhY3RpdmUiOiB7CiAgICAgICAgInRhZyI6ICJzdmciLAogICAgICAgICJ0ZXN0SWQiOiAid2hpdGVib2FyZC1jYW52YXMiLAogICAgICAgICJyb2xlIjogImFwcGxpY2F0aW9uIiwKICAgICAgICAibGFiZWwiOiAiWmVpY2hlbmZsw6RjaGUiLAogICAgICAgICJjbGFzc05hbWUiOiBudWxsLAogICAgICAgICJvbkNhbnZhcyI6IHRydWUKICAgICAgfSwKICAgICAgImNhbnZhcyI6IHsKICAgICAgICAieCI6IDAsCiAgICAgICAgInkiOiAwLAogICAgICAgICJ3aWR0aCI6IDEyODAsCiAgICAgICAgImhlaWdodCI6IDc3MgogICAgICB9LAogICAgICAic2F2ZVN0YXR1cyI6ICJzYXZlZCIsCiAgICAgICJwYWdlTGFiZWwiOiAiU2VpdGVuICgyKSwgYWt0dWVsbGUgU2VpdGU6IFNlaXRlIDEiLAogICAgICAib3BlbkRpYWxvZ3MiOiBbXSwKICAgICAgInByZXNzZWQiOiBbCiAgICAgICAgewogICAgICAgICAgInRhZyI6ICJCVVRUT04iLAogICAgICAgICAgInRlc3RJZCI6IG51bGwsCiAgICAgICAgICAicm9sZSI6IG51bGwsCiAgICAgICAgICAibGFiZWwiOiAiUmVjaHRlY2siLAogICAgICAgICAgImNsYXNzTmFtZSI6ICJ0b29sIHNoYXBlLXRvb2wgc2QtaWNvbi1idG4iLAogICAgICAgICAgIm9uQ2FudmFzIjogZmFsc2UKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJyZWN0YW5nbGVzIjogWwogICAgICAgIHsKICAgICAgICAgICJpZCI6ICJyZWN0YW5nbGU6YmU1MGUxOGEtMmM2Yi00YmE4LTgzMWItMTBhMmI1OGZmZjlmIiwKICAgICAgICAgICJib3giOiB7CiAgICAgICAgICAgICJ4IjogNDIwLAogICAgICAgICAgICAieSI6IDMxNiwKICAgICAgICAgICAgIndpZHRoIjogMjAwLAogICAgICAgICAgICAiaGVpZ2h0IjogMTQwCiAgICAgICAgICB9LAogICAgICAgICAgIndpZHRoIjogIjIwMCIsCiAgICAgICAgICAiaGVpZ2h0IjogIjE0MCIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJpZCI6ICJyZWN0YW5nbGU6Y2IxNzdhNzQtYjYwNS00NDNjLWFlMWEtYWI0MGI4YTEzMWU2IiwKICAgICAgICAgICJib3giOiB7CiAgICAgICAgICAgICJ4IjogNzIwLAogICAgICAgICAgICAieSI6IDMzNiwKICAgICAgICAgICAgIndpZHRoIjogMTQwLAogICAgICAgICAgICAiaGVpZ2h0IjogMTAwCiAgICAgICAgICB9LAogICAgICAgICAgIndpZHRoIjogIjE0MCIsCiAgICAgICAgICAiaGVpZ2h0IjogIjEwMCIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJpZCI6ICJzaGFwZS1zaWxob3VldHRlIiwKICAgICAgICAgICJib3giOiB7CiAgICAgICAgICAgICJ4IjogNDkwLAogICAgICAgICAgICAieSI6IDUzMCwKICAgICAgICAgICAgIndpZHRoIjogMTYwLAogICAgICAgICAgICAiaGVpZ2h0IjogMTAwCiAgICAgICAgICB9LAogICAgICAgICAgIndpZHRoIjogIjE2MCIsCiAgICAgICAgICAiaGVpZ2h0IjogIjEwMCIKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJwb2ludHMiOiBbCiAgICAgICAgewogICAgICAgICAgIngiOiAzNjAsCiAgICAgICAgICAieSI6IDQ0MCwKICAgICAgICAgICJ0b3AiOiB7CiAgICAgICAgICAgICJ0YWciOiAicmVjdCIsCiAgICAgICAgICAgICJ0ZXN0SWQiOiBudWxsLAogICAgICAgICAgICAicm9sZSI6IG51bGwsCiAgICAgICAgICAgICJsYWJlbCI6IG51bGwsCiAgICAgICAgICAgICJjbGFzc05hbWUiOiBudWxsLAogICAgICAgICAgICAib25DYW52YXMiOiB0cnVlCiAgICAgICAgICB9CiAgICAgICAgfSwKICAgICAgICB7CiAgICAgICAgICAieCI6IDQ5MCwKICAgICAgICAgICJ5IjogNTMwLAogICAgICAgICAgInRvcCI6IHsKICAgICAgICAgICAgInRhZyI6ICJyZWN0IiwKICAgICAgICAgICAgInRlc3RJZCI6IG51bGwsCiAgICAgICAgICAgICJyb2xlIjogbnVsbCwKICAgICAgICAgICAgImxhYmVsIjogbnVsbCwKICAgICAgICAgICAgImNsYXNzTmFtZSI6IG51bGwsCiAgICAgICAgICAgICJvbkNhbnZhcyI6IHRydWUKICAgICAgICAgIH0KICAgICAgICB9CiAgICAgIF0KICAgIH0sCiAgICAiaXBjIjogewogICAgICAicHVibGlzaGVkIjogWwogICAgICAgIHsKICAgICAgICAgICJpbWFnZXMiOiBbCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAicGFnZUlkIjogInBhZ2U6MSIsCiAgICAgICAgICAgICAgInBuZ1NoYTI1NiI6ICJiZWM2Mjg2N2VmNzQwODYzMTQ2NjcwYTNiYmM5N2M2YzAyMzQyZjM1OGEwYTgwYjFjODEwYzljZDA1Njk1NjM1IiwKICAgICAgICAgICAgICAidWludDhBcnJheSI6IHRydWUsCiAgICAgICAgICAgICAgImJ5dGVzIjogMTkzODQsCiAgICAgICAgICAgICAgImRlY29kZWQiOiB7CiAgICAgICAgICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICAgICAgICAgImhlaWdodCI6IDUwOAogICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSwKICAgICAgICAgICAgewogICAgICAgICAgICAgICJwYWdlSWQiOiAicGFnZToxNTNhNTg1OS0xZDU4LTQyMmUtYmU2OC01OTIxNGFhNWQwZjgiLAogICAgICAgICAgICAgICJwbmdTaGEyNTYiOiAiZDE1YTVmMjJkZDZiNGMzMjE4MWFlYjIyYzc3YzVlOTQwNjFkZTJiZGRmMzZkYmM1NWRhYThjN2FlZGRkNDA0MyIsCiAgICAgICAgICAgICAgInVpbnQ4QXJyYXkiOiB0cnVlLAogICAgICAgICAgICAgICJieXRlcyI6IDE3ODEyLAogICAgICAgICAgICAgICJkZWNvZGVkIjogewogICAgICAgICAgICAgICAgIndpZHRoIjogMTA0NCwKICAgICAgICAgICAgICAgICJoZWlnaHQiOiA0MjgKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgIF0sCiAgICAgICAgICAiZG9uZSI6IHRydWUsCiAgICAgICAgICAic3RhdHVzIjogInN5bmNlZCIKICAgICAgICB9CiAgICAgIF0sCiAgICAgICJhZnRlclNhdmVzIjogewogICAgICAgICJzdGFydGVkIjogMCwKICAgICAgICAiY29tcGxldGVkIjogMCwKICAgICAgICAicmVqZWN0ZWQiOiAwCiAgICAgIH0sCiAgICAgICJhY3Rpb25zIjogWwogICAgICAgICJnZXQtc2V0dGluZ3MiLAogICAgICAgICJnZXQtc2V0dGluZ3MiLAogICAgICAgICJnZXQtc2V0dGluZ3MiLAogICAgICAgICJnZXQtc2V0dGluZ3MiLAogICAgICAgICJ3YXRjaC1kb2N1bWVudCIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgIndhdGNoLWRvY3VtZW50IiwKICAgICAgICAicHVibGlzaC1jb25mbHVlbmNlLWxpdmUiCiAgICAgIF0sCiAgICAgICJibG9ja2VkRmV0Y2hlcyI6IFtdCiAgICB9LAogICAgInVwbG9hZHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAxIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LTc5YTAxZDVmYzJjMC0wMGYwODE3NzliODMucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgInNoYTI1NiI6ICIxNGQ0ZjgyN2U1NWY1MmFhOGUwNDVmNjgwYmMzYmI4ODdjYWYxZmFiZmI1NmVkYjIxOTAyYzA4YmRkNDJlYzViIiwKICAgICAgICAiYnl0ZXMiOiAxODM3NSwKICAgICAgICAid2lkdGgiOiA5NjAsCiAgICAgICAgImhlaWdodCI6IDUwOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAyIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LTc5YTAxZDVmYzJjMC05NTQ4NTAxNjFlMmEucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgInNoYTI1NiI6ICJhZTRjN2VhZTFiYjFjYjdiM2ZjNzA0OTFiMDU4ZGRmNjJjZDI2MTEwZmNmMzQ0OGZlNTdiMzZiZjE0YTBmMDM4IiwKICAgICAgICAiYnl0ZXMiOiAxNjk2OSwKICAgICAgICAid2lkdGgiOiA5NjAsCiAgICAgICAgImhlaWdodCI6IDQyOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAxIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LTc5YTAxZDVmYzJjMC0wMGYwODE3NzliODMucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDIsCiAgICAgICAgInNoYTI1NiI6ICJiZWM2Mjg2N2VmNzQwODYzMTQ2NjcwYTNiYmM5N2M2YzAyMzQyZjM1OGEwYTgwYjFjODEwYzljZDA1Njk1NjM1IiwKICAgICAgICAiYnl0ZXMiOiAxOTM4NCwKICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICJoZWlnaHQiOiA1MDgsCiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudC9hdHQyMTEwMDEvZGF0YSIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgImlkIjogImF0dDIxMTAwMiIsCiAgICAgICAgIm5hbWUiOiAic2tldGNoZHJhdy03OWEwMWQ1ZmMyYzAtOTU0ODUwMTYxZTJhLnBuZyIsCiAgICAgICAgInZlcnNpb24iOiAyLAogICAgICAgICJzaGEyNTYiOiAiZDE1YTVmMjJkZDZiNGMzMjE4MWFlYjIyYzc3YzVlOTQwNjFkZTJiZGRmMzZkYmM1NWRhYThjN2FlZGRkNDA0MyIsCiAgICAgICAgImJ5dGVzIjogMTc4MTIsCiAgICAgICAgIndpZHRoIjogMTA0NCwKICAgICAgICAiaGVpZ2h0IjogNDI4LAogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQvYXR0MjExMDAyL2RhdGEiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfQogICAgXQogIH0sCiAgewogICAgInN0YWdlIjogImNsZWFudXAiLAogICAgImlwYyI6IHsKICAgICAgInB1Ymxpc2hlZCI6IFsKICAgICAgICB7CiAgICAgICAgICAiaW1hZ2VzIjogWwogICAgICAgICAgICB7CiAgICAgICAgICAgICAgInBhZ2VJZCI6ICJwYWdlOjEiLAogICAgICAgICAgICAgICJwbmdTaGEyNTYiOiAiYmVjNjI4NjdlZjc0MDg2MzE0NjY3MGEzYmJjOTdjNmMwMjM0MmYzNThhMGE4MGIxYzgxMGM5Y2QwNTY5NTYzNSIsCiAgICAgICAgICAgICAgInVpbnQ4QXJyYXkiOiB0cnVlLAogICAgICAgICAgICAgICJieXRlcyI6IDE5Mzg0LAogICAgICAgICAgICAgICJkZWNvZGVkIjogewogICAgICAgICAgICAgICAgIndpZHRoIjogMTA0NCwKICAgICAgICAgICAgICAgICJoZWlnaHQiOiA1MDgKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0sCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAicGFnZUlkIjogInBhZ2U6MTUzYTU4NTktMWQ1OC00MjJlLWJlNjgtNTkyMTRhYTVkMGY4IiwKICAgICAgICAgICAgICAicG5nU2hhMjU2IjogImQxNWE1ZjIyZGQ2YjRjMzIxODFhZWIyMmM3N2M1ZTk0MDYxZGUyYmRkZjM2ZGJjNTVkYWE4YzdhZWRkZDQwNDMiLAogICAgICAgICAgICAgICJ1aW50OEFycmF5IjogdHJ1ZSwKICAgICAgICAgICAgICAiYnl0ZXMiOiAxNzgxMiwKICAgICAgICAgICAgICAiZGVjb2RlZCI6IHsKICAgICAgICAgICAgICAgICJ3aWR0aCI6IDEwNDQsCiAgICAgICAgICAgICAgICAiaGVpZ2h0IjogNDI4CiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICBdLAogICAgICAgICAgImRvbmUiOiB0cnVlLAogICAgICAgICAgInN0YXR1cyI6ICJzeW5jZWQiCiAgICAgICAgfQogICAgICBdLAogICAgICAiYWZ0ZXJTYXZlcyI6IHsKICAgICAgICAic3RhcnRlZCI6IDAsCiAgICAgICAgImNvbXBsZXRlZCI6IDAsCiAgICAgICAgInJlamVjdGVkIjogMAogICAgICB9LAogICAgICAiYWN0aW9ucyI6IFsKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAid2F0Y2gtZG9jdW1lbnQiLAogICAgICAgICJnZXQtc2V0dGluZ3MiLAogICAgICAgICJ3YXRjaC1kb2N1bWVudCIsCiAgICAgICAgInB1Ymxpc2gtY29uZmx1ZW5jZS1saXZlIiwKICAgICAgICAibGlzdC1qaXJhLWlzc3VlcyIKICAgICAgXSwKICAgICAgImJsb2NrZWRGZXRjaGVzIjogW10KICAgIH0sCiAgICAidXBsb2FkcyI6IFsKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDEiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTAwZjA4MTc3OWI4My5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAic2hhMjU2IjogIjE0ZDRmODI3ZTU1ZjUyYWE4ZTA0NWY2ODBiYzNiYjg4N2NhZjFmYWJmYjU2ZWRiMjE5MDJjMDhiZGQ0MmVjNWIiLAogICAgICAgICJieXRlcyI6IDE4Mzc1LAogICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAiaGVpZ2h0IjogNTA4LAogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDIiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTk1NDg1MDE2MWUyYS5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMSwKICAgICAgICAic2hhMjU2IjogImFlNGM3ZWFlMWJiMWNiN2IzZmM3MDQ5MWIwNThkZGY2MmNkMjYxMTBmY2YzNDQ4ZmU1N2IzNmJmMTRhMGYwMzgiLAogICAgICAgICJieXRlcyI6IDE2OTY5LAogICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAiaGVpZ2h0IjogNDI4LAogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJpZCI6ICJhdHQyMTEwMDEiLAogICAgICAgICJuYW1lIjogInNrZXRjaGRyYXctNzlhMDFkNWZjMmMwLTAwZjA4MTc3OWI4My5wbmciLAogICAgICAgICJ2ZXJzaW9uIjogMiwKICAgICAgICAic2hhMjU2IjogImJlYzYyODY3ZWY3NDA4NjMxNDY2NzBhM2JiYzk3YzZjMDIzNDJmMzU4YTBhODBiMWM4MTBjOWNkMDU2OTU2MzUiLAogICAgICAgICJieXRlcyI6IDE5Mzg0LAogICAgICAgICJ3aWR0aCI6IDEwNDQsCiAgICAgICAgImhlaWdodCI6IDUwOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50L2F0dDIxMTAwMS9kYXRhIiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAyIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LTc5YTAxZDVmYzJjMC05NTQ4NTAxNjFlMmEucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDIsCiAgICAgICAgInNoYTI1NiI6ICJkMTVhNWYyMmRkNmI0YzMyMTgxYWViMjJjNzdjNWU5NDA2MWRlMmJkZGYzNmRiYzU1ZGFhOGM3YWVkZGQ0MDQzIiwKICAgICAgICAiYnl0ZXMiOiAxNzgxMiwKICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICJoZWlnaHQiOiA0MjgsCiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudC9hdHQyMTEwMDIvZGF0YSIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9CiAgICBdLAogICAgInJlcXVlc3RzIjogWwogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxL2F0dGFjaG1lbnRzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEvYXR0YWNobWVudHMiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3Jlc3QvYXBpLzMvc2VhcmNoL2pxbCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxIiwKICAgICAgICAibWV0aG9kIjogIlBVVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxL2F0dGFjaG1lbnRzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMS9hdHRhY2htZW50cyIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQvYXR0MjExMDAxL2RhdGEiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMS9hdHRhY2htZW50cyIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEvYXR0YWNobWVudHMiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50L2F0dDIxMTAwMi9kYXRhIiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEvYXR0YWNobWVudHMiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxL2F0dGFjaG1lbnRzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3Jlc3QvYXBpLzMvc2VhcmNoL2pxbCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9CiAgICBdLAogICAgImZpeHR1cmVGYWlsdXJlcyI6IFtdLAogICAgInBhZ2VFcnJvckNvdW50IjogMAogIH0KXQ=="
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results/confluence-live-native-edi-48bea--link-survives-restart-210--electron/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                    "column": 51,
+                    "line": 280
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-33ee0714044794a40e83",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 109,
+          "column": 1
+        },
+        {
+          "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10231,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T22:49:53.676Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-window-cancellation",
+                      "contentType": "application/json",
+                      "body": "eyJwbGF0Zm9ybSI6ImRhcndpbiIsIndyaXRlc0JlZm9yZSI6Mywid3JpdGVzQWZ0ZXIiOjMsInJlc3VsdCI6eyJwdWJsaXNoZWQiOlt7ImltYWdlcyI6W3sicGFnZUlkIjoicGFnZToxIiwicG5nU2hhMjU2IjoiY2MyYzc0MWUxMmNmZGI5YzZhYjBlNjc2NzBjMTJiMGE0ZDQ5NjIxNWE3ZjQ2YTU2MDA4NTM2ZmMyYTg4ZTQ4MyIsInVpbnQ4QXJyYXkiOnRydWUsImJ5dGVzIjoxNTU4NiwiZGVjb2RlZCI6eyJ3aWR0aCI6OTYwLCJoZWlnaHQiOjUwOH19XSwiZG9uZSI6dHJ1ZSwic3RhdHVzIjoic3luY2VkIn0seyJpbWFnZXMiOlt7InBhZ2VJZCI6InBhZ2U6MSIsInBuZ1NoYTI1NiI6ImNlNzBlYzQ3ZTM3YmUwYTJhMWVkYmRlODNlOTI5MjI3YmFjZWM0NmUzNDgyMzc3N2M2MjIzYTM2MDQ0M2RjMjMiLCJ1aW50OEFycmF5Ijp0cnVlLCJieXRlcyI6MTY1NzEsImRlY29kZWQiOnsid2lkdGgiOjEwNDQsImhlaWdodCI6NTA4fX1dLCJkb25lIjp0cnVlLCJzdGF0dXMiOiJjYW5jZWxsZWQifV0sImFmdGVyU2F2ZXMiOnsic3RhcnRlZCI6MSwiY29tcGxldGVkIjoxLCJyZWplY3RlZCI6MH0sImFjdGlvbnMiOlsiZ2V0LXNldHRpbmdzIiwiZ2V0LXNldHRpbmdzIiwiYWZ0ZXItZG9jdW1lbnQtc2F2ZWQiLCJnZXQtc2V0dGluZ3MiLCJjb25maWd1cmUtYXRsYXNzaWFuIiwibGlzdC1jb25mbHVlbmNlLXBhZ2VzIiwic2V0LWNvbmZsdWVuY2UtbGl2ZS1saW5rIiwicHVibGlzaC1jb25mbHVlbmNlLWxpdmUiLCJsaXN0LWppcmEtaXNzdWVzIiwicHVibGlzaC1jb25mbHVlbmNlLWxpdmUiXSwiYmxvY2tlZEZldGNoZXMiOltdfX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-1c63966d5cca15516902",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 308,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-15T22:48:28.341Z",
+    "duration": 95594.126,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

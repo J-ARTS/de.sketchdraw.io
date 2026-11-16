@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-11-16T12:23:41.419676+00:00",
+  "fableRunId": "claude-fable-2026-11-16-journal-alias-correction-210",
+  "independentProbeRunId": "codex-2026-11-16-partial-upload-journal-probe-210",
+  "priorMetricsPreserved": 291,
+  "archives": [
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/b8-prompt.md",
+      "sha256": "c4abf9021aa9a15ad8eec4012257450a695f14becd267a66061fb7fa814b8b28",
+      "bytes": 2951
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/codex-b8-alias-probe-result.json",
+      "sha256": "7dea191ee3aa9944b348b842789fb7408ec2a08f641d2c2fff25c7588cea09e8",
+      "bytes": 4408
+    },
+    {
+      "path": "docs/reviews/218-native-quit/tenant-restart-live-observation.json",
+      "sha256": "0d6509dedfe0479cfd603005bb3edf53deb8c3c487edd3fa3ed12ddbb85f680a",
+      "bytes": 850
+    },
+    {
+      "path": "docs/reviews/218-native-quit/tenant-restart-live-page1.png",
+      "sha256": "25242f1c2f7a2a437a2a9214a0f21b7983a01ba1e376eb04437445c0371ad5ec",
+      "bytes": 409012
+    }
+  ],
+  "graphProjection": "deferred",
+  "graphUnchanged": true
+}

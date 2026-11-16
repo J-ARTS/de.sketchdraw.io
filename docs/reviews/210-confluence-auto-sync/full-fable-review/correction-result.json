@@ -1,0 +1,203 @@
+{
+  "duration_api_ms": 1242033,
+  "stop_reason": "end_turn",
+  "session_id": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "total_cost_usd": 17.814655,
+  "usage": {
+    "input_tokens": 82,
+    "cache_creation_input_tokens": 200411,
+    "cache_read_input_tokens": 19017203,
+    "output_tokens": 66636,
+    "output_tokens_details": {
+      "thinking_tokens": 31818
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 200411,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 6509,
+        "cache_read_input_tokens": 523105,
+        "cache_creation_input_tokens": 2307,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2307
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 128,
+      "outputTokens": 126143,
+      "thinkingTokens": 74425,
+      "cacheReadInputTokens": 22171715,
+      "cacheCreationInputTokens": 520848,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 520848,
+      "webSearchRequests": 0,
+      "costUSD": 17.814655,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_019t42EZYFMmFviNzRvxDGVp",
+      "tool_input": {
+        "command": "F=docs/reviews/210-confluence-auto-sync/full-fable-review; grep -n '^#\\{2,\\} \\|^===\\|^--- UNTRACKED\\|^diff --git\\|^UNTRACKED\\|^### ' $F/original-source-diff.txt | sed -n '1,80p' | cut -c1-160; echo ----; grep -n '^#\\{2,\\} \\|^===\\|^diff --git\\|^UNTRACKED\\|^### ' $F/integration-source-diff.txt | cut -c1-160",
+        "description": "List section markers in both prepared diff files"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01MzaX11ES6MbaEhmjRbrcFS",
+      "tool_input": {
+        "command": "python3 - <<'EOF'\nimport re,io\np='tests/unit/renderer/confluence-live-scheduler.spec.ts'\ns=open(p,encoding='utf-8').read()\na=\"    h.sync.syncNow();\\n    finish(refused());\\n\"\nassert s.count(a)==1; s=s.replace(a,a+\"    await vi.advanceTimersByTimeAsync(0);\\n\")\nb=\"    h.edit();\\n    finish(synced());\\n\"\nassert s.count(b)==1; s=s.replace(b,b+\"    await vi.advanceTimersByTimeAsync(0);\\n\")\nc=\"    h.edit();\\n    finish(pause(until));\\n\"\nassert s.count(c)==1; s=s.replace(c,c+\"    await vi.advanceTimersByTimeAsync(0);\\n\")\nopen(p,'w',encoding='utf-8').write(s)\nEOF\nnpx vitest run --config vitest.config.ts tests/unit/renderer/confluence-live-scheduler.spec.ts tests/unit/confluence-live-service.spec.ts 2>&1 | tail -80",
+        "timeout": 300000,
+        "description": "Add microtask flushes to the new scheduler tests and run the service and scheduler tests"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01AxuaKsjZ47zQWzu8ZpEzc4",
+      "tool_input": {
+        "command": "npm run build 2>&1 | tail -25; echo \"EXIT=${PIPESTATUS[0]}\"",
+        "timeout": 600000,
+        "description": "Run the production build"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01DfPF7brhibyx9Cjn4LrPzp",
+      "tool_input": {
+        "command": "npm run build > /tmp/sketchdraw-fable-review-build.log 2>&1; echo \"EXIT=$?\"; tail -18 /tmp/sketchdraw-fable-review-build.log",
+        "timeout": 600000,
+        "description": "Run the production build and show its exit code and last lines"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01N1pqLzTCm51nsdZTupaeRe",
+      "tool_input": {
+        "command": "shasum -a 256 electron/plugin-service.ts src/renderer/state/confluence-live-sync.ts src/renderer/i18n/en.ts src/renderer/lib/confluence-live-image.ts tests/unit/confluence-live-service.spec.ts tests/unit/renderer/confluence-live-scheduler.spec.ts tests/unit/renderer/confluence-live-image.spec.ts tests/unit/renderer/confluence-live-store.spec.ts electron/main.ts electron/close-handshake.ts src/crdt/persistence.ts src/renderer/state/whiteboard.ts src/renderer/design-system/organisms/PluginSettings.vue tests/electron/confluence-live.spec.ts",
+        "description": "Compute hashes of the changed and key unchanged files"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_015gEtvFxhckMjAoVXYR14fm",
+      "tool_input": {
+        "command": "diff <(sed -n '1512,1599p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^[+-] ') <(sed -n '2052,2139p' docs/reviews/210-confluence-auto-sync/full-fable-review/integration-source-diff.txt | grep '^[+-] ') | cut -c1-200; echo \"en-diff-done\"; diff <(sed -n '1963,2170p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^[+-] ') <(sed -n '2503,2719p' docs/reviews/210-confluence-auto-sync/full-fable-review/integration-source-diff.txt | grep '^[+-] ') | cut -c1-220; echo \"whiteboard-diff-done\"",
+        "description": "Compare added lines of en.ts and whiteboard.ts between original and integration diffs"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01GzofcfWbty58vb3eGzM8Nn",
+      "tool_input": {
+        "command": "sed -n '1512,1599p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^+ ' | cut -c2- | grep -vxFf src/renderer/i18n/en.ts | cut -c1-200",
+        "description": "List original en.ts additions that are missing verbatim in the integration file"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01PCkwFzj5ha6YEMzvMEmrVJ",
+      "tool_input": {
+        "command": "sed -n '1963,2170p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^+ ' | cut -c2- | grep -vxFf src/renderer/state/whiteboard.ts | cut -c1-200",
+        "description": "List original whiteboard.ts additions that are missing verbatim in the integration file"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_0134RQWW5xLgBeRUYyiPNvLA",
+      "tool_input": {
+        "command": "sed -n '2,67p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^+ ' | cut -c2- | grep -vxFf electron/main.ts | cut -c1-200",
+        "description": "List original main.ts additions that are missing verbatim in the integration file"
+      }
+    },
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01TvZBGo3uqCG4ntNGr9fcm7",
+      "tool_input": {
+        "command": "sed -n '1377,1460p' docs/reviews/210-confluence-auto-sync/full-fable-review/original-source-diff.txt | grep '^+ ' | cut -c2- | grep -vxFf src/renderer/design-system/organisms/PluginSettings.vue | cut -c1-240",
+        "description": "List original PluginSettings script additions that are missing verbatim in the integration file"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 76,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Korrekturlauf und Restabdeckung \u2013 Review #210 / #217 / #218\n\nB1, B2, B4, B5 und B7 sind im Integrations-Worktree korrigiert und mit gezielten Tests belegt; die Quellabdeckung ist geschlossen. Gezielte Unit-Tests, Typecheck und Build sind gr\u00fcn. Native Tests, UI-Steuerung, Tenant, Zielbranch-Integration und Live-Abnahme habe ich nicht ausgef\u00fchrt und behaupte sie nicht.\n\n**Identit\u00e4t:** Modell laut Systemkontext `claude-fable-5-2` (Claude Agent SDK), dieselbe Sitzung wie der Erstreview. CLI-Version und Effort-Stufe sind f\u00fcr mich nicht einsehbar. Kein Codex-Review ist hier eingeflossen.\n\n## Korrekturen\n\n### B1 \u2013 Einstellungs-Speichern \u00fcberschreibt den Verkn\u00fcpfungsstand\n- **\u00c4nderung:** `saveConfig` (`electron/plugin-service.ts:563-574`) \u00fcbernimmt die Live-Links in der eingereihten Mutation aus dem gespeicherten Profil, nicht mehr aus dem vorab geklonten `next`. Danach wird `this.config` aus dem tats\u00e4chlich gespeicherten Profil gelesen.\n- **Jira-Deinstallation:** entfernt die Links weiterhin ausdr\u00fccklich (`:773`, `liveLinks: 'drop'`); Git-Deinstallation l\u00e4sst sie stehen.\n- **Tests (`tests/unit/confluence-live-service.spec.ts:927`):**\n  - Der Profil-Schreibvorgang des abschlie\u00dfenden `remember()` wird per `vi.spyOn(fsPromises, 'rename')` angehalten, ohne Test-Abstraktion im Produkt.\n  - W\u00e4hrenddessen laufen vier echte Einstellungsoperationen: `installPlugin('git')`, `configureAtlassian`, `configureGit`, `uninstallPlugin('git')`.\n  - Gepr\u00fcft: `published` (Version 2), kein `pending`, `lastSyncedAt` auf Platte und in den Settings; die folgende ge\u00e4nderte Ver\u00f6ffentlichung ist `synced`, auch nach Neustart.\n  - Zus\u00e4tzlich eine Pending-Phasen-Variante und die Deinstallations-Semantik.\n- **Gegenprobe:** Mit tempor\u00e4r wieder aus `next` gelesenen Links schl\u00e4gt der neue Test bei \u201eplugin installed\u201c mit dem veralteten `pending` fehl, zusammen mit sechs bestehenden. Die Mutation ist wieder entfernt.\n\n### B2 \u2013 Unlesbare Profildatei durch den eigenen Schreibpfad\nNicht gek\u00fcrzt, wie vorgegeben: Historische Besitznachweise bleiben erhalten.\n- **Gleiche Pr\u00fcfung beim Schreiben und Lesen:** `updateLiveLinks` (`:749`) schickt jeden zu speichernden Linkstand durch `parseConfluenceLinks`. Bei Versto\u00df wird nichts geschrieben, und der gespeicherte Stand bleibt.\n- **Pfad:** `setConfluenceLiveLink` (`:1099`) lehnt Steuerzeichen oder \u00dcberl\u00e4nge im Dokumentpfad ab, bevor Confluence gefragt oder die Datei ber\u00fchrt wird.\n- **Kapazit\u00e4t:** `MAX_LINK_RECORDS = 400` (`:48`) gilt jetzt f\u00fcr beide Pfade. Vor jeder Anfrage reserviert `runLivePublish` (`:1280`) Platz f\u00fcr `published` und `pending`: vorhandene Schl\u00fcssel vereinigt mit den aktuellen Dateinamen. Jeder Zwischenstand eines gestarteten Laufs ist eine Teilmenge davon. Reicht der Platz nicht, endet der Lauf mit einer Kapazit\u00e4tsmeldung, ohne Anfrage und ohne Schreibzugriff.\n- **Tests (`:1030`):**\n  - 399 Eintr\u00e4ge plus eine neue Seite ergeben 400 und funktionieren; die 401. wird in drei Varianten abgelehnt, ohne einen einzigen Request und mit bytegleicher Profildatei. Nach Neustart ist der Store g\u00fcltig mit 400 Eintr\u00e4gen.\n  - Lese-/Schreibsymmetrie: 400 Eintr\u00e4ge laden, 401 nicht.\n  - Zur\u00fcckkehrende Seite: Nach Entfernen und Wiederkehr mit fremder Folgeversion bleibt es beim Konflikt, ohne \u00dcberschreiben, auch nach Neustart.\n  - Pfade mit Zeilenumbruch, Tab oder \u00dcberl\u00e4nge werden abgelehnt; der Store bleibt unver\u00e4ndert und nach Neustart lesbar.\n- **Nicht eigens getestet:** die R\u00fcckfallpr\u00fcfung in `updateLiveLinks`. Nach den vorgelagerten Pr\u00fcfungen gibt es daf\u00fcr keinen nat\u00fcrlichen Ausl\u00f6ser.\n\n### B4 \u2013 Uploads vor der Lesbarkeitspr\u00fcfung\n- **\u00c4nderung:** Der Seitenplan wird direkt nach dem ersten Lesen berechnet (`:1286-1288`). `unsafe` und Budget-\u00dcberschreitung brechen vor Anhangsabfragen und Uploads ab. Frisches Lesen, Ruhefenster, Vergleich und Versions-PUT in Schritt 4 (`:1339`) sind unver\u00e4ndert.\n- **Tests (`:1144`):** Bei unsicherem Markup gibt es pro Versuch genau einen GET, keinen POST/PUT und keine Records; nach der Reparatur l\u00e4uft die Ver\u00f6ffentlichung normal. Bei zu gro\u00dfem Ergebnis gibt es keinen Upload.\n\n### B5 \u2013 Haltezeit bei \u00c4nderung w\u00e4hrend eines fehlgeschlagenen Laufs\n- **\u00c4nderung:** Das `finally` in `src/renderer/state/confluence-live-sync.ts:186-191` plant mit `Math.max(debounceMs, holdUntil - now())`.\n- **`syncNow`:** Ein ausdr\u00fcckliches \u201eJetzt synchronisieren\u201c w\u00e4hrend des Laufs wird \u00fcber das neue Flag `asked` (`:76`, `:203`) nicht zur\u00fcckgehalten. Die Server-Pause greift weiterhin \u00fcber `schedule()`.\n- **Tests (`tests/unit/renderer/confluence-live-scheduler.spec.ts:103-170`, Fake-Clock):**\n  - \u00c4nderung w\u00e4hrend eines blockierten Laufs, Ergebnis `failed`: kein Versuch bis zum Ablauf der Haltezeit, dann genau einer mit dem neuesten Stand.\n  - `syncNow` wird nicht gehalten.\n  - Der Erfolgsfall l\u00e4uft mit normaler Pause.\n  - Retry-After bleibt vorrangig.\n- **Gegenprobe:** Mit `hold = 0` schl\u00e4gt der erste dieser Tests fehl. Die Mutation ist entfernt.\n\n### B7 \u2013 Zu gro\u00dfes PNG\n- **\u00c4nderung:** Eigene Meldung mit Seitenname und 10 MiB (`:1158`). Steuerzeichen im Namen werden bereinigt; ein leerer Name wird durch die Position ersetzt. Keine neue Bildpipeline.\n- **\u00dcbersetzungen:** Drei neue Eintr\u00e4ge in `src/renderer/i18n/en.ts` (Bild zu gro\u00df, Kapazit\u00e4t, Dateipfad). Der bestehende `i18n-coverage`-Test verlangt sie.\n- **Tests (`:1181`):** 10 MiB + 1 Byte wird mit Seitenname und Limit abgelehnt, ohne Request, auch f\u00fcr die passenden Seiten. Exakt 10 MiB wird ver\u00f6ffentlicht.\n\n## Ge\u00e4nderte Dateien\n- `electron/plugin-service.ts`\n- `src/renderer/state/confluence-live-sync.ts`\n- `src/renderer/i18n/en.ts`\n- `tests/unit/confluence-live-service.spec.ts`\n- `tests/unit/renderer/confluence-live-scheduler.spec.ts`\n\nUnver\u00e4ndert: `confluence-live-image.ts`, CRDT, `main.ts`, Handshake, alle Originaldateien, Ledger, Graph, Concerns. `npm run build` hat die unversionierten Ausgaben `dist/`, `dist-electron/` und `dist-mcp/` neu erzeugt.\n\n## Pr\u00fcfl\u00e4ufe\n\n| Befehl | Ergebnis |\n|---|---|\n| `npx vitest run --config vitest.config.ts tests/unit/renderer/confluence-live-scheduler.spec.ts tests/unit/confluence-live-service.spec.ts` | 2 Dateien, 57/57 bestanden |\n| derselbe Befehl mit den zwei tempor\u00e4ren Mutationen | 8 fehlgeschlagen, 49 bestanden (erwartet) |\n| `npx vitest run --config vitest.config.ts` mit Service-, `plugin-service`-, Scheduler-, Image-, Store-, Domain- und `i18n-coverage`-Spec | 7 Dateien, 137/137 bestanden |\n| `npm run typecheck` | ohne Fehlerausgabe beendet |\n| `npm run build` | Renderer, Electron und MCP gebaut; nur die bekannte Chunk-Gr\u00f6\u00dfen-Warnung |\n\nNicht ausgef\u00fchrt: native Electron-Tests, UI-/Storybook-Tests, CRDT-, Security- und Design-System-Suiten, vollst\u00e4ndiger Unit-Lauf.\n\n## Abdeckung\n\n**Integration, 33 Eintr\u00e4ge:** Jede \u00c4nderung jeder Datei ist gelesen.\n- **Vollst\u00e4ndig als Datei gelesen:** `close-handshake.ts`, `plugin-service.ts`, `persistence.ts`, `confluence-live.ts`, `confluence-live-image.ts`, `confluence-live-sync.ts`, `plugin-bridge.ts`, `PluginSettings.vue`, `confluence-fixture.ts`, `tests/electron/confluence-live.spec.ts`, `tests/ui/confluence-live.spec.ts`, `confluence-live-service.spec.ts`, alle vier Renderer-Confluence-Specs, `document-cache.spec.ts`, `tests/unit/domain/confluence-live.spec.ts`.\n- **Alle \u00c4nderungshunks gelesen, unver\u00e4nderter Rest nicht:** `main.ts` (Zeilen 1\u2013379 au\u00dferhalb der Hunks), `whiteboard.ts` (zus\u00e4tzlich Close-, Plugin- und Install-Pfade), `preload.ts`, `types.ts`, `atlassian.ts`, `index.ts`, `plugins.ts`, `panels.stories.ts`, `WorkspacePage.vue`, `with-whiteboard.ts`, `en.ts`, `contract.ts`, `backend-shell.spec.ts`, `crdt.spec.ts`, `security-and-ipc.spec.ts`, `design-system.spec.ts`.\n- **Ausnahmen:** keine ungelesene \u00c4nderung. `integration-source-diff.txt` habe ich nicht separat gelesen, weil ich die Dateien selbst gelesen habe.\n\n**Original, 22 Eintr\u00e4ge:** Grundlage ist ausschlie\u00dflich Roots `original-source-diff.txt`; direkter Zugriff war gesperrt.\n- **16 hash-identische Eintr\u00e4ge** erben die jetzt vollst\u00e4ndige Pr\u00fcfung. Die f\u00fcnf oben ge\u00e4nderten Dateien sind im Original nicht mehr bytegleich: Dort bestehen B1, B2, B4, B5 und B7 unver\u00e4ndert fort.\n- **Sechs abweichende Eintr\u00e4ge, vollst\u00e4ndig verglichen:**\n\n| Datei | Befund |\n|---|---|\n| `electron/main.ts` | Alle #210-Zeilen sind im Kandidaten enthalten. Das Aufr\u00e4umen in `before-quit` ist durch `will-quit` (#218) bewusst ersetzt. |\n| `src/renderer/App.vue` | `behindModal` steht funktionsgleich in `WorkspacePage.vue`. |\n| `src/renderer/components/PluginSettings.vue` | Skript gleich bis auf Import und Kommentare. Template durch `AppButton`/`AppTextField`, CSS durch Tokens ersetzt. Alle Test-IDs und Aktionen vorhanden. |\n| `src/renderer/i18n/en.ts` | Alle 64 Eintr\u00e4ge im Kandidaten vorhanden; die langen Zeilen sind per Suche best\u00e4tigt. |\n| `src/renderer/state/whiteboard.ts` | Alle Hunks identisch; der Kandidat erg\u00e4nzt nur den #217-Kommentar. |\n| `tests/electron/confluence-live.spec.ts` | Per `diff` exakter Pr\u00e4fix des Kandidaten. Dieser erg\u00e4nzt nur zwei Importe und die Zeilen 376\u2013735. |\n\nVerlorene Funktionalit\u00e4t: keine gefunden.\n\n**Neue Beobachtungen aus der Restlekt\u00fcre, ohne \u00c4nderung:**\n- Die Jira-Deinstallation entfernt alle Live-Links des Profils ohne Hinweis in der Oberfl\u00e4che (`PluginSettings.vue:295`). Das ist der festgelegte Vertrag, aber eine UX-L\u00fccke.\n- Der Knopf \u201eExterne Version laden\u201c (`:310`) ist bei ungespeichertem Stand gesperrt. Damit kann er einen offenen Schlie\u00dfen-Dialog nicht unbeantwortet verwerfen; das st\u00fctzt die fr\u00fchere Einsch\u00e4tzung zu B6.\n- `confluence-live-store.spec.ts` und `tests/ui/confluence-live.spec.ts:150` arbeiten mit echten Wartezeiten und k\u00f6nnen unter Last schwanken.\n- `confluence-live-image.spec.ts:62` behauptet im Kommentar ein `<title>`, pr\u00fcft es aber nicht.\n\n## Grenzen\n- **B3 / #219:** Unver\u00e4ndert. Datei und Git haben Vorrang vor dem Cache; die explizite Recovery ist weiterhin nicht an die Oberfl\u00e4che angebunden. Nicht als erledigt beansprucht.\n- **B6 / #220:** Unver\u00e4ndert und nicht nativ reproduziert. Nicht als erledigt beansprucht.\n- **Die #217-Registrierungsbeobachtung** bleibt offen.\n\n## Verbleibende L\u00fccken\n- Die native Abnahme muss mit frischem Build wiederholt werden, weil Main-Bundle und Renderer ge\u00e4ndert sind. Der Schritt \u201eJira speichern\u201c bei laufender Ver\u00f6ffentlichung w\u00e4re ein passender nativer Fall f\u00fcr B1.\n- Der Ausweg bei erreichter Kapazit\u00e4t ist das Neuverkn\u00fcpfen. Das setzt die Besitznachweise bewusst zur\u00fcck; eine feinere Bereinigung gibt es nicht.\n- B7 wird erst im Main-Prozess abgelehnt. Der Renderer rastert und \u00fcbertr\u00e4gt das zu gro\u00dfe Bild vorher weiterhin.\n- Zwei Einstellungsoperationen gleichzeitig k\u00f6nnen sich weiterhin gegenseitig \u00fcberschreiben, weil sie denselben Schnappschuss von `this.config` nutzen. Das ist vorbestehend und betrifft die Live-Links nicht mehr.\n- Die Tenant-Punkte aus dem Erstreview bleiben offen: Layout-Seiten, Zwei-Ger\u00e4te-Konflikt, Neustart mit bestehender Verkn\u00fcpfung.",
+  "ttft_ms": 2870,
+  "type": "result",
+  "duration_ms": 660034,
+  "uuid": "d19c3548-d5f4-4a9e-9c57-40163e8bdeaf",
+  "ttft_stream_ms": 1044,
+  "time_to_request_ms": 313,
+  "first_content_frame_ms": 1044,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 82,
+      "outputTokens": 66636,
+      "cacheReadInputTokens": 19017203,
+      "cacheCreationInputTokens": 200411,
+      "webSearchRequests": 0,
+      "costUSD": 9.676112599999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 31818,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 200411,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

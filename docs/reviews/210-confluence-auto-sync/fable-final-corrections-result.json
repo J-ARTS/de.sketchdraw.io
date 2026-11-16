@@ -1,0 +1,132 @@
+{
+  "duration_api_ms": 3344568,
+  "stop_reason": "end_turn",
+  "session_id": "1e3c6764-0512-4678-a4f5-36c774ecb57b",
+  "total_cost_usd": 38.56442399999999,
+  "usage": {
+    "input_tokens": 40,
+    "cache_creation_input_tokens": 45894,
+    "cache_read_input_tokens": 12201958,
+    "output_tokens": 26393,
+    "output_tokens_details": {
+      "thinking_tokens": 6820
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45894,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1873,
+        "cache_read_input_tokens": 659461,
+        "cache_creation_input_tokens": 4491,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4491
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-fable-5-2": {
+      "inputTokens": 320,
+      "outputTokens": 368570,
+      "thinkingTokens": 127738,
+      "cacheReadInputTokens": 66307890,
+      "cacheCreationInputTokens": 657955,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 657955,
+      "webSearchRequests": 0,
+      "costUSD": 38.53421799999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    },
+    "claude-haiku-5-5": {
+      "inputTokens": 57125,
+      "outputTokens": 8987,
+      "thinkingTokens": 4829,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 0,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 0,
+      "webSearchRequests": 2,
+      "costUSD": 0.030206,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 34,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Beide Befunde sind behoben und lokal mit Unit-Tests abgesichert. Tenant, Electron und die App des Nutzers habe ich nicht angefasst; der Bericht liegt in `docs/reviews/210-confluence-auto-sync/fable-final-corrections.md`.\n\n## CF-210-10 (P1): abgebrochener Auftrag löschte den gespeicherten Stand\n\nUrsache wie im Review beschrieben. Ein Auftrag speichert jetzt erst, nachdem er den gespeicherten Stand der Verknüpfung übernommen hat. Die Prüfung sitzt in `remember()` selbst, nicht nur im `catch`. Ein Auftrag, der wirklich begonnen hat und danach die Autorität verliert, speichert weiterhin bestätigte Uploads und unbeantwortete Vermerke.\n\nVier neue Tests gegen eine Profildatei auf Platte:\n- **Ablauf aus dem Review:** laufender und wartender Auftrag, Einstellungen erneut gespeichert, beide `cancelled`, Eintrag unverändert. Eine spätere fremde Sketchdraw-Version bleibt Konflikt mit 0 POST, auch nach Neustart.\n- **Mit unbestätigtem Upload-Vermerk:** für drei Arten des Autoritätsverlusts bleiben `published` und `pending` unverändert; danach weiter sichtbare Pause mit 0 POST.\n- **Auftrag hat begonnen:** Bild 1 bestätigt, Upload 2 unterwegs, dann Autoritätsverlust. Beides wird korrekt gespeichert, und der nächste Lauf lädt nichts doppelt.\n- **Vier wartende Aufträge, Fenster weg:** Profildatei byte-gleich.\n\n## CF-210-11 (P2): sichtbare Änderung ohne automatische Veröffentlichung\n\nDer Fingerabdruck umfasst jetzt das ganze Dokument außer Aufgaben und Kommentaren, also auch die Icon-Definitionen der Komponentensets. Eingebettete Bilder zählen nach Inhalt statt nach Länge.\n\nDrei neue Tests mit echtem Store, Code-Parser und SVG-Export:\n- **Nur `iconSvg` geändert:** zweite Veröffentlichung ohne manuellen Sync, anderer Hash.\n- **Bild durch gleich langes ersetzt:** dasselbe.\n- **Nur Aufgaben und Kommentare per Code-Ersetzung:** keine Veröffentlichung, kein erneutes Rastern.\n\nEine Git-spezifische Aussage leite ich aus diesen lokalen Ersetzungen nicht ab.\n\n## Prüfungen\n\n| Prüfung | Ergebnis |\n| --- | --- |\n| `npm run typecheck` | bestanden |\n| `npx vitest run --config vitest.config.ts` | 119 Dateien, 1232 Tests bestanden |\n| Die fünf Spec-Dateien zu #210 | 81 Tests bestanden |\n| Gegenprobe CF-210-10 (Prüfung ausgeschaltet) | 4 neue Tests rot, danach zurückgenommen |\n| Gegenprobe CF-210-11 (alter Fingerabdruck) | 2 neue Tests rot, danach zurückgenommen |\n| `npm run test:ui -- tests/ui/confluence-live.spec.ts` | 1 Test bestanden |\n\nDie komplette UI-Suite habe ich nicht wiederholt, weil diese Runde keine Komponente ändert. Den fokussierten UI-Test habe ich laufen lassen, weil er den geänderten Store im Browser durchläuft.\n\n## Grenzen dieser Runde\n\n- **Mehraufwand:** Bei aktiver Verknüpfung wird je Dokument-Snapshot ein `JSON.stringify` des Dokuments ohne Bilddaten gebildet und die Bilder werden verglichen. Gemessen habe ich das nicht.\n- **Unnötiges Rendern:** Geänderte, aber unbenutzte Icons, Bilder oder Dokument-Metadaten lösen ein Rendern aus. Veröffentlicht wird weiterhin nur bei geändertem Bild-Hash.\n- **Vermerk ohne Upload:** Verliert ein Auftrag die Autorität zwischen dem Speichern der Vermerke und dem ersten Upload, steht kurz ein Vermerk für einen nie gesendeten Upload im Profil. Der nächste Lauf räumt ihn ab.\n- Alle Grenzen aus `fable-corrections.md` gelten weiter.\n\nGeändert in dieser Runde: `electron/plugin-service.ts`, `src/renderer/state/whiteboard.ts` und die beiden Unit-Spec-Dateien. Deine nativen Testdateien, Ledger, `docs/concerns.md`, `graphify-out/` und die Review-Dateien sind unberührt. `gh` und `graphify` waren weiterhin gesperrt; es gibt keine Commits.",
+  "ttft_ms": 2665,
+  "type": "result",
+  "duration_ms": 313935,
+  "uuid": "62d6b6ca-c1ca-4d3d-b0bc-12ad8c6d1f18",
+  "ttft_stream_ms": 1893,
+  "time_to_request_ms": 367,
+  "first_content_frame_ms": 1893,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+      "inputTokens": 40,
+      "outputTokens": 26393,
+      "cacheReadInputTokens": 12201958,
+      "cacheCreationInputTokens": 45894,
+      "webSearchRequests": 0,
+      "costUSD": 4.2307356,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6820,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45894,
+      "canonicalModel": "claude-fable-5-2",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  }
+}

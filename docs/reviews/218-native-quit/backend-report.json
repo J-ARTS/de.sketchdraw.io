@@ -1,0 +1,310 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/backend-shell.spec.ts",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-218-backend-artifacts"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/sketchdraw-218-backend-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/sketchdraw-218-backend-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/tmp/sketchdraw-218-backend-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/backend-shell.spec.ts",
+      "file": "tests/electron/backend-shell.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "cleanup stops a stuck owned process before closing automation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4053,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:52:46.313Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "owned-process-cleanup",
+                      "contentType": "application/json",
+                      "body": "ewogICJwaWQiOiAzMDMwOCwKICAicGxhdGZvcm0iOiAiZGFyd2luIiwKICAic3RlcHMiOiBbCiAgICAiYXBwLWV4aXQtcmVxdWVzdCIsCiAgICAiU0lHVEVSTSIsCiAgICAiU0lHS0lMTCIsCiAgICAiYXV0b21hdGlvbi1jbG9zZWQiCiAgXSwKICAiZXhpdENvZGUiOiBudWxsLAogICJzaWduYWxDb2RlIjogIlNJR0tJTEwiCn0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "76ba77ba807b6fb4aa60-eddfb6aab2216c612564",
+          "file": "tests/electron/backend-shell.spec.ts",
+          "line": 163,
+          "column": 1
+        }
+      ],
+      "suites": [
+        {
+          "title": "Built Electron backend with a minimal renderer fixture",
+          "file": "tests/electron/backend-shell.spec.ts",
+          "line": 217,
+          "column": 6,
+          "specs": [
+            {
+              "title": "loads app:// with the real sandboxed preload and rejects unsafe bridge inputs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "electron",
+                  "projectName": "electron",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5026,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-16T09:52:50.390Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "backend-shell-artifacts",
+                          "contentType": "application/json",
+                          "body": "ewogICJzY29wZSI6ICJVbm1vZGlmaWVkIEVsZWN0cm9uIGJhY2tlbmQgYnVpbGQgd2l0aCBhIG1pbmltYWwgZml4dHVyZSwgbm90IHRoZSBwcm9kdWN0IHJlbmRlcmVyIG9yIHBhY2thZ2VkIGFwcC4iLAogICJoYXNoZXMiOiB7CiAgICAibWFpbi5janMiOiAiMzBlZDgwNjc1NWM1ZGU1NDQzYmViMjBlNWUyNGJkMGVlNTcwZWQxZjU1YTRjNzc1YzM3ZjAzNTY2Zjk0YTMzYSIsCiAgICAicHJlbG9hZC5janMiOiAiM2EzYjVkMGNlNjZiN2ZhZmU4ODMwZTgzNmUyYTc5NWFlYWI0MTYwOTRkNjI2MGRkZTg0MWU2Yzk4YmE4OTZhMiIKICB9LAogICJwbGF0Zm9ybSI6ICJkYXJ3aW4iLAogICJ2ZXJzaW9ucyI6IHsKICAgICJub2RlIjogIjI0LjIyLjAiLAogICAgImFjb3JuIjogIjguMTguMCIsCiAgICAiYWRhIjogIjQuMC4wIiwKICAgICJhbWFybyI6ICIxLjEuMTEiLAogICAgImFyZXMiOiAiMS4zNC44IiwKICAgICJicm90bGkiOiAiMS4yLjAiLAogICAgImNsZHIiOiAiNDguMCIsCiAgICAiaWN1IjogIjc4LjIiLAogICAgImxsaHR0cCI6ICI5LjQuMyIsCiAgICAibWVydmUiOiAiMS4yLjIiLAogICAgIm1vZHVsZXMiOiAiMTQ5IiwKICAgICJuYXBpIjogIjEwIiwKICAgICJuYnl0ZXMiOiAiMC4xLjQiLAogICAgIm5jcnlwdG8iOiAiMC4wLjEiLAogICAgIm5naHR0cDIiOiAiMS43MC4wIiwKICAgICJuZ2h0dHAzIjogIiIsCiAgICAibmd0Y3AyIjogIiIsCiAgICAib3BlbnNzbCI6ICIwLjAuMCIsCiAgICAic2ltZGpzb24iOiAiNC42LjExIiwKICAgICJzaW1kdXRmIjogIjcuNy4wIiwKICAgICJzcWxpdGUiOiAiMy41My40IiwKICAgICJ0eiI6ICIyMDI2ZCIsCiAgICAidW5kaWNpIjogIjcuMjkuMSIsCiAgICAidW5pY29kZSI6ICIxNy4wIiwKICAgICJ1diI6ICIxLjUyLjEiLAogICAgInV2d2FzaSI6ICIwLjAuMjMiLAogICAgInY4IjogIjE1LjIuMTI0LjQzLWVsZWN0cm9uLjAiLAogICAgInpsaWIiOiAiMS4zLjIuMS1tb3RsZXkiLAogICAgInpzdGQiOiAiMS42LjAiLAogICAgImVsZWN0cm9uIjogIjQ0LjkuMCIsCiAgICAiY2hyb21lIjogIjE1Mi4wLjc5NzcuMTY3IgogIH0KfQ=="
+                        },
+                        {
+                          "name": "backend-shell-cleanup",
+                          "contentType": "application/json",
+                          "body": "ewogICJwaWQiOiAzMDUxNiwKICAicGxhdGZvcm0iOiAiZGFyd2luIiwKICAic3RlcHMiOiBbCiAgICAiYXBwLWV4aXQtcmVxdWVzdCIsCiAgICAiYXV0b21hdGlvbi1jbG9zZWQiCiAgXSwKICAiZXhpdENvZGUiOiAwLAogICJzaWduYWxDb2RlIjogbnVsbAp9"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "76ba77ba807b6fb4aa60-b9b4c7ec729d152f6b39",
+              "file": "tests/electron/backend-shell.spec.ts",
+              "line": 218,
+              "column": 3
+            },
+            {
+              "title": "blocks popups/navigation and rejects another real WebContents even at the same app origin",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "electron",
+                  "projectName": "electron",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 197,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-16T09:52:56.818Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "backend-shell-artifacts",
+                          "contentType": "application/json",
+                          "body": "ewogICJzY29wZSI6ICJVbm1vZGlmaWVkIEVsZWN0cm9uIGJhY2tlbmQgYnVpbGQgd2l0aCBhIG1pbmltYWwgZml4dHVyZSwgbm90IHRoZSBwcm9kdWN0IHJlbmRlcmVyIG9yIHBhY2thZ2VkIGFwcC4iLAogICJoYXNoZXMiOiB7CiAgICAibWFpbi5janMiOiAiMzBlZDgwNjc1NWM1ZGU1NDQzYmViMjBlNWUyNGJkMGVlNTcwZWQxZjU1YTRjNzc1YzM3ZjAzNTY2Zjk0YTMzYSIsCiAgICAicHJlbG9hZC5janMiOiAiM2EzYjVkMGNlNjZiN2ZhZmU4ODMwZTgzNmUyYTc5NWFlYWI0MTYwOTRkNjI2MGRkZTg0MWU2Yzk4YmE4OTZhMiIKICB9LAogICJwbGF0Zm9ybSI6ICJkYXJ3aW4iLAogICJ2ZXJzaW9ucyI6IHsKICAgICJub2RlIjogIjI0LjIyLjAiLAogICAgImFjb3JuIjogIjguMTguMCIsCiAgICAiYWRhIjogIjQuMC4wIiwKICAgICJhbWFybyI6ICIxLjEuMTEiLAogICAgImFyZXMiOiAiMS4zNC44IiwKICAgICJicm90bGkiOiAiMS4yLjAiLAogICAgImNsZHIiOiAiNDguMCIsCiAgICAiaWN1IjogIjc4LjIiLAogICAgImxsaHR0cCI6ICI5LjQuMyIsCiAgICAibWVydmUiOiAiMS4yLjIiLAogICAgIm1vZHVsZXMiOiAiMTQ5IiwKICAgICJuYXBpIjogIjEwIiwKICAgICJuYnl0ZXMiOiAiMC4xLjQiLAogICAgIm5jcnlwdG8iOiAiMC4wLjEiLAogICAgIm5naHR0cDIiOiAiMS43MC4wIiwKICAgICJuZ2h0dHAzIjogIiIsCiAgICAibmd0Y3AyIjogIiIsCiAgICAib3BlbnNzbCI6ICIwLjAuMCIsCiAgICAic2ltZGpzb24iOiAiNC42LjExIiwKICAgICJzaW1kdXRmIjogIjcuNy4wIiwKICAgICJzcWxpdGUiOiAiMy41My40IiwKICAgICJ0eiI6ICIyMDI2ZCIsCiAgICAidW5kaWNpIjogIjcuMjkuMSIsCiAgICAidW5pY29kZSI6ICIxNy4wIiwKICAgICJ1diI6ICIxLjUyLjEiLAogICAgInV2d2FzaSI6ICIwLjAuMjMiLAogICAgInY4IjogIjE1LjIuMTI0LjQzLWVsZWN0cm9uLjAiLAogICAgInpsaWIiOiAiMS4zLjIuMS1tb3RsZXkiLAogICAgInpzdGQiOiAiMS42LjAiLAogICAgImVsZWN0cm9uIjogIjQ0LjkuMCIsCiAgICAiY2hyb21lIjogIjE1Mi4wLjc5NzcuMTY3IgogIH0KfQ=="
+                        },
+                        {
+                          "name": "backend-shell-cleanup",
+                          "contentType": "application/json",
+                          "body": "ewogICJwaWQiOiAzMDUzOCwKICAicGxhdGZvcm0iOiAiZGFyd2luIiwKICAic3RlcHMiOiBbCiAgICAiYXBwLWV4aXQtcmVxdWVzdCIsCiAgICAiYXV0b21hdGlvbi1jbG9zZWQiCiAgXSwKICAiZXhpdENvZGUiOiAwLAogICJzaWduYWxDb2RlIjogbnVsbAp9"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "76ba77ba807b6fb4aa60-b911f6adbfe75b23b036",
+              "file": "tests/electron/backend-shell.spec.ts",
+              "line": 316,
+              "column": 3
+            },
+            {
+              "title": "routes menu commands and requires the current close request before actually closing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "electron",
+                  "projectName": "electron",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 358,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-16T09:52:57.875Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "backend-shell-artifacts",
+                          "contentType": "application/json",
+                          "body": "ewogICJzY29wZSI6ICJVbm1vZGlmaWVkIEVsZWN0cm9uIGJhY2tlbmQgYnVpbGQgd2l0aCBhIG1pbmltYWwgZml4dHVyZSwgbm90IHRoZSBwcm9kdWN0IHJlbmRlcmVyIG9yIHBhY2thZ2VkIGFwcC4iLAogICJoYXNoZXMiOiB7CiAgICAibWFpbi5janMiOiAiMzBlZDgwNjc1NWM1ZGU1NDQzYmViMjBlNWUyNGJkMGVlNTcwZWQxZjU1YTRjNzc1YzM3ZjAzNTY2Zjk0YTMzYSIsCiAgICAicHJlbG9hZC5janMiOiAiM2EzYjVkMGNlNjZiN2ZhZmU4ODMwZTgzNmUyYTc5NWFlYWI0MTYwOTRkNjI2MGRkZTg0MWU2Yzk4YmE4OTZhMiIKICB9LAogICJwbGF0Zm9ybSI6ICJkYXJ3aW4iLAogICJ2ZXJzaW9ucyI6IHsKICAgICJub2RlIjogIjI0LjIyLjAiLAogICAgImFjb3JuIjogIjguMTguMCIsCiAgICAiYWRhIjogIjQuMC4wIiwKICAgICJhbWFybyI6ICIxLjEuMTEiLAogICAgImFyZXMiOiAiMS4zNC44IiwKICAgICJicm90bGkiOiAiMS4yLjAiLAogICAgImNsZHIiOiAiNDguMCIsCiAgICAiaWN1IjogIjc4LjIiLAogICAgImxsaHR0cCI6ICI5LjQuMyIsCiAgICAibWVydmUiOiAiMS4yLjIiLAogICAgIm1vZHVsZXMiOiAiMTQ5IiwKICAgICJuYXBpIjogIjEwIiwKICAgICJuYnl0ZXMiOiAiMC4xLjQiLAogICAgIm5jcnlwdG8iOiAiMC4wLjEiLAogICAgIm5naHR0cDIiOiAiMS43MC4wIiwKICAgICJuZ2h0dHAzIjogIiIsCiAgICAibmd0Y3AyIjogIiIsCiAgICAib3BlbnNzbCI6ICIwLjAuMCIsCiAgICAic2ltZGpzb24iOiAiNC42LjExIiwKICAgICJzaW1kdXRmIjogIjcuNy4wIiwKICAgICJzcWxpdGUiOiAiMy41My40IiwKICAgICJ0eiI6ICIyMDI2ZCIsCiAgICAidW5kaWNpIjogIjcuMjkuMSIsCiAgICAidW5pY29kZSI6ICIxNy4wIiwKICAgICJ1diI6ICIxLjUyLjEiLAogICAgInV2d2FzaSI6ICIwLjAuMjMiLAogICAgInY4IjogIjE1LjIuMTI0LjQzLWVsZWN0cm9uLjAiLAogICAgInpsaWIiOiAiMS4zLjIuMS1tb3RsZXkiLAogICAgInpzdGQiOiAiMS42LjAiLAogICAgImVsZWN0cm9uIjogIjQ0LjkuMCIsCiAgICAiY2hyb21lIjogIjE1Mi4wLjc5NzcuMTY3IgogIH0KfQ=="
+                        },
+                        {
+                          "name": "backend-shell-cleanup",
+                          "contentType": "application/json",
+                          "body": "ewogICJwaWQiOiAzMDU0NCwKICAicGxhdGZvcm0iOiAiZGFyd2luIiwKICAic3RlcHMiOiBbCiAgICAiYXBwLWV4aXQtcmVxdWVzdCIsCiAgICAiYXV0b21hdGlvbi1jbG9zZWQiCiAgXSwKICAiZXhpdENvZGUiOiAwLAogICJzaWduYWxDb2RlIjogbnVsbAp9"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "76ba77ba807b6fb4aa60-d0ca42188e95670bbc92",
+              "file": "tests/electron/backend-shell.spec.ts",
+              "line": 352,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T09:52:45.824Z",
+    "duration": 13279.091999999999,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

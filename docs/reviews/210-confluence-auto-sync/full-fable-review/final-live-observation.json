@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-11-16T12:31:45.997399+00:00",
+  "appPath": "/tmp/sketchdraw-210-fable-final-build/mac-arm64/Sketchdraw.app",
+  "processes": [
+    {
+      "pid": 55685,
+      "command": "/private/tmp/sketchdraw-210-fable-final-build/mac-arm64/Sketchdraw.app/Contents/MacOS/Sketchdraw"
+    }
+  ],
+  "asarSha256": "11fd4f322bbcc02cfd802c70b8e8967cfe01ae402425addc6f4ec247ef7f372c",
+  "openedUsingNativeFileDialog": true,
+  "documentTitleBefore": "AWS Bedrock & AgentCore \u00b7 Live nach Neustart",
+  "nativeUiTitleChange": "AWS Bedrock & AgentCore \u00b7 Live-Architektur",
+  "saveResult": "Gespeichert: aws-bedrock-agentcore.sketchdraw.json",
+  "savedFileTitle": "AWS Bedrock & AgentCore \u00b7 Live-Architektur",
+  "savedFileSha256": "1db4a114135fad451b2c8f986732823ebc38a47ec672e7429261f8f28851641e",
+  "pageCount": 2,
+  "persistedLink": "Architektur / https://j-art.atlassian.net / 164037",
+  "pluginConfirmedStatus": "Diagramm in Confluence aktualisiert. Zuletzt \u00fcbertragen: 16.11.2026, 13:30",
+  "manualSync": false,
+  "relink": false,
+  "browserCapture": "Final Chrome screenshot was blank; no new browser visual proof claimed. Previous restart browser proof is tenant-restart-live-page1.png.",
+  "resolvedAppPath": "/private/tmp/sketchdraw-210-fable-final-build/mac-arm64/Sketchdraw.app"
+}

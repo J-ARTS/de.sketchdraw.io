@@ -1,0 +1,6 @@
+{
+  "electron/main.ts": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+  "electron/close-handshake.ts": "2f3506fba62c1423fed915797ee72759e87476e3f15f3ab98b6163256c8ae65b",
+  "src/crdt/persistence.ts": "581dd836497f1cd31b8454932cdbf901bffeb990742fad32585f4b4c708c23dd",
+  "tests/electron/confluence-live.spec.ts": "4fc3ed10ee30743d1b6985dc8c81ec054476eae02d29a732e925fdf1719bf6cb"
+}

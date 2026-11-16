@@ -1,0 +1,11 @@
+{
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "startedAt": "2026-11-16T08:53:53.953548+00:00",
+  "status": "process-ended-awaiting-result-review",
+  "events": "/tmp/sketchdraw-217-fable-implementation.events.jsonl",
+  "stderr": "/tmp/sketchdraw-217-fable-implementation.stderr.log",
+  "processExitCode": 0,
+  "endedAt": "2026-11-16T09:10:03.837894+00:00"
+}

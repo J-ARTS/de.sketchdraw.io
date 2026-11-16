@@ -1,0 +1,50 @@
+{
+  "observedAt": "2026-11-15T22:55:25.764522+00:00",
+  "relatedIssue": 183,
+  "missingNodesReported": 20,
+  "sampleExistingDefinitions": [
+    {
+      "file": "src/renderer/components/ResourceCardEditor.vue",
+      "sha256": "0695452a56f2e725a86f16258170fc9a4b08f89f9d5b2744115dce8f6fc99cbc",
+      "definitions": {
+        "reset": [
+          88
+        ],
+        "addLink": [
+          105
+        ],
+        "removeLink": [
+          111
+        ],
+        "save": [
+          155
+        ]
+      }
+    },
+    {
+      "file": "src/renderer/components/ShapeLibraryPanel.vue",
+      "sha256": "fafcc3a563bedf65c76ecebf0c9c96a4c1bdf6ce0641e82e07963674013f0958",
+      "definitions": {
+        "categoryOpen": [
+          120
+        ],
+        "toggleCategory": [
+          123
+        ],
+        "providerCount": [
+          126
+        ],
+        "entriesFor": [
+          130
+        ],
+        "providerItems": [
+          134
+        ],
+        "providerPreview": [
+          137
+        ]
+      }
+    }
+  ],
+  "graphOverwritten": false
+}

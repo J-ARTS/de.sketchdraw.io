@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-11-16T08:55:39.019Z",
+  "scope": "isolated in-memory fake-indexeddb; real product functions bundled into /tmp; no UI, real runtime, filesystem cache or Tenant",
+  "determinism": "Controlled synthetic cache uses clientID 0xffffffff before writing the root via real writeDocumentToCrdt, then real createCrdtController(initialUpdate). All product code in this bundle is unchanged from first-probe.cjs. Fresh random clientID could equal the maximum (1/2^32); observed outputs establish the exercised ordering.",
+  "pure": {
+    "before": {
+      "title": "Incoming Git document",
+      "revision": 0
+    },
+    "controllerAfter": {
+      "title": "Pure cached",
+      "revision": 1
+    },
+    "authorityAfter": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "grantBindingAfter": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "fatal": [
+      {
+        "code": "AUTHORITY_DIVERGED"
+      }
+    ]
+  },
+  "store": {
+    "before": {
+      "ok": true,
+      "title": "Store cached",
+      "revision": 0
+    },
+    "storeTitle": "Authoritative Git state",
+    "storeRevision": 0,
+    "storeSaveStatus": "saved",
+    "controllerAfter": {
+      "title": "Store cached",
+      "revision": 1
+    },
+    "authorityAfter": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "fatal": [
+      {
+        "code": "AUTHORITY_DIVERGED"
+      }
+    ],
+    "closePrevented": true,
+    "closeEvent": {
+      "allowedToClose": false,
+      "requestId": "close_8c9f89d35f09657aec34ba21686ad6e2"
+    },
+    "closeReplies": [
+      {
+        "requestId": "close_8c9f89d35f09657aec34ba21686ad6e2",
+        "decision": "cancel"
+      }
+    ],
+    "windowCloseCalls": 0,
+    "closeConfirmed": false,
+    "saveResult": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    },
+    "saveBridgeCalls": 0,
+    "notices": [
+      "Geöffnet: synthetic.sketchdraw.json",
+      "Extern geändert und neu geladen: synthetic.sketchdraw.json",
+      "AUTHORITY_DIVERGED"
+    ],
+    "disposeResult": {
+      "ok": false,
+      "code": "AUTHORITY_DIVERGED",
+      "message": "AUTHORITY_DIVERGED"
+    }
+  }
+}

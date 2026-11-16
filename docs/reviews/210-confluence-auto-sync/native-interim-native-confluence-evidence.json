@@ -1,0 +1,264 @@
+{
+  "platform": "darwin",
+  "mainBundleSha256": "44f8d84870794289e177677023043f4ce025fb53886fc3320aa8d4da6b083bc5",
+  "pageMapping": [
+    {
+      "pageId": "page:1",
+      "attachmentId": "att211001",
+      "filename": "sketchdraw-e40177cdcbdf-00f081779b83.png"
+    },
+    {
+      "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+      "attachmentId": "att211002",
+      "filename": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png"
+    }
+  ],
+  "uploads": [
+    {
+      "id": "att211001",
+      "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+      "version": 1,
+      "sha256": "14d4f827e55f52aa8e045f680bc3bb887caf1fabfb56edb21902c08bdd42ec5b",
+      "bytes": 18375,
+      "width": 960,
+      "height": 508,
+      "path": "/wiki/rest/api/content/210001/child/attachment",
+      "method": "POST"
+    },
+    {
+      "id": "att211002",
+      "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+      "version": 1,
+      "sha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+      "bytes": 16969,
+      "width": 960,
+      "height": 428,
+      "path": "/wiki/rest/api/content/210001/child/attachment",
+      "method": "POST"
+    },
+    {
+      "id": "att211001",
+      "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+      "version": 2,
+      "sha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+      "bytes": 19384,
+      "width": 1044,
+      "height": 508,
+      "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+      "method": "POST"
+    },
+    {
+      "id": "att211002",
+      "name": "sketchdraw-e40177cdcbdf-c7c1b1de692e.png",
+      "version": 2,
+      "sha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+      "bytes": 17812,
+      "width": 1044,
+      "height": 428,
+      "path": "/wiki/rest/api/content/210001/child/attachment/att211002/data",
+      "method": "POST"
+    },
+    {
+      "id": "att211001",
+      "name": "sketchdraw-e40177cdcbdf-00f081779b83.png",
+      "version": 3,
+      "sha256": "30823b2fb644301234db465da6d7fc2f08012446a4d667b25aed590047591481",
+      "bytes": 24662,
+      "width": 1164,
+      "height": 656,
+      "path": "/wiki/rest/api/content/210001/child/attachment/att211001/data",
+      "method": "POST"
+    }
+  ],
+  "bodyWrites": 1,
+  "foreignBodyPreserved": true,
+  "realIpc": {
+    "published": [
+      {
+        "images": [
+          {
+            "pageId": "page:1",
+            "pngSha256": "14d4f827e55f52aa8e045f680bc3bb887caf1fabfb56edb21902c08bdd42ec5b",
+            "uint8Array": true,
+            "bytes": 18375,
+            "decoded": {
+              "width": 960,
+              "height": 508
+            }
+          },
+          {
+            "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+            "pngSha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+            "uint8Array": true,
+            "bytes": 16969,
+            "decoded": {
+              "width": 960,
+              "height": 428
+            }
+          }
+        ],
+        "done": true,
+        "status": "synced"
+      },
+      {
+        "images": [
+          {
+            "pageId": "page:1",
+            "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+            "uint8Array": true,
+            "bytes": 19384,
+            "decoded": {
+              "width": 1044,
+              "height": 508
+            }
+          },
+          {
+            "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+            "pngSha256": "ae4c7eae1bb1cb7b3fc70491b058ddf62cd26110fcf3448fe57b36bf14a0f038",
+            "uint8Array": true,
+            "bytes": 16969,
+            "decoded": {
+              "width": 960,
+              "height": 428
+            }
+          }
+        ],
+        "done": true,
+        "status": "synced"
+      },
+      {
+        "images": [
+          {
+            "pageId": "page:1",
+            "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+            "uint8Array": true,
+            "bytes": 19384,
+            "decoded": {
+              "width": 1044,
+              "height": 508
+            }
+          },
+          {
+            "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+            "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+            "uint8Array": true,
+            "bytes": 17812,
+            "decoded": {
+              "width": 1044,
+              "height": 428
+            }
+          }
+        ],
+        "done": true,
+        "status": "synced"
+      }
+    ],
+    "actions": [
+      "get-settings",
+      "get-settings",
+      "after-document-saved",
+      "get-settings",
+      "configure-git",
+      "watch-document",
+      "git-status",
+      "get-settings",
+      "watch-document",
+      "configure-atlassian",
+      "list-confluence-pages",
+      "set-confluence-live-link",
+      "publish-confluence-live",
+      "list-jira-issues",
+      "publish-confluence-live",
+      "list-jira-issues",
+      "get-settings",
+      "watch-document",
+      "after-document-saved",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "list-jira-issues",
+      "get-settings",
+      "watch-document",
+      "publish-confluence-live"
+    ],
+    "blockedFetches": []
+  },
+  "restoredIpc": {
+    "published": [
+      {
+        "images": [
+          {
+            "pageId": "page:1",
+            "pngSha256": "bec62867ef740863146670a3bbc97c6c02342f358a0a80b1c810c9cd05695635",
+            "uint8Array": true,
+            "bytes": 19384,
+            "decoded": {
+              "width": 1044,
+              "height": 508
+            }
+          },
+          {
+            "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+            "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+            "uint8Array": true,
+            "bytes": 17812,
+            "decoded": {
+              "width": 1044,
+              "height": 428
+            }
+          }
+        ],
+        "done": true,
+        "status": "synced"
+      },
+      {
+        "images": [
+          {
+            "pageId": "page:1",
+            "pngSha256": "30823b2fb644301234db465da6d7fc2f08012446a4d667b25aed590047591481",
+            "uint8Array": true,
+            "bytes": 24662,
+            "decoded": {
+              "width": 1164,
+              "height": 656
+            }
+          },
+          {
+            "pageId": "page:53fbe008-324f-45d5-bd09-637c25c3b734",
+            "pngSha256": "d15a5f22dd6b4c32181aeb22c77c5e94061de2bddf36dbc55daa8c7aeddd4043",
+            "uint8Array": true,
+            "bytes": 17812,
+            "decoded": {
+              "width": 1044,
+              "height": 428
+            }
+          }
+        ],
+        "done": true,
+        "status": "synced"
+      }
+    ],
+    "actions": [
+      "get-settings",
+      "get-settings",
+      "get-settings",
+      "get-settings",
+      "watch-document",
+      "get-settings",
+      "watch-document",
+      "publish-confluence-live",
+      "list-jira-issues",
+      "publish-confluence-live"
+    ],
+    "blockedFetches": []
+  },
+  "realGitPullHead": "aa514bf1831ef1f9b38c245975765710f40b2732",
+  "liveTenantContacted": false,
+  "openedConfluenceBrowserRefreshVerified": false
+}

@@ -1,0 +1,71 @@
+{
+  "interim": true,
+  "files": [
+    {
+      "file": "electron/main.ts",
+      "sourceSha256": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+      "integrationSha256": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+      "identical": true
+    },
+    {
+      "file": "electron/plugin-service.ts",
+      "sourceSha256": "8b509dd9b25839f682eb52af14413f91f50061ad851737cf16abee80afad3380",
+      "integrationSha256": "8b509dd9b25839f682eb52af14413f91f50061ad851737cf16abee80afad3380",
+      "identical": true
+    },
+    {
+      "file": "electron/preload.ts",
+      "sourceSha256": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+      "integrationSha256": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+      "identical": true
+    },
+    {
+      "file": "src/domain/atlassian.ts",
+      "sourceSha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "integrationSha256": "9a18e06bb42e0cec39ff2886f124a222ac20af64ea6ef9bf08ec1dcca8db4310",
+      "identical": true
+    },
+    {
+      "file": "src/domain/confluence-live.ts",
+      "sourceSha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "integrationSha256": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+      "identical": true
+    },
+    {
+      "file": "src/domain/index.ts",
+      "sourceSha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "integrationSha256": "975a88a5f9f1c447b4bfce9af539127f7464127fe521a3ac4978af1ff023b4fb",
+      "identical": true
+    },
+    {
+      "file": "src/domain/plugins.ts",
+      "sourceSha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "integrationSha256": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+      "identical": true
+    },
+    {
+      "file": "src/renderer/state/contract.ts",
+      "sourceSha256": "8e889b87677a23de5918b3525d44200cc05607f6a03b1be565f0f57ff38b5019",
+      "integrationSha256": "8e889b87677a23de5918b3525d44200cc05607f6a03b1be565f0f57ff38b5019",
+      "identical": true
+    },
+    {
+      "file": "src/renderer/state/whiteboard.ts",
+      "sourceSha256": "4dbba88658312bd9257fbc26a8dfa3da5fece3fe40776f21b47a4acc9f05b19a",
+      "integrationSha256": "4dbba88658312bd9257fbc26a8dfa3da5fece3fe40776f21b47a4acc9f05b19a",
+      "identical": true
+    },
+    {
+      "file": "src/renderer/state/confluence-live-sync.ts",
+      "sourceSha256": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766",
+      "integrationSha256": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766",
+      "identical": true
+    },
+    {
+      "file": "src/renderer/lib/confluence-live-image.ts",
+      "sourceSha256": "47e08ef4df287e23ba9196bb47447e99b9de932bf71d13dba07c5c65a2c2b867",
+      "integrationSha256": "47e08ef4df287e23ba9196bb47447e99b9de932bf71d13dba07c5c65a2c2b867",
+      "identical": true
+    }
+  ]
+}

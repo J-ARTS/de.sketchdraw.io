@@ -1,0 +1,32 @@
+--- first-probe.cjs (harness only)
++++ controlled-probe.cjs (harness only)
+@@ -22485,10 +22485,14 @@
+   }
+ };
+ async function seeded(label) {
+-  const seed = createCrdtController(createDocument(label));
+-  seed.ydoc.clientID = 4294967294;
+-  seed.dispatch({ type: "rename", title: label + " cached" }, { actorId: "human:seed", expectedRevision: 0, source: "human" });
+-  const doc = seed.getSnapshot().document;
++  // Synthetic Yjs root entries have the largest 32-bit client ID before any write.
++  // Product controller/persistence/authority/store code is byte-identical to first-probe.cjs.
++  const doc = createDocument(label + " cached");
++  const cachedYdoc = new Y2.Doc({gc: true});
++  cachedYdoc.clientID = 0xffffffff;
++  writeDocumentToCrdt(cachedYdoc, doc);
++  const seed = createCrdtController(doc, 0, Y2.encodeStateAsUpdateV2(cachedYdoc));
++  cachedYdoc.destroy();
+   const persistence = attachIndexedDbPersistence(seed, `document:${doc.id}`);
+   await persistence.ready;
+   await wait(30);
+@@ -22573,8 +22577,8 @@
+   return result;
+ }
+ (async () => {
+-  const result = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), scope: "isolated in-memory fake-indexeddb; real product functions bundled into /tmp; no UI, real runtime, filesystem cache or Tenant", determinism: "Synthetic cached title mutation uses Y.Doc clientID 0xfffffffe so cache-vs-fresh-bootstrap winner ordering is stable. No production source modified.", pure: await pure(), store: await storeCase() };
+-  await (0, import_promises.writeFile)("/tmp/sketchdraw-217-authority-probe/result.json", JSON.stringify(result, null, 2) + "\n");
++  const result = { checkedAt: (/* @__PURE__ */ new Date()).toISOString(), scope: "isolated in-memory fake-indexeddb; real product functions bundled into /tmp; no UI, real runtime, filesystem cache or Tenant", determinism: "Controlled synthetic cache uses clientID 0xffffffff before writing the root via real writeDocumentToCrdt, then real createCrdtController(initialUpdate). All product code in this bundle is unchanged from first-probe.cjs. Fresh random clientID could equal the maximum (1/2^32); observed outputs establish the exercised ordering.", pure: await pure(), store: await storeCase() };
++  await (0, import_promises.writeFile)("/tmp/sketchdraw-217-authority-probe/controlled-result.json", JSON.stringify(result, null, 2) + "\n");
+   console.log(JSON.stringify(result, null, 2));
+   process.exit(result.pure.authorityAfter.code === "AUTHORITY_DIVERGED" && result.store.authorityAfter.code === "AUTHORITY_DIVERGED" && result.store.closeReplies.some((r) => r.decision === "cancel") ? 0 : 2);
+ })().catch((e) => {

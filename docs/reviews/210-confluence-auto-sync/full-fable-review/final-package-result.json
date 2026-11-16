@@ -1,0 +1,23 @@
+{
+  "command": [
+    "npx",
+    "electron-builder",
+    "--config",
+    "electron-builder.json",
+    "--dir",
+    "--mac",
+    "--arm64",
+    "-c.directories.output=/tmp/sketchdraw-210-fable-final-build"
+  ],
+  "startedAt": "2026-11-16T12:28:47.941066+00:00",
+  "exitCode": 0,
+  "endedAt": "2026-11-16T12:28:54.777430+00:00",
+  "durationSeconds": 6.836311374907382,
+  "appPath": "/tmp/sketchdraw-210-fable-final-build/mac-arm64/Sketchdraw.app",
+  "asarSha256": "11fd4f322bbcc02cfd802c70b8e8967cfe01ae402425addc6f4ec247ef7f372c",
+  "bundles": {
+    "dist-electron/main.cjs": "9a3dedc10f9f76f0a4c61e99b6bb220b3126910f0d701fd2eadb580d450c0c83",
+    "dist-electron/preload.cjs": "3a3b5d0ce66b7fafe8830e836e2a795aeab416094d6260dde841e6c98ba896a2",
+    "dist-mcp/server.cjs": "a4f86f229a0683fa7716766328873807032f704ac637167c1ad4b1d178332169"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "recordedAt": "2026-11-16T12:21:55.350472+00:00",
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "tool": "Claude Code CLI 2.1.323",
+  "effort": "high",
+  "identitySource": "Root confirmed actual CLI initialization; Fable report itself does not expose CLI/effort",
+  "parentResult": "result.json",
+  "result": "correction-result.json",
+  "status": "terminal_success_independent_acceptance_pending_B8_open",
+  "startedAt": "2026-11-16T12:05:43.991460+00:00",
+  "endedAt": "2026-11-16T12:16:44.863087+00:00",
+  "durationMs": 660034,
+  "recordedSeconds": 660.034,
+  "wrapperSecondsSeparateNotAdded": 660.8726899169851,
+  "turns": 76,
+  "previousCumulativeCostUsd": 8.1385424,
+  "cumulativeCostUsd": 17.814655,
+  "incrementalCostUsd": 9.6761126,
+  "incrementalCounterCategories": {
+    "inputTokens": 82,
+    "outputTokens": 66636,
+    "thinkingTokens": 31818,
+    "cacheReadInputTokens": 19017203,
+    "cacheCreationInputTokens": 200411,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 200411,
+    "webSearchRequests": 0
+  },
+  "tokens": 19284332,
+  "usageAndIncrementalModelCountersMatch": true,
+  "allModelCounterDeltasVerified": true,
+  "thinkingAndCacheSubcategoriesAlreadyIncluded": true,
+  "providerMetadataStable": true,
+  "fableReportedChecks": [
+    "137/137 focused unit tests passed",
+    "typecheck passed",
+    "build passed"
+  ],
+  "fableReportedCoverage": {
+    "integrationChangeEntries": 33,
+    "originalChangeEntries": 22,
+    "allChangeHunksRead": true,
+    "unchangedRemainderNotNecessarilyRead": true,
+    "originalEvidence": "Root-provided original-source-diff.txt; direct access denied",
+    "independentAcceptance": "pending"
+  },
+  "openFinding": "B8 partial-upload journal alias independently statically confirmed by Root; isolated reproduction in progress, next Fable correction pending",
+  "liveEvidence": "Persisted Jira link to Architektur/164037 shown by UI per Root, last sync still09:20. Fresh official MCP edit attributed to packaged PID33132, rev0→1; renewed Tenant publication not confirmed.",
+  "nextStep": "Independently verify Fable B1/B2/B4/B5/B7 corrections and all 33 integration plus 22 original change entries; fix newly confirmed B8 partial-upload journal alias via actual Fable, then repeat affected checks and native acceptance on the fresh build. Persisted Jira link and attributed restart edit are confirmed, renewed Tenant autosync and regular user-profile quit remain open. #219 recovery and #220 renderer-crash close stay separate planned issues. No source graph refresh; final ledger projection deferred.",
+  "archives": [
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-result.json",
+      "bytes": 20531,
+      "sha256": "efce019e81e60832a120d2a3289ecb5851bf7fbbc56cf784ba5a7aa79896eaab"
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/fable-correction.md",
+      "bytes": 11085,
+      "sha256": "c4a53df9c0b48839a1393cd382d8379d0b7597f3753002a95a2789e1871b18af"
+    },
+    {
+      "path": "docs/reviews/210-confluence-auto-sync/full-fable-review/correction-run.json",
+      "bytes": 411,
+      "sha256": "8f6351ef24e3e8d5271e656662405ce68d168896c631bf273394870cb9eb21c6"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/tenant-restart-edit.json",
+      "bytes": 8778,
+      "sha256": "4dd8b6182c45466aca8122656653a27f0dd57500954eaacc0a67aaad478dff6f"
+    }
+  ],
+  "graphProjection": "Explicitly deferred by Root; graph files untouched"
+}

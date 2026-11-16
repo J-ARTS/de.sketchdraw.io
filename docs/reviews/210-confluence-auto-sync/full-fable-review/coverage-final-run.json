@@ -1,0 +1,11 @@
+{
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "previousCumulativeCostUsd": 19.817224200000002,
+  "status": "process-ended-awaiting-review",
+  "startedAt": "2026-11-16T12:27:57.071090+00:00",
+  "endedAt": "2026-11-16T12:29:36.852285+00:00",
+  "durationSeconds": 99.78102400002535,
+  "processExitCode": 0
+}

@@ -1,0 +1,10 @@
+{
+  "observedAt": "2026-11-16T08:23:57.058Z",
+  "response": {
+    "error": {
+      "code": "ACCESS_DENIED",
+      "message": "Sketchdraw Desktop has no open local document.",
+      "retryable": false
+    }
+  }
+}

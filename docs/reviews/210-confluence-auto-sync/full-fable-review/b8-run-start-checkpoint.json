@@ -1,0 +1,19 @@
+{
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "previousCumulativeCostUsd": 17.814655,
+  "status": "running",
+  "startedAt": "2026-11-16T12:21:47.168043+00:00",
+  "checkpointOnly": true,
+  "capturedAt": "2026-11-16T12:23:41.419676+00:00",
+  "rootExecution": 33672,
+  "scopeAuthorization": "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6916257395",
+  "measurements": {
+    "observedSeconds": null,
+    "tokens": null,
+    "costUsd": null
+  },
+  "baselineResult": "correction-result.json",
+  "note": "Actual same-session Fable B8 correction running. Root owns b8-run.json and b8-events.jsonl; no terminal success or acceptance. All incremental counters must be computed against correction-result.json at terminal completion."
+}

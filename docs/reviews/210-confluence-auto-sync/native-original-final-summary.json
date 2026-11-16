@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-11-15T23:03:50.988962+00:00",
+  "sourceBase": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+  "sourceUncommitted": true,
+  "files": {
+    "electron/main.ts": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+    "electron/plugin-service.ts": "8b509dd9b25839f682eb52af14413f91f50061ad851737cf16abee80afad3380",
+    "electron/preload.ts": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+    "src/domain/confluence-live.ts": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+    "src/renderer/state/whiteboard.ts": "4dbba88658312bd9257fbc26a8dfa3da5fece3fe40776f21b47a4acc9f05b19a",
+    "src/renderer/App.vue": "9bb6a5537c45bae5d82a7dd680eb620c38e345177b8e6f83f29728db7db33383",
+    "src/renderer/components/PluginSettings.vue": "57ab3b895f9b799378a026fd1ecd7f10e91c39135c37aa55bb0520a206fcb034",
+    "tests/electron/confluence-live.spec.ts": "edfb828d5811bddb7335b53ff59d610bf6189db219acecfb2a1ec662a07ab6e9",
+    "tests/electron/confluence-fixture.ts": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37"
+  },
+  "mainTest": {
+    "result": "passed",
+    "report": "native-final-third-report.json",
+    "twoPages": true,
+    "localEdit": true,
+    "real60SecondGitPull": true,
+    "inactivePageUpdated": true,
+    "restartLinkPersists": true,
+    "postRestartEditUploads": true
+  },
+  "lifecycleTest": {
+    "result": "passed in separate unchanged run",
+    "report": "native-lifecycle-final-report.json",
+    "durationSeconds": 10.9
+  },
+  "earlierFailuresPreserved": [
+    "native-final-first-report.json",
+    "native-final-second-report.json",
+    "native-final-third-report.json"
+  ],
+  "nativeRealTenantContacted": false,
+  "openedLiveDocRefreshVerified": false,
+  "mainIntegrationVerified": false
+}

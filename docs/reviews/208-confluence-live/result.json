@@ -1,0 +1,85 @@
+{
+  "issue": 208,
+  "revision": "96c0039431dcee973ff94f80ce1e4a707d07abcb",
+  "recordedAt": "2026-11-15T21:22:36.535699+00:00",
+  "status": "blocked",
+  "reason": "Live Doc target confirmed and local reference saved in app; Workspace plugin input still unavailable. User asked to open Jira plugin panel directly.",
+  "plugin": "SketchDraw Atlassian plugin, Installed > Jira",
+  "checks": [
+    {
+      "name": "Focused existing unit suites",
+      "command": "npx vitest run tests/unit/atlassian.spec.ts tests/unit/annotation.spec.ts tests/unit/plugin-service.spec.ts tests/unit/renderer/plugin-store.spec.ts",
+      "environment": "macOS arm64, Node 22.16.0, Vitest 5.0.5",
+      "status": "passed",
+      "files": 4,
+      "tests": 61,
+      "durationSeconds": 2.1
+    },
+    {
+      "name": "Reference native schema, JSON and diagram code roundtrip",
+      "status": "passed",
+      "evidence": "validation.json",
+      "review": "Root verified artifact hash, page/node counts and rendered layout."
+    },
+    {
+      "name": "Confluence codec preservation",
+      "status": "failed",
+      "evidence": "codec-probe.json",
+      "followupIssue": 209
+    },
+    {
+      "name": "Live plugin search/embed/send/reload/version conflict",
+      "status": "not_run",
+      "reason": "Target native Live Doc is empty and readable; plugin panel cannot yet be opened reliably through computer use."
+    },
+    {
+      "name": "Actual app reference document",
+      "status": "passed",
+      "evidence": "SketchDraw UI Saved state plus read-only MCP overview: document:aws-bedrock-agentcore-live-doc-208, revision 1, 2 pages, 14 bound edges."
+    }
+  ],
+  "externalState": {
+    "existingConfluenceTenantObserved": true,
+    "existingSketchdrawAtlassianPluginObserved": true,
+    "confluencePageCreated": false,
+    "confluenceContentChanged": false,
+    "pluginConfigurationChanged": false,
+    "cloudDeployment": false,
+    "referenceOpenedAndSavedInApp": true,
+    "nativeLiveDocObserved": true,
+    "targetPageId": "164037",
+    "targetTitle": "Architektur",
+    "targetBodyObserved": "empty"
+  },
+  "reference": "aws-bedrock-agentcore.sketchdraw.json",
+  "sources": [
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html",
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-oauth.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-use-converse-api.html",
+    "https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base.html",
+    "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html"
+  ],
+  "nextSteps": [
+    "Use user-opened Jira/Confluence plugin panel; search Architektur (page 164037).",
+    "Embed target through plugin and check page status before sending the architecture reference.",
+    "Verify remote body/version, then reload and a controlled stale-version attempt if compatible with Live Doc semantics."
+  ],
+  "limits": [
+    "Pages v2 supports native Live Docs; actual target plugin interoperability is not yet live verified.",
+    "Manual reload/send, no Confluence automatic polling.",
+    "Do not send rich production page content before issue 209 is addressed.",
+    "Live Doc content may change within one version. Plugin currently retains only page version, not subtype/status/imported source body; do not equate a passing stale-version test with complete concurrent-editor protection."
+  ],
+  "repositoryChanges": "Artifacts and ledger only; local and not integrated.",
+  "referenceSha256": "bdf3038570b04d6b0141faa0bf2405238f2d24ff3923c0754eef1c10f62cc888",
+  "apiReview": {
+    "tool": "OpenAI Codex delegated read-only review",
+    "finding": "Native Live Docs use Pages v2; current with version N+1 is allowed. Live Doc body can change within the same version, so version equality alone is not a complete concurrency guard.",
+    "sources": [
+      "https://community.developer.atlassian.com/t/please-test-update-your-confluence-cloud-apps-to-function-in-live-docs-by-may-30-2025/89849",
+      "https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-id-put",
+      "https://jira.atlassian.com/browse/CONFCLOUD-83848"
+    ],
+    "liveVerified": false
+  }
+}

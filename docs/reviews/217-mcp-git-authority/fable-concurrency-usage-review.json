@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-11-16T09:23:25.420142+00:00",
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "terminal": "success",
+  "processExitCode": 0,
+  "endedAt": "2026-11-16T09:20:05.876090+00:00",
+  "durationMs": 448442,
+  "turns": 22,
+  "incrementalTokenCategories": {
+    "input_tokens": 26,
+    "output_tokens": 39964,
+    "cache_read_input_tokens": 3571377,
+    "cache_creation_input_tokens": 54790
+  },
+  "incrementalTokens": 3666157,
+  "categoriesEqualTopLevelUsage": true,
+  "priorCumulativeCostUsd": 9.212315200000003,
+  "currentCumulativeCostUsd": 12.401998600000002,
+  "incrementalCostUsd": 3.1896834,
+  "costDerivation": "Cumulative modelUsage cost difference, rounded to the reported seven decimal places; cumulative total is not counted twice.",
+  "thinkingTokensExcludedFromExtraSum": true,
+  "thinkingExplanation": "Nested thinking_tokens20572 already forms part of output_tokens39964. Cache subcategories are already included in cache_creation_input_tokens.",
+  "mainRunUnchanged": true,
+  "nativeEvidence": "Root exec11937 running; native-final-run.json is active and is neither written nor archived as final by this task.",
+  "sourceFreeze": "native-final-source-before.json",
+  "sourceFreezeSha256": "87b460fa2f390b52bed4559a67c161e114a0d48f8b91f6f1b9a97461a83c7ec7",
+  "testAttribution": "Fable reports 30/30 four times, 433/433 focused unit tests, typecheck/build passed. No Fable native execution. Independent review and Root native result pending.",
+  "preservation": {
+    "otherRunRecordsUnchanged": 281,
+    "mainRunUnchanged": true,
+    "sourceGraphUnchanged": true,
+    "nativeRunFileNotWrittenOrCopied": true
+  },
+  "projectionChecks": {
+    "original": "passed",
+    "managed": "passed",
+    "traceabilityNodes": 2983,
+    "traceabilityLinks": 4116,
+    "runCount": 282
+  }
+}

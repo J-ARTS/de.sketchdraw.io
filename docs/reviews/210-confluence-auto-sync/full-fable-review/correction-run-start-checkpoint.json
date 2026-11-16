@@ -1,0 +1,19 @@
+{
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "previousCumulativeCostUsd": 8.1385424,
+  "status": "running",
+  "createdAt": "2026-11-16T12:05:31.584430+00:00",
+  "startedAt": "2026-11-16T12:05:43.991460+00:00",
+  "checkpointOnly": true,
+  "capturedAt": "2026-11-16T12:07:42.439994+00:00",
+  "rootExecution": 74582,
+  "scopeAuthorization": "https://github.com/J-ARTS/de.sketchdraw.io/issues/210#issuecomment-6915919024",
+  "measurements": {
+    "observedSeconds": null,
+    "tokens": null,
+    "costUsd": null
+  },
+  "note": "Active same-session Fable correction and coverage review. Root owns correction-run.json/events. Baseline for terminal deltas is result.json modelUsage; cumulative prior cost8.1385424USD. No graph projection until terminal review final."
+}

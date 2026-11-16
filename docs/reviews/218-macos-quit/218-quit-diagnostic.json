@@ -1,0 +1,201 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--grep",
+      "#217",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-218-quit-diagnostic-artifacts"
+    ],
+    "configFile": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/sketchdraw-218-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/sketchdraw-218-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/tmp/sketchdraw-218-quit-diagnostic-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "the local agent and a normal quit survive file and Git replacements of the open diagram, also after restart (#217)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5876,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\u001b[22m\n\u001b[2m    14 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\u001b[22m\n\u001b[2m    14 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n    at draw (/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:79:90)\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:434:5",
+                    "location": {
+                      "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                      "column": 90,
+                      "line": 79
+                    },
+                    "snippet": "  77 |       await page.mouse.move(...to, { steps: 8 });\n  78 |       // A hover silhouette is not a drag. Require the real gesture's draft while the button is still pressed.\n> 79 |       await expect(canvas.locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')).toHaveCount(1);\n     |                                                                                          ^\n  80 |     } finally { await page.mouse.up(); }\n  81 |     await expect(rectangles).toHaveCount(before.length + 1);\n  82 |     const created = (await rectangles.evaluateAll(elements => elements.map(element => element.getAttribute('data-element-id')))).filter(id => !before.includes(id));"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                        "column": 90,
+                        "line": 79
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')\u001b[22m\n\u001b[2m    14 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n\n  77 |       await page.mouse.move(...to, { steps: 8 });\n  78 |       // A hover silhouette is not a drag. Require the real gesture's draft while the button is still pressed.\n> 79 |       await expect(canvas.locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')).toHaveCount(1);\n     |                                                                                          ^\n  80 |     } finally { await page.mouse.up(); }\n  81 |     await expect(rectangles).toHaveCount(before.length + 1);\n  82 |     const created = (await rectangles.evaluateAll(elements => elements.map(element => element.getAttribute('data-element-id')))).filter(id => !before.includes(id));\n    at draw (/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:79:90)\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:434:5"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T09:30:41.125Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-drag-diagnostics",
+                      "contentType": "application/json",
+                      "body": "eyJmcm9tIjpbMzUwLDIyMF0sInRvIjpbNTUwLDM2MF0sImJlZm9yZSI6W10sInBvaW50ZXIiOlt7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOmZhbHNlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVyZG93biIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJ1cCIsIngiOjQ2Mi43NSwieSI6NDAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6ZmFsc2UsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJkb3duIiwieCI6MzUwLCJ5IjoyMjAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoiZ290cG9pbnRlcmNhcHR1cmUiLCJ4IjozNzUsInkiOjIzNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjowfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjM3NSwieSI6MjM3LjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjB9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDAwLCJ5IjoyNTUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NDI1LCJ5IjoyNzIuNSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NTAsInkiOjI5MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MX0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo0NzUsInkiOjMwNy41LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUwMCwieSI6MzI1LCJidXR0b24iOi0xLCJidXR0b25zIjoxLCJwb2ludGVySWQiOjEsInRydXN0ZWQiOnRydWUsIm9uQ2FudmFzIjp0cnVlLCJkcmFmdENvdW50IjoxfSx7InR5cGUiOiJwb2ludGVybW92ZSIsIngiOjUyNSwieSI6MzQyLjUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjEsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6Imxvc3Rwb2ludGVyY2FwdHVyZSIsIngiOjU4NC41NzAzMTI1LCJ5Ijo3MDUuNzMwNDY4NzUsImJ1dHRvbiI6LTEsImJ1dHRvbnMiOjAsInBvaW50ZXJJZCI6MSwidHJ1c3RlZCI6dHJ1ZSwib25DYW52YXMiOnRydWUsImRyYWZ0Q291bnQiOjF9LHsidHlwZSI6InBvaW50ZXJtb3ZlIiwieCI6NTg0LjU3MDMxMjUsInkiOjcwNS43MzA0Njg3NSwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoicG9pbnRlcm1vdmUiLCJ4Ijo1NTAsInkiOjM2MCwiYnV0dG9uIjotMSwiYnV0dG9ucyI6MSwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH0seyJ0eXBlIjoicG9pbnRlcnVwIiwieCI6NTUwLCJ5IjozNjAsImJ1dHRvbiI6MCwiYnV0dG9ucyI6MCwicG9pbnRlcklkIjoxLCJ0cnVzdGVkIjp0cnVlLCJvbkNhbnZhcyI6dHJ1ZSwiZHJhZnRDb3VudCI6MH1dLCJkb20iOnsidmlld3BvcnQiOnsid2lkdGgiOjEyODAsImhlaWdodCI6NzcyLCJzY2FsZSI6Mn0sImZvY3VzZWQiOnRydWUsImFjdGl2ZSI6eyJ0YWciOiJzdmciLCJ0ZXN0SWQiOiJ3aGl0ZWJvYXJkLWNhbnZhcyIsInJvbGUiOiJhcHBsaWNhdGlvbiIsImxhYmVsIjoiWmVpY2hlbmZsw6RjaGUiLCJjbGFzc05hbWUiOm51bGwsIm9uQ2FudmFzIjp0cnVlfSwiY2FudmFzIjp7IngiOjAsInkiOjAsIndpZHRoIjoxMjgwLCJoZWlnaHQiOjc3Mn0sInNhdmVTdGF0dXMiOiJ1bnNhdmVkLW5ldyIsInBhZ2VMYWJlbCI6IlNlaXRlbiAoMSksIGFrdHVlbGxlIFNlaXRlOiBTZWl0ZSAxIiwib3BlbkRpYWxvZ3MiOltdLCJwcmVzc2VkIjpbeyJ0YWciOiJCVVRUT04iLCJ0ZXN0SWQiOm51bGwsInJvbGUiOm51bGwsImxhYmVsIjoiUmVjaHRlY2siLCJjbGFzc05hbWUiOiJ0b29sIHNoYXBlLXRvb2wgc2QtaWNvbi1idG4iLCJvbkNhbnZhcyI6ZmFsc2V9XSwic2lsaG91ZXR0ZVZpc2libGUiOnRydWUsImRyYWZ0Q291bnQiOjAsInJlY3RhbmdsZXMiOltdLCJwb2ludHMiOlt7IngiOjM1MCwieSI6MjIwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fSx7IngiOjU1MCwieSI6MzYwLCJ0b3AiOnsidGFnIjoicmVjdCIsInRlc3RJZCI6bnVsbCwicm9sZSI6bnVsbCwibGFiZWwiOm51bGwsImNsYXNzTmFtZSI6bnVsbCwib25DYW52YXMiOnRydWV9fV19fQ=="
+                    },
+                    {
+                      "name": "native-authority-217-failed-stage",
+                      "contentType": "application/json",
+                      "body": "eyJzdGFnZSI6ImxhdW5jaCIsInJvdW5kcyI6W10sInBhZ2VFcnJvckNvdW50IjowLCJsaWZlY3ljbGUiOnsid2luZG93Q291bnQiOjF9LCJjaGlsZCI6eyJleGl0Q29kZSI6bnVsbCwic2lnbmFsQ29kZSI6bnVsbH19"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/sketchdraw-218-quit-diagnostic-artifacts/confluence-live-the-local--fe8be-ram-also-after-restart-217--electron/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+                    "column": 90,
+                    "line": 79
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-e6a634029f8615da3f1c",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 396,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T09:30:40.496Z",
+    "duration": 6564.116,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

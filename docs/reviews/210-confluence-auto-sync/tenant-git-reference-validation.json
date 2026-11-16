@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-16T08:06:47.939Z",
+  "commit": "6aa1e14df8f67115e9fe577ca0613f5cde676fa7",
+  "valid": true,
+  "pages": [
+    {
+      "id": "page:architecture",
+      "name": "01 · AWS Bedrock & AgentCore"
+    },
+    {
+      "id": "page:live-doc",
+      "name": "02 · Entscheidungen & Quellen"
+    }
+  ],
+  "elements": 62,
+  "annotation": [
+    {
+      "id": "annotation:architecture-doc",
+      "height": 1415,
+      "blocks": 38
+    }
+  ]
+}

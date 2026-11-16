@@ -1,0 +1,74 @@
+{
+  "before": {
+    "electron/plugin-service.ts": "f35b01385dcb4dba3cc2fc5c7bee95a1ec91cac6db2fdca5bc2aa685ea04ef51",
+    "electron/main.ts": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+    "electron/preload.ts": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+    "src/domain/confluence-live.ts": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+    "src/domain/plugins.ts": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+    "src/renderer/state/confluence-live-sync.ts": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766"
+  },
+  "after": {
+    "electron/plugin-service.ts": "f35b01385dcb4dba3cc2fc5c7bee95a1ec91cac6db2fdca5bc2aa685ea04ef51",
+    "electron/main.ts": "dcce42fad5ec3764edc15ce1f95f22460d02cde32385d8b692ae2a464fc1ba0b",
+    "electron/preload.ts": "e87a75fc5981373f46aeeb171eb55a56857d0c77f0e4ec16ef49462bf54a6018",
+    "src/domain/confluence-live.ts": "58e917bde80ae8b5d5fbde201b13b091687c6f7663aba5499827b0f17c48375a",
+    "src/domain/plugins.ts": "9c333586d23e76cf021dd579968143be4b6cf897d1a62ba640396e72716b2e12",
+    "src/renderer/state/confluence-live-sync.ts": "92f350fd0e7240544521bae6b9d3a18ed184deb05d3abcfb6263b79da83b8766"
+  },
+  "unchanged": true,
+  "createdAt": "2026-11-15T22:24:10.825Z",
+  "runtime": "v22.16.0",
+  "mockOnly": true,
+  "fetchObservesAbortSignal": true,
+  "results": [
+    {
+      "name": "releaseRenderer actively aborts pending fetch",
+      "passed": true,
+      "signalSeen": true,
+      "aborted": true,
+      "outcome": {
+        "status": "cancelled",
+        "message": "Die Aktion wurde abgebrochen, weil sich Diagramm, Profil, Konto oder Verknüpfung geändert haben. Bitte erneut starten.",
+        "uploaded": 0,
+        "bodyUpdated": false
+      },
+      "mutations": []
+    },
+    {
+      "name": "CF10 persists with an AbortSignal-aware fetch",
+      "passed": false,
+      "failureConfirmed": true,
+      "aborted": true,
+      "cancelled": [
+        {
+          "status": "cancelled",
+          "message": "Die Aktion wurde abgebrochen, weil sich Diagramm, Profil, Konto oder Verknüpfung geändert haben. Bitte erneut starten.",
+          "uploaded": 0,
+          "bodyUpdated": false
+        },
+        {
+          "status": "cancelled",
+          "message": "Die Aktion wurde abgebrochen, weil sich Diagramm, Profil, Konto oder Verknüpfung geändert haben. Bitte erneut starten.",
+          "uploaded": 0,
+          "bodyUpdated": false
+        }
+      ],
+      "preservedPublished": null,
+      "next": {
+        "status": "synced",
+        "message": "Diagramm in Confluence aktualisiert.",
+        "uploaded": 1,
+        "bodyUpdated": false,
+        "syncedAt": "2026-11-15T22:24:35.871Z"
+      },
+      "mutations": [
+        {
+          "url": "https://old.example.test/wiki/rest/api/content/7/child/attachment/att101/data",
+          "method": "POST",
+          "time": 1000000
+        }
+      ],
+      "remoteVersion": 21
+    }
+  ]
+}

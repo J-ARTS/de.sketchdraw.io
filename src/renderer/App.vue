@@ -119,7 +119,17 @@ function key(event: KeyboardEvent): KeyInput {
   const target = event.target as Element;
   return { key: event.key, code: event.code, shiftKey: event.shiftKey, altKey: event.altKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey, repeat: event.repeat, isComposing: event.isComposing, clipboardEvents: true, scope: target?.closest('input,textarea,[contenteditable=true]') ? 'text' : target?.closest('[data-testid=whiteboard-canvas]') ? 'canvas' : 'other' };
 }
-function keydown(event: KeyboardEvent) { if (!event.defaultPrevented && store.handleKeyDown(key(event))) event.preventDefault(); }
+/**
+ * A modal dialog owns the keyboard. A key that reaches the page from outside the open dialog (focus fell out of it,
+ * for example because the focused control was disabled) is no canvas shortcut: it must not change the diagram behind
+ * the dialog and keeps its native meaning, so Escape still closes the dialog (#210).
+ */
+function behindModal(event: KeyboardEvent): boolean {
+  if (document.querySelector('dialog:modal') === null) return false;
+  // Several modal dialogs can be open on top of each other; a key from inside any of them is theirs to handle.
+  return !(event.target instanceof Element && event.target.closest('dialog:modal') !== null);
+}
+function keydown(event: KeyboardEvent) { if (!event.defaultPrevented && !behindModal(event) && store.handleKeyDown(key(event))) event.preventDefault(); }
 function keyup(event: KeyboardEvent) { store.handleKeyUp(key(event)); }
 /**
  * Copy and paste on the workspace arrive as clipboard events (#174): they carry image files and need no clipboard

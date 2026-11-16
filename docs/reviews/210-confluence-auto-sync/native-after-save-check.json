@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+      "sha256": "0736b17c6a8b640813728ec8be3e325fd26662bd9dc456303b5593732e72a5ee"
+    },
+    {
+      "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-fixture.ts",
+      "sha256": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37"
+    }
+  ],
+  "compiler": "6.0.3",
+  "diagnostics": [],
+  "observer": {
+    "status": "passed",
+    "snapshots": [
+      {
+        "started": 1,
+        "completed": 0,
+        "rejected": 0
+      },
+      {
+        "started": 1,
+        "completed": 1,
+        "rejected": 0
+      },
+      {
+        "started": 2,
+        "completed": 2,
+        "rejected": 1
+      }
+    ],
+    "originalArgumentsResultAndRejectionPreserved": true
+  },
+  "nativeAppExecuted": false,
+  "productSourcesChanged": false,
+  "tenantContacted": false,
+  "networkUsed": false
+}

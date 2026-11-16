@@ -30,6 +30,7 @@ import type {
 import type { ResourceCardField } from '@/catalog';
 import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
+import type { ConfluenceLiveStatus } from './confluence-live-sync';
 
 export type Tool =
   | 'select' | 'hand' | 'rectangle' | 'ellipse' | 'diamond'
@@ -196,6 +197,11 @@ export interface CreateStoreOptions {
   initialTheme?: 'light' | 'dark';
   /** Where preferences (theme, canvas background, language) persist; defaults to localStorage. Tests may inject or disable. */
   preferences?: { load(): Preferences; save(value: Preferences): void } | null;
+  /**
+   * Timing and rendering of the automatic Confluence publication. `rasterize` turns the SVG of one diagram page into
+   * PNG bytes and defaults to the window's own renderer; tests inject a deterministic one.
+   */
+  confluenceLive?: { debounceMs?: number; retryDelaysMs?: readonly number[]; failureHoldMs?: number; rasterize?: (svg: string, width: number, height: number) => Promise<Uint8Array> };
 }
 
 /** Side of a selected shape from which a connected copy is created (#36). */
@@ -324,6 +330,8 @@ export interface WhiteboardState {
   pluginBusy: boolean;
   confluencePages: readonly ConfluencePageSummary[];
   pendingExternalDocument: boolean;
+  /** Progress of the automatic publication to the linked Confluence page (#210); the link itself is in `pluginSettings.confluenceLive`. */
+  confluenceLive: ConfluenceLiveStatus;
 }
 
 export interface WhiteboardStore {
@@ -496,6 +504,10 @@ export interface WhiteboardStore {
   insertConfluencePage(pageId: string): Promise<boolean>;
   syncConfluenceElement(elementId: string): Promise<boolean>;
   refreshConfluenceElement(elementId: string): Promise<boolean>;
+  /** Links the open local diagram to a Confluence page that is kept up to date automatically; `null` removes the link. */
+  setConfluenceLiveLink(pageId: string | null): Promise<boolean>;
+  /** Publishes the linked diagram now instead of after the next change. */
+  syncConfluenceLive(): void;
   syncJiraTasks(options?: { announce?: boolean }): Promise<boolean>;
   acceptExternalDocument(): Promise<boolean>;
 

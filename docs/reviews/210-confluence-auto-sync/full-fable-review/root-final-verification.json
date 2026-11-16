@@ -1,0 +1,44 @@
+[
+  {
+    "name": "typecheck",
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "startedAt": "2026-11-16T12:24:57.887681+00:00",
+    "exitCode": 0,
+    "endedAt": "2026-11-16T12:25:11.870179+00:00",
+    "durationSeconds": 13.98255858302582
+  },
+  {
+    "name": "build",
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "startedAt": "2026-11-16T12:25:11.870706+00:00",
+    "exitCode": 0,
+    "endedAt": "2026-11-16T12:25:14.111899+00:00",
+    "durationSeconds": 2.2412154999328777
+  },
+  {
+    "name": "native",
+    "command": [
+      "npx",
+      "playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--reporter=json",
+      "--output=/tmp/sketchdraw-210-fable-final-native"
+    ],
+    "startedAt": "2026-11-16T12:25:14.112279+00:00",
+    "exitCode": 1,
+    "endedAt": "2026-11-16T12:25:58.079004+00:00",
+    "durationSeconds": 43.96685279207304
+  }
+]

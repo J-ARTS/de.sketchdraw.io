@@ -1,0 +1,15 @@
+{
+  "observedAt": "2026-11-16T07:47:13.246Z",
+  "pageId": "164037",
+  "documentId": "document:aws-bedrock-agentcore-live-doc-208",
+  "manualSyncUsed": false,
+  "browserReloaded": false,
+  "statusLines": [
+    "\t\t\t\t\t\t18 Text Diagramm mit Confluence-Seite „Architektur“ verknüpft. Änderungen werden automatisch übertragen.",
+    "\t\t\t\t\t\t\t\t\t\t59 text Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen. Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.",
+    "\t\t\t\t\t\t\t\t\t\t64 text Sketchdraw zeigt alle Seiten dieses Diagramms als Bilder auf einer Confluence-Seite und hält sie nach jeder Änderung automatisch aktuell. Andere Inhalte der Seite bleiben unverändert. VERKNÜPFT MIT Architektur https://j-art.atlassian.net Diagramm wird nach Confluence übertragen …",
+    "\t\t\t\t\t\t\t\t\t\t65 Button (disabled) Jetzt synchronisieren",
+    "\t\t\t\t\t\t\t\t\t\t68 Text Die Übertragung läuft, solange die Desktop-App mit diesem Diagramm geöffnet ist. Änderungen, die über Git eintreffen, werden übertragen, wenn das Git-Plugin aktiv ist und „Automatisch abrufen“ eingeschaltet ist. Die Verknüpfung gilt für dieses Profil auf diesem Gerät und wird nicht im Diagramm gespeichert.",
+    "\t\t\t\t\t\t\t\t\t\t\t\t75 text Architektur Live verknüpft"
+  ]
+}

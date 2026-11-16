@@ -1,0 +1,11 @@
+{
+  "sessionId": "5aa92638-1d2c-4ecc-b644-a106b55ff379",
+  "model": "claude-fable-5-2",
+  "effort": "high",
+  "status": "process-ended-awaiting-review",
+  "manifest": "/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/docs/reviews/210-confluence-auto-sync/full-fable-review/source-manifest-before.json",
+  "startedAt": "2026-11-16T11:49:32.027305+00:00",
+  "endedAt": "2026-11-16T11:59:47.405992+00:00",
+  "durationSeconds": 615.3796890419908,
+  "processExitCode": 0
+}

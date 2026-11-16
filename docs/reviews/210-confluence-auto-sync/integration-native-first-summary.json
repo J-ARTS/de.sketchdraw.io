@@ -1,0 +1,282 @@
+[
+  {
+    "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+    "status": "passed",
+    "durationMs": 87076,
+    "errors": []
+  },
+  {
+    "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+    "status": "failed",
+    "durationMs": 5846,
+    "errors": [
+      "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByTestId('whiteboard-canvas').locator('[data-render-state=\"document\"][data-kind=\"rectangle\"][data-element-id^=\"rectangle:\"]')\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByTestId('whiteboard-canvas').locator('[data-render-state=\"document\"][data-kind=\"rectangle\"][data-element-id^=\"rectangle:\"]') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByTestId('whiteboard-canvas').locator('[data-render-state=\"document\"][data-kind=\"rectangle\"][data-element-id^=\"rectangle:\"]')\u001b[22m\n\u001b[2m    14 × locator resolved to 0 elements\u001b[22m\n\u001b[2m       - unexpected value \"0\"\u001b[22m\n\n\n  77 |       await expect(canvas.locator('[data-render-state=\"draft\"][data-kind=\"rectangle\"]')).toHaveCount(1);\n  78 |     } finally { await page.mouse.up(); }\n> 79 |     await expect(rectangles).toHaveCount(before.length + 1);\n     |                              ^\n  80 |     const created = (await rectangles.evaluateAll(elements => elements.map(element => element.getAttribute('data-element-id')))).filter(id => !before.includes(id));\n  81 |     expect(created).toHaveLength(1); expect(created[0]).toMatch(/^rectangle:/);\n  82 |     await expect(canvas.locator('[data-render-state=\"draft\"]')).toHaveCount(0);\n    at draw (/Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:79:30)\n    at /Users/jeremyteichmann/.codex/worktrees/210-confluence-integration/de.sketchdraw.io/tests/electron/confluence-live.spec.ts:352:5"
+    ],
+    "diagnostics": [
+      {
+        "from": [
+          350,
+          220
+        ],
+        "to": [
+          550,
+          360
+        ],
+        "before": [],
+        "pointer": [
+          {
+            "type": "pointermove",
+            "x": 462.75,
+            "y": 40,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": false,
+            "draftCount": 0
+          },
+          {
+            "type": "pointerdown",
+            "x": 462.75,
+            "y": 40,
+            "button": 0,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": false,
+            "draftCount": 0
+          },
+          {
+            "type": "pointerup",
+            "x": 462.75,
+            "y": 40,
+            "button": 0,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": false,
+            "draftCount": 0
+          },
+          {
+            "type": "pointermove",
+            "x": 350,
+            "y": 220,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          },
+          {
+            "type": "pointerdown",
+            "x": 350,
+            "y": 220,
+            "button": 0,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          },
+          {
+            "type": "gotpointercapture",
+            "x": 375,
+            "y": 237.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          },
+          {
+            "type": "pointermove",
+            "x": 375,
+            "y": 237.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          },
+          {
+            "type": "pointermove",
+            "x": 400,
+            "y": 255,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 425,
+            "y": 272.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 450,
+            "y": 290,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 475,
+            "y": 307.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 500,
+            "y": 325,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 525,
+            "y": 342.5,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 550,
+            "y": 360,
+            "button": -1,
+            "buttons": 1,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "lostpointercapture",
+            "x": 1198.796875,
+            "y": 549.15234375,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 1
+          },
+          {
+            "type": "pointermove",
+            "x": 1198.796875,
+            "y": 549.15234375,
+            "button": -1,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          },
+          {
+            "type": "pointerup",
+            "x": 550,
+            "y": 360,
+            "button": 0,
+            "buttons": 0,
+            "pointerId": 1,
+            "trusted": true,
+            "onCanvas": true,
+            "draftCount": 0
+          }
+        ],
+        "dom": {
+          "viewport": {
+            "width": 1280,
+            "height": 772,
+            "scale": 2
+          },
+          "focused": true,
+          "active": {
+            "tag": "svg",
+            "testId": "whiteboard-canvas",
+            "role": "application",
+            "label": "Zeichenfläche",
+            "className": null,
+            "onCanvas": true
+          },
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 772
+          },
+          "saveStatus": "unsaved-new",
+          "pageLabel": "Seiten (1), aktuelle Seite: Seite 1",
+          "openDialogs": [],
+          "pressed": [
+            {
+              "tag": "BUTTON",
+              "testId": null,
+              "role": null,
+              "label": "Rechteck",
+              "className": "tool shape-tool sd-icon-btn",
+              "onCanvas": false
+            }
+          ],
+          "silhouetteVisible": true,
+          "draftCount": 0,
+          "rectangles": [],
+          "points": [
+            {
+              "x": 350,
+              "y": 220,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            },
+            {
+              "x": 550,
+              "y": 360,
+              "top": {
+                "tag": "rect",
+                "testId": null,
+                "role": null,
+                "label": null,
+                "className": null,
+                "onCanvas": true
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

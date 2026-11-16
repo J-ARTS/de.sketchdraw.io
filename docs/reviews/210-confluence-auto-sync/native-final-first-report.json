@@ -1,0 +1,220 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/node_modules/.bin/playwright",
+      "test",
+      "--config",
+      "playwright.config.ts",
+      "--project=electron",
+      "tests/electron/confluence-live.spec.ts",
+      "--reporter=line,json"
+    ],
+    "configFile": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/playwright.config.ts",
+    "rootDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "ui",
+        "name": "ui",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/ui",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "electron",
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": [
+          "/.*\\.(test|spec)\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "electron",
+        "testDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "snapshotDir": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron",
+        "testIgnore": [],
+        "testMatch": {},
+        "timeout": 30000,
+        "use": {
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "electron"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tests/electron/confluence-live.spec.ts",
+      "file": "tests/electron/confluence-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10992,
+                  "error": {
+                    "message": "Error: Command failed: git commit -m Local UI fixture edit\nfatal: Unable to create '/private/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-native-confluence-Bxhr6k/project/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n",
+                    "stack": "Error: Command failed: git commit -m Local UI fixture edit\nfatal: Unable to create '/private/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-native-confluence-Bxhr6k/project/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n"
+                  },
+                  "errors": [
+                    {
+                      "message": "Error: Command failed: git commit -m Local UI fixture edit\nfatal: Unable to create '/private/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-native-confluence-Bxhr6k/project/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T22:42:21.658Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-restart-edit-diagnostics",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJzdGFnZSI6ICJjbGVhbnVwIiwKICAgICJpcGMiOiB7CiAgICAgICJwdWJsaXNoZWQiOiBbCiAgICAgICAgewogICAgICAgICAgImltYWdlcyI6IFsKICAgICAgICAgICAgewogICAgICAgICAgICAgICJwYWdlSWQiOiAicGFnZToxIiwKICAgICAgICAgICAgICAicG5nU2hhMjU2IjogIjE0ZDRmODI3ZTU1ZjUyYWE4ZTA0NWY2ODBiYzNiYjg4N2NhZjFmYWJmYjU2ZWRiMjE5MDJjMDhiZGQ0MmVjNWIiLAogICAgICAgICAgICAgICJ1aW50OEFycmF5IjogdHJ1ZSwKICAgICAgICAgICAgICAiYnl0ZXMiOiAxODM3NSwKICAgICAgICAgICAgICAiZGVjb2RlZCI6IHsKICAgICAgICAgICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAgICAgICAgICJoZWlnaHQiOiA1MDgKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0sCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAicGFnZUlkIjogInBhZ2U6NDYxYTYxYjItMDE4YS00MTkwLWJkYTMtNzAzZGJmYmJmZTIwIiwKICAgICAgICAgICAgICAicG5nU2hhMjU2IjogImFlNGM3ZWFlMWJiMWNiN2IzZmM3MDQ5MWIwNThkZGY2MmNkMjYxMTBmY2YzNDQ4ZmU1N2IzNmJmMTRhMGYwMzgiLAogICAgICAgICAgICAgICJ1aW50OEFycmF5IjogdHJ1ZSwKICAgICAgICAgICAgICAiYnl0ZXMiOiAxNjk2OSwKICAgICAgICAgICAgICAiZGVjb2RlZCI6IHsKICAgICAgICAgICAgICAgICJ3aWR0aCI6IDk2MCwKICAgICAgICAgICAgICAgICJoZWlnaHQiOiA0MjgKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgIF0sCiAgICAgICAgICAiZG9uZSI6IHRydWUsCiAgICAgICAgICAic3RhdHVzIjogInN5bmNlZCIKICAgICAgICB9LAogICAgICAgIHsKICAgICAgICAgICJpbWFnZXMiOiBbCiAgICAgICAgICAgIHsKICAgICAgICAgICAgICAicGFnZUlkIjogInBhZ2U6MSIsCiAgICAgICAgICAgICAgInBuZ1NoYTI1NiI6ICJiZWM2Mjg2N2VmNzQwODYzMTQ2NjcwYTNiYmM5N2M2YzAyMzQyZjM1OGEwYTgwYjFjODEwYzljZDA1Njk1NjM1IiwKICAgICAgICAgICAgICAidWludDhBcnJheSI6IHRydWUsCiAgICAgICAgICAgICAgImJ5dGVzIjogMTkzODQsCiAgICAgICAgICAgICAgImRlY29kZWQiOiB7CiAgICAgICAgICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICAgICAgICAgImhlaWdodCI6IDUwOAogICAgICAgICAgICAgIH0KICAgICAgICAgICAgfSwKICAgICAgICAgICAgewogICAgICAgICAgICAgICJwYWdlSWQiOiAicGFnZTo0NjFhNjFiMi0wMThhLTQxOTAtYmRhMy03MDNkYmZiYmZlMjAiLAogICAgICAgICAgICAgICJwbmdTaGEyNTYiOiAiYWU0YzdlYWUxYmIxY2I3YjNmYzcwNDkxYjA1OGRkZjYyY2QyNjExMGZjZjM0NDhmZTU3YjM2YmYxNGEwZjAzOCIsCiAgICAgICAgICAgICAgInVpbnQ4QXJyYXkiOiB0cnVlLAogICAgICAgICAgICAgICJieXRlcyI6IDE2OTY5LAogICAgICAgICAgICAgICJkZWNvZGVkIjogewogICAgICAgICAgICAgICAgIndpZHRoIjogOTYwLAogICAgICAgICAgICAgICAgImhlaWdodCI6IDQyOAogICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgXSwKICAgICAgICAgICJkb25lIjogdHJ1ZSwKICAgICAgICAgICJzdGF0dXMiOiAic3luY2VkIgogICAgICAgIH0KICAgICAgXSwKICAgICAgImFjdGlvbnMiOiBbCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgImFmdGVyLWRvY3VtZW50LXNhdmVkIiwKICAgICAgICAiZ2V0LXNldHRpbmdzIiwKICAgICAgICAiY29uZmlndXJlLWdpdCIsCiAgICAgICAgIndhdGNoLWRvY3VtZW50IiwKICAgICAgICAiZ2l0LXN0YXR1cyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgIndhdGNoLWRvY3VtZW50IiwKICAgICAgICAiY29uZmlndXJlLWF0bGFzc2lhbiIsCiAgICAgICAgImxpc3QtY29uZmx1ZW5jZS1wYWdlcyIsCiAgICAgICAgInNldC1jb25mbHVlbmNlLWxpdmUtbGluayIsCiAgICAgICAgInB1Ymxpc2gtY29uZmx1ZW5jZS1saXZlIiwKICAgICAgICAibGlzdC1qaXJhLWlzc3VlcyIsCiAgICAgICAgInB1Ymxpc2gtY29uZmx1ZW5jZS1saXZlIiwKICAgICAgICAibGlzdC1qaXJhLWlzc3VlcyIsCiAgICAgICAgImdldC1zZXR0aW5ncyIsCiAgICAgICAgIndhdGNoLWRvY3VtZW50IiwKICAgICAgICAiYWZ0ZXItZG9jdW1lbnQtc2F2ZWQiCiAgICAgIF0sCiAgICAgICJibG9ja2VkRmV0Y2hlcyI6IFtdCiAgICB9LAogICAgInVwbG9hZHMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAxIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LThkMTY2ZWNmZDRlMS0wMGYwODE3NzliODMucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgInNoYTI1NiI6ICIxNGQ0ZjgyN2U1NWY1MmFhOGUwNDVmNjgwYmMzYmI4ODdjYWYxZmFiZmI1NmVkYjIxOTAyYzA4YmRkNDJlYzViIiwKICAgICAgICAiYnl0ZXMiOiAxODM3NSwKICAgICAgICAid2lkdGgiOiA5NjAsCiAgICAgICAgImhlaWdodCI6IDUwOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAyIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LThkMTY2ZWNmZDRlMS1hYjg0YTNhYjJlNjkucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDEsCiAgICAgICAgInNoYTI1NiI6ICJhZTRjN2VhZTFiYjFjYjdiM2ZjNzA0OTFiMDU4ZGRmNjJjZDI2MTEwZmNmMzQ0OGZlNTdiMzZiZjE0YTBmMDM4IiwKICAgICAgICAiYnl0ZXMiOiAxNjk2OSwKICAgICAgICAid2lkdGgiOiA5NjAsCiAgICAgICAgImhlaWdodCI6IDQyOCwKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIlBPU1QiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAiaWQiOiAiYXR0MjExMDAxIiwKICAgICAgICAibmFtZSI6ICJza2V0Y2hkcmF3LThkMTY2ZWNmZDRlMS0wMGYwODE3NzliODMucG5nIiwKICAgICAgICAidmVyc2lvbiI6IDIsCiAgICAgICAgInNoYTI1NiI6ICJiZWM2Mjg2N2VmNzQwODYzMTQ2NjcwYTNiYmM5N2M2YzAyMzQyZjM1OGEwYTgwYjFjODEwYzljZDA1Njk1NjM1IiwKICAgICAgICAiYnl0ZXMiOiAxOTM4NCwKICAgICAgICAid2lkdGgiOiAxMDQ0LAogICAgICAgICJoZWlnaHQiOiA1MDgsCiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudC9hdHQyMTEwMDEvZGF0YSIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9CiAgICBdLAogICAgInJlcXVlc3RzIjogWwogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxL2F0dGFjaG1lbnRzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEvYXR0YWNobWVudHMiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvcmVzdC9hcGkvY29udGVudC8yMTAwMDEvY2hpbGQvYXR0YWNobWVudCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3Jlc3QvYXBpLzMvc2VhcmNoL2pxbCIsCiAgICAgICAgIm1ldGhvZCI6ICJQT1NUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxIiwKICAgICAgICAibWV0aG9kIjogIlBVVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL2FwaS92Mi9wYWdlcy8yMTAwMDEiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMSIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9hcGkvdjIvcGFnZXMvMjEwMDAxL2F0dGFjaG1lbnRzIiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQiLAogICAgICAgICJtZXRob2QiOiAiR0VUIgogICAgICB9LAogICAgICB7CiAgICAgICAgInBhdGgiOiAiL3dpa2kvYXBpL3YyL3BhZ2VzLzIxMDAwMS9hdHRhY2htZW50cyIsCiAgICAgICAgIm1ldGhvZCI6ICJHRVQiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAicGF0aCI6ICIvd2lraS9yZXN0L2FwaS9jb250ZW50LzIxMDAwMS9jaGlsZC9hdHRhY2htZW50IiwKICAgICAgICAibWV0aG9kIjogIkdFVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi93aWtpL3Jlc3QvYXBpL2NvbnRlbnQvMjEwMDAxL2NoaWxkL2F0dGFjaG1lbnQvYXR0MjExMDAxL2RhdGEiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfSwKICAgICAgewogICAgICAgICJwYXRoIjogIi9yZXN0L2FwaS8zL3NlYXJjaC9qcWwiLAogICAgICAgICJtZXRob2QiOiAiUE9TVCIKICAgICAgfQogICAgXSwKICAgICJmaXh0dXJlRmFpbHVyZXMiOiBbXSwKICAgICJwYWdlRXJyb3JDb3VudCI6IDAKICB9Cl0="
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/test-results/confluence-live-native-edi-48bea--link-survives-restart-210--electron/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-33ee0714044794a40e83",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "closing the native diagram window cancels a delayed publication before another mutation (#210)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "electron",
+              "projectName": "electron",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10237,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-15T22:42:33.046Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "native-window-cancellation",
+                      "contentType": "application/json",
+                      "body": "eyJwbGF0Zm9ybSI6ImRhcndpbiIsIndyaXRlc0JlZm9yZSI6Mywid3JpdGVzQWZ0ZXIiOjMsInJlc3VsdCI6eyJwdWJsaXNoZWQiOlt7ImltYWdlcyI6W3sicGFnZUlkIjoicGFnZToxIiwicG5nU2hhMjU2IjoiY2MyYzc0MWUxMmNmZGI5YzZhYjBlNjc2NzBjMTJiMGE0ZDQ5NjIxNWE3ZjQ2YTU2MDA4NTM2ZmMyYTg4ZTQ4MyIsInVpbnQ4QXJyYXkiOnRydWUsImJ5dGVzIjoxNTU4NiwiZGVjb2RlZCI6eyJ3aWR0aCI6OTYwLCJoZWlnaHQiOjUwOH19XSwiZG9uZSI6dHJ1ZSwic3RhdHVzIjoic3luY2VkIn0seyJpbWFnZXMiOlt7InBhZ2VJZCI6InBhZ2U6MSIsInBuZ1NoYTI1NiI6ImNlNzBlYzQ3ZTM3YmUwYTJhMWVkYmRlODNlOTI5MjI3YmFjZWM0NmUzNDgyMzc3N2M2MjIzYTM2MDQ0M2RjMjMiLCJ1aW50OEFycmF5Ijp0cnVlLCJieXRlcyI6MTY1NzEsImRlY29kZWQiOnsid2lkdGgiOjEwNDQsImhlaWdodCI6NTA4fX1dLCJkb25lIjp0cnVlLCJzdGF0dXMiOiJjYW5jZWxsZWQifV0sImFjdGlvbnMiOlsiZ2V0LXNldHRpbmdzIiwiZ2V0LXNldHRpbmdzIiwiYWZ0ZXItZG9jdW1lbnQtc2F2ZWQiLCJnZXQtc2V0dGluZ3MiLCJjb25maWd1cmUtYXRsYXNzaWFuIiwibGlzdC1jb25mbHVlbmNlLXBhZ2VzIiwic2V0LWNvbmZsdWVuY2UtbGl2ZS1saW5rIiwicHVibGlzaC1jb25mbHVlbmNlLWxpdmUiLCJsaXN0LWppcmEtaXNzdWVzIiwicHVibGlzaC1jb25mbHVlbmNlLWxpdmUiXSwiYmxvY2tlZEZldGNoZXMiOltdfX0="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f2696f5ae2cf6b092703-1c63966d5cca15516902",
+          "file": "tests/electron/confluence-live.spec.ts",
+          "line": 291,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-15T22:42:20.764Z",
+    "duration": 22544.967,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

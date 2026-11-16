@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-11-16T08:19:24.631840+00:00",
+  "finishedAt": "2026-11-16T08:19:24.672896+00:00",
+  "exitCode": 0,
+  "commit": "6aa1e14df8f67115e9fe577ca0613f5cde676fa7",
+  "remote": "/var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/remote.git",
+  "output": "To /var/folders/ts/fwdpyqwj3v3f5cxjmtwxlhz40000gn/T/sketchdraw-210-live-git-rk_0wesv/remote.git\n   a68fb10..6aa1e14  HEAD -> main\n",
+  "kind": "local-fixture-only",
+  "manualApplicationPull": false
+}

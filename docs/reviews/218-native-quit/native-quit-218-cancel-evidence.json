@@ -1,0 +1,17 @@
+{
+  "platform": "darwin",
+  "afterCancel": {
+    "uploads": 3,
+    "lastPublication": "synced",
+    "closeRequests": 1,
+    "alive": true
+  },
+  "afterSave": {
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "savedRectangles": 3
+  },
+  "liveTenantContacted": false
+}

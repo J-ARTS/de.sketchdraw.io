@@ -1,0 +1,83 @@
+{
+  "recordedAt": "2026-11-16T09:52:23.986548+00:00",
+  "delegation": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6913042843",
+  "sessionId": "64f445c3-ea0d-4cab-9925-03e9d2364df9",
+  "model": "claude-fable-5-2",
+  "terminalResult": "success",
+  "endedAt": "2026-11-16T09:49:29.735815+00:00",
+  "processExitCode": 0,
+  "durationMs": 936335,
+  "durationSeconds": 936.335,
+  "turns": 93,
+  "incrementalTokenCategories": {
+    "input_tokens": 110,
+    "output_tokens": 64586,
+    "cache_read_input_tokens": 20455881,
+    "cache_creation_input_tokens": 119914
+  },
+  "incrementalTokens": 20640491,
+  "categoriesEqualTopLevelUsage": true,
+  "priorCumulativeCostUsd": 12.401998600000002,
+  "currentCumulativeCostUsd": 20.9961188,
+  "incrementalCostUsd": 8.5941202,
+  "measurementRules": [
+    "Token deltas are cumulative modelUsage differences relative to fable-concurrency-result.json. Top-level usage reports exactly those incremental categories.",
+    "Nested thinking_tokens29923 is already included in output_tokens64586. Cache-creation subcategories are already included in cache_creation_input_tokens119914.",
+    "duration_ms936335 is this run duration. duration_api_ms1896420 is not added as a second duration.",
+    "Only incremental cost20.9961188-12.4019986=8.5941202USD is counted; preceding Fable runs stay unchanged."
+  ],
+  "reportedTests": {
+    "unit": "43/43",
+    "typecheck": "passed",
+    "build": "passed",
+    "fableNativeFinal": {
+      "startTime": "2026-11-16T09:47:28.784Z",
+      "duration": 41297.325,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scope": "Only isolated #218 native tests on macOS; no #210/#217 full run or actual Tenant by Fable."
+  },
+  "pendingAcceptance": {
+    "rootNativeRun": "exec71449 running at delegation; own full six-test native run not yet accepted",
+    "independentReview": "read-only review active; no completed result claimed",
+    "actualUserAppAndTenant": "pending"
+  },
+  "archives": [
+    {
+      "path": "docs/reviews/218-native-quit/fable-result.json",
+      "bytes": 5638,
+      "sha256": "09514b2d6d8b7bab718c8c4363ae9d4872d3ff69000c310005cbc51c792dfa17"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/fable-implementation.md",
+      "bytes": 8407,
+      "sha256": "5cba0c8772921f4536876e8d983d53376ec07a40d25f21fbac9145d91cdb257b"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/fable-run.json",
+      "bytes": 434,
+      "sha256": "986bcb77b7028878383dc0242b8b947888ca757941bb319f07b9adafe77795ed"
+    },
+    {
+      "path": "docs/reviews/218-native-quit/fable-native-final-report.json",
+      "bytes": 37279,
+      "sha256": "9c5d005a0a17892bcaeef834312ae4b91addb4f9499935e62c6c16c249df4669"
+    }
+  ],
+  "projectionChecks": {
+    "original": "passed",
+    "managed": "passed",
+    "traceabilityNodes": 3040,
+    "traceabilityLinks": 4193,
+    "runCount": 286
+  },
+  "preservation": {
+    "other285RunRecordsAndMetricsUnchanged": true,
+    "unrelatedIssuesUnchanged": true,
+    "sourceGraphUnchanged": true,
+    "activeRootNativeRunFilesNotWrittenOrArchived": true
+  }
+}

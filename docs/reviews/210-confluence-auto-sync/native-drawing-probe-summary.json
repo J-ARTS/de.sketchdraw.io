@@ -1,0 +1,271 @@
+{
+  "results": [
+    {
+      "title": "bounded native restart drawing pointer diagnostic",
+      "status": "passed",
+      "durationMs": 15175
+    }
+  ],
+  "scope": "Bounded real Electron two-page restart with persisted Git/Confluence settings; no 60s Git cycle repeated",
+  "files": [
+    {
+      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+      "sha256": "edfb828d5811bddb7335b53ff59d610bf6189db219acecfb2a1ec662a07ab6e9"
+    },
+    {
+      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-fixture.ts",
+      "sha256": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37"
+    },
+    {
+      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/dist-electron/main.cjs",
+      "sha256": "38c9998741ae28af2877f2de99155c4e66730b4e6b80813cc65fd8b9d50a2ee5"
+    },
+    {
+      "path": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/dist-electron/preload.cjs",
+      "sha256": "3a3b5d0ce66b7fafe8830e836e2a795aeab416094d6260dde841e6c98ba896a2"
+    }
+  ],
+  "lastDrag": {
+    "beforeIds": [
+      "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+      "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3"
+    ],
+    "afterIds": [
+      "rectangle:f14df8bb-45dd-4d8f-ba7c-4d6bb494ab35",
+      "rectangle:28a9ddd6-cc8d-4528-942f-e24a9bcccbf3",
+      "rectangle:7635bd4b-abaf-45d7-a937-b1ce14c4453f"
+    ],
+    "saveStatus": "dirty",
+    "draftCount": 0,
+    "pointerEvents": [
+      {
+        "type": "pointermove",
+        "x": 462.75,
+        "y": 40,
+        "button": -1,
+        "buttons": 0,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": false,
+        "draftCount": 0
+      },
+      {
+        "type": "pointerdown",
+        "x": 462.75,
+        "y": 40,
+        "button": 0,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": false,
+        "draftCount": 0
+      },
+      {
+        "type": "pointerup",
+        "x": 462.75,
+        "y": 40,
+        "button": 0,
+        "buttons": 0,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": false,
+        "draftCount": 0
+      },
+      {
+        "type": "pointermove",
+        "x": 360,
+        "y": 440,
+        "button": -1,
+        "buttons": 0,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 0
+      },
+      {
+        "type": "pointerdown",
+        "x": 360,
+        "y": 440,
+        "button": 0,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 0
+      },
+      {
+        "type": "gotpointercapture",
+        "x": 376.25,
+        "y": 451.25,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 0
+      },
+      {
+        "type": "pointermove",
+        "x": 376.25,
+        "y": 451.25,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 0
+      },
+      {
+        "type": "pointermove",
+        "x": 392.5,
+        "y": 462.5,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 408.75,
+        "y": 473.75,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 425,
+        "y": 485,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 441.25,
+        "y": 496.25,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 457.5,
+        "y": 507.5,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 473.75,
+        "y": 518.75,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointermove",
+        "x": 490,
+        "y": 530,
+        "button": -1,
+        "buttons": 1,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "pointerup",
+        "x": 490,
+        "y": 530,
+        "button": 0,
+        "buttons": 0,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 1
+      },
+      {
+        "type": "lostpointercapture",
+        "x": 490,
+        "y": 530,
+        "button": 0,
+        "buttons": 0,
+        "pointerId": 1,
+        "trusted": true,
+        "onCanvas": true,
+        "draftCount": 0
+      }
+    ]
+  },
+  "earlierOriginalHelperProbe": {
+    "status": "passed",
+    "durationMs": 14561,
+    "report": "/tmp/sketchdraw-210-drawing-probe/original-report.json"
+  },
+  "intermediateChecks": {
+    "report": "/tmp/sketchdraw-210-drawing-probe/focused-report.json",
+    "results": "2 failed before restart: initial unsaved-new expectation corrected; one missing committed rectangle was not instrumented, cause unresolved"
+  },
+  "typecheck": {
+    "files": [
+      {
+        "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-live.spec.ts",
+        "sha256": "edfb828d5811bddb7335b53ff59d610bf6189db219acecfb2a1ec662a07ab6e9"
+      },
+      {
+        "file": "/Users/jeremyteichmann/Desktop/sketchdraw/de.sketchdraw.io/tests/electron/confluence-fixture.ts",
+        "sha256": "3477e116ade73304a6d1a6e631a02d77d47077671e668814886b1238bb25cb37"
+      }
+    ],
+    "compiler": "6.0.3",
+    "diagnostics": [],
+    "observer": {
+      "status": "passed",
+      "snapshots": [
+        {
+          "started": 1,
+          "completed": 0,
+          "rejected": 0
+        },
+        {
+          "started": 1,
+          "completed": 1,
+          "rejected": 0
+        },
+        {
+          "started": 2,
+          "completed": 2,
+          "rejected": 1
+        }
+      ],
+      "originalArgumentsResultAndRejectionPreserved": true
+    },
+    "nativeAppExecuted": false,
+    "productSourcesChanged": false,
+    "tenantContacted": false,
+    "networkUsed": false
+  },
+  "originalFailureCause": "Unresolved: original drag succeeds in bounded probe; no assertion that product pointer bug is fixed. New fixture settles focus, requires actual draft/new committed ID, and captures bounded pointer events without retries.",
+  "realTenantContacted": false,
+  "productSourcesChanged": false,
+  "fullNativeSuiteRerun": false
+}
