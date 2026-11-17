@@ -50,6 +50,7 @@ export { default as DiagramLibraryView } from './organisms/DiagramLibraryView.vu
 export { default as ElementView } from './organisms/ElementView.vue';
 export { default as FramePreview } from './organisms/FramePreview.vue';
 export { default as FrameSidebar } from './organisms/FrameSidebar.vue';
+export { default as FollowIndicator } from './organisms/FollowIndicator.vue';
 export { default as GitDialog } from './organisms/GitDialog.vue';
 export { default as HdhtSession } from './organisms/HdhtSession.vue';
 export { default as InteropPanel } from './organisms/InteropPanel.vue';
@@ -65,6 +66,7 @@ export { default as QuickConnect } from './organisms/QuickConnect.vue';
 export { default as RemoteCursors } from './organisms/RemoteCursors.vue';
 export { default as ResourceCardEditor } from './organisms/ResourceCardEditor.vue';
 export { default as SelectionToolbar } from './organisms/SelectionToolbar.vue';
+export { default as SessionMenu } from './organisms/SessionMenu.vue';
 export { default as SettingsDialog } from './organisms/SettingsDialog.vue';
 export { default as ShapeLibraryPanel } from './organisms/ShapeLibraryPanel.vue';
 export { default as TableOverlay } from './organisms/TableOverlay.vue';

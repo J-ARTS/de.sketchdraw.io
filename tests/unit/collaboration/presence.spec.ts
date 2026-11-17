@@ -78,7 +78,7 @@ const closers: (() => void)[] = [];
 
 function join(name: string, role: 'editor' | 'viewer' = 'editor') {
   const device = hub.guest(role);
-  let view: PresenceSnapshot = { participants: [], cursors: [] };
+  let view: PresenceSnapshot = { participants: [], cursors: [], views: [] };
   const presence: GuestPresence = createGuestPresence(device.transport, { name, onChange: value => { view = value; } });
   closers.push(() => presence.close());
   device.connect();
@@ -89,7 +89,7 @@ const names = (view: PresenceSnapshot) => view.participants.map(value => `${valu
 beforeEach(() => {
   vi.useFakeTimers();
   hub = createHub();
-  hostView = { participants: [], cursors: [] };
+  hostView = { participants: [], cursors: [], views: [] };
   hostPresence = createHostPresence(hub.host, { name: 'Jeremy', onChange: value => { hostView = value; } });
   hostView = hostPresence.snapshot();
   closers.push(() => hostPresence.close());
@@ -208,6 +208,79 @@ describe('pointers', () => {
     await vi.advanceTimersByTimeAsync(300);
     const ben = join('Ben');
     expect(ben.view().cursors.map(value => [value.x, value.y]).sort()).toEqual([[5, 6], [7, 8]]);
+  });
+});
+
+describe('views', () => {
+  const rect = { pageId: 'p', x: 100.04, y: 50, width: 640, height: 400 };
+
+  it('shows what a guest looks at to the host and the other guests, not to the guest itself', async () => {
+    const anna = join('Anna'), ben = join('Ben', 'viewer');
+    anna.presence.setView(rect);
+    await vi.advanceTimersByTimeAsync(300);
+    const id = hostView.participants.find(value => value.name === 'Anna')!.id;
+    expect(hostView.views).toEqual([{ id, pageId: 'p', x: 100, y: 50, width: 640, height: 400 }]);
+    expect(ben.view().views).toEqual(hostView.views);
+    expect(anna.view().views).toEqual([]);
+  });
+
+  it('shows what the host and a viewer look at', async () => {
+    const anna = join('Anna'), ben = join('Ben', 'viewer');
+    hostPresence.setView({ ...rect, x: 1 });
+    ben.presence.setView({ ...rect, x: 2 });
+    await vi.advanceTimersByTimeAsync(300);
+    expect(anna.view().views.map(value => value.x).sort()).toEqual([1, 2]);
+    expect(hostView.views.map(value => value.x)).toEqual([2]);
+  });
+
+  it('withdraws a view, as a participant does that follows someone', async () => {
+    const anna = join('Anna'), ben = join('Ben');
+    anna.presence.setView(rect);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(ben.view().views).toHaveLength(1);
+    anna.presence.setView(null);
+    await vi.advanceTimersByTimeAsync(300);
+    expect(ben.view().views).toEqual([]);
+    expect(hostView.views).toEqual([]);
+  });
+
+  it('sends the latest view only and tells a late joiner what the others look at', async () => {
+    const anna = join('Anna');
+    hub.hostSent.length = 0;
+    for (let step = 0; step < 40; step++) anna.presence.setView({ ...rect, x: step });
+    hostPresence.setView({ ...rect, x: -5 });
+    await vi.advanceTimersByTimeAsync(400);
+    expect(hostView.views[0]).toMatchObject({ x: 39 });
+    const ben = join('Ben');
+    expect(ben.view().views.map(value => value.x).sort((a, b) => a - b)).toEqual([-5, 39]);
+  });
+
+  it('forgets the view of a participant whose connection drops or who is removed', async () => {
+    const anna = join('Anna'), ben = join('Ben');
+    anna.presence.setView(rect);
+    await vi.advanceTimersByTimeAsync(300);
+    anna.device.drop();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(hostView.views).toEqual([]);
+    expect(ben.view().views).toEqual([]);
+    anna.device.connect();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(ben.view().views).toHaveLength(1);
+    hostPresence.remove(hostView.participants.find(value => value.name === 'Anna')!.id);
+    expect(ben.view().views).toEqual([]);
+  });
+
+  it('ignores a view that is not a usable rectangle', async () => {
+    const anna = join('Anna');
+    for (const value of [
+      { t: 'view', p: 'p', x: 0, y: 0, w: 0, h: 10 }, { t: 'view', p: 'p', x: 0, y: 0, w: 10, h: -1 }, { t: 'view', p: 'p', x: 0, y: 0, w: 'wide', h: 1 },
+      { t: 'view', p: '', x: 0, y: 0, w: 1, h: 1 }, { t: 'view', p: 'p', x: 0, y: 0, w: 1 }, { t: 'view', p: 'p', x: 0, y: 0, w: 1, h: 1, id: 'other' },
+    ]) anna.device.raw(value);
+    expect(hostView.views).toEqual([]);
+    anna.device.raw({ t: 'view', p: 'p', x: 1e300, y: 0, w: 1e300, h: 5 });
+    expect(hostView.views[0]).toMatchObject({ x: 10_000_000, width: 10_000_000, height: 5 });
+    for (const value of [{ t: 'views', v: 'x' }, { t: 'views', v: [{ id: 'zz', p: 'p', x: 1, y: 1, w: 1, h: 1 }] }, { t: 'views', v: [{ id: 'a'.repeat(12), p: 'p', x: 1, y: 1, w: 0, h: 1 }] }]) hub.fromHost(anna.device, value);
+    expect(anna.view().views).toEqual([]);
   });
 });
 

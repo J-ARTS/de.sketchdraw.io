@@ -3,7 +3,7 @@ import type { InjectionKey } from 'vue';
 import type { LanguageCode, Preferences } from '../lib/preferences';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
-import type { CursorPoint, PresenceSnapshot } from '@/collaboration/presence';
+import type { CursorPoint, PresenceSnapshot, ViewRect } from '@/collaboration/presence';
 import type { CrdtDocumentController } from '@/crdt';
 import type {
   DesktopBridge,
@@ -330,6 +330,10 @@ export interface WhiteboardState {
   roomGuest: { role: 'editor' | 'viewer'; connected: boolean } | null;
   /** Who is in the running session and where their pointers are; empty without a session (#222). */
   presence: PresenceSnapshot;
+  /** A session this device hosts or takes part in is running; null without one (#223). */
+  session: { hosting: boolean } | null;
+  /** The participant whose view this device shows; null when it shows its own. */
+  following: string | null;
   canWrite: boolean;
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
@@ -571,6 +575,20 @@ export interface WhiteboardStore {
    * it on to the other participants.
    */
   subscribePointer(listener: (point: CursorPoint | null) => void): () => void;
+  /**
+   * Reports the part of the drawing this device shows, at once and after every change. While this device follows
+   * someone it has no view of its own to offer and reports null.
+   */
+  subscribeView(listener: (view: ViewRect | null) => void): () => void;
+  /** The session component announces a running session and how to end it; null when it is over. */
+  setSession(session: { hosting: boolean; end(): void | Promise<void> } | null): void;
+  /** Ends the running session (host) or leaves it (guest). */
+  endSession(): Promise<void>;
+  /**
+   * Shows what this participant sees and keeps doing so until the user navigates on their own, presses Escape or
+   * the participant is gone; null stops. Only another participant that is connected can be followed.
+   */
+  followParticipant(id: string | null): void;
   /** Shows a message from outside the store, such as the end of a session; errors stay until they are closed. */
   announce(text: string, kind?: 'info' | 'error'): void;
   getGuestSession(): GuestSession | null;

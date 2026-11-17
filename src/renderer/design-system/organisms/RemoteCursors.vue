@@ -1,7 +1,7 @@
 <!-- @component The pointers of the other people in a session, drawn over the canvas: an arrow in the person's colour with their initials. Only pointers on the page that is open are shown. It belongs inside the canvas `<svg>`. -->
 <script setup lang="ts">
 import { computed, inject } from 'vue';
-import { t } from '@/renderer/i18n';
+import { participantLabel } from '@/renderer/lib/participant-label';
 import { WHITEBOARD_KEY } from '@/renderer/state/contract';
 import { participantInitials } from '@/collaboration/presence';
 import { presenceColor } from '@/renderer/design-system/atoms/presence-colors';
@@ -14,8 +14,7 @@ const pointers = computed(() => {
   return s.presence.cursors.flatMap(cursor => {
     const person = people.get(cursor.id);
     if (!person || person.self || cursor.pageId !== s.activePageId) return [];
-    const name = person.name || (person.role === 'owner' ? t('Gastgeber') : t('Gast {number}', { number: person.number }));
-    return [{ id: cursor.id, x: cursor.x, y: cursor.y, color: presenceColor(person.color), initials: participantInitials(name) }];
+    return [{ id: cursor.id, x: cursor.x, y: cursor.y, color: presenceColor(person.color), initials: participantInitials(participantLabel(person)) }];
   });
 });
 </script>

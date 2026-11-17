@@ -26,12 +26,12 @@ export const Pointers: Story = {
       { id: 'a00000000002', pageId, x: 140, y: 90 },
       { id: 'a00000000003', pageId, x: 330, y: 190 },
       { id: 'a00000000004', pageId, x: 470, y: 70 },
-    ] });
+    ], views: [] });
   })],
 };
 /** A pointer on another page stays hidden. */
 export const OtherPage: Story = {
   decorators: [withWhiteboard((store) => {
-    store.setPresence({ participants: people, cursors: [{ id: 'a00000000002', pageId: store.state.activePageId, x: 140, y: 90 }, { id: 'a00000000004', pageId: 'another-page', x: 300, y: 120 }] });
+    store.setPresence({ participants: people, cursors: [{ id: 'a00000000002', pageId: store.state.activePageId, x: 140, y: 90 }, { id: 'a00000000004', pageId: 'another-page', x: 300, y: 120 }], views: [] });
   })],
 };

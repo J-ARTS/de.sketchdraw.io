@@ -31,7 +31,7 @@ import { formatDiagram, parseDiagram } from '@/codec';
 import { builtInComponentSets, instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, GitAnswer, HandleId, HandleView, Rect,
-  PencilPreset, SelectionInfo, Tool, WhiteboardState, WhiteboardStore,
+  PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
 import { bounds, center, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
@@ -61,7 +61,8 @@ import {
 } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
-import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot } from '@/collaboration/presence';
+import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot, type ViewRect } from '@/collaboration/presence';
+import { participantLabel } from '../lib/participant-label';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
 import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
@@ -302,7 +303,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const selected = () => pageEls().filter((e) => state.selection.includes(e.id));
   const changedDraft = () => { draftGeneration += 1; state.draftVersion = draftGeneration; };
   const state = reactive({
-    draftVersion: 0, collaboration: null as CollaborationStatus | null, roomGuest: null as { role: 'editor' | 'viewer'; connected: boolean } | null, presence: EMPTY_PRESENCE as PresenceSnapshot, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
+    draftVersion: 0, collaboration: null as CollaborationStatus | null, roomGuest: null as { role: 'editor' | 'viewer'; connected: boolean } | null, presence: EMPTY_PRESENCE as PresenceSnapshot, session: null as { hosting: boolean } | null, following: null as string | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
     get canWrite() { if (this.roomGuest) { const access = roomAccess?.() ?? this.roomGuest; return access.role === 'editor' && access.connected; } return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
@@ -481,6 +482,76 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     noticeTimers.set(id, timer);
   }
   const pointerListeners = new Set<(point: CursorPoint | null) => void>();
+  // --- Following a participant of a session (#223) ---------------------------
+  const viewListeners = new Set<(view: ViewRect | null) => void>();
+  let sessionEnd: (() => void | Promise<void>) | undefined;
+  let followName = '';
+  /** The view the viewport was last aimed at, so a repeated report of the same view moves nothing. */
+  let followSeen: ViewRect | null = null;
+  let followTarget: Viewport | null = null;
+  let followFrame: number | null = null;
+  /** Set while following itself moves the viewport or changes the page; every other change is the user navigating. */
+  let followMoving = false;
+  const reducedMotion = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function currentView(): ViewRect {
+    const { panX, panY, zoom } = state.viewport;
+    return { pageId: state.activePageId, x: (0 - panX) / zoom, y: (0 - panY) / zoom, width: state.viewportSize.width / zoom, height: state.viewportSize.height / zoom };
+  }
+  function emitView(): void {
+    if (!viewListeners.size) return;
+    const view = state.following ? null : currentView();
+    for (const listener of viewListeners) listener(view);
+  }
+  function cancelFollowFrame(): void {
+    if (followFrame !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(followFrame);
+    followFrame = null;
+  }
+  function stopFollowing(message?: string): void {
+    if (!state.following) return;
+    cancelFollowFrame();
+    followTarget = null; followSeen = null;
+    state.following = null;
+    if (message) notice(message);
+  }
+  function moveFollowing(work: () => void): void {
+    followMoving = true;
+    try { work(); } finally { followMoving = false; }
+  }
+  /** Glides to the target over a few frames: views arrive ten times a second and would otherwise jump. */
+  function followStep(): void {
+    followFrame = null;
+    const target = followTarget;
+    if (!state.following || !target) return;
+    const from = state.viewport, ease = 0.35;
+    const next = { panX: from.panX + (target.panX - from.panX) * ease, panY: from.panY + (target.panY - from.panY) * ease, zoom: from.zoom + (target.zoom - from.zoom) * ease };
+    const arrived = Math.abs(target.panX - next.panX) < 0.5 && Math.abs(target.panY - next.panY) < 0.5 && Math.abs(target.zoom - next.zoom) < 0.001;
+    moveFollowing(() => { state.viewport = arrived ? { ...target } : next; });
+    if (arrived) followTarget = null; else followFrame = requestAnimationFrame(followStep);
+  }
+  /** Shows the rectangle the followed participant sees, fitted into this window, on the page they are on. */
+  function applyFollow(force = false): void {
+    const view = state.presence.views.find((entry) => entry.id === state.following);
+    if (!state.following || !view) return;
+    const same = !force && followSeen && followSeen.pageId === view.pageId && followSeen.x === view.x && followSeen.y === view.y && followSeen.width === view.width && followSeen.height === view.height;
+    if (same) return;
+    let jump = false;
+    if (view.pageId !== state.activePageId) {
+      // The page may not have arrived with the document yet; the next report tries again.
+      if (state.transitioning || !state.document.pages.some((page) => page.id === view.pageId)) return;
+      moveFollowing(() => store.selectPage(view.pageId));
+      if (state.activePageId !== view.pageId) return;
+      jump = true;
+    }
+    followSeen = view;
+    const target = fitRect(state.viewportSize, view, 0);
+    if (jump || force || typeof requestAnimationFrame !== 'function' || reducedMotion()) {
+      cancelFollowFrame(); followTarget = null;
+      moveFollowing(() => { state.viewport = target; });
+    } else {
+      followTarget = target;
+      if (followFrame === null) followFrame = requestAnimationFrame(followStep);
+    }
+  }
   function notice(text: string, kind: 'info' | 'error' = 'info') {
     state.liveMessage = text;
     // A repeated message replaces the one still on screen (with a fresh id) instead of stacking.
@@ -1081,7 +1152,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       for (const listener of authorityListeners) listener(authority);
     },
     getRoomGuest() { return state.roomGuest; },
-    setPresence(presence) { state.presence = presence ?? EMPTY_PRESENCE; },
+    setPresence(presence) {
+      state.presence = presence ?? EMPTY_PRESENCE;
+      if (!state.following) return;
+      const person = state.presence.participants.find((entry) => entry.id === state.following);
+      if (!person || person.state !== 'online') stopFollowing(t('{name} ist nicht mehr verbunden. Du folgst niemandem mehr.', { name: followName }));
+      else { followName = participantLabel(person); applyFollow(); }
+    },
+    subscribeView(listener) {
+      viewListeners.add(listener);
+      listener(state.following ? null : currentView());
+      return () => { viewListeners.delete(listener); };
+    },
+    setSession(session) {
+      sessionEnd = session?.end;
+      state.session = session ? { hosting: session.hosting } : null;
+      if (!session) stopFollowing();
+    },
+    async endSession() { await sessionEnd?.(); },
+    followParticipant(id) {
+      if (id === null) { stopFollowing(); return; }
+      const person = state.presence.participants.find((entry) => entry.id === id);
+      if (!person || person.self || person.state !== 'online' || id === state.following) return;
+      stopFollowing();
+      followName = participantLabel(person);
+      state.following = id;
+      applyFollow();
+    },
     subscribePointer(listener) {
       pointerListeners.add(listener);
       return () => { pointerListeners.delete(listener); };
@@ -1461,7 +1558,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const e = pageEls()[(index + delta + pageEls().length) % pageEls().length];
         if (e) store.focusElement(e.id);
       } else if (actions[action]) actions[action]!();
-      else if (input.key === 'Escape') { if (state.textEdit) store.commitTextEdit(); else { resetGesture(); store.clearSelection(); state.tool = 'select'; } }
+      else if (input.key === 'Escape') { if (state.textEdit) store.commitTextEdit(); else if (state.following && !gesture) stopFollowing(); else { resetGesture(); store.clearSelection(); state.tool = 'select'; } }
       else if (input.key === '?') store.openHelp();
       else return false;
       return true;
@@ -2556,6 +2653,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   });
   const liveScope = effectScope(true);
   liveScope.run(() => {
+    // Navigating on one's own ends following; every change of what this window shows is reported to the session.
+    watch(() => state.viewport, () => { if (!followMoving) stopFollowing(); emitView(); }, { flush: 'sync' });
+    watch(() => state.activePageId, () => { if (!followMoving) stopFollowing(); emitView(); }, { flush: 'sync' });
+    watch(() => state.viewportSize, () => { if (state.following) applyFollow(true); emitView(); }, { flush: 'sync' });
+    watch(() => state.following, () => emitView(), { flush: 'sync' });
     // Every change of the link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
     watch(() => { const context = liveContext(); return context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`; }, () => { liveImageCacheReset(); liveSync?.contextChanged(); }, { flush: 'sync' });
   });
@@ -2566,7 +2668,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   const recoverLive = () => { liveSync?.recover(); };
   if (typeof window !== 'undefined') window.addEventListener('online', recoverLive);
-  const disposeLive = () => { liveSync?.dispose(); liveScope.stop(); liveImageCache.clear(); if (typeof window !== 'undefined') window.removeEventListener('online', recoverLive); };
+  const disposeLive = () => { cancelFollowFrame(); viewListeners.clear(); liveSync?.dispose(); liveScope.stop(); liveImageCache.clear(); if (typeof window !== 'undefined') window.removeEventListener('online', recoverLive); };
 
   void store.refreshPluginSettings();
   return store;

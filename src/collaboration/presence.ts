@@ -1,9 +1,9 @@
 /**
- * Who is in a session and where their pointers are (#222).
+ * Who is in a session, where their pointers are (#222) and which part of the drawing each of them looks at (#223).
  *
  * Sessions are a star: guests reach only the host. The host therefore writes the participant list and relays the
  * pointers; a guest only ever speaks for itself (its name and its own pointer). Names, colours and identifiers of the
- * list come from the host alone, so a guest can neither pose as someone else nor move another pointer.
+ * list come from the host alone, so a guest can neither pose as someone else nor move another pointer or view.
  *
  * Messages are small JSON records on the transport's `awareness` channel. Anything malformed, oversized or too frequent
  * is dropped; presence never ends a connection.
@@ -15,6 +15,7 @@ export const PRESENCE_NAME_MAX = 40;
 /** How long the host keeps listing a participant whose connection dropped; matches the guest's reconnect window. */
 export const PRESENCE_RECONNECT_WINDOW_MS = 5 * 60_000;
 export const PRESENCE_CURSOR_INTERVAL_MS = 80;
+export const PRESENCE_VIEW_INTERVAL_MS = 100;
 
 const HELLO_GRACE_MS = 1500;
 const GUEST_MESSAGE_MAX_BYTES = 512;
@@ -50,9 +51,17 @@ export interface SessionParticipant {
 
 export interface CursorPoint { pageId: string; x: number; y: number }
 export interface SessionCursor extends CursorPoint { id: string }
-export interface PresenceSnapshot { participants: readonly SessionParticipant[]; cursors: readonly SessionCursor[] }
+/** The part of a page a participant sees, in document coordinates. Following someone means showing this rectangle. */
+export interface ViewRect { pageId: string; x: number; y: number; width: number; height: number }
+export interface SessionView extends ViewRect { id: string }
+export interface PresenceSnapshot {
+  participants: readonly SessionParticipant[];
+  cursors: readonly SessionCursor[];
+  /** What the others look at; a participant that follows someone reports no view of its own. */
+  views: readonly SessionView[];
+}
 
-export const EMPTY_PRESENCE: PresenceSnapshot = Object.freeze({ participants: Object.freeze([]), cursors: Object.freeze([]) });
+export const EMPTY_PRESENCE: PresenceSnapshot = Object.freeze({ participants: Object.freeze([]), cursors: Object.freeze([]), views: Object.freeze([]) });
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -112,6 +121,17 @@ function samePoint(a: CursorPoint | null, b: CursorPoint | null): boolean {
   return a === b || (!!a && !!b && a.pageId === b.pageId && a.x === b.x && a.y === b.y);
 }
 
+/** A visible rectangle as it may be sent or accepted; null when any part is not usable. */
+function cleanView(pageId: unknown, x: unknown, y: unknown, width: unknown, height: unknown): ViewRect | null {
+  const point = cleanPoint(pageId, x, y), w = coordinate(width), h = coordinate(height);
+  if (!point || w === null || h === null || w <= 0 || h <= 0) return null;
+  return { ...point, width: w, height: h };
+}
+
+function sameView(a: ViewRect | null, b: ViewRect | null): boolean {
+  return a === b || (!!a && !!b && samePoint(a, b) && a.width === b.width && a.height === b.height);
+}
+
 const realTimers = {
   set(callback: () => void, ms: number): unknown { const handle = setTimeout(callback, ms); (handle as { unref?: () => void }).unref?.(); return handle; },
   clear(handle: unknown): void { clearTimeout(handle as ReturnType<typeof setTimeout>); },
@@ -123,6 +143,7 @@ export interface PresenceOptions {
   onChange(snapshot: PresenceSnapshot): void;
   now?: () => number;
   cursorIntervalMs?: number;
+  viewIntervalMs?: number;
 }
 
 export interface HostPresenceOptions extends PresenceOptions {
@@ -135,6 +156,8 @@ interface PresenceBase {
   snapshot(): PresenceSnapshot;
   /** The local pointer in document coordinates; null when it left the canvas. */
   setCursor(point: CursorPoint | null): void;
+  /** The part of the drawing this device shows; null while it follows someone and has no view of its own to offer. */
+  setView(view: ViewRect | null): void;
   setName(name: string): void;
   close(): void;
 }
@@ -165,6 +188,7 @@ interface Member {
   peerId: string | null;
   lostTimer: unknown;
   cursor: CursorPoint | null;
+  view: ViewRect | null;
 }
 
 export function createHostPresence(transport: HostTransport, options: HostPresenceOptions): HostPresence {
@@ -180,9 +204,10 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
   const ignored = new Set<string>();
   const rates = new Map<string, { at: number; count: number; helloAt: number; hellos: number }>();
   const dirty = new Set<string>();
+  const dirtyViews = new Set<string>();
   let order = 0, guests = 0, closed = false;
   let cursorTimer: unknown = null, sending = false;
-  const self: Member = { id: randomHex(6), key: null, name: cleanParticipantName(options.name), number: 0, role: 'owner', color: 0, order: order++, peerId: null, lostTimer: null, cursor: null };
+  const self: Member = { id: randomHex(6), key: null, name: cleanParticipantName(options.name), number: 0, role: 'owner', color: 0, order: order++, peerId: null, lostTimer: null, cursor: null, view: null };
   members.set(self.id, self);
 
   const listed = () => Array.from(members.values()).sort((a, b) => a.order - b.order);
@@ -190,6 +215,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
   const snapshot = (): PresenceSnapshot => ({
     participants: listed().map(member => ({ id: member.id, name: member.name, number: member.number, role: member.role, color: member.color, state: online(member) ? 'online' : 'reconnecting', self: member === self })),
     cursors: listed().filter(member => member !== self && member.cursor && online(member)).map(member => ({ id: member.id, ...member.cursor! })),
+    views: listed().filter(member => member !== self && member.view && online(member)).map(member => ({ id: member.id, ...member.view! })),
   });
   const changed = () => { if (!closed) options.onChange(snapshot()); };
   const targets = () => Array.from(byPeer.keys());
@@ -209,17 +235,28 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
   function cursorRecord(member: Member): Record<string, unknown> {
     return member.cursor && online(member) ? { id: member.id, p: member.cursor.pageId, x: member.cursor.x, y: member.cursor.y } : { id: member.id, p: null };
   }
+  function viewRecord(member: Member): Record<string, unknown> {
+    return member.view && online(member) ? { id: member.id, p: member.view.pageId, x: member.view.x, y: member.view.y, w: member.view.width, h: member.view.height } : { id: member.id, p: null };
+  }
   function flushCursors(): void {
     cursorTimer = null;
-    if (closed || !dirty.size) return;
+    if (closed || !dirty.size && !dirtyViews.size) return;
     // One batch at a time: while a send is still on its way, newer positions simply replace the waiting ones.
     if (sending) { scheduleCursors(); return; }
-    const records = Array.from(dirty, id => members.get(id)).filter((member): member is Member => !!member).map(cursorRecord);
-    dirty.clear();
+    const collect = (ids: Set<string>, record: (member: Member) => Record<string, unknown>) => {
+      const records = Array.from(ids, id => members.get(id)).filter((member): member is Member => !!member).map(record);
+      ids.clear();
+      return records;
+    };
+    const cursors = collect(dirty, cursorRecord), views = collect(dirtyViews, viewRecord);
     const peerIds = targets();
-    if (!records.length || !peerIds.length) return;
+    if (!peerIds.length) return;
+    const work: Promise<void>[] = [];
+    if (cursors.length) work.push(send(encode({ t: 'cursors', c: cursors }), peerIds));
+    if (views.length) work.push(send(encode({ t: 'views', v: views }), peerIds));
+    if (!work.length) return;
     sending = true;
-    void send(encode({ t: 'cursors', c: records }), peerIds).finally(() => { sending = false; });
+    void Promise.all(work).finally(() => { sending = false; });
   }
   function scheduleCursors(): void { if (cursorTimer === null && !closed) cursorTimer = realTimers.set(flushCursors, intervalMs); }
   function setMemberCursor(member: Member, point: CursorPoint | null): boolean {
@@ -228,6 +265,18 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
     dirty.add(member.id);
     scheduleCursors();
     return true;
+  }
+  function setMemberView(member: Member, view: ViewRect | null): boolean {
+    if (sameView(member.view, view)) return false;
+    member.view = view;
+    dirtyViews.add(member.id);
+    scheduleCursors();
+    return true;
+  }
+  /** Pointer and view belong to a live connection; both go when it does. */
+  function clearLive(member: Member): void {
+    if (member.cursor) setMemberCursor(member, null);
+    if (member.view) setMemberView(member, null);
   }
 
   function freeColor(): number {
@@ -242,7 +291,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
     if (member === self) return;
     realTimers.clear(member.lostTimer);
     members.delete(member.id);
-    dirty.delete(member.id);
+    dirty.delete(member.id); dirtyViews.delete(member.id);
     if (member.peerId) { byPeer.delete(member.peerId); member.peerId = null; }
   }
 
@@ -250,7 +299,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
   function lose(member: Member): void {
     if (member.peerId) byPeer.delete(member.peerId);
     member.peerId = null;
-    if (member.cursor) setMemberCursor(member, null); else dirty.delete(member.id);
+    clearLive(member);
     // Without a key the participant could never be recognised again, so there is nothing to wait for.
     if (!member.key || removeAfterMs <= 0) { drop(member); return; }
     realTimers.clear(member.lostTimer);
@@ -279,7 +328,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       member.key ??= key;
     } else {
       if (members.size >= MAX_MEMBERS) return;
-      member = { id: randomHex(6), key, name: '', number: ++guests, role: peer.role, color: freeColor(), order: order++, peerId: null, lostTimer: null, cursor: null };
+      member = { id: randomHex(6), key, name: '', number: ++guests, role: peer.role, color: freeColor(), order: order++, peerId: null, lostTimer: null, cursor: null, view: null };
       members.set(member.id, member);
     }
     member.peerId = peer.peerId;
@@ -289,6 +338,8 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
     rosterChanged();
     const cursors = listed().filter(value => value !== member && value.cursor && online(value)).map(cursorRecord);
     if (cursors.length) void send(encode({ t: 'cursors', c: cursors }), [peer.peerId]);
+    const views = listed().filter(value => value !== member && value.view && online(value)).map(viewRecord);
+    if (views.length) void send(encode({ t: 'views', v: views }), [peer.peerId]);
   }
 
   function allowed(peerId: string, hello: boolean): boolean {
@@ -321,9 +372,16 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       if (setMemberCursor(member, point)) changed();
       return;
     }
+    if (value['t'] === 'view') {
+      if (!hasOnly(value, ['t', 'p', 'x', 'y', 'w', 'h'])) return;
+      const view = value['p'] === null ? null : cleanView(value['p'], value['x'], value['y'], value['w'], value['h']);
+      if (value['p'] !== null && !view) return;
+      if (setMemberView(member, view)) changed();
+      return;
+    }
     if (value['t'] === 'bye' && hasOnly(value, ['t'])) {
       ignored.add(message.peer.peerId);
-      if (member.cursor) setMemberCursor(member, null);
+      clearLive(member);
       drop(member);
       rosterChanged();
     }
@@ -353,6 +411,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       const clean = point ? cleanPoint(point.pageId, point.x, point.y) : null;
       setMemberCursor(self, clean);
     },
+    setView(view) { setMemberView(self, view ? cleanView(view.pageId, view.x, view.y, view.width, view.height) : null); },
     setName(name) {
       const clean = cleanParticipantName(name);
       if (clean === self.name) return;
@@ -363,7 +422,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       const member = members.get(id);
       if (!member || member === self) return false;
       const peerId = member.peerId;
-      if (member.cursor) setMemberCursor(member, null);
+      clearLive(member);
       if (peerId) ignored.add(peerId);
       drop(member);
       if (peerId) transport.kick(peerId);
@@ -376,7 +435,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       ignored.add(peerId);
       const member = byPeer.get(peerId);
       if (!member) return;
-      if (member.cursor) setMemberCursor(member, null);
+      clearLive(member);
       drop(member);
       rosterChanged();
     },
@@ -387,7 +446,7 @@ export function createHostPresence(transport: HostTransport, options: HostPresen
       realTimers.clear(cursorTimer);
       for (const entry of waiting.values()) realTimers.clear(entry.timer);
       for (const member of members.values()) realTimers.clear(member.lostTimer);
-      waiting.clear(); members.clear(); byPeer.clear(); dirty.clear(); ignored.clear(); rates.clear();
+      waiting.clear(); members.clear(); byPeer.clear(); dirty.clear(); dirtyViews.clear(); ignored.clear(); rates.clear();
     },
   };
 }
@@ -417,20 +476,24 @@ function parseRoster(value: Record<string, unknown>): { you: string; members: Om
 
 export function createGuestPresence(transport: CollaborationTransport, options: PresenceOptions): GuestPresence {
   const intervalMs = options.cursorIntervalMs ?? PRESENCE_CURSOR_INTERVAL_MS;
+  const viewIntervalMs = options.viewIntervalMs ?? PRESENCE_VIEW_INTERVAL_MS;
   const key = randomHex(16);
   const cursors = new Map<string, CursorPoint>();
+  const views = new Map<string, ViewRect>();
   let name = cleanParticipantName(options.name);
   let roster: Omit<SessionParticipant, 'self'>[] = [];
   let you = '';
   let closed = false, greeted = false, connected = false;
   let wanted: CursorPoint | null = null, sent: CursorPoint | null = null;
-  let cursorTimer: unknown = null, helloTimer: unknown = null, sending = false;
+  let wantedView: ViewRect | null = null, sentView: ViewRect | null = null;
+  let cursorTimer: unknown = null, viewTimer: unknown = null, helloTimer: unknown = null, sending = false, sendingView = false;
 
   const snapshot = (): PresenceSnapshot => {
     const visible = new Set(roster.filter(member => member.id !== you && member.state === 'online').map(member => member.id));
     return {
       participants: roster.map(member => ({ ...member, self: member.id === you })),
       cursors: connected ? Array.from(cursors).filter(([id]) => visible.has(id)).map(([id, point]) => ({ id, ...point })) : [],
+      views: connected ? Array.from(views).filter(([id]) => visible.has(id)).map(([id, view]) => ({ id, ...view })) : [],
     };
   };
   const changed = () => { if (!closed) options.onChange(snapshot()); };
@@ -458,6 +521,16 @@ export function createGuestPresence(transport: CollaborationTransport, options: 
       .then(ok => { sending = false; if (ok) sent = point; if (!samePoint(wanted, sent) && ok) scheduleCursor(); });
   }
   function scheduleCursor(): void { if (cursorTimer === null && !closed) cursorTimer = realTimers.set(flushCursor, intervalMs); }
+  function flushView(): void {
+    viewTimer = null;
+    if (closed || !connected || sameView(wantedView, sentView)) return;
+    if (sendingView) { scheduleView(); return; }
+    const view = wantedView;
+    sendingView = true;
+    void send(view ? { t: 'view', p: view.pageId, x: view.x, y: view.y, w: view.width, h: view.height } : { t: 'view', p: null, x: 0, y: 0, w: 0, h: 0 })
+      .then(ok => { sendingView = false; if (ok) sentView = view; if (!sameView(wantedView, sentView) && ok) scheduleView(); });
+  }
+  function scheduleView(): void { if (viewTimer === null && !closed) viewTimer = realTimers.set(flushView, viewIntervalMs); }
 
   const offMessage = transport.subscribeMessage(message => {
     if (closed || message.channel !== 'awareness') return;
@@ -469,7 +542,23 @@ export function createGuestPresence(transport: CollaborationTransport, options: 
       roster = parsed.members; you = parsed.you;
       const listed = new Set(roster.map(member => member.id));
       for (const id of Array.from(cursors.keys())) if (!listed.has(id)) cursors.delete(id);
+      for (const id of Array.from(views.keys())) if (!listed.has(id)) views.delete(id);
       changed();
+      return;
+    }
+    if (value['t'] === 'views') {
+      if (!hasOnly(value, ['t', 'v']) || !Array.isArray(value['v']) || value['v'].length > MAX_MEMBERS + MAX_WAITING) return;
+      let moved = false;
+      for (const entry of value['v'] as unknown[]) {
+        if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) continue;
+        const item = entry as Record<string, unknown>;
+        if (typeof item['id'] !== 'string' || !ID_PATTERN.test(item['id']) || item['id'] === you) continue;
+        if (item['p'] === null) { moved = views.delete(item['id']) || moved; continue; }
+        const view = cleanView(item['p'], item['x'], item['y'], item['w'], item['h']);
+        if (!view || views.size >= MAX_MEMBERS && !views.has(item['id'])) continue;
+        if (!sameView(views.get(item['id']) ?? null, view)) { views.set(item['id'], view); moved = true; }
+      }
+      if (moved) changed();
       return;
     }
     if (value['t'] !== 'cursors' || !hasOnly(value, ['t', 'c']) || !Array.isArray(value['c']) || value['c'].length > MAX_MEMBERS + MAX_WAITING) return;
@@ -490,13 +579,14 @@ export function createGuestPresence(transport: CollaborationTransport, options: 
     if (closed) return;
     const ready = status.state === 'ready' && status.peers.length > 0;
     if (ready && !connected) {
-      connected = true; sent = null;
+      connected = true; sent = null; sentView = null;
       greet();
       if (wanted) scheduleCursor();
+      if (wantedView) scheduleView();
       changed();
     } else if (!ready && connected) {
       // Positions are only meaningful while they are fed; the list stays so a brief interruption does not flicker.
-      connected = false; greeted = false; cursors.clear();
+      connected = false; greeted = false; cursors.clear(); views.clear();
       if (status.state === 'error' || status.state === 'closed') { roster = []; you = ''; }
       changed();
     } else if (!ready && roster.length && (status.state === 'error' || status.state === 'closed')) {
@@ -510,8 +600,8 @@ export function createGuestPresence(transport: CollaborationTransport, options: 
     if (closed) return;
     closed = true;
     offMessage(); offStatus();
-    realTimers.clear(cursorTimer); realTimers.clear(helloTimer);
-    cursors.clear(); roster = [];
+    realTimers.clear(cursorTimer); realTimers.clear(viewTimer); realTimers.clear(helloTimer);
+    cursors.clear(); views.clear(); roster = [];
   }
 
   return {
@@ -519,6 +609,10 @@ export function createGuestPresence(transport: CollaborationTransport, options: 
     setCursor(point) {
       wanted = point ? cleanPoint(point.pageId, point.x, point.y) : null;
       if (connected && !samePoint(wanted, sent)) scheduleCursor();
+    },
+    setView(view) {
+      wantedView = view ? cleanView(view.pageId, view.x, view.y, view.width, view.height) : null;
+      if (connected && !sameView(wantedView, sentView)) scheduleView();
     },
     setName(value) {
       const clean = cleanParticipantName(value);

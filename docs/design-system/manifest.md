@@ -444,6 +444,13 @@ One element of the document as it is drawn on the canvas: shape, text, connector
 | --- | --- | --- |
 | `openLink` | `[url: string]` |  |
 
+### FollowIndicator
+
+Shown over the workspace while the user follows someone in a session: a frame in that person's colour and a bar that names the person and ends following.
+
+- File: `src/renderer/design-system/organisms/FollowIndicator.vue`
+- Story: `src/renderer/design-system/organisms/FollowIndicator.stories.ts`
+
 ### FramePreview
 
 A small static picture of a frame and what is in it, for the frame list and the presenter.
@@ -533,7 +540,7 @@ The fading trail of the laser pointer over the canvas, the own one and those of 
 
 ### MainMenu
 
-The document card and workspace bar at the top: file actions, undo history, view, collaboration, settings.
+The document card and workspace bar at the top: file actions, undo history, view, collaboration, the running session, settings.
 
 - File: `src/renderer/design-system/organisms/MainMenu.vue`
 
@@ -641,6 +648,21 @@ The modal dialog that edits a resource card: name, description, icon and links.
 The floating bar of the selection: every property and action that fits what is selected.
 
 - File: `src/renderer/design-system/organisms/SelectionToolbar.vue`
+
+### SessionMenu
+
+The session button of the workspace bar and its menu. It is shown while this device hosts or takes part in a session: the menu lists the people, lets the user follow one of them (the own canvas then shows what that person sees) and ends or leaves the session.
+
+- File: `src/renderer/design-system/organisms/SessionMenu.vue`
+- Story: `src/renderer/design-system/organisms/SessionMenu.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `panelOpen` | `boolean \| undefined` | no |  | The side panel "Zusammenarbeiten" is open; the menu then offers no entry to open it. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `open-panel` | `[]` |  |
 
 ### SettingsDialog
 

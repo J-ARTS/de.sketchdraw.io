@@ -10,6 +10,7 @@ import { isHdhtLink } from '@/collaboration/hdht/invitation';
 import { getDesktopBridge } from '@/platform';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import { WHITEBOARD_KEY, type KeyInput } from '@/renderer/state/contract';
+import FollowIndicator from '@/renderer/design-system/organisms/FollowIndicator.vue';
 import MainMenu from '@/renderer/design-system/organisms/MainMenu.vue';
 import Toolbar from '@/renderer/design-system/organisms/Toolbar.vue';
 import WhiteboardCanvas from '@/renderer/design-system/organisms/WhiteboardCanvas.vue';
@@ -175,6 +176,7 @@ onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dis
         <button class="sd-icon-btn zoom-btn" :aria-label="t('Verkleinern')" :disabled="s.viewport.zoom <= .1" @click="store.zoomBy(1 / 1.2)"><AppIcon name="minus" /></button><button class="zoom-value" :aria-label="t('Zoom auf 100 Prozent')" @click="store.zoomTo(1)">{{ Math.round(s.viewport.zoom * 100) }} %</button><button class="sd-icon-btn zoom-btn" :aria-label="t('Vergrößern')" :disabled="s.viewport.zoom >= 4" @click="store.zoomBy(1.2)"><AppIcon name="plus" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Alles anzeigen')" @click="store.fitAll()"><AppIcon name="fit-all" /></button><span class="separator" aria-hidden="true" /><button class="sd-icon-btn zoom-btn" :aria-label="t('Rückgängig')" :disabled="!s.history.canUndo" @click="store.undo()"><AppIcon name="undo" /></button><button class="sd-icon-btn zoom-btn" :aria-label="t('Wiederholen')" :disabled="!s.history.canRedo" @click="store.redo()"><AppIcon name="redo" /></button>
       </div>
       <Minimap ref="minimap" v-if="s.workspaceView === 'canvas' && !(s.codeOpen || s.catalogOpen || s.objectsOpen || s.commentSidebarOpen || s.frameSidebarOpen || collaborationOpen || interopOpen)" />
+      <FollowIndicator v-if="s.workspaceView === 'canvas'" />
       <AppButton v-if="s.offscreenChanges" class="external-changes" @click="store.revealOffscreenChanges()">{{ t('{count} externe Änderungen anzeigen', { count: s.offscreenChanges }) }}</AppButton>
       <div ref="noticeStack" class="notices" role="region" :aria-label="t('Meldungen')" :style="{ bottom: `${noticesBottom}px` }"><div v-for="notice in s.notices" :key="notice.id" class="notice sd-panel" :class="{ error: notice.kind === 'error' }" @pointerenter="store.holdNotice(notice.id)" @pointerleave="store.releaseNotice(notice.id)" @focusin="store.holdNotice(notice.id)" @focusout="store.releaseNotice(notice.id)"><span>{{ notice.text }}</span><button class="sd-icon-btn" :aria-label="t('Meldung schließen')" @click="store.dismissNotice(notice.id)">×</button></div></div>
       <div ref="feedbackStack" class="feedback-stack">

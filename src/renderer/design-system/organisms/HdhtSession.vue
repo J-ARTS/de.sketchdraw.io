@@ -12,7 +12,8 @@ import { createHostKeys } from '@/collaboration/hdht/relay-channel';
 import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTransport } from '@/collaboration/hdht/session';
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
-import { cleanParticipantName, createGuestPresence, createHostPresence, type GuestPresence, type HostPresence, type PresenceSnapshot, type SessionParticipant } from '@/collaboration/presence';
+import { cleanParticipantName, createGuestPresence, createHostPresence, type GuestPresence, type HostPresence, type PresenceSnapshot } from '@/collaboration/presence';
+import { participantLabel } from '@/renderer/lib/participant-label';
 import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import ParticipantList from '@/renderer/design-system/molecules/ParticipantList.vue';
 import AppFieldLabel from '@/renderer/design-system/atoms/AppFieldLabel.vue';
@@ -49,9 +50,7 @@ const NAME_KEY = 'sketchdraw.display-name.v1';
 function storedName(): string { try { return cleanParticipantName(localStorage.getItem(NAME_KEY) ?? ''); } catch { return ''; } }
 const displayName = ref(storedName());
 const participants = computed(() => store.state.presence.participants);
-function personLabel(person: SessionParticipant): string {
-  return person.name || (person.role === 'owner' ? t('Gastgeber') : t('Gast {number}', { number: person.number }));
-}
+const personLabel = participantLabel;
 function commitName(): void {
   const clean = cleanParticipantName(displayName.value);
   displayName.value = clean;
@@ -67,9 +66,12 @@ function showPresence(value: PresenceSnapshot): void {
   if (seen && !props.visible) for (const person of present) if (!seen.has(person.id) && person.state === 'online') store.announce(t('{name} ist der Session beigetreten.', { name: personLabel(person) }));
   seen = new Set(present.map(person => person.id));
 }
+/** The others see where this device points and which part of the drawing it shows (to follow it). */
 function sharePointer(): void {
   offPointer();
-  offPointer = store.subscribePointer(point => { hostPresence?.setCursor(point); guestPresence?.setCursor(point); });
+  const offCursor = store.subscribePointer(point => { hostPresence?.setCursor(point); guestPresence?.setCursor(point); });
+  const offView = store.subscribeView(view => { hostPresence?.setView(view); guestPresence?.setView(view); });
+  offPointer = () => { offCursor(); offView(); };
 }
 function removeParticipant(id: string): void {
   const person = participants.value.find(value => value.id === id);
@@ -261,6 +263,8 @@ async function copy(value: string) {
   catch { note.value = t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'); }
 }
 
+// The workspace bar shows the running session and can end it without this panel being open (#223).
+watch([active, hosting], () => store.setSession(active.value ? { hosting: hosting.value, end: () => stop(joined.value) } : null), { flush: 'sync' });
 const offAuthority = store.subscribeAuthority(next => {
   if (room?.isAdopting) return;
   if ((active.value || busy.value) && next !== ownerAuthority && (!room?.isAdopted || !store.getRoomGuest())) void stop(false);
@@ -269,7 +273,7 @@ watch(() => props.inviteLink, link => {
   if (!link || !isHdhtLink(link) || active.value) return;
   linkText.value = link; pinText.value = ''; emit('link-consumed');
 }, { immediate: true });
-onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
+onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = false; offAuthority(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
 </script>
 
 <template>

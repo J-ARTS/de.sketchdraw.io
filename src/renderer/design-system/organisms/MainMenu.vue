@@ -1,4 +1,4 @@
-<!-- @component The document card and workspace bar at the top: file actions, undo history, view, collaboration, settings. -->
+<!-- @component The document card and workspace bar at the top: file actions, undo history, view, collaboration, the running session, settings. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId, watch, type Ref } from 'vue';
 import { useEventListener, useMediaQuery } from '@vueuse/core';
@@ -6,6 +6,7 @@ import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import PageSwitcher from '@/renderer/design-system/organisms/PageSwitcher.vue';
+import SessionMenu from '@/renderer/design-system/organisms/SessionMenu.vue';
 import type { IconName } from '@/renderer/design-system/atoms/icons';
 import { isMacPlatform, modHint } from '@/renderer/design-system/composables/platform';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
@@ -344,6 +345,8 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
       <AppIconButton class="bar-btn" icon="git" data-testid="git-button" data-git-opener aria-haspopup="dialog" :label="gitLabel" @click="store.toggleGit(true)" />
       <span v-if="gitChanges" class="git-dot" aria-hidden="true" />
     </span>
+    <!-- While a session runs: who is in it, follow someone, end it (#223). It stays in the bar in narrow windows too. -->
+    <SessionMenu :panel-open="collaborationOpen" @open-panel="emit('collaboration')" />
     <span v-if="!compact" class="bar-sep" aria-hidden="true" />
     <div class="view-wrap" @focusout="onFocusOut('view', $event)">
       <button
@@ -547,6 +550,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 /* --- Workspace bar (top right) --- */
 .workspace-bar {
+  position: relative;
   grid-area: ws;
   justify-self: end;
   display: flex;

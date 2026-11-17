@@ -3,6 +3,7 @@
 import { nextTick, ref, watch } from 'vue';
 import { t } from '@/renderer/i18n';
 import type { SessionParticipant } from '@/collaboration/presence';
+import { participantLabel } from '@/renderer/lib/participant-label';
 import AppAvatar from '@/renderer/design-system/atoms/AppAvatar.vue';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
@@ -21,10 +22,7 @@ const emit = defineEmits<{
 const asking = ref<string | null>(null);
 const list = ref<HTMLUListElement>();
 
-/** The name as shown everywhere: the chosen one, otherwise a neutral label. */
-function label(person: SessionParticipant): string {
-  return person.name || (person.role === 'owner' ? t('Gastgeber') : t('Gast {number}', { number: person.number }));
-}
+const label = participantLabel;
 function role(person: SessionParticipant): string {
   return person.role === 'owner' ? t('Gastgeber') : person.role === 'editor' ? t('Bearbeitet mit') : t('Sieht zu');
 }

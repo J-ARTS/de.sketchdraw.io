@@ -183,3 +183,130 @@ test('a guest that was removed while its panel is closed is told over the canvas
     await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
   } finally { await context.close(); }
 });
+
+// --- Session button of the bar: follow a person, end the session (#223) -------------
+const sessionButton = (page: Page) => page.getByTestId('session-button');
+const following = (page: Page) => page.getByTestId('follow-indicator');
+const zoomLabel = (page: Page) => page.locator('.zoom-value');
+async function followFromBar(page: Page, name: string) {
+  await sessionButton(page).click();
+  await page.getByTestId('session-menu').getByRole('menuitemcheckbox', { name: `${name} folgen`, exact: true }).click();
+  await expect(page.getByTestId('session-menu')).toHaveCount(0);
+}
+
+test('the bar shows the running session; following shows what the person sees until the user navigates', async ({ page, browser }) => {
+  await page.goto('/');
+  await expect(sessionButton(page)).toHaveCount(0);
+  const invitation = await hostSession(page, 'Jeremy');
+  await expect(sessionButton(page)).toHaveAccessibleName('Session, 1 Person verbunden');
+  await expect(page.getByTestId('session-count')).toHaveText('1');
+  const { context, guest } = await joinSession(browser, invitation, 'Anna');
+  try {
+    await expect(page.getByTestId('session-count')).toHaveText('2');
+    await expect(sessionButton(guest)).toHaveAccessibleName('Session, 2 Personen verbunden');
+    await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+    await guest.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+
+    // The guest scrolls and points at a place; without following the host sees that place where it is in its own view.
+    await guest.mouse.move(400, 300); await guest.mouse.wheel(0, 200);
+    await guest.mouse.move(401, 300); await guest.mouse.move(400, 300);
+    await expect.poll(async () => (await tip(page)).y).toBeGreaterThan(480);
+
+    // The menu lists both; the own row and nothing else is unavailable.
+    await sessionButton(page).click();
+    const menu = page.getByTestId('session-menu');
+    await expect(menu.getByTestId('session-person')).toHaveCount(2);
+    await expect(menu.getByRole('menuitemcheckbox', { name: 'Jeremy, das bist du' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(menu.getByRole('menuitem', { name: 'Link und PIN anzeigen' })).toBeVisible();
+    // Keyboard: the first entry that can be chosen has the focus, Escape gives it back to the button.
+    await expect(menu.getByRole('menuitemcheckbox', { name: 'Anna folgen' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(sessionButton(page)).toBeFocused();
+
+    // Following aligns the host's canvas with the guest's: the pointer is now where the guest has it.
+    await followFromBar(page, 'Anna');
+    await expect(following(page)).toContainText('Du folgst Anna');
+    await expect(sessionButton(page)).toHaveAccessibleName('Session: du folgst Anna');
+    await expect.poll(async () => (await tip(page)).y).toBe(299);
+    // … and stays there while the guest scrolls and zooms.
+    await guest.mouse.wheel(150, -80);
+    await guest.mouse.move(401, 300); await guest.mouse.move(400, 300);
+    await expect.poll(() => tip(page)).toEqual({ x: 399, y: 299 });
+    await guest.keyboard.down('Control'); await guest.mouse.wheel(0, -300); await guest.keyboard.up('Control');
+    await expect(zoomLabel(guest)).not.toHaveText('100 %');
+    await expect.poll(async () => await zoomLabel(page).textContent()).toBe(await zoomLabel(guest).textContent());
+    // The guest opens a second page; the host goes there too.
+    await guest.getByTestId('page-switcher').click(); await guest.getByTestId('page-add').click();
+    await expect(guest.getByTestId('page-switcher')).toHaveAccessibleName(/^Seiten \(2\)/);
+    await expect(page.getByTestId('page-switcher')).toContainText('Seite 2');
+    await expect(following(page)).toBeVisible();
+
+    // The first own navigation ends following.
+    await page.mouse.move(500, 400); await page.mouse.wheel(0, 60);
+    await expect(following(page)).toHaveCount(0);
+    await expect(sessionButton(page)).toHaveAccessibleName('Session, 2 Personen verbunden');
+    // So do Escape and the button of the bar at the bottom.
+    await followFromBar(page, 'Anna');
+    await expect(following(page)).toBeVisible();
+    await page.getByTestId('whiteboard-canvas').focus(); await page.keyboard.press('Escape');
+    await expect(following(page)).toHaveCount(0);
+    await followFromBar(page, 'Anna');
+    await page.getByTestId('follow-stop').click();
+    await expect(following(page)).toHaveCount(0);
+    // Choosing the followed person again ends it as well.
+    await followFromBar(page, 'Anna');
+    await sessionButton(page).click();
+    await expect(page.getByRole('menuitemcheckbox', { name: 'Anna folgen' })).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('menuitemcheckbox', { name: 'Anna folgen' }).click();
+    await expect(following(page)).toHaveCount(0);
+
+    // A guest can follow the host; when the followed person is gone, following ends with a message.
+    await followFromBar(guest, 'Jeremy');
+    await expect(following(guest)).toContainText('Du folgst Jeremy');
+
+    // The host ends the session from the bar, after being asked because someone else is in it.
+    await sessionButton(page).click();
+    await page.getByTestId('session-end').click();
+    await expect(page.getByTestId('session-end-question')).toHaveText('Die Session endet auch für 1 weitere Person.');
+    await page.getByRole('menuitem', { name: 'Weiterlaufen lassen' }).click();
+    await expect(page.getByTestId('session-end')).toBeFocused();
+    await page.getByTestId('session-end').click();
+    await page.getByTestId('session-end-confirm').click();
+    await expect(sessionButton(page)).toHaveCount(0);
+    await expect(notices(guest)).toContainText('Der Gastgeber hat die Session beendet.');
+    await expect(following(guest)).toHaveCount(0);
+    // The guest still has a copy to keep and leaves from its bar.
+    await sessionButton(guest).click();
+    await guest.getByRole('menuitem', { name: 'Session verlassen' }).click();
+    await expect(sessionButton(guest)).toHaveCount(0);
+    await openPanel(guest);
+    await expect(guest.getByTestId('hdht-join')).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test('a host that is alone ends the session from the bar at once; the button fits a narrow window', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await hostSession(page, 'Jeremy');
+  await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+  await sessionButton(page).click();
+  const menu = page.getByTestId('session-menu');
+  await expect(menu).toContainText('Noch ist niemand beigetreten.');
+  const box = (await menu.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(360);
+  // Every control of the top bars stays inside the window.
+  for (const control of [sessionButton(page), page.getByTestId('workspace-menu-button'), page.getByTestId('file-menu-button')]) {
+    const area = (await control.boundingBox())!;
+    expect(area.x).toBeGreaterThanOrEqual(0);
+    expect(area.x + area.width).toBeLessThanOrEqual(360);
+  }
+  await menu.getByRole('menuitem', { name: 'Link und PIN anzeigen' }).click();
+  await expect(page.getByTestId('hdht-link')).toBeVisible();
+  await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+  await sessionButton(page).click();
+  await page.getByTestId('session-end').click();
+  await expect(sessionButton(page)).toHaveCount(0);
+  await openPanel(page);
+  await expect(page.getByTestId('hdht-start')).toBeVisible();
+});
