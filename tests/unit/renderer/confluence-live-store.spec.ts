@@ -282,14 +282,16 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
   });
 
   it('retries with growing pauses, shows the truth meanwhile and stops after the last attempt', async () => {
-    const { store, published, publishConfluenceLive } = await setup(createDocument('AWS'), { retryDelaysMs: [20, 30] });
+    // The pauses are long enough for a slow runner to see the state between two attempts; with 20 and 30 ms the
+    // retries could be over before the first look (Windows CI, #193).
+    const { store, published, publishConfluenceLive } = await setup(createDocument('AWS'), { retryDelaysMs: [150, 200] });
     await vi.waitFor(() => expect(published).toHaveLength(1));
     publishConfluenceLive.mockImplementation(async (input) => { published.push(input); return { status: 'retry', message: 'Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.', uploaded: 0, bodyUpdated: false }; });
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
     await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('retrying'));
     expect(store.state.confluenceLive.message).toContain('nicht erreichbar');
     // One attempt plus two retries, then the automatic attempts end.
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('error'));
+    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('error'), { timeout: 5000 });
     expect(published).toHaveLength(4);
     expect(store.state.confluenceLive.message).toContain('Automatische Wiederholungen sind pausiert');
     await settle();
