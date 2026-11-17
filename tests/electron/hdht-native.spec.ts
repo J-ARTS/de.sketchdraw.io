@@ -79,7 +79,7 @@ require('./dist-electron/main.cjs');`);
     // Actual native IPC validates arguments and rejects them before opening sockets.
     expect(await guest.page.evaluate(() => window.sketchdraw!.direct!.connect('invalid', 'invalid').then(() => false, () => true))).toBe(true);
     await panel.getByTestId('hdht-stop').click();
-    await expect(guest.page.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat deine Verbindung beendet');
+    await expect(guest.page.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat die Session beendet');
     await expect(guest.page.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
     expect(await guest.hasLocalAgent()).toBe(false);
     await expect.poll(() => helperStatus(owner.page)).toMatchObject({ running: false, connections: 0, sessions: 0 });

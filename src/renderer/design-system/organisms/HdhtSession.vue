@@ -1,4 +1,4 @@
-<!-- @component Start, join and leave a peer-to-peer session: link, participants and connection state. -->
+<!-- @component Start, join and leave a peer-to-peer session: link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
@@ -12,7 +12,11 @@ import { createHostKeys } from '@/collaboration/hdht/relay-channel';
 import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTransport } from '@/collaboration/hdht/session';
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
+import { cleanParticipantName, createGuestPresence, createHostPresence, type GuestPresence, type HostPresence, type PresenceSnapshot, type SessionParticipant } from '@/collaboration/presence';
 import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
+import ParticipantList from '@/renderer/design-system/molecules/ParticipantList.vue';
+import AppFieldLabel from '@/renderer/design-system/atoms/AppFieldLabel.vue';
+import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
 
 const props = defineProps<{ inviteLink?: string | null }>();
 const emit = defineEmits<{ 'link-consumed': [] }>();
@@ -29,6 +33,40 @@ const status = shallowRef<CollaborationTransportStatus | null>(null);
 const helperError = ref('');
 let host: HdhtHostTransport | undefined, room: RoomConnection | undefined, native: DirectLink | undefined;
 let binding: CrdtTransportBinding | undefined, offStatus = () => {};
+let hostPresence: HostPresence | undefined, guestPresence: GuestPresence | undefined, offPointer = () => {};
+/** People already seen in this session; null until the first list arrived, so nobody who was there before is announced. */
+let seen: Set<string> | null = null;
+/** The name others see. It is kept on this device and only leaves it inside a session: to the host, who shows it to the people in that session. */
+const NAME_KEY = 'sketchdraw.display-name.v1';
+function storedName(): string { try { return cleanParticipantName(localStorage.getItem(NAME_KEY) ?? ''); } catch { return ''; } }
+const displayName = ref(storedName());
+const participants = computed(() => store.state.presence.participants);
+function personLabel(person: SessionParticipant): string {
+  return person.name || (person.role === 'owner' ? t('Gastgeber') : t('Gast {number}', { number: person.number }));
+}
+function commitName(): void {
+  const clean = cleanParticipantName(displayName.value);
+  displayName.value = clean;
+  try { if (clean) localStorage.setItem(NAME_KEY, clean); else localStorage.removeItem(NAME_KEY); } catch { /* the name still applies to this session */ }
+  hostPresence?.setName(clean); guestPresence?.setName(clean);
+}
+function showPresence(value: PresenceSnapshot): void {
+  store.setPresence(value);
+  if (!value.participants.length) return;
+  const present = value.participants.filter(person => !person.self);
+  // Only someone new is announced; a participant that comes back after an interruption keeps its entry.
+  if (seen) for (const person of present) if (!seen.has(person.id) && person.state === 'online') store.announce(t('{name} ist der Session beigetreten.', { name: personLabel(person) }));
+  seen = new Set(present.map(person => person.id));
+}
+function sharePointer(): void {
+  offPointer();
+  offPointer = store.subscribePointer(point => { hostPresence?.setCursor(point); guestPresence?.setCursor(point); });
+}
+function removeParticipant(id: string): void {
+  const person = participants.value.find(value => value.id === id);
+  if (!person || !hostPresence?.remove(id)) return;
+  note.value = t('{name} wurde entfernt. Wer Link und PIN kennt, kann erneut beitreten – eine neue PIN verhindert das.', { name: personLabel(person) });
+}
 let generation = 0, disposed = false;
 let stopPromise: Promise<void> | undefined;
 let ownerAuthority = store.getAuthority();
@@ -54,10 +92,14 @@ function fail(value: unknown): void {
     : /HOST_KEY_MISMATCH|DOCUMENT_MISMATCH/.test(code) ? t('Die Identität oder das Dokument stimmt nicht mit dem Link überein.')
     : /INVITATION_INVALID|RELAY_URL/.test(code) ? t('Das ist kein gültiger Session-Link. Bitte den vollständigen Link einfügen.')
     : /DESKTOP_REQUIRED/.test(code) ? t('Gemeinsame Sessions laufen in der Desktop-App. Öffne den Link dort.')
-    : /SESSION_ENDED|KICKED/.test(code) ? t('Der Gastgeber hat deine Verbindung beendet.')
+    : /KICKED/.test(code) ? t('Der Gastgeber hat dich aus der Session entfernt.')
+    : /SESSION_ENDED/.test(code) ? t('Der Gastgeber hat die Session beendet.')
+    : /CONNECTION_LOST/.test(code) ? t('Die Verbindung zur Session ließ sich fünf Minuten lang nicht wiederherstellen.')
     : /ROOM_FULL/.test(code) ? t('Diese Session ist voll. Bitte später erneut versuchen.')
     : /ABORTED/.test(code) ? ''
     : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
+  // The panel may be closed: what ends a session from outside is also said where the person is working.
+  if (/KICKED|SESSION_ENDED|CONNECTION_LOST/.test(code) && error.value) store.announce(error.value, 'error');
 }
 function setActive(value: boolean) { active.value = value; }
 function updateLink(): void {
@@ -119,12 +161,14 @@ async function start(): Promise<void> {
     host = current; hosting.value = true; joined.value = false; setActive(true);
     const inspect = () => { if (generation === epoch && host === current) status.value = current.getStatus(); };
     offStatus = current.subscribeStatus(inspect); inspect();
+    const presence = createHostPresence(current, { name: displayName.value, onChange: value => { if (generation === epoch && host === current) showPresence(value); } });
+    hostPresence = presence; seen = new Set(); showPresence(presence.snapshot()); sharePointer();
     binding = bindCrdtTransport(controller, current, undefined, {
       applyRemote: apply => { if (store.getAuthority() === authority) authority.applyExternalUpdate(apply); },
       onPeerError: (error, peer) => {
         if (generation !== epoch || host !== current) return;
         if (!current.getStatus().peers.some(value => value.peerId === peer.peerId && value.keyHash === peer.keyHash)) return;
-        if (error.message === 'SYNC_TRANSFER_BUSY') current.retryPeer(peer.peerId); else current.kick(peer.peerId);
+        if (error.message === 'SYNC_TRANSFER_BUSY') current.retryPeer(peer.peerId); else { presence.forgetPeer(peer.peerId); current.kick(peer.peerId); }
       },
       onError: value => {
         if (generation !== epoch || host !== current) return;
@@ -164,6 +208,8 @@ async function join(): Promise<void> {
       status.value = value; joined.value = adopted;
       if (value.state === 'error') fail(new Error(value.error ?? 'CONNECTION_LOST'));
     } });
+    const presence = createGuestPresence(transport, { name: displayName.value, onChange: value => { if (generation === epoch) showPresence(value); } });
+    guestPresence = presence; seen = null; sharePointer();
     room = current; hosting.value = false; setActive(true); pinText.value = '';
     void setHelper(true);
     const accepted = await current.join();
@@ -178,11 +224,15 @@ function stop(keepLocalCopy: boolean, reason?: string): Promise<void> {
   if (stopPromise) return stopPromise;
   const epoch = ++generation;
   const currentHost = host, currentRoom = room, currentBinding = binding, currentNative = native;
-  host = undefined; room = undefined; binding = undefined; native = undefined;
-  offStatus(); offStatus = () => {};
+  const currentHostPresence = hostPresence, currentGuestPresence = guestPresence;
+  host = undefined; room = undefined; binding = undefined; native = undefined; hostPresence = undefined; guestPresence = undefined;
+  offStatus(); offStatus = () => {}; offPointer(); offPointer = () => {};
+  currentHostPresence?.close(); seen = null; store.setPresence(null);
   busy.value = true; stopping.value = true;
   stopPromise = (async () => {
     try {
+      // A guest that leaves on purpose says so first; the host then drops it from the list instead of waiting for it.
+      await currentGuestPresence?.leave().catch(() => undefined);
       // Host close gives SESSION_ENDED a bounded flush window before native sockets are destroyed.
       await Promise.allSettled([currentHost?.close(reason), currentRoom?.close(keepLocalCopy, reason)]);
       await bridge.direct?.hostStop().catch(() => undefined);
@@ -218,6 +268,7 @@ onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); v
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
       <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
+      <div class="name-field"><AppFieldLabel for="hdht-name">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" :disabled="busy" @change="commitName" /></div>
       <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy" @update:model-value="role = $event as 'viewer' | 'editor'" />
       <AppButton intent="primary" class="full" data-testid="hdht-start" :disabled="busy || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</AppButton>
       <div class="separator">{{ t('oder beitreten') }}</div>
@@ -228,6 +279,12 @@ onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); v
     <template v-else>
       <h3>{{ hosting ? t('Session läuft') : joined ? t('Du bist in der Session') : t('Session beitreten') }}</h3>
       <p role="status" data-testid="hdht-status">{{ stateText }}</p>
+      <p v-if="joined && status?.state === 'reconnecting'" data-testid="hdht-reconnect-hint">{{ t('Die App versucht fünf Minuten lang, wieder beizutreten.') }}</p>
+      <section v-if="participants.length" class="people" :aria-label="t('Personen in der Session')">
+        <h4>{{ t('In der Session') }}</h4>
+        <ParticipantList :participants="participants" :removable="hosting" @remove="removeParticipant" />
+        <div class="name-field"><AppFieldLabel for="hdht-name-active">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name-active" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" @change="commitName" @keydown.enter.prevent="commitName" /></div>
+      </section>
       <template v-if="hosting && status?.state === 'ready'">
         <template v-if="nativePending && !relayShareAllowed">
           <p>{{ t('Direktverbindung wird noch vorbereitet …') }}</p>
@@ -251,5 +308,5 @@ onBeforeUnmount(() => { disposed = true; helperWanted = false; offAuthority(); v
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session h4{margin:0 0 var(--space-1);font-size:var(--font-size-s);font-weight:600;color:var(--text-muted)}.people{margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) 0;border-block:1px solid var(--border-subtle)}.name-field{display:grid;gap:5px;margin:var(--space-3) 0 var(--space-2)}.name-field .sd-field-label{margin:0}.name-field .sd-input{margin-top:0}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
 </style>

@@ -20,6 +20,17 @@
   --status-ok: #1b6b3a;
   --inverse-surface: #25223a;
   --inverse-text: #f4f4f8;
+  /* People in a session: badge in the list and pointer on the canvas. Text on them is --presence-ink.
+     Contrast (WCAG, computed) light: ink on colour 5,1–5,7, colour on canvas 4,6–5,1; dark: 8,2–11,2 and 8,5–11,6. */
+  --presence-ink: #ffffff;
+  --presence-1: #6b4ce6;
+  --presence-2: #0b7a6f;
+  --presence-3: #b3530a;
+  --presence-4: #c0246a;
+  --presence-5: #1d62d1;
+  --presence-6: #2e7d32;
+  --presence-7: #c8372d;
+  --presence-8: #6d6a00;
   --shadow-panel: 0 1px 2px rgb(45 35 90 / 5%), 0 8px 24px rgb(45 35 90 / 8%);
   --scrim: rgb(27 26 46 / 45%);
   /* Context menus and the selection toolbar follow the light panels of the active theme. */
@@ -93,6 +104,15 @@
   --status-ok: #7fd69a;
   --inverse-surface: #e8e7f2;
   --inverse-text: #16151f;
+  --presence-ink: #16151f;
+  --presence-1: #b3a1ff;
+  --presence-2: #5fd4c4;
+  --presence-3: #f5b667;
+  --presence-4: #ff8fc1;
+  --presence-5: #86b4ff;
+  --presence-6: #8fd694;
+  --presence-7: #ff9a8a;
+  --presence-8: #d4d06a;
   --shadow-panel: 0 0 0 1px rgb(0 0 0 / 30%), 0 1px 2px rgb(0 0 0 / 35%), 0 8px 24px rgb(0 0 0 / 35%);
   --scrim: rgb(0 0 0 / 60%);
 

@@ -5,16 +5,18 @@ import type { HdhtInvitation } from '@/collaboration/hdht/invitation';
 import { createHdhtGuestTransport, type HdhtGuestConfig } from '@/collaboration/hdht/session';
 import type { SecureChannel } from '@/collaboration/hdht/types';
 
-type Reply = { code: string; retryAfterMs?: unknown; attemptsLeft?: unknown } | 'ok' | 'wait';
+type Reply = { code: string; retryAfterMs?: unknown; attemptsLeft?: unknown } | 'ok' | 'wait' | 'down';
 const cleanups: (() => Promise<void> | void)[] = [];
-afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); vi.useRealTimers(); });
+afterEach(async () => { for (const cleanup of cleanups.splice(0).reverse()) await cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 const invitation: HdhtInvitation = { version: 1, sessionId: 'a'.repeat(64), hostKey: 'a'.repeat(43), directKey: 'b'.repeat(64), relayUrl: '', documentId: 'doc', expiresAt: 9_999_999_999_999 };
 
-function setup(replies: Reply[], options: Partial<HdhtGuestConfig> = {}) {
+function setup(replies: Reply[], options: Partial<HdhtGuestConfig> = {}, fallback: Reply = 'ok') {
+  let attempts = 0;
   const channels: { channel: SecureChannel; disconnect(): void; receive(type: number, body: Uint8Array): void; sent: Uint8Array[] }[] = [];
   const link = new DirectLink({ hostStart: async () => ({ publicKey: invitation.directKey }), hostStop: async () => {}, connect: async () => {}, send: async () => {}, close: async () => {}, onEvent: () => () => {}, discover: async () => [] });
   vi.spyOn(link, 'connect').mockImplementation(async () => {
-    const reply = replies[channels.length] ?? 'ok';
+    const reply = replies[attempts++] ?? fallback;
+    if (reply === 'down') throw new Error('NO_ROUTE');
     let handlers: Parameters<SecureChannel['attach']>[0];
     const sent: Uint8Array[] = [];
     const channel: SecureChannel = {
@@ -33,7 +35,7 @@ function setup(replies: Reply[], options: Partial<HdhtGuestConfig> = {}) {
   vi.useFakeTimers();
   const guest = createHdhtGuestTransport({ invitation, pin: '123456', direct: link, helpers: false, backoffMs: [10], maxReconnectAttempts: 4, timing: { heartbeatMs: 2_000_000, timeoutMs: 4_000_000 }, ...options });
   cleanups.push(() => { link.dispose(); return guest.close(); });
-  return { guest, channels };
+  return { guest, channels, attempts: () => attempts };
 }
 
 describe('bounded recovery after authentication', () => {
@@ -158,5 +160,81 @@ describe('safe terminal sync reasons', () => {
     expect(guest.getStatus().error).toBeUndefined();
     const goodbye = channels[0]!.sent.find(data => data[0] === MESSAGE.bye)!;
     expect(new TextDecoder().decode(goodbye.subarray(1))).toBe('SESSION_LEFT');
+  });
+});
+
+describe('five-minute reconnect window (#222)', () => {
+  const window = { maxReconnectAttempts: undefined, backoffMs: [1000] } as Partial<HdhtGuestConfig>;
+
+  it('keeps trying to rejoin for five minutes and then reports the lost connection', async () => {
+    const { guest, channels, attempts } = setup(['ok'], window, 'down');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(guest.getStatus().state).toBe('ready');
+    channels[0]!.disconnect();
+    await vi.advanceTimersByTimeAsync(4 * 60_000 + 50_000);
+    expect(guest.getStatus()).toMatchObject({ state: 'reconnecting' });
+    // More than the eight attempts that used to end the session after under a minute.
+    expect(attempts()).toBeGreaterThan(100);
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(guest.getStatus()).toMatchObject({ state: 'error', error: 'CONNECTION_LOST' });
+    const final = attempts();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(attempts()).toBe(final);
+  });
+
+  it('rejoins when the host is reachable again inside the window', async () => {
+    const replies: Reply[] = ['ok', ...Array.from({ length: 200 }, () => 'down' as const)];
+    const { guest, channels } = setup(replies, window, 'ok');
+    await vi.advanceTimersByTimeAsync(0);
+    channels[0]!.disconnect();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(guest.getStatus().state).toBe('reconnecting');
+    await vi.advanceTimersByTimeAsync(4 * 60_000);
+    expect(guest.getStatus().state).toBe('ready');
+    expect(channels).toHaveLength(2);
+  });
+
+  it('does not open a new window for a connection that held for less than thirty seconds', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const replies: Reply[] = ['ok', ...Array.from({ length: 100 }, () => 'down' as const), 'ok'];
+    const { guest, channels } = setup(replies, window, 'down');
+    await vi.advanceTimersByTimeAsync(0);
+    channels[0]!.disconnect();
+    // One attempt per second: the host answers again after 101 seconds.
+    await vi.advanceTimersByTimeAsync(102_000);
+    expect(guest.getStatus().state).toBe('ready');
+    await vi.advanceTimersByTimeAsync(10_000);
+    channels[1]!.disconnect();
+    await vi.advanceTimersByTimeAsync(180_000);
+    expect(guest.getStatus().state).toBe('reconnecting');
+    // Five minutes after the first loss, not five minutes after the short reconnection.
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(guest.getStatus()).toMatchObject({ state: 'error', error: 'CONNECTION_LOST' });
+  });
+
+  it('opens a new window after a connection that held', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const replies: Reply[] = ['ok', ...Array.from({ length: 100 }, () => 'down' as const), 'ok'];
+    const { guest, channels } = setup(replies, window, 'down');
+    await vi.advanceTimersByTimeAsync(0);
+    channels[0]!.disconnect();
+    await vi.advanceTimersByTimeAsync(102_000);
+    expect(guest.getStatus().state).toBe('ready');
+    await vi.advanceTimersByTimeAsync(31_000);
+    channels[1]!.disconnect();
+    await vi.advanceTimersByTimeAsync(4 * 60_000 + 50_000);
+    expect(guest.getStatus().state).toBe('reconnecting');
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(guest.getStatus()).toMatchObject({ state: 'error', error: 'CONNECTION_LOST' });
+  });
+
+  it('honours a shorter window', async () => {
+    const { guest, channels } = setup(['ok'], { ...window, reconnectWindowMs: 5_000 }, 'down');
+    await vi.advanceTimersByTimeAsync(0);
+    channels[0]!.disconnect();
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(guest.getStatus().state).toBe('reconnecting');
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(guest.getStatus()).toMatchObject({ state: 'error', error: 'CONNECTION_LOST' });
   });
 });

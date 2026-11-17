@@ -12,6 +12,7 @@
  */
 
 // atoms
+export { default as AppAvatar } from './atoms/AppAvatar.vue';
 export { default as AppButton } from './atoms/AppButton.vue';
 export { default as AppFieldLabel } from './atoms/AppFieldLabel.vue';
 export { default as AppIcon } from './atoms/AppIcon.vue';
@@ -31,6 +32,7 @@ export { default as ColorPalette } from './molecules/ColorPalette.vue';
 export { default as ColorPicker } from './molecules/ColorPicker.vue';
 export { default as DiffView } from './molecules/DiffView.vue';
 export { default as ImageFileInput } from './organisms/ImageFileInput.vue';
+export { default as ParticipantList } from './molecules/ParticipantList.vue';
 export { default as SequenceDecor } from './molecules/SequenceDecor.vue';
 export { default as TableContent } from './molecules/TableContent.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';
@@ -60,6 +62,7 @@ export { default as PluginSettings } from './organisms/PluginSettings.vue';
 export { default as PresenterMode } from './organisms/PresenterMode.vue';
 export { default as ProfileDialog } from './organisms/ProfileDialog.vue';
 export { default as QuickConnect } from './organisms/QuickConnect.vue';
+export { default as RemoteCursors } from './organisms/RemoteCursors.vue';
 export { default as ResourceCardEditor } from './organisms/ResourceCardEditor.vue';
 export { default as SelectionToolbar } from './organisms/SelectionToolbar.vue';
 export { default as SettingsDialog } from './organisms/SettingsDialog.vue';

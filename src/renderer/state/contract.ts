@@ -3,6 +3,7 @@ import type { InjectionKey } from 'vue';
 import type { LanguageCode, Preferences } from '../lib/preferences';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
+import type { CursorPoint, PresenceSnapshot } from '@/collaboration/presence';
 import type { CrdtDocumentController } from '@/crdt';
 import type {
   DesktopBridge,
@@ -327,6 +328,8 @@ export interface WhiteboardState {
   collaboration: CollaborationStatus | null;
   /** Set while this device is a guest of a session room (HyperDHT/relay or automatic). */
   roomGuest: { role: 'editor' | 'viewer'; connected: boolean } | null;
+  /** Who is in the running session and where their pointers are; empty without a session (#222). */
+  presence: PresenceSnapshot;
   canWrite: boolean;
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
@@ -561,6 +564,15 @@ export interface WhiteboardStore {
   /** Explicit leave: the local copy stays and local authority is restored. */
   leaveRoomGuest(): void;
   getRoomGuest(): { role: 'editor' | 'viewer'; connected: boolean } | null;
+  /** The session reports who is present; null when there is no session any more. */
+  setPresence(presence: PresenceSnapshot | null): void;
+  /**
+   * Reports the own pointer on the canvas in document coordinates, null when it left the canvas. The session passes
+   * it on to the other participants.
+   */
+  subscribePointer(listener: (point: CursorPoint | null) => void): () => void;
+  /** Shows a message from outside the store, such as the end of a session; errors stay until they are closed. */
+  announce(text: string, kind?: 'info' | 'error'): void;
   getGuestSession(): GuestSession | null;
   resolvePendingWrite(): Promise<void>;
   newDocument(): Promise<void>;

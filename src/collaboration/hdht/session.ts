@@ -19,6 +19,8 @@ const FINAL_PEER_REASONS: Readonly<Record<string, string>> = { 'PEER_BYE:SESSION
 const FATAL_AUTH_CODES = new Set(['PIN_INVALID', 'PIN_LOCKED', 'PIN_RETIRED', 'ROOM_FULL', 'DOCUMENT_MISMATCH', 'INVITATION_EXPIRED', 'SESSION_ENDED']);
 const SYNC_FAILURE_REASONS = new Set(['SYNC_FAILED', 'DOCUMENT_TOO_LARGE_FOR_COLLABORATION']);
 const STABLE_SESSION_MS = 30_000;
+/** How long a guest that was connected keeps trying to rejoin before it gives up (#222). */
+export const HDHT_RECONNECT_WINDOW_MS = 5 * 60_000;
 const MAX_PIN_RETRY_MS = 15 * 60_000;
 
 function boundedNumber(value: unknown, min: number, max: number, fallback: number): number {
@@ -291,9 +293,16 @@ export interface HdhtGuestConfig {
   attemptTimeoutMs?: number;
   authTimeoutMs?: number;
   backoffMs?: readonly number[];
-  /** Failed or short-lived attempts before first authentication / since the last stable connection. */
+  /** Failed or short-lived attempts before the first authentication. */
   maxInitialAttempts?: number;
+  /**
+   * How long a guest that was connected keeps trying to rejoin, counted from the end of its last stable connection
+   * (or from the first loss when none was stable). Defaults to HDHT_RECONNECT_WINDOW_MS.
+   */
+  reconnectWindowMs?: number;
+  /** Optional additional bound on failed or short-lived attempts since the last stable connection. */
   maxReconnectAttempts?: number;
+  now?: () => number;
 }
 
 const HOST_PEER_ID = 'host';
@@ -379,7 +388,9 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
   const timing = config.timing ?? DEFAULT_TIMING;
   const backoff = config.backoffMs ?? [500, 1000, 2000, 4000, 8000];
   const maxInitial = config.maxInitialAttempts ?? 3;
-  const maxReconnect = config.maxReconnectAttempts ?? 8;
+  const maxReconnect = config.maxReconnectAttempts ?? Number.POSITIVE_INFINITY;
+  const reconnectWindowMs = Math.max(0, config.reconnectWindowMs ?? HDHT_RECONNECT_WINDOW_MS);
+  const now = config.now ?? (() => Date.now());
   const statusListeners = new Set<(status: CollaborationTransportStatus) => void>();
   const messageListeners = new Set<(message: CollaborationTransportMessage) => void | Promise<void>>();
   const stop = new AbortController();
@@ -497,6 +508,8 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
 
   async function run(): Promise<void> {
     let failures = 0;
+    /** Start of the current reconnect window; only a stable connection opens a new one, so a flapping link still ends. */
+    let lostAt: number | null = null;
     while (!closed && !stop.signal.aborted) {
       attempt++;
       state = everConnected ? 'reconnecting' : 'connecting'; phase = 'connecting'; hostPeer = null; route = undefined;
@@ -523,8 +536,9 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
       if (final) { fatal(final); return; }
       if (FATAL_AUTH_CODES.has(ended.reason) && !(ended.reason === 'PIN_LOCKED' && everConnected)) return;
       failures = ended.stable ? 0 : failures + 1;
-      const limit = everConnected ? maxReconnect : maxInitial;
-      if (failures >= limit) {
+      if (everConnected && (ended.stable || lostAt === null)) lostAt = now();
+      const remaining = everConnected ? reconnectWindowMs - (now() - lostAt!) : Number.POSITIVE_INFINITY;
+      if (everConnected ? failures >= maxReconnect || remaining <= 0 : failures >= maxInitial) {
         fatal(everConnected ? 'CONNECTION_LOST' : ended.reason === 'CONNECT_TIMEOUT' || ended.reason === 'NO_ROUTE' ? 'HOST_UNREACHABLE' : 'CONNECT_FAILED');
         return;
       }
@@ -532,7 +546,9 @@ export function createHdhtGuestTransport(config: HdhtGuestConfig): HdhtGuestTran
       const delay = Math.max(ended.retryAfterMs ?? 0, backoff[Math.min(failures, backoff.length - 1)] ?? 500);
       await new Promise<void>(resolve => {
         const finish = () => { clearTimeout(timer); stop.signal.removeEventListener('abort', finish); resolve(); };
-        const timer = setTimeout(finish, ended.retryAfterMs !== undefined ? delay : delay + Math.floor(Math.random() * delay * 0.2));
+        // The last wait ends with the window, so the final attempt starts no later than the window closes. A cooldown
+        // the host demands (PIN lock) is waited out in full: asking earlier would only be refused again.
+        const timer = setTimeout(finish, ended.retryAfterMs !== undefined ? delay : Math.min(remaining, delay + Math.floor(Math.random() * delay * 0.2)));
         stop.signal.addEventListener('abort', finish, { once: true });
         if (stop.signal.aborted) finish();
       });

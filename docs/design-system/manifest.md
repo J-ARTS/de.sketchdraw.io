@@ -7,6 +7,20 @@ Import a component from its file, for example `@/renderer/design-system/atoms/Ap
 
 The smallest parts, built from HTML and tokens only.
 
+### AppAvatar
+
+The badge of a person in a session: one or two initials on that person's colour. The same colour and letters mark the person's pointer on the canvas. The badge is decoration: put the name next to it.
+
+- File: `src/renderer/design-system/atoms/AppAvatar.vue`
+- Story: `src/renderer/design-system/atoms/AppAvatar.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `color` | `number` | yes |  | Which of the participant colours, 0 to 7; other numbers wrap around. |
+| `name` | `string` | yes |  | The name the initials are taken from. |
+| `away` | `boolean \| undefined` | no | `false` | The person is not reachable at the moment. |
+| `size` | `"md" \| "sm" \| undefined` | no | `"md"` | Edge length: `md` for lists, `sm` next to running text. |
+
 ### AppButton
 
 A button with a text. Use it for every action that is named in words; for an action shown only as a symbol use `AppIconButton`. Attributes and listeners (`disabled`, `aria-*`, `data-testid`, `@click`) go to the native button.
@@ -275,6 +289,22 @@ The changes of one text file, line by line with old and new line numbers; added 
 | `label` | `string` | yes |  | The accessible name of the scrollable area, usually the file name. |
 | `emptyText` | `string \| undefined` | no |  | What to say when the diff has no lines. |
 
+### ParticipantList
+
+The people in a session, one row each: badge, name and role, or that the connection is interrupted. With `removable` every guest gets a button to take it out of the session; the row asks once before it reports `remove`.
+
+- File: `src/renderer/design-system/molecules/ParticipantList.vue`
+- Story: `src/renderer/design-system/molecules/ParticipantList.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `participants` | `readonly SessionParticipant[]` | yes |  | The people to list, in the order they joined; the host first. |
+| `removable` | `boolean \| undefined` | no | `false` | Offers removing for everyone except the host and this device. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `remove` | `[id: string]` |  |
+
 ### SequenceDecor
 
 What makes an ordinary shape a part of a sequence diagram on the canvas: fragment heading, section condition, actor figure, message number.
@@ -450,7 +480,7 @@ The modal Git dialog of the Git plugin: see and commit changes, push, fetch the 
 
 ### HdhtSession
 
-Start, join and leave a peer-to-peer session: link, participants and connection state.
+Start, join and leave a peer-to-peer session: link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session.
 
 - File: `src/renderer/design-system/organisms/HdhtSession.vue`
 
@@ -581,6 +611,13 @@ The modal dialog that manages plugin profiles.
 The handles around a selected shape that draw a connector to a new or existing shape with one drag.
 
 - File: `src/renderer/design-system/organisms/QuickConnect.vue`
+
+### RemoteCursors
+
+The pointers of the other people in a session, drawn over the canvas: an arrow in the person's colour with their initials. Only pointers on the page that is open are shown. It belongs inside the canvas `<svg>`.
+
+- File: `src/renderer/design-system/organisms/RemoteCursors.vue`
+- Story: `src/renderer/design-system/organisms/RemoteCursors.stories.ts`
 
 ### ResourceCardEditor
 

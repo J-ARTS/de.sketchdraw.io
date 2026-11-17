@@ -61,6 +61,7 @@ import {
 } from '../lib/drawing-tools';
 import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
+import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot } from '@/collaboration/presence';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
 import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
@@ -301,7 +302,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const selected = () => pageEls().filter((e) => state.selection.includes(e.id));
   const changedDraft = () => { draftGeneration += 1; state.draftVersion = draftGeneration; };
   const state = reactive({
-    draftVersion: 0, collaboration: null as CollaborationStatus | null, roomGuest: null as { role: 'editor' | 'viewer'; connected: boolean } | null, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
+    draftVersion: 0, collaboration: null as CollaborationStatus | null, roomGuest: null as { role: 'editor' | 'viewer'; connected: boolean } | null, presence: EMPTY_PRESENCE as PresenceSnapshot, pendingPeerWrite: null as WhiteboardState['pendingPeerWrite'],
     get canWrite() { if (this.roomGuest) { const access = roomAccess?.() ?? this.roomGuest; return access.role === 'editor' && access.connected; } return !this.collaboration || this.collaboration.state === 'ready' && this.collaboration.role === 'editor' && !this.pendingPeerWrite && !this.collaboration.pendingWrites && !this.collaboration.hasUnresolvedOutcome; },
     document: Object.freeze(initial.document), revision: initial.revision,
     selection: [] as string[], focusedId: null as string | null, tool: 'select' as Tool, shapeVariant: 'square' as ShapeVariant,
@@ -479,6 +480,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     (timer as { unref?: () => void }).unref?.();
     noticeTimers.set(id, timer);
   }
+  const pointerListeners = new Set<(point: CursorPoint | null) => void>();
   function notice(text: string, kind: 'info' | 'error' = 'info') {
     state.liveMessage = text;
     // A repeated message replaces the one still on screen (with a fresh id) instead of stacking.
@@ -1079,6 +1081,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       for (const listener of authorityListeners) listener(authority);
     },
     getRoomGuest() { return state.roomGuest; },
+    setPresence(presence) { state.presence = presence ?? EMPTY_PRESENCE; },
+    subscribePointer(listener) {
+      pointerListeners.add(listener);
+      return () => { pointerListeners.delete(listener); };
+    },
+    announce(text, kind = 'info') { notice(text, kind); },
     async leaveGuestSession() {
       if (!guest || state.transitioning) return false;
       const result = new Promise<boolean>(resolve => { transitionResult = resolve; });
@@ -1264,6 +1272,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pointerMove(input) {
       lastPointerScreen = { x: input.x, y: input.y };
       const point = screenToDoc(state.viewport, input);
+      if (pointerListeners.size) { const shared = { pageId: state.activePageId, x: point.x, y: point.y }; for (const listener of pointerListeners) listener(shared); }
       const g = gesture;
       if (state.tool === 'connector') {
         const dockingTarget = hit(point);
@@ -1383,7 +1392,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       g.last = point; changedDraft();
     },
-    pointerLeave() { if (!gesture) { state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; } },
+    pointerLeave() { for (const listener of pointerListeners) listener(null); if (!gesture) { state.hoveredHandleId = null; state.hoveredConnectorId = null; state.connectorHoverTargetId = null; } },
     pointerUp(input) {
       const g = gesture;
       if (!g || state.transitioning || !state.canWrite && !['pan', 'marquee'].includes(g.kind)) return;

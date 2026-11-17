@@ -114,7 +114,7 @@ test('the updated role for new arrivals stays read-only without MCP after host e
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
     await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
     await page.getByTestId('hdht-stop').click();
-    await expect(guest.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat deine Verbindung beendet');
+    await expect(guest.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat die Session beendet');
     await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
     expect((await agentState(guest)).active).toBe(false);
     await guest.getByTestId('hdht-stop').click();
@@ -334,7 +334,7 @@ test('session end flushes before native sockets stop so guests receive the termi
     await expect.poll(() => page.evaluate(() => (window as unknown as { __flushFixture: { encrypting: boolean } }).__flushFixture.encrypting)).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { __flushFixture: { stops: number } }).__flushFixture.stops)).toBe(0);
     await page.evaluate(() => (window as unknown as { __flushFixture: { release: () => void } }).__flushFixture.release());
-    await expect(guest.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat deine Verbindung beendet');
+    await expect(guest.getByTestId('hdht-session').getByRole('alert')).toContainText('Gastgeber hat die Session beendet');
     await expect(page.getByTestId('hdht-start')).toBeEnabled();
     expect(await page.evaluate(() => (window as unknown as { __flushFixture: { stops: number } }).__flushFixture.stops)).toBe(1);
   } finally { await context.close(); }
@@ -407,11 +407,22 @@ for (const failingSide of ['host', 'guest'] as const) test(`a transient ${failin
         }
       }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['disabled'] });
     });
-    await failingPage.evaluate(() => { (window as unknown as { __sendFailure: { armed: boolean } }).__sendFailure.armed = true; });
-    await draw(failingPage, 'Ellipse', 280, 450);
+    const arm = () => failingPage.evaluate(() => { (window as unknown as { __sendFailure: { armed: boolean } }).__sendFailure.armed = true; });
+    const ellipses = failingSide === 'host' ? 1 : 0;
+    if (failingSide === 'host') { await arm(); await draw(page, 'Ellipse', 280, 450); }
+    else {
+      // A guest also sends its pointer position (#222). The send that fails has to be the document change, and a guest
+      // that loses the connection in the middle of a drag cannot finish it. So the change is made by keyboard while
+      // the pointer rests outside the canvas: the ellipse the guest just drew is deleted again.
+      await draw(guest, 'Ellipse', 280, 450);
+      await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
+      await guest.getByTestId('workspace-menu-button').hover();
+      await expect(page.getByTestId('remote-cursor')).toHaveCount(0);
+      await arm(); await guest.keyboard.press('Delete');
+    }
     await expect.poll(() => failingPage.evaluate(() => (window as unknown as { __sendFailure: { failures: number } }).__sendFailure.failures)).toBe(1);
-    await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
-    await expect(guest.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(1);
+    await expect(page.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(ellipses);
+    await expect(guest.locator('.whiteboard-canvas [data-kind=ellipse]')).toHaveCount(ellipses);
     await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
     await expect(page.getByTestId('hdht-status')).toContainText('Verbunden · 1 Person');
     expect(await guest.evaluate(() => (window as unknown as { __recoveryFixture: { interrupted: boolean; writableWhileDisconnected: boolean } }).__recoveryFixture)).toEqual({ interrupted: true, writableWhileDisconnected: false });
