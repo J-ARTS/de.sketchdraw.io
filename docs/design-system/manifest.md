@@ -486,7 +486,8 @@ Start, join and leave a peer-to-peer session: link and PIN, the people in it (th
 
 | Prop | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `inviteLink` | `string \| null \| undefined` | no |  |  |
+| `inviteLink` | `string \| null \| undefined` | no | `null` | A session link the app was opened with; it is prefilled for the PIN join. |
+| `visible` | `boolean \| undefined` | no | `true` | Whether the user can see this component. While it is hidden, what happens in the session (someone joined, the host removed this device or ended the session) is also shown as a notice over the canvas. |
 
 | Event | Payload | Description |
 | --- | --- | --- |

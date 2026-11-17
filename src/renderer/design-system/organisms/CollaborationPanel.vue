@@ -16,7 +16,7 @@ const emit = defineEmits<{ close: []; 'link-consumed': [] }>();
   <aside v-show="open" class="peer-panel sd-panel" :aria-label="t('Zusammenarbeiten')" data-testid="collaboration-panel">
     <header><h2 class="sd-panel-title">{{ t('Zusammenarbeiten') }}</h2><button class="sd-icon-btn sd-panel-close" :aria-label="t('Zusammenarbeit schließen')" @click="emit('close')"><AppIcon name="close" /></button></header>
     <div class="body">
-      <HdhtSession :invite-link="inviteLink" @link-consumed="emit('link-consumed')" />
+      <HdhtSession :invite-link="inviteLink" :visible="open" @link-consumed="emit('link-consumed')" />
     </div>
   </aside>
 </template>

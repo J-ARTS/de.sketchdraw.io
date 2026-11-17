@@ -18,7 +18,15 @@ import ParticipantList from '@/renderer/design-system/molecules/ParticipantList.
 import AppFieldLabel from '@/renderer/design-system/atoms/AppFieldLabel.vue';
 import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
 
-const props = defineProps<{ inviteLink?: string | null }>();
+const props = withDefaults(defineProps<{
+  /** A session link the app was opened with; it is prefilled for the PIN join. */
+  inviteLink?: string | null;
+  /**
+   * Whether the user can see this component. While it is hidden, what happens in the session (someone joined, the host
+   * removed this device or ended the session) is also shown as a notice over the canvas.
+   */
+  visible?: boolean;
+}>(), { inviteLink: null, visible: true });
 const emit = defineEmits<{ 'link-consumed': [] }>();
 const store = inject(WHITEBOARD_KEY)!;
 const bridge = getDesktopBridge();
@@ -54,8 +62,9 @@ function showPresence(value: PresenceSnapshot): void {
   store.setPresence(value);
   if (!value.participants.length) return;
   const present = value.participants.filter(person => !person.self);
-  // Only someone new is announced; a participant that comes back after an interruption keeps its entry.
-  if (seen) for (const person of present) if (!seen.has(person.id) && person.state === 'online') store.announce(t('{name} ist der Session beigetreten.', { name: personLabel(person) }));
+  // Only someone new is announced, and only while the list itself is out of sight; a participant that comes back
+  // after an interruption keeps its entry.
+  if (seen && !props.visible) for (const person of present) if (!seen.has(person.id) && person.state === 'online') store.announce(t('{name} ist der Session beigetreten.', { name: personLabel(person) }));
   seen = new Set(present.map(person => person.id));
 }
 function sharePointer(): void {
@@ -98,8 +107,8 @@ function fail(value: unknown): void {
     : /ROOM_FULL/.test(code) ? t('Diese Session ist voll. Bitte später erneut versuchen.')
     : /ABORTED/.test(code) ? ''
     : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
-  // The panel may be closed: what ends a session from outside is also said where the person is working.
-  if (/KICKED|SESSION_ENDED|CONNECTION_LOST/.test(code) && error.value) store.announce(error.value, 'error');
+  // With the panel closed, what ends a session from outside is said where the person is working.
+  if (!props.visible && /KICKED|SESSION_ENDED|CONNECTION_LOST/.test(code) && error.value) store.announce(error.value, 'error');
 }
 function setActive(value: boolean) { active.value = value; }
 function updateLink(): void {

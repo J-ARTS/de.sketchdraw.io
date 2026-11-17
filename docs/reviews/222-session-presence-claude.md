@@ -10,6 +10,7 @@ Issue #222, Claude Code (Fable 5.2), 17.11.2026. Auftrag: Teilnehmende unter „
 | Woran erkennt der Gastgeber einen zurückkehrenden Gast? | An einem Geheimnis, das der Gast je Teilnahme würfelt und nur dem Gastgeber nennt. | Gäste haben keine dauerhafte Identität; `peerId` und Schlüsselbindung wechseln mit jeder Verbindung. |
 | Was heißt „Timeout fünf Minuten"? | Zeitfenster zum Wiederverbinden (Rückfrage beantwortet). | Vorher gab der Gast nach acht Versuchen auf, also nach rund 50 Sekunden. |
 | Wo steht der Name? | Feld „Dein Name" im Bereich Zusammenarbeiten, gespeichert auf dem Gerät. | Es gibt keine Nutzerprofil-Einstellung für einen Namen. Ohne Angabe: „Gast 1", „Gast 2", … |
+| Wann erscheint zusätzlich eine Meldung über der Zeichenfläche? | Nur solange der Bereich „Zusammenarbeiten" geschlossen ist (Beitritt, entfernt, Session beendet, Verbindung verloren). | Bei offenem Bereich steht es dort bereits. Die Meldungen liegen unten rechts über dem Bereich und verdeckten im ersten Stand „Session beenden" (Windows-CI, natives Fenster). |
 | Wie wird entfernt? | Schaltfläche je Zeile, eine Rückfrage in der Zeile, kein eigener Dialog. | Die Handlung ist folgenreich, aber schnell wiederholbar; ein Dialog wäre für eine Liste zu schwer. |
 
 ## Gestaltung

@@ -52,12 +52,12 @@ test('the host sees who joined, both see the pointer of the other, and a removed
   await expect(people(page).first()).toContainText('Du');
   const { context, guest } = await joinSession(browser, invitation, 'Anna Lena');
   try {
-    // Listed for the host, with a notice for when the panel is closed, and listed for the guest.
+    // Listed for the host and for the guest. With the list in view nothing is announced on top of it.
     await expect(people(page)).toHaveCount(2);
     await expect(people(page).nth(1)).toContainText('Anna Lena');
     await expect(people(page).nth(1)).toContainText('Bearbeitet mit');
     await expect(people(page).nth(1).locator('.app-avatar')).toHaveText('AL');
-    await expect(notices(page)).toContainText('Anna Lena ist der Session beigetreten.');
+    await expect(notices(page)).not.toContainText('beigetreten');
     await expect(people(guest)).toHaveCount(2);
     await expect(people(guest).first()).toContainText('Jeremy Teichmann');
     await expect(people(guest).first()).toContainText('Gastgeber');
@@ -96,7 +96,7 @@ test('the host sees who joined, both see the pointer of the other, and a removed
     await expect(people(page)).toHaveCount(1);
     await expect(page.getByTestId('hdht-session')).toContainText('Anna Lena wurde entfernt.');
     await expect(guest.getByTestId('hdht-session').getByRole('alert')).toHaveText('Der Gastgeber hat dich aus der Session entfernt.');
-    await expect(notices(guest)).toContainText('Der Gastgeber hat dich aus der Session entfernt.');
+    await expect(notices(guest)).not.toContainText('entfernt');
     await expect(people(guest)).toHaveCount(0);
     await expect(pointers(guest)).toHaveCount(0);
     await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
@@ -109,8 +109,14 @@ test('a guest whose connection drops is listed as interrupted; ending the sessio
   const invitation = await hostSession(page, '', 'viewer');
   await expect(people(page).first()).toContainText('Gastgeber');
   const anna = await joinSession(browser, invitation, 'Anna');
+  // With the panel closed, the host is told over the canvas that someone joined.
+  await expect(people(page)).toHaveCount(2);
+  await page.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
   const ben = await joinSession(browser, invitation, '');
   try {
+    await expect(notices(page)).toContainText('Gast 2 ist der Session beigetreten.');
+    await expect(notices(page)).not.toContainText('Anna');
+    await openPanel(page);
     await expect(people(page)).toHaveCount(3);
     await expect(people(page).nth(1)).toContainText('Sieht zu');
     await expect(people(page).nth(1).getByTestId('participant-remove')).toHaveAccessibleName('Anna aus der Session entfernen');
@@ -135,9 +141,14 @@ test('a guest whose connection drops is listed as interrupted; ending the sessio
     await expect(people(page)).toHaveCount(2);
     await expect(people(anna.guest)).toHaveCount(2);
 
+    // A guest that works with the panel closed is told over the canvas, and the message stays until it is closed.
+    await anna.guest.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
     await page.getByTestId('hdht-stop').click();
-    await expect(anna.guest.getByTestId('hdht-session').getByRole('alert')).toHaveText('Der Gastgeber hat die Session beendet.');
     await expect(notices(anna.guest)).toContainText('Der Gastgeber hat die Session beendet.');
+    await anna.guest.waitForTimeout(3500);
+    await expect(notices(anna.guest)).toContainText('Der Gastgeber hat die Session beendet.');
+    await openPanel(anna.guest);
+    await expect(anna.guest.getByTestId('hdht-session').getByRole('alert')).toHaveText('Der Gastgeber hat die Session beendet.');
     await expect(people(anna.guest)).toHaveCount(0);
     await expect(people(page)).toHaveCount(0);
   } finally { await anna.context.close(); await ben.context.close().catch(() => undefined); }
@@ -158,5 +169,17 @@ test('a guest can rename itself and leaves the list at once when it leaves on pu
     await guest.getByTestId('hdht-stop').click();
     await expect(people(page)).toHaveCount(1);
     await expect(page.getByTestId('participant-list')).not.toContainText('Verbindung unterbrochen');
+  } finally { await context.close(); }
+});
+
+test('a guest that was removed while its panel is closed is told over the canvas', async ({ page, browser }) => {
+  const invitation = await hostSession(page, 'Jeremy');
+  const { context, guest } = await joinSession(browser, invitation, 'Anna');
+  try {
+    await guest.getByRole('button', { name: 'Zusammenarbeit schließen' }).click();
+    await people(page).nth(1).getByTestId('participant-remove').click();
+    await page.getByTestId('participant-remove-confirm').click();
+    await expect(notices(guest)).toContainText('Der Gastgeber hat dich aus der Session entfernt.');
+    await expect(guest.getByRole('button', { name: 'Rechteck', exact: true })).toBeDisabled();
   } finally { await context.close(); }
 });
