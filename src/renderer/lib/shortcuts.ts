@@ -19,7 +19,6 @@ export const TOOL_DEFS: readonly ToolDef[] = [
   { tool: 'image', label: L('Bild'), key: 'b', description: L('Bild einfügen') },
   { tool: 'container', label: L('Container'), key: 'c', description: L('Container zum Gruppieren von Elementen aufziehen') },
   { tool: 'frame', label: L('Frame'), key: 'f', description: L('Präsentationsrahmen als Folie aufziehen') },
-  { tool: 'web-embed', label: L('Web-Embed'), key: 'w', description: L('Webseite als eingebetteten Frame hinzufügen') },
   { tool: 'comment', label: L('Kommentar'), key: 'k', description: L('Kommentar an ein Element oder eine Tabellenzelle heften') },
   { tool: 'laser', label: L('Laserpointer'), key: 'k', shift: true, description: L('Temporär auf Bereiche der Zeichenfläche zeigen') },
 ];

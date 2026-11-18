@@ -11,7 +11,6 @@ import {
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
-  parseWebEmbedUrl, webEmbedLabel,
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
   type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
@@ -807,7 +806,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   function createDraw(g: Gesture, point: Point, shift: boolean): SketchElement | null {
-    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'eraser' || g.tool === 'text' || g.tool === 'image' || g.tool === 'web-embed' || g.tool === 'comment' || g.tool === 'laser') return null;
+    if (g.tool === 'select' || g.tool === 'hand' || g.tool === 'eraser' || g.tool === 'text' || g.tool === 'image' || g.tool === 'comment' || g.tool === 'laser') return null;
     let end = point;
     if (shift && !['path', 'connector'].includes(g.tool)) {
       const side = Math.max(Math.abs(point.x - g.start.x), Math.abs(point.y - g.start.y));
@@ -1260,30 +1259,6 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!state.canWrite || state.transitioning || !Number.isFinite(radius)) return;
       state.eraserRadius = clampEraserRadius(radius);
       state.liveMessage = t('Radierer-Radius: {eraserRadius} Pixel', { eraserRadius: state.eraserRadius });
-    },
-    async addWebEmbed(rawUrl) {
-      if (!state.canWrite || state.transitioning) return false;
-      const parsed = parseWebEmbedUrl(rawUrl);
-      if (!parsed.ok) { notice(tm(parsed.message), 'error'); return false; }
-      const width = Math.min(640, Math.max(320, state.viewportSize.width / state.viewport.zoom - 96));
-      const height = Math.min(400, Math.max(220, state.viewportSize.height / state.viewport.zoom - 160));
-      const centre = screenToDoc(state.viewport, { x: state.viewportSize.width / 2, y: state.viewportSize.height / 2 });
-      const element = createElement('web-embed', {
-        id: uid('web-embed'),
-        x: centre.x - width / 2,
-        y: centre.y - height / 2,
-        width,
-        height,
-        embedUrl: parsed.url,
-        label: webEmbedLabel(parsed.url),
-      });
-      const ok = await dispatch({ type: 'add', elements: [element] });
-      if (ok) {
-        setSelection([element.id]);
-        state.tool = 'select';
-        state.liveMessage = t('Web-Embed {label} hinzugefügt.', { label: element.label ?? '' });
-      }
-      return ok;
     },
     setViewportSize(width, height) { state.viewportSize = { width, height }; },
     pointerDown(input) {

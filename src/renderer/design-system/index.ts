@@ -73,7 +73,6 @@ export { default as TableOverlay } from './organisms/TableOverlay.vue';
 export { default as TaskBoard } from './organisms/TaskBoard.vue';
 export { default as ToolOptionsBar } from './organisms/ToolOptionsBar.vue';
 export { default as Toolbar } from './organisms/Toolbar.vue';
-export { default as WebEmbedDialog } from './organisms/WebEmbedDialog.vue';
 export { default as WhiteboardCanvas } from './organisms/WhiteboardCanvas.vue';
 
 // templates

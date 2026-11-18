@@ -708,12 +708,6 @@ The tool bar: select, shapes, connector, text, pen and the entry to the shape li
 
 - File: `src/renderer/design-system/organisms/Toolbar.vue`
 
-### WebEmbedDialog
-
-The modal dialog that adds or edits an embedded web page.
-
-- File: `src/renderer/design-system/organisms/WebEmbedDialog.vue`
-
 ### WhiteboardCanvas
 
 The canvas: it draws the page, takes pointer and keyboard input and hosts the text editor and the layers over the elements.

@@ -11,7 +11,6 @@ import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import ImageFileInput from '@/renderer/design-system/organisms/ImageFileInput.vue';
 import ToolOptionsBar from '@/renderer/design-system/organisms/ToolOptionsBar.vue';
 import ConnectorOptionsBar from '@/renderer/design-system/organisms/ConnectorOptionsBar.vue';
-import WebEmbedDialog from '@/renderer/design-system/organisms/WebEmbedDialog.vue';
 import { isMacPlatform } from '@/renderer/design-system/composables/platform';
 import { useHorizontalOverflow } from '@/renderer/design-system/composables/use-horizontal-overflow';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
@@ -172,7 +171,6 @@ onBeforeUnmount(cancelLongPress);
           <button type="button" class="tool sd-icon-btn" :data-tool="def.tool" :data-toolbar-item="def.tool" :tabindex="tabStop === def.tool ? 0 : -1" :disabled="!store.state.canWrite && def.tool !== 'laser'" :aria-label="t(def.label)" :aria-pressed="def.tool === 'image' ? undefined : def.tool === store.state.tool" :title="fixedTip(def.tool)" @click="activateTool(def.tool)"><AppIcon :name="def.tool" /></button>
         </template>
         <ImageFileInput ref="imageInput" />
-        <WebEmbedDialog />
       </div>
       <button v-show="overflowEnd" type="button" class="overflow-btn end" data-testid="toolbar-scroll-end" tabindex="-1" aria-hidden="true" @pointerdown.stop.prevent @click="pageTools(1)"><AppIcon name="chevron-right" :size="18" /></button>
     </div>

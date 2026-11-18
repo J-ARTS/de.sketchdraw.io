@@ -15,9 +15,13 @@ test.beforeEach(async ({ page }) => {
 test('the isometric library offers its symbols by category and places them as free-standing figures (#212)', async ({ page }) => {
   await page.getByTestId('more-shapes').click();
   const library = page.getByTestId('shape-library-sidebar');
-  // The symbols are a library of their own; the short list of generic components stays short.
-  await library.getByRole('button', { name: 'Architektur' }).click();
+  // The symbols are a library of their own; the section "Azure Diagrams" offers the resource card only (#225).
+  await library.getByRole('button', { name: 'Azure Diagrams' }).click();
   await expect(library.getByRole('button', { name: 'Message Queue', exact: true })).toHaveCount(0);
+  await expect(library.locator('#shape-section-architecture .component-tile')).toHaveCount(1);
+  await expect(library.locator('#shape-section-architecture .component-tile')).toContainText('Ressourcenkarte');
+  for (const name of ['Service', 'Database', 'Queue', 'User', 'Network']) await expect(library.locator('#shape-section-architecture').getByRole('button', { name, exact: true })).toHaveCount(0);
+  await expect(library.getByRole('button', { name: 'Architektur', exact: true })).toHaveCount(0);
   await library.getByTestId('open-isometric-library').click();
   await expect(library.getByRole('heading', { name: 'Isometrische Icons' })).toBeVisible();
   for (const category of ['Dienste und Daten', 'Rechnen und Netz', 'Clients und Umgebung']) await expect(library.getByRole('button', { name: new RegExp(category) })).toHaveAttribute('aria-expanded', 'true');

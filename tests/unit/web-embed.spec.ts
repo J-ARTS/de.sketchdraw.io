@@ -14,6 +14,7 @@ import { formatDiagram, parseDiagram } from '@/codec';
 import { importDrawio, importSvg, prepareDrawioExport, prepareSvgExport } from '@/interop';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { WhiteboardStore } from '@/renderer/state/contract';
+import { TOOL_DEFS } from '@/renderer/lib/shortcuts';
 
 const stores: WhiteboardStore[] = [];
 afterEach(() => { for (const store of stores.splice(0)) store.dispose(); });
@@ -74,20 +75,24 @@ describe('web embed contract', () => {
     expect(serializeDocument(importDrawio(drawioResult.contents).document)).toBe(before);
   });
 
-  it('adds, duplicates, undoes and redoes embeds through the shared document authority', async () => {
-    const store = createWhiteboardStore({ bridge, controller: createController(createDocument('Store')) });
+  it('keeps an embed of an existing document manageable although the tool to add one is gone (#226)', async () => {
+    const document = createDocument('Store');
+    document.elements = [createElement('web-embed', { id: 'web-embed:one', pageId: document.pages[0]!.id, x: 40, y: 70, width: 640, height: 400, embedUrl: 'https://example.com/app', label: 'example.com' })];
+    const store = createWhiteboardStore({ bridge, controller: createController(document) });
     stores.push(store);
     store.setViewportSize(1200, 800);
-    expect(await store.addWebEmbed('https://example.com/app')).toBe(true);
-    await store.whenIdle();
-    const original = store.state.document.elements[0]!;
-    expect(original).toMatchObject({ kind: 'web-embed', embedUrl: 'https://example.com/app', label: 'example.com', width: 640, height: 400 });
-    expect(store.state.selection).toEqual([original.id]);
+    expect(store.state.document.elements[0]).toMatchObject({ kind: 'web-embed', embedUrl: 'https://example.com/app', label: 'example.com' });
+    store.selectAll();
+    expect(store.state.selection).toEqual(['web-embed:one']);
     store.duplicateSelection(); await store.whenIdle();
     expect(store.state.document.elements).toHaveLength(2);
-    expect(store.state.document.elements[1]).toMatchObject({ kind: 'web-embed', embedUrl: original.embedUrl });
+    expect(store.state.document.elements[1]).toMatchObject({ kind: 'web-embed', embedUrl: 'https://example.com/app' });
     store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(1);
-    store.undo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(0);
-    store.redo(); await store.whenIdle(); expect(store.state.document.elements).toHaveLength(1);
+    store.selectAll(); store.deleteSelection(); await store.whenIdle();
+    expect(store.state.document.elements).toHaveLength(0);
+    // No tool, shortcut or store action creates an embed any more.
+    expect(TOOL_DEFS.map(entry => entry.tool as string)).not.toContain('web-embed');
+    expect(TOOL_DEFS.some(entry => entry.key === 'w')).toBe(false);
+    expect('addWebEmbed' in store).toBe(false);
   });
 });
