@@ -4,6 +4,7 @@ import type { LanguageCode, Preferences } from '../lib/preferences';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
 import type { CursorPoint, PresenceSnapshot, ViewRect } from '@/collaboration/presence';
+import type { SmartGuide } from '../lib/smart-guides';
 import type { CrdtDocumentController } from '@/crdt';
 import type {
   DesktopBridge,
@@ -314,6 +315,10 @@ export interface WhiteboardState {
   theme: 'light' | 'dark';
   /** Preset id or `#rrggbb`; null = the theme's default canvas. */
   canvasBackground: string | null;
+  /** Guides and snapping while elements are moved are switched on (a personal preference). */
+  smartGuides: boolean;
+  /** The lines to draw for the move in progress, in document coordinates; empty otherwise (#224). */
+  guides: readonly SmartGuide[];
   language: LanguageCode;
   bridgePlatform: 'electron' | 'browser';
   empty: boolean;
@@ -633,6 +638,8 @@ export interface WhiteboardStore {
   togglePropertiesCollapsed(collapsed?: boolean): void;
   setTheme(theme: 'light' | 'dark'): void;
   setCanvasBackground(value: string | null): void;
+  /** Switches guides and snapping while moving on or off and remembers the choice on this device. */
+  setSmartGuides(value: boolean): void;
   setLanguage(language: LanguageCode): void;
   dismissNotice(id: number): void;
   /** Pauses the automatic dismissal of a hint while it is hovered or focused. */

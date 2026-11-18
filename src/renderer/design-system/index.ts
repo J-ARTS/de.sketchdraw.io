@@ -69,6 +69,7 @@ export { default as SelectionToolbar } from './organisms/SelectionToolbar.vue';
 export { default as SessionMenu } from './organisms/SessionMenu.vue';
 export { default as SettingsDialog } from './organisms/SettingsDialog.vue';
 export { default as ShapeLibraryPanel } from './organisms/ShapeLibraryPanel.vue';
+export { default as SmartGuides } from './organisms/SmartGuides.vue';
 export { default as TableOverlay } from './organisms/TableOverlay.vue';
 export { default as TaskBoard } from './organisms/TaskBoard.vue';
 export { default as ToolOptionsBar } from './organisms/ToolOptionsBar.vue';

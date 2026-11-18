@@ -12,6 +12,7 @@ import AnnotationEditor from '@/renderer/design-system/organisms/AnnotationEdito
 import TableOverlay from '@/renderer/design-system/organisms/TableOverlay.vue';
 import LaserPointerOverlay from '@/renderer/design-system/organisms/LaserPointerOverlay.vue';
 import RemoteCursors from '@/renderer/design-system/organisms/RemoteCursors.vue';
+import SmartGuides from '@/renderer/design-system/organisms/SmartGuides.vue';
 import { awsGroupOf, groupChrome, RESOURCE_CARD_TEXT_COLOR, resourceCardLayout } from '@/catalog';
 import { createElement, type SketchElement } from '@/domain';
 import { docToScreen, screenToDoc } from '@/renderer/lib/viewport';
@@ -245,6 +246,7 @@ onMounted(() => canvas.value?.focus());
         <circle :cx="toolPointer.x" :cy="toolPointer.y" r="2.5" fill="var(--text-primary)" />
       </g>
       <LaserPointerOverlay ref="laser" />
+      <SmartGuides />
       <RemoteCursors />
     </svg>
     <QuickConnect />

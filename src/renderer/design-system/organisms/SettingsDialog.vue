@@ -1,4 +1,4 @@
-<!-- @component The modal dialog for the settings of the app: language, theme, canvas. -->
+<!-- @component The modal dialog for the settings of the app: canvas background, guides while moving, theme, language. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
@@ -6,6 +6,8 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { CANVAS_BACKGROUNDS, LANGUAGES, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import AppSwitch from '@/renderer/design-system/atoms/AppSwitch.vue';
+import { isMacPlatform } from '@/renderer/design-system/composables/platform';
 import ColorPicker from '@/renderer/design-system/molecules/ColorPicker.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
@@ -14,6 +16,7 @@ const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const store = useWhiteboard();
 const s = store.state;
+const isMac = isMacPlatform();
 const dialog = ref<HTMLDialogElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const pickerOpen = ref(false);
@@ -91,6 +94,13 @@ function onRadioKeydown(event: KeyboardEvent): void {
         </div>
         <ColorPicker v-if="pickerOpen" class="custom-picker" :color="customColor" :label="t('Eigene Hintergrundfarbe wählen')" @pick="store.setCanvasBackground($event)" />
         <p class="hint">{{ t('Der Hintergrund gilt für dich und wird nicht im Dokument gespeichert. Die Voreinstellungen passen sich dem Design an.') }}</p>
+      </section>
+
+      <section class="setting">
+        <AppSwitch data-testid="smart-guides-switch" :model-value="s.smartGuides" @update:model-value="store.setSmartGuides($event)">
+          {{ t('Hilfslinien beim Verschieben') }}
+          <template #description>{{ t('Elemente rasten an den nächstgelegenen Elementen und an gleichen Abständen ein. Mit gedrückter {key}-Taste verschiebst du frei.', { key: isMac ? '⌘' : t('Strg') }) }}</template>
+        </AppSwitch>
       </section>
 
       <section class="setting" aria-labelledby="theme-title">

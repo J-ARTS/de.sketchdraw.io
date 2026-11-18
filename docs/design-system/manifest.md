@@ -666,7 +666,7 @@ The session button of the workspace bar and its menu. It is shown while this dev
 
 ### SettingsDialog
 
-The modal dialog for the settings of the app: language, theme, canvas.
+The modal dialog for the settings of the app: canvas background, guides while moving, theme, language.
 
 - File: `src/renderer/design-system/organisms/SettingsDialog.vue`
 
@@ -683,6 +683,13 @@ The modal dialog for the settings of the app: language, theme, canvas.
 The shape library: basic shapes, cloud components, diagram libraries and the user's own components.
 
 - File: `src/renderer/design-system/organisms/ShapeLibraryPanel.vue`
+
+### SmartGuides
+
+The guides of a move in progress, drawn over the canvas: lines where the moved element is in line with another one, and marked distances where it keeps the same distance as its neighbours. It belongs inside the canvas `<svg>`.
+
+- File: `src/renderer/design-system/organisms/SmartGuides.vue`
+- Story: `src/renderer/design-system/organisms/SmartGuides.stories.ts`
 
 ### TableOverlay
 

@@ -454,6 +454,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Tabelle': 'Table',
   'Architektur': 'Architecture',
   'Azure Diagrams': 'Azure Diagrams',
+  "Hilfslinien beim Verschieben": "Guides while moving",
+  "Elemente rasten an den nächstgelegenen Elementen und an gleichen Abständen ein. Mit gedrückter {key}-Taste verschiebst du frei.": "Elements snap to the nearest elements and to equal distances. Hold the {key} key to move freely.",
   'Die ersten {count} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.': 'The first {count} matches are shown. You can find more in the respective library.',
   'Keine Form oder Komponente gefunden.': 'No shape or component found.',
   'Verbinder': 'Connector',

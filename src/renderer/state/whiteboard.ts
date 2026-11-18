@@ -62,6 +62,7 @@ import { normalizeHex } from '../lib/color';
 import { LASER_CURSOR } from '../lib/laser-pointer';
 import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot, type ViewRect } from '@/collaboration/presence';
 import { participantLabel } from '../lib/participant-label';
+import { snapMove, type SmartGuide, type SnapResult } from '../lib/smart-guides';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
 import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
@@ -84,6 +85,8 @@ type Gesture = {
   sequenceMessage?: boolean;
   /** That message has not passed anything yet: released now, nothing changes. */
   sequenceIdle?: boolean;
+  /** The moved block and the boxes it may line up with, measured once when the first guides are needed (#224). */
+  guideFrame?: { block: Rect | null; others: Rect[] };
   /** A press on a text line of the already selected resource card: released without a drag, it edits that line (#189). */
   editField?: ResourceCardField;
   connectorPoints?: Point[];
@@ -143,10 +146,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const preferenceStore = options.preferences === undefined
     ? { load: () => loadPreferences(), save: (value: Preferences) => { savePreferences(value); } }
     : options.preferences;
-  const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de' };
+  const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de', smartGuides: true };
   setLocale(savedPreferences.language);
   void bridge.setLanguage?.(savedPreferences.language)?.catch(() => undefined);
-  function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language }); }
+  function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language, smartGuides: state.smartGuides }); }
   const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
   let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
   let guest: GuestSession | null = null;
@@ -318,7 +321,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
-    theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, language: savedPreferences.language, bridgePlatform: bridge.platform,
+    theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluenceLive: { state: 'off', message: '' } as WhiteboardState['confluenceLive'],
@@ -725,7 +728,36 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.tableSelection || !state.selection.includes(state.tableSelection.elementId)) state.tableSelection = null;
     state.liveMessage = describeSelection(selected(), state.document);
   }
-  function resetGesture() { gesture = null; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; state.dropTargetId = null; changedDraft(); }
+  function resetGesture() { gesture = null; state.guides = []; state.previewCommand = null; state.drawing = null; state.marquee = null; state.connectorTargets = null; state.connectorHoverTargetId = null; state.dropTargetId = null; changedDraft(); }
+  /** How near a line has to be to pull the moved block onto it, in screen pixels at any zoom. */
+  const GUIDE_REACH = 6;
+  /**
+   * The correction and the guides for a move in progress (#224). The moved elements count as one block. Everything
+   * else on the page that is in view can be a reference, except connectors and what moves along.
+   */
+  function snapForMove(g: Gesture, dx: number, dy: number): SnapResult | null {
+    if (!state.smartGuides) return null;
+    // A slip of the hand while selecting must not pull the element onto a line; once it is a drag, coming back
+    // near the starting point snaps like anywhere else.
+    if (!g.guideFrame && Math.hypot(dx, dy) * state.viewport.zoom < 4) return null;
+    if (!g.guideFrame) {
+      const elements = pageElsOf(g.base.document);
+      const index = new Map(elements.map((e) => [e.id, e]));
+      const moving = new Set(topSelected(elements, g.targets.map((e) => e.id)).map((e) => e.id));
+      const movesAlong = (element: SketchElement): boolean => {
+        for (let current: SketchElement | undefined = element, depth = 0; current && depth < 64; current = current.parentId ? index.get(current.parentId) : undefined, depth += 1) if (moving.has(current.id)) return true;
+        return false;
+      };
+      const block = bounds(elements.filter((e) => moving.has(e.id) && e.kind !== 'connector'));
+      g.guideFrame = { block, others: block ? elements.filter((e) => e.kind !== 'connector' && !movesAlong(e)).map((e) => bounds([e])).filter((box): box is Rect => Boolean(box)) : [] };
+    }
+    const { block, others } = g.guideFrame;
+    if (!block || !others.length) return null;
+    const { panX, panY, zoom } = state.viewport;
+    const view = { x: (0 - panX) / zoom, y: (0 - panY) / zoom, width: state.viewportSize.width / zoom, height: state.viewportSize.height / zoom };
+    const inView = others.filter((box) => box.x < view.x + view.width && box.x + box.width > view.x && box.y < view.y + view.height && box.y + box.height > view.y);
+    return snapMove({ x: block.x + dx, y: block.y + dy, width: block.width, height: block.height }, inView, GUIDE_REACH / zoom);
+  }
   function moveCommand(base: DocumentSession, ids: readonly string[], dx: number, dy: number): DocumentCommand {
     return { type: 'update', changes: topSelected(pageElsOf(base.document), ids).map((e) => ({ id: e.id, patch: { x: e.x + dx, y: e.y + dy } })) };
   }
@@ -1376,7 +1408,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const move = moveCommand(g.base, [g.targets[0].id], dx, 0);
         g.preview = Math.abs(dx) * state.viewport.zoom < 3 ? null : laidOut(move, g.base.document); state.previewCommand = g.preview; state.dropTargetId = null;
       } else if (g.kind === 'move') {
-        const moved = moveIntoContainerCommand(g.base, g.targets.map((e) => e.id), dx, dy, point);
+        // Guides (#224): the moved block snaps into line with the nearest elements; Ctrl/Cmd moves freely.
+        const snap = input.metaOrCtrl ? null : snapForMove(g, dx, dy);
+        state.guides = snap?.guides ?? [];
+        const moved = moveIntoContainerCommand(g.base, g.targets.map((e) => e.id), dx + (snap?.dx ?? 0), dy + (snap?.dy ?? 0), point);
         g.preview = moved.command; state.previewCommand = g.preview; state.dropTargetId = moved.targetId;
       } else if (g.kind === 'draw') {
         if (g.tool === 'path' && Math.hypot(point.x - g.last.x, point.y - g.last.y) >= 1 / state.viewport.zoom && g.points.length < DOMAIN_LIMITS.MAX_POINTS_PER_ELEMENT) g.points.push(point);
@@ -1477,6 +1512,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         return;
       }
       store.pointerMove(input);
+      // The move is placed; the lines that helped placing it go.
+      state.guides = [];
       if (g.kind === 'draw' && !g.element && !['path', 'connector'].includes(g.tool)) {
         const size = defaultSizeFor(g.tool, state.shapeVariant);
         if (size) { g.element = createDraw(g, { x: g.start.x + size.width, y: g.start.y + size.height }, false); state.drawing = g.element; }
@@ -2510,6 +2547,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
     setTheme(theme) { state.theme = theme; persistPreferences(); },
+    setSmartGuides(value) {
+      if (value === state.smartGuides) return;
+      state.smartGuides = value; state.guides = []; persistPreferences();
+    },
     setCanvasBackground(value) {
       const next = value && value !== 'default' && isCanvasBackground(value) ? value : null;
       if (next === state.canvasBackground) return;

@@ -25,9 +25,11 @@ export interface Preferences {
   /** A preset id or a `#rrggbb` color; null = the theme's default canvas. */
   canvasBackground: string | null;
   language: LanguageCode;
+  /** Guides and snapping while elements are moved (#224). */
+  smartGuides: boolean;
 }
 
-export const DEFAULT_PREFERENCES: Readonly<Preferences> = { theme: null, canvasBackground: null, language: 'de' };
+export const DEFAULT_PREFERENCES: Readonly<Preferences> = { theme: null, canvasBackground: null, language: 'de', smartGuides: true };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const PRESET_IDS = new Set(CANVAS_BACKGROUNDS.map((entry) => entry.id));
@@ -57,6 +59,8 @@ export function loadPreferences(storage: StorageLike | undefined = browserStorag
       theme: parsed.theme === 'light' || parsed.theme === 'dark' ? parsed.theme : null,
       canvasBackground: isCanvasBackground(parsed.canvasBackground) && parsed.canvasBackground !== 'default' ? parsed.canvasBackground : null,
       language: LANGUAGES.some((entry) => entry.code === parsed.language && entry.available) ? parsed.language as LanguageCode : 'de',
+      // On unless it was switched off: older stored preferences do not have the entry.
+      smartGuides: parsed.smartGuides !== false,
     };
   } catch {
     return fallback;

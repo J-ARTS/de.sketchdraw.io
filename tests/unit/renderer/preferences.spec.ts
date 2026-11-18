@@ -15,8 +15,11 @@ describe('preferences', () => {
   });
   it('round-trips valid values including English and never restores an unknown language', () => {
     const storage = memory();
-    expect(savePreferences({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de' }, storage)).toBe(true);
-    expect(loadPreferences(storage)).toEqual({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de' });
+    expect(savePreferences({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false }, storage)).toBe(true);
+    expect(loadPreferences(storage)).toEqual({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false });
+    // Guides are on unless they were switched off; preferences stored before they existed keep them on.
+    expect(loadPreferences(memory(JSON.stringify({ theme: 'dark' }))).smartGuides).toBe(true);
+    expect(loadPreferences(memory(JSON.stringify({ smartGuides: 'no' }))).smartGuides).toBe(true);
     expect(loadPreferences(memory(JSON.stringify({ language: 'en' }))).language).toBe('en');
     expect(loadPreferences(memory(JSON.stringify({ language: 'fr' }))).language).toBe('de');
   });
