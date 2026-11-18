@@ -507,3 +507,28 @@ test('comment pins are bubble-shaped, stay put on click and use the same shape a
   await page.getByRole('button', { name: 'Kommentar', exact: true }).click();
   expect(await page.getByTestId('whiteboard-canvas').evaluate((element) => getComputedStyle(element).cursor)).toContain('data:image/svg');
 });
+
+test('End keeps the last tool in view at every width where the tool bar only just overflows', async ({ page }) => {
+  // An edge button takes its room from the bar. Where the bar overflows by less than that, the button that appears
+  // after scrolling pushed the last tool out of view again (seen at 1024 px once the bar had one tool fewer).
+  const scroller = page.getByTestId('main-toolbar');
+  const laser = page.getByRole('button', { name: 'Laserpointer', exact: true });
+  for (let width = 1000; width <= 1048; width += 4) {
+    await page.setViewportSize({ width, height: 768 });
+    await scroller.evaluate((element) => { element.scrollLeft = 0; });
+    await page.getByRole('button', { name: 'Auswahl', exact: true }).focus();
+    await page.keyboard.press('End');
+    await expect(laser).toBeFocused();
+    await expect.poll(() => laser.evaluate((element) => {
+      const item = element.getBoundingClientRect(); const area = element.closest('[role=toolbar]')!.getBoundingClientRect();
+      return item.left >= area.left - 1 && item.right <= area.right + 1;
+    }), { message: `last tool in view at ${width}px` }).toBe(true);
+    expect(await reachable(laser), `last tool reachable at ${width}px`).toBe(true);
+    // Home brings the first tool back the same way.
+    await page.keyboard.press('Home');
+    await expect.poll(() => page.getByRole('button', { name: 'Auswahl', exact: true }).evaluate((element) => {
+      const item = element.getBoundingClientRect(); const area = element.closest('[role=toolbar]')!.getBoundingClientRect();
+      return item.left >= area.left - 1 && item.right <= area.right + 1;
+    }), { message: `first tool in view at ${width}px` }).toBe(true);
+  }
+});
