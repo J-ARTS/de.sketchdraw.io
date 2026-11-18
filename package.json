@@ -3,6 +3,38 @@
   "version": "0.1.5",
   "private": true,
   "description": "Open, cross-platform visual workspace for architecture diagrams, whiteboard sketching, Diagram-as-Code, MCP agents, and strict P2P collaboration.",
+  "keywords": [
+    "sketchdraw",
+    "whiteboard",
+    "diagram",
+    "diagram-as-code",
+    "architecture-diagram",
+    "cloud-architecture",
+    "aws",
+    "azure",
+    "gcp",
+    "kubernetes",
+    "bpmn",
+    "sequence-diagram",
+    "er-diagram",
+    "mermaid",
+    "drawio",
+    "mcp",
+    "ai-agents",
+    "p2p",
+    "collaboration",
+    "local-first",
+    "electron",
+    "vue"
+  ],
+  "homepage": "https://github.com/J-ARTS/de.sketchdraw.io#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J-ARTS/de.sketchdraw.io.git"
+  },
+  "bugs": {
+    "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues"
+  },
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "main": "dist-electron/main.cjs",
