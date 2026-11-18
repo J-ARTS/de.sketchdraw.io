@@ -25,6 +25,7 @@
     "package:dist": "npm run build && electron-builder --config electron-builder.json",
     "build:mcp": "node scripts/build-mcp.mjs",
     "icons:import": "node scripts/import-official-icons.mjs",
+    "icons:import:lucide": "node scripts/import-lucide-icons.mjs",
     "mcp": "node dist-mcp/server.cjs",
     "storybook": "storybook dev --port 6006 --no-open",
     "build:storybook": "storybook build --output-dir storybook-static",

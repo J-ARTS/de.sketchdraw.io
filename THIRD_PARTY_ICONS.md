@@ -49,6 +49,19 @@ The import keeps geometry and colors. It only removes what the strict parser rej
 
 The curated SVG strings are stored in `src/catalog/official-icons.ts`. `src/catalog/icon.ts` parses them into an allowlisted element tree and rejects scripts, event handlers, remote resources, external paint references, unsafe namespaces, and malformed geometry before any icon reaches the renderer or export path.
 
+## Lucide Icons (seit 2026-11-18, #227)
+
+Die Formenbibliothek bietet unter „Lucide Icons" alle Icons von [Lucide](https://github.com/lucide-icons/lucide) an, gegliedert nach den Kategorien von Lucide.
+
+| Paket | Version | Icons | Lizenz | Abgerufen |
+| --- | --- | --- | --- | --- |
+| `lucide-static` (npm), Kategorien und Suchwörter aus dem Repository `lucide-icons/lucide` am selben Versions-Tag | 1.75.0 | 2091 in 41 Kategorien | ISC; die von Lucide als aus Feather abgeleitet aufgeführten Icons MIT | 2026-11-18 |
+
+- Import: `npm run icons:import:lucide -- --package <entpacktes lucide-static> --repo <Checkout von lucide-icons/lucide>` (`scripts/import-lucide-icons.mjs`). Ergebnis: `src/catalog/lucide/lucide.json` und `manifest.json`.
+- Jedes Icon wird aus seinen Zeichenelementen neu zusammengesetzt (Geometrie unverändert, Bogen-Flags ausgeschrieben) und mit `validateSafeIconSvg` geprüft. Die Linien verwenden `currentColor` und folgen der Linienfarbe des Elements.
+- Lizenztext unverändert in `src/catalog/lucide/LICENSE` und im Abschnitt „Third-Party Notices" von `LICENSE`, das mit dem Installer ausgeliefert wird.
+- Lucide nimmt keine Markenlogos auf (`BRAND_LOGOS_STATEMENT.md` im Repository); es gelten deshalb keine zusätzlichen Markenbedingungen.
+
 ## Plugin-Logos (Git, Jira)
 
 Die Kacheln in den Plugin-Einstellungen zeigen die unveränderten Herstellerdateien aus `src/renderer/assets/plugin-logos/` auf weißer Fläche (#165). Ohne Datei zeigt eine Kachel den Anfangsbuchstaben.

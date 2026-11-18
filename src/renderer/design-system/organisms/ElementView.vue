@@ -219,7 +219,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
     <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
-    <svg v-else-if="figure" data-testid="icon-figure" :x="figure.icon.x" :y="figure.icon.y" :width="figure.icon.size" :height="figure.icon.size" pointer-events="none"><SafeIcon :source="figureIcon" :size="figure.icon.size" /></svg>
+    <svg v-else-if="figure" data-testid="icon-figure" :x="figure.icon.x" :y="figure.icon.y" :width="figure.icon.size" :height="figure.icon.size" :color="stroke" pointer-events="none"><SafeIcon :source="figureIcon" :size="figure.icon.size" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
     <g v-if="cloudCard && !editing" data-testid="cloud-component-content" pointer-events="none">
       <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" :fill="textColor" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">

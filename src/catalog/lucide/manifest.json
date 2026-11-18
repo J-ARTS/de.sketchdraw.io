@@ -1,0 +1,213 @@
+{
+  "package": "lucide-static@1.75.0",
+  "license": "ISC",
+  "retrieved": "2026-11-18",
+  "count": 2091,
+  "categories": [
+    {
+      "id": "sketchdraw.lucide.accessibility",
+      "name": "Accessibility",
+      "count": 23
+    },
+    {
+      "id": "sketchdraw.lucide.account",
+      "name": "Accounts & access",
+      "count": 99
+    },
+    {
+      "id": "sketchdraw.lucide.animals",
+      "name": "Animals",
+      "count": 17
+    },
+    {
+      "id": "sketchdraw.lucide.arrows",
+      "name": "Arrows",
+      "count": 179
+    },
+    {
+      "id": "sketchdraw.lucide.buildings",
+      "name": "Buildings",
+      "count": 24
+    },
+    {
+      "id": "sketchdraw.lucide.charts",
+      "name": "Charts",
+      "count": 35
+    },
+    {
+      "id": "sketchdraw.lucide.development",
+      "name": "Coding & development",
+      "count": 90
+    },
+    {
+      "id": "sketchdraw.lucide.communication",
+      "name": "Communication",
+      "count": 8
+    },
+    {
+      "id": "sketchdraw.lucide.connectivity",
+      "name": "Connectivity",
+      "count": 34
+    },
+    {
+      "id": "sketchdraw.lucide.cursors",
+      "name": "Cursors",
+      "count": 14
+    },
+    {
+      "id": "sketchdraw.lucide.design",
+      "name": "Design",
+      "count": 84
+    },
+    {
+      "id": "sketchdraw.lucide.devices",
+      "name": "Devices",
+      "count": 114
+    },
+    {
+      "id": "sketchdraw.lucide.emoji",
+      "name": "Emoji",
+      "count": 14
+    },
+    {
+      "id": "sketchdraw.lucide.files",
+      "name": "File icons",
+      "count": 115
+    },
+    {
+      "id": "sketchdraw.lucide.finance",
+      "name": "Finance",
+      "count": 46
+    },
+    {
+      "id": "sketchdraw.lucide.food-beverage",
+      "name": "Food & beverage",
+      "count": 78
+    },
+    {
+      "id": "sketchdraw.lucide.gaming",
+      "name": "Gaming",
+      "count": 40
+    },
+    {
+      "id": "sketchdraw.lucide.home",
+      "name": "Home",
+      "count": 40
+    },
+    {
+      "id": "sketchdraw.lucide.layout",
+      "name": "Layout",
+      "count": 105
+    },
+    {
+      "id": "sketchdraw.lucide.letters-digits",
+      "name": "Letters & digits",
+      "count": 101
+    },
+    {
+      "id": "sketchdraw.lucide.mail",
+      "name": "Mail",
+      "count": 21
+    },
+    {
+      "id": "sketchdraw.lucide.math",
+      "name": "Mathematics",
+      "count": 29
+    },
+    {
+      "id": "sketchdraw.lucide.medical",
+      "name": "Medical",
+      "count": 35
+    },
+    {
+      "id": "sketchdraw.lucide.multimedia",
+      "name": "Multimedia",
+      "count": 62
+    },
+    {
+      "id": "sketchdraw.lucide.nature",
+      "name": "Nature",
+      "count": 20
+    },
+    {
+      "id": "sketchdraw.lucide.navigation",
+      "name": "Navigation & places",
+      "count": 44
+    },
+    {
+      "id": "sketchdraw.lucide.notifications",
+      "name": "Notifications",
+      "count": 18
+    },
+    {
+      "id": "sketchdraw.lucide.photography",
+      "name": "Photography",
+      "count": 30
+    },
+    {
+      "id": "sketchdraw.lucide.science",
+      "name": "Science",
+      "count": 27
+    },
+    {
+      "id": "sketchdraw.lucide.security",
+      "name": "Security",
+      "count": 21
+    },
+    {
+      "id": "sketchdraw.lucide.shapes",
+      "name": "Shapes",
+      "count": 44
+    },
+    {
+      "id": "sketchdraw.lucide.shopping",
+      "name": "Shopping",
+      "count": 21
+    },
+    {
+      "id": "sketchdraw.lucide.social",
+      "name": "Social",
+      "count": 76
+    },
+    {
+      "id": "sketchdraw.lucide.sports",
+      "name": "Sports",
+      "count": 15
+    },
+    {
+      "id": "sketchdraw.lucide.sustainability",
+      "name": "Sustainability",
+      "count": 1
+    },
+    {
+      "id": "sketchdraw.lucide.text",
+      "name": "Text formatting",
+      "count": 186
+    },
+    {
+      "id": "sketchdraw.lucide.time",
+      "name": "Time & calendar",
+      "count": 55
+    },
+    {
+      "id": "sketchdraw.lucide.tools",
+      "name": "Tools",
+      "count": 22
+    },
+    {
+      "id": "sketchdraw.lucide.transportation",
+      "name": "Transportation",
+      "count": 52
+    },
+    {
+      "id": "sketchdraw.lucide.travel",
+      "name": "Travel",
+      "count": 15
+    },
+    {
+      "id": "sketchdraw.lucide.weather",
+      "name": "Weather",
+      "count": 37
+    }
+  ]
+}

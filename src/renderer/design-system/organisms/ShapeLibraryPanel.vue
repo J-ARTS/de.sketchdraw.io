@@ -14,6 +14,8 @@ import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import CustomComponentsTab from '@/renderer/design-system/organisms/CustomComponentsTab.vue';
 import DiagramLibraryView from '@/renderer/design-system/organisms/DiagramLibraryView.vue';
 import SafeIcon from '@/renderer/design-system/atoms/SafeIcon';
+import { isLucideComponent, LUCIDE_SET_PREFIX } from '@/catalog/lucide-sets';
+import { loadLucideLibrary, lucideIconCount } from '@/renderer/lib/lucide-library';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
 const store = useWhiteboard();
@@ -28,9 +30,14 @@ const activeLibrary = ref<ComponentDefinition['provider'] | null>(null);
 const activeDiagramLibrary = ref<DiagramLibraryId | null>(null);
 /** The library of isometric icons (#212). */
 const isometricOpen = ref(false);
+/** The library of Lucide icons (#227); its icons load when it is opened or when something is searched. */
+const lucideOpen = ref(false);
+const lucideSets = shallowRef<ComponentSet[] | null>(null);
+const LUCIDE_SEARCH_LIMIT = 300;
+const LUCIDE_PREVIEW = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12a4 4 0 0 0-8 0 8 8 0 1 0 16 0 11.97 11.97 0 0 0-4-8.944"/><path d="M10 12a4 4 0 0 0 8 0 8 8 0 1 0-16 0 11.97 11.97 0 0 0 4.063 9"/></svg>';
 const DIAGRAM_ICONS: Record<DiagramLibraryId, 'table' | 'shapes' | 'connect'> = { er: 'table', bpmn: 'shapes', sequence: 'connect' };
-const subLibrary = computed(() => Boolean(activeLibrary.value || activeDiagramLibrary.value || isometricOpen.value));
-function leaveSubLibrary(): void { activeLibrary.value = null; activeDiagramLibrary.value = null; isometricOpen.value = false; query.value = ''; }
+const subLibrary = computed(() => Boolean(activeLibrary.value || activeDiagramLibrary.value || isometricOpen.value || lucideOpen.value));
+function leaveSubLibrary(): void { activeLibrary.value = null; activeDiagramLibrary.value = null; isometricOpen.value = false; lucideOpen.value = false; query.value = ''; }
 const searchInput = ref<HTMLInputElement | null>(null);
 const opener = ref<HTMLElement | null>(null);
 const expanded = reactive<Record<string, boolean>>({
@@ -78,6 +85,20 @@ watch(activeLibrary, async (provider) => {
   finally { libraryLoading.value = false; }
 });
 watch(isometricOpen, () => { if (scroller.value) scroller.value.scrollTop = 0; });
+async function ensureLucide(): Promise<void> {
+  if (lucideSets.value) return;
+  lucideSets.value = await loadLucideLibrary();
+}
+watch(lucideOpen, async (open) => {
+  if (scroller.value) scroller.value.scrollTop = 0;
+  if (!open) return;
+  libraryError.value = false;
+  if (lucideSets.value) return;
+  libraryLoading.value = true;
+  try { await ensureLucide(); }
+  catch { libraryError.value = true; }
+  finally { libraryLoading.value = false; }
+});
 const searching = computed(() => query.value.trim().length > 0);
 /** The own components are shown; a provider library (AWS, …) opened from the shapes tab takes precedence. */
 const searchLabel = computed(() => activeDiagramLibrary.value ? t('Vorlagen durchsuchen') : tab.value === 'custom' && !subLibrary.value ? t('Eigene Komponenten durchsuchen') : t('Formen durchsuchen'));
@@ -85,13 +106,17 @@ const customTab = computed(() => tab.value === 'custom' && !subLibrary.value);
 watch(searching, async (active) => {
   if (!active || officialAll.value) return;
   try { officialAll.value = await loadAllOfficialLibraries(); } catch { /* starter sets stay searchable */ }
+  try { await ensureLucide(); } catch { /* the search goes on without the Lucide icons */ }
 });
 const allComponents = computed(() => {
   const official = officialAll.value;
-  const base = searchCatalogComponents(official ? sets.value.filter((set) => !OFFICIAL_SET.test(set.id)) : sets.value, query.value, 'all');
-  return official ? [...base, ...searchOfficial(official, query.value, SEARCH_LIMIT)] : base;
+  const lucide = lucideSets.value;
+  // Sets a document carries along are replaced by the loaded library, so no icon is listed twice.
+  const base = searchCatalogComponents(sets.value.filter((set) => !(official && OFFICIAL_SET.test(set.id)) && !(lucide && set.id.startsWith(LUCIDE_SET_PREFIX))), query.value, 'all');
+  const found = official ? [...base, ...searchOfficial(official, query.value, SEARCH_LIMIT)] : base;
+  return lucide ? [...found, ...searchOfficial(lucide, query.value, SEARCH_LIMIT)] : found;
 });
-const allComponentsCapped = computed(() => Boolean(officialAll.value) && allComponents.value.length >= SEARCH_LIMIT);
+const allComponentsCapped = computed(() => Boolean(officialAll.value || lucideSets.value) && allComponents.value.length >= SEARCH_LIMIT);
 /** The catalogue names its categories in English; the library shows them in the language of the interface. */
 const ISOMETRIC_CATEGORIES: Record<string, string> = { 'Services and data': L('Dienste und Daten'), 'Compute and network': L('Rechnen und Netz'), 'Clients and environment': L('Clients und Umgebung') };
 /** The isometric icons are a library of their own and stay out of the short list of generic components. */
@@ -100,9 +125,11 @@ const isometricSets = computed(() => sets.value.filter((set) => set.id === ISOME
  * The section "Azure Diagrams" offers the resource card only (#225). The generic starter symbols stay defined, so
  * existing diagrams, the text syntax and the icon of a resource card keep working, and the search still finds them.
  */
-const azureDiagramComponents = computed(() => searchCatalogComponents(sets.value.filter((set) => set.id !== ISOMETRIC_SET_ID), query.value, 'generic').filter((item) => item.component.type === RESOURCE_CARD_COMPONENT_TYPE));
+const azureDiagramComponents = computed(() => searchCatalogComponents(sets.value.filter((set) => set.id !== ISOMETRIC_SET_ID && !set.id.startsWith(LUCIDE_SET_PREFIX)), query.value, 'generic').filter((item) => item.component.type === RESOURCE_CARD_COMPONENT_TYPE));
 const libraryComponents = computed(() => {
   if (isometricOpen.value) return searchCatalogComponents(isometricSets.value, query.value, 'generic');
+  // Browsing shows every category; a search word that matches hundreds of icons is cut off, as nobody scrolls them.
+  if (lucideOpen.value) return lucideSets.value ? searchOfficial(lucideSets.value, query.value, searching.value ? LUCIDE_SEARCH_LIMIT : Number.POSITIVE_INFINITY) : [];
   const provider = activeLibrary.value;
   if (!provider) return [];
   const loaded = officialSets.value[provider as OfficialProvider];
@@ -110,6 +137,7 @@ const libraryComponents = computed(() => {
   const own = s.document.componentSets.filter((set) => !OFFICIAL_SET.test(set.id));
   return [...searchOfficial(loaded, query.value), ...searchCatalogComponents(own, query.value, provider)];
 });
+const lucideCapped = computed(() => lucideOpen.value && searching.value && libraryComponents.value.length >= LUCIDE_SEARCH_LIMIT);
 const filteredShapes = computed(() => SHAPE_CATALOG.filter((entry) => matchesShape(entry, query.value)));
 const annotationMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
@@ -119,7 +147,7 @@ const tableMatches = computed(() => {
   const needle = query.value.trim().toLocaleLowerCase('de');
   return !needle || ['tabelle', 'table', 'grid', 'zellen', 'zeilen', 'spalten'].some((term) => term.includes(needle));
 });
-const libraryLabel = computed(() => isometricOpen.value ? t('Isometrische Icons') : activeDiagramLibrary.value ? t(diagramLibrary(activeDiagramLibrary.value).name) : providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
+const libraryLabel = computed(() => isometricOpen.value ? t('Isometrische Icons') : lucideOpen.value ? t('Lucide Icons') : activeDiagramLibrary.value ? t(diagramLibrary(activeDiagramLibrary.value).name) : providers.find((entry) => entry.id === activeLibrary.value)?.label ?? 'Bibliothek');
 const groupedLibraryComponents = computed(() => {
   const groups = new Map<string, CatalogSearchResult[]>();
   for (const item of libraryComponents.value) {
@@ -261,20 +289,21 @@ onBeforeUnmount(() => {
 
     <div id="library-tabpanel" ref="scroller" class="library-scroll" :role="subLibrary ? undefined : 'tabpanel'" :aria-labelledby="subLibrary ? undefined : `library-tab-${tab}`">
       <DiagramLibraryView v-if="activeDiagramLibrary" :library="diagramLibrary(activeDiagramLibrary)" :query="query" />
-      <template v-else-if="activeLibrary || isometricOpen">
+      <template v-else-if="activeLibrary || isometricOpen || lucideOpen">
         <p v-if="libraryLoading" class="empty-state" role="status">{{ t('Bibliothek wird geladen …') }}</p>
-        <p v-if="libraryError" class="empty-state" role="alert">{{ t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
+        <p v-if="libraryError" class="empty-state" role="alert">{{ lucideOpen ? t('Die Bibliothek konnte nicht geladen werden.') : t('Die vollständige Bibliothek konnte nicht geladen werden; es werden die Startsymbole gezeigt.') }}</p>
         <section v-for="(group, index) in groupedLibraryComponents" :key="group.category" class="component-group">
           <h3><button type="button" class="category-toggle" :aria-expanded="categoryOpen(group.category, index)" @click="toggleCategory(group.category, index)"><span>{{ isometricOpen ? t(ISOMETRIC_CATEGORIES[group.category] ?? group.category) : group.category }}</span><span class="category-count">{{ group.items.length }}</span><AppIcon class="category-chevron" name="chevron-down" :size="18" /></button></h3>
-          <div v-if="categoryOpen(group.category, index)" class="component-grid">
+          <div v-if="categoryOpen(group.category, index)" class="component-grid" :class="{ 'line-icons': lucideOpen }">
             <button v-for="item in group.items" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag">
               <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span>
-              <SafeIcon v-else :source="item.component.iconSvg" :size="isometricOpen ? 56 : 42" />
+              <SafeIcon v-else :source="item.component.iconSvg" :size="isometricOpen ? 56 : lucideOpen ? 28 : 42" />
               <span>{{ item.component.name }}</span>
-              <small v-if="!isometricOpen">{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
+              <small v-if="!isometricOpen && !lucideOpen">{{ item.component.provider === 'gcp' ? 'GCP' : item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
         </section>
+        <p v-if="lucideCapped" class="empty-state">{{ t('Die ersten {count} Treffer werden gezeigt. Mit einem genaueren Suchwort findest du den Rest.', { count: LUCIDE_SEARCH_LIMIT }) }}</p>
         <p v-if="!libraryComponents.length && !libraryLoading" class="empty-state">{{ t('Keine passenden Symbole gefunden.') }}</p>
       </template>
 
@@ -295,7 +324,7 @@ onBeforeUnmount(() => {
           <div class="component-grid search-components">
             <button v-for="item in allComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag">
               <span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span>
-              <SafeIcon v-else :source="item.component.iconSvg" :size="40" /><span>{{ item.component.name }}</span><small>{{ item.component.provider.toUpperCase() }}</small>
+              <SafeIcon v-else :source="item.component.iconSvg" :size="isLucideComponent(item.component) ? 30 : 40" /><span>{{ item.component.name }}</span><small>{{ isLucideComponent(item.component) ? 'LUCIDE' : item.component.provider.toUpperCase() }}</small>
             </button>
           </div>
           <p v-if="allComponentsCapped" class="empty-state">{{ t('Die ersten {count} Treffer werden gezeigt. Weitere findest du in der jeweiligen Bibliothek.', { count: SEARCH_LIMIT }) }}</p>
@@ -341,6 +370,11 @@ onBeforeUnmount(() => {
             <span><strong>{{ t('Isometrische Icons') }}</strong><small>{{ t('{count} Symbole', { count: isometricSets[0]!.components.length }) }}</small></span>
             <AppIcon class="row-chevron" name="chevron-right" :size="20" />
           </button>
+          <button v-if="lucideIconCount()" type="button" class="provider-row" data-testid="open-lucide-library" @click="lucideOpen = true; query = ''">
+            <span class="provider-logo lucide-logo"><SafeIcon :source="LUCIDE_PREVIEW" :size="34" /></span>
+            <span><strong>{{ t('Lucide Icons') }}</strong><small>{{ t('{count} Symbole', { count: lucideIconCount() }) }}</small></span>
+            <AppIcon class="row-chevron" name="chevron-right" :size="20" />
+          </button>
           <button v-for="providerItem in providers" :key="providerItem.id" type="button" class="provider-row" @click="activeLibrary = providerItem.id">
             <span class="provider-logo"><SafeIcon :source="providerPreview(providerItem.id)" :size="48" /></span>
             <span><strong>{{ t(providerItem.label) }}</strong><small>{{ t('{count} Symbole', { count: providerCount(providerItem.id) }) }}</small></span>
@@ -369,7 +403,9 @@ onBeforeUnmount(() => {
 .component-group,.search-results{padding:20px 20px 4px}.component-group h3,.search-results h3{margin:0 4px 12px;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}.component-group{padding-top:8px;padding-bottom:0;border-bottom:1px solid var(--border-subtle)}.component-group h3{margin:0}.category-toggle{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;text-transform:inherit;cursor:pointer}.category-toggle:hover{color:var(--text-primary)}.category-toggle>span:first-child{flex:1}.category-count{min-width:24px;padding:1px 7px;border-radius:999px;background:var(--surface-raised);font-size:11px;text-align:center}.category-chevron{transition:transform .16s ease}.category-toggle[aria-expanded=true] .category-chevron{transform:rotate(180deg)}
 .component-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 20px 18px}.component-group .component-grid{padding:0 0 16px}.search-results .component-grid{padding:0}.component-tile{display:flex;min-width:0;min-height:112px;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 7px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);color:var(--text-primary);text-align:center;cursor:grab}.component-tile:active{cursor:grabbing}.component-tile:hover,.component-tile:focus-visible{border-color:var(--accent);background:var(--accent-soft)}.component-tile span{width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;font-weight:650}.component-tile small{font-size:9px;color:var(--text-muted)}.search-components{margin-bottom:16px}
 .component-grid .resource-card-tile{grid-column:1/-1;min-height:126px;padding:10px}.resource-card-preview{display:grid!important;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px;width:100%!important;min-height:62px;padding:10px 10px 18px;box-sizing:border-box;border:1px solid var(--border-default);border-radius:7px;background:var(--surface-panel);box-shadow:inset 0 -10px var(--accent-soft);text-align:left}.resource-card-preview>span{display:grid;gap:3px;font-size:12px!important}.resource-card-preview b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.resource-card-preview small{text-transform:uppercase}
-.other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-raised)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.diagram-logo{color:var(--accent)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}
+.other-libraries{padding:20px 0;border-top:1px solid var(--border-subtle)}.other-libraries h3{padding:0 24px 12px;font-size:16px}.provider-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;width:100%;min-height:82px;padding:10px 24px;border:0;background:transparent;color:var(--text-primary);text-align:left;cursor:pointer}.provider-row:hover{background:var(--surface-raised)}.provider-logo{display:grid;width:58px;height:58px;place-items:center;border-radius:11px;background:var(--surface-raised)}.lucide-logo{color:var(--text-primary)}
+/* Line icons are small and many: four to a row, in the colour of the text. */
+.component-grid.line-icons{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.component-grid.line-icons .component-tile{min-height:78px;padding:8px 4px;gap:5px}.component-grid.line-icons .component-tile span{font-size:10px;font-weight:500;white-space:nowrap}.diagram-logo{color:var(--accent)}.provider-row strong,.provider-row small{display:block}.provider-row strong{font-size:15px}.provider-row small{margin-top:4px;color:var(--text-muted);font-size:13px}
 .empty-state{padding:18px 24px;color:var(--text-muted);font-size:11px;line-height:1.5}.library-footer{flex:none;display:grid;gap:10px;padding:12px 20px;border-top:1px solid var(--border-subtle);background:var(--surface-panel)}.reset-button{justify-self:start}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.shape-library{right:12px;bottom:12px;width:calc(100vw - 24px)}.library-header{padding:8px 16px 12px}.shape-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding-inline:14px}.component-grid{padding-inline:14px}.provider-row{padding-inline:16px}}
 @media(prefers-reduced-motion:reduce){.section-chevron,.category-chevron{transition:none}}
