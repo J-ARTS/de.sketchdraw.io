@@ -33,7 +33,7 @@ function pixel(red: number, green: number, blue: number): string {
 const stores: WhiteboardStore[] = [];
 afterEach(() => { for (const store of stores.splice(0)) store.dispose(); vi.restoreAllMocks(); });
 
-async function setup(document: SketchDocument = createDocument('AWS Bedrock AgentCore'), options: { open?: boolean; link?: Partial<ConfluenceLiveLink> | null; retryDelaysMs?: number[] } = {}) {
+async function setup(document: SketchDocument = createDocument('AWS Bedrock AgentCore'), options: { debounceMs?: number; open?: boolean; link?: Partial<ConfluenceLiveLink> | null; retryDelaysMs?: number[] } = {}) {
   let pluginListener: ((event: PluginExternalEvent) => void) | undefined;
   /** What the main process would answer; tests change it to play profile, link and plugin changes. */
   const remote = {
@@ -61,7 +61,7 @@ async function setup(document: SketchDocument = createDocument('AWS Bedrock Agen
   };
   const bridge: DesktopBridge = { platform: 'electron', plugins, openDocument: vi.fn(async () => ({ status: 'cancelled' as const })), saveDocument: vi.fn(async () => ({ status: 'cancelled' as const })), exportFile: vi.fn(async () => ({ status: 'cancelled' as const })), openExternal: vi.fn(async () => {}), onCloseRequested: () => () => {}, respondToClose: vi.fn(async () => {}), onMenuCommand: () => () => {} };
   const rasterize = vi.fn(async (svg: string) => new Uint8Array([...PNG, ...new TextEncoder().encode(svg)]));
-  const store = createWhiteboardStore({ bridge, controller: createController(document), preferences: null, confluenceLive: { debounceMs: 15, retryDelaysMs: options.retryDelaysMs ?? [20, 20], failureHoldMs: 400, rasterize } });
+  const store = createWhiteboardStore({ bridge, controller: createController(document), preferences: null, confluenceLive: { debounceMs: options.debounceMs ?? 15, retryDelaysMs: options.retryDelaysMs ?? [20, 20], failureHoldMs: 400, rasterize } });
   stores.push(store);
   store.setViewportSize(1000, 700);
   if (options.open !== false) {
@@ -100,10 +100,12 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
   });
 
   it('collects quick successive edits into one publication of the newest state', async () => {
-    const { store, published } = await setup();
+    // The pause after the last edit is long enough that four edits on a slow runner still fall into one: with
+    // 15 ms a single edit could take longer than the pause and be published on its own (CI, #193).
+    const { store, published } = await setup(undefined, { debounceMs: 250 });
     await vi.waitFor(() => expect(published).toHaveLength(1));
     for (let index = 0; index < 4; index++) { await store.insertComponent(aws, 'aws.compute.instance', { x: 200 + index * 40, y: 300 }); await store.whenIdle(); }
-    await vi.waitFor(() => expect(published).toHaveLength(2));
+    await vi.waitFor(() => expect(published).toHaveLength(2), { timeout: 5000 });
     await settle();
     expect(published).toHaveLength(2);
     expect(rendered(published[1]!)).toContain('<g id="sd-3"');
