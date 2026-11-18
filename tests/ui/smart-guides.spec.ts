@@ -40,6 +40,8 @@ test('a moved box snaps into line with the nearest box; the lines show while it 
   expect(Math.round(line.x)).toBe(first.x + 1);
   expect(line.y).toBeLessThan(first.y);
   expect(line.y + line.height).toBeGreaterThan((await boxOf(page, 1)).bottom);
+  // In the violet of the interface (#230).
+  expect(await alignLines(page).first().evaluate((node) => getComputedStyle(node).stroke)).toBe('rgb(107, 76, 230)');
   // The lines are decoration: nothing for assistive technology, nothing that takes the pointer.
   await expect(page.getByTestId('smart-guides')).toHaveAttribute('aria-hidden', 'true');
   await expect(page.getByTestId('smart-guides')).toHaveAttribute('pointer-events', 'none');
