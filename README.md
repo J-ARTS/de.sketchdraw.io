@@ -1,165 +1,167 @@
 # Sketchdraw
 
-**Sketchdraw ist ein offener Visual Workspace für Windows, macOS und Linux:** Whiteboard, Architektur- und Cloud-Diagramme, Diagram as Code, Zusammenarbeit ohne Server und ein MCP-Zugang für KI-Agenten. Menschen und Agenten bearbeiten dasselbe Diagramm – auf der Zeichenfläche oder als lesbaren Quelltext.
+**Sketchdraw is an open visual workspace for Windows, macOS and Linux:** a whiteboard, architecture and cloud diagrams, diagram as code, collaboration without a server and MCP access for AI agents. People and agents work on the same diagram – on the canvas or as readable source text.
 
 > Everything you can draw, an agent can understand. Everything an agent can create, a human can edit.
 
-*Sketchdraw is an open desktop whiteboard and diagramming app (Electron, Vue 3, TypeScript): architecture and cloud diagrams for AWS, Azure, GCP and Kubernetes, sequence, BPMN and ER diagrams, Mermaid and diagram as code, serverless peer-to-peer collaboration and an MCP server for AI agents such as Claude Code and Codex.*
+*Sketchdraw is a desktop whiteboard and diagramming app (Electron, Vue 3, TypeScript): architecture and cloud diagrams for AWS, Azure, GCP and Kubernetes, sequence, BPMN and ER diagrams, Mermaid and diagram as code, serverless peer-to-peer collaboration and an MCP server for AI agents such as Claude Code and Codex.*
 
-![Whiteboard mit Haftnotizen, einem Ablaufdiagramm und einer ersten Architektur](docs/images/readme/whiteboard.png)
+![A whiteboard with sticky notes, a flowchart and a first architecture](docs/images/readme/whiteboard.png)
 
-**Inhalt:** [Download](#download) · [Funktionen](#funktionen) · [Lizenz](#lizenz) · [Entwicklung](#entwicklung) · [Dokumentation](#dokumentation)
+**Contents:** [Download](#download) · [Features](#features) · [License](#license) · [Development](#development) · [Documentation](#documentation)
+
+The screenshots show the German interface; the app is available in German and English.
 
 ## Download
 
-Das zuletzt veröffentlichte Release ist [v0.1.4](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4) mit drei nativ geprüften Installern:
+The latest published release is [v0.1.4](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4) with three natively verified installers:
 
-- [Windows x64 – Installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe)
+- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe)
 - [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg)
 - [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb)
 
-Windows ist unsigniert; die macOS-App ist ad-hoc-signiert und nicht notarisiert. Hinweise zum ersten Start und die konkreten nativen Prüfungen stehen in den Release-Notes und im [Release-Ablauf](docs/release.md).
+The Windows installer is unsigned; the macOS app is ad-hoc signed and not notarized. Notes on the first start and the native checks that were run are in the release notes and in the [release process](docs/release.md).
 
-Die Bilder unten zeigen den Stand von `main`. Er ist weiter als v0.1.4: Die Bibliotheken für ER-, BPMN- und Sequenzdiagramme, der Mermaid-Code, die isometrischen und die Lucide-Icons, der Git-Dialog, die Teilnehmerliste mit Mauszeigern und die Hilfslinien kommen mit dem nächsten Release. Bis dahin lässt sich der aktuelle Stand [aus dem Quelltext starten](#entwicklung).
+The pictures below show the state of `main`. It is ahead of v0.1.4: the libraries for ER, BPMN and sequence diagrams, the Mermaid code, the isometric and the Lucide icons, the Git dialog, the participant list with pointers and the guides come with the next release. Until then, the current state can be [started from source](#development).
 
-## Funktionen
+## Features
 
 ### Whiteboard
 
-Eine unbegrenzte Zeichenfläche mit Formen, Freihandstift, Text, Haftnotizen, Tabellen, Bildern, Containern und Verbindern, die an ihren Elementen hängen bleiben. Ein Dokument hat beliebig viele Seiten; Rückgängig und Wiederholen gelten für die eigenen Schritte, und ungespeicherte Arbeit wird lokal gesichert und nach einem Neustart wiederhergestellt. Das Bild oben zeigt eine solche Seite.
+An infinite canvas with shapes, a freehand pen, text, sticky notes, tables, images, containers and connectors that stay attached to their elements. A document has any number of pages; undo and redo apply to your own steps, and unsaved work is kept locally and restored after a restart. The picture above shows such a page.
 
-### Hilfslinien beim Verschieben
+### Guides while moving
 
-Beim Verschieben rastet ein Element an den Kanten und der Mitte des nächstgelegenen Elements ein. Gleiche Abstände in einer Reihe werden gefunden und mit ihrem Maß angezeigt. Mit gedrückter Strg- bzw. Cmd-Taste bewegt sich das Element frei; in den Einstellungen lässt sich die Hilfe abschalten.
+While it is moved, an element snaps to the edges and the centre of the nearest element. Equal distances in a row are found and shown with their measure. Holding Ctrl or Cmd moves the element freely; the guides can be switched off in the settings.
 
-![Drei Kästen in einer Reihe, die Hilfslinien zeigen den gleichen Abstand von 80](docs/images/readme/guides.png)
+![Three boxes in a row, the guides show the equal distance of 80](docs/images/readme/guides.png)
 
-### Formenbibliothek mit den Icons der Cloud-Anbieter
+### Shape library with the cloud providers' icons
 
-Die Bibliothek enthält Grundformen, Flussdiagramm-Symbole und die offiziellen Architektur-Icons von AWS (784), Azure (713), Google Cloud (235) und Kubernetes (39). Eine Suche geht über alle Bibliotheken. Lieblingsformen lassen sich in die obere Leiste legen, und eine Auswahl auf der Zeichenfläche wird auf Wunsch zur eigenen Komponente.
+The library holds basic shapes, flowchart symbols and the official architecture icons of AWS (784), Azure (713), Google Cloud (235) and Kubernetes (39). One search covers all libraries. Favourite shapes can be placed in the top bar, and a selection on the canvas becomes a component of your own if you want.
 
-![Die Suche nach „lambda" findet Symbole aus mehreren Bibliotheken](docs/images/readme/library-search.png)
+![The search for "lambda" finds symbols from several libraries](docs/images/readme/library-search.png)
 
-### Architektur- und Cloud-Diagramme
+### Architecture and cloud diagrams
 
-Cloud-Dienste stehen als Karten mit Icon, Name und Anbieter auf der Zeichenfläche. Für AWS gibt es die Gruppenrahmen der Referenzarchitekturen – Cloud, Region, VPC, Subnetze und weitere. Die Ressourcenkarte unter „Azure Diagrams" nimmt Titel, Beschreibung und ein Icon aus einer beliebigen Bibliothek auf.
+Cloud services stand on the canvas as cards with icon, name and provider. For AWS there are the group frames of the reference architectures – cloud, region, VPC, subnets and more. The resource card under "Azure Diagrams" takes a title, a description and an icon from any library.
 
-![Eine Shop-Plattform auf AWS mit Cloud- und VPC-Rahmen](docs/images/readme/cloud.png)
+![A shop platform on AWS with cloud and VPC frames](docs/images/readme/cloud.png)
 
-### Isometrische Icons
+### Isometric icons
 
-29 isometrische Symbole für IT-Bausteine – Dienste, Daten, Server, Netz und Clients. Sie stehen frei auf der Zeichenfläche und tragen ihre Beschriftung darunter.
+29 isometric symbols for IT building blocks – services, data, servers, network and clients. They stand freely on the canvas and carry their label below.
 
-![Eine Plattform aus isometrischen Symbolen](docs/images/readme/isometric.png)
+![A platform made of isometric symbols](docs/images/readme/isometric.png)
 
-### Lucide-Icons
+### Lucide icons
 
-Die 2091 Linien-Icons von [Lucide](https://lucide.dev) in 41 Kategorien. Ein Icon übernimmt die Linienfarbe seines Elements und passt damit in jedes Diagramm.
+The 2091 line icons of [Lucide](https://lucide.dev) in 41 categories. An icon takes the stroke colour of its element and so fits into any diagram.
 
-![Die Lucide-Bibliothek neben einem Diagramm](docs/images/readme/lucide.png)
+![The Lucide library beside a diagram](docs/images/readme/lucide.png)
 
-### Sequenzdiagramme mit Mermaid-Code
+### Sequence diagrams with Mermaid code
 
-Sequenzdiagramme ordnen sich selbst: Aktivierungen, Nummern und Abstände folgen aus den Nachrichten. Der Mermaid-Code steht daneben. Was im Code getippt wird, erscheint sofort im Diagramm, und jede Änderung im Diagramm steht sofort im Code.
+Sequence diagrams arrange themselves: activations, numbers and distances follow from the messages. The Mermaid code stands beside the diagram. What is typed in the code appears in the diagram at once, and every change in the diagram is in the code at once.
 
-![Ein Sequenzdiagramm und sein Mermaid-Code nebeneinander](docs/images/readme/sequence.png)
+![A sequence diagram and its Mermaid code side by side](docs/images/readme/sequence.png)
 
-### Abläufe mit BPMN
+### Processes with BPMN
 
-Ereignisse, Aufgaben, Gateways, Pools und Bahnen. Auch ein Ablauf lässt sich als Mermaid-Code schreiben; Pools und Bahnen sind dort `subgraph`-Blöcke.
+Events, tasks, gateways, pools and lanes. A process can be written as Mermaid code too; pools and lanes are `subgraph` blocks there.
 
-![Ein Bestellablauf mit zwei Bahnen und seinem Mermaid-Code](docs/images/readme/bpmn.png)
+![An order process with two lanes and its Mermaid code](docs/images/readme/bpmn.png)
 
-### ER-Diagramme
+### ER diagrams
 
-Entitäten sind Tabellen, Beziehungen tragen Krähenfuß-Enden für 1:1, 1:n und n:m. Für die Chen-Notation gibt es eigene Formen.
+Entities are tables, relationships carry crow's foot ends for 1:1, 1:n and n:m. Chen notation has shapes of its own.
 
-![Zwei Entitäten mit einer 1:n-Beziehung neben der ER-Bibliothek](docs/images/readme/er.png)
+![Two entities with a 1:n relationship beside the ER library](docs/images/readme/er.png)
 
-### Diagramm als Code
+### Diagram as code
 
-Jedes Dokument hat einen lesbaren Text mit einem Element pro Zeile, damit ein Diff in Git zeigt, was sich geändert hat. Änderungen am Text werden geprüft und erst mit „Übernehmen" auf die Zeichenfläche gebracht; ein ungültiger Entwurf bleibt als Entwurf erhalten.
+Every document has a readable text with one element per line, so that a diff in Git shows what has changed. Changes to the text are checked and only reach the canvas with "Apply"; an invalid draft is kept as a draft.
 
-![Ein Diagramm und sein Quelltext](docs/images/readme/code.png)
+![A diagram and its source text](docs/images/readme/code.png)
 
-### Zusammenarbeiten ohne Server
+### Collaborating without a server
 
-Eine Session verbindet Desktop-Apps direkt miteinander: ein `sketchdraw://`-Link und eine getrennt geteilte PIN genügen. Alle sehen, wer dabei ist und wo die anderen gerade zeigen. Der Gastgeber vergibt Lese- oder Schreibrecht, kann jemanden entfernen und die Session beenden. Wer die Verbindung verliert, hat fünf Minuten, um zurückzukommen.
+A session connects desktop apps directly with each other: a `sketchdraw://` link and a PIN shared separately are enough. Everyone sees who is there and where the others are pointing. The host grants read or write access, can remove someone and end the session. Whoever loses the connection has five minutes to come back.
 
-![Die Session mit drei Personen und ihren Mauszeigern auf der Zeichenfläche](docs/images/readme/collaboration.png)
+![The session with three people and their pointers on the canvas](docs/images/readme/collaboration.png)
 
-Solange eine Session läuft, steht ihr Symbol in der oberen Leiste. Von dort folgt man einer Person – die eigene Ansicht geht dann mit ihrer mit – oder beendet die Session.
+While a session is running, its symbol is in the top bar. From there you follow a person – your own view then moves with theirs – or end the session.
 
-![Das Session-Menü mit „Folgen" und „Session beenden"](docs/images/readme/session-menu.png)
+![The session menu with "Follow" and "End session"](docs/images/readme/session-menu.png)
 
-Dokumente werden lokal gespeichert. Sessions brauchen keinen festen Server und kein Gateway; die Inhalte sind Ende-zu-Ende verschlüsselt. Die Geräte verbinden sich über HyperDHT direkt, sonst über freiwillige Relay-Helfer: Solange eine Session läuft, leitet die App mit begrenzter Bandbreite auch verschlüsselte Daten anderer Sessions weiter. Eine Verbindung ist nicht in jedem Netzwerk möglich: Ist UDP vollständig gesperrt, kommt keine zustande. Details stehen in [ADR 0007](docs/decisions/0007-app-link-and-session-relay-helper.md).
+Documents are stored locally. Sessions need neither a fixed server nor a gateway; the content is end-to-end encrypted. The devices connect directly over HyperDHT, otherwise through voluntary relay helpers: while a session is running, the app also forwards encrypted data of other sessions with limited bandwidth. A connection is not possible in every network: if UDP is blocked completely, none is established. Details are in [ADR 0007](docs/decisions/0007-app-link-and-session-relay-helper.md).
 
-### Kommentare und Aufgaben
+### Comments and tasks
 
-Ein Kommentar hängt an einem Element, einer Tabellenzelle oder einer freien Stelle. Antworten bilden einen Thread, der sich als erledigt markieren lässt.
+A comment is attached to an element, a table cell or a free spot. Replies form a thread that can be marked as resolved.
 
-![Ein Kommentar-Thread an einem Element des Diagramms](docs/images/readme/comments.png)
+![A comment thread on an element of the diagram](docs/images/readme/comments.png)
 
-Aus Kommentaren und Haftnotizen werden Aufgaben. Das Board gehört zum Dokument und zeigt sie mit Art, Fälligkeit und zuständiger Person in vier Spalten. Mit dem Atlassian-Plugin werden Aufgaben zu Jira-Tickets.
+Comments and sticky notes become tasks. The board belongs to the document and shows them with type, due date and assignee in four columns. With the Atlassian plugin, tasks become Jira tickets.
 
-![Das Aufgabenboard mit vier Spalten](docs/images/readme/tasks.png)
+![The task board with four columns](docs/images/readme/tasks.png)
 
-### Folien und Präsentieren
+### Slides and presenting
 
-Ein Frame macht einen Ausschnitt der Zeichenfläche zur Folie. Die Folienleiste ordnet die Folien und nimmt Notizen auf.
+A frame turns a section of the canvas into a slide. The slide bar orders the slides and takes notes.
 
-![Vier Frames auf der Zeichenfläche und die Folienleiste](docs/images/readme/slides.png)
+![Four frames on the canvas and the slide bar](docs/images/readme/slides.png)
 
-Präsentiert wird mit der Tastatur, auf Wunsch im Vollbild; die Presenter-Ansicht zeigt zusätzlich die Notizen.
+Presenting works with the keyboard, in full screen if you want; the presenter view also shows the notes.
 
-![Die erste Folie im Präsentationsmodus](docs/images/readme/present.png)
+![The first slide in presentation mode](docs/images/readme/present.png)
 
 ### Git
 
-Mit dem Git-Plugin liegt das Diagramm in einem Repository. Der Git-Dialog zeigt Änderungen und ihren Diff, committet ausgewählte Dateien, pusht, holt den Remote-Stand und setzt das Diagramm auf einen alten Commit zurück. Auto-Commit, Auto-Push und Auto-Sync lassen sich einzeln schalten.
+With the Git plugin, the diagram lives in a repository. The Git dialog shows changes and their diff, commits selected files, pushes, fetches the remote state and resets the diagram to an old commit. Auto-commit, auto-push and auto-sync can be switched individually.
 
-![Der Git-Dialog mit drei geänderten Dateien und dem Diff des Diagramms](docs/images/readme/git.png)
+![The Git dialog with three changed files and the diff of the diagram](docs/images/readme/git.png)
 
-### Import und Export
+### Import and export
 
-Austausch mit draw.io, SVG und Mermaid. Vor jeder Umwandlung zeigt eine Vorschau, was dabei verloren geht oder nur angenähert wird; erst nach der Bestätigung entsteht die Datei. Auf Wunsch wird das Dokument in die Datei eingebettet; ein unveränderter eigener Export lässt sich dann vollständig zurücklesen.
+Exchange with draw.io, SVG and Mermaid. Before every conversion, a preview shows what is lost or only approximated; the file is created only after confirmation. If you want, the document is embedded in the file; an unchanged export of your own can then be read back completely.
 
-![Die Exportvorschau für draw.io mit den Hinweisen auf Verluste](docs/images/readme/export.png)
+![The export preview for draw.io with the notes on losses](docs/images/readme/export.png)
 
-### KI-Agenten über MCP
+### AI agents over MCP
 
-Die Desktop-App stellt das geöffnete lokale Dokument automatisch als MCP-Server bereit – ohne Freigabedialog. Ein einmal eingerichteter Client wie Claude Code, Codex oder Antigravity liest das Diagramm, durchsucht und analysiert es und ändert es gezielt:
+The desktop app provides the open local document as an MCP server automatically – without a sharing dialog. A client set up once, such as Claude Code, Codex or Antigravity, reads the diagram, searches and analyses it and changes it precisely:
 
-| Werkzeug | Zweck |
+| Tool | Purpose |
 | --- | --- |
-| `sketchdraw_read_document` | Dokument und Revision lesen |
-| `sketchdraw_find_elements` | Elemente nach ID, Art, Text oder Metadaten suchen |
-| `sketchdraw_analyze_document` | Struktur prüfen, z. B. ungebundene Verbindungen |
-| `sketchdraw_read_code` | Diagrammcode lesen |
-| `sketchdraw_apply_commands` | einzelne Änderungen anwenden |
-| `sketchdraw_apply_code` | den ganzen Diagrammcode ersetzen |
+| `sketchdraw_read_document` | Read the document and its revision |
+| `sketchdraw_find_elements` | Find elements by ID, kind, text or metadata |
+| `sketchdraw_analyze_document` | Check the structure, e.g. unbound connections |
+| `sketchdraw_read_code` | Read the diagram code |
+| `sketchdraw_apply_commands` | Apply individual changes |
+| `sketchdraw_apply_code` | Replace the whole diagram code |
 
-Eine Agentenänderung erscheint sofort auf der Zeichenfläche und wird nicht automatisch auf die Festplatte gespeichert. Die Einrichtung steht in [MCP verbinden und verwenden](docs/agent-integration.md).
+A change made by an agent appears on the canvas at once and is not saved to disk automatically. The setup is described in [Connecting and using MCP](docs/agent-integration.md).
 
-### Hell, dunkel, Deutsch und Englisch
+### Light, dark, German and English
 
-Die Oberfläche gibt es hell und dunkel sowie auf Deutsch und Englisch. Der Hintergrund der Zeichenfläche ist wählbar und gilt nur für die eigene Ansicht.
+The interface comes in light and dark and in German and English. The background of the canvas can be chosen and applies only to your own view.
 
-![Die AWS-Architektur im dunklen Design](docs/images/readme/dark.png)
+![The AWS architecture in the dark theme](docs/images/readme/dark.png)
 
-### Confluence und Jira
+### Confluence and Jira
 
-Das Atlassian-Plugin bindet Confluence-Seiten als Live Docs in das Dokument ein und legt Aufgaben und Kommentare als Jira-Tickets an. Das automatische Aktualisieren des Diagramms auf einer Confluence-Seite ist umgesetzt und noch in Prüfung ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210)). Das Zugangstoken liegt verschlüsselt im Profil auf dem Gerät und gelangt weder in Diagramme noch in Git.
+The Atlassian plugin embeds Confluence pages in the document as Live Docs and creates tasks and comments as Jira tickets. Updating the diagram on a Confluence page automatically is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
 
-## Lizenz
+## License
 
-Sketchdraw steht unter der **PolyForm Noncommercial License 1.0.0**, soweit einzelne Bestandteile nicht anders gekennzeichnet sind. Nutzung, Änderungen und Weitergabe sind für die im [Lizenztext](LICENSE) erlaubten Zwecke möglich. Für darüber hinausgehende kommerzielle Nutzung ist eine gesonderte Erlaubnis der Rechteinhaber erforderlich.
+Sketchdraw is licensed under the **PolyForm Noncommercial License 1.0.0**, unless individual parts are marked otherwise. Use, changes and distribution are possible for the purposes permitted in the [license text](LICENSE). Commercial use beyond that requires separate permission from the rights holders.
 
-Die [Lizenz-README](docs/licensing/README.md) erklärt die Bedingungen und den Auslieferungsstand. Direkte Kollaborationsabhängigkeiten stehen in den [Drittanbieter-Hinweisen](THIRD_PARTY_NOTICES.md); die Lizenzen der verwendeten Bibliotheken und Schriften bleiben erhalten.
+The [licensing README](docs/licensing/README.md) explains the terms and the delivery state. Direct collaboration dependencies are listed in the [third-party notices](THIRD_PARTY_NOTICES.md); the licenses of the libraries and fonts used are retained.
 
-## Entwicklung
+## Development
 
-Voraussetzungen und Plattformdetails stehen in [docs/setup.md](docs/setup.md). Der verwendete Stack ist Electron, Vue 3 und TypeScript; Abhängigkeiten sind über das Lockfile festgelegt.
+Requirements and platform details are in [docs/setup.md](docs/setup.md). The stack is Electron, Vue 3 and TypeScript; dependencies are pinned by the lockfile.
 
 ```sh
 npm ci
@@ -167,7 +169,7 @@ npm run build:mcp
 npm run dev:electron
 ```
 
-Für die Browservorschau: `npm run dev:browser`. Der lokale MCP-Zugriff benötigt die Desktop-App.
+For the browser preview: `npm run dev:browser`. Local MCP access needs the desktop app.
 
 ```sh
 npm run typecheck
@@ -178,12 +180,14 @@ npm run test:ui
 npm run test:electron
 ```
 
-## Dokumentation
+## Documentation
 
-- [MCP verbinden und verwenden](docs/agent-integration.md)
-- [Installer und Releaseprüfungen](docs/release.md)
-- [Architektur](docs/architecture.md), [Sprints](docs/sprints.md) und [geprüfte Bedenken](docs/concerns.md)
-- [GitHub-Tickets](https://github.com/J-ARTS/de.sketchdraw.io/issues) als dauerhafte Statusquelle
-- [Graphify und Aufwandserfassung](docs/graphify-traceability.md)
+The documents linked here are written in German.
 
-Das Zielbild und die verbindliche Zusammenarbeit stehen in [AGENTS.md](AGENTS.md) und [CLAUDE.md](CLAUDE.md). Einzelne Testberichte gelten jeweils für den dort genannten Stand; offene Prüfungen sind kein bestandener Release.
+- [Connecting and using MCP](docs/agent-integration.md)
+- [Installers and release checks](docs/release.md)
+- [Architecture](docs/architecture.md), [sprints](docs/sprints.md) and [reviewed concerns](docs/concerns.md)
+- [GitHub issues](https://github.com/J-ARTS/de.sketchdraw.io/issues) as the permanent source of status
+- [Graphify and effort tracking](docs/graphify-traceability.md)
+
+The target picture and the binding rules of collaboration are in [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Individual test reports apply to the state named in them; open checks are not a passed release.
