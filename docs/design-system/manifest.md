@@ -347,6 +347,24 @@ One task as a card: title, state, assignee, due date and cover, with its inline 
 | `menu` | `[event: MouseEvent]` |  |
 | `open` | `[]` |  |
 
+### UpdateSettings
+
+The update section of the settings: installed version, what the last check found, the action that fits it and the switch for the automatic check. It only shows a status and reports what the user chose; checking and installing happen in the desktop app.
+
+- File: `src/renderer/design-system/molecules/UpdateSettings.vue`
+- Story: `src/renderer/design-system/molecules/UpdateSettings.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `status` | `UpdateStatus` | yes |  | Where the update stands, as the desktop app reports it. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `check` | `[]` |  |
+| `install` | `[]` |  |
+| `release-page` | `[]` |  |
+| `update:autoCheck` | `[enabled: boolean]` |  |
+
 ## Organisms
 
 Self-contained sections of the interface.
@@ -666,7 +684,7 @@ The session button of the workspace bar and its menu. It is shown while this dev
 
 ### SettingsDialog
 
-The modal dialog for the settings of the app: canvas background, guides while moving, theme, language.
+The modal dialog for the settings of the app: canvas background, guides while moving, theme, language and, in the desktop app, updates.
 
 - File: `src/renderer/design-system/organisms/SettingsDialog.vue`
 

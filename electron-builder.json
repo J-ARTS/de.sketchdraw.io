@@ -81,6 +81,11 @@
     "icon": "build/icons",
     "maintainer": "J-ARTS",
     "synopsis": "Visual Workspace for Architecture, Diagrams, and P2P Collaboration",
+    "desktop": {
+      "entry": {
+        "StartupWMClass": "de.sketchdraw.io"
+      }
+    },
     "artifactName": "${productName}-${version}-linux-x64.${ext}",
     "target": [
       {

@@ -35,6 +35,7 @@ import type {
   PluginSettingsSnapshot,
   UpdateJiraIssueInput,
 } from '../src/domain/plugins';
+import type { UpdateStatus } from '../src/domain/updates';
 import {
   type CloseDecision,
   type AppLanguage,
@@ -50,6 +51,8 @@ import {
   validateExternalHttpUrl,
   validateRespondToCloseRequest,
   validateSaveDocumentRequest,
+  isUpdateStatus,
+  validateUpdateRequest,
 } from './ipc-contract';
 
 const USER_ACTIVATION_WINDOW_MS = 2_500;
@@ -119,6 +122,13 @@ export function createPreloadDesktopBridge(
   const checkUserActivation =
     options.isUserActivationActive ?? (() => hasRecentTrustedUserGesture());
   const pluginInvoke = <T>(action: string, payload?: unknown): Promise<T> => ipc.invoke(IPC_CHANNELS.PLUGIN_INVOKE, { action, payload }) as Promise<T>;
+
+  /** Every answer of the updater is a status; anything else from the channel is an error, not data for the page. */
+  const updateInvoke = async (request: unknown): Promise<UpdateStatus> => {
+    const status: unknown = await ipc.invoke(IPC_CHANNELS.UPDATE_INVOKE, validateUpdateRequest(request));
+    if (!isUpdateStatus(status)) throw new Error('The update service answered with an invalid status.');
+    return status;
+  };
 
   const directInvoke = (request: unknown): Promise<unknown> => ipc.invoke(IPC_CHANNELS.DIRECT_INVOKE, validateDirectRequest(request));
   const directListeners = new Set<(event: DirectEvent) => void>();
@@ -275,6 +285,24 @@ export function createPreloadDesktopBridge(
         ipc.removeListener(IPC_CHANNELS.MENU_COMMAND, wrapped);
       };
     },
+
+    updates: Object.freeze({
+      getStatus: () => updateInvoke({ action: 'status' }),
+      check: () => updateInvoke({ action: 'check' }),
+      install: () => updateInvoke({ action: 'install' }),
+      setAutoCheck: (enabled: boolean) => updateInvoke({ action: 'set-auto-check', enabled }),
+      async openReleasePage(): Promise<void> {
+        await ipc.invoke(IPC_CHANNELS.UPDATE_INVOKE, validateUpdateRequest({ action: 'open-release-page' }));
+      },
+      onStatus(listener: (status: UpdateStatus) => void): () => void {
+        if (typeof listener !== 'function') throw new Error('onStatus requires a listener function.');
+        const wrapped = (_event: IpcRendererEvent, value: unknown): void => {
+          if (isUpdateStatus(value)) listener(value);
+        };
+        ipc.on(IPC_CHANNELS.UPDATE_EVENT, wrapped);
+        return () => ipc.removeListener(IPC_CHANNELS.UPDATE_EVENT, wrapped);
+      },
+    }),
 
     plugins: Object.freeze({
       getSettings: (handleId?: string | null) => pluginInvoke<PluginSettingsSnapshot>('get-settings', handleId),

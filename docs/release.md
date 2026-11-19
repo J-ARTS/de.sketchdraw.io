@@ -18,6 +18,8 @@ Der erste Publish-Versuch in GitHub Actions scheiterte an der Draft-Suche (#28).
 
 Genau diese drei Installer werden als Release-Assets veröffentlicht. Manifeste und Smoke-Berichte bleiben Actions-Prüfarbelege. Blockmaps, Updater-Dateien, Debug-Dateien und zusätzliche Archive werden beim Staging und beim Sammeln abgewiesen. Die von GitHub selbst angebotenen Quellcode-Downloads zählen nicht zu den drei Assets.
 
+Die App aktualisiert sich aus genau diesen drei Dateien (#237): Sie fragt `releases/latest` ab, erwartet die Namen `Sketchdraw-<version>-windows-x64.exe`, `…-macos-arm64.dmg` und `…-linux-x64.deb` unter `releases/download/v<version>/` und vergleicht Größe und SHA-256 mit dem `digest`, den GitHub je Datei nennt. Ein anderer Dateiname, ein Tag ohne `v<major>.<minor>.<patch>` oder eine fehlende Prüfsumme führt dazu, dass installierte Apps das Release nur noch als Hinweis mit Link zur Release-Seite anbieten. `latest*.yml`, Blockmaps und andere Updater-Dateien werden dafür nicht gebraucht.
+
 ## Prüfungen vor der Veröffentlichung
 
 `.github/workflows/release.yml` startet durch ein Versions-Tag oder die manuelle Wiederaufnahme eines bereits vorhandenen Tags. `preflight` gleicht Tag, `package.json` und ausgecheckte Commit-Revision ab. Tags werden durch die Skripte weder erstellt noch verschoben. Der wiederverwendbare CI-Workflow und alle Packaging-Jobs checken die ermittelte Commit-SHA aus.

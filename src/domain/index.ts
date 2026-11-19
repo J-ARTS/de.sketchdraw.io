@@ -1,5 +1,6 @@
 export * from './types';
 export * from './plugins';
+export * from './updates';
 export { DOMAIN_LIMITS } from './limits';
 export type { DomainLimits } from './limits';
 export { DomainConflictError, DomainValidationError } from './errors';

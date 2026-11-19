@@ -28,6 +28,10 @@ The Windows installer is unsigned; the macOS app is ad-hoc signed and not notari
 
 The pictures below show this release. The current state of `main` can be [started from source](#development).
 
+### Updates
+
+From the release after v0.1.6 on, the installed app looks for a newer release itself: at start-up and every few hours it asks GitHub for the latest published release, and **Check for Updates…** (app menu on macOS, Help menu on Windows and Linux, and the settings) does the same on request. If there is a newer version, Sketchdraw asks before it does anything, then downloads the installer for your platform, compares its size and SHA-256 with the release and installs it: the Windows installer runs silently, the Debian package goes through the system prompt for administrator rights, and on macOS the app is replaced from the disk image once it has quit. Where an installation cannot replace itself – an unpacked copy, a read-only folder, an app started from the disk image – it points to the release page instead. The automatic check can be switched off in the settings; nothing from your documents is sent.
+
 ## Features
 
 ### Whiteboard

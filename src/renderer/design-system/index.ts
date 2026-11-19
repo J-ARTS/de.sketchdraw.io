@@ -36,6 +36,7 @@ export { default as ParticipantList } from './molecules/ParticipantList.vue';
 export { default as SequenceDecor } from './molecules/SequenceDecor.vue';
 export { default as TableContent } from './molecules/TableContent.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';
+export { default as UpdateSettings } from './molecules/UpdateSettings.vue';
 
 // organisms
 export { default as AnnotationEditor } from './organisms/AnnotationEditor.vue';
@@ -88,4 +89,5 @@ export { buttonVariants, type ButtonIntent, type ButtonVariants } from './atoms/
 export { ICON_PATHS, type IconName } from './atoms/icons';
 export { useWhiteboard } from './composables/use-whiteboard';
 export { useAnchoredPopover } from './composables/use-anchored-popover';
+export { useAppUpdates } from './composables/use-app-updates';
 export { useHorizontalOverflow } from './composables/use-horizontal-overflow';

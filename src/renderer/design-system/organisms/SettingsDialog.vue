@@ -1,4 +1,4 @@
-<!-- @component The modal dialog for the settings of the app: canvas background, guides while moving, theme, language. -->
+<!-- @component The modal dialog for the settings of the app: canvas background, guides while moving, theme, language and, in the desktop app, updates. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
@@ -9,6 +9,8 @@ import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import AppSwitch from '@/renderer/design-system/atoms/AppSwitch.vue';
 import { isMacPlatform } from '@/renderer/design-system/composables/platform';
 import ColorPicker from '@/renderer/design-system/molecules/ColorPicker.vue';
+import UpdateSettings from '@/renderer/design-system/molecules/UpdateSettings.vue';
+import { useAppUpdates } from '@/renderer/design-system/composables/use-app-updates';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
 /** Modal settings: canvas background, design and language. All of them are personal and not stored in the document. */
@@ -20,6 +22,8 @@ const isMac = isMacPlatform();
 const dialog = ref<HTMLDialogElement | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 const pickerOpen = ref(false);
+const updates = useAppUpdates();
+const updateStatus = updates.status;
 let opener: HTMLElement | null = null;
 
 const presets = computed(() => CANVAS_BACKGROUNDS.map((entry) => ({
@@ -36,6 +40,7 @@ watch(() => props.open, async (open) => {
   if (open) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     pickerOpen.value = false;
+    updates.refresh();
     if (!dialog.value?.open) dialog.value?.showModal();
     closeButton.value?.focus();
   } else {
@@ -126,6 +131,11 @@ function onRadioKeydown(event: KeyboardEvent): void {
             @click="language.available && store.setLanguage(language.code)"
           ><span :lang="language.code">{{ language.label }}</span><span v-if="!language.available" class="soon">{{ t('folgt') }}</span></button>
         </div>
+      </section>
+
+      <section v-if="updateStatus" class="setting" aria-labelledby="updates-title">
+        <h3 id="updates-title">{{ t('Updates') }}</h3>
+        <UpdateSettings :status="updateStatus" @check="updates.check()" @install="updates.install()" @release-page="updates.openReleasePage()" @update:auto-check="updates.setAutoCheck($event)" />
       </section>
 
       <footer><AppButton intent="primary" @click="emit('close')">{{ t('Fertig') }}</AppButton></footer>

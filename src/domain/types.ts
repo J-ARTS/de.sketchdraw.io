@@ -432,4 +432,6 @@ export interface DesktopBridge {
   onInviteLink?(listener: (link: string) => void): () => void;
   /** Optional desktop-only capability: volunteer relay helper; the session mode runs it while a session is active. */
   readonly helper?: import('../collaboration/hdht/types').HelperBridge;
+  /** Optional desktop-only capability: check for a newer release and install it. */
+  readonly updates?: import('./updates').UpdateBridge;
 }

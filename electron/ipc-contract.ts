@@ -20,6 +20,10 @@ export const IPC_CHANNELS = Object.freeze({
   INVITE_LINK_EVENT: 'sketchdraw:collaboration:invite-link',
   /** The renderer takes (and thereby clears) the pending validated link fragment. */
   INVITE_LINK_TAKE: 'sketchdraw:collaboration:take-invite-link',
+  /** The renderer asks for the update status, a check, an installation or changes the automatic check (#237). */
+  UPDATE_INVOKE: 'sketchdraw:updates:invoke',
+  /** Main reports every change of the update status. */
+  UPDATE_EVENT: 'sketchdraw:updates:event',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
@@ -338,6 +342,45 @@ export function validateSetLanguageRequest(input: unknown): AppLanguage {
     throw new Error('Unsupported language.');
   }
   return language as AppLanguage;
+}
+
+export type UpdateRequest =
+  | { action: 'status' }
+  | { action: 'check' }
+  | { action: 'install' }
+  | { action: 'open-release-page' }
+  | { action: 'set-auto-check'; enabled: boolean };
+
+/** The only commands the renderer may give the updater. None of them carries an address, a version or a file. */
+export function validateUpdateRequest(input: unknown): UpdateRequest {
+  if (!isPlainRecord(input)) throw new Error('Invalid update request.');
+  const action = input['action'];
+  if (action === 'set-auto-check') {
+    if (!hasOnlyAllowedKeys(input, new Set(['action', 'enabled'])) || typeof input['enabled'] !== 'boolean') throw new Error('Invalid update request.');
+    return { action, enabled: input['enabled'] };
+  }
+  if (!hasOnlyAllowedKeys(input, new Set(['action']))) throw new Error('Invalid update request.');
+  if (action === 'status' || action === 'check' || action === 'install' || action === 'open-release-page') return { action };
+  throw new Error('Unknown update request.');
+}
+
+const UPDATE_PHASES = new Set(['idle', 'checking', 'current', 'available', 'downloading', 'installing', 'ready', 'error']);
+const UPDATE_PROBLEMS = new Set(['network', 'release', 'checksum', 'install', 'cancelled']);
+
+/** What the preload passes on as an update status; anything else from the channel is dropped. */
+export function isUpdateStatus(value: unknown): value is import('../src/domain/updates').UpdateStatus {
+  if (!isPlainRecord(value)) return false;
+  const latest = value['latestVersion'];
+  const progress = value['progress'];
+  const problem = value['problem'];
+  return typeof value['supported'] === 'boolean'
+    && typeof value['canInstall'] === 'boolean'
+    && typeof value['autoCheck'] === 'boolean'
+    && typeof value['currentVersion'] === 'string'
+    && typeof value['phase'] === 'string' && UPDATE_PHASES.has(value['phase'])
+    && (latest === null || typeof latest === 'string')
+    && (progress === null || (typeof progress === 'number' && progress >= 0 && progress <= 1))
+    && (problem === null || (typeof problem === 'string' && UPDATE_PROBLEMS.has(problem)));
 }
 
 export function validateOpenExternalRequest(

@@ -6,13 +6,19 @@ import {
   dialog,
   ipcMain,
   Menu,
-  type MenuItemConstructorOptions,
+  net,
   protocol,
   safeStorage,
   session,
   shell,
 } from 'electron';
+import { buildAppMenuTemplate } from './app-menu';
+import { APP_BUNDLE_ID, APP_COPYRIGHT, APP_DISPLAY_NAME, APP_WEBSITE } from './branding';
 import { nativeText, setNativeLanguage } from './i18n';
+import { createPlatformInstaller } from './update-installers';
+import { RELEASE_PAGE_URL, UpdateService } from './update-service';
+import { createUpdatePrompts } from './update-dialogs';
+import type { UpdateStatus } from '../src/domain/updates';
 import type {
   ExportFileResult,
   OpenDocumentResult,
@@ -26,6 +32,7 @@ import {
   validateDirectRequest,
   validateOpenExternalRequest,
   validateSetLanguageRequest,
+  validateUpdateRequest,
 } from './ipc-contract';
 import { DirectService } from './direct-service';
 import { PeerRelayHelper } from './peer-relay-service';
@@ -61,6 +68,7 @@ protocol.registerSchemesAsPrivileged([
 // PAC configuration and supported operating-system proxy authentication.
 app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
 
+let updateService: UpdateService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let pluginService: PluginService | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
@@ -132,13 +140,29 @@ function getPreloadScriptPath(): string {
   return path.join(__dirname, 'preload.cjs');
 }
 
-/**
- * Window and taskbar icon on Windows and Linux (#171); macOS takes the icon of the app bundle. The file ships with the
- * renderer build; a development start without a build falls back to the source in public/.
- */
-function getWindowIconPath(): string | undefined {
-  if (process.platform === 'darwin') return undefined;
+/** The app icon as a file. It ships with the renderer build; a development start without a build falls back to the source in public/. */
+function findAppIconPath(): string | undefined {
   return [path.join(getDistRootDir(), 'app-icon.png'), path.resolve(__dirname, '../public/app-icon.png')].find((file) => existsSync(file));
+}
+
+/** Window and taskbar icon on Windows and Linux (#171); macOS takes the icon of the app bundle. */
+function getWindowIconPath(): string | undefined {
+  return process.platform === 'darwin' ? undefined : findAppIconPath();
+}
+
+/**
+ * Name, version and icon the operating system shows for the app (#236). `app.name` is the package name, and a start
+ * from the sources runs inside the Electron bundle; without this the About dialog and the Dock would show those.
+ */
+function applyBranding(): void {
+  const icon = findAppIconPath();
+  app.setAboutPanelOptions({
+    applicationName: APP_DISPLAY_NAME,
+    applicationVersion: app.getVersion(),
+    copyright: APP_COPYRIGHT,
+    ...(process.platform === 'darwin' ? {} : { website: APP_WEBSITE, ...(icon ? { iconPath: icon } : {}) }),
+  });
+  if (process.platform === 'darwin' && !app.isPackaged && icon) app.dock?.setIcon(icon);
 }
 
 function getCurrentSecurityContext(): IpcSecurityContext {
@@ -188,85 +212,52 @@ function dispatchMenuCommand(command: MenuCommand): void {
 }
 
 function buildApplicationMenu(): Menu {
-  const isMac = process.platform === 'darwin';
-  const template: MenuItemConstructorOptions[] = [];
+  return Menu.buildFromTemplate(buildAppMenuTemplate({
+    platform: process.platform,
+    text: nativeText,
+    onCommand: dispatchMenuCommand,
+    ...(updateService?.status().supported ? { onCheckForUpdates: () => { void updatePrompts.checkFromMenu(); } } : {}),
+  }));
+}
 
-  if (isMac) {
-    template.push({
-      label: app.name,
-      submenu: [
-        { role: 'about' },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit' },
-      ],
-    });
-  }
+function sendUpdateStatus(status: UpdateStatus): void {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+  mainWindow.setProgressBar(status.phase === 'downloading' ? status.progress ?? 0 : -1);
+  mainWindow.webContents.send(IPC_CHANNELS.UPDATE_EVENT, status);
+}
 
-  template.push(
-    {
-      label: nativeText('Datei'),
-      submenu: [
-        {
-          id: 'file-open',
-          label: nativeText('Öffnen…'),
-          accelerator: 'CmdOrCtrl+O',
-          click: () => dispatchMenuCommand('open'),
-        },
-        {
-          id: 'file-save',
-          label: nativeText('Speichern'),
-          accelerator: 'CmdOrCtrl+S',
-          click: () => dispatchMenuCommand('save'),
-        },
-        {
-          id: 'file-save-as',
-          label: nativeText('Speichern unter…'),
-          accelerator: 'CmdOrCtrl+Shift+S',
-          click: () => dispatchMenuCommand('save-as'),
-        },
-        { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' },
-      ],
-    },
-    {
-      label: nativeText('Bearbeiten'),
-      submenu: [
-        {
-          id: 'edit-undo',
-          label: nativeText('Rückgängig'),
-          accelerator: 'CmdOrCtrl+Z',
-          click: () => dispatchMenuCommand('undo'),
-        },
-        {
-          id: 'edit-redo',
-          label: nativeText('Wiederholen'),
-          accelerator: isMac ? 'Cmd+Shift+Z' : 'Ctrl+Y',
-          click: () => dispatchMenuCommand('redo'),
-        },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
-      ],
-    },
-    {
-      label: 'Ansicht',
-      submenu: [
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-  );
+function showMessage(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+  return mainWindow && !mainWindow.isDestroyed() ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options);
+}
 
-  return Menu.buildFromTemplate(template);
+const updatePrompts = createUpdatePrompts({
+  service: () => updateService,
+  showMessage,
+  openReleasePage: () => { void shell.openExternal(RELEASE_PAGE_URL); },
+  text: nativeText,
+});
+
+function createUpdateService(): UpdateService {
+  const userData = app.getPath('userData');
+  const failureMarker = path.join(userData, 'update-failed');
+  return new UpdateService({
+    currentVersion: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    packaged: app.isPackaged,
+    settingsPath: path.join(userData, 'updates.json'),
+    downloadDir: path.join(userData, 'pending-update'),
+    failureMarker,
+    // Electron's network stack follows the proxy settings of the system.
+    fetch: (url, init) => net.fetch(url, { ...init, redirect: 'follow', cache: 'no-store' }),
+    installer: createPlatformInstaller({ platform: process.platform, execPath: process.execPath, pid: process.pid, tmpDir: app.getPath('temp'), failureMarker, bundleId: APP_BUNDLE_ID }),
+    emit: sendUpdateStatus,
+    quit: (plan) => {
+      if (plan.onQuit) app.once('will-quit', plan.onQuit);
+      if (plan.relaunch) app.relaunch();
+      app.quit();
+    },
+  });
 }
 
 function configureDefaultSessionSecurity(target: RendererTarget): void {
@@ -409,6 +400,21 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       closeCoordinator.handleRendererResponse(rawPayload);
     },
   );
+
+  ipcMain.handle(IPC_CHANNELS.UPDATE_INVOKE, async (event, rawPayload: unknown): Promise<UpdateStatus | undefined> => {
+    const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
+    if (!check.ok) throw new Error(check.reason);
+    const request = validateUpdateRequest(rawPayload);
+    const service = updateService;
+    if (!service) throw new Error('The update service is not initialized.');
+    switch (request.action) {
+      case 'status': return service.status();
+      case 'check': return service.check();
+      case 'install': return service.install();
+      case 'set-auto-check': return service.setAutoCheck(request.enabled);
+      case 'open-release-page': await shell.openExternal(RELEASE_PAGE_URL); return undefined;
+    }
+  });
 
   ipcMain.handle(IPC_CHANNELS.INVITE_LINK_TAKE, async (event): Promise<string | null> => {
     const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
@@ -641,11 +647,15 @@ void app
       },
     });
     pluginService = plugins;
-    app.once('before-quit', () => { pluginService = null; plugins.dispose(); disposeDirectService(); });
+    const updates = createUpdateService();
+    updateService = updates;
+    app.once('before-quit', () => { pluginService = null; plugins.dispose(); disposeDirectService(); updates.dispose(); });
     registerIpcHandlers(persistence, plugins);
+    applyBranding();
     Menu.setApplicationMenu(buildApplicationMenu());
 
     await createMainWindow(target);
+    updates.start(updatePrompts.onAutomaticCheck);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0 && activeTarget) {
