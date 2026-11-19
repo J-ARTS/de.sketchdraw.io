@@ -40,6 +40,10 @@ export async function runDevelopmentSession({
   createServer = async (options) => (await import('vite')).createServer(options),
   resolveElectronExecutable = async () => (await import('electron')).default,
   spawnProcess = spawn,
+  brandElectron = async (executable) => (await import('./brand-dev-electron.mjs')).brandDevElectron({
+    electronBinary: executable,
+    iconPath: path.join(rootDir, 'build', 'icon.icns'),
+  }),
   signal,
   cwd = rootDir,
   port = DEV_PORT,
@@ -80,6 +84,9 @@ export async function runDevelopmentSession({
     if (typeof executable !== 'string' || executable.length === 0) {
       throw new Error('The installed Electron package did not provide an executable');
     }
+    // macOS shows name and icon of the bundle the app runs in; without this the menu bar and About say "Electron".
+    await brandElectron(executable);
+    signal?.throwIfAborted();
     const env = {
       ...process.env,
       SKETCHDRAW_DEV_SERVER_URL: `http://${DEV_HOST}:${address.port}`,

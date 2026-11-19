@@ -151,8 +151,9 @@ function getWindowIconPath(): string | undefined {
 }
 
 /**
- * Name, version and icon the operating system shows for the app (#236). `app.name` is the package name, and a start
- * from the sources runs inside the Electron bundle; without this the About dialog and the Dock would show those.
+ * Name and version the operating system shows for the app (#236); `app.name` is the package name. A start from the
+ * sources also sets the Dock icon here. The menu title and the icon of the About dialog come from the bundle on
+ * macOS; for a start from the sources `scripts/brand-dev-electron.mjs` gives that bundle the Sketchdraw name and icon.
  */
 function applyBranding(): void {
   const icon = findAppIconPath();
