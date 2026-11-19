@@ -12,30 +12,34 @@ function checkedCacheKey(cacheKey: string): string {
   return `sketchdraw:${cacheKey}`;
 }
 
+/**
+ * Keeps a local copy of a controller's document in IndexedDB. The cache only follows the controller: what is stored
+ * from an earlier session is read into a separate Y.Doc and never written into the controller. A file or Git state
+ * opened under the same document ID stays authoritative; applying the old cache to the running controller changed
+ * it outside the session authority and stopped the authority with AUTHORITY_DIVERGED (#217). Restoring unsaved
+ * changes is the explicit reader `createPersistedCrdtController` (#219).
+ */
 export function attachIndexedDbPersistence(
   controller: CrdtDocumentController,
   cacheKey: string,
 ): CrdtPersistenceHandle {
   const name = checkedCacheKey(cacheKey);
   let live: IndexeddbPersistence | undefined;
+  let cache: Y.Doc | undefined;
   let destroyed = false;
+  const follow = (update: Uint8Array): void => {
+    if (cache && !destroyed) Y.applyUpdateV2(cache, update);
+  };
+  const stopFollowing = (): void => { controller.ydoc.off('updateV2', follow); };
   const ready = (async () => {
     controller.reportPersistence({ cacheKey, state: 'loading' });
-    const shadow = new Y.Doc({ gc: false });
-    const loader = new IndexeddbPersistence(name, shadow);
-    try {
-      await loader.whenSynced;
-      const update = Y.encodeStateAsUpdateV2(shadow);
-      if (update.byteLength > 2) {
-        controller.applyRemoteUpdate(update, { actorId: 'system:persistence', role: 'owner', source: 'persistence' });
-      }
-    } finally {
-      await loader.destroy();
-      shadow.destroy();
-    }
-    if (destroyed) return;
-    live = new IndexeddbPersistence(name, controller.ydoc);
+    cache = new Y.Doc({ gc: false });
+    live = new IndexeddbPersistence(name, cache);
     await live.whenSynced;
+    if (destroyed) return;
+    // Every change from here on, and the state the controller already has, goes into the copy only.
+    Y.applyUpdateV2(cache, Y.encodeStateAsUpdateV2(controller.ydoc));
+    controller.ydoc.on('updateV2', follow);
     controller.reportPersistence({ cacheKey, state: 'ready' });
   })().catch((error: unknown) => {
     controller.reportPersistence({ cacheKey, state: 'error', error: error instanceof Error ? error.message : 'PERSISTENCE_ERROR' });
@@ -46,14 +50,19 @@ export function attachIndexedDbPersistence(
     ready,
     async clear(): Promise<void> {
       await ready;
+      stopFollowing();
       if (live) await live.clearData(); else await clearDocument(name);
       controller.reportPersistence({ cacheKey, state: 'cleared' });
     },
     async destroy(): Promise<void> {
       destroyed = true;
+      stopFollowing();
       await ready.catch(() => undefined);
+      stopFollowing();
       if (live) await live.destroy();
       live = undefined;
+      cache?.destroy();
+      cache = undefined;
     },
   };
 }

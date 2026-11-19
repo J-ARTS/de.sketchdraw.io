@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  attachIndexedDbPersistence,
   clearIndexedDbPersistence,
   createCrdtController,
   createCrdtControllerFromUpdate,
@@ -287,6 +288,39 @@ describe('Yjs document data layer', () => {
     target.applyRemoteUpdate(update, { actorId: 'actor:source', role: 'editor', source: 'peer' });
     expect(target.getSnapshot()).toMatchObject({ revision, document: { title: 'Once' } });
     source.destroy(); target.destroy();
+  });
+
+  it('never writes the cache of an earlier session into a running controller (#217)', async () => {
+    const cacheKey = `test:${crypto.randomUUID()}`;
+    const earlier = await createPersistedCrdtController(cacheKey, baseDocument());
+    earlier.controller.dispatch({ type: 'rename', title: 'Cached' }, context(0, 'actor:local'));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    await earlier.persistence.destroy();
+    earlier.controller.destroy();
+
+    // The same document opened again from a file: a new controller, while the old cache is still stored.
+    const fromFile = createCrdtController(baseDocument());
+    const before = fromFile.getSnapshot();
+    const revisions: number[] = [];
+    const unsubscribe = fromFile.subscribe(snapshot => revisions.push(snapshot.revision));
+    const persistence = attachIndexedDbPersistence(fromFile, cacheKey);
+    await persistence.ready;
+    // The file stays authoritative: nothing reaches the controller outside the actor that owns it.
+    expect(fromFile.getSnapshot()).toEqual(before);
+    expect(fromFile.getSnapshot().document.title).toBe('CRDT');
+    expect(revisions).toEqual([]);
+
+    // Later edits are still kept in the cache for the explicit recovery.
+    fromFile.dispatch({ type: 'rename', title: 'Edited' }, context(0, 'actor:local'));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    unsubscribe();
+    await persistence.destroy();
+    fromFile.destroy();
+    const recovered = await createPersistedCrdtController(cacheKey, baseDocument());
+    expect(recovered.recovered).toBe(true);
+    await recovered.persistence.destroy();
+    recovered.controller.destroy();
+    await clearIndexedDbPersistence(cacheKey);
   });
 
   it('recovers local changes from y-indexeddb and isolates cache keys', async () => {
