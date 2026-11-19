@@ -298,7 +298,7 @@ test.describe('Built Electron backend with a minimal renderer fixture', () => {
     expect(surface.exposedNodeGlobals).toEqual([]);
     expect(surface.keys).toEqual([
       'direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument',
-      'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage',
+      'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage', 'updates',
     ]);
     expect(surface.status).toBe(200);
     expect(surface.csp).toContain("script-src 'self'");

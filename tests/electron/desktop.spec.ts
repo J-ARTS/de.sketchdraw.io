@@ -72,7 +72,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
             invalidHandle: await window.sketchdraw!.saveDocument({ mode: 'save', handleId: '/etc/passwd', expectedVersionToken: `sha256:${'0'.repeat(64)}`, text: '{}', suggestedName: 'test.sketchdraw.json' }) };
         });
         expect(surface.globals).toEqual([]); expect(surface.platform).toBe('electron'); expect(surface.frozen).toBe(true); expect(surface.popupBlocked).toBe(true);
-        expect(surface.keys).toEqual(['direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage']);
+        expect(surface.keys).toEqual(['direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage', 'updates']);
         expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
       });
@@ -131,6 +131,22 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         expect(rejected).toBe('rejected');
         await page.evaluate(() => (window as unknown as { sketchdraw: { setLanguage(language: string): Promise<void> } }).sketchdraw.setLanguage('de'));
         await expect.poll(menuLabels).toContain('Datei');
+      });
+
+      await test.step('the menu names the app Sketchdraw, and a start from the sources never looks for updates', async () => {
+        const allLabels = await electronApp.evaluate(({ Menu }) => {
+          type Item = { label: string; submenu?: { items: Item[] } | null };
+          const walk = (items: Item[]): string[] => items.flatMap((item) => [item.label, ...(item.submenu ? walk(item.submenu.items) : [])]);
+          return walk((Menu.getApplicationMenu()?.items ?? []) as unknown as Item[]);
+        });
+        expect(allLabels).toContain('Über Sketchdraw');
+        expect(allLabels).toContain('Sketchdraw beenden');
+        expect(allLabels).not.toContain('Nach Updates suchen…');
+        expect(allLabels.filter((label) => /de\.sketchdraw\.io|Electron/i.test(label))).toEqual([]);
+        const updates = await page.evaluate(() => (window as unknown as { sketchdraw: { updates: { check(): Promise<unknown> } } }).sketchdraw.updates.check());
+        expect(updates).toMatchObject({ supported: false, canInstall: false, phase: 'idle', latestVersion: null });
+        const forged = await page.evaluate(() => (window as unknown as { sketchdraw: { updates: { setAutoCheck(enabled: unknown): Promise<unknown> } } }).sketchdraw.updates.setAutoCheck('yes').then(() => 'accepted', () => 'rejected'));
+        expect(forged).toBe('rejected');
       });
 
       await test.step('native element clipboard pastes at the mouse and remains one undo step', async () => {
