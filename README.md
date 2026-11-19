@@ -18,15 +18,15 @@ The screenshots show the German interface; the app is available in German and En
 
 ## Download
 
-The latest published release is [v0.1.4](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.4) with three natively verified installers:
+The latest published release is [v0.1.6](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.6) with three natively verified installers:
 
-- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-windows-x64.exe)
-- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-macos-arm64.dmg)
-- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.4/Sketchdraw-0.1.4-linux-x64.deb)
+- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-linux-x64.deb)
 
 The Windows installer is unsigned; the macOS app is ad-hoc signed and not notarized. Notes on the first start and the native checks that were run are in the release notes and in the [release process](docs/release.md).
 
-The pictures below show the state of `main`. It is ahead of v0.1.4: the libraries for ER, BPMN and sequence diagrams, the Mermaid code, the isometric and the Lucide icons, the Git dialog, the participant list with pointers and the guides come with the next release. Until then, the current state can be [started from source](#development).
+The pictures below show this release. The current state of `main` can be [started from source](#development).
 
 ## Features
 
