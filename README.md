@@ -6,6 +6,12 @@
 
 *Sketchdraw is a desktop whiteboard and diagramming app (Electron, Vue 3, TypeScript): architecture and cloud diagrams for AWS, Azure, GCP and Kubernetes, sequence, BPMN and ER diagrams, Mermaid and diagram as code, serverless peer-to-peer collaboration and an MCP server for AI agents such as Claude Code and Codex.*
 
+<video src="https://raw.githubusercontent.com/J-ARTS/de.sketchdraw.io/main/docs/video/sketchdraw-film.mp4" controls muted playsinline width="100%">
+  <a href="docs/video/sketchdraw-film.mp4"><img src="docs/video/sketchdraw-film-preview.gif" alt="Excerpt from the Sketchdraw film: whiteboard, smart guides and an architecture diagram" width="100%"></a>
+</video>
+
+[Watch the film](docs/video/sketchdraw-film.mp4) – 65 seconds: whiteboard, smart guides, cloud architecture, light and dark mode, isometric icons, Mermaid, diagram as code, MCP, collaboration, comments, tasks and presenting.
+
 ![A whiteboard with sticky notes, a flowchart and a first architecture](docs/images/readme/whiteboard.png)
 
 **Contents:** [Download](#download) · [Features](#features) · [License](#license) · [Development](#development) · [Documentation](#documentation)
