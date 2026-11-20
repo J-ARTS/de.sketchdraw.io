@@ -421,6 +421,8 @@ export interface DesktopBridge {
   openExternal(url: string): Promise<void>;
   /** Optional desktop capability: reports the UI language so native menus and dialogs follow it. */
   setLanguage?(language: 'de' | 'en'): Promise<void>;
+  /** Optional desktop capability: the name of the computer account, as a first suggestion for the name in a session; empty when unknown. */
+  userName?(): Promise<string>;
   onCloseRequested(listener: (requestId: string) => void): () => void;
   respondToClose(requestId: string, decision: 'close' | 'cancel'): Promise<void>;
   onMenuCommand(listener: (command: 'open' | 'save' | 'save-as' | 'undo' | 'redo') => void): () => void;

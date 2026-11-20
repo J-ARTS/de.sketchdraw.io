@@ -436,3 +436,31 @@ for (const failingSide of ['host', 'guest'] as const) test(`a transient ${failin
     await expect(guest.getByTestId('hdht-session').getByRole('alert')).toHaveCount(0);
   } finally { await context.close(); }
 });
+
+test('the session link is copied with the symbol in its field, also where the clipboard permission is refused (#250)', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const { link } = await hostSession(page);
+  const panel = page.getByTestId('hdht-session');
+  // The separate button is gone; the field carries the action.
+  await expect(panel.getByRole('button', { name: 'Link kopieren', exact: true })).toHaveCount(0);
+  const copy = panel.getByRole('button', { name: 'Session-Link kopieren' });
+  const field = (await panel.getByTestId('hdht-link').boundingBox())!;
+  const button = (await copy.boundingBox())!;
+  expect(button.x).toBeGreaterThan(field.x + field.width / 2);
+  expect(button.x + button.width).toBeLessThanOrEqual(field.x + field.width);
+  expect(button.y).toBeGreaterThanOrEqual(field.y);
+  expect(button.y + button.height).toBeLessThanOrEqual(field.y + field.height);
+
+  await copy.click();
+  await expect(panel.getByRole('status').filter({ hasText: 'Verbindungstext kopiert.' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+  await expect(copy).toBeFocused();
+
+  // The desktop app refuses the permission: the copy is then made like Ctrl+C makes it.
+  await page.evaluate(() => navigator.clipboard.writeText('etwas anderes'));
+  await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new DOMException('Write permission denied.', 'NotAllowedError')); });
+  await copy.click();
+  await expect(panel.getByRole('status').filter({ hasText: 'Verbindungstext kopiert.' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+  await expect(copy).toBeFocused();
+});

@@ -64,6 +64,7 @@ import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot, type ViewRect 
 import { participantLabel } from '../lib/participant-label';
 import { snapMove, type SmartGuide, type SnapResult } from '../lib/smart-guides';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
+import { copyBySelection } from '../lib/copy-text';
 import { isCanvasBackground, isPaperPattern, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
@@ -2090,7 +2091,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async copyCommentLink(threadId) {
       if (!(state.document.commentThreads ?? []).some((entry) => entry.id === threadId)) return;
       const base = typeof window === 'undefined' ? 'sketchdraw' : window.location.href.split('#')[0];
-      try { await clipboard.writeText(`${base}#comment=${encodeURIComponent(threadId)}`); notice(t('Kommentarlink kopiert.')); } catch (error) { fail(error); }
+      const link = `${base}#comment=${encodeURIComponent(threadId)}`;
+      // The desktop app grants no clipboard permission; copying a selection needs none (#250).
+      try { await clipboard.writeText(link).catch((error: unknown) => { if (!copyBySelection(link)) throw error; }); notice(t('Kommentarlink kopiert.')); } catch (error) { fail(error); }
     },
     async deleteCommentThread(threadId) {
       if (!state.canWrite || state.transitioning) return false;

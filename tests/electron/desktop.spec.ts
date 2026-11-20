@@ -72,7 +72,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
             invalidHandle: await window.sketchdraw!.saveDocument({ mode: 'save', handleId: '/etc/passwd', expectedVersionToken: `sha256:${'0'.repeat(64)}`, text: '{}', suggestedName: 'test.sketchdraw.json' }) };
         });
         expect(surface.globals).toEqual([]); expect(surface.platform).toBe('electron'); expect(surface.frozen).toBe(true); expect(surface.popupBlocked).toBe(true);
-        expect(surface.keys).toEqual(['direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage', 'updates']);
+        expect(surface.keys).toEqual(['direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument', 'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage', 'updates', 'userName']);
         expect(surface.invalidHandle).toMatchObject({ status: 'error', code: 'INVALID_HANDLE' });
         expect(await electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.webContents.executeJavaScriptInIsolatedWorld(999, [{ code: 'typeof window.desktopMainWorldMarker' }]))).toBe('undefined');
       });
@@ -131,6 +131,12 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         expect(rejected).toBe('rejected');
         await page.evaluate(() => (window as unknown as { sketchdraw: { setLanguage(language: string): Promise<void> } }).sketchdraw.setLanguage('de'));
         await expect.poll(menuLabels).toContain('Datei');
+      });
+
+      await test.step('the bridge suggests the name of the computer account for the name in a session (#250)', async () => {
+        const suggested = await page.evaluate(() => (window as unknown as { sketchdraw: { userName(): Promise<string> } }).sketchdraw.userName());
+        expect(suggested).toBe(os.userInfo().username.replace(/\s+/g, ' ').trim().slice(0, 40));
+        expect(suggested.length).toBeGreaterThan(0);
       });
 
       await test.step('the menu names the app Sketchdraw, and a start from the sources never looks for updates', async () => {

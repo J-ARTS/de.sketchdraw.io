@@ -40,6 +40,7 @@ import {
   type CloseDecision,
   type AppLanguage,
   type ExportFormat,
+  sanitizeUserName,
   validateSetLanguageRequest,
   IPC_CHANNELS,
   isMenuCommand,
@@ -213,6 +214,10 @@ export function createPreloadDesktopBridge(
 
     async setLanguage(language: AppLanguage): Promise<void> {
       await ipc.invoke(IPC_CHANNELS.SET_LANGUAGE, { language: validateSetLanguageRequest({ language }) });
+    },
+
+    async userName(): Promise<string> {
+      return sanitizeUserName(await ipc.invoke(IPC_CHANNELS.USER_NAME));
     },
 
     async openExternal(url: string): Promise<void> {

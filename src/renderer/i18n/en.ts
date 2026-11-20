@@ -1645,4 +1645,5 @@ export const EN: Readonly<Record<string, string>> = {
   'Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram). Andere Diagrammtypen werden nicht importiert.': 'Flowcharts (flowchart, graph) and sequence diagrams (sequenceDiagram) are imported. Other diagram types are not imported.',
   'Exportiert wird ein Mermaid-Flowchart.': 'A Mermaid flowchart is exported.',
   'In die aktuelle Seite einfügen': 'Insert into the current page',
+  'Session-Link kopieren': 'Copy session link',
 };

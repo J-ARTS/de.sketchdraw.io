@@ -14,6 +14,8 @@ export const IPC_CHANNELS = Object.freeze({
   PLUGIN_INVOKE: 'sketchdraw:plugins:invoke',
   PLUGIN_EVENT: 'sketchdraw:plugins:event',
   SET_LANGUAGE: 'sketchdraw:app:set-language',
+  /** The renderer asks for the name of the computer account, as a first suggestion for the name in a session (#250). */
+  USER_NAME: 'sketchdraw:app:user-name',
   DIRECT_INVOKE: 'sketchdraw:direct:invoke',
   DIRECT_EVENT: 'sketchdraw:direct:event',
   /** Main announces a pending `sketchdraw://join` link; the payload-free event keeps one source of truth. */
@@ -332,6 +334,19 @@ export function validateExportFileRequest(
       format,
     },
   };
+}
+
+/** Longest account name that is passed on; the name in a session is not longer either. */
+export const USER_NAME_MAX_LENGTH = 40;
+
+/**
+ * The name of the computer account as one clean line, or an empty string. It is only a suggestion for a field the
+ * user sees and can change, so anything that is not a plain short text becomes "no suggestion".
+ */
+export function sanitizeUserName(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  const line = input.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return Array.from(line).slice(0, USER_NAME_MAX_LENGTH).join('').trim();
 }
 
 /** The renderer reports its UI language so native menus and dialogs follow it. Only the two known codes are accepted. */

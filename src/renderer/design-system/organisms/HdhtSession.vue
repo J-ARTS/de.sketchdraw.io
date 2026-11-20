@@ -18,6 +18,8 @@ import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import ParticipantList from '@/renderer/design-system/molecules/ParticipantList.vue';
 import AppFieldLabel from '@/renderer/design-system/atoms/AppFieldLabel.vue';
 import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
+import { copyText } from '@/renderer/lib/copy-text';
 
 const props = withDefaults(defineProps<{
   /** A session link the app was opened with; it is prefilled for the PIN join. */
@@ -49,6 +51,13 @@ let seen: Set<string> | null = null;
 const NAME_KEY = 'sketchdraw.display-name.v1';
 function storedName(): string { try { return cleanParticipantName(localStorage.getItem(NAME_KEY) ?? ''); } catch { return ''; } }
 const displayName = ref(storedName());
+/**
+ * Without a name of their own, people start with the name of their computer account (#250). It is a suggestion in
+ * a field they see before a session starts; it is stored only once they change it, and a name they entered wins.
+ */
+let nameEdited = false;
+function markNameEdited(): void { nameEdited = true; }
+if (!displayName.value) void bridge.userName?.().then(name => { if (!nameEdited && !displayName.value) displayName.value = cleanParticipantName(name); }).catch(() => undefined);
 const participants = computed(() => store.state.presence.participants);
 const personLabel = participantLabel;
 function commitName(): void {
@@ -258,9 +267,14 @@ function stop(keepLocalCopy: boolean, reason?: string): Promise<void> {
   return stopPromise;
 }
 function renewPin() { if (host) hostPin.value = host.renewPin(); }
+/** The copy symbol in the link field shows a tick for a moment after the link was copied. */
+const linkCopied = ref(false);
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 async function copy(value: string) {
-  try { await navigator.clipboard.writeText(value); note.value = t('Verbindungstext kopiert.'); }
-  catch { note.value = t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.'); }
+  clearTimeout(copiedTimer);
+  linkCopied.value = await copyText(value);
+  note.value = linkCopied.value ? t('Verbindungstext kopiert.') : t('Bitte den Verbindungstext markieren und mit dem üblichen Tastenkürzel kopieren.');
+  if (linkCopied.value) copiedTimer = setTimeout(() => { linkCopied.value = false; }, 2000);
 }
 
 // The workspace bar shows the running session and can end it without this panel being open (#223).
@@ -273,7 +287,7 @@ watch(() => props.inviteLink, link => {
   if (!link || !isHdhtLink(link) || active.value) return;
   linkText.value = link; pinText.value = ''; emit('link-consumed');
 }, { immediate: true });
-onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = false; offAuthority(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
+onBeforeUnmount(() => { clearTimeout(copiedTimer); store.setSession(null); disposed = true; helperWanted = false; offAuthority(); void stop(false); void bridge.helper?.stop().catch(() => undefined); });
 </script>
 
 <template>
@@ -281,7 +295,7 @@ onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = 
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
       <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
-      <div class="name-field"><AppFieldLabel for="hdht-name">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" :disabled="busy" @change="commitName" /></div>
+      <div class="name-field"><AppFieldLabel for="hdht-name">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" :disabled="busy" @input="markNameEdited" @change="commitName" /></div>
       <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy" @update:model-value="role = $event as 'viewer' | 'editor'" />
       <AppButton intent="primary" class="full" data-testid="hdht-start" :disabled="busy || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</AppButton>
       <div class="separator">{{ t('oder beitreten') }}</div>
@@ -296,7 +310,7 @@ onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = 
       <section v-if="participants.length" class="people" :aria-label="t('Personen in der Session')">
         <h4>{{ t('In der Session') }}</h4>
         <ParticipantList :participants="participants" :removable="hosting" @remove="removeParticipant" />
-        <div class="name-field"><AppFieldLabel for="hdht-name-active">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name-active" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" @change="commitName" @keydown.enter.prevent="commitName" /></div>
+        <div class="name-field"><AppFieldLabel for="hdht-name-active">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name-active" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" @input="markNameEdited" @change="commitName" @keydown.enter.prevent="commitName" /></div>
       </section>
       <template v-if="hosting && status?.state === 'ready'">
         <template v-if="nativePending && !relayShareAllowed">
@@ -305,8 +319,13 @@ onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = 
           <AppButton class="full" data-testid="hdht-share-relay" @click="relayShareAllowed = true">{{ t('Link jetzt über Relay-Helfer teilen') }}</AppButton>
         </template>
         <template v-else>
-        <label class="sd-field-label">{{ t('Link zum Teilen') }}<input class="sd-input" readonly :value="shareLink" data-testid="hdht-link" :aria-label="t('Session-Link zum Kopieren')" @focus="($event.target as HTMLInputElement).select()" /></label>
-        <AppButton class="full" @click="copy(shareLink)">{{ t('Link kopieren') }}</AppButton>
+        <div class="copy-field">
+          <label class="sd-field-label" for="hdht-link">{{ t('Link zum Teilen') }}</label>
+          <div class="copy-row">
+            <input id="hdht-link" class="sd-input" readonly :value="shareLink" data-testid="hdht-link" :aria-label="t('Session-Link zum Kopieren')" @focus="($event.target as HTMLInputElement).select()" />
+            <AppIconButton class="copy-button" data-testid="hdht-copy-link" :icon="linkCopied ? 'check' : 'copy'" :icon-size="18" :label="t('Session-Link kopieren')" @click="copy(shareLink)" />
+          </div>
+        </div>
         <label class="sd-field-label">{{ t('PIN getrennt teilen') }}<input class="sd-input pin" readonly :value="hostPin" data-testid="hdht-host-pin" :aria-label="t('PIN zum Teilen')" @focus="($event.target as HTMLInputElement).select()" /></label>
         <AppButton class="full" @click="renewPin">{{ t('Neue PIN') }}</AppButton>
         <AppSelect class="access-field" :label="t('Zugriff für neue Beitritte')" :model-value="role" :options="roleOptions" @update:model-value="role = $event as 'viewer' | 'editor'" />
@@ -321,5 +340,5 @@ onBeforeUnmount(() => { store.setSession(null); disposed = true; helperWanted = 
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session h4{margin:0 0 var(--space-1);font-size:var(--font-size-s);font-weight:600;color:var(--text-muted)}.people{margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) 0;border-block:1px solid var(--border-subtle)}.name-field{display:grid;gap:5px;margin:var(--space-3) 0 var(--space-2)}.name-field .sd-field-label{margin:0}.name-field .sd-input{margin-top:0}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session h4{margin:0 0 var(--space-1);font-size:var(--font-size-s);font-weight:600;color:var(--text-muted)}.people{margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) 0;border-block:1px solid var(--border-subtle)}.name-field{display:grid;gap:5px;margin:var(--space-3) 0 var(--space-2)}.name-field .sd-field-label{margin:0}.name-field .sd-input{margin-top:0}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.copy-field{margin:12px 0 8px}.copy-field .sd-field-label{margin:0 0 5px}.copy-row{position:relative}.copy-row .sd-input{margin-top:0;padding-right:40px;text-overflow:ellipsis}.copy-button{position:absolute;top:50%;right:2px;width:32px;height:28px;min-width:0;min-height:0;transform:translateY(-50%);color:var(--text-muted)}.copy-button:hover{color:var(--text-primary)}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
 </style>

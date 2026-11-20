@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {
   app,
@@ -31,6 +32,7 @@ import {
   type MenuCommand,
   validateDirectRequest,
   validateOpenExternalRequest,
+  sanitizeUserName,
   validateSetLanguageRequest,
   validateUpdateRequest,
 } from './ipc-contract';
@@ -367,6 +369,21 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
 
       const validatedUrl = validateExternalUrl(url);
       await shell.openExternal(validatedUrl.toString());
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.USER_NAME,
+    async (event): Promise<string> => {
+      const check = validateIpcSender(
+        event as unknown as IpcSenderEventLike,
+        getCurrentSecurityContext(),
+      );
+      if (!check.ok) {
+        throw new Error(check.reason);
+      }
+      // Some systems have no entry for the account (containers, odd setups); then there is no suggestion.
+      try { return sanitizeUserName(os.userInfo().username); } catch { return ''; }
     },
   );
 
