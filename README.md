@@ -190,7 +190,7 @@ From a checkout of this repository the source is `skills/sketchdraw-desktop` ins
 
 ### Light, dark, German and English
 
-The interface comes in light and dark and in German and English. The background of the canvas can be chosen and applies only to your own view.
+The interface comes in light and dark and in German and English. The background of the canvas and its paper pattern (plain, grid or dots) can be chosen in the settings and apply only to your own view.
 
 ![The AWS architecture in the dark theme](docs/images/readme/dark.png)
 

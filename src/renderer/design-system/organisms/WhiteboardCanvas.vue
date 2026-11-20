@@ -4,6 +4,7 @@ import { figureLayout, isIconFigure } from '@/catalog';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { paperGridStep } from '@/renderer/lib/preferences';
 import { useResizeObserver } from '@vueuse/core';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import ElementView from '@/renderer/design-system/organisms/ElementView.vue';
@@ -205,14 +206,20 @@ function dropComponent(event: DragEvent): void {
 watch(() => s.textEdit, async (value) => { if (value) { await nextTick(); if (value.kind !== 'annotation') { autosize(); editor.value?.focus(); editor.value?.select(); } } else canvas.value?.focus({ preventScroll: true }); });
 watch(() => [s.textEdit?.draft, s.viewport.zoom], () => { void nextTick(autosize); });
 useResizeObserver(canvas, ([entry]) => { if (entry) store.setViewportSize(entry.contentRect.width, entry.contentRect.height); });
+/** Distance of the grid lines on screen for the current zoom. */
+const gridStep = computed(() => paperGridStep(s.viewport.zoom));
 onMounted(() => canvas.value?.focus());
 </script>
 
 <template>
   <div class="canvas-wrap">
     <svg ref="canvas" class="whiteboard-canvas" data-testid="whiteboard-canvas" :data-connector-dock-target="s.connectorHoverTargetId ?? undefined" tabindex="0" role="application" :aria-label="t('Zeichenfläche')" aria-describedby="canvas-help" :style="{ cursor: s.cursor }" @pointerenter="enter" @pointerleave="leave" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="cancel" @lostpointercapture="cancel" @dblclick="doubleClick" @wheel.prevent="wheel" @dragover="dragOver" @drop="dropComponent" @focus="store.canvasFocusChanged(true)" @blur="store.canvasFocusChanged(false)" @contextmenu.prevent>
-      <defs><pattern id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern></defs>
-      <rect width="100%" height="100%" fill="url(#canvas-dots)" />
+      <defs>
+        <pattern v-if="s.paperPattern === 'dots'" id="canvas-dots" :x="s.viewport.panX % (24 * s.viewport.zoom)" :y="s.viewport.panY % (24 * s.viewport.zoom)" :width="24 * s.viewport.zoom" :height="24 * s.viewport.zoom" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".8" fill="var(--canvas-grid)" /></pattern>
+        <!-- The grid (#247): one line at the left and top of every cell; zoomed out, lines are left out so they stay apart. -->
+        <pattern v-else-if="s.paperPattern === 'grid'" id="canvas-grid" :x="s.viewport.panX % gridStep" :y="s.viewport.panY % gridStep" :width="gridStep" :height="gridStep" patternUnits="userSpaceOnUse"><path :d="`M${gridStep} .5H.5V${gridStep}`" fill="none" stroke="var(--canvas-grid)" stroke-width="1" stroke-opacity=".55" /></pattern>
+      </defs>
+      <rect data-testid="canvas-paper" :data-paper-pattern="s.paperPattern" width="100%" height="100%" :fill="s.paperPattern === 'plain' ? 'none' : s.paperPattern === 'grid' ? 'url(#canvas-grid)' : 'url(#canvas-dots)'" />
       <g :transform="transform" pointer-events="none">
         <ElementView :data-render-state="s.hasElementPreview ? 'preview' : 'document'" v-for="element in s.displayElements" :key="element.id" :element="element" :document="s.document" :theme="s.theme" :editing="s.textEdit?.elementId === element.id && !s.textEdit.field" :editing-field="s.textEdit?.elementId === element.id ? s.textEdit.field : undefined" :interactive="element.kind === 'web-embed' && s.tool === 'select' && s.selection.length === 1 && s.selection[0] === element.id" @open-link="store.openDocumentationLink" />
         <ElementView data-render-state="draft" v-if="s.draftElement" :element="s.draftElement" :document="s.document" :theme="s.theme" />

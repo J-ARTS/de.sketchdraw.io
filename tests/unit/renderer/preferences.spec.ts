@@ -15,11 +15,15 @@ describe('preferences', () => {
   });
   it('round-trips valid values including English and never restores an unknown language', () => {
     const storage = memory();
-    expect(savePreferences({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false }, storage)).toBe(true);
-    expect(loadPreferences(storage)).toEqual({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false });
+    expect(savePreferences({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false, paperPattern: 'grid' }, storage)).toBe(true);
+    expect(loadPreferences(storage)).toEqual({ theme: 'dark', canvasBackground: '#a1b2c3', language: 'de', smartGuides: false, paperPattern: 'grid' });
     // Guides are on unless they were switched off; preferences stored before they existed keep them on.
     expect(loadPreferences(memory(JSON.stringify({ theme: 'dark' }))).smartGuides).toBe(true);
     expect(loadPreferences(memory(JSON.stringify({ smartGuides: 'no' }))).smartGuides).toBe(true);
+    // The paper pattern is dots unless another known one was chosen (#247).
+    expect(loadPreferences(memory(JSON.stringify({ theme: 'dark' }))).paperPattern).toBe('dots');
+    expect(loadPreferences(memory(JSON.stringify({ paperPattern: 'plain' }))).paperPattern).toBe('plain');
+    expect(loadPreferences(memory(JSON.stringify({ paperPattern: 'stripes' }))).paperPattern).toBe('dots');
     expect(loadPreferences(memory(JSON.stringify({ language: 'en' }))).language).toBe('en');
     expect(loadPreferences(memory(JSON.stringify({ language: 'fr' }))).language).toBe('de');
   });
@@ -31,5 +35,16 @@ describe('preferences', () => {
     expect(resolveCanvasBackground('red', 'light')).toBeNull();
     expect(isCanvasBackground('#12345g')).toBe(false);
     expect(isCanvasBackground('warm')).toBe(true);
+  });
+  it('keeps the lines of the grid apart when zoomed out (#247)', async () => {
+    const { paperGridStep, PAPER_STEP } = await import('@/renderer/lib/preferences');
+    expect(paperGridStep(1)).toBe(PAPER_STEP);
+    expect(paperGridStep(2)).toBe(PAPER_STEP * 2);
+    expect(paperGridStep(0.5)).toBe(12);
+    // Below the minimum distance every second line is left out, again and again.
+    expect(paperGridStep(0.25)).toBe(12);
+    expect(paperGridStep(0.1)).toBeCloseTo(19.2);
+    expect(paperGridStep(0)).toBe(PAPER_STEP);
+    expect(paperGridStep(Number.NaN)).toBe(PAPER_STEP);
   });
 });

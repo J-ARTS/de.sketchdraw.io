@@ -20,6 +20,27 @@ export const CANVAS_BACKGROUNDS: ReadonlyArray<{ id: string; label: string; ligh
   { id: 'warm', label: L('Warm'), light: '#fbf4f0', dark: '#221a16' },
 ];
 
+/** What the empty canvas shows behind the elements (#247). */
+export type PaperPattern = 'plain' | 'grid' | 'dots';
+export const PAPER_PATTERNS: ReadonlyArray<{ id: PaperPattern; label: string }> = [
+  { id: 'plain', label: L('Blanko') },
+  { id: 'grid', label: L('Raster') },
+  { id: 'dots', label: L('Punkte') },
+];
+export const isPaperPattern = (value: unknown): value is PaperPattern => PAPER_PATTERNS.some((entry) => entry.id === value);
+/** Distance of the dots and grid lines in document units. */
+export const PAPER_STEP = 24;
+/**
+ * The distance of the grid lines on screen. Zoomed far out the lines would run into each other, so every
+ * second one is left out until they are at least `minimum` pixels apart.
+ */
+export function paperGridStep(zoom: number, minimum = 12): number {
+  let step = PAPER_STEP * zoom;
+  if (!(step > 0) || !Number.isFinite(step)) return PAPER_STEP;
+  while (step < minimum) step *= 2;
+  return step;
+}
+
 export interface Preferences {
   theme: ThemeName | null;
   /** A preset id or a `#rrggbb` color; null = the theme's default canvas. */
@@ -27,9 +48,10 @@ export interface Preferences {
   language: LanguageCode;
   /** Guides and snapping while elements are moved (#224). */
   smartGuides: boolean;
+  paperPattern: PaperPattern;
 }
 
-export const DEFAULT_PREFERENCES: Readonly<Preferences> = { theme: null, canvasBackground: null, language: 'de', smartGuides: true };
+export const DEFAULT_PREFERENCES: Readonly<Preferences> = { theme: null, canvasBackground: null, language: 'de', smartGuides: true, paperPattern: 'dots' };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const PRESET_IDS = new Set(CANVAS_BACKGROUNDS.map((entry) => entry.id));
@@ -61,6 +83,8 @@ export function loadPreferences(storage: StorageLike | undefined = browserStorag
       language: LANGUAGES.some((entry) => entry.code === parsed.language && entry.available) ? parsed.language as LanguageCode : 'de',
       // On unless it was switched off: older stored preferences do not have the entry.
       smartGuides: parsed.smartGuides !== false,
+      // Dots are what the canvas always had; older stored preferences do not have the entry.
+      paperPattern: isPaperPattern(parsed.paperPattern) ? parsed.paperPattern : 'dots',
     };
   } catch {
     return fallback;

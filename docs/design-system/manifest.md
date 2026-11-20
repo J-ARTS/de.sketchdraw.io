@@ -754,7 +754,7 @@ The session button of the workspace bar and its menu. It is shown while this dev
 
 ### SettingsDialog
 
-The modal dialog for the settings of the app: canvas background, guides while moving, theme, language and, in the desktop app, updates.
+The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates.
 
 - File: `src/renderer/design-system/organisms/SettingsDialog.vue`
 

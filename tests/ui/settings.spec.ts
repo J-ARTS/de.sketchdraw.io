@@ -84,3 +84,43 @@ test('the language is chosen in the settings, switches the whole interface live 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('toolbar', { name: 'Werkzeuge' })).toBeVisible();
 });
+
+test('the paper pattern is chosen in the settings: plain, grid or dots, and it persists (#247)', async ({ page }) => {
+  const paper = page.getByTestId('canvas-paper');
+  await expect(paper).toHaveAttribute('data-paper-pattern', 'dots');
+  await expect(paper).toHaveAttribute('fill', 'url(#canvas-dots)');
+
+  const dialog = await openSettings(page);
+  const group = dialog.getByRole('radiogroup', { name: 'Papiermuster' });
+  await expect(group.getByRole('radio')).toHaveText(['Blanko', 'Raster', 'Punkte']);
+  await expect(group.getByRole('radio', { name: 'Punkte' })).toHaveAttribute('aria-checked', 'true');
+
+  // The grid replaces the dots at once; its lines are one cell apart.
+  await group.getByRole('radio', { name: 'Raster' }).click();
+  await expect(group.getByRole('radio', { name: 'Raster' })).toHaveAttribute('aria-checked', 'true');
+  await expect(paper).toHaveAttribute('fill', 'url(#canvas-grid)');
+  await expect(page.locator('#canvas-grid')).toHaveAttribute('width', '24');
+  await expect(page.locator('#canvas-dots')).toHaveCount(0);
+
+  // The arrow keys move through the group like through the others.
+  await page.keyboard.press('ArrowLeft');
+  await expect(group.getByRole('radio', { name: 'Blanko' })).toBeFocused();
+  await expect(group.getByRole('radio', { name: 'Blanko' })).toHaveAttribute('aria-checked', 'true');
+  await expect(paper).toHaveAttribute('fill', 'none');
+  await page.keyboard.press('ArrowRight');
+  await expect(paper).toHaveAttribute('fill', 'url(#canvas-grid)');
+  expect((await new AxeBuilder({ page }).include('[data-testid=settings-dialog]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // The choice is personal and kept across a restart, in English as well.
+  await dialog.getByTestId('language-en').click();
+  await expect(page.getByRole('radiogroup', { name: 'Paper pattern' }).getByRole('radio')).toHaveText(['Plain', 'Grid', 'Dots']);
+  await page.reload();
+  await expect(page.getByTestId('canvas-paper')).toHaveAttribute('data-paper-pattern', 'grid');
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('sketchdraw.preferences.v1') ?? '{}').paperPattern);
+  expect(stored).toBe('grid');
+
+  // Zoomed far out, lines are left out so the grid does not close up.
+  for (let step = 0; step < 6; step += 1) await page.getByRole('button', { name: 'Zoom out' }).click();
+  const cell = Number(await page.locator('#canvas-grid').getAttribute('width'));
+  expect(cell).toBeGreaterThanOrEqual(12);
+});

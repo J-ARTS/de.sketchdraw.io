@@ -1638,4 +1638,8 @@ export const EN: Readonly<Record<string, string>> = {
   'Treffer {current} von mehr als {total}': 'Match {current} of more than {total}',
   'Ersetzte Treffer: {count}': 'Matches replaced: {count}',
   'Im Code suchen und ersetzen': 'Search and replace in the code',
+  'Papiermuster': 'Paper pattern',
+  'Blanko': 'Plain',
+  'Raster': 'Grid',
+  'Punkte': 'Dots',
 };

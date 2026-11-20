@@ -64,7 +64,7 @@ import { EMPTY_PRESENCE, type CursorPoint, type PresenceSnapshot, type ViewRect 
 import { participantLabel } from '../lib/participant-label';
 import { snapMove, type SmartGuide, type SnapResult } from '../lib/smart-guides';
 import { COMMENT_CURSOR } from '../lib/comment-cursor';
-import { isCanvasBackground, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
+import { isCanvasBackground, isPaperPattern, LANGUAGES, loadPreferences, savePreferences, type Preferences } from '../lib/preferences';
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 import { setLocale, t, tm, tn } from '@/renderer/i18n';
@@ -146,10 +146,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const preferenceStore = options.preferences === undefined
     ? { load: () => loadPreferences(), save: (value: Preferences) => { savePreferences(value); } }
     : options.preferences;
-  const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de', smartGuides: true };
+  const savedPreferences: Preferences = preferenceStore ? preferenceStore.load() : { theme: null, canvasBackground: null, language: 'de', smartGuides: true, paperPattern: 'dots' };
   setLocale(savedPreferences.language);
   void bridge.setLanguage?.(savedPreferences.language)?.catch(() => undefined);
-  function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language, smartGuides: state.smartGuides }); }
+  function persistPreferences(): void { preferenceStore?.save({ theme: state.theme, canvasBackground: state.canvasBackground, language: state.language, smartGuides: state.smartGuides, paperPattern: state.paperPattern }); }
   const initialController = options.controller ?? (options.authority ? null : managedController(createDocument('Unbenannt')));
   let authority: DocumentAuthority | null = options.authority ?? factory(initialController!);
   let guest: GuestSession | null = null;
@@ -321,7 +321,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     textEdit: null as WhiteboardState['textEdit'], tableSelection: null as WhiteboardState['tableSelection'], gestureConflict: null as WhiteboardState['gestureConflict'],
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
-    theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
+    theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, paperPattern: savedPreferences.paperPattern, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
@@ -2590,6 +2590,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     },
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },
     setTheme(theme) { state.theme = theme; persistPreferences(); },
+    setPaperPattern(value) {
+      if (!isPaperPattern(value) || value === state.paperPattern) return;
+      state.paperPattern = value; persistPreferences();
+    },
     setSmartGuides(value) {
       if (value === state.smartGuides) return;
       state.smartGuides = value; state.guides = []; persistPreferences();

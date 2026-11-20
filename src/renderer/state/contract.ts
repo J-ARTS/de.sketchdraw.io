@@ -1,6 +1,6 @@
 /** Renderer-internal contract between the store (logic) and the Vue components (presentation). Types only. */
 import type { InjectionKey } from 'vue';
-import type { LanguageCode, Preferences } from '../lib/preferences';
+import type { LanguageCode, PaperPattern, Preferences } from '../lib/preferences';
 import type { DocumentAuthority } from '@/session';
 import type { CollaborationStatus, GuestSession } from '@/collaboration';
 import type { CursorPoint, PresenceSnapshot, ViewRect } from '@/collaboration/presence';
@@ -315,6 +315,8 @@ export interface WhiteboardState {
   theme: 'light' | 'dark';
   /** Preset id or `#rrggbb`; null = the theme's default canvas. */
   canvasBackground: string | null;
+  /** The pattern of the empty canvas: none, a grid or dots (a personal preference, #247). */
+  paperPattern: PaperPattern;
   /** Guides and snapping while elements are moved are switched on (a personal preference). */
   smartGuides: boolean;
   /** The lines to draw for the move in progress, in document coordinates; empty otherwise (#224). */
@@ -654,6 +656,7 @@ export interface WhiteboardStore {
   setTheme(theme: 'light' | 'dark'): void;
   setCanvasBackground(value: string | null): void;
   /** Switches guides and snapping while moving on or off and remembers the choice on this device. */
+  setPaperPattern(value: PaperPattern): void;
   setSmartGuides(value: boolean): void;
   setLanguage(language: LanguageCode): void;
   dismissNotice(id: number): void;

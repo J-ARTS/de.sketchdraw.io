@@ -1,9 +1,9 @@
-<!-- @component The modal dialog for the settings of the app: canvas background, guides while moving, theme, language and, in the desktop app, updates. -->
+<!-- @component The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { CANVAS_BACKGROUNDS, LANGUAGES, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
+import { CANVAS_BACKGROUNDS, LANGUAGES, PAPER_PATTERNS, resolveCanvasBackground, THEME_CANVAS } from '@/renderer/lib/preferences';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import AppSwitch from '@/renderer/design-system/atoms/AppSwitch.vue';
@@ -31,8 +31,11 @@ const presets = computed(() => CANVAS_BACKGROUNDS.map((entry) => ({
   label: t(entry.label),
   color: resolveCanvasBackground(entry.id, s.theme) ?? THEME_CANVAS[s.theme],
 })));
+const PAPER_DOTS = [12, 25, 38, 51, 64].flatMap((x) => [13, 26, 39].map((y) => ({ x, y })));
 const selectedId = computed(() => s.canvasBackground ?? 'default');
 const customActive = computed(() => !CANVAS_BACKGROUNDS.some((entry) => entry.id === selectedId.value));
+/** The canvas colour as the user sees it, for the previews of the paper patterns. */
+const canvasColor = computed(() => resolveCanvasBackground(s.canvasBackground, s.theme) ?? THEME_CANVAS[s.theme]);
 const customColor = computed(() => (customActive.value ? selectedId.value : resolveCanvasBackground(s.canvasBackground, s.theme) ?? THEME_CANVAS[s.theme]));
 
 watch(() => props.open, async (open) => {
@@ -101,6 +104,29 @@ function onRadioKeydown(event: KeyboardEvent): void {
         <p class="hint">{{ t('Der Hintergrund gilt für dich und wird nicht im Dokument gespeichert. Die Voreinstellungen passen sich dem Design an.') }}</p>
       </section>
 
+      <section class="setting" aria-labelledby="paper-title">
+        <h3 id="paper-title">{{ t('Papiermuster') }}</h3>
+        <div class="papers" role="radiogroup" aria-labelledby="paper-title" @keydown="onRadioKeydown">
+          <button
+            v-for="pattern in PAPER_PATTERNS"
+            :key="pattern.id"
+            type="button"
+            class="paper"
+            role="radio"
+            :data-testid="`paper-${pattern.id}`"
+            :aria-checked="s.paperPattern === pattern.id"
+            :tabindex="s.paperPattern === pattern.id ? 0 : -1"
+            @click="store.setPaperPattern(pattern.id)"
+          >
+            <svg class="paper-preview" viewBox="0 0 76 52" aria-hidden="true" :style="{ background: canvasColor }">
+              <path v-if="pattern.id === 'grid'" d="M0 13.5H76M0 26.5H76M0 39.5H76M12.5 0V52M25.5 0V52M38.5 0V52M51.5 0V52M64.5 0V52" fill="none" stroke="var(--canvas-grid)" stroke-width="1" />
+              <g v-else-if="pattern.id === 'dots'" fill="var(--canvas-grid)"><circle v-for="dot in PAPER_DOTS" :key="`${dot.x}:${dot.y}`" :cx="dot.x" :cy="dot.y" r="1.6" /></g>
+            </svg>
+            <span>{{ t(pattern.label) }}</span>
+          </button>
+        </div>
+      </section>
+
       <section class="setting">
         <AppSwitch data-testid="smart-guides-switch" :model-value="s.smartGuides" @update:model-value="store.setSmartGuides($event)">
           {{ t('Hilfslinien beim Verschieben') }}
@@ -157,6 +183,14 @@ h3{margin:0 0 10px;font-size:14px;font-weight:650}
 .swatch:focus-visible{outline:2px solid var(--focus-ring);outline-offset:3px}
 .swatch.custom{background:conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
 .swatch.custom:not([aria-checked='true']){background:radial-gradient(circle,var(--surface-panel) 0 38%,transparent 40%),conic-gradient(#ff4d4d,#ffd43b,#51cf66,#22b8cf,#4c6ef5,#cc5de8,#ff4d4d)}
+.papers{display:flex;flex-wrap:wrap;gap:12px}
+.paper{display:grid;justify-items:center;gap:6px;padding:0;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:12px;cursor:pointer}
+.paper-preview{display:block;width:76px;height:52px;border:1px solid var(--border-subtle);border-radius:10px}
+.paper:hover .paper-preview{border-color:var(--border-default)}
+.paper[aria-checked='true']{color:var(--accent-ink);font-weight:600}
+.paper[aria-checked='true'] .paper-preview{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.paper:focus-visible{outline:0}
+.paper:focus-visible .paper-preview{outline:2px solid var(--focus-ring);outline-offset:3px}
 .swatch-sep{width:1px;height:28px;margin:0 4px;background:var(--border-subtle)}
 .custom-picker{margin-top:12px}
 .hint{margin:10px 0 0;color:var(--text-muted);font-size:12px;line-height:1.5}
@@ -167,5 +201,5 @@ h3{margin:0 0 10px;font-size:14px;font-weight:650}
 .segmented button[aria-disabled='true']{color:var(--text-muted);cursor:default}
 .soon{font-size:12px;color:var(--text-muted)}
 footer{display:flex;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border-subtle)}
-@media(forced-colors:active){.swatch[aria-checked='true'],.segmented button[aria-checked='true']{outline:2px solid Highlight}}
+@media(forced-colors:active){.swatch[aria-checked='true'],.segmented button[aria-checked='true'],.paper[aria-checked='true'] .paper-preview{outline:2px solid Highlight}}
 </style>

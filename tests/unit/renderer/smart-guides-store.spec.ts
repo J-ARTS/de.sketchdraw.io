@@ -49,7 +49,7 @@ test('a moved element snaps into line with another one and the lines are shown u
 
 test('the reach is the same on screen at any zoom, Ctrl/Cmd moves freely and the preference switches guides off', async () => {
   const saved: unknown[] = [];
-  const { store, second } = await twoBoxes({ bridge, preferences: { load: () => ({ theme: null, canvasBackground: null, language: 'de', smartGuides: true }), save: value => { saved.push(value); return true; } } });
+  const { store, second } = await twoBoxes({ bridge, preferences: { load: () => ({ theme: null, canvasBackground: null, language: 'de', smartGuides: true, paperPattern: 'dots' }), save: value => { saved.push(value); return true; } } });
   store.zoomBy(2, { x: 0, y: 0 });
   const zoom = store.state.viewport.zoom;
   const screen = (x: number, y: number) => at(x * zoom + store.state.viewport.panX, y * zoom + store.state.viewport.panY);
