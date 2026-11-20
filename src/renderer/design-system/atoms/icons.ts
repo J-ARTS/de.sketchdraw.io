@@ -14,7 +14,7 @@ export type ActionIconName =
   | 'more-vertical' | 'calendar'
   | 'pages' | 'grip' | 'more' | 'copy' | 'paste' | 'rename' | 'arrow'
   | 'git' | 'arrow-down' | 'history'
-  | 'shapes' | 'stroke' | 'link'
+  | 'shapes' | 'stroke' | 'link' | 'coffee'
   | 'eyedropper' | 'line-solid' | 'line-dashed' | 'line-animated' | 'none' | 'search';
 
 export type IconName = ToolIconName | ActionIconName;
@@ -128,4 +128,6 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = {
   search: ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'M20 20l-4-4'],
   none: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M5.6 18.4L18.4 5.6'],
   link: ['M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1', 'M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1'],
+  // A cup with a handle and two wisps of steam.
+  coffee: ['M5 10h11v4a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z', 'M16 11h1.5a2.5 2.5 0 0 1 0 5H15.6', 'M8.5 3.5v3', 'M12.5 3.5v3'],
 };

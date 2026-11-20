@@ -1598,4 +1598,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.': 'The link belongs to another diagram. Link the page again.',
   'Diese Seite gibt es im Diagramm nicht mehr.': 'This page no longer exists in the diagram.',
   'Diese Seite ist mit keiner Confluence-Seite verknüpft.': 'This page is not linked to any Confluence page.',
+  'Buy me a coffee': 'Buy me a coffee',
+  'öffnet im Browser': 'opens in the browser',
 };

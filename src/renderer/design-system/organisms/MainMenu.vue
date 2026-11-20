@@ -13,10 +13,12 @@ import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboa
 import { L, t, tn } from '@/renderer/i18n';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings';
+type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings' | 'support';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
-/** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). */
-interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean }
+/** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). `external`: the entry opens a website in the browser. */
+interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean; external?: boolean }
+/** Where the project can be supported (#241). */
+const SUPPORT_URL = 'https://buymeacoffee.com/jeremyteichmann';
 
 const props = defineProps<{ collaborationOpen: boolean; pluginsOpen: boolean }>();
 const emit = defineEmits<{ interop: [mode: 'import' | 'export']; collaboration: []; plugins: []; settings: []; profiles: [] }>();
@@ -99,6 +101,7 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'tasks', label: L('Aufgaben'), icon: 'check', checked: s.workspaceView === 'tasks' },
   { id: 'plugins', label: L('Plugin-Einstellungen'), icon: 'component', checked: props.pluginsOpen, separator: true },
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
+  { id: 'support', label: L('Buy me a coffee'), icon: 'coffee', separator: true, external: true },
 ]);
 
 /** Profiles exist only where plugins run (desktop app). */
@@ -231,6 +234,7 @@ function runView(id: ViewItemId): void {
     case 'tasks': if (s.workspaceView === 'tasks') store.showCanvas(); else store.openTaskBoard(); break;
     case 'plugins': emit('plugins'); break;
     case 'settings': emit('settings'); break;
+    case 'support': void store.openDocumentationLink(SUPPORT_URL); break;
   }
 }
 
@@ -410,6 +414,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
               <AppIcon :name="item.icon" :size="18" />
               <span class="menu-label">{{ t(item.label) }}</span>
               <AppIcon v-if="item.checked" class="menu-check" name="check" :size="16" />
+              <span v-else-if="item.external" class="menu-external"><AppIcon name="external-link" :size="16" /><span class="visually-hidden">{{ t('öffnet im Browser') }}</span></span>
             </button>
           </template>
         </div>
@@ -671,6 +676,12 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 
 .menu-label {
   flex: 1;
+}
+
+.menu-external {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
 }
 
 .menu-hint {
