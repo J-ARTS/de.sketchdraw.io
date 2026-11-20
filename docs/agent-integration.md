@@ -70,7 +70,15 @@ Für wiederverwendbare Arbeitsregeln liegt [der Sketchdraw-Skill](../skills/sket
 | Linux | `<Installationsordner>/resources/skills/sketchdraw-desktop/SKILL.md` |
 | Windows | `<Installationsordner>\resources\skills\sketchdraw-desktop\SKILL.md` |
 
-In das Skill-Verzeichnis eines Clients trägt die App ihn nicht selbst ein. Wer ihn dort dauerhaft haben möchte, kopiert den Ordner `sketchdraw-desktop` für Claude Code nach `~/.claude/skills/` (oder in ein Projekt nach `.claude/skills/`), für andere Clients in deren Skill-Verzeichnis. Die wichtigsten Regeln stehen zusätzlich in den Server-Anweisungen und erreichen jeden Client auch ohne Skill.
+In das Skill-Verzeichnis eines Clients trägt die App ihn nicht selbst ein. Wer ihn dort dauerhaft haben möchte, kopiert den Ordner `sketchdraw-desktop` in das Skill-Verzeichnis des Clients:
+
+| Client | Für alle eigenen Projekte | Für ein Projekt |
+| --- | --- | --- |
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
+| Codex | `~/.codex/skills/` | `.agents/skills/` |
+| Antigravity | `~/.gemini/config/skills/` | `.agents/skills/` |
+
+Andere Clients, die das offene Agent-Skills-Format kennen, nehmen denselben Ordner in ihrem eigenen Skill-Verzeichnis. Die Befehle zum Kopieren stehen in der [README](../README.md#installing-the-skill). Die wichtigsten Regeln stehen zusätzlich in den Server-Anweisungen und erreichen jeden Client auch ohne Skill.
 
 Das bereits veröffentlichte Release v0.1.3 auf `c45e892` enthält diese spätere Skill-Auslieferung noch nicht.
 

@@ -151,6 +151,43 @@ The desktop app provides the open local document as an MCP server automatically 
 
 A change made by an agent appears on the canvas at once and is not saved to disk automatically. The setup is described in [Connecting and using MCP](docs/agent-integration.md).
 
+#### Installing the skill
+
+The tools work on their own: the server tells every client the workflow and the error rules when it connects. The [`sketchdraw-desktop` skill](skills/sketchdraw-desktop/SKILL.md) adds the longer guide – the command table, connectors, diagram code and what to do for each error – and is loaded by the agent only when a task is about a Sketchdraw diagram. It is one folder with a `SKILL.md`, in the open Agent Skills format, so the same folder works in every client that supports skills.
+
+1. **Connect the MCP server once.** The skill describes how to use the `sketchdraw` server; it does not replace it. See [Connecting and using MCP](docs/agent-integration.md).
+2. **Copy the skill folder** into the skills directory of your client:
+
+| Client | For all your projects | For one project |
+| --- | --- | --- |
+| Claude Code | `~/.claude/skills/` | `.claude/skills/` |
+| Codex | `~/.codex/skills/` | `.agents/skills/` |
+| Antigravity | `~/.gemini/config/skills/` | `.agents/skills/` |
+
+The folder ships with the installed app, so nothing has to be cloned:
+
+```sh
+# macOS, here for Claude Code – use the directory of your client from the table
+mkdir -p ~/.claude/skills
+cp -R "/Applications/Sketchdraw.app/Contents/Resources/skills/sketchdraw-desktop" ~/.claude/skills/
+
+# Linux (Debian package)
+mkdir -p ~/.claude/skills
+cp -R /opt/Sketchdraw/resources/skills/sketchdraw-desktop ~/.claude/skills/
+```
+
+```powershell
+# Windows, installed for the current user in the default folder; otherwise take "resources\skills" of your installation folder
+New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
+Copy-Item -Recurse "$env:LOCALAPPDATA\Programs\Sketchdraw\resources\skills\sketchdraw-desktop" "$HOME\.claude\skills\"
+```
+
+From a checkout of this repository the source is `skills/sketchdraw-desktop` instead. To share the skill with a team, commit it to the project directory of the table; `.agents/skills/` is read by Codex and Antigravity alike.
+
+3. **Start a new session** so the client lists the skill. The agent picks it up by itself when you ask for something in a Sketchdraw diagram; to call it by name, type `/sketchdraw-desktop` in Claude Code and Antigravity or `$sketchdraw-desktop` in Codex.
+
+**Other harnesses.** A client that knows the Agent Skills format takes the same folder in its own skills directory. For one without skills, add the content of `SKILL.md` to the instructions or rules of the agent, or leave it out: the MCP server names the full path of the installed file in its instructions, so an agent that can read files finds the guide by itself. After an update of the app, copy the folder again to get the current guide.
+
 ### Light, dark, German and English
 
 The interface comes in light and dark and in German and English. The background of the canvas can be chosen and applies only to your own view.
