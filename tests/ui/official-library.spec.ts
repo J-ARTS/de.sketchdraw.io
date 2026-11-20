@@ -60,6 +60,8 @@ test('cloud icons drag to square provider cards at the pointer for every officia
     await expect(card.getByTestId('cloud-component-content')).toContainText(item.provider === 'gcp' ? 'GCP' : item.provider.toUpperCase());
     const title = card.getByTestId('cloud-component-title');
     const provider = card.getByTestId('cloud-component-provider');
+    // The name is black like in the library; it does not take the provider's line colour (#246).
+    await expect(title).toHaveAttribute('fill', '#1e1e1e');
     const titleY = Number(await title.getAttribute('y'));
     const titleLines = await title.locator('tspan').count();
     const providerY = Number(await provider.getAttribute('y'));

@@ -17,7 +17,7 @@ import { bulletsActive, toggleBullets } from '@/renderer/lib/bullets';
 import { linkAt } from '@/renderer/lib/text-links';
 import { ROUNDABLE_POLYGONS } from '@/renderer/lib/geometry';
 import { matchesShape, SHAPE_CATALOG, SWAPPABLE_KINDS, type ShapeEntry } from '@/renderer/lib/shapes';
-import { isResourceCard, RESOURCE_CARD_TEXT_COLOR } from '@/catalog';
+import { defaultCardTextColor, isResourceCard } from '@/catalog';
 import { useCustomComponents } from '@/renderer/lib/custom-components';
 import { sequenceSelection } from '@/renderer/lib/sequence-diagram';
 import { diagramCodeAnchor } from '@/renderer/lib/diagram-code';
@@ -479,8 +479,8 @@ const lineMode = computed<LineMode | null>(() => {
   return ['solid', 'dashed', 'animated'].includes(info.value.values.strokeDash ?? '') ? info.value.values.strokeDash as LineMode : null;
 });
 const strokeBase = computed(() => (lineMode.value === 'none' ? null : normalizeHex(info.value.values.stroke ?? '')));
-/** Resource card text does not follow the frame colour: without a chosen colour it is black (#189). */
-const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? (resourceCardOnly.value ? RESOURCE_CARD_TEXT_COLOR : info.value.values.stroke) ?? '') ?? '#242424');
+/** The text of resource cards (#189) and cloud components (#246) does not follow the frame colour: without a chosen colour it is black. */
+const textColorBase = computed(() => normalizeHex(info.value.values.textColor ?? (info.value.count === 1 ? defaultCardTextColor(single.value, s.document.componentSets) : null) ?? info.value.values.stroke ?? '') ?? '#242424');
 watch(fillBase, (value) => { if (value) lastFill.value = value; }, { immediate: true });
 watch(strokeBase, (value) => { if (value) lastStroke.value = value; }, { immediate: true });
 

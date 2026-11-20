@@ -103,3 +103,20 @@ describe('resource card metadata contract', () => {
     ]);
   });
 });
+
+describe('default text colour of cards (#246)', () => {
+  it('is black for resource cards and cloud components, and absent for everything else', async () => {
+    const { cloudProviderOf, defaultCardTextColor, RESOURCE_CARD_TEXT_COLOR } = await import('@/catalog');
+    const sets = builtInComponentSets;
+    const cloud = sets.flatMap((set) => set.components).find((component) => component.provider === 'gcp')!;
+    const generic = sets.flatMap((set) => set.components).find((component) => component.provider === 'generic' && component.type !== RESOURCE_CARD_COMPONENT_TYPE)!;
+    const cloudElement = createElement('component', { id: 'c:1', componentType: cloud.type });
+    expect(cloudProviderOf(cloudElement, sets)).toBe('gcp');
+    expect(defaultCardTextColor(cloudElement, sets)).toBe(RESOURCE_CARD_TEXT_COLOR);
+    expect(defaultCardTextColor(createElement('component', { id: 'c:2', componentType: RESOURCE_CARD_COMPONENT_TYPE }), sets)).toBe(RESOURCE_CARD_TEXT_COLOR);
+    expect(defaultCardTextColor(createElement('component', { id: 'c:3', componentType: generic.type }), sets)).toBeNull();
+    expect(defaultCardTextColor(createElement('rectangle', { id: 'r:1' }), sets)).toBeNull();
+    // Without the definition in the document the provider is unknown, so the element keeps the general rule.
+    expect(cloudProviderOf(cloudElement, [])).toBeNull();
+  });
+});

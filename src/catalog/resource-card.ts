@@ -1,4 +1,4 @@
-import type { SketchElement } from '@/domain';
+import type { ComponentSet, SketchElement } from '@/domain';
 import { validateDocumentationUrl } from '@/domain/validation';
 
 export const RESOURCE_CARD_COMPONENT_TYPE = 'generic.resource-card';
@@ -21,6 +21,27 @@ const linkKey = (id: string, field: 'label' | 'url') => `${LINK_PREFIX}${id}:${f
 
 export function isResourceCard(element: SketchElement | undefined): boolean {
   return element?.kind === 'component' && element.componentType === RESOURCE_CARD_COMPONENT_TYPE;
+}
+
+export type CloudProvider = 'aws' | 'azure' | 'gcp' | 'kubernetes';
+const CLOUD_PROVIDERS: readonly string[] = ['aws', 'azure', 'gcp', 'kubernetes'];
+
+/** The cloud provider a component belongs to, by its definition in the document's component sets. */
+export function cloudProviderOf(element: SketchElement | undefined, componentSets: readonly ComponentSet[]): CloudProvider | null {
+  if (element?.kind !== 'component' || !element.componentType) return null;
+  for (const set of componentSets) {
+    const definition = set.components.find((component) => component.type === element.componentType);
+    if (definition) return CLOUD_PROVIDERS.includes(definition.provider) ? definition.provider as CloudProvider : null;
+  }
+  return null;
+}
+
+/**
+ * The colour a card's text has while no text colour is chosen. Resource cards (#189) and cloud components (#246)
+ * are black, like their tiles in the library; everything else follows its line colour.
+ */
+export function defaultCardTextColor(element: SketchElement | undefined, componentSets: readonly ComponentSet[]): string | null {
+  return isResourceCard(element) || cloudProviderOf(element, componentSets) ? RESOURCE_CARD_TEXT_COLOR : null;
 }
 
 export function isSafeResourceLinkUrl(url: string): boolean {

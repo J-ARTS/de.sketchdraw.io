@@ -27,7 +27,8 @@ const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 const e = computed(() => props.element);
 const stroke = computed(() => themeColor(e.value.style.stroke, props.theme));
 const fill = computed(() => themeColor(e.value.style.fill, props.theme));
-const textColor = computed(() => themeColor(e.value.style.textColor ?? e.value.style.stroke, props.theme));
+/** Text follows the line colour unless a text colour was chosen; the name of a cloud component is black instead (#246). */
+const textColor = computed(() => themeColor(e.value.style.textColor ?? (cloudProvider.value ? RESOURCE_CARD_TEXT_COLOR : e.value.style.stroke), props.theme));
 /** AWS group frames (#143): draw.io's fine dash pattern, scaled by the line width. */
 const group = computed(() => awsGroupOf(e.value));
 const dash = computed(() => {
