@@ -347,8 +347,13 @@ export interface WhiteboardState {
   gitOpen: boolean;
   confluencePages: readonly ConfluencePageSummary[];
   pendingExternalDocument: boolean;
-  /** Progress of the automatic publication to the linked Confluence page (#210); the link itself is in `pluginSettings.confluenceLive`. */
-  confluenceLive: ConfluenceLiveStatus;
+  /**
+   * Progress of the automatic publication of each linked diagram page to its Confluence page (#240), by page id. Only
+   * linked pages have an entry; the links themselves are in `pluginSettings.confluencePageLinks`.
+   */
+  confluencePageLive: Readonly<Record<string, ConfluenceLiveStatus>>;
+  /** The diagram page whose Confluence link dialog is open; null while it is closed. */
+  confluenceLinkPageId: string | null;
 }
 
 export interface WhiteboardStore {
@@ -537,10 +542,16 @@ export interface WhiteboardStore {
   insertConfluencePage(pageId: string): Promise<boolean>;
   syncConfluenceElement(elementId: string): Promise<boolean>;
   refreshConfluenceElement(elementId: string): Promise<boolean>;
-  /** Links the open local diagram to a Confluence page that is kept up to date automatically; `null` removes the link. */
-  setConfluenceLiveLink(pageId: string | null): Promise<boolean>;
-  /** Publishes the linked diagram now instead of after the next change. */
-  syncConfluenceLive(): void;
+  /**
+   * Links one page of the open local diagram to a Confluence page that is kept up to date automatically; `null`
+   * removes the link of that page (#240).
+   */
+  setConfluencePageLink(diagramPageId: string, pageId: string | null): Promise<boolean>;
+  /** Publishes the linked page now instead of after the next change. */
+  syncConfluencePage(diagramPageId: string): void;
+  /** Opens the dialog that links this page of the diagram to a Confluence page. */
+  openConfluencePageLink(diagramPageId: string): void;
+  closeConfluencePageLink(): void;
   syncJiraTasks(options?: { announce?: boolean }): Promise<boolean>;
   acceptExternalDocument(): Promise<boolean>;
 

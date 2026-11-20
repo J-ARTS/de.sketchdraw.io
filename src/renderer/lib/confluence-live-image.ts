@@ -40,12 +40,14 @@ async function digest(text: string): Promise<string> {
 }
 
 /**
- * Renders every page of the diagram through the existing SVG export. The export runs without the embedded document,
- * so comments, tasks and other data that is not visible on the canvas never reach Confluence.
+ * Renders pages of the diagram through the existing SVG export: every page, or only those named in `pageIds`. A page
+ * looks the same either way. The export runs without the embedded document, so comments, tasks and other data that
+ * is not visible on the canvas never reach Confluence.
  */
-export async function renderLivePages(document: SketchDocument, text: { empty: string }): Promise<LivePageRender[]> {
+export async function renderLivePages(document: SketchDocument, text: { empty: string }, pageIds?: readonly string[]): Promise<LivePageRender[]> {
   const pages: LivePageRender[] = [];
   for (const page of document.pages) {
+    if (pageIds && !pageIds.includes(page.id)) continue;
     const exported = prepareSvgExport(document, { pageId: page.id, embedDocument: false }).contents;
     const root = /^<svg xmlns="[^"]*" viewBox="(-?[\d.e+-]+) (-?[\d.e+-]+) ([\d.e+-]+) ([\d.e+-]+)">/.exec(exported);
     if (!root || !exported.endsWith('</svg>')) throw new Error('The SVG export has an unexpected shape.');

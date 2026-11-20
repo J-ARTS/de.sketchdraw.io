@@ -1,5 +1,6 @@
 import type { ConfluenceLiveImage, ConfluenceLivePublishInput, ConfluenceLivePublishResult, SketchDocument } from '@/domain';
 import { t, tm } from '@/renderer/i18n';
+import type { ConfluenceLiveState, ConfluenceLiveStatus } from '@/renderer/lib/confluence-live-text';
 
 /** Changes are collected this long before the diagram is rendered and published. */
 export const CONFLUENCE_LIVE_DEBOUNCE_MS = 3_000;
@@ -9,16 +10,7 @@ export const CONFLUENCE_LIVE_RETRY_DELAYS_MS: readonly number[] = [5_000, 15_000
 /** After a problem that needs the user (access, missing page), edits start a new attempt at most this often. */
 export const CONFLUENCE_LIVE_FAILURE_HOLD_MS = 60_000;
 
-export type ConfluenceLiveState ='off' | 'paused' | 'pending' | 'syncing' | 'synced' | 'retrying' | 'error';
-
-export interface ConfluenceLiveStatus {
-  state: ConfluenceLiveState;
-  message: string;
-  /** Time of the last publication Confluence confirmed. */
-  syncedAt?: string;
-  /** The server asked for a pause; nothing is sent before this moment. */
-  retryAt?: string;
-}
+export type { ConfluenceLiveState, ConfluenceLiveStatus };
 
 /** Longest single timer; a later moment is reached by scheduling again. */
 const MAX_TIMER_MS = 24 * 60 * 60 * 1000;

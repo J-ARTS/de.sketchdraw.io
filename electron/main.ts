@@ -484,6 +484,7 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'get-confluence-page': return plugins.getConfluencePage(String(request.payload ?? ''));
       case 'update-confluence-page': return plugins.updateConfluencePage(payload);
       case 'set-confluence-live-link': return plugins.setConfluenceLiveLink(payload);
+      case 'convert-confluence-live-link': return plugins.convertConfluenceLiveLink(payload);
       case 'publish-confluence-live': return plugins.publishConfluenceLive(payload);
       case 'create-jira-issue': return plugins.createJiraIssue(payload);
       case 'list-jira-issues': return plugins.listJiraIssues();

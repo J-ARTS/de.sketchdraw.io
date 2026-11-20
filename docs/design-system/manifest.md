@@ -276,6 +276,27 @@ The colour choice of the app: theme palette, recent colours and a free hex value
 | --- | --- | --- |
 | `pick` | `[hex: string]` |  |
 
+### ConfluenceLinkCard
+
+The live link of one diagram page to a Confluence page: where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store.
+
+- File: `src/renderer/design-system/molecules/ConfluenceLinkCard.vue`
+- Story: `src/renderer/design-system/molecules/ConfluenceLinkCard.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `siteUrl` | `string` | yes |  | The Atlassian site the page is on. |
+| `status` | `ConfluenceLiveStatus` | yes |  | What the publication of this page is doing. |
+| `title` | `string` | yes |  | Title of the linked Confluence page. |
+| `busy` | `boolean \| undefined` | no | `false` | Another operation is running: no action can start. |
+| `lastSyncedAt` | `string \| undefined` | no |  | Time of the last confirmed publication as stored with the link; `status.syncedAt` wins when it is newer knowledge. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `open` | `[]` |  |
+| `sync` | `[]` |  |
+| `unlink` | `[]` |  |
+
 ### DiffView
 
 The changes of one text file, line by line with old and new line numbers; added and removed lines carry a sign as well as a colour. Used by the Git dialog.
@@ -408,6 +429,12 @@ The side panel that lists the comment threads of the page.
 Comment pins and the open comment thread, laid over the canvas.
 
 - File: `src/renderer/design-system/organisms/CommentsLayer.vue`
+
+### ConfluencePageLinkDialog
+
+The modal dialog that links one page of the diagram to a Confluence page (#240): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page.
+
+- File: `src/renderer/design-system/organisms/ConfluencePageLinkDialog.vue`
 
 ### ConnectorOptionsBar
 
@@ -583,7 +610,7 @@ The small overview of the page with the visible area, for jumping around large b
 
 ### PageSwitcher
 
-The pages of the document: switch, add, rename, reorder and delete them.
+The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active.
 
 - File: `src/renderer/design-system/organisms/PageSwitcher.vue`
 

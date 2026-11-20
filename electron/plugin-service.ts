@@ -9,6 +9,7 @@ import type {
   ConfigureAtlassianPluginInput,
   ConfigureGitPluginInput,
   ConfluenceLiveLink,
+  ConfluencePageLiveLink,
   ConfluenceLivePublishInput,
   ConfluenceLivePublishResult,
   ConfluencePage,
@@ -49,12 +50,18 @@ const MAX_CONFLUENCE_LINKS = 200;
 const LIVE_QUIET_WINDOW_MS = 1_500;
 const LIVE_UPLOAD_TIMEOUT_MS = 60_000;
 
-/** The live link of one diagram file (#210). It lives in the profile, never in the diagram. */
+/**
+ * A live link to a Confluence page. It lives in the profile, never in the diagram. With `diagramPageId` it belongs to
+ * one page of the diagram and publishes that page only (#240); without it, it is the link of the whole diagram file
+ * that earlier versions made (#210) and publishes every page.
+ */
 interface PersistedConfluenceLink {
   /** Identifies this one act of linking; a link made anew is another link, even to the same page. Never shown. */
   token: string;
   documentPath: string;
   documentId: string;
+  /** The page of the diagram this link belongs to. */
+  diagramPageId?: string;
   siteUrl: string;
   pageId: string;
   pageTitle: string;
@@ -112,6 +119,8 @@ interface LiveJob {
   documentId: string;
   siteUrl: string;
   pageId: string;
+  /** Set for the link of one diagram page: only its image is this job's to publish. */
+  diagramPageId?: string;
 }
 
 /** Longest pause a server may impose through Retry-After; a longer or absurd value does not lock publishing for days. */
@@ -146,7 +155,10 @@ interface PersistedAtlassianConfig {
   jiraProjectKey: string;
   jiraIssueType: string;
   jqlFilter: string;
+  /** Links of whole diagram files, as earlier versions made them. */
   confluenceLinks?: PersistedConfluenceLink[];
+  /** Links of single diagram pages (#240). A separate field, so a version that only knows the first one still reads the file. */
+  confluencePageLinks?: PersistedConfluenceLink[];
 }
 
 interface PersistedPluginConfig {
@@ -213,7 +225,7 @@ function isPristine(config: PersistedPluginConfig): boolean {
 }
 
 /** Links are stored data like everything else in the profile file: wrong shapes are rejected, not repaired. */
-function parseConfluenceLinks(value: unknown): PersistedConfluenceLink[] | undefined {
+function parseConfluenceLinks(value: unknown, scope: 'diagram' | 'page' = 'diagram'): PersistedConfluenceLink[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.length > MAX_CONFLUENCE_LINKS) throw new Error('PROFILE_STORE_INVALID');
   const paths = new Set<string>();
@@ -230,9 +242,13 @@ function parseConfluenceLinks(value: unknown): PersistedConfluenceLink[] | undef
       pageId: text('pageId', 128), pageTitle: text('pageTitle', 500, true), pageUrl: text('pageUrl', 4096),
     };
     if (record.token !== undefined && (typeof record.token !== 'string' || !/^[0-9a-f-]{8,64}$/.test(record.token))) throw new Error('PROFILE_STORE_INVALID');
-    link.token = typeof record.token === 'string' ? record.token : sha256(`${link.documentPath}\n${link.pageId}`).slice(0, 32);
-    if (!path.isAbsolute(link.documentPath) || paths.has(link.documentPath) || !/^[0-9A-Za-z_-]+$/.test(link.pageId)) throw new Error('PROFILE_STORE_INVALID');
-    paths.add(link.documentPath);
+    // One link per diagram file, or one per page of it: the scope decides what makes an entry unique.
+    if (scope === 'page') link.diagramPageId = text('diagramPageId', 256);
+    else if (record.diagramPageId !== undefined) throw new Error('PROFILE_STORE_INVALID');
+    link.token = typeof record.token === 'string' ? record.token : sha256(scope === 'page' ? `${link.documentPath}\n${link.diagramPageId}\n${link.pageId}` : `${link.documentPath}\n${link.pageId}`).slice(0, 32);
+    const unique = scope === 'page' ? `${link.documentPath}\n${link.diagramPageId}` : link.documentPath;
+    if (!path.isAbsolute(link.documentPath) || paths.has(unique) || !/^[0-9A-Za-z_-]+$/.test(link.pageId)) throw new Error('PROFILE_STORE_INVALID');
+    paths.add(unique);
     if (record.lastSyncedAt !== undefined) {
       if (typeof record.lastSyncedAt !== 'string' || Number.isNaN(Date.parse(record.lastSyncedAt))) throw new Error('PROFILE_STORE_INVALID');
       link.lastSyncedAt = record.lastSyncedAt;
@@ -305,6 +321,8 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   if (atlassian.enabled && (!atlassian.siteUrl || !atlassian.encryptedApiToken)) throw new Error('PROFILE_STORE_INVALID');
   const confluenceLinks = parseConfluenceLinks((record.atlassian as Record<string, unknown>).confluenceLinks);
   if (confluenceLinks) atlassian.confluenceLinks = confluenceLinks; else delete atlassian.confluenceLinks;
+  const confluencePageLinks = parseConfluenceLinks((record.atlassian as Record<string, unknown>).confluencePageLinks, 'page');
+  if (confluencePageLinks) atlassian.confluencePageLinks = confluencePageLinks; else delete atlassian.confluencePageLinks;
   return { git, atlassian };
 }
 
@@ -608,7 +626,7 @@ export class PluginService {
     const name = this.profileName(input.name);
     const source = input.copyFrom === undefined ? null : this.knownProfile(input.copyFrom);
     // A live link is an explicit decision in one profile; a copy starts without the links of its source.
-    const { confluenceLinks: _links, ...sourceAtlassian } = source?.atlassian ?? DEFAULT_CONFIG.atlassian;
+    const { confluenceLinks: _links, confluencePageLinks: _pageLinks, ...sourceAtlassian } = source?.atlassian ?? DEFAULT_CONFIG.atlassian;
     const created: PersistedProfile = source
       ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...sourceAtlassian } }
       : { ...defaultProfile(), id: randomUUID(), name };
@@ -681,6 +699,7 @@ export class PluginService {
       legacy = { version: CONFIG_VERSION, ...parsePluginConfig(result.value) };
       // A file that travels with the folder never brings a live link along: links are made on this device only.
       delete legacy.atlassian.confluenceLinks;
+      delete legacy.atlassian.confluencePageLinks;
     } catch { this.legacyIssue = this.configurationIssue('legacy', 'invalid-data', file); return; }
     if (generation !== this.projectGeneration || profileId !== this.activeProfileId || !isPristine(this.config)) return;
     try { await this.saveConfig(legacy, profileId); this.revokeAuthority(); } catch { return; }
@@ -705,36 +724,66 @@ export class PluginService {
     else if (handleId !== undefined) return this.activateDocument(handleId);
     const issue = this.storeIssue ?? this.legacyIssue;
     const live = this.liveLinkView();
-    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, ...(live ? { confluenceLive: live } : {}) };
+    const pageLinks = this.pageLinkViews();
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, ...(live ? { confluenceLive: live } : {}), ...(pageLinks.length ? { confluencePageLinks: pageLinks } : {}) };
   }
 
+  /** The link of the whole open diagram file, as earlier versions made it. */
   private activeLiveLink(): PersistedConfluenceLink | undefined {
     if (!this.activeDocumentPath) return undefined;
     return this.config.atlassian.confluenceLinks?.find((link) => link.documentPath === this.activeDocumentPath);
+  }
+
+  /** The links of single pages of the open diagram file. */
+  private activePageLinks(): PersistedConfluenceLink[] {
+    if (!this.activeDocumentPath) return [];
+    return (this.config.atlassian.confluencePageLinks ?? []).filter((link) => link.documentPath === this.activeDocumentPath);
+  }
+
+  /** The link of the open diagram file a publication was started for, whichever kind it is. */
+  private activeLinkByToken(token: string): PersistedConfluenceLink | undefined {
+    const diagram = this.activeLiveLink();
+    return diagram?.token === token ? diagram : this.activePageLinks().find((link) => link.token === token);
   }
 
   /** What the renderer may know about the link: the target and whether it can be used, never a credential. */
   private liveLinkView(): ConfluenceLiveLink | undefined {
     const link = this.activeLiveLink();
     if (!link || !this.config.atlassian.installed) return undefined;
+    return this.linkView(link);
+  }
+
+  private linkView(link: PersistedConfluenceLink): ConfluenceLiveLink {
     return { pageId: link.pageId, pageTitle: link.pageTitle, pageUrl: link.pageUrl, siteUrl: link.siteUrl, documentId: link.documentId, usable: link.siteUrl === this.config.atlassian.siteUrl, ...(link.lastSyncedAt ? { lastSyncedAt: link.lastSyncedAt } : {}) };
   }
 
-  /** Changes the links of one profile starting from what is stored now, so a background update never drops a newer setting. */
+  private pageLinkViews(): ConfluencePageLiveLink[] {
+    if (!this.config.atlassian.installed) return [];
+    return this.activePageLinks().map((link) => ({ ...this.linkView(link), diagramPageId: link.diagramPageId! }));
+  }
+
+  /**
+   * Changes the links of one profile starting from what is stored now, so a background update never drops a newer
+   * setting. `update` sees the links of whole diagrams and of single pages as one list; an entry with
+   * `diagramPageId` is a page link.
+   */
   private async updateLiveLinks(profileId: string, update: (links: PersistedConfluenceLink[]) => PersistedConfluenceLink[]): Promise<void> {
     await this.mutateStore((profiles, activeProfileId) => ({
       activeProfileId,
       profiles: profiles.map((profile) => {
         if (profile.id !== profileId) return profile;
-        const { confluenceLinks, ...atlassian } = profile.atlassian;
-        const links = update(confluenceLinks ?? []);
-        return { ...profile, atlassian: links.length ? { ...atlassian, confluenceLinks: links } : atlassian };
+        const { confluenceLinks, confluencePageLinks, ...atlassian } = profile.atlassian;
+        const links = update([...(confluenceLinks ?? []), ...(confluencePageLinks ?? [])]);
+        const diagrams = links.filter((link) => link.diagramPageId === undefined);
+        const pages = links.filter((link) => link.diagramPageId !== undefined);
+        if (diagrams.length > MAX_CONFLUENCE_LINKS || pages.length > MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Confluence-Verknüpfungen gespeichert.');
+        return { ...profile, atlassian: { ...atlassian, ...(diagrams.length ? { confluenceLinks: diagrams } : {}), ...(pages.length ? { confluencePageLinks: pages } : {}) } };
       }),
     }));
     if (profileId !== this.activeProfileId) return;
-    const { confluenceLinks: _previous, ...atlassian } = this.config.atlassian;
-    const links = this.activeProfile().atlassian.confluenceLinks;
-    this.config = { ...this.config, atlassian: links ? { ...atlassian, confluenceLinks: links } : atlassian };
+    const { confluenceLinks: _previous, confluencePageLinks: _previousPages, ...atlassian } = this.config.atlassian;
+    const stored = this.activeProfile().atlassian;
+    this.config = { ...this.config, atlassian: { ...atlassian, ...(stored.confluenceLinks ? { confluenceLinks: stored.confluenceLinks } : {}), ...(stored.confluencePageLinks ? { confluencePageLinks: stored.confluencePageLinks } : {}) } };
   }
 
   public async installPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
@@ -800,7 +849,7 @@ export class PluginService {
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
     const email = boundedString(input.email, 320, 'E-Mail', !input.enabled); const confluenceSpaceKey = boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true); const jiraProjectKey = boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !input.enabled).toUpperCase();
     if (input.enabled && (!siteUrl || !encryptedApiToken)) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}) } };
+    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}), ...(this.config.atlassian.confluencePageLinks ? { confluencePageLinks: this.config.atlassian.confluencePageLinks } : {}) } };
     // Saved Atlassian settings are a new authority even when every value is as before: work that ran under the
     // previous site, account or switch never continues, and a pause a server asked the previous site for ends.
     await this.saveConfig(next, profileId); this.revokeAuthority(); if (this.cooldown && this.cooldown.siteUrl !== siteUrl) this.cooldown = null;
@@ -1173,19 +1222,91 @@ export class PluginService {
     return this.readConfluencePage(pageId, guard);
   }
 
-  /** Links the open local diagram to a Confluence page of the active profile's site, or removes the link. */
-  public async setConfluenceLiveLink(input: { handleId: string; documentId: string; pageId: string | null }): Promise<PluginSettingsSnapshot> {
+  /**
+   * Turns the link of a whole diagram file into one link per page to the same Confluence page (#240). What is known
+   * about each attachment goes to the page it belongs to, so nothing is uploaded again and Confluence sees no change.
+   * A link that was made for another diagram than the one in the file is not carried over.
+   */
+  private splitDiagramLink(links: PersistedConfluenceLink[], documentPath: string, documentId: string, diagramPageIds: readonly string[]): PersistedConfluenceLink[] {
+    const diagram = links.find((link) => link.documentPath === documentPath && link.diagramPageId === undefined);
+    if (!diagram) return links;
+    const rest = links.filter((link) => link !== diagram);
+    if (diagram.documentId !== documentId) return rest;
+    const documentKey = sha256(documentId).slice(0, 12);
+    const created: PersistedConfluenceLink[] = [];
+    for (const diagramPageId of diagramPageIds) {
+      // A page that already has a link of its own keeps it.
+      if (rest.some((link) => link.documentPath === documentPath && link.diagramPageId === diagramPageId)) continue;
+      const filename = confluenceLiveFilename(documentKey, sha256(diagramPageId).slice(0, 12));
+      const published = diagram.published?.[filename];
+      const pending = diagram.pending?.[filename];
+      created.push({
+        token: randomUUID(), documentPath, documentId, diagramPageId, siteUrl: diagram.siteUrl, pageId: diagram.pageId, pageTitle: diagram.pageTitle, pageUrl: diagram.pageUrl,
+        ...(diagram.lastSyncedAt ? { lastSyncedAt: diagram.lastSyncedAt } : {}),
+        ...(published ? { published: { [filename]: published } } : {}),
+        ...(pending ? { pending: { [filename]: pending } } : {}),
+      });
+    }
+    return [...rest, ...created];
+  }
+
+  private diagramPageIds(value: unknown): string[] {
+    if (!Array.isArray(value) || value.length < 1 || value.length > CONFLUENCE_LIVE_MAX_IMAGES) throw new Error('Ungültige Confluence-Verknüpfung.');
+    const ids = value.map((entry) => boundedString(entry, 256, 'Diagrammseite'));
+    if (new Set(ids).size !== ids.length) throw new Error('Ungültige Confluence-Verknüpfung.');
+    return ids;
+  }
+
+  /** The open local diagram file a link call is about; anything else is refused. */
+  private liveDocumentPath(handleId: unknown): string {
+    this.assertDocumentProject();
+    const location = this.persistence.getHandleLocation(boundedString(handleId, 128, 'Dokument-Handle'));
+    if (!location || location.canonicalPath !== this.activeDocumentPath) throw new Error('Das Dokument gehört nicht zum aktuellen Projektordner.');
+    return location.canonicalPath;
+  }
+
+  /**
+   * Turns a link of the whole open diagram, as earlier versions made it, into one link per page (#240). Without such
+   * a link nothing changes.
+   */
+  public async convertConfluenceLiveLink(input: { handleId: string; documentId: string; diagramPageIds: string[] }): Promise<PluginSettingsSnapshot> {
     const guard = this.authorityGuard();
     await this.ensureLoaded();
     guard();
     if (!input || typeof input !== 'object') throw new Error('Ungültige Confluence-Verknüpfung.');
-    this.assertDocumentProject();
     const profileId = this.activeProfileId;
-    const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
-    if (!location || location.canonicalPath !== this.activeDocumentPath) throw new Error('Das Dokument gehört nicht zum aktuellen Projektordner.');
-    const documentPath = location.canonicalPath;
+    const documentPath = this.liveDocumentPath(input.handleId);
+    const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    const diagramPageIds = this.diagramPageIds(input.diagramPageIds);
+    if (!this.activeLiveLink()) return this.getSettings();
+    await this.updateLiveLinks(profileId, (links) => this.splitDiagramLink(links, documentPath, documentId, diagramPageIds));
+    this.revokeAuthority();
+    return this.getSettings();
+  }
+
+  /**
+   * Links a page of the open local diagram (`diagramPageId`) to a Confluence page of the active profile's site, or
+   * removes that link with `pageId: null` (#240). Without `diagramPageId` the call addresses the link of the whole
+   * diagram file that earlier versions made (#210).
+   */
+  public async setConfluenceLiveLink(input: { handleId: string; documentId: string; pageId: string | null; diagramPageId?: string; diagramPageIds?: string[] }): Promise<PluginSettingsSnapshot> {
+    const guard = this.authorityGuard();
+    await this.ensureLoaded();
+    guard();
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Confluence-Verknüpfung.');
+    const profileId = this.activeProfileId;
+    const documentPath = this.liveDocumentPath(input.handleId);
+    const diagramPageId = input.diagramPageId === undefined ? undefined : boundedString(input.diagramPageId, 256, 'Diagrammseite');
+    /** The entry this call is about: the link of that page, or the link of the whole file. */
+    const addressed = (link: PersistedConfluenceLink): boolean => link.documentPath === documentPath && link.diagramPageId === diagramPageId;
+    // A link of the whole file and links of its pages never exist side by side: the first page link splits it.
+    const split = (links: PersistedConfluenceLink[], documentId: string): PersistedConfluenceLink[] => {
+      if (diagramPageId === undefined || !links.some((link) => link.documentPath === documentPath && link.diagramPageId === undefined)) return links;
+      return this.splitDiagramLink(links, documentPath, documentId, this.diagramPageIds(input.diagramPageIds));
+    };
     if (input.pageId === null) {
-      await this.updateLiveLinks(profileId, (links) => links.filter((link) => link.documentPath !== documentPath));
+      const documentId = diagramPageId === undefined ? '' : boundedString(input.documentId, 256, 'Diagramm-ID');
+      await this.updateLiveLinks(profileId, (links) => split(links, documentId).filter((link) => !addressed(link)));
       this.revokeAuthority();
       return this.getSettings();
     }
@@ -1194,15 +1315,18 @@ export class PluginService {
     const siteUrl = this.config.atlassian.siteUrl;
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID');
     if (!/^[0-9A-Za-z_-]+$/.test(pageId)) throw new Error('Confluence-Seiten-ID ist ungültig.');
+    if (diagramPageId !== undefined && this.activeLiveLink()) this.diagramPageIds(input.diagramPageIds);
     // Reading the page proves that it exists on this site and that the stored account may see it.
     const page = await this.readConfluencePage(pageId, guard);
     guard();
     // A new link starts without any remembered attachment: what it may update is decided again from Confluence.
-    const link: PersistedConfluenceLink = { token: randomUUID(), documentPath, documentId, siteUrl, pageId, pageTitle: page.title.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 500), pageUrl: page.url };
+    const link: PersistedConfluenceLink = { token: randomUUID(), documentPath, documentId, ...(diagramPageId !== undefined ? { diagramPageId } : {}), siteUrl, pageId, pageTitle: page.title.replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, 500), pageUrl: page.url };
     await this.updateLiveLinks(profileId, (links) => {
-      const others = links.filter((entry) => entry.documentPath !== documentPath);
-      if (others.length >= MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Confluence-Verknüpfungen gespeichert.');
-      return [...others, link];
+      const others = split(links, documentId).filter((entry) => !addressed(entry));
+      // A link of the whole file replaces the links of its pages, as the first page link replaces it.
+      const kept = diagramPageId === undefined ? others.filter((entry) => entry.documentPath !== documentPath) : others;
+      if (kept.filter((entry) => (entry.diagramPageId === undefined) === (diagramPageId === undefined)).length >= MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Confluence-Verknüpfungen gespeichert.');
+      return [...kept, link];
     });
     this.revokeAuthority();
     return this.getSettings();
@@ -1212,13 +1336,14 @@ export class PluginService {
     if (this.disposed || job.epoch !== this.authorityEpoch) throw new AuthorityChanged();
     // The epoch alone decides; the values are checked as well so a missed invalidation cannot send anything elsewhere.
     const atlassian = this.config.atlassian;
-    const link = this.activeLiveLink();
+    const link = this.activeLinkByToken(job.linkToken);
     if (job.profileId !== this.activeProfileId || job.documentPath !== this.activeDocumentPath || !atlassian.installed || !atlassian.enabled || atlassian.siteUrl !== job.siteUrl
-      || !link || link.token !== job.linkToken || link.pageId !== job.pageId || link.documentId !== job.documentId || link.siteUrl !== job.siteUrl) throw new AuthorityChanged();
+      || !link || link.pageId !== job.pageId || link.documentId !== job.documentId || link.siteUrl !== job.siteUrl || link.diagramPageId !== job.diagramPageId) throw new AuthorityChanged();
   }
 
   /**
-   * Publishes the rendered pages of the open diagram to its linked Confluence page. The job belongs to the authority
+   * Publishes rendered pages of the open diagram to a linked Confluence page: with `diagramPageId` the image of that
+   * one page through the link of that page, otherwise every page through the link of the whole file. The job belongs to the authority
    * of the moment of the call (diagram file, diagram, profile, site, account, link, window); it runs after earlier
    * publications and stops for good as soon as that authority changed, whatever it changed to.
    */
@@ -1233,8 +1358,9 @@ export class PluginService {
       this.assertDocumentProject();
       const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
       if (!location || location.canonicalPath !== this.activeDocumentPath) throw new LiveSyncFailure('Das Dokument gehört nicht zum aktuellen Projektordner.');
-      const link = this.activeLiveLink();
-      if (!link) throw new LiveSyncFailure('Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.');
+      const diagramPageId = input.diagramPageId === undefined ? undefined : boundedString(input.diagramPageId, 256, 'Diagrammseite');
+      const link = diagramPageId === undefined ? this.activeLiveLink() : this.activePageLinks().find((entry) => entry.diagramPageId === diagramPageId);
+      if (!link) throw new LiveSyncFailure(diagramPageId === undefined ? 'Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.' : 'Diese Seite ist mit keiner Confluence-Seite verknüpft.');
       const atlassian = this.config.atlassian;
       if (!atlassian.installed || !atlassian.enabled) throw new LiveSyncFailure('Jira-Plugin ist deaktiviert.');
       if (!atlassian.encryptedApiToken || !this.credentials.available()) throw new LiveSyncFailure('Kein sicher gespeichertes Atlassian-Token vorhanden.');
@@ -1250,7 +1376,9 @@ export class PluginService {
         pageIds.add(image.pageId);
         return { pageId: image.pageId, name: image.name, hash: image.hash, width: image.width, height: image.height, png: image.png };
       });
-      job = { epoch, linkToken: link.token, profileId: this.activeProfileId, documentPath: link.documentPath, documentId: link.documentId, siteUrl: link.siteUrl, pageId: link.pageId };
+      // The link of one page publishes that page and nothing else.
+      if (diagramPageId !== undefined && (images.length !== 1 || images[0]!.pageId !== diagramPageId)) throw new LiveSyncFailure('Ungültige Confluence-Veröffentlichung.');
+      job = { epoch, linkToken: link.token, profileId: this.activeProfileId, documentPath: link.documentPath, documentId: link.documentId, siteUrl: link.siteUrl, pageId: link.pageId, ...(diagramPageId !== undefined ? { diagramPageId } : {}) };
     } catch (error) {
       return done('failed', error instanceof Error ? error.message : 'Ungültige Confluence-Veröffentlichung.');
     }
@@ -1332,7 +1460,10 @@ export class PluginService {
 
   private async runLivePublish(job: LiveJob, title: string, images: ConfluenceLivePublishInput['images']): Promise<ConfluenceLivePublishResult> {
     let uploaded = 0; let bodyUpdated = false;
-    const stored = (): PersistedConfluenceLink | undefined => this.profiles.find((profile) => profile.id === job.profileId)?.atlassian.confluenceLinks?.find((entry) => entry.token === job.linkToken);
+    const stored = (): PersistedConfluenceLink | undefined => {
+      const atlassian = this.profiles.find((profile) => profile.id === job.profileId)?.atlassian;
+      return [...(atlassian?.confluenceLinks ?? []), ...(atlassian?.confluencePageLinks ?? [])].find((entry) => entry.token === job.linkToken);
+    };
     /**
      * What is certain about the attachments, and which uploads are sent but unconfirmed; kept however the run ends.
      * Both are the stored state of the link plus what this run learned. Until the stored state has been taken over
@@ -1355,11 +1486,13 @@ export class PluginService {
     };
     try {
       this.assertLiveJob(job);
-      const link = this.activeLiveLink()!;
+      const link = this.activeLinkByToken(job.linkToken)!;
       published = { ...(link.published ?? {}) }; pending = { ...(link.pending ?? {}) };
       started = true;
       const documentKey = sha256(job.documentId).slice(0, 12);
-      const prefix = confluenceLiveFilePrefix(documentKey);
+      // What this link owns on the Confluence page: every image of the diagram, or, for the link of one page, the
+      // image of that page alone. Images of other pages of the same diagram are then somebody else's and stay.
+      const prefix = job.diagramPageId === undefined ? confluenceLiveFilePrefix(documentKey) : confluenceLiveFilename(documentKey, sha256(job.diagramPageId).slice(0, 12));
       const before = await this.liveReadPage(job);
       const readAt = Date.now();
 
@@ -1368,7 +1501,7 @@ export class PluginService {
       const managed: ManagedImage[] = [];
       for (const image of images) {
         const filename = confluenceLiveFilename(documentKey, sha256(image.pageId).slice(0, 12));
-        managed.push({ filename, alt: images.length > 1 && image.name ? `${title} – ${image.name}` : title || image.name, width: Math.min(image.width, 1200) });
+        managed.push({ filename, alt: (images.length > 1 || job.diagramPageId !== undefined) && title && image.name ? `${title} – ${image.name}` : title || image.name, width: Math.min(image.width, 1200) });
         const remote = await this.liveFindAttachment(job, filename);
         const sent = pending[filename];
         if (sent) {

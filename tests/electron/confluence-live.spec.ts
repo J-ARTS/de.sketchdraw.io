@@ -111,7 +111,8 @@ async function open(app: ElectronApplication, page: Page, documentPath: string) 
   await app.evaluate(({ Menu }) => { const item = Menu.getApplicationMenu()?.getMenuItemById('file-open'); if (!item) throw new Error('Missing native Open menu'); item.click(); });
   await expect(page.getByTestId('save-status')).toHaveAttribute('data-status', 'saved');
 }
-async function configureAndLink(page: Page) {
+/** Configures the Atlassian plugin and links each named diagram page to the Confluence page through its page menu (#240). */
+async function configureAndLink(page: Page, pageNames: string[] = ['Seite 1']) {
   const dialog = await openJira(page);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
   await dialog.getByLabel('Atlassian-URL', { exact: true }).fill(syntheticSite);
@@ -120,12 +121,23 @@ async function configureAndLink(page: Page) {
   await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('NATIVE');
   await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeEnabled();
-  await dialog.getByTestId('confluence-search').fill('Native Architektur');
-  await dialog.getByRole('button', { name: 'Suchen', exact: true }).click();
-  await dialog.getByRole('button', { name: '„Native Architektur“ live verknüpfen', exact: true }).click();
-  await expect(dialog.getByTestId('confluence-live-target')).toHaveText('Native Architektur');
-  await expect(dialog.getByTestId('confluence-live-status')).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  for (const name of pageNames) {
+    const panel = page.getByRole('dialog', { name: 'Seiten', exact: true });
+    if (!await panel.isVisible()) await page.getByTestId('page-switcher').click();
+    await panel.getByRole('button', { name: `Aktionen für ${name}`, exact: true }).click();
+    await page.getByTestId('page-menu').getByRole('menuitem', { name: 'Confluence-Seite verknüpfen…', exact: true }).click();
+    const link = page.getByTestId('confluence-page-link-dialog');
+    await expect(link.getByRole('heading', { name: `Confluence-Seite für „${name}“` })).toBeVisible();
+    await link.getByTestId('confluence-page-link-search').fill('Native Architektur');
+    await link.getByRole('button', { name: 'Suchen', exact: true }).click();
+    await link.getByRole('button', { name: `„${name}“ mit „Native Architektur“ verknüpfen`, exact: true }).click();
+    await expect(link.getByTestId('confluence-link-target')).toHaveText('Native Architektur');
+    await expect(link.getByTestId('confluence-link-status')).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
+    await link.getByRole('button', { name: 'Dialog schließen', exact: true }).click();
+    await expect(link).toBeHidden();
+  }
 }
 async function installBuiltFixture(root: string, origin: string) {
   // Builds must be fresh before running this file; the test never starts the developer/user application.
@@ -141,7 +153,7 @@ async function launch(root: string) {
 }
 
 // The real one-minute Git timer is retained: no service timers or clocks are accelerated.
-test('native edits and automatic Git pull update the correct one of two diagram pages, and the link survives restart (#210)', async ({}, testInfo) => {
+test('native edits and automatic Git pull update the correct one of two linked diagram pages, and the links survive restart (#210, #240)', async ({}, testInfo) => {
   test.setTimeout(240_000);
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-native-confluence-')));
   // V2 omits comments: the real backend must obtain the same version's digest via the V1 fallback.
@@ -198,14 +210,17 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     await dialog.getByRole('button', { name: 'Status prüfen', exact: true }).click();
     await expect(dialog).toContainText('Repository ist synchron.');
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
-    await configureAndLink(page);
+    // Both diagram pages go to the same Confluence page, each through a link of its own (#240).
+    await configureAndLink(page, ['Seite 1', 'Seite 2']);
     expect(remote.failures).toEqual([]); expect(remote.uploads).toHaveLength(2);
     // Map page IDs to attachment IDs by the actual PNG bytes observed at IPC, not by duplicating filename code.
-    const initialPublication = (await probe(app)).published.find(entry => entry.done && entry.status === 'synced');
-    if (!initialPublication) throw new Error('Initial native publication did not complete');
-    expect(initialPublication.images.map(image => image.pageId).sort()).toEqual([firstPageId, secondPageId].sort());
-    const firstImage = initialPublication.images.find(image => image.pageId === firstPageId)!;
-    const secondImage = initialPublication.images.find(image => image.pageId === secondPageId)!;
+    const initialPublications = (await probe(app)).published.filter(entry => entry.done && entry.status === 'synced');
+    // One publication per linked page, each with exactly the image of its page.
+    for (const entry of initialPublications) expect(entry.images).toHaveLength(1);
+    const initialImages = initialPublications.flatMap(entry => entry.images);
+    expect([...new Set(initialImages.map(image => image.pageId))].sort()).toEqual([firstPageId, secondPageId].sort());
+    const firstImage = initialImages.find(image => image.pageId === firstPageId)!;
+    const secondImage = initialImages.find(image => image.pageId === secondPageId)!;
     const first = remote.uploads.find(upload => upload.sha256 === firstImage.pngSha256);
     const second = remote.uploads.find(upload => upload.sha256 === secondImage.pngSha256);
     if (!first || !second) throw new Error('Initial page PNGs were not both uploaded');
@@ -214,7 +229,8 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     for (const initial of [first, second]) { expect(initial.bytes).toBeGreaterThan(1000); expect(initial.width).toBeGreaterThan(0); expect(initial.height).toBeGreaterThan(0); }
     const references = () => [...remote.body.matchAll(/<ri:attachment\b[^>]*\bri:filename="([^"]+)"/g)].map(match => match[1]);
     expect(references().sort()).toEqual([first.name, second.name].sort());
-    expect(remote.body.startsWith(foreignStorage)).toBe(true); expect(remote.bodyWrites).toHaveLength(1);
+    // Each link inserted its own image once; the first image stayed when the second was added.
+    expect(remote.body.startsWith(foreignStorage)).toBe(true); expect(remote.bodyWrites).toHaveLength(2);
 
     // Change only page 1. Page 2 stays byte-identical and must not acquire another attachment version.
     await draw(page, [650, 240], [790, 340]);
@@ -229,7 +245,7 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     expect(remote.uploads.filter(upload => upload.id === second.id)).toHaveLength(1);
     expect(hash(remote.png(second.id))).toBe(second.sha256);
     expect(references().sort()).toEqual([first.name, second.name].sort());
-    expect(remote.bodyWrites).toHaveLength(1); // Ordinary diagram edits only change attachment data.
+    expect(remote.bodyWrites).toHaveLength(2); // Ordinary diagram edits only change attachment data.
     // Save only after upload: automatic publication did not depend on a save/send button.
     await save(app, page, documentPath);
     await execFile('git', ['add', path.basename(documentPath)], { cwd: project });
@@ -276,21 +292,25 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     await expect(page.locator(`[data-element-id="${elementId}"] > g > rect`)).toHaveAttribute('width', expectedWidth, { timeout: 15_000 });
     await selectDiagramPage(page, 'Seite 1');
     expect(references().sort()).toEqual([first.name, second.name].sort());
-    expect(remote.bodyWrites).toHaveLength(1); expect(remote.body.startsWith(foreignStorage)).toBe(true);
+    expect(remote.bodyWrites).toHaveLength(2); expect(remote.body.startsWith(foreignStorage)).toBe(true);
     expect(remote.requests.some(request => request.method === 'GET' && request.path === `/wiki/rest/api/content/${remotePageId}/child/attachment`)).toBe(true);
     const beforeRestart = await probe(app);
     expect(beforeRestart.blockedFetches).toEqual([]);
     expect(beforeRestart.actions).not.toContain('update-confluence-page');
     expect(beforeRestart.published.flatMap(entry => entry.images)).toEqual(expect.arrayContaining([expect.objectContaining({ uint8Array: true })]));
     for (const entry of beforeRestart.published) {
-      expect(entry.images.map(image => image.pageId).sort()).toEqual([firstPageId, secondPageId].sort());
+      expect(entry.images).toHaveLength(1);
+      expect([firstPageId, secondPageId]).toContain(entry.images[0]!.pageId);
       for (const image of entry.images) {
         expect(image.uint8Array).toBe(true); expect(image.decoded.width).toBeGreaterThan(0); expect(image.decoded.height).toBeGreaterThan(0);
       }
     }
     const storePath = path.join(root, 'profile', 'plugins.json');
-    const profile = JSON.parse(await readFile(storePath, 'utf8')) as { profiles: Array<{ atlassian: { confluenceLinks?: Array<{ pageId: string; documentId: string; documentPath: string }> } }> };
-    expect(profile.profiles.flatMap(entry => entry.atlassian.confluenceLinks ?? [])).toEqual(expect.arrayContaining([expect.objectContaining({ pageId: remotePageId, documentId: updated.id, documentPath })]));
+    const profile = JSON.parse(await readFile(storePath, 'utf8')) as { profiles: Array<{ atlassian: { confluenceLinks?: unknown[]; confluencePageLinks?: Array<{ pageId: string; documentId: string; documentPath: string; diagramPageId: string }> } }> };
+    expect(profile.profiles.flatMap(entry => entry.atlassian.confluenceLinks ?? [])).toEqual([]);
+    const storedLinks = profile.profiles.flatMap(entry => entry.atlassian.confluencePageLinks ?? []);
+    expect(storedLinks).toHaveLength(2);
+    for (const diagramPageId of [firstPageId, secondPageId]) expect(storedLinks).toEqual(expect.arrayContaining([expect.objectContaining({ pageId: remotePageId, documentId: updated.id, documentPath, diagramPageId })]));
     expect(await readFile(documentPath, 'utf8')).not.toContain(syntheticToken);
     expect(await readFile(documentPath, 'utf8')).not.toContain(syntheticSite);
 
@@ -303,8 +323,12 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     await selectDiagramPage(page, 'Seite 1');
     await expect(documentRectangles(page)).toHaveCount(2);
     dialog = await openJira(page);
-    await expect(dialog.getByTestId('confluence-live-target')).toHaveText('Native Architektur');
-    await expect(dialog.getByTestId('confluence-live-status')).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
+    // Both links are back after the restart, and each finds Confluence up to date.
+    const linkRows = dialog.getByTestId('confluence-live-links').getByRole('listitem');
+    await expect(linkRows).toHaveCount(2);
+    await expect(linkRows.nth(0)).toContainText('Seite 1 → Native Architektur');
+    await expect(linkRows.nth(1)).toContainText('Seite 2 → Native Architektur');
+    for (const index of [0, 1]) await expect(linkRows.nth(index)).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
     expect(remote.uploads).toHaveLength(4); // Same content after restart does not create another version.
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
     await expect(dialog).toBeHidden();
@@ -322,9 +346,10 @@ test('native edits and automatic Git pull update the correct one of two diagram 
     expect(remote.uploads.filter(upload => upload.id === second.id)).toHaveLength(2);
     expect(hash(remote.png(second.id))).toBe(pulled.sha256);
     expect(references().sort()).toEqual([first.name, second.name].sort());
-    expect(remote.bodyWrites).toHaveLength(1); expect(remote.failures).toEqual([]); expect(errors).toEqual([]);
+    expect(remote.bodyWrites).toHaveLength(2); expect(remote.failures).toEqual([]); expect(errors).toEqual([]);
     const afterRestart = await probe(app);
     expect(afterRestart.actions).not.toContain('set-confluence-live-link');
+    expect(afterRestart.actions).not.toContain('convert-confluence-live-link');
     expect(afterRestart.actions).not.toContain('update-confluence-page');
     expect(afterRestart.blockedFetches).toEqual([]);
     await testInfo.attach('native-confluence-evidence', { body: JSON.stringify({ platform: process.platform, mainBundleSha256: hash(await readFile(path.join(root, 'dist-electron/main.cjs'))), pageMapping: [{ pageId: firstPageId, attachmentId: first.id, filename: first.name }, { pageId: secondPageId, attachmentId: second.id, filename: second.name }], uploads: remote.uploads, bodyWrites: remote.bodyWrites.length, foreignBodyPreserved: remote.body.startsWith(foreignStorage), realIpc: beforeRestart, restoredIpc: afterRestart, realGitPullHead: remoteHead, liveTenantContacted: false, openedConfluenceBrowserRefreshVerified: false }, null, 2), contentType: 'application/json' });

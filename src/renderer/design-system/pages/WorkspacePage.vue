@@ -29,6 +29,7 @@ import FrameSidebar from '@/renderer/design-system/organisms/FrameSidebar.vue';
 import PresenterMode from '@/renderer/design-system/organisms/PresenterMode.vue';
 import PluginSettings from '@/renderer/design-system/organisms/PluginSettings.vue';
 import ProfileDialog from '@/renderer/design-system/organisms/ProfileDialog.vue';
+import ConfluencePageLinkDialog from '@/renderer/design-system/organisms/ConfluencePageLinkDialog.vue';
 import GitDialog from '@/renderer/design-system/organisms/GitDialog.vue';
 import SettingsDialog from '@/renderer/design-system/organisms/SettingsDialog.vue';
 import { resolveCanvasBackground } from '@/renderer/lib/preferences';
@@ -187,6 +188,7 @@ onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dis
     <template #overlays>
       <span class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ s.liveMessage }}</span>
       <AppDialog />
+      <ConfluencePageLinkDialog />
       <PresenterMode v-if="s.presenterOpen" />
     </template>
   </WorkspaceLayout>

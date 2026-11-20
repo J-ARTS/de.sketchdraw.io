@@ -1,4 +1,4 @@
-<!-- @component The pages of the document: switch, add, rename, reorder and delete them. -->
+<!-- @component The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId } from 'vue';
 import { useEventListener } from '@vueuse/core';
@@ -7,7 +7,7 @@ import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboa
 import { t, tm } from '@/renderer/i18n';
 import type { PageSummary } from '@/renderer/state/contract';
 
-type MenuAction = 'copy' | 'rename' | 'duplicate' | 'moveUp' | 'moveDown' | 'delete';
+type MenuAction = 'copy' | 'rename' | 'duplicate' | 'confluence' | 'moveUp' | 'moveDown' | 'delete';
 /** `pending`: needs the multi-page schema (#34); `rule`: not possible for this page. */
 interface MenuEntry { id: MenuAction; label: string; blocked: 'pending' | 'rule' | null; separatorBefore?: boolean }
 
@@ -24,6 +24,11 @@ const currentName = computed(() => s.workspaceView === 'tasks' ? t('Aufgaben') :
 const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
+/** The Confluence plugin is configured: pages can be linked to Confluence pages (#240). Guests never link. */
+const confluenceOffered = computed(() => Boolean(s.pluginSettings?.available && s.pluginSettings.atlassian.installed && s.pluginSettings.atlassian.enabled) && !s.roomGuest);
+const confluenceLinks = computed(() => new Map((confluenceOffered.value ? s.pluginSettings?.confluencePageLinks ?? [] : []).map((link) => [link.diagramPageId, link])));
+/** A linked page whose publication needs the user is marked; everything else is the calm "linked". */
+const confluenceProblem = (id: string): boolean => s.confluencePageLive[id]?.state === 'error';
 
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
@@ -102,6 +107,7 @@ const menuEntries = computed<MenuEntry[]>(() => {
     { id: 'copy', label: t('pages.copy'), blocked: null },
     { id: 'rename', label: t('pages.rename'), blocked: canRename.value ? null : 'rule', separatorBefore: true },
     { id: 'duplicate', label: t('pages.duplicate'), blocked: pending },
+    ...(confluenceOffered.value ? [{ id: 'confluence' as const, label: t(id && confluenceLinks.value.has(id) ? 'pages.confluenceLinked' : 'pages.confluenceLink'), blocked: null, separatorBefore: true }] : []),
     { id: 'moveUp', label: t('pages.moveUp'), blocked: pending ?? (index <= 0 ? 'rule' : null), separatorBefore: true },
     { id: 'moveDown', label: t('pages.moveDown'), blocked: pending ?? (index >= pages.value.length - 1 ? 'rule' : null) },
     { id: 'delete', label: t('pages.delete'), blocked: pending ?? (pages.value.length <= 1 ? 'rule' : null), separatorBefore: true },
@@ -144,6 +150,12 @@ function runMenu(entry: MenuEntry): void {
   if (!id || entry.blocked === 'rule') return;
   const page = pages.value.find((p) => p.id === id);
   const index = pages.value.findIndex((p) => p.id === id);
+  if (entry.id === 'confluence') {
+    // The dialog is modal: the panel closes first, so the focus has a place to return to afterwards.
+    closePanel(true);
+    if (page) void nextTick(() => store.openConfluencePageLink(id));
+    return;
+  }
   closeMenu(entry.id !== 'rename');
   if (!page) return;
   switch (entry.id) {
@@ -359,6 +371,16 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             @keydown="onRowKeydown(page, index, $event)"
           >
             <span class="page-name">{{ tm(page.name) }}</span>
+            <span
+              v-if="confluenceLinks.has(page.id)"
+              class="page-linked"
+              :class="{ problem: confluenceProblem(page.id) }"
+              :data-testid="`page-confluence-${page.id}`"
+              :title="t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle })"
+            >
+              <AppIcon :name="confluenceProblem(page.id) ? 'warning' : 'link'" :size="14" />
+              <span class="visually-hidden">{{ t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle }) }}</span>
+            </span>
           </button>
           <button
             type="button"
@@ -597,6 +619,17 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
 .page-row.active .page-name {
   color: var(--accent-ink);
   font-weight: 600;
+}
+
+.page-linked {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.page-linked.problem {
+  color: var(--status-error);
 }
 
 .rename-input {

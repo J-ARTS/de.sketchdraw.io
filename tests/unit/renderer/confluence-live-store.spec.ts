@@ -4,7 +4,7 @@ import { builtInComponentSets } from '@/catalog';
 import { formatDiagram } from '@/codec';
 import {
   createController, createDocument, createElement, serializeDocument,
-  type ComponentSet, type ConfluenceLiveLink, type ConfluenceLivePublishInput, type ConfluenceLivePublishResult, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type PluginSettingsSnapshot, type SketchDocument,
+  type ComponentSet, type ConfluenceLiveLink, type ConfluencePageLiveLink, type ConfluenceLivePublishInput, type ConfluenceLivePublishResult, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type PluginSettingsSnapshot, type SketchDocument,
 } from '@/domain';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { WhiteboardStore } from '@/renderer/state/contract';
@@ -33,18 +33,32 @@ function pixel(red: number, green: number, blue: number): string {
 const stores: WhiteboardStore[] = [];
 afterEach(() => { for (const store of stores.splice(0)) store.dispose(); vi.restoreAllMocks(); });
 
-async function setup(document: SketchDocument = createDocument('AWS Bedrock AgentCore'), options: { debounceMs?: number; open?: boolean; link?: Partial<ConfluenceLiveLink> | null; retryDelaysMs?: number[] } = {}) {
+/** What the publication of a linked page is doing; the first page of the diagram unless another one is named. */
+const live = (store: WhiteboardStore, pageId = store.state.document.pages[0]!.id) => store.state.confluencePageLive[pageId] ?? { state: 'off' as const, message: '' };
+const firstPage = (store: WhiteboardStore) => store.state.document.pages[0]!.id;
+
+/**
+ * `link`: the link of the first page (null: none). `links`: links of further pages by page id. `diagramLink`: a link
+ * of the whole diagram as versions before #240 stored it.
+ */
+async function setup(document: SketchDocument = createDocument('AWS Bedrock AgentCore'), options: { debounceMs?: number; open?: boolean; link?: Partial<ConfluenceLiveLink> | null; links?: Record<string, Partial<ConfluenceLiveLink>>; diagramLink?: Partial<ConfluenceLiveLink>; retryDelaysMs?: number[] } = {}) {
   let pluginListener: ((event: PluginExternalEvent) => void) | undefined;
   /** What the main process would answer; tests change it to play profile, link and plugin changes. */
+  const target = (overrides: Partial<ConfluenceLiveLink> = {}): ConfluenceLiveLink => ({ pageId: '164037', pageTitle: 'Architektur', pageUrl: 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=164037', siteUrl: 'https://example.atlassian.net', documentId: document.id, usable: true, ...overrides });
   const remote = {
-    link: options.link === null ? null : { pageId: '164037', pageTitle: 'Architektur', pageUrl: 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=164037', siteUrl: 'https://example.atlassian.net', documentId: document.id, usable: true, ...options.link } as ConfluenceLiveLink | null,
+    links: [
+      ...(options.link === null || options.diagramLink ? [] : [{ ...target(options.link), diagramPageId: document.pages[0]!.id }]),
+      ...Object.entries(options.links ?? {}).map(([diagramPageId, overrides]) => ({ ...target(overrides), diagramPageId })),
+    ] as ConfluencePageLiveLink[],
+    diagramLink: options.diagramLink ? target(options.diagramLink) : null as ConfluenceLiveLink | null,
     profile: 'default', enabled: true,
   };
   const snapshot = (handle: string | null | undefined): PluginSettingsSnapshot => ({
     available: true, projectFolder: handle === null ? '' : '/project', profiles: [{ id: 'default', name: 'Standard' }, { id: 'work', name: 'Arbeit' }], activeProfileId: remote.profile,
     git: { installed: true, enabled: true, folderPath: '/project', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'ready', message: 'Bereit' },
     atlassian: { installed: true, enabled: remote.enabled, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '', credentialStored: true, health: 'ready', message: 'Bereit' },
-    ...(remote.link && handle !== null && remote.profile === 'default' ? { confluenceLive: { ...remote.link } } : {}),
+    ...(remote.diagramLink && handle !== null && remote.profile === 'default' ? { confluenceLive: { ...remote.diagramLink } } : {}),
+    ...(remote.links.length && handle !== null && remote.profile === 'default' ? { confluencePageLinks: remote.links.map((link) => ({ ...link })) } : {}),
   });
   const published: ConfluenceLivePublishInput[] = [];
   const publishConfluenceLive = vi.fn(async (input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult> => { published.push(input); return synced(); });
@@ -53,7 +67,16 @@ async function setup(document: SketchDocument = createDocument('AWS Bedrock Agen
     selectProfile: vi.fn(async (id: string) => { remote.profile = id; return snapshot(HANDLE); }), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(),
     afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(async (input) => { remote.enabled = input.enabled; return snapshot(HANDLE); }), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
     listConfluencePages: vi.fn(async () => []), getConfluencePage: vi.fn(), updateConfluencePage: vi.fn(),
-    setConfluenceLiveLink: vi.fn(async ({ pageId, documentId }) => { remote.link = pageId === null ? null : { pageId, pageTitle: 'Architektur', pageUrl: 'https://example.atlassian.net/wiki/x', siteUrl: 'https://example.atlassian.net', documentId, usable: true }; return snapshot(HANDLE); }),
+    setConfluenceLiveLink: vi.fn(async ({ pageId, documentId, diagramPageId }: { pageId: string | null; documentId: string; diagramPageId?: string }) => {
+      remote.links = remote.links.filter((link) => link.diagramPageId !== diagramPageId);
+      if (pageId !== null) remote.links.push({ ...target({ pageId, pageTitle: `Seite ${pageId}`, pageUrl: `https://example.atlassian.net/wiki/${pageId}`, documentId }), diagramPageId: diagramPageId! });
+      return snapshot(HANDLE);
+    }),
+    convertConfluenceLiveLink: vi.fn(async ({ documentId, diagramPageIds }: { documentId: string; diagramPageIds: string[] }) => {
+      if (remote.diagramLink?.documentId === documentId) remote.links.push(...diagramPageIds.map((diagramPageId: string) => ({ ...remote.diagramLink!, diagramPageId })));
+      remote.diagramLink = null;
+      return snapshot(HANDLE);
+    }),
     publishConfluenceLive,
     createJiraIssue: vi.fn(async (input) => ({ id: '100', key: 'SK-1', title: input.title, description: input.description, status: 'todo' as const, remoteStatus: 'To Do', url: 'https://example.atlassian.net/browse/SK-1', updatedAt: '2026-10-18T10:00:00.000Z' })),
     listJiraIssues: vi.fn(async () => []), updateJiraIssue: vi.fn(), transitionJiraIssue: vi.fn(),
@@ -71,7 +94,7 @@ async function setup(document: SketchDocument = createDocument('AWS Bedrock Agen
   return { store, plugins, bridge, remote, published, publishConfluenceLive, rasterize, emit: (event: PluginExternalEvent) => pluginListener?.(event) };
 }
 
-describe('automatic publication of a diagram to its linked Confluence page (#210)', () => {
+describe('automatic publication of linked diagram pages to their Confluence pages (#210, #240)', () => {
   it('publishes the rendered diagram after opening and after every local edit, without a manual send', async () => {
     const { store, published, plugins } = await setup();
     await vi.waitFor(() => expect(published).toHaveLength(1));
@@ -79,19 +102,19 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     expect(published[0]!.images).toHaveLength(1);
     expect([...published[0]!.images[0]!.png.slice(0, 8)]).toEqual(PNG);
     expect(rendered(published[0]!)).toContain('AWS Bedrock AgentCore');
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
-    expect(store.state.confluenceLive.syncedAt).toBeDefined();
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
+    expect(live(store).syncedAt).toBeDefined();
 
     // A local edit: an AWS component is placed on the canvas.
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
-    expect(store.state.confluenceLive.state).toBe('pending');
+    expect(live(store).state).toBe('pending');
     await vi.waitFor(() => expect(published).toHaveLength(2));
     expect(published[1]!.images[0]!.hash).not.toBe(published[0]!.images[0]!.hash);
     expect(rendered(published[1]!)).toContain('<g id="sd-0"');
     expect(rendered(published[0]!)).not.toContain('<g id="sd-0"');
     // The image is a picture of the diagram only: no embedded document, no script.
     expect(rendered(published[1]!)).not.toMatch(/<metadata|<script|sketchdraw-interop/);
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     await settle();
     expect(published).toHaveLength(2);
     // The diagram itself never carries the link or anything about the publication.
@@ -125,37 +148,110 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(2);
-    expect(store.state.confluenceLive.state).toBe('syncing');
+    expect(live(store).state).toBe('syncing');
     release(synced());
     await vi.waitFor(() => expect(published).toHaveLength(3));
     expect(rendered(published[2]!)).toContain('<g id="sd-1"');
     expect(overlap).toBe(false);
   });
 
-  it('renders every page of the diagram, not only the visible one, and follows added pages', async () => {
+  it('publishes each linked page through its own link, whichever page is visible, and nothing of a page without a link', async () => {
     const document = createDocument('Plattform');
-    document.pages = [{ id: 'page:overview', name: 'Übersicht' }, { id: 'page:network', name: 'Netz' }];
+    document.pages = [{ id: 'page:overview', name: 'Übersicht' }, { id: 'page:network', name: 'Netz' }, { id: 'page:notes', name: 'Notizen' }];
     document.elements = [
       createElement('rectangle', { id: 'el:a', pageId: 'page:overview', x: 0, y: 0, width: 200, height: 100, text: 'Gateway' }),
       createElement('rectangle', { id: 'el:b', pageId: 'page:network', x: 0, y: 0, width: 200, height: 100, text: 'VPC privat' }),
+      createElement('rectangle', { id: 'el:c', pageId: 'page:notes', x: 0, y: 0, width: 200, height: 100, text: 'Nur intern' }),
     ];
-    const { store, published, rasterize } = await setup(document);
-    await vi.waitFor(() => expect(published).toHaveLength(1));
-    expect(published[0]!.images.map((image) => [image.pageId, image.name])).toEqual([['page:overview', 'Übersicht'], ['page:network', 'Netz']]);
-    expect(store.state.activePageId).toBe('page:overview');
-    expect(rendered(published[0]!, 0)).toContain('Gateway');
-    expect(rendered(published[0]!, 0)).toContain('Plattform · Übersicht');
-    expect(rendered(published[0]!, 1)).toContain('VPC privat');
-    expect(rendered(published[0]!, 1)).not.toContain('Gateway');
-    expect(rasterize).toHaveBeenCalledTimes(2);
-
-    store.addPage(); await store.whenIdle();
+    const { store, published, rasterize } = await setup(document, { links: { 'page:network': { pageId: '200200' } } });
     await vi.waitFor(() => expect(published).toHaveLength(2));
-    expect(published[1]!.images).toHaveLength(3);
-    expect(rendered(published[1]!, 2)).toContain('Diese Seite ist leer.');
-    // Unchanged pages are not drawn again.
+    // One publication per linked page, each with exactly the image of that page.
+    expect(published.map((input) => [input.diagramPageId, input.images.map((image) => [image.pageId, image.name])]).sort()).toEqual([
+      ['page:network', [['page:network', 'Netz']]],
+      ['page:overview', [['page:overview', 'Übersicht']]],
+    ]);
+    expect(store.state.activePageId).toBe('page:overview');
+    const overview = published.find((input) => input.diagramPageId === 'page:overview')!;
+    const network = published.find((input) => input.diagramPageId === 'page:network')!;
+    expect(rendered(overview)).toContain('Gateway');
+    expect(rendered(overview)).toContain('Plattform · Übersicht');
+    expect(rendered(network)).toContain('VPC privat');
+    expect(rendered(network)).not.toContain('Gateway');
+    expect(published.map((input) => rendered(input)).join()).not.toContain('Nur intern');
+    expect(rasterize).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect([live(store, 'page:overview').state, live(store, 'page:network').state]).toEqual(['synced', 'synced']));
+    expect(Object.keys(store.state.confluencePageLive).sort()).toEqual(['page:network', 'page:overview']);
+
+    // An edit on one page publishes that page only; the other page is neither drawn nor sent again.
+    store.selectPage('page:network');
+    await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
+    await vi.waitFor(() => expect(published).toHaveLength(3));
+    await settle();
+    expect(published).toHaveLength(3);
+    expect(published[2]!.diagramPageId).toBe('page:network');
+    expect(published[2]!.images[0]!.hash).not.toBe(network.images[0]!.hash);
     expect(rasterize).toHaveBeenCalledTimes(3);
-    expect(published[1]!.images[0]!.hash).toBe(published[0]!.images[0]!.hash);
+
+    // A page without a link is never published, also when it changes or a page is added.
+    store.selectPage('page:notes');
+    await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
+    store.addPage(); await store.whenIdle();
+    await settle();
+    expect(published).toHaveLength(3);
+  });
+
+  it('pauses the link of a deleted page and continues when the deletion is undone', async () => {
+    const document = createDocument('Plattform');
+    document.pages = [{ id: 'page:overview', name: 'Übersicht' }, { id: 'page:network', name: 'Netz' }];
+    document.elements = [createElement('rectangle', { id: 'el:b', pageId: 'page:network', x: 0, y: 0, width: 200, height: 100, text: 'VPC privat' })];
+    const { store, published } = await setup(document, { link: null, links: { 'page:network': {} } });
+    await vi.waitFor(() => expect(live(store, 'page:network').state).toBe('synced'));
+    expect(published).toHaveLength(1);
+
+    store.deletePage('page:network'); await store.whenIdle();
+    expect(store.state.pages.map((page) => page.id)).toEqual(['page:overview']);
+    expect(live(store, 'page:network')).toMatchObject({ state: 'paused', message: 'Diese Seite gibt es im Diagramm nicht mehr.' });
+    await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
+    await settle();
+    expect(published).toHaveLength(1);
+
+    await store.undo(); await store.whenIdle();
+    await store.undo(); await store.whenIdle();
+    expect(store.state.pages.map((page) => page.id)).toEqual(['page:overview', 'page:network']);
+    await vi.waitFor(() => expect(live(store, 'page:network').state).toBe('synced'));
+    expect(published.every((input) => input.diagramPageId === 'page:network')).toBe(true);
+  });
+
+  it('turns a link of the whole diagram from an earlier version into links per page as soon as the diagram is open', async () => {
+    const document = createDocument('Plattform');
+    document.pages = [{ id: 'page:overview', name: 'Übersicht' }, { id: 'page:network', name: 'Netz' }];
+    const { store, published, plugins } = await setup(document, { diagramLink: { lastSyncedAt: '2026-11-19T10:00:00.000Z' } });
+    await vi.waitFor(() => expect(plugins.convertConfluenceLiveLink).toHaveBeenCalledTimes(1));
+    expect(plugins.convertConfluenceLiveLink).toHaveBeenCalledWith({ handleId: HANDLE, documentId: document.id, diagramPageIds: ['page:overview', 'page:network'] });
+    await vi.waitFor(() => expect(store.state.pluginSettings?.confluencePageLinks?.map((link) => link.diagramPageId)).toEqual(['page:overview', 'page:network']));
+    expect(store.state.pluginSettings).not.toHaveProperty('confluenceLive');
+    await vi.waitFor(() => expect(published).toHaveLength(2));
+    // Nothing is ever published through the link of the whole diagram.
+    expect(published.map((input) => input.diagramPageId).sort()).toEqual(['page:network', 'page:overview']);
+    await settle();
+    expect(plugins.convertConfluenceLiveLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a link of the whole diagram alone when the diagram is not open as a local file, and asks only once when the conversion fails', async () => {
+    const closed = await setup(createDocument('AWS'), { open: false, diagramLink: {} });
+    await closed.store.refreshPluginSettings();
+    await settle();
+    expect(closed.plugins.convertConfluenceLiveLink).not.toHaveBeenCalled();
+    expect(closed.published).toHaveLength(0);
+
+    const failing = await setup(createDocument('AWS'), { open: false, diagramLink: {} });
+    vi.mocked(failing.plugins.convertConfluenceLiveLink!).mockRejectedValue(new Error('Profile sind gesperrt.'));
+    vi.mocked(failing.bridge.openDocument).mockResolvedValue({ status: 'opened', text: serializeDocument(failing.store.state.document), file: file('1') });
+    await failing.store.openDocument(); await failing.store.refreshPluginSettings(); await failing.store.refreshPluginSettings();
+    await settle();
+    expect(failing.plugins.convertConfluenceLiveLink).toHaveBeenCalledTimes(1);
+    expect(failing.published).toHaveLength(0);
+    expect(failing.store.state.notices.filter((notice) => notice.kind === 'error')).toEqual([]);
   });
 
   it('publishes a version that arrives through Git as soon as it is loaded', async () => {
@@ -169,7 +265,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     expect(store.state.document.elements).toHaveLength(1);
     expect(rendered(published[1]!)).toContain('Aus Git: Guardrails');
     expect(published[1]!.images[0]!.hash).not.toBe(published[0]!.images[0]!.hash);
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
   });
 
   it('keeps unsaved local work when Git brings a change and pauses the publication until the conflict is resolved', async () => {
@@ -184,7 +280,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     // The local, unsaved component stays; the external version waits.
     expect(store.state.pendingExternalDocument).toBe(true);
     expect(store.state.document.elements[0]?.kind).toBe('component');
-    expect(store.state.confluenceLive).toMatchObject({ state: 'paused', message: expect.stringContaining('externe Änderung wartet') });
+    expect(live(store)).toMatchObject({ state: 'paused', message: expect.stringContaining('externe Änderung wartet') });
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(2);
@@ -197,9 +293,9 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
   it('does not contact Confluence for changes that leave the pictures as they are', async () => {
     const { store, published, rasterize } = await setup();
     await vi.waitFor(() => expect(published).toHaveLength(1));
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     const states: string[] = [];
-    const stop = setInterval(() => { states.push(store.state.confluenceLive.state); }, 2);
+    const stop = setInterval(() => { states.push(live(store).state); }, 2);
     expect(await store.createTask({ title: 'Review', description: 'Nur eine Aufgabe' })).toBe(true);
     expect(store.state.document.tasks).toHaveLength(1);
     await settle();
@@ -218,7 +314,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await vi.waitFor(() => expect(published).toHaveLength(1));
     await store.insertComponent(team, 'custom.team.service'); await store.whenIdle();
     await vi.waitFor(() => expect(published).toHaveLength(2));
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     expect(rendered(published[1]!)).toContain('#ff0000');
 
     // A valid replacement of the whole diagram code in which nothing but the icon definition differs.
@@ -236,7 +332,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     expect(rendered(published[2]!)).toContain('#0000ff');
     expect(rendered(published[2]!)).not.toContain('#ff0000');
     expect(rasterize).toHaveBeenCalledTimes(3);
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
   });
 
   it('publishes on its own when a used image is replaced by another one of exactly the same size', async () => {
@@ -248,7 +344,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     document.elements = [createElement('image', { id: 'el:logo', pageId: document.pages[0]!.id, x: 40, y: 40, width: 120, height: 120, assetId: 'asset:logo' })];
     const { store, published } = await setup(document);
     await vi.waitFor(() => expect(published).toHaveLength(1));
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     expect(rendered(published[0]!)).toContain(red);
 
     const next = JSON.parse(JSON.stringify(store.state.document)) as SketchDocument;
@@ -269,7 +365,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     document.elements = [createElement('rectangle', { id: 'el:a', pageId: document.pages[0]!.id, x: 0, y: 0, width: 200, height: 100, text: 'Gateway' })];
     const { store, published, rasterize } = await setup(document);
     await vi.waitFor(() => expect(published).toHaveLength(1));
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     const next = JSON.parse(JSON.stringify(store.state.document)) as SketchDocument;
     next.tasks = [{ id: 'task:1', title: 'Review', description: 'Nur eine Aufgabe', status: 'todo', rank: 0, createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z' }];
     next.commentThreads = [{ id: 'thread:1', target: { anchor: { x: .5, y: .5 }, fallback: { x: 10, y: 10 } }, messages: [{ id: 'message:1', authorId: 'user:1', authorName: 'User', body: 'Nur ein Kommentar', createdAt: '2026-11-15T10:00:00.000Z' }], resolved: false, createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z' }];
@@ -280,7 +376,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await settle();
     expect(published).toHaveLength(1);
     expect(rasterize).toHaveBeenCalledTimes(1);
-    expect(store.state.confluenceLive.state).toBe('synced');
+    expect(live(store).state).toBe('synced');
   });
 
   it('retries with growing pauses, shows the truth meanwhile and stops after the last attempt', async () => {
@@ -290,19 +386,19 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await vi.waitFor(() => expect(published).toHaveLength(1));
     publishConfluenceLive.mockImplementation(async (input) => { published.push(input); return { status: 'retry', message: 'Confluence ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.', uploaded: 0, bodyUpdated: false }; });
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('retrying'));
-    expect(store.state.confluenceLive.message).toContain('nicht erreichbar');
+    await vi.waitFor(() => expect(live(store).state).toBe('retrying'));
+    expect(live(store).message).toContain('nicht erreichbar');
     // One attempt plus two retries, then the automatic attempts end.
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('error'), { timeout: 5000 });
+    await vi.waitFor(() => expect(live(store).state).toBe('error'), { timeout: 5000 });
     expect(published).toHaveLength(4);
-    expect(store.state.confluenceLive.message).toContain('Automatische Wiederholungen sind pausiert');
+    expect(live(store).message).toContain('Automatische Wiederholungen sind pausiert');
     await settle();
     expect(published).toHaveLength(4);
 
     // The connection is back: the same unpublished state goes out and only then counts as published.
     publishConfluenceLive.mockImplementation(async (input) => { published.push(input); return synced(); });
-    store.syncConfluenceLive();
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    store.syncConfluencePage(firstPage(store));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     expect(published).toHaveLength(5);
     expect(published[4]!.images[0]!.hash).toBe(published[1]!.images[0]!.hash);
   });
@@ -313,7 +409,7 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     publishConfluenceLive.mockImplementationOnce(async (input) => { published.push(input); throw new Error('IPC lost'); });
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
     await vi.waitFor(() => expect(published).toHaveLength(3));
-    await vi.waitFor(() => expect(store.state.confluenceLive.state).toBe('synced'));
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
     expect(published[2]!.images[0]!.hash).toBe(published[1]!.images[0]!.hash);
   });
 
@@ -322,11 +418,11 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await vi.waitFor(() => expect(published).toHaveLength(1));
     publishConfluenceLive.mockImplementation(async (input) => { published.push(input); return { status: 'failed', message: 'Confluence verweigert den Zugriff. Prüfe das API-Token und die Rechte für die Seite.', uploaded: 0, bodyUpdated: false }; });
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
-    await vi.waitFor(() => expect(store.state.confluenceLive).toMatchObject({ state: 'error', message: expect.stringContaining('verweigert den Zugriff') }));
+    await vi.waitFor(() => expect(live(store)).toMatchObject({ state: 'error', message: expect.stringContaining('verweigert den Zugriff') }));
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(2);
-    expect(store.state.confluenceLive.state).toBe('error');
+    expect(live(store).state).toBe('error');
     // After the hold, the newest state is tried once more.
     await vi.waitFor(() => expect(published).toHaveLength(3), { timeout: 2000 });
     expect(rendered(published[2]!)).toContain('<g id="sd-1"');
@@ -341,10 +437,10 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await vi.waitFor(() => expect(published).toHaveLength(2));
     // The other profile has no link for this diagram.
     expect(await store.selectPluginProfile('work')).toBe(true);
-    expect(store.state.confluenceLive.state).toBe('off');
+    expect(live(store).state).toBe('off');
     release(synced());
     await settle();
-    expect(store.state.confluenceLive).toEqual({ state: 'off', message: '' });
+    expect(live(store)).toEqual({ state: 'off', message: '' });
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(2);
@@ -355,14 +451,14 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     await vi.waitFor(() => expect(published).toHaveLength(1));
     let release!: (result: ConfluenceLivePublishResult) => void;
     publishConfluenceLive.mockImplementation((input) => { published.push(input); return new Promise((resolve) => { release = resolve; }); });
-    store.syncConfluenceLive();
+    store.syncConfluencePage(firstPage(store));
     await vi.waitFor(() => expect(published).toHaveLength(2));
     await store.newDocument();
-    expect(store.state.confluenceLive.state).toBe('off');
+    expect(live(store).state).toBe('off');
     release(synced());
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
     await settle();
-    expect(store.state.confluenceLive.state).toBe('off');
+    expect(live(store).state).toBe('off');
     expect(published).toHaveLength(2);
   });
 
@@ -372,13 +468,13 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     guest.store.enterRoomGuest('editor', true);
     await guest.store.insertComponent(aws, 'aws.compute.instance'); await guest.store.whenIdle();
     await settle();
-    expect(guest.store.state.confluenceLive.state).toBe('off');
+    expect(live(guest.store).state).toBe('off');
     expect(guest.published).toHaveLength(1);
 
     const disabled = await setup();
     await vi.waitFor(() => expect(disabled.published).toHaveLength(1));
     expect(await disabled.store.configureAtlassianPlugin({ enabled: false, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '' })).toBe(true);
-    expect(disabled.store.state.confluenceLive).toMatchObject({ state: 'paused', message: expect.stringContaining('deaktiviert') });
+    expect(live(disabled.store)).toMatchObject({ state: 'paused', message: expect.stringContaining('deaktiviert') });
     await disabled.store.insertComponent(aws, 'aws.compute.instance'); await disabled.store.whenIdle();
     await settle();
     expect(disabled.published).toHaveLength(1);
@@ -386,39 +482,69 @@ describe('automatic publication of a diagram to its linked Confluence page (#210
     // The linked file now holds another diagram (for example after a pull replaced it).
     const foreign = await setup(createDocument('Fremd'), { link: { documentId: 'document:the-linked-one' } });
     await settle();
-    expect(foreign.store.state.confluenceLive).toMatchObject({ state: 'paused', message: expect.stringContaining('anderen Diagramm') });
+    expect(live(foreign.store)).toMatchObject({ state: 'paused', message: expect.stringContaining('anderen Diagramm') });
     expect(foreign.published).toHaveLength(0);
 
     const otherSite = await setup(createDocument('AWS'), { link: { usable: false, siteUrl: 'https://old.atlassian.net' } });
     await settle();
-    expect(otherSite.store.state.confluenceLive).toMatchObject({ state: 'paused', message: expect.stringContaining('anderen Atlassian-Site') });
+    expect(live(otherSite.store)).toMatchObject({ state: 'paused', message: expect.stringContaining('anderen Atlassian-Site') });
     expect(otherSite.published).toHaveLength(0);
 
     const unsaved = await setup(createDocument('Neu'), { open: false });
     await unsaved.store.insertComponent(aws, 'aws.compute.instance'); await unsaved.store.whenIdle();
     await settle();
-    expect(unsaved.store.state.confluenceLive.state).toBe('off');
+    expect(live(unsaved.store).state).toBe('off');
     expect(unsaved.published).toHaveLength(0);
   });
 
-  it('starts publishing when the diagram is linked and stops when the link is removed', async () => {
+  it('starts publishing when a page is linked, follows the page to another Confluence page and stops when the link is removed', async () => {
     const { store, published, plugins } = await setup(createDocument('AWS'), { link: null });
+    const page = firstPage(store);
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(0);
-    expect(store.state.confluenceLive.state).toBe('off');
+    expect(live(store).state).toBe('off');
+    expect(store.state.confluencePageLive).toEqual({});
 
-    expect(await store.setConfluenceLiveLink('164037')).toBe(true);
-    expect(plugins.setConfluenceLiveLink).toHaveBeenCalledWith({ handleId: HANDLE, documentId: store.state.document.id, pageId: '164037' });
-    expect(store.state.pluginSettings?.confluenceLive).toMatchObject({ pageId: '164037' });
+    expect(await store.setConfluencePageLink(page, '164037')).toBe(true);
+    expect(plugins.setConfluenceLiveLink).toHaveBeenCalledWith({ handleId: HANDLE, documentId: store.state.document.id, pageId: '164037', diagramPageId: page, diagramPageIds: [page] });
+    expect(store.state.pluginSettings?.confluencePageLinks).toMatchObject([{ diagramPageId: page, pageId: '164037' }]);
+    expect(store.state.notices.at(-1)?.text).toContain('ist mit der Confluence-Seite „Seite 164037“ verknüpft');
     await vi.waitFor(() => expect(published).toHaveLength(1));
+    expect(published[0]!.diagramPageId).toBe(page);
     expect(rendered(published[0]!)).toContain('<g id="sd-0"');
+    await vi.waitFor(() => expect(live(store).state).toBe('synced'));
 
-    expect(await store.setConfluenceLiveLink(null)).toBe(true);
-    expect(store.state.confluenceLive.state).toBe('off');
+    // Another target is another publication: the same picture is sent to the new Confluence page.
+    expect(await store.setConfluencePageLink(page, '200200')).toBe(true);
+    await vi.waitFor(() => expect(published).toHaveLength(2));
+    expect(published[1]!.images[0]!.hash).toBe(published[0]!.images[0]!.hash);
+
+    expect(await store.setConfluencePageLink(page, null)).toBe(true);
+    expect(plugins.setConfluenceLiveLink).toHaveBeenLastCalledWith({ handleId: HANDLE, documentId: store.state.document.id, pageId: null, diagramPageId: page, diagramPageIds: [page] });
+    expect(live(store).state).toBe('off');
+    expect(store.state.confluencePageLive).toEqual({});
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
     await settle();
-    expect(published).toHaveLength(1);
+    expect(published).toHaveLength(2);
+    // A page that does not exist cannot be linked.
+    expect(await store.setConfluencePageLink('page:missing', '164037')).toBe(false);
+  });
+
+  it('opens the link dialog for an existing page and closes it when the diagram goes away', async () => {
+    const { store, bridge } = await setup();
+    store.openConfluencePageLink('page:missing');
+    expect(store.state.confluenceLinkPageId).toBeNull();
+    store.openConfluencePageLink(firstPage(store));
+    expect(store.state.confluenceLinkPageId).toBe(firstPage(store));
+    store.closeConfluencePageLink();
+    expect(store.state.confluenceLinkPageId).toBeNull();
+
+    store.openConfluencePageLink(firstPage(store));
+    const other = createDocument('Anderes Diagramm');
+    vi.mocked(bridge.openDocument).mockResolvedValue({ status: 'opened', text: serializeDocument(other), file: { ...file('2'), handleId: 'hdl_ffffffffffffffffffffffffffffffff' } });
+    await store.openDocument();
+    expect(store.state.confluenceLinkPageId).toBeNull();
   });
 
   it('stops for good when the store is disposed', async () => {
@@ -474,12 +600,12 @@ describe('manual send of an embedded Confluence page', () => {
     const retryAt = new Date(Date.now() + 3600_000).toISOString();
     publishConfluenceLive.mockImplementation(async (input) => { published.push(input); return { status: 'retry', message: 'Confluence hat um eine Pause gebeten. Die Veröffentlichung wird danach automatisch fortgesetzt.', uploaded: 0, bodyUpdated: false, retryAt }; });
     await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
-    await vi.waitFor(() => expect(store.state.confluenceLive).toMatchObject({ state: 'retrying', retryAt }));
+    await vi.waitFor(() => expect(live(store)).toMatchObject({ state: 'retrying', retryAt }));
     // Edits and a manual start during the pause do not call the main process again.
     await store.insertComponent(aws, 'aws.compute.instance', { x: 600, y: 300 }); await store.whenIdle();
-    store.syncConfluenceLive();
+    store.syncConfluencePage(firstPage(store));
     await settle();
     expect(published).toHaveLength(2);
-    expect(store.state.confluenceLive).toMatchObject({ state: 'retrying', retryAt });
+    expect(live(store)).toMatchObject({ state: 'retrying', retryAt });
   });
 });

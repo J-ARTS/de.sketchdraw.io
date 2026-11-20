@@ -167,8 +167,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   let transitionResult: ((success: boolean) => void) | null = null;
   let unknownWrite: { guest: GuestSession; intent: WriteIntent; recover: () => void } | null = null;
   let pendingExternalEvent: PluginExternalEvent | null = null;
-  /** Keeps the linked Confluence page up to date (#210); created once the store exists. */
-  let liveSync: ConfluenceLiveSync | null = null;
+  /** Keeps the Confluence page of each linked diagram page up to date (#240), by diagram page id. */
+  const liveSyncs = new Map<string, ConfluenceLiveSync>();
   /**
    * What the pictures of the last seen document are made of. Everything of the document counts, including the icon
    * definitions of its component sets, except tasks and comments, which no picture shows. Embedded images count by
@@ -233,7 +233,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
   }
   function clearPluginContext(): void {
-    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false;
+    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false; state.confluenceLinkPageId = null;
     pendingExternalEvent = null; state.pendingExternalDocument = false;
   }
   const actorId = options.actorId ?? ACTOR_ID;
@@ -324,7 +324,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
-    confluenceLive: { state: 'off', message: '' } as WhiteboardState['confluenceLive'],
+    confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -578,13 +578,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!state.code.dirty) { state.code.text = formatDiagram(snapshot.document); state.code.baseRevision = snapshot.revision; codeBase = snapshot.document; }
     if (titleDraft === before.title) titleDraft = snapshot.document.title;
     if (!localCommit && before !== snapshot.document) state.offscreenChanges += 1;
-    // Whatever changed what the pages look like (own edits, undo, code, agents) is published to the linked Confluence page.
+    // Whatever changed what the pages look like (own edits, undo, code, agents) is published to the linked Confluence pages.
     // Snapshots are detached copies, so the content decides; tasks and comments alone never start a publication.
-    if (liveSync && state.confluenceLive.state !== 'off') {
+    // Every linked page is asked; a page that still renders to the same picture sends nothing.
+    if (liveSyncs.size > 0) {
       const seen = liveSee(snapshot.document);
       const changed = !liveSeen || liveLooksDifferent(liveSeen, seen);
       liveSeen = seen;
-      if (changed) liveSync.documentChanged();
+      if (changed) for (const sync of liveSyncs.values()) sync.documentChanged();
     } else liveSeen = null;
     if (!state.frameSlides.length) { state.presenterOpen = false; state.presenterIndex = 0; }
     else state.presenterIndex = Math.min(state.presenterIndex, state.frameSlides.length - 1);
@@ -2325,19 +2326,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.pluginBusy = true; try { const page = await bridge.plugins.getConfluencePage(pageId); if (!pluginContextCurrent(generation)) return false; const annotation = confluenceStorageToAnnotation(page.storageBody); const ok = await dispatch({ type: 'update', changes: [{ id: element.id, patch: { label: page.title, text: annotationPlainText(annotation), annotation, documentationUrl: page.url, metadata: { 'sketchdraw.atlassian.pageVersion': String(page.version), 'sketchdraw.atlassian.pageUrl': page.url, ...(page.bodyHash ? { [CONFLUENCE_BODY_HASH_KEY]: page.bodyHash } : {}) } } }] }); if (ok) notice(t('Confluence-Seite neu geladen.')); return ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
-    async setConfluenceLiveLink(pageId) {
+    async setConfluencePageLink(diagramPageId, pageId) {
       const generation = pluginGeneration; const handle = currentPluginHandle();
-      if (!bridge.plugins?.setConfluenceLiveLink || !handle || !hasPluginProject() || state.pluginBusy) return false;
+      const page = state.document.pages.find((entry) => entry.id === diagramPageId);
+      if (!bridge.plugins?.setConfluenceLiveLink || !handle || !page || !hasPluginProject() || state.pluginBusy) return false;
       state.pluginBusy = true;
       try {
-        const settings = await bridge.plugins.setConfluenceLiveLink({ handleId: handle, documentId: state.document.id, pageId });
+        const settings = await bridge.plugins.setConfluenceLiveLink({ handleId: handle, documentId: state.document.id, pageId, diagramPageId, diagramPageIds: state.document.pages.map((entry) => entry.id) });
         if (!pluginContextCurrent(generation) || handle !== currentPluginHandle()) return false;
         state.pluginSettings = settings;
-        notice(pageId === null ? t('Live-Verknüpfung mit Confluence gelöst.') : t('Diagramm mit Confluence-Seite „{title}“ verknüpft. Änderungen werden automatisch übertragen.', { title: settings.confluenceLive?.pageTitle ?? '' }));
+        const title = settings.confluencePageLinks?.find((link) => link.diagramPageId === diagramPageId)?.pageTitle ?? '';
+        notice(pageId === null
+          ? t('Verknüpfung von „{page}“ mit Confluence gelöst.', { page: page.name })
+          : t('„{page}“ ist mit der Confluence-Seite „{title}“ verknüpft. Änderungen werden automatisch übertragen.', { page: page.name, title }));
         return true;
       } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
-    syncConfluenceLive() { liveSync?.syncNow(); },
+    syncConfluencePage(diagramPageId) { liveSyncs.get(diagramPageId)?.syncNow(); },
+    openConfluencePageLink(diagramPageId) { if (state.document.pages.some((page) => page.id === diagramPageId)) state.confluenceLinkPageId = diagramPageId; },
+    closeConfluencePageLink() { state.confluenceLinkPageId = null; },
     async syncJiraTasks(options) {
       const generation = pluginGeneration;
       if (!bridge.plugins || !hasPluginProject() || !state.pluginSettings?.atlassian.enabled || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
@@ -2618,20 +2625,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     else notice(t('Die Datei wurde extern geändert. Lokale Entwürfe bleiben erhalten; neu laden ist in den Plugin-Einstellungen möglich.'), 'error');
   }) ?? (() => {});
 
-  // --- Automatic publication to the linked Confluence page (#210) ---
+  // --- Automatic publication of linked pages to their Confluence pages (#210, #240) ---
   /**
-   * Who may publish what, right now. Only the local owner of a saved diagram with an explicit link publishes; guests,
-   * unsaved or foreign diagrams, a disabled plugin and open conflicts never do.
+   * Who may publish what, right now, for the link of one diagram page. Only the local owner of a saved diagram with
+   * an explicit link publishes; guests, unsaved or foreign diagrams, a disabled plugin and open conflicts never do.
    */
-  function liveContext(): ConfluenceLiveContext {
-    const settings = state.pluginSettings; const link = settings?.confluenceLive; const handle = currentPluginHandle();
+  function liveContext(diagramPageId: string): ConfluenceLiveContext {
+    const settings = state.pluginSettings; const handle = currentPluginHandle();
+    const link = settings?.confluencePageLinks?.find((entry) => entry.diagramPageId === diagramPageId);
     if (disposed || !bridge.plugins?.publishConfluenceLive || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
-    const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id].join('\n');
+    const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
     const paused = (message: string): ConfluenceLiveContext => ({ kind: 'paused', key, message });
     if (!settings.atlassian.installed || !settings.atlassian.enabled) return paused(t('Das Jira-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
     if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
-    if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe das Diagramm neu.'));
-    if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe dieses Diagramm neu.'));
+    if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
+    if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.'));
+    // A deleted page keeps its link: undoing the deletion continues where it stopped.
+    if (!state.document.pages.some((page) => page.id === diagramPageId)) return paused(t('Diese Seite gibt es im Diagramm nicht mehr.'));
     if (state.pendingExternalDocument) return paused(t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
     if (state.file.conflict) return paused(t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
     if (state.transitioning) return paused('');
@@ -2640,33 +2650,67 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const rasterizeLive = options.confluenceLive?.rasterize ?? rasterizeSvgToPng;
   /** Pages whose rendered content did not change are not drawn again. */
   const liveImageCache = new Map<string, { hash: string; png: Uint8Array }>();
-  async function renderLiveImages(document: SketchDocument): Promise<ConfluenceLiveImage[]> {
-    const pages = await renderLivePages(document, { empty: t('Diese Seite ist leer.') });
-    const images: ConfluenceLiveImage[] = [];
-    for (const page of pages) {
-      const cached = liveImageCache.get(page.pageId);
-      const png = cached?.hash === page.hash ? cached.png : await rasterizeLive(page.svg, page.width, page.height);
-      liveImageCache.set(page.pageId, { hash: page.hash, png });
-      images.push({ pageId: page.pageId, name: page.name, hash: page.hash, width: page.width, height: page.height, png });
-    }
-    for (const pageId of [...liveImageCache.keys()]) if (!pages.some((page) => page.pageId === pageId)) liveImageCache.delete(pageId);
-    return images;
+  async function renderLiveImage(document: SketchDocument, diagramPageId: string): Promise<ConfluenceLiveImage[]> {
+    const [page] = await renderLivePages(document, { empty: t('Diese Seite ist leer.') }, [diagramPageId]);
+    if (!page) throw new Error(t('Diese Seite gibt es im Diagramm nicht mehr.'));
+    const cached = liveImageCache.get(page.pageId);
+    const png = cached?.hash === page.hash ? cached.png : await rasterizeLive(page.svg, page.width, page.height);
+    liveImageCache.set(page.pageId, { hash: page.hash, png });
+    return [{ pageId: page.pageId, name: page.name, hash: page.hash, width: page.width, height: page.height, png }];
   }
-  liveSync = createConfluenceLiveSync({
-    context: liveContext,
-    render: renderLiveImages,
-    async publish(input) {
-      const generation = pluginGeneration;
-      const result = await bridge.plugins!.publishConfluenceLive!(input);
-      // A result that arrives after the diagram, profile or project changed belongs to nobody any more.
-      if (!pluginContextCurrent(generation)) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
-      return result;
-    },
-    onStatus(status) { state.confluenceLive = status; },
-    ...(options.confluenceLive?.debounceMs !== undefined ? { debounceMs: options.confluenceLive.debounceMs } : {}),
-    ...(options.confluenceLive?.retryDelaysMs !== undefined ? { retryDelaysMs: options.confluenceLive.retryDelaysMs } : {}),
-    ...(options.confluenceLive?.failureHoldMs !== undefined ? { failureHoldMs: options.confluenceLive.failureHoldMs } : {}),
-  });
+  function createLiveSync(diagramPageId: string): ConfluenceLiveSync {
+    return createConfluenceLiveSync({
+      context: () => liveContext(diagramPageId),
+      render: (document) => renderLiveImage(document, diagramPageId),
+      async publish(input) {
+        const generation = pluginGeneration;
+        const result = await bridge.plugins!.publishConfluenceLive!({ ...input, diagramPageId });
+        // A result that arrives after the diagram, profile or project changed belongs to nobody any more.
+        if (!pluginContextCurrent(generation)) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
+        return result;
+      },
+      onStatus(status) {
+        // Only a page that still has its synchronisation shows a status.
+        if (liveSyncs.has(diagramPageId)) state.confluencePageLive = { ...state.confluencePageLive, [diagramPageId]: status };
+      },
+      ...(options.confluenceLive?.debounceMs !== undefined ? { debounceMs: options.confluenceLive.debounceMs } : {}),
+      ...(options.confluenceLive?.retryDelaysMs !== undefined ? { retryDelaysMs: options.confluenceLive.retryDelaysMs } : {}),
+      ...(options.confluenceLive?.failureHoldMs !== undefined ? { failureHoldMs: options.confluenceLive.failureHoldMs } : {}),
+    });
+  }
+  /** One synchronisation per linked page: started for a new link, stopped with a removed one, told about every change of its context. */
+  function reconcileLive(): void {
+    const linked = new Set(disposed || !currentPluginHandle() ? [] : (state.pluginSettings?.confluencePageLinks ?? []).map((link) => link.diagramPageId));
+    for (const [diagramPageId, sync] of [...liveSyncs]) {
+      if (linked.has(diagramPageId)) continue;
+      sync.dispose(); liveSyncs.delete(diagramPageId); liveImageCache.delete(diagramPageId);
+    }
+    for (const diagramPageId of linked) if (!liveSyncs.has(diagramPageId)) liveSyncs.set(diagramPageId, createLiveSync(diagramPageId));
+    const statuses: Record<string, WhiteboardState['confluencePageLive'][string]> = {};
+    for (const diagramPageId of liveSyncs.keys()) statuses[diagramPageId] = state.confluencePageLive[diagramPageId] ?? { state: 'off', message: '' };
+    state.confluencePageLive = statuses;
+    if (liveSyncs.size === 0) liveSeen = null;
+    // The first publication of a context covers the document as it is now; later snapshots are compared with it.
+    else liveSeen ??= liveSee(state.document);
+    for (const sync of liveSyncs.values()) sync.contextChanged();
+  }
+  /**
+   * A link of the whole diagram from a version before #240 becomes one link per page as soon as the local owner has
+   * the diagram open. Asked once per link; the main process decides and answers with the new links.
+   */
+  let convertedFor: string | null = null;
+  function convertDiagramLink(): void {
+    const settings = state.pluginSettings; const link = settings?.confluenceLive; const handle = currentPluginHandle();
+    if (disposed || !link || !handle || !settings?.projectFolder || !bridge.plugins?.convertConfluenceLiveLink || state.transitioning) return;
+    const attempt = [handle, settings.activeProfileId, link.pageId, link.documentId, state.document.id].join('\n');
+    if (attempt === convertedFor) return;
+    convertedFor = attempt;
+    const generation = pluginGeneration;
+    void bridge.plugins.convertConfluenceLiveLink({ handleId: handle, documentId: state.document.id, diagramPageIds: state.document.pages.map((page) => page.id) })
+      .then((converted) => { if (pluginContextCurrent(generation) && handle === currentPluginHandle()) state.pluginSettings = converted; })
+      // The link stays as it is and is offered again after the next change of profile, diagram or link.
+      .catch(() => undefined);
+  }
   const liveScope = effectScope(true);
   liveScope.run(() => {
     // Navigating on one's own ends following; every change of what this window shows is reported to the session.
@@ -2674,17 +2718,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     watch(() => state.activePageId, () => { if (!followMoving) stopFollowing(); emitView(); }, { flush: 'sync' });
     watch(() => state.viewportSize, () => { if (state.following) applyFollow(true); emitView(); }, { flush: 'sync' });
     watch(() => state.following, () => emitView(), { flush: 'sync' });
-    // Every change of the link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
-    watch(() => { const context = liveContext(); return context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`; }, () => { liveImageCacheReset(); liveSync?.contextChanged(); }, { flush: 'sync' });
+    // Every change of a link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
+    watch(() => (state.pluginSettings?.confluencePageLinks ?? []).map((link) => {
+      const context = liveContext(link.diagramPageId);
+      return `${link.diagramPageId}\n${context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`}`;
+    }).join('\n\n'), reconcileLive, { flush: 'sync' });
+    watch(() => { const link = state.pluginSettings?.confluenceLive; return link ? `${currentPluginHandle() ?? ''}\n${state.pluginSettings?.activeProfileId}\n${link.pageId}\n${link.documentId}\n${state.document.id}\n${state.transitioning}` : ''; }, convertDiagramLink, { flush: 'sync' });
   });
-  function liveImageCacheReset(): void {
-    if (liveContext().kind === 'off') { liveImageCache.clear(); liveSeen = null; }
-    // The first publication of a context covers the document as it is now; later snapshots are compared with it.
-    else liveSeen ??= liveSee(state.document);
-  }
-  const recoverLive = () => { liveSync?.recover(); };
+  const recoverLive = () => { for (const sync of liveSyncs.values()) sync.recover(); };
   if (typeof window !== 'undefined') window.addEventListener('online', recoverLive);
-  const disposeLive = () => { cancelFollowFrame(); viewListeners.clear(); liveSync?.dispose(); liveScope.stop(); liveImageCache.clear(); if (typeof window !== 'undefined') window.removeEventListener('online', recoverLive); };
+  const disposeLive = () => { cancelFollowFrame(); viewListeners.clear(); for (const sync of liveSyncs.values()) sync.dispose(); liveSyncs.clear(); liveScope.stop(); liveImageCache.clear(); if (typeof window !== 'undefined') window.removeEventListener('online', recoverLive); };
 
   void store.refreshPluginSettings();
   return store;

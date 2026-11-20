@@ -992,3 +992,255 @@ describe('manual send of an embedded Confluence page (#209 loss guard)', () => {
     }
   });
 });
+
+describe('Confluence live link of one diagram page (#240)', () => {
+  const linkPage = (service: PluginService, diagramPageId: string, pageId: string | null = '164037', diagramPageIds?: string[]) =>
+    service.setConfluenceLiveLink({ handleId: 'project', documentId: DOCUMENT_ID, pageId, diagramPageId, ...(diagramPageIds ? { diagramPageIds } : {}) });
+  const publishPage = (service: PluginService, diagramPageId: string, images: ConfluenceLiveImage[]) =>
+    service.publishConfluenceLive({ handleId: 'project', documentId: DOCUMENT_ID, title: 'AWS Bedrock AgentCore', diagramPageId, images });
+  const storedAtlassian = async (configPath: string) => (JSON.parse(await readFile(configPath, 'utf8')) as { profiles: Array<{ atlassian: { confluenceLinks?: Array<Record<string, unknown>>; confluencePageLinks?: Array<Record<string, unknown>> } }> }).profiles[0]!.atlassian;
+  /** Two Confluence pages behind one site. */
+  function twoPages() {
+    const first = fakeConfluence({ pageId: '164037', body: '<p>Erste Seite</p>' });
+    const second = fakeConfluence({ pageId: '200200', body: '<p>Zweite Seite</p>' });
+    const fetchFn = ((input: string | URL | Request, init?: RequestInit) => (String(input).includes('/200200') ? second.fetchFn : first.fetchFn)(input, init)) as typeof fetch;
+    return { first, second, remote: { ...first, fetchFn } };
+  }
+
+  it('belongs to one page of the diagram, lives in the profile and survives a restart', async () => {
+    const { service, documentPath, configPath, create } = await setup();
+    const diagramBefore = await readFile(documentPath, 'utf8');
+    const snapshot = await linkPage(service, 'page:2');
+    expect(snapshot).not.toHaveProperty('confluenceLive');
+    expect(snapshot.confluencePageLinks).toEqual([{ diagramPageId: 'page:2', pageId: '164037', pageTitle: 'Architektur', pageUrl: `${SITE}/wiki/pages/viewpage.action?pageId=164037`, siteUrl: SITE, documentId: DOCUMENT_ID, usable: true }]);
+    expect(JSON.stringify(snapshot)).not.toContain('alice-secret');
+    const stored = await storedAtlassian(configPath);
+    expect(stored).not.toHaveProperty('confluenceLinks');
+    expect(stored.confluencePageLinks).toHaveLength(1);
+    expect(stored.confluencePageLinks![0]).toMatchObject({ documentPath, documentId: DOCUMENT_ID, diagramPageId: 'page:2', siteUrl: SITE, pageId: '164037' });
+    expect(JSON.stringify(snapshot)).not.toContain(String(stored.confluencePageLinks![0]!.token));
+    expect(await readFile(documentPath, 'utf8')).toBe(diagramBefore);
+
+    const restarted = create();
+    expect((await restarted.getSettings('project')).confluencePageLinks).toMatchObject([{ diagramPageId: 'page:2', pageId: '164037', usable: true }]);
+    expect(await restarted.getSettings('other')).not.toHaveProperty('confluencePageLinks');
+    expect(await restarted.getSettings(null)).not.toHaveProperty('confluencePageLinks');
+
+    await restarted.getSettings('project');
+    await linkPage(restarted, 'page:1');
+    expect(((await restarted.getSettings()).confluencePageLinks ?? []).map((entry) => entry.diagramPageId).sort()).toEqual(['page:1', 'page:2']);
+    expect((await linkPage(restarted, 'page:2', null)).confluencePageLinks).toMatchObject([{ diagramPageId: 'page:1' }]);
+    expect(await linkPage(restarted, 'page:1', null)).not.toHaveProperty('confluencePageLinks');
+    expect(await storedAtlassian(configPath)).not.toHaveProperty('confluencePageLinks');
+  });
+
+  it('refuses a page the account cannot read, an invalid target and a diagram that is not open', async () => {
+    const { service, remote } = await setup();
+    await expect(linkPage(service, 'page:1', '999')).rejects.toThrow('Atlassian antwortete mit 404.');
+    await expect(linkPage(service, 'page:1', '../164037')).rejects.toThrow('ungültig');
+    await expect(linkPage(service, '')).rejects.toThrow('Diagrammseite');
+    await expect(service.setConfluenceLiveLink({ handleId: 'other', documentId: DOCUMENT_ID, pageId: '164037', diagramPageId: 'page:1' })).rejects.toThrow('gehört nicht zum aktuellen Projektordner');
+    expect(await service.getSettings()).not.toHaveProperty('confluencePageLinks');
+    await service.configureAtlassian(alice({ enabled: false, apiToken: undefined }));
+    await expect(linkPage(service, 'page:1')).rejects.toThrow('deaktiviert');
+    expect(remote.writes()).toEqual([]);
+  });
+
+  it('publishes exactly the image of its page and keeps every other content of the Confluence page', async () => {
+    const { service, remote, configPath } = await setup(fakeConfluence({ body: FOREIGN, version: 7 }));
+    await linkPage(service, 'page:2');
+    const first = await publishPage(service, 'page:2', [image('page:2', 'network-v1', 'Netz')]);
+    expect(first).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(remote.contents('page:2')).toEqual(['network-v1']);
+    expect(remote.contents('page:1')).toEqual([]);
+    expect(remote.page.body.startsWith(FOREIGN)).toBe(true);
+    expect(managedImageFilenames(remote.page.body, PREFIX)).toEqual([fileOf('page:2')]);
+    expect(remote.page.body).toContain('ac:alt="AWS Bedrock AgentCore – Netz"');
+    expect((await storedAtlassian(configPath)).confluencePageLinks![0]).toMatchObject({ published: { [fileOf('page:2')]: { version: 1, hash: sha('page:2:network-v1') } } });
+
+    // Nothing changed: no upload, no page version. A change: one new attachment version, the page text stays.
+    const versionBefore = remote.page.version;
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network-v1', 'Netz')])).toMatchObject({ status: 'synced', uploaded: 0, bodyUpdated: false });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network-v2', 'Netz')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: false });
+    expect(remote.contents('page:2')).toEqual(['network-v1', 'network-v2']);
+    expect(remote.page.version).toBe(versionBefore);
+  });
+
+  it('only accepts the one image of the linked page', async () => {
+    const { service, remote } = await setup();
+    await linkPage(service, 'page:2');
+    expect(await publishPage(service, 'page:2', [image('page:1', 'a')])).toMatchObject({ status: 'failed', message: 'Ungültige Confluence-Veröffentlichung.' });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'a'), image('page:1', 'b')])).toMatchObject({ status: 'failed', message: 'Ungültige Confluence-Veröffentlichung.' });
+    expect(await publishPage(service, 'page:1', [image('page:1', 'a')])).toMatchObject({ status: 'failed', message: 'Diese Seite ist mit keiner Confluence-Seite verknüpft.' });
+    // The link of a page is no link of the whole diagram.
+    expect(await publish(service, [image('page:1', 'a'), image('page:2', 'b')])).toMatchObject({ status: 'failed', message: 'Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.' });
+    expect(remote.writes()).toEqual([]);
+  });
+
+  it('lets several pages of a diagram share one Confluence page without touching each other', async () => {
+    const { service, remote } = await setup(fakeConfluence({ body: FOREIGN }));
+    await linkPage(service, 'page:1');
+    await linkPage(service, 'page:2');
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview-v1', 'Übersicht')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network-v1', 'Netz')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(managedImageFilenames(remote.page.body, PREFIX)).toEqual([fileOf('page:1'), fileOf('page:2')]);
+
+    const bodyBefore = remote.page.body; const versionBefore = remote.page.version;
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview-v2', 'Übersicht')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: false });
+    expect(remote.contents('page:1')).toEqual(['overview-v1', 'overview-v2']);
+    expect(remote.contents('page:2')).toEqual(['network-v1']);
+    expect(remote.page).toMatchObject({ body: bodyBefore, version: versionBefore });
+
+    // Unlinking one page stops its publication; its image and the other page stay as they are.
+    await linkPage(service, 'page:1', null);
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview-v3')])).toMatchObject({ status: 'failed' });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network-v2', 'Netz')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: false });
+    expect(remote.page).toMatchObject({ body: bodyBefore, version: versionBefore });
+    expect(remote.contents('page:1')).toEqual(['overview-v1', 'overview-v2']);
+  });
+
+  it('sends each page to its own Confluence page', async () => {
+    const { first, second, remote } = twoPages();
+    const { service } = await setup(remote);
+    await linkPage(service, 'page:1', '164037');
+    await linkPage(service, 'page:2', '200200');
+    expect((await service.getSettings()).confluencePageLinks?.map((entry) => [entry.diagramPageId, entry.pageId]).sort()).toEqual([['page:1', '164037'], ['page:2', '200200']]);
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview', 'Übersicht')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network', 'Netz')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(managedImageFilenames(first.page.body, PREFIX)).toEqual([fileOf('page:1')]);
+    expect(managedImageFilenames(second.page.body, PREFIX)).toEqual([fileOf('page:2')]);
+    expect([...first.attachments.keys()]).toEqual([fileOf('page:1')]);
+    expect([...second.attachments.keys()]).toEqual([fileOf('page:2')]);
+
+    // Moving a page to another Confluence page is a new link: nothing is remembered from the old target.
+    await linkPage(service, 'page:1', '200200');
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview', 'Übersicht')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(managedImageFilenames(second.page.body, PREFIX)).toEqual([fileOf('page:2'), fileOf('page:1')]);
+    expect(managedImageFilenames(first.page.body, PREFIX)).toEqual([fileOf('page:1')]);
+  });
+
+  it('never replaces a foreign attachment or an attachment somebody else changed', async () => {
+    const { service, remote } = await setup();
+    await linkPage(service, 'page:1');
+    remote.foreign(fileOf('page:1'));
+    expect(await publishPage(service, 'page:1', [image('page:1', 'mine')])).toMatchObject({ status: 'failed', uploaded: 0 });
+    expect(remote.versions('page:1')).toHaveLength(1);
+    expect(remote.bodyWrites).toEqual([]);
+  });
+
+  it('turns the link of a whole diagram into one link per page without uploading or changing the Confluence page', async () => {
+    const { service, remote, configPath, create } = await setup(fakeConfluence({ body: FOREIGN }));
+    await link(service);
+    await publish(service, [image('page:1', 'overview', 'Übersicht'), image('page:2', 'network', 'Netz')]);
+    const callsBefore = remote.writes().length; const bodyBefore = remote.page.body; const versionBefore = remote.page.version;
+    const syncedAt = (await service.getSettings()).confluenceLive!.lastSyncedAt;
+
+    const converted = await service.convertConfluenceLiveLink({ handleId: 'project', documentId: DOCUMENT_ID, diagramPageIds: ['page:1', 'page:2'] });
+    expect(converted).not.toHaveProperty('confluenceLive');
+    expect(converted.confluencePageLinks).toEqual(['page:1', 'page:2'].map((diagramPageId) => ({ diagramPageId, pageId: '164037', pageTitle: 'Architektur', pageUrl: `${SITE}/wiki/pages/viewpage.action?pageId=164037`, siteUrl: SITE, documentId: DOCUMENT_ID, usable: true, lastSyncedAt: syncedAt })));
+    const stored = await storedAtlassian(configPath);
+    expect(stored).not.toHaveProperty('confluenceLinks');
+    expect(stored.confluencePageLinks!.map((entry) => Object.keys(entry.published as object))).toEqual([[fileOf('page:1')], [fileOf('page:2')]]);
+    expect(new Set(stored.confluencePageLinks!.map((entry) => entry.token)).size).toBe(2);
+
+    // Each page now publishes on its own and finds Confluence up to date, also after a restart.
+    const restarted = create(); await restarted.getSettings('project');
+    for (const [pageId, content, name] of [['page:1', 'overview', 'Übersicht'], ['page:2', 'network', 'Netz']] as const) {
+      expect(await publishPage(restarted, pageId, [image(pageId, content, name)])).toMatchObject({ status: 'synced', uploaded: 0, bodyUpdated: false });
+    }
+    expect(remote.writes()).toHaveLength(callsBefore);
+    expect(remote.page).toMatchObject({ body: bodyBefore, version: versionBefore });
+    // Converting again, or without such a link, changes nothing.
+    const again = await restarted.convertConfluenceLiveLink({ handleId: 'project', documentId: DOCUMENT_ID, diagramPageIds: ['page:1', 'page:2', 'page:3'] });
+    expect(again.confluencePageLinks).toHaveLength(2);
+  });
+
+  it('splits the link of the whole diagram when the first page is linked elsewhere', async () => {
+    const { first, second, remote } = twoPages();
+    const { service, configPath } = await setup(remote);
+    await link(service);
+    await publish(service, [image('page:1', 'overview'), image('page:2', 'network')]);
+    // The pages of the diagram are needed to split; without them nothing is changed.
+    await expect(linkPage(service, 'page:2', '200200')).rejects.toThrow('Ungültige Confluence-Verknüpfung.');
+    expect((await service.getSettings()).confluenceLive).toMatchObject({ pageId: '164037' });
+
+    const snapshot = await linkPage(service, 'page:2', '200200', ['page:1', 'page:2']);
+    expect(snapshot).not.toHaveProperty('confluenceLive');
+    expect(snapshot.confluencePageLinks?.map((entry) => [entry.diagramPageId, entry.pageId]).sort()).toEqual([['page:1', '164037'], ['page:2', '200200']]);
+    const stored = await storedAtlassian(configPath);
+    expect(stored).not.toHaveProperty('confluenceLinks');
+    const moved = stored.confluencePageLinks!.find((entry) => entry.diagramPageId === 'page:2')!;
+    expect(moved).not.toHaveProperty('published');
+
+    const uploadsBefore = first.uploads().length;
+    expect(await publishPage(service, 'page:1', [image('page:1', 'overview')])).toMatchObject({ status: 'synced', uploaded: 0, bodyUpdated: false });
+    expect(await publishPage(service, 'page:2', [image('page:2', 'network')])).toMatchObject({ status: 'synced', uploaded: 1, bodyUpdated: true });
+    expect(first.uploads()).toHaveLength(uploadsBefore);
+    expect(managedImageFilenames(second.page.body, PREFIX)).toEqual([fileOf('page:2')]);
+    // The first Confluence page keeps showing both images: removing one there is the user's decision.
+    expect(managedImageFilenames(first.page.body, PREFIX)).toEqual([fileOf('page:1'), fileOf('page:2')]);
+  });
+
+  it('does not carry a link over that was made for another diagram stored under the same file name', async () => {
+    const { service, configPath } = await setup();
+    await link(service);
+    const snapshot = await service.convertConfluenceLiveLink({ handleId: 'project', documentId: 'document:another', diagramPageIds: ['page:1'] });
+    expect(snapshot).not.toHaveProperty('confluenceLive');
+    expect(snapshot).not.toHaveProperty('confluencePageLinks');
+    const stored = await storedAtlassian(configPath);
+    expect(stored).not.toHaveProperty('confluenceLinks');
+    expect(stored).not.toHaveProperty('confluencePageLinks');
+  });
+
+  it('stops a running publication when the link of its page is removed or moved, and leaves other pages running', async () => {
+    for (const change of ['unlink', 'relink', 'other page'] as const) {
+      const { service, remote } = await setup(fakeConfluence({ body: FOREIGN }));
+      await linkPage(service, 'page:1');
+      await linkPage(service, 'page:2');
+      const hold = gate(remote, (call) => call.method === 'GET' && /\/pages\/164037\?/.test(call.url));
+      const running = publishPage(service, 'page:1', [image('page:1', 'overview')]);
+      await hold.blocked;
+      if (change === 'unlink') await linkPage(service, 'page:1', null);
+      else if (change === 'relink') { hold.open(); await linkPage(service, 'page:1'); }
+      else await linkPage(service, 'page:2', null);
+      hold.open();
+      // Every change of a link is a new authority: what was running is not continued, whichever page it was for.
+      expect(await running, change).toMatchObject({ status: 'cancelled', uploaded: 0, bodyUpdated: false });
+      expect(remote.writes(), change).toEqual([]);
+    }
+  });
+
+  it('keeps page links through a settings change, and a copied profile starts without them', async () => {
+    const { service } = await setup();
+    await linkPage(service, 'page:1');
+    const saved = await service.configureAtlassian(alice({ apiToken: undefined, confluenceSpaceKey: 'DOC' }));
+    expect(saved.confluencePageLinks).toMatchObject([{ diagramPageId: 'page:1', usable: true }]);
+    const moved = await service.configureAtlassian(alice({ siteUrl: 'https://other.example.test' }));
+    expect(moved.confluencePageLinks).toMatchObject([{ diagramPageId: 'page:1', usable: false }]);
+    expect(await publishPage(service, 'page:1', [image('page:1', 'a')])).toMatchObject({ status: 'failed' });
+    expect(await service.createProfile({ name: 'Kopie', copyFrom: saved.activeProfileId })).not.toHaveProperty('confluencePageLinks');
+  });
+
+  it('rejects stored page links of a wrong shape instead of repairing them', async () => {
+    const { service, configPath, create } = await setup();
+    await linkPage(service, 'page:1');
+    const original = await readFile(configPath, 'utf8');
+    const broken: Array<(atlassian: Record<string, unknown>) => void> = [
+      (atlassian) => { const links = atlassian.confluencePageLinks as Array<Record<string, unknown>>; links.push({ ...links[0]! }); },
+      (atlassian) => { delete (atlassian.confluencePageLinks as Array<Record<string, unknown>>)[0]!.diagramPageId; },
+      (atlassian) => { (atlassian.confluencePageLinks as Array<Record<string, unknown>>)[0]!.diagramPageId = 7; },
+      (atlassian) => { atlassian.confluenceLinks = atlassian.confluencePageLinks; delete atlassian.confluencePageLinks; },
+      (atlassian) => { atlassian.confluencePageLinks = {}; },
+    ];
+    for (const breakIt of broken) {
+      const store = JSON.parse(original) as { profiles: Array<{ atlassian: Record<string, unknown> }> };
+      breakIt(store.profiles[0]!.atlassian);
+      await writeFile(configPath, JSON.stringify(store));
+      const snapshot = await create().getSettings('project');
+      expect(snapshot.configurationIssue).toMatchObject({ source: 'profiles', kind: 'invalid-data', blocksChanges: true });
+      expect(snapshot).not.toHaveProperty('confluencePageLinks');
+    }
+    await writeFile(configPath, original);
+    expect((await create().getSettings('project')).confluencePageLinks).toHaveLength(1);
+  });
+});

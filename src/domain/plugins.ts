@@ -61,6 +61,12 @@ export interface ConfluenceLiveLink {
   lastSyncedAt?: string;
 }
 
+/** The live link of one page of the open local diagram to a Confluence page (#240). */
+export interface ConfluencePageLiveLink extends ConfluenceLiveLink {
+  /** The page of the diagram whose image the Confluence page shows. */
+  diagramPageId: string;
+}
+
 /** A named set of plugin settings of the editor. Diagrams never store plugin configuration (#168). */
 export interface PluginProfileSummary {
   id: string;
@@ -88,8 +94,13 @@ export interface PluginSettingsSnapshot {
   configurationIssue?: PluginConfigurationIssue;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
-  /** Live link of the open local diagram under the active profile; absent without a link or a local diagram. */
+  /**
+   * Link of the whole open diagram, as versions before #240 made it; absent without one. The app turns it into links
+   * per page (`convertConfluenceLiveLink`) and never publishes through it itself.
+   */
   confluenceLive?: ConfluenceLiveLink;
+  /** Live links of single pages of the open local diagram under the active profile (#240). */
+  confluencePageLinks?: ConfluencePageLiveLink[];
 }
 
 export interface ConfigureGitPluginInput {
@@ -155,7 +166,11 @@ export interface ConfluenceLivePublishInput {
   handleId: string;
   documentId: string;
   title: string;
-  /** Every page of the diagram, in page order. */
+  /**
+   * The diagram page whose link publishes (#240); `images` is then exactly the image of that page. Without it the
+   * link of the whole diagram publishes, and `images` is every page in page order.
+   */
+  diagramPageId?: string;
   images: ConfluenceLiveImage[];
 }
 
@@ -231,8 +246,15 @@ export interface PluginBridge extends GitWorkbenchBridge {
   getConfluencePage(pageId: string): Promise<ConfluencePage>;
   /** Replaces the page text. `expectedBodyHash` is the digest of the content the text was loaded from; without it nothing is written. */
   updateConfluencePage(input: { pageId: string; title: string; storageBody: string; version: number; expectedBodyHash: string }): Promise<ConfluencePage>;
-  /** Links the open local diagram to a Confluence page, or removes the link with `pageId: null`. */
-  setConfluenceLiveLink?(input: { handleId: string; documentId: string; pageId: string | null }): Promise<PluginSettingsSnapshot>;
+  /**
+   * Links one page of the open local diagram (`diagramPageId`) to a Confluence page, or removes that link with
+   * `pageId: null`. `diagramPageIds` names every page of the diagram: with them, a link of the whole diagram from an
+   * earlier version becomes one link per page before the change applies. Without `diagramPageId` the call addresses
+   * that earlier link of the whole diagram.
+   */
+  setConfluenceLiveLink?(input: { handleId: string; documentId: string; pageId: string | null; diagramPageId?: string; diagramPageIds?: string[] }): Promise<PluginSettingsSnapshot>;
+  /** Turns a link of the whole diagram from an earlier version into one link per page to the same Confluence page. */
+  convertConfluenceLiveLink?(input: { handleId: string; documentId: string; diagramPageIds: string[] }): Promise<PluginSettingsSnapshot>;
   /** Publishes the rendered pages of the linked diagram. Runs one after another; never throws for remote problems. */
   publishConfluenceLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
   createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary>;
