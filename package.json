@@ -35,7 +35,7 @@
   "bugs": {
     "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues"
   },
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "engines": {

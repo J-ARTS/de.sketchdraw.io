@@ -1,141 +1,222 @@
-# PolyForm Noncommercial License 1.0.0
+# Sketchdraw End User License Agreement
 
-<https://polyformproject.org/licenses/noncommercial/1.0.0>
+Version 1.0, 20 November 2026
 
-## Acceptance
+Copyright (c) 2026 Jeremy Teichmann (J-ARTS). All rights reserved.
 
-In order to get any license under these terms, you must agree
-to them as both strict obligations and conditions to all
-your licenses.
+This agreement is between you and the licensor about Sketchdraw. Read
+it before you download, install, copy or use the software. If you do
+not agree to it, do not use the software.
 
-## Copyright License
+## 1. Definitions
 
-The licensor grants you a copyright license for the
-software to do everything you might do with the software
-that would otherwise infringe the licensor's copyright
-in it for any permitted purpose.  However, you may
-only distribute the software according to [Distribution
-License](#distribution-license) and make changes or new works
-based on the software according to [Changes and New Works
-License](#changes-and-new-works-license).
+**Software** means Sketchdraw: the desktop application, its installers,
+the session relay, the source code, the documentation and all other
+files of the repository <https://github.com/J-ARTS/de.sketchdraw.io>
+and of its releases, in source and in built form, including updates.
+Third-party components (section 8) are not part of the software in
+this sense.
 
-## Distribution License
+**Licensor** means Jeremy Teichmann (J-ARTS), the holder of the rights
+in the software.
 
-The licensor grants you an additional copyright license
-to distribute copies of the software.  Your license
-to distribute covers distributing the software with
-changes and new works permitted by [Changes and New Works
-License](#changes-and-new-works-license).
+**You** means the person who uses the software and, if you use it for
+an organisation, that organisation as well.
 
-## Notices
+**Official sources** are the repository named above and its release
+pages.
 
-You must ensure that anyone who gets a copy of any part of
-the software from you also gets a copy of these terms or the
-URL for them above, as well as copies of any plain-text lines
-beginning with `Required Notice:` that the licensor provided
-with the software.  For example:
+**Commercial product** means any software, service or other offering
+that is sold, licensed, rented or provided for a fee, that is financed
+by advertising, subscriptions or paid features, or that is otherwise
+offered to third parties with the intention of earning money, whether
+or not it actually earns money.
 
-> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
+**Permission** means the prior written permission of the licensor
+(section 6).
 
-## Changes and New Works License
+## 2. Acceptance
 
-The licensor grants you an additional copyright license to
-make changes and new works based on the software for any
-permitted purpose.
+You accept this agreement by downloading, installing, copying or using
+the software. You may only do these things under this agreement.
 
-## Patent License
+## 3. What you may do
 
-The licensor grants you a patent license for the software that
-covers patent claims the licensor can license, or becomes able
-to license, that you would infringe by using the software.
+The licensor grants you, free of charge, a worldwide, non-exclusive,
+non-transferable right, which you may not sublicense, to do the
+following for as long as you keep to this agreement:
 
-## Noncommercial Purposes
+1. **Use.** Obtain the software from the official sources, install it
+   on any number of devices and use it, for private purposes and for
+   the internal purposes of your organisation, including in the course
+   of paid work. Copies made to install the software on the devices of
+   your own organisation are part of this use.
+2. **Your own content.** Everything you create with the software, such
+   as diagrams, documents and exports, belongs to you. You may use it
+   for any purpose, including commercially.
+3. **Study and adapt for yourself.** Read the source code, build the
+   software from it and change it for your own use as described in
+   number 1. You may not pass on changed versions (section 4.3).
+4. **Agent skills.** Install the agent skills that come with the
+   software in your own agent tools and keep copies of them in
+   repositories of your organisation that are not public.
+5. **Contribute.** Create a copy of the repository on the platform
+   that hosts it for the sole purpose of preparing and proposing
+   changes to the software to the licensor.
 
-Any noncommercial purpose is a permitted purpose.
+## 4. What you may not do
 
-## Personal Uses
+Without permission you may not do any of the following, either
+yourself or through others.
 
-Personal use for research, experiment, and testing for
-the benefit of public knowledge, personal study, private
-entertainment, hobby projects, amateur pursuits, or religious
-observance, without any anticipated commercial application,
-is use for a permitted purpose.
+### 4.1 No sale
 
-## Noncommercial Organizations
+You may not sell, rent, lease or lend the software, license it for a
+fee, or otherwise ask for or accept payment or another consideration
+for the software or for access to it. This applies to the software
+alone, as part of a bundle, preinstalled on a device and as a hosted
+or managed service.
 
-Use by any charitable organization, educational institution,
-public research organization, public safety or health
-organization, environmental protection organization,
-or government institution is use for a permitted purpose
-regardless of the source of funding or obligations resulting
-from the funding.
+### 4.2 No use of the code in commercial products
 
-## Fair Use
+You may not use, copy, adapt, translate into another programming
+language or otherwise build on the source code of the software, or on
+any part of it, in a commercial product. This applies to the code, the
+user interface and its design system, the artwork and the
+documentation, and it applies whether or not the part has been changed.
 
-You may have "fair use" rights for the software under the
-law. These terms do not limit them.
+Reading and writing Sketchdraw's file formats in your own software, and
+connecting your own software to Sketchdraw through its documented
+interfaces, is not a use of the code in this sense.
 
-## No Other Rights
+### 4.3 No republication
 
-These terms do not allow you to sublicense or transfer any of
-your licenses to anyone else, or prevent the licensor from
-granting licenses to anyone else.  These terms do not imply
-any other licenses.
+You may not publish, distribute, mirror or otherwise make available to
+third parties the software or any part of it, changed or unchanged, in
+source or in built form. This includes uploading it to another
+repository, a package registry, an app store, a download portal or a
+file-sharing service, and offering it under another name.
 
-## Patent Defense
+You may always point others to the official sources.
 
-If you make any written claim that the software infringes or
-contributes to infringement of any patent, your patent license
-for the software granted under these terms ends immediately. If
-your company makes such a claim, your patent license ends
-immediately for work on behalf of your company.
+### 4.4 Further restrictions
 
-## Violations
+You may not:
 
-The first time you are notified in writing that you have
-violated any of these terms, or done anything with the software
-not covered by your licenses, your licenses can nonetheless
-continue if you come into full compliance with these terms,
-and take practical steps to correct past violations, within
-32 days of receiving notice.  Otherwise, all your licenses
-end immediately.
+1. remove, hide or change copyright notices, this agreement or the
+   third-party notices in the software;
+2. use the name "Sketchdraw", the logo or the name of the licensor for
+   your own products or services, or in a way that suggests the
+   licensor supports or endorses you;
+3. grant others rights in the software, or transfer this agreement;
+4. use the software to break the law or the rights of others.
 
-## No Liability
+## 5. Platform terms
 
-***As far as the law allows, the software comes as is, without
-any warranty or condition, and the licensor will not be liable
-to you for any damages arising out of these terms or the use
-or nature of the software, under any kind of legal claim.***
+Nothing in this agreement limits rights that the terms of the platform
+hosting the repository give you directly, for example to view the
+repository there and to create a copy of it on that platform. Such a
+copy may not be used for anything that section 4 prohibits.
 
-## Definitions
+## 6. Permission
 
-The **licensor** is the individual or entity offering these
-terms, and the **software** is the software the licensor makes
-available under these terms.
+The licensor can allow what section 4 prohibits. Ask through the
+repository (<https://github.com/J-ARTS/de.sketchdraw.io/issues>) or the
+licensor's profile (<https://github.com/J-ARTS>). Permission is only
+valid if the licensor gives it in writing (text form, for example an
+e-mail or a signed document), for the specific use named in it. Silence
+is not permission.
 
-**You** refers to the individual or entity agreeing to these
-terms.
+## 7. Contributions
 
-**Your company** is any legal entity, sole proprietorship,
-or other kind of organization that you work for, plus all
-organizations that have control over, are under the control of,
-or are under common control with that organization.  **Control**
-means ownership of substantially all the assets of an entity,
-or the power to direct its management and policies by vote,
-contract, or otherwise.  Control can be direct or indirect.
+If you propose changes to the software to the licensor, you keep your
+rights in them. You grant the licensor a worldwide, perpetual,
+irrevocable, non-exclusive, royalty-free right to use, change, publish
+and distribute your contribution as part of the software and to
+license it to others under this agreement or under other terms. You
+confirm that you are entitled to grant this right.
 
-**Your licenses** are all the licenses granted to you for the
-software under these terms.
+## 8. Third-party components
 
-**Use** means anything you do with the software requiring one
-of your licenses.
+The software contains and uses components of third parties, for
+example libraries, fonts and icon sets. They remain under their own
+licences, which are named in the section "Third-Party Notices" below,
+in `THIRD_PARTY_NOTICES.md`, in `THIRD_PARTY_ICONS.md` and in the
+packages themselves. This agreement does not limit the rights those
+licences give you in these components, and it does not give you rights
+in the names and trademarks of their owners.
+
+## 9. Earlier versions
+
+Versions of the software that the licensor published before the date
+of this agreement were published under the PolyForm Noncommercial
+License 1.0.0. For copies of those versions, that licence continues to
+apply. This agreement applies to Sketchdraw 0.1.7 and all later
+versions, and to every revision of the repository that contains this
+file.
+
+## 10. Ownership
+
+The software is licensed, not sold. The licensor keeps all rights in
+the software that this agreement does not expressly grant.
+
+## 11. Updates and support
+
+The licensor may change, update or stop offering the software at any
+time and does not owe support, maintenance or updates. The desktop
+application can ask the official sources whether a newer version
+exists.
+
+## 12. End of your rights
+
+Your rights under this agreement end automatically if you do something
+that section 4 prohibits. They also end if you break another term of
+this agreement and do not put this right within 30 days after the
+licensor has told you about it. When your rights end, you must stop
+using the software and delete all copies of it. The licensor can
+restore your rights in writing. Sections 7 and 10 and sections 13 to 15
+continue to apply.
+
+## 13. No warranty
+
+The software is provided free of charge and as it is. As far as the
+law allows, the licensor gives no warranty and makes no promise about
+the software, in particular not that it is free of errors, fit for a
+particular purpose, or that it does not lose data. You are responsible
+for backups of your documents. The licensor is liable for defects only
+if the licensor has fraudulently concealed them.
+
+## 14. Liability
+
+The licensor is liable without limit for intent and gross negligence,
+for injury to life, body or health, and where the law does not allow
+liability to be excluded, for example under product liability law. In
+all other cases the licensor is not liable, as far as the law allows,
+for any damage arising from the software or from its use, including
+lost data, lost profit and interruption of business.
+
+## 15. General terms
+
+1. This agreement is governed by the law of the Federal Republic of
+   Germany, without its conflict-of-law rules and without the United
+   Nations Convention on Contracts for the International Sale of Goods.
+   If you are a consumer, the mandatory consumer protection rules of
+   the country where you live continue to protect you.
+2. If a term of this agreement is or becomes invalid, the other terms
+   stay in force.
+3. This agreement is the whole agreement between you and the licensor
+   about the software. The licensor may publish new versions of this
+   agreement for later versions of the software; a version of the
+   software stays under the agreement it was published with.
+4. This English text is the binding one. Translations and summaries
+   are for convenience only.
 
 ---
 
 # Third-Party Notices
 
-The license terms above end at the line above this section and are
-unchanged. They cover Sketchdraw itself. The following artwork is
+The agreement above ends at the line above this section. It covers
+Sketchdraw itself. The following artwork is
 bundled with Sketchdraw and is not licensed under those terms:
 
 - **Git logo** (shown for the Git plugin): Git Logo by Jason Long is

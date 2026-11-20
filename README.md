@@ -200,9 +200,16 @@ The Atlassian plugin embeds Confluence pages in the document as Live Docs and cr
 
 ## License
 
-Sketchdraw is licensed under the **PolyForm Noncommercial License 1.0.0**, unless individual parts are marked otherwise. Use, changes and distribution are possible for the purposes permitted in the [license text](LICENSE). Commercial use beyond that requires separate permission from the rights holders.
+Sketchdraw is published under the **Sketchdraw End User License Agreement** in [LICENSE](LICENSE). The source code is available, but Sketchdraw is not open source. In short:
 
-The [licensing README](docs/licensing/README.md) explains the terms and the delivery state. Direct collaboration dependencies are listed in the [third-party notices](THIRD_PARTY_NOTICES.md); the licenses of the libraries and fonts used are retained.
+- **Free to use**, privately and at work, on as many devices as you like. What you create with it is yours.
+- **Not for sale.** Sketchdraw may not be sold, rented or offered as a paid service.
+- **No use of the code in commercial products.** The source code, the interface and the artwork may not be built into commercial software or services.
+- **No republication without permission.** Sketchdraw may not be redistributed, mirrored or published elsewhere, changed or unchanged, unless the rights holder has agreed in writing. Linking to this repository is always fine.
+
+The agreement itself is what counts; this list only summarises it. Permission for anything beyond it can be requested through the [issues](https://github.com/J-ARTS/de.sketchdraw.io/issues). Versions up to 0.1.6 were published under the PolyForm Noncommercial License 1.0.0, which continues to apply to those versions.
+
+The [licensing README](docs/licensing/README.md) explains the terms and the delivery state. Libraries, fonts and icon sets keep their own licenses; see the [third-party notices](THIRD_PARTY_NOTICES.md) and the [icon notices](THIRD_PARTY_ICONS.md).
 
 ## Development
 
