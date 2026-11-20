@@ -137,7 +137,7 @@ test('pasted Mermaid requires explicit preview; edits and unsupported diagrams c
   await apply.click(); await page.getByRole('button', { name: 'Abbrechen', exact: true }).click();
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
   await expect(apply).toBeVisible();
-  await source.fill('sequenceDiagram\n Alice->>Bob: Hello');
+  await source.fill('pie title Anteile\n "A": 40\n "B": 60');
   await expect(apply).toHaveCount(0);
   await preview.click();
   await expect(page.getByRole('alert')).toContainText('Dieser Mermaid-Diagrammtyp wird nicht unterstützt');
@@ -302,4 +302,55 @@ test('changing format during a pending export snapshot discards the old preview'
   const download = await downloadEvent;
   expect(download.suggestedFilename()).toMatch(/\.mmd$/);
   expect(await readFile((await download.path())!, 'utf8')).toMatch(/^flowchart\s/m);
+});
+
+test('a Mermaid sequence diagram is imported into the current page as an editable sequence diagram (#248)', async ({ page }) => {
+  await rectangle(page); await menu(page, 'import');
+  await select(page, 'Format', 'Mermaid (Flowchart)');
+  const panel = page.getByTestId('interop-panel');
+  await expect(panel).toContainText('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram).');
+  const source = page.getByLabel('Mermaid-Code einfügen');
+  const preview = page.getByRole('button', { name: 'Importvorschau erstellen', exact: true });
+  const insert = page.getByRole('button', { name: 'In die aktuelle Seite einfügen', exact: true });
+
+  // Code with an error names its line and changes nothing.
+  await source.fill('sequenceDiagram\n    Note irgendwo: Text\n    Client->>Dienst: Anfrage');
+  await preview.click();
+  await expect(page.getByRole('alert')).toContainText('Der Code des Sequenzdiagramms hat Fehler');
+  await expect(panel.getByRole('region', { name: 'Konvertierungsbericht' })).toContainText('Zeile 2');
+  await expect(insert).toHaveCount(0);
+
+  await source.fill('```mermaid\nsequenceDiagram\n    actor Kunde\n    participant Dienst\n    Kunde->>Dienst: Bestellen\n    Dienst-->>Kunde: Bestätigung\n```');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await preview.click();
+  await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Bestellen');
+  await expect(page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true })).toBeEnabled();
+  expect((await new AxeBuilder({ page }).include('[data-testid="interop-panel"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+
+  // Inserted, the diagram stands beside what was there, selected, and the panel is closed.
+  await insert.click();
+  await expect(panel).toHaveCount(0);
+  const canvas = page.getByTestId('whiteboard-canvas');
+  await expect(canvas.locator('[data-kind=rectangle]').first()).toBeVisible();
+  await expect(canvas.locator('[data-sequence-role="lifeline"]')).toHaveCount(2);
+  await expect(canvas.locator('[data-sequence-role="message"]')).toHaveCount(2);
+  await expect(canvas.getByTestId('sequence-actor')).toBeVisible();
+
+  // It is a sequence diagram of the app: its code is available, and one undo takes the import back.
+  await page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Elementaktionen' }).click();
+  await page.getByRole('button', { name: 'Mermaid-Code anzeigen' }).click();
+  await expect(page.getByTestId('diagram-code-editor')).toHaveValue(/actor Kunde\n {4}participant Dienst\n {4}Kunde->>Dienst: Bestellen\n {4}Dienst-->>Kunde: Bestätigung/);
+  await page.getByRole('button', { name: 'Mermaid-Code schließen' }).click();
+  await canvas.focus();
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(canvas.locator('[data-sequence-role="lifeline"]')).toHaveCount(0);
+  await expect(canvas.locator('[data-kind=rectangle]')).toHaveCount(1);
+});
+
+test('a Mermaid file with a sequence diagram can be opened as a new document (#248)', async ({ page }) => {
+  await menu(page, 'import');
+  await file(page, 'ablauf.mmd', 'sequenceDiagram\n    Client->>Dienst: Anfrage\n    Dienst-->>Client: Antwort\n');
+  await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Anfrage');
+  await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
+  await expect(page.getByTestId('whiteboard-canvas').locator('[data-sequence-role="lifeline"]')).toHaveCount(2);
 });

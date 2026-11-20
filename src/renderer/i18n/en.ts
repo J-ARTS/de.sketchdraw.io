@@ -34,8 +34,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Der Inhalt dieser großen Datei wird nicht im Textfeld angezeigt. Die vollständige Datei bleibt für Vorschau und Import erhalten.': 'The contents of this large file are not shown in the text field. The full file is retained for preview and import.',
   'Importvorschau erstellen': 'Create import preview',
   'Seite für den Mermaid-Export': 'Page for the Mermaid export',
-  'Unterstützt werden Mermaid-Flowcharts mit flowchart oder graph. Andere Diagrammtypen werden nicht importiert.': 'Mermaid flowcharts using flowchart or graph are supported. Other diagram types are not imported.',
-  'Dieser Mermaid-Diagrammtyp wird nicht unterstützt. Verwende ein Flowchart mit flowchart oder graph. Dein Dokument bleibt erhalten.': 'This Mermaid diagram type is not supported. Use a flowchart beginning with flowchart or graph. Your document is preserved.',
   'Direktverbindung wird noch vorbereitet …': 'The direct connection is still being prepared …',
   "Du kannst bereits über Relay-Helfer einladen. Dieser Link enthält den Direktweg noch nicht.": "You can already invite through relay helpers. This link does not contain the direct route yet.",
   "Link jetzt über Relay-Helfer teilen": "Share link through relay helpers now",
@@ -1642,4 +1640,9 @@ export const EN: Readonly<Record<string, string>> = {
   'Blanko': 'Plain',
   'Raster': 'Grid',
   'Punkte': 'Dots',
+  'Dieser Mermaid-Diagrammtyp wird nicht unterstützt. Verwende ein Flowchart (flowchart, graph) oder ein Sequenzdiagramm (sequenceDiagram). Dein Dokument bleibt erhalten.': 'This Mermaid diagram type is not supported. Use a flowchart (flowchart, graph) or a sequence diagram (sequenceDiagram). Your document is kept.',
+  'Der Code des Sequenzdiagramms hat Fehler und wurde nicht importiert. Dein Dokument bleibt erhalten.': 'The code of the sequence diagram has errors and was not imported. Your document is kept.',
+  'Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram). Andere Diagrammtypen werden nicht importiert.': 'Flowcharts (flowchart, graph) and sequence diagrams (sequenceDiagram) are imported. Other diagram types are not imported.',
+  'Exportiert wird ein Mermaid-Flowchart.': 'A Mermaid flowchart is exported.',
+  'In die aktuelle Seite einfügen': 'Insert into the current page',
 };

@@ -3,8 +3,9 @@
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import { importDrawio, importMermaid, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareMermaidExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
+import { importDrawio, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareMermaidExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
 import { getDesktopBridge } from '@/platform';
+import { importedPagePayload, importMermaidCode, MERMAID_SEQUENCE_INVALID } from '@/renderer/lib/mermaid-import';
 import type { DocumentAuthority } from '@/session';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { bounds } from '@/renderer/lib/geometry';
@@ -50,7 +51,9 @@ const previewBounds = computed(() => {
 function clear() { serial++; source.value = ''; fileName.value = ''; sourceFileBytes.value = 0; pages.value = []; pageIndex.value = null; imported.value = null; exported.value = null; accepted.value = false; busy.value = false; error.value = ''; status.value = ''; failures.value = []; }
 function failure(value: unknown) {
   error.value = value instanceof InteropError && value.code === 'MERMAID_DIAGRAM_UNSUPPORTED'
-    ? t('Dieser Mermaid-Diagrammtyp wird nicht unterstützt. Verwende ein Flowchart mit flowchart oder graph. Dein Dokument bleibt erhalten.')
+    ? t('Dieser Mermaid-Diagrammtyp wird nicht unterstützt. Verwende ein Flowchart (flowchart, graph) oder ein Sequenzdiagramm (sequenceDiagram). Dein Dokument bleibt erhalten.')
+    : value instanceof InteropError && value.code === MERMAID_SEQUENCE_INVALID
+    ? t('Der Code des Sequenzdiagramms hat Fehler und wurde nicht importiert. Dein Dokument bleibt erhalten.')
     : value instanceof InteropError ? t('Die Datei konnte nicht verarbeitet werden ({code}). Das aktuelle Dokument bleibt erhalten.', { code: value.code }) : t('Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.');
   failures.value = value instanceof InteropError ? value.diagnostics : [];
 }
@@ -65,7 +68,7 @@ function inspect() {
 function convert() {
   accepted.value = false; error.value = ''; failures.value = []; imported.value = null;
   if (!source.value || (format.value === 'drawio' && pageIndex.value === null)) return;
-  try { imported.value = format.value === 'svg' ? importSvg(source.value) : format.value === 'mermaid' ? importMermaid(source.value) : importDrawio(source.value, { pageIndex: pageIndex.value! }); }
+  try { imported.value = format.value === 'svg' ? importSvg(source.value) : format.value === 'mermaid' ? importMermaidCode(source.value) : importDrawio(source.value, { pageIndex: pageIndex.value! }); }
   catch (value) { failure(value); }
 }
 function selectFormat(value: string) {
@@ -98,6 +101,14 @@ async function applyImport() {
   if (!imported.value || busy.value || requiresConfirmation.value && !accepted.value) return;
   await store.importDocument(imported.value.document);
   // Dirty cancellation keeps this preview. Successful install clears it through the authority hook.
+}
+/** Puts the previewed page into the page that is open, as one undo step; the document stays what it is (#248). */
+const insertable = computed(() => imported.value !== null && imported.value.document.pages.length === 1 && imported.value.document.elements.length > 0);
+async function insertImport() {
+  const result = imported.value;
+  if (!result || busy.value || requiresConfirmation.value && !accepted.value) return;
+  const payload = importedPagePayload(result.document, result.source.pageId);
+  if (payload && await store.insertElements(payload)) emit('close');
 }
 async function prepareExport() {
   const owner = store.getAuthority(); const own = ++serial; busy.value = true; error.value = ''; failures.value = []; accepted.value = false; exported.value = null; status.value = '';
@@ -147,7 +158,7 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
         <p v-if="fileName" class="file-name">{{ fileName }}</p>
       </template>
       <AppSelect id="interop-format" class="interop-select" :model-value="format" :options="formatOptions" :label="t('Format')" @update:model-value="selectFormat" />
-      <p v-if="format === 'mermaid'" class="metadata-note">{{ t('Unterstützt werden Mermaid-Flowcharts mit flowchart oder graph. Andere Diagrammtypen werden nicht importiert.') }}</p>
+      <p v-if="format === 'mermaid'" class="metadata-note">{{ mode === 'import' ? t('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram). Andere Diagrammtypen werden nicht importiert.') : t('Exportiert wird ein Mermaid-Flowchart.') }}</p>
       <template v-if="mode === 'import'">
         <template v-if="format === 'mermaid'">
           <template v-if="largeFileSource">
@@ -170,6 +181,7 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
       <section v-if="diagnostics.length" class="diagnostics" :aria-label="t('Konvertierungsbericht')"><h3>{{ warnings.length ? t('{count} Hinweise auf Verluste oder Annäherungen', { count: warnings.length }) : t('Hinweise zur Konvertierung') }}</h3><ul><li v-for="(item, index) in diagnostics" :key="index" :class="item.severity"><strong>{{ item.sourceId || item.elementId || item.property || item.code }}</strong><span>{{ item.message }}</span><small v-if="item.sourcePath">{{ item.sourcePath }}</small></li></ul></section>
       <label v-if="requiresConfirmation" class="loss-confirmation"><input v-model="accepted" type="checkbox" /><span>{{ t('Ich habe die beschriebenen Verluste und Annäherungen geprüft und akzeptiere sie für diese Konvertierung.') }}</span></label>
       <AppButton intent="primary" v-if="mode === 'import' && imported" class="full" :disabled="busy || store.state.transitioning || requiresConfirmation && !accepted" @click="applyImport">{{ t('Als neues Dokument öffnen') }}</AppButton>
+      <AppButton v-if="mode === 'import' && imported && insertable" class="full" data-testid="interop-insert" :disabled="busy || store.state.transitioning || !store.state.canWrite || requiresConfirmation && !accepted" @click="insertImport">{{ t('In die aktuelle Seite einfügen') }}</AppButton>
       <AppButton intent="primary" v-if="mode === 'export' && exported" class="full" :disabled="busy || staleExport || store.state.transitioning || requiresConfirmation && !accepted" @click="writeExport">{{ t('Datei exportieren') }}</AppButton>
       <p v-if="busy" role="status" class="summary">{{ t('Wird geprüft …') }}</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="status" role="status" class="summary">{{ status }}</p>
     </div>
