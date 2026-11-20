@@ -822,7 +822,8 @@ test('the browser preview has no profiles in the menu or the plugin dialog', asy
   // Without the profile row the menu keeps its plain keyboard model: ArrowUp wraps, Tab closes.
   await expect(menu.getByRole('menuitemcheckbox', { name: 'Zusammenarbeiten' })).toBeFocused();
   await page.keyboard.press('ArrowUp');
-  await expect(menu.getByRole('menuitem', { name: 'Einstellungen', exact: true })).toBeFocused();
+  // The last entry of the menu is the support link (#241).
+  await expect(menu.getByTestId('workspace-menu-support')).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(menu).toBeHidden();
   await page.getByTestId('workspace-menu-button').click();
