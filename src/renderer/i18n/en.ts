@@ -230,7 +230,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Dunkles Design': 'Dark theme',
   'Bibliothek': 'Library',
   'Code': 'Code',
-  'Plugin-Einstellungen': 'Plugin settings',
   'Einstellungen': 'Settings',
   'Dokumenttitel': 'Document title',
   'Dateimenü': 'File menu',

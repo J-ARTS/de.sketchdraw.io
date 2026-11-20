@@ -99,7 +99,7 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
   { id: 'slides', label: L('Folien'), icon: 'pages', checked: s.frameSidebarOpen },
   { id: 'tasks', label: L('Aufgaben'), icon: 'check', checked: s.workspaceView === 'tasks' },
-  { id: 'plugins', label: L('Plugin-Einstellungen'), icon: 'component', checked: props.pluginsOpen, separator: true },
+  { id: 'plugins', label: L('Plugins'), icon: 'component', checked: props.pluginsOpen, separator: true },
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
   { id: 'support', label: L('Buy me a coffee'), icon: 'coffee', separator: true, external: true },
 ]);

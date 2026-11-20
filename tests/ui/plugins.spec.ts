@@ -180,7 +180,7 @@ async function start(page: Page): Promise<void> {
 
 async function openPlugins(page: Page): Promise<Locator> {
   await page.getByTestId('workspace-menu-button').click();
-  await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await expect(dialog).toBeVisible();
   return dialog;
@@ -827,7 +827,7 @@ test('the browser preview has no profiles in the menu or the plugin dialog', asy
   await page.keyboard.press('Tab');
   await expect(menu).toBeHidden();
   await page.getByTestId('workspace-menu-button').click();
-  await menu.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+  await menu.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await expect(dialog.getByTestId('plugin-active-profile')).toHaveCount(0);
 });

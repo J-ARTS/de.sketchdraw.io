@@ -192,7 +192,7 @@ test('each page is linked to its own Confluence page in the page menu and publis
 
   // The plugin settings list what goes where and lead to the dialog of a page.
   await page.getByTestId('workspace-menu-button').click();
-  await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const plugins = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await plugins.getByRole('complementary').getByRole('button', { name: /^Jira\b/ }).click();
   const overview = plugins.getByTestId('confluence-live-links');

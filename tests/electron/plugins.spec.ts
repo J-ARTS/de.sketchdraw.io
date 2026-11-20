@@ -28,7 +28,7 @@ test('Git status refreshes a stale remote-tracking branch without changing the w
     await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
     await app.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, documentPath);
     await page.getByTestId('workspace-menu-button').click();
-    await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+    await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
     await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
     await expect.poll(() => readFile(documentPath, 'utf8').then(() => true).catch(() => false)).toBe(true);
@@ -94,7 +94,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
     const openPlugins = async () => {
       await page.getByTestId('workspace-menu-button').click();
-      await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen' }).click();
+      await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
       return page.getByRole('dialog', { name: 'Plugins', exact: true });
     };
     const chooseSavePath = async (filePath: string) => desktop.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, filePath);

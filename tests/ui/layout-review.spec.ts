@@ -244,7 +244,7 @@ test('a popover stays on screen when the selection reaches above the viewport (#
 });
 
 test('the plugin dialog keeps focus inside and returns it on Escape (#79)', async ({ page }) => {
-  await openWorkspaceItem(page, 'Plugin-Einstellungen');
+  await openWorkspaceItem(page, 'Plugins');
   const dialog = page.getByRole('dialog', { name: 'Plugins' });
   const close = dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' });
   await expect(close).toBeFocused();

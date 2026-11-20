@@ -31,7 +31,7 @@ const documentRectangles = (page: Page) => page.getByTestId('whiteboard-canvas')
 
 async function openPlugins(page: Page) {
   await page.getByTestId('workspace-menu-button').click();
-  await page.getByRole('menuitemcheckbox', { name: 'Plugin-Einstellungen', exact: true }).click();
+  await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await expect(dialog).toBeVisible(); return dialog;
 }
