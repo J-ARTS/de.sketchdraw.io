@@ -365,23 +365,26 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             class="page-btn"
             :data-page-id="page.id"
             :aria-current="page.id === s.activePageId ? 'page' : undefined"
+            :aria-describedby="confluenceLinks.has(page.id) ? `${uid}-linked-${index}` : undefined"
             aria-keyshortcuts="F2 Alt+ArrowUp Alt+ArrowDown"
             @click="selectPage(page.id)"
             @dblclick="startRename(page)"
             @keydown="onRowKeydown(page, index, $event)"
           >
             <span class="page-name">{{ tm(page.name) }}</span>
-            <span
-              v-if="confluenceLinks.has(page.id)"
-              class="page-linked"
-              :class="{ problem: confluenceProblem(page.id) }"
-              :data-testid="`page-confluence-${page.id}`"
-              :title="t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle })"
-            >
-              <AppIcon :name="confluenceProblem(page.id) ? 'warning' : 'link'" :size="14" />
-              <span class="visually-hidden">{{ t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle }) }}</span>
-            </span>
           </button>
+          <!-- The link describes the page; its name stays the page name, for people and for assistive technology. -->
+          <span
+            v-if="confluenceLinks.has(page.id)"
+            :id="`${uid}-linked-${index}`"
+            class="page-linked"
+            :class="{ problem: confluenceProblem(page.id) }"
+            :data-testid="`page-confluence-${page.id}`"
+            :title="t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle })"
+          >
+            <AppIcon :name="confluenceProblem(page.id) ? 'warning' : 'link'" :size="14" />
+            <span class="visually-hidden">{{ t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle }) }}</span>
+          </span>
           <button
             type="button"
             class="more-btn"
@@ -625,6 +628,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
   display: grid;
   flex: none;
   place-items: center;
+  width: 20px;
   color: var(--text-muted);
 }
 

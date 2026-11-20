@@ -160,7 +160,8 @@ test('each page is linked to its own Confluence page in the page menu and publis
   await page.getByTestId('page-switcher').click();
   const panel = page.getByRole('dialog', { name: 'Seiten', exact: true });
   await expect(panel.getByTestId(`page-confluence-${firstPageId}`)).toHaveAttribute('title', 'Mit Confluence-Seite „Architektur“ verknüpft');
-  await expect(panel.getByRole('button', { name: /^Seite 1/ }).first()).toContainText('Mit Confluence-Seite „Architektur“ verknüpft');
+  // The link describes the page button; its name stays the page name.
+  await expect(panel.getByRole('button', { name: 'Seite 1', exact: true })).toHaveAccessibleDescription('Mit Confluence-Seite „Architektur“ verknüpft');
 
   // A second page has no link: adding it changes the picture of the first page (its heading now names the page), drawing on the second sends nothing.
   await page.getByTestId('page-add').click();
