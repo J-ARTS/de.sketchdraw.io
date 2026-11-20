@@ -167,3 +167,70 @@ test('own components follow the dark theme and the English language', async ({ p
   const [r, g, b] = stroke.match(/\d+/g)!.map(Number) as [number, number, number];
   expect(r + g + b).toBeGreaterThan(450);
 });
+
+test('the own library is exported to a file and imported again from the more menu (#244)', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const library = page.getByTestId('shape-library-sidebar');
+  await library.getByRole('tab', { name: /^Eigene/ }).click();
+  const more = library.getByRole('button', { name: 'Eigene Komponenten importieren oder exportieren' });
+
+  // An empty library offers the import; there is nothing to export yet.
+  await more.click();
+  const menu = library.getByRole('menu', { name: 'Eigene Komponenten importieren oder exportieren' });
+  await expect(menu.getByRole('menuitem', { name: 'Komponenten importieren…' })).toBeFocused();
+  await expect(menu.getByRole('menuitem', { name: 'Komponenten exportieren…' })).toHaveAttribute('aria-disabled', 'true');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(more).toBeFocused();
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+
+  await selectTwoShapes(page);
+  await saveSelection(page);
+  await page.keyboard.type('Dienst mit Cache');
+  await page.keyboard.press('Enter');
+  await expect(library.getByTestId('custom-components-summary')).toHaveText('1 Komponente');
+
+  // Export hands the library over as a download in the browser.
+  await more.click();
+  const [download] = await Promise.all([page.waitForEvent('download'), menu.getByRole('menuitem', { name: 'Komponenten exportieren…' }).click()]);
+  expect(download.suggestedFilename()).toBe('Eigene Komponenten.sketchdraw-components.json');
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(chunk as Buffer);
+  const exported = Buffer.concat(chunks).toString('utf8');
+  expect(JSON.parse(exported)).toMatchObject({ format: 'sketchdraw.custom-components', version: 1, components: [{ name: 'Dienst mit Cache' }] });
+  await expect(more).toBeFocused();
+
+  // The same file again adds nothing.
+  const pick = async (name: string, contents: string): Promise<void> => {
+    await more.click();
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), menu.getByRole('menuitem', { name: 'Komponenten importieren…' }).click()]);
+    await chooser.setFiles({ name, mimeType: 'application/json', buffer: Buffer.from(contents, 'utf8') });
+  };
+  await pick('bibliothek.json', exported);
+  await expect(page.getByText('Keine neue Komponente importiert. 1 ist schon in der Bibliothek.').first()).toBeVisible();
+  await expect(library.locator('.custom-tile')).toHaveCount(1);
+
+  // After deleting it, the file brings the component back, and it can be inserted.
+  await library.getByRole('button', { name: '„Dienst mit Cache“ löschen' }).click();
+  await library.getByRole('button', { name: 'Löschen', exact: true }).click();
+  await expect(library.getByTestId('custom-components-empty')).toBeVisible();
+  await pick('bibliothek.json', exported);
+  await expect(page.getByText('1 Komponente importiert.').first()).toBeVisible();
+  await expect(library.getByRole('tab', { name: 'Eigene 1' })).toBeVisible();
+  const before = await page.locator('.whiteboard-canvas [data-kind]').count();
+  await library.getByRole('button', { name: '„Dienst mit Cache“ einfügen' }).click();
+  await expect(page.locator('.whiteboard-canvas [data-kind]')).toHaveCount(before + 2);
+
+  // Another JSON file is refused with a reason, and the library stays as it is.
+  await pick('anderes.json', JSON.stringify({ hello: 'world' }));
+  await expect(page.getByText('Die Datei enthält keine Sketchdraw-Komponenten.').first()).toBeVisible();
+  await expect(library.locator('.custom-tile')).toHaveCount(1);
+
+  await more.click();
+  const results = await new AxeBuilder({ page }).include('[data-testid="shape-library-sidebar"]').analyze();
+  expect(results.violations).toEqual([]);
+});

@@ -44,7 +44,7 @@ import {
 import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
 import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
-import { CUSTOM_COMPONENT_LIMITS, normalizeComponentName, useCustomComponents } from '../lib/custom-components';
+import { CUSTOM_COMPONENT_LIMITS, CUSTOM_COMPONENTS_FILE_MAX_BYTES, normalizeComponentName, useCustomComponents, type CustomComponentImportResult } from '../lib/custom-components';
 import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
 import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
 import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
@@ -1668,6 +1668,42 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.transitioning) return;
       const component = useCustomComponents().get(id);
       if (component) await store.insertElements(component.payload, screenAt, component.name);
+    },
+    async exportCustomComponents() {
+      const library = useCustomComponents();
+      if (!library.components.value.length) { notice(t('Es gibt noch keine eigenen Komponenten zum Exportieren.'), 'error'); return; }
+      try {
+        const result = await bridge.exportFile(library.exportLibrary(), t('Eigene Komponenten'), 'components');
+        if (result.status === 'error') fail(new Error(result.message));
+        else if (result.status !== 'cancelled') notice(result.status === 'exported' ? t('Exportiert: {name}', { name: result.name }) : t('Als Download übergeben: {name}', { name: result.name }));
+      } catch (error) { fail(error); }
+    },
+    async importCustomComponents(file) {
+      let result: CustomComponentImportResult;
+      try {
+        // The size is checked before the file is read, so an unrelated large file never reaches memory as text.
+        result = file.size > CUSTOM_COMPONENTS_FILE_MAX_BYTES
+          ? { ok: false, reason: 'too-large' }
+          : useCustomComponents().importLibrary(await file.text(), () => uid('custom-component'));
+      } catch { result = { ok: false, reason: 'invalid' }; }
+      if (!result.ok) {
+        const reasons = {
+          'too-large': t('Die Datei ist zu groß für die eigene Bibliothek.'),
+          invalid: t('Die Datei enthält keine Sketchdraw-Komponenten.'),
+          empty: t('Die Datei enthält keine Komponenten.'),
+          'library-full': t('Die eigene Bibliothek hat dafür keinen Platz. Lösche Komponenten, die du nicht mehr brauchst.'),
+          storage: t('Die Komponenten konnten nicht gespeichert werden.'),
+        };
+        notice(reasons[result.reason], 'error');
+        return false;
+      }
+      const parts = [result.added
+        ? tn(result.added, '{count} Komponente importiert.', '{count} Komponenten importiert.')
+        : t('Keine neue Komponente importiert.')];
+      if (result.duplicates) parts.push(tn(result.duplicates, '{count} ist schon in der Bibliothek.', '{count} sind schon in der Bibliothek.'));
+      if (result.rejected) parts.push(tn(result.rejected, '{count} Eintrag der Datei war nicht lesbar.', '{count} Einträge der Datei waren nicht lesbar.'));
+      notice(parts.join(' '));
+      return true;
     },
     async addBpmnLane() {
       if (state.transitioning) return;

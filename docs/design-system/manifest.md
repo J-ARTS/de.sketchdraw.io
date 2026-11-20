@@ -444,7 +444,7 @@ The options of the connector tool (routing, line ends) shown while the tool is a
 
 ### CustomComponentsTab
 
-The tab of the shape library with the user's own components: insert, rename, delete.
+The tab of the shape library with the user's own components: insert, rename, delete, export and import.
 
 - File: `src/renderer/design-system/organisms/CustomComponentsTab.vue`
 

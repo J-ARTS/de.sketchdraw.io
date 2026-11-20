@@ -121,12 +121,14 @@ export function redactFilesystemPaths(message: string): string {
 }
 
 const SKETCHDRAW_JSON_EXTENSION = '.sketchdraw.json';
+/** A library of own components (#244): JSON, named so that it is not mistaken for a diagram. */
+const COMPONENTS_EXTENSION = '.sketchdraw-components.json';
 
 export function sanitizeSuggestedFileName(
   suggestedName: string,
   format: ExportFormat = 'sketchdraw',
 ): string {
-  let requiredExt = format === 'mermaid' ? '.mmd' : `.${format}`;
+  let requiredExt = format === 'mermaid' ? '.mmd' : format === 'components' ? COMPONENTS_EXTENSION : `.${format}`;
   const rawSegments = suggestedName
     .split(/[/\\]+/)
     .map((part) => part.trim())
@@ -230,6 +232,8 @@ function getDialogFiltersForFormat(
       return [{ name: 'Mermaid Flowchart', extensions: ['mmd', 'mermaid'] }];
     case 'sketchdraw':
       return [{ name: 'Sketchdraw Document', extensions: ['sketchdraw', 'json'] }];
+    case 'components':
+      return [{ name: 'Sketchdraw Components', extensions: ['json'] }];
   }
 }
 
@@ -595,7 +599,7 @@ export class DocumentPersistenceService {
     let saveSelection: SaveDialogSelection;
     try {
       saveSelection = await this.dialogs.showSaveDialog({
-        title: 'Diagramm exportieren',
+        title: format === 'components' ? 'Komponenten exportieren' : 'Diagramm exportieren',
         defaultPath: safeDefaultName,
         filters: getDialogFiltersForFormat(format),
       });

@@ -435,6 +435,10 @@ export interface WhiteboardStore {
   toggleDiagramCode(open?: boolean): void;
   /** Inserts one of the user's own components at the canvas centre or, when supplied, centred on a screen-space point. */
   insertCustomComponent(id: string, screenAt?: Point): Promise<void>;
+  /** Writes the user's own component library to a file the user picks (#244). */
+  exportCustomComponents(): Promise<void>;
+  /** Adds the components of an exchange file to the library and reports the outcome; `true` when the file was read. */
+  importCustomComponents(file: { readonly size: number; text(): Promise<string> }): Promise<boolean>;
   nudge(dx: number, dy: number): void;
   endNudge(): void;
   reorder(op: 'front' | 'back' | 'forward' | 'backward'): void;

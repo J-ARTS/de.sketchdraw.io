@@ -78,6 +78,38 @@ function serialize(components: readonly CustomComponent[]): string {
   return JSON.stringify({ version: 1, components });
 }
 
+/** The exchange file of the library (#244): the stored shape plus a format marker, so other JSON is told apart. */
+export const CUSTOM_COMPONENTS_FILE_FORMAT = 'sketchdraw.custom-components';
+/** A file may be larger than the library it came from only by its envelope; anything beyond is not read. */
+export const CUSTOM_COMPONENTS_FILE_MAX_BYTES = CUSTOM_COMPONENT_LIMITS.MAX_LIBRARY_BYTES + 64 * 1024;
+
+export function serializeCustomComponentsFile(components: readonly CustomComponent[]): string {
+  return JSON.stringify({ format: CUSTOM_COMPONENTS_FILE_FORMAT, version: 1, components });
+}
+
+export type CustomComponentImportFailure = 'too-large' | 'invalid' | 'empty' | 'library-full' | 'storage';
+export type CustomComponentImportResult =
+  /** `duplicates` were already in the library, `rejected` entries of the file did not pass the element check. */
+  | { ok: true; added: number; duplicates: number; rejected: number }
+  | { ok: false; reason: CustomComponentImportFailure };
+
+/**
+ * The entries of an exchange file, or the reason it cannot be read. A file is untrusted like stored text:
+ * every entry passes the same element check, and what does not pass is counted, not kept.
+ */
+export function parseCustomComponentsFile(text: string): { ok: true; components: CustomComponent[]; rejected: number } | { ok: false; reason: 'too-large' | 'invalid' | 'empty' } {
+  if (byteLength(text) > CUSTOM_COMPONENTS_FILE_MAX_BYTES) return { ok: false, reason: 'too-large' };
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch { return { ok: false, reason: 'invalid' }; }
+  if (!isRecord(parsed) || parsed.version !== 1 || !Array.isArray(parsed.components)) return { ok: false, reason: 'invalid' };
+  // A file without the marker is accepted only when it has nothing but the stored shape.
+  if (parsed.format !== undefined && parsed.format !== CUSTOM_COMPONENTS_FILE_FORMAT) return { ok: false, reason: 'invalid' };
+  if (!parsed.components.length) return { ok: false, reason: 'empty' };
+  const components = validateCustomComponents(parsed.components);
+  if (!components.length) return { ok: false, reason: 'invalid' };
+  return { ok: true, components, rejected: parsed.components.length - components.length };
+}
+
 export interface CustomComponentState {
   components: Ref<CustomComponent[]>;
   /** Which tab of the library is shown; shared so that saving a component can lead there. */
@@ -94,6 +126,14 @@ export interface CustomComponentState {
   numberedName(base: string): string;
   /** Reads the library again, e.g. after another window changed it. */
   reload(): void;
+  /** The whole library as the text of an exchange file. */
+  exportLibrary(): string;
+  /**
+   * Adds the components of an exchange file in front of the existing ones, with new ids and free names.
+   * Components that are already in the library under the same name are skipped. All or nothing: when the
+   * result does not fit, the library stays as it was.
+   */
+  importLibrary(text: string, createId: () => string): CustomComponentImportResult;
 }
 
 export function createCustomComponentState(storage: StorageLike | undefined = defaultStorage()): CustomComponentState {
@@ -110,14 +150,17 @@ export function createCustomComponentState(storage: StorageLike | undefined = de
     return true;
   }
 
-  function uniqueName(base: string): string {
-    const taken = new Set(components.value.map((component) => component.name.toLocaleLowerCase()));
+  function freeName(base: string, taken: ReadonlySet<string>): string {
     if (!taken.has(base.toLocaleLowerCase())) return base;
     for (let index = 2; ; index += 1) {
       const suffix = ` ${index}`;
       const candidate = `${Array.from(base).slice(0, CUSTOM_COMPONENT_LIMITS.MAX_NAME_LENGTH - suffix.length).join('').trim()}${suffix}`;
       if (!taken.has(candidate.toLocaleLowerCase())) return candidate;
     }
+  }
+  const takenNames = (): Set<string> => new Set(components.value.map((component) => component.name.toLocaleLowerCase()));
+  function uniqueName(base: string): string {
+    return freeName(base, takenNames());
   }
 
   return {
@@ -159,6 +202,28 @@ export function createCustomComponentState(storage: StorageLike | undefined = de
       }
     },
     reload() { components.value = loadCustomComponents(storage); },
+    exportLibrary() { return serializeCustomComponentsFile(components.value); },
+    importLibrary(text, createId) {
+      const file = parseCustomComponentsFile(text);
+      if (!file.ok) return file;
+      // "Already there" means the same name and the same elements; a changed copy comes in under a free name.
+      const known = new Set(components.value.map((component) => `${component.name.toLocaleLowerCase()}\n${JSON.stringify(component.payload)}`));
+      const taken = takenNames();
+      const added: CustomComponent[] = [];
+      let duplicates = 0;
+      for (const entry of file.components) {
+        const key = `${entry.name.toLocaleLowerCase()}\n${JSON.stringify(entry.payload)}`;
+        if (known.has(key)) { duplicates += 1; continue; }
+        known.add(key);
+        const name = freeName(entry.name, taken);
+        taken.add(name.toLocaleLowerCase());
+        added.push({ id: createId(), name, payload: entry.payload });
+      }
+      if (!added.length) return { ok: true, added: 0, duplicates, rejected: file.rejected };
+      const next = [...added, ...components.value];
+      if (next.length > CUSTOM_COMPONENT_LIMITS.MAX_COMPONENTS || byteLength(serialize(next)) > CUSTOM_COMPONENT_LIMITS.MAX_LIBRARY_BYTES) return { ok: false, reason: 'library-full' };
+      return persist(next) ? { ok: true, added: added.length, duplicates, rejected: file.rejected } : { ok: false, reason: 'storage' };
+    },
   };
 }
 

@@ -14,7 +14,7 @@ import type {
   SketchDocument,
 } from '../domain/types';
 
-export type BrowserExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw';
+export type BrowserExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components';
 export type BrowserCloseDecision = 'close' | 'cancel';
 export type BrowserMenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
 
@@ -42,6 +42,7 @@ const ALLOWED_EXPORT_FORMATS = new Set<BrowserExportFormat>([
   'drawio',
   'mermaid',
   'sketchdraw',
+  'components',
 ]);
 
 // SHA-256 constants for deterministic fallback when crypto.subtle is unavailable
@@ -192,7 +193,7 @@ export function sanitizeDownloadFileName(
   suggestedName: string,
   format: BrowserExportFormat = 'sketchdraw',
 ): string {
-  const requiredExt = format === 'mermaid' ? '.mmd' : `.${format}`;
+  const requiredExt = format === 'mermaid' ? '.mmd' : format === 'components' ? '.sketchdraw-components.json' : `.${format}`;
   const segments = suggestedName
     .split(/[/\\]+/)
     .map((s) => s.trim())
@@ -315,6 +316,7 @@ function getMimeTypeForFormat(format: BrowserExportFormat): string {
     case 'mermaid':
       return 'text/plain;charset=utf-8';
     case 'sketchdraw':
+    case 'components':
       return 'application/json;charset=utf-8';
   }
 }
@@ -859,7 +861,7 @@ export function createBrowserDesktopBridge(
         return {
           status: 'error',
           code: 'INVALID_FORMAT',
-          message: 'Export format must be "svg", "drawio", "mermaid", or "sketchdraw".',
+          message: 'Export format must be "svg", "drawio", "mermaid", "sketchdraw", or "components".',
         };
       }
 

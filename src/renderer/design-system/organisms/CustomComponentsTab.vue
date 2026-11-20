@@ -1,9 +1,11 @@
-<!-- @component The tab of the shape library with the user's own components: insert, rename, delete. -->
+<!-- @component The tab of the shape library with the user's own components: insert, rename, delete, export and import. -->
 <script setup lang="ts">
-import { t } from '@/renderer/i18n';
+import { t, tn } from '@/renderer/i18n';
 import { computed, nextTick, ref, watch } from 'vue';
+import { onClickOutside } from '@vueuse/core';
 import { CUSTOM_COMPONENT_DRAG_MIME, CUSTOM_COMPONENT_LIMITS, useCustomComponents, type CustomComponent } from '@/renderer/lib/custom-components';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import PayloadPreview from '@/renderer/design-system/organisms/PayloadPreview.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
@@ -17,6 +19,80 @@ const root = ref<HTMLElement | null>(null);
 const draft = ref('');
 const confirmingId = ref<string | null>(null);
 const announcement = ref('');
+
+// --- Export and import of the whole library (#244), behind the "…" button ---
+const moreButton = ref<InstanceType<typeof AppIconButton> | null>(null);
+const moreWrap = ref<HTMLElement | null>(null);
+const menuEl = ref<HTMLElement | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
+const menuOpen = ref(false);
+const importing = ref(false);
+const hasComponents = computed(() => library.components.value.length > 0);
+const summary = computed(() => {
+  const total = library.components.value.length;
+  if (!total) return '';
+  const shown = filtered.value.length;
+  return shown === total
+    ? tn(total, '{count} Komponente', '{count} Komponenten')
+    : t('{shown} von {total} Komponenten', { shown, total });
+});
+
+const menuItems = (): HTMLButtonElement[] => Array.from(menuEl.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+async function openMenu(): Promise<void> {
+  if (library.renamingId.value) library.renamingId.value = null;
+  confirmingId.value = null;
+  menuOpen.value = true;
+  await nextTick();
+  menuItems()[0]?.focus();
+}
+function closeMenu(returnFocus: boolean): void {
+  if (!menuOpen.value) return;
+  menuOpen.value = false;
+  if (returnFocus) void nextTick(() => moreButton.value?.focus());
+}
+function toggleMenu(): void {
+  if (menuOpen.value) closeMenu(true);
+  else void openMenu();
+}
+onClickOutside(moreWrap, () => closeMenu(false));
+function onMenuKeydown(event: KeyboardEvent): void {
+  const items = menuItems();
+  const current = items.findIndex((item) => item === document.activeElement);
+  let next: number;
+  switch (event.key) {
+    case 'ArrowDown': next = (current + 1) % items.length; break;
+    case 'ArrowUp': next = (current - 1 + items.length) % items.length; break;
+    case 'Home': next = 0; break;
+    case 'End': next = items.length - 1; break;
+    case 'Escape':
+    case 'Tab':
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+      return;
+    default:
+      return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  items[next]?.focus();
+}
+function chooseImport(): void {
+  closeMenu(true);
+  // The file dialog needs the click itself; the input is emptied so the same file can be picked again.
+  if (fileInput.value) { fileInput.value.value = ''; fileInput.value.click(); }
+}
+async function onFilePicked(event: Event): Promise<void> {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file || importing.value) return;
+  importing.value = true;
+  try { await store.importCustomComponents(file); } finally { importing.value = false; }
+}
+function chooseExport(): void {
+  if (!hasComponents.value) return;
+  closeMenu(true);
+  void store.exportCustomComponents();
+}
 
 const filtered = computed(() => {
   const needle = props.query.trim().toLocaleLowerCase();
@@ -89,10 +165,32 @@ function confirmDelete(component: CustomComponent): void {
 <template>
   <div ref="root" class="custom-library" data-testid="custom-components">
     <p class="visually-hidden" role="status" aria-live="polite">{{ announcement }}</p>
+    <div class="custom-bar">
+      <span class="custom-summary" data-testid="custom-components-summary">{{ summary }}</span>
+      <div ref="moreWrap" class="custom-more">
+        <AppIconButton
+          ref="moreButton"
+          icon="more"
+          class="custom-more-button"
+          data-testid="custom-components-more"
+          :label="t('Eigene Komponenten importieren oder exportieren')"
+          aria-haspopup="menu"
+          :aria-expanded="menuOpen"
+          aria-controls="custom-components-menu"
+          @click="toggleMenu"
+        />
+        <div v-if="menuOpen" id="custom-components-menu" ref="menuEl" class="custom-menu" role="menu" data-testid="custom-components-menu" :aria-label="t('Eigene Komponenten importieren oder exportieren')" @keydown="onMenuKeydown">
+          <button type="button" role="menuitem" tabindex="-1" class="custom-menu-item" data-testid="custom-components-import" @click="chooseImport">{{ t('Komponenten importieren…') }}</button>
+          <button type="button" role="menuitem" tabindex="-1" class="custom-menu-item" data-testid="custom-components-export" :aria-disabled="hasComponents ? undefined : true" @click="chooseExport">{{ t('Komponenten exportieren…') }}</button>
+        </div>
+      </div>
+      <input ref="fileInput" class="visually-hidden" type="file" accept=".json,application/json" tabindex="-1" aria-hidden="true" data-testid="custom-components-file" @change="onFilePicked" />
+    </div>
     <p v-if="!library.components.value.length" class="custom-empty" data-testid="custom-components-empty">
       <AppIcon name="component-add" :size="28" />
       <strong>{{ t('Noch keine eigenen Komponenten') }}</strong>
       <span>{{ t('Markiere Elemente auf der Zeichenfläche und wähle in der Auswahlleiste unter „…“ die Aktion „Als Komponente speichern“.') }}</span>
+      <span>{{ t('Eine exportierte Bibliothek lässt sich oben unter „…“ importieren.') }}</span>
     </p>
     <p v-else-if="!filtered.length" class="custom-empty"><span>{{ t('Keine eigene Komponente gefunden.') }}</span></p>
     <template v-else>
@@ -133,7 +231,16 @@ function confirmDelete(component: CustomComponent): void {
 </template>
 
 <style scoped>
-.custom-library{padding:16px 20px 8px}
+.custom-library{padding:8px 20px 8px}
+.custom-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;margin-bottom:8px}
+.custom-summary{min-width:0;overflow:hidden;color:var(--text-muted);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.custom-more{position:relative;flex:none}
+.custom-menu{position:absolute;top:calc(100% + 4px);right:0;z-index:20;min-width:232px;padding:8px;border:1px solid var(--border-subtle);border-radius:16px;background:var(--menu-surface);box-shadow:var(--shadow-panel);color:var(--menu-text)}
+.custom-menu-item{display:block;width:100%;min-height:38px;padding:0 14px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:14px;text-align:left;white-space:nowrap;cursor:pointer}
+.custom-menu-item:hover,.custom-menu-item:focus-visible{background:var(--menu-hover)}
+.custom-menu-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.custom-menu-item[aria-disabled='true']{color:var(--menu-muted);cursor:default}
+.custom-menu-item[aria-disabled='true']:hover{background:transparent}
 .custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
 .custom-tile{display:flex;min-width:0;flex-direction:column;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised);overflow:hidden}
 .custom-tile:hover,.custom-tile:focus-within{border-color:var(--accent)}
@@ -158,5 +265,5 @@ function confirmDelete(component: CustomComponent): void {
 .custom-hint{margin:12px 4px 8px;color:var(--text-muted);font-size:11px;line-height:1.5}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:760px){.custom-library{padding-inline:14px}.tile-action{width:40px;height:40px}.confirm-button{min-height:40px}}
-@media(forced-colors:active){.custom-tile.confirming{outline:2px solid Highlight}}
+@media(forced-colors:active){.custom-tile.confirming{outline:2px solid Highlight}.custom-menu{border-color:CanvasText}.custom-menu-item:focus-visible{forced-color-adjust:none;background:Highlight;color:HighlightText}}
 </style>

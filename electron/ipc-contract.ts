@@ -27,7 +27,8 @@ export const IPC_CHANNELS = Object.freeze({
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
-export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw';
+/** `components`: the user's own component library as a file (#244). */
+export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components';
 export type CloseDecision = 'close' | 'cancel';
 export type AppLanguage = 'de' | 'en';
 
@@ -44,6 +45,7 @@ export const EXPORT_FORMATS: readonly ExportFormat[] = Object.freeze([
   'drawio',
   'mermaid',
   'sketchdraw',
+  'components',
 ]);
 
 export const CLOSE_DECISIONS: readonly CloseDecision[] = Object.freeze([
@@ -317,7 +319,7 @@ export function validateExportFileRequest(
       error: {
         status: 'error',
         code: 'INVALID_FORMAT',
-        message: 'Export format must be one of "svg", "drawio", "mermaid", or "sketchdraw".',
+        message: 'Export format must be one of "svg", "drawio", "mermaid", "sketchdraw", or "components".',
       },
     };
   }

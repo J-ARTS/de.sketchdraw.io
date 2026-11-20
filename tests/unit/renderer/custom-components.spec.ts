@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { applyCommand, createController, createDocument, createElement, type DesktopBridge, type SketchDocument } from '@/domain';
 import { elementClipboardPayload } from '@/renderer/state/element-clipboard';
 import {
-  createCustomComponentState, CUSTOM_COMPONENT_LIMITS, CUSTOM_COMPONENTS_STORAGE_KEY, loadCustomComponents,
-  normalizeComponentName, useCustomComponents, validateCustomComponents,
+  createCustomComponentState, CUSTOM_COMPONENT_LIMITS, CUSTOM_COMPONENTS_FILE_FORMAT, CUSTOM_COMPONENTS_FILE_MAX_BYTES, CUSTOM_COMPONENTS_STORAGE_KEY,
+  loadCustomComponents, normalizeComponentName, parseCustomComponentsFile, useCustomComponents, validateCustomComponents,
 } from '@/renderer/lib/custom-components';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { WhiteboardStore } from '@/renderer/state/contract';
@@ -119,6 +119,79 @@ describe('own component library (#188)', () => {
   });
 });
 
+describe('own component library as a file (#244)', () => {
+  test('an exported library is imported on another device with new ids, in front of what is there', () => {
+    const document = sample();
+    const source = createCustomComponentState(memoryStorage());
+    source.add('Service', payloadOf(document, ['box:api']), nextId);
+    source.add('Pair', payloadOf(document, ['box:api', 'box:cache', 'link:api-cache']), nextId);
+    const file = source.exportLibrary();
+    expect(JSON.parse(file)).toMatchObject({ format: CUSTOM_COMPONENTS_FILE_FORMAT, version: 1 });
+
+    const storage = memoryStorage();
+    const target = createCustomComponentState(storage);
+    target.add('Mine', payloadOf(document, ['box:cache']), nextId);
+    expect(target.importLibrary(file, nextId)).toEqual({ ok: true, added: 2, duplicates: 0, rejected: 0 });
+    expect(target.components.value.map((component) => component.name)).toEqual(['Pair', 'Service', 'Mine']);
+    const sourceIds = source.components.value.map((component) => component.id);
+    expect(target.components.value.every((component) => !sourceIds.includes(component.id))).toBe(true);
+    expect(target.components.value[0]!.payload).toEqual(source.components.value[0]!.payload);
+    // What was imported is stored like a saved component.
+    expect(loadCustomComponents(storage).map((component) => component.name)).toEqual(['Pair', 'Service', 'Mine']);
+  });
+
+  test('importing the same file again adds nothing; a different component with a taken name gets a free name', () => {
+    const document = sample();
+    const source = createCustomComponentState(memoryStorage());
+    source.add('Service', payloadOf(document, ['box:api']), nextId);
+    const file = source.exportLibrary();
+
+    const target = createCustomComponentState(memoryStorage());
+    expect(target.importLibrary(file, nextId)).toMatchObject({ ok: true, added: 1 });
+    expect(target.importLibrary(file, nextId)).toEqual({ ok: true, added: 0, duplicates: 1, rejected: 0 });
+    expect(target.components.value).toHaveLength(1);
+
+    const other = createCustomComponentState(memoryStorage());
+    other.add('service', payloadOf(document, ['box:cache']), nextId);
+    expect(other.importLibrary(file, nextId)).toMatchObject({ ok: true, added: 1, duplicates: 0 });
+    expect(other.components.value.map((component) => component.name)).toEqual(['Service 2', 'service']);
+  });
+
+  test('a file is untrusted: other JSON is refused, broken entries are counted and left out', () => {
+    const document = sample();
+    const good = { id: 'a', name: 'Good', payload: payloadOf(document, ['box:api']) };
+    const state = createCustomComponentState(memoryStorage());
+    for (const text of ['', 'not json', '[]', '{"version":2,"components":[]}', JSON.stringify({ format: 'something-else', version: 1, components: [good] }), JSON.stringify({ version: 1, components: [{ id: 'x', name: 'Broken', payload: { nope: true } }] })]) {
+      expect(state.importLibrary(text, nextId)).toEqual({ ok: false, reason: 'invalid' });
+    }
+    expect(state.importLibrary(JSON.stringify({ format: CUSTOM_COMPONENTS_FILE_FORMAT, version: 1, components: [] }), nextId)).toEqual({ ok: false, reason: 'empty' });
+    expect(state.importLibrary(' '.repeat(CUSTOM_COMPONENTS_FILE_MAX_BYTES + 1), nextId)).toEqual({ ok: false, reason: 'too-large' });
+    expect(state.components.value).toEqual([]);
+
+    const mixed = JSON.stringify({ format: CUSTOM_COMPONENTS_FILE_FORMAT, version: 1, components: [good, { id: 'b', name: 'Broken', payload: { elements: 'nope' } }, null] });
+    expect(parseCustomComponentsFile(mixed)).toMatchObject({ ok: true, rejected: 2 });
+    expect(state.importLibrary(mixed, nextId)).toEqual({ ok: true, added: 1, duplicates: 0, rejected: 2 });
+    // The stored shape without the marker (a copy of the storage entry) is read as well.
+    expect(parseCustomComponentsFile(JSON.stringify({ version: 1, components: [good] }))).toMatchObject({ ok: true, rejected: 0 });
+  });
+
+  test('an import is all or nothing: a full library and a failing storage leave it as it was', () => {
+    const document = sample();
+    const payload = payloadOf(document, ['box:api']);
+    const full = createCustomComponentState(memoryStorage());
+    for (let index = 0; index < CUSTOM_COMPONENT_LIMITS.MAX_COMPONENTS - 1; index += 1) full.add(`C${index}`, payload, nextId);
+    const two = JSON.stringify({ format: CUSTOM_COMPONENTS_FILE_FORMAT, version: 1, components: [{ id: 'a', name: 'New A', payload }, { id: 'b', name: 'New B', payload }] });
+    expect(full.importLibrary(two, nextId)).toEqual({ ok: false, reason: 'library-full' });
+    expect(full.components.value).toHaveLength(CUSTOM_COMPONENT_LIMITS.MAX_COMPONENTS - 1);
+
+    const storage = memoryStorage();
+    const failing = createCustomComponentState(storage);
+    storage.setItem.mockImplementation(() => { throw new Error('quota'); });
+    expect(failing.importLibrary(two, nextId)).toEqual({ ok: false, reason: 'storage' });
+    expect(failing.components.value).toEqual([]);
+  });
+});
+
 describe('own components in the whiteboard store (#188)', () => {
   const stores: WhiteboardStore[] = [];
   afterEach(() => {
@@ -184,5 +257,40 @@ describe('own components in the whiteboard store (#188)', () => {
     await store.insertCustomComponent('custom-component:missing');
     await store.whenIdle();
     expect(store.state.document.elements).toHaveLength(3);
+  });
+  test('the library is exported through the bridge and imported from a picked file, with a readable outcome', async () => {
+    const store = open(sample());
+    const library = useCustomComponents();
+    const exportFile = vi.mocked(bridge.exportFile);
+    exportFile.mockClear();
+    await store.exportCustomComponents();
+    expect(exportFile).not.toHaveBeenCalled();
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'error' });
+
+    store.select(['box:api']);
+    store.saveSelectionAsComponent();
+    exportFile.mockResolvedValueOnce({ status: 'exported', name: 'Eigene Komponenten.sketchdraw-components.json' } as never);
+    await store.exportCustomComponents();
+    const [contents, name, format] = exportFile.mock.calls.at(-1)!;
+    expect(format).toBe('components');
+    expect(name).toBe('Eigene Komponenten');
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'info', text: 'Exportiert: Eigene Komponenten.sketchdraw-components.json' });
+
+    const file = (text: string, size = text.length) => ({ size, text: async () => text });
+    expect(await store.importCustomComponents(file(contents))).toBe(true);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'info', text: 'Keine neue Komponente importiert. 1 ist schon in der Bibliothek.' });
+    library.remove(library.components.value[0]!.id);
+    expect(await store.importCustomComponents(file(contents))).toBe(true);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'info', text: '1 Komponente importiert.' });
+    expect(library.components.value.map((component) => component.name)).toEqual(['API Gateway']);
+
+    expect(await store.importCustomComponents(file('{}'))).toBe(false);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'error', text: 'Die Datei enthält keine Sketchdraw-Komponenten.' });
+    // A file that is too large is refused by its size, without being read.
+    const text = vi.fn(async () => contents);
+    expect(await store.importCustomComponents({ size: CUSTOM_COMPONENTS_FILE_MAX_BYTES + 1, text })).toBe(false);
+    expect(text).not.toHaveBeenCalled();
+    expect(await store.importCustomComponents({ size: 10, text: async () => { throw new Error('unreadable'); } })).toBe(false);
+    expect(library.components.value).toHaveLength(1);
   });
 });
