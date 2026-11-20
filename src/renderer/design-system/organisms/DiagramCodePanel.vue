@@ -8,6 +8,10 @@ import { readFlow } from '@/renderer/lib/flow-model';
 import { readSequence } from '@/renderer/lib/sequence-model';
 import { docToScreen } from '@/renderer/lib/viewport';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
+import FindReplaceBar from '@/renderer/design-system/molecules/FindReplaceBar.vue';
+import { useTextSearch } from '@/renderer/design-system/composables/use-text-search';
+import { isMacPlatform, modHint } from '@/renderer/design-system/composables/platform';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
 /**
@@ -98,8 +102,41 @@ function onInput(event: Event): void {
 function onBlur(): void { if (dirty.value && !errors.value.length) void apply(); }
 function onKeydown(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); void apply(); }
-  else if (event.key === 'Escape') { event.preventDefault(); document.querySelector<HTMLElement>('[data-testid="whiteboard-canvas"]')?.focus(); }
+  else if (event.key === 'Escape') {
+    event.preventDefault();
+    // With the search open, Escape closes it first and the cursor stays in the code.
+    if (search.open.value) { event.stopPropagation(); search.close(); }
+    else document.querySelector<HTMLElement>('[data-testid="whiteboard-canvas"]')?.focus();
+  } else if (event.key === 'F3' && search.open.value) { event.preventDefault(); if (event.shiftKey) search.previous(); else search.next(); }
 }
+
+// --- Search and replace in the code (#245): Ctrl/Cmd+F searches, Ctrl/Cmd+R searches and replaces ---
+const isMac = isMacPlatform();
+const marks = ref<HTMLElement>();
+const findBar = ref<InstanceType<typeof FindReplaceBar> | null>(null);
+const search = useTextSearch(editor, marks, () => text.value, () => s.canWrite);
+async function openSearch(mode: 'find' | 'replace'): Promise<void> {
+  if (!editor.value) return;
+  search.show(mode);
+  await nextTick();
+  if (mode === 'replace' && search.query.value) findBar.value?.focusReplace();
+  else findBar.value?.focusSearch();
+}
+function onPanelKeydown(event: KeyboardEvent): void {
+  if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+  const key = event.key.toLowerCase();
+  if (key !== 'f' && key !== 'r') return;
+  // Also without a code field the keys stay here: the browser's own search or a reload would not help in the panel.
+  event.preventDefault();
+  event.stopPropagation();
+  void openSearch(key === 'f' ? 'find' : 'replace');
+}
+function replaceAll(): void {
+  const count = search.replaceAll();
+  search.message.value = count ? t('Ersetzte Treffer: {count}', { count }) : '';
+}
+// A diagram without code has nothing to search in.
+watch(() => Boolean(anchor.value && (view.value || dirty.value)), (shown) => { if (!shown) search.open.value = false; });
 function reload(): void { if (canonical.value !== null) load(canonical.value); }
 /** Puts the cursor on the line a message is about. */
 function goTo(line: number): void {
@@ -138,20 +175,36 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 </script>
 
 <template>
-  <aside ref="panel" class="diagram-code-panel sd-panel" data-testid="diagram-code-panel" :data-kind="kind" :aria-label="t('Mermaid-Code')">
+  <aside ref="panel" class="diagram-code-panel sd-panel" data-testid="diagram-code-panel" :data-kind="kind" :aria-label="t('Mermaid-Code')" @keydown="onPanelKeydown">
     <div class="heading">
       <h2 class="sd-panel-title">{{ kind === 'sequence' ? t('Sequenzdiagramm als Mermaid-Code') : t('Ablauf als Mermaid-Code') }}</h2>
-      <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Mermaid-Code schließen')" @click="store.toggleDiagramCode(false)"><AppIcon name="close" /></button>
+      <div class="heading-actions">
+        <AppIconButton v-if="anchor && (view || dirty)" icon="search" :icon-size="16" data-testid="diagram-code-search" :label="t('Im Code suchen und ersetzen')" :title="`${t('Im Code suchen und ersetzen')} (${modHint(isMac, 'F')}, ${modHint(isMac, 'R')})`" :pressed="search.open.value" @click="search.open.value ? search.close() : openSearch('find')" />
+        <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Mermaid-Code schließen')" @click="store.toggleDiagramCode(false)"><AppIcon name="close" /></button>
+      </div>
     </div>
     <template v-if="anchor && (view || dirty)">
       <p class="panel-intro"><span class="names" data-testid="diagram-code-names">{{ names }}</span>{{ kind === 'sequence'
         ? t('Was du tippst, erscheint gleich auf der Zeichenfläche; Abstände, Aktivierungen und Nummern entstehen automatisch.')
         : t('Was du tippst, erscheint gleich auf der Zeichenfläche. Neue Knoten stehen neben ihrem Vorgänger, alles andere bleibt an seinem Platz.') }}</p>
-      <textarea
-        ref="editor" class="code-editor sd-textarea" data-testid="diagram-code-editor" :value="text" :aria-label="t('Mermaid-Code des Diagramms')" :aria-invalid="errors.length > 0" aria-describedby="diagram-code-status"
-        spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" :readonly="!s.canWrite"
-        @input="onInput" @blur="onBlur" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false; schedule()"
+      <FindReplaceBar
+        v-if="search.open.value" ref="findBar" class="code-search"
+        v-model:query="search.query.value" v-model:replacement="search.replacement.value" v-model:replace-open="search.replaceOpen.value"
+        v-model:match-case="search.options.matchCase" v-model:whole-word="search.options.wholeWord" v-model:regex="search.options.regex" v-model:preserve-case="search.options.preserveCase"
+        :total="search.matches.value.length" :current="search.current.value" :capped="search.capped.value" :invalid="search.invalid.value" :readonly="!s.canWrite" :message="search.message.value"
+        @next="search.next" @previous="search.previous" @replace="search.replaceCurrent" @replace-all="replaceAll" @close="search.close"
       />
+      <div class="code-field">
+        <textarea
+          ref="editor" class="code-editor sd-textarea" data-testid="diagram-code-editor" :value="text" :aria-label="t('Mermaid-Code des Diagramms')" :aria-invalid="errors.length > 0" aria-describedby="diagram-code-status"
+          :aria-keyshortcuts="isMac ? 'Meta+F Meta+R' : 'Control+F Control+R'" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" :readonly="!s.canWrite"
+          @input="onInput" @blur="onBlur" @keydown="onKeydown" @compositionstart="composing = true" @compositionend="composing = false; schedule()"
+        />
+        <!-- The hits of the search, drawn over the text; the layer takes no clicks and is not read out. -->
+        <div v-if="search.open.value && search.segments.value.length" ref="marks" class="code-marks" data-testid="diagram-code-marks" aria-hidden="true" :style="search.markStyle.value">
+          <div class="code-marks-text" :style="search.shiftStyle.value"><template v-for="(segment, index) in search.segments.value" :key="index"><mark v-if="segment.match >= 0" :data-current="segment.match === search.current.value ? 'true' : undefined">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template>&#8203;</div>
+        </div>
+      </div>
       <ul v-if="diagnostics.length" class="diagnostics" :aria-label="t('Meldungen zum Code')">
         <li v-for="(entry, index) in diagnostics" :key="index" :class="entry.severity">
           <button type="button" class="message" @click="goTo(entry.line)">
@@ -177,9 +230,18 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 <style scoped>
 .diagram-code-panel{position:absolute;right:12px;top:var(--panel-top);bottom:72px;width:min(440px,calc(100vw - 285px));z-index:22;display:flex;flex-direction:column;overflow:hidden}
 .heading{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border-subtle)}
+.heading-actions{display:flex;flex:none;align-items:center;gap:2px}
 .panel-intro{margin:0;padding:12px;color:var(--text-muted);font-size:12px;line-height:1.6}
 .names{display:block;overflow:hidden;color:var(--text-primary);font-size:13px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}
-.code-editor{flex:1;box-sizing:border-box;width:calc(100% - 24px);min-height:120px;margin:0 12px;resize:none;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;tab-size:4;white-space:pre}
+.code-search{flex-shrink:0;margin:0 12px 8px}
+.code-field{position:relative;display:flex;flex:1;min-height:120px;margin:0 12px}
+.code-editor{flex:1;box-sizing:border-box;width:100%;min-height:0;margin:0;resize:none}
+/* The marks must lie exactly over the text: both use the same type and the same inner spacing. */
+.code-editor,.code-marks-text{padding:var(--space-1) var(--space-2);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;letter-spacing:normal;tab-size:4;white-space:pre}
+.code-marks{position:absolute;overflow:hidden;pointer-events:none}
+.code-marks-text{position:absolute;top:0;left:0;margin:0;color:transparent;will-change:transform}
+.code-marks mark{border-radius:2px;background:var(--search-mark);color:transparent}
+.code-marks mark[data-current='true']{background:var(--search-mark-current);outline:1px solid var(--search-mark-outline)}
 .code-editor[aria-invalid='true']{border-color:var(--status-error)}
 .diagnostics{display:grid;flex-shrink:0;gap:4px;max-height:132px;margin:8px 12px 0;padding:0;overflow-y:auto;list-style:none}
 .message{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:baseline;width:100%;padding:6px 8px;border:0;border-radius:8px;background:var(--surface-raised);color:inherit;font:inherit;font-size:12px;text-align:left;cursor:pointer}
@@ -193,5 +255,10 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 .status.problem{color:var(--status-error)}
 @media (max-width:760px){
   .diagram-code-panel{left:12px;right:12px;top:auto;bottom:72px;width:auto;height:min(46vh,360px)}
+  .code-field{min-height:72px}
+}
+@media (forced-colors:active){
+  .code-marks mark{background:transparent;outline:1px solid Highlight}
+  .code-marks mark[data-current='true']{outline:3px solid Highlight}
 }
 </style>

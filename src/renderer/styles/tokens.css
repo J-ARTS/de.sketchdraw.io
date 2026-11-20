@@ -18,6 +18,10 @@
   --status-error: #b3261e;
   --status-error-soft: #fbe9e7;
   --status-ok: #1b6b3a;
+  /* Hits of a text search, drawn over the text: all of them, and the one the search stands on. */
+  --search-mark: rgb(107 76 230 / 0.2);
+  --search-mark-current: rgb(245 179 1 / 0.5);
+  --search-mark-outline: #9a6b00;
   --inverse-surface: #25223a;
   --inverse-text: #f4f4f8;
   /* Guides while moving (#224, #230): lines and distance labels on the canvas, in the violet of the interface.
@@ -107,6 +111,9 @@
   --status-error: #ff8a80;
   --status-error-soft: #3d2224;
   --status-ok: #7fd69a;
+  --search-mark: rgb(179 161 255 / 0.28);
+  --search-mark-current: rgb(245 179 1 / 0.45);
+  --search-mark-outline: #f5c84c;
   --inverse-surface: #e8e7f2;
   --inverse-text: #16151f;
   --presence-ink: #16151f;

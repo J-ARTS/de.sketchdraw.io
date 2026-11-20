@@ -36,6 +36,7 @@ export { default as ParticipantList } from './molecules/ParticipantList.vue';
 export { default as SequenceDecor } from './molecules/SequenceDecor.vue';
 export { default as TableContent } from './molecules/TableContent.vue';
 export { default as ConfluenceLinkCard } from './molecules/ConfluenceLinkCard.vue';
+export { default as FindReplaceBar } from './molecules/FindReplaceBar.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';
 export { default as UpdateSettings } from './molecules/UpdateSettings.vue';
 

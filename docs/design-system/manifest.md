@@ -310,6 +310,49 @@ The changes of one text file, line by line with old and new line numbers; added 
 | `label` | `string` | yes |  | The accessible name of the scrollable area, usually the file name. |
 | `emptyText` | `string \| undefined` | no |  | What to say when the diff has no lines. |
 
+### FindReplaceBar
+
+The bar for searching and replacing in a text field: search text with its options, the position among the hits, previous and next, and a second row for replacing. It holds no state of its own; `useTextSearch` supplies it.
+
+- File: `src/renderer/design-system/molecules/FindReplaceBar.vue`
+- Story: `src/renderer/design-system/molecules/FindReplaceBar.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `current` | `number` | yes |  | Index of the current hit, counted from 0; -1 without hits. |
+| `matchCase` | `boolean` | yes |  | Upper and lower case must match (`v-model:match-case`). |
+| `preserveCase` | `boolean` | yes |  | The replacement takes over the spelling of what it replaces (`v-model:preserve-case`). |
+| `query` | `string` | yes |  | The text that is searched for (`v-model:query`). |
+| `regex` | `boolean` | yes |  | The search text is a regular expression (`v-model:regex`). |
+| `replacement` | `string` | yes |  | The text a hit is replaced with (`v-model:replacement`). |
+| `replaceOpen` | `boolean` | yes |  | Whether the row for replacing is shown (`v-model:replace-open`). |
+| `total` | `number` | yes |  | Number of hits. |
+| `wholeWord` | `boolean` | yes |  | Only whole words count as hits (`v-model:whole-word`). |
+| `capped` | `boolean \| undefined` | no | `false` | There are more hits than were counted; the number is shown as "at least". |
+| `invalid` | `boolean \| undefined` | no | `false` | The regular expression cannot be read. |
+| `message` | `string \| undefined` | no | `""` | A sentence about what just happened, e.g. after replacing everything; read out and shown under the rows. |
+| `readonly` | `boolean \| undefined` | no | `false` | The field cannot be changed: replacing is not offered. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `close` | `[]` |  |
+| `next` | `[]` |  |
+| `previous` | `[]` |  |
+| `replace` | `[]` |  |
+| `replaceAll` | `[]` |  |
+| `update:matchCase` | `[value: boolean]` |  |
+| `update:preserveCase` | `[value: boolean]` |  |
+| `update:query` | `[value: string]` |  |
+| `update:regex` | `[value: boolean]` |  |
+| `update:replacement` | `[value: string]` |  |
+| `update:replaceOpen` | `[value: boolean]` |  |
+| `update:wholeWord` | `[value: boolean]` |  |
+
+| Exposed | Type | Description |
+| --- | --- | --- |
+| `focusReplace` | `() => void` | Moves the focus to the replacement text and selects it. |
+| `focusSearch` | `() => void` | Moves the focus to the search text and selects it. |
+
 ### ParticipantList
 
 The people in a session, one row each: badge, name and role, or that the connection is interrupted. With `removable` every guest gets a button to take it out of the session; the row asks once before it reports `remove`.

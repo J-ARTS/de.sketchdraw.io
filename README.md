@@ -46,7 +46,7 @@ While it is moved, an element snaps to the edges and the centre of the nearest e
 
 ### Shape library with the cloud providers' icons
 
-The library holds basic shapes, flowchart symbols and the official architecture icons of AWS (784), Azure (713), Google Cloud (235) and Kubernetes (39). One search covers all libraries. Favourite shapes can be placed in the top bar, and a selection on the canvas becomes a component of your own if you want.
+The library holds basic shapes, flowchart symbols and the official architecture icons of AWS (784), Azure (713), Google Cloud (235) and Kubernetes (39). One search covers all libraries. Favourite shapes can be placed in the top bar, and a selection on the canvas becomes a component of your own if you want. Your own components can be exported to a file and imported on another device, under "…" in the "Mine" tab.
 
 ![The search for "lambda" finds symbols from several libraries](docs/images/readme/library-search.png)
 
@@ -70,7 +70,7 @@ The 2091 line icons of [Lucide](https://lucide.dev) in 41 categories. An icon ta
 
 ### Sequence diagrams with Mermaid code
 
-Sequence diagrams arrange themselves: activations, numbers and distances follow from the messages. The Mermaid code stands beside the diagram. What is typed in the code appears in the diagram at once, and every change in the diagram is in the code at once.
+Sequence diagrams arrange themselves: activations, numbers and distances follow from the messages. The Mermaid code stands beside the diagram. What is typed in the code appears in the diagram at once, and every change in the diagram is in the code at once. Ctrl+F (⌘F) searches the code and Ctrl+R (⌘R) replaces in it, with options for case, whole words and regular expressions.
 
 ![A sequence diagram and its Mermaid code side by side](docs/images/readme/sequence.png)
 
