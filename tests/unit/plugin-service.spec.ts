@@ -10,6 +10,10 @@ import type { DocumentPersistenceService } from '../../electron/persistence';
 import { setLocale, tm } from '../../src/renderer/i18n';
 
 const execFile = promisify(execFileCallback);
+// These tests start real git processes, dozens in some cases. Starting a process is slow on the Windows runner,
+// where the default of five seconds was exceeded by 23 ms in the release run of v0.1.7 (#251).
+vi.setConfig({ testTimeout: 30_000 });
+
 const cleanup: string[] = [];
 afterEach(async () => { vi.restoreAllMocks(); setLocale('de'); await Promise.all(cleanup.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
 
