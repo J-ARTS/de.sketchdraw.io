@@ -119,7 +119,7 @@ describe('design system: primitives', () => {
    * Hand-written primitives that are older than the atoms. New code uses AppButton, AppIconButton, AppTextField
    * and AppTextarea. The numbers may only go down: lower them when a component is moved to the atoms.
    */
-  const RAW_BASELINE = { 'sd-btn': 15, 'sd-icon-btn': 33, 'sd-input': 5, 'sd-textarea': 2 } as const;
+  const RAW_BASELINE = { 'sd-btn': 13, 'sd-icon-btn': 33, 'sd-input': 5, 'sd-textarea': 2 } as const;
   it.each(Object.entries(RAW_BASELINE))('does not add hand-written %s elements', (cls, baseline) => {
     const pattern = new RegExp(`class="(?:[^"]*\\s)?${cls}(?:\\s[^"]*)?"`, 'g');
     const perFile = outsideAtoms.map((file) => [relative(BASE, file), count(template(file), pattern)] as const).filter(([, found]) => found > 0);

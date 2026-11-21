@@ -196,7 +196,7 @@ The interface comes in light and dark and in German and English. The background 
 
 ### Confluence and Jira
 
-The Atlassian plugin embeds Confluence pages in the document as Live Docs and creates tasks and comments as Jira tickets. Each page of a diagram can also be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
+The Atlassian plugin creates tasks and comments as Jira tickets. Each page of a diagram can be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
 
 ## License
 

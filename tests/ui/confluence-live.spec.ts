@@ -190,18 +190,19 @@ test('each page is linked to its own Confluence page in the page menu and publis
   expect(state.published.filter((entry) => entry.diagramPageId === secondPageId)).toHaveLength(1);
   await page.keyboard.press('Escape');
 
-  // The plugin settings list what goes where and lead to the dialog of a page.
+  // The plugin settings no longer repeat the links or offer Live Docs (#252); a page's menu leads to its link.
   await page.getByTestId('workspace-menu-button').click();
   await page.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const plugins = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await plugins.getByRole('complementary').getByRole('button', { name: /^Jira\b/ }).click();
-  const overview = plugins.getByTestId('confluence-live-links');
-  await expect(overview.getByRole('listitem')).toHaveCount(2);
-  await expect(overview).toContainText('Seite 1 → Architektur');
-  await expect(overview).toContainText('Seite 2 → Betrieb');
+  await expect(plugins.getByRole('heading', { name: 'Jira-Konfiguration' })).toBeVisible();
+  await expect(plugins.getByRole('heading', { name: 'Seiten live in Confluence' })).toHaveCount(0);
+  await expect(plugins.getByRole('heading', { name: 'Confluence Live Docs' })).toHaveCount(0);
+  await expect(plugins.getByRole('searchbox', { name: 'Confluence-Seiten suchen' })).toHaveCount(0);
   await expect(plugins.getByRole('button', { name: /live verknüpfen/i })).toHaveCount(0);
-  await overview.getByRole('button', { name: 'Verknüpfung von „Seite 2“ verwalten', exact: true }).click();
-  dialog = page.getByTestId('confluence-page-link-dialog');
+  await plugins.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
+  await expect(plugins).toBeHidden();
+  dialog = await openLinkDialog(page, 'Seite 2', 'Confluence-Verknüpfung…');
   await expect(dialog.getByTestId('confluence-link-target')).toHaveText('Betrieb');
 
   // A problem is shown as a problem, also in the page list, and removing the link stops the publication of that page only.
@@ -215,9 +216,16 @@ test('each page is linked to its own Confluence page in the page menu and publis
   await expect(dialog.getByTestId('confluence-page-link-search')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
-  await expect(overview.getByRole('listitem')).toHaveCount(1);
+  // Only that page lost its link: its menu offers linking again, and page 1 still shows its Confluence page.
+  dialog = await openLinkDialog(page, 'Seite 2', 'Confluence-Seite verknüpfen…');
   await page.keyboard.press('Escape');
-  await expect(plugins).toBeHidden();
+  await expect(dialog).toBeHidden();
+  dialog = await openLinkDialog(page, 'Seite 1', 'Confluence-Verknüpfung…');
+  await expect(dialog.getByTestId('confluence-link-target')).toHaveText('Architektur');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  const pagesPanel = page.getByRole('dialog', { name: 'Seiten', exact: true });
+  if (await pagesPanel.isVisible()) { await page.keyboard.press('Escape'); await expect(pagesPanel).toBeHidden(); }
   expect((await live(page)).links.at(-1)).toMatchObject({ diagramPageId: secondPageId, pageId: null });
 
   await page.evaluate(() => { (window as unknown as TestWindow).__liveTest.result = 'synced'; });

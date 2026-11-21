@@ -322,13 +322,23 @@ test('native edits and automatic Git pull update the correct one of two linked d
     await expect(page.locator(`[data-element-id="${elementId}"] > g > rect`)).toHaveAttribute('width', expectedWidth);
     await selectDiagramPage(page, 'Seite 1');
     await expect(documentRectangles(page)).toHaveCount(2);
+    // Both links are back after the restart, and each finds Confluence up to date. The plugin settings no longer
+    // list them (#252); every page shows its link in its own dialog.
+    for (const name of ['Seite 1', 'Seite 2']) {
+      const panel = page.getByRole('dialog', { name: 'Seiten', exact: true });
+      if (!await panel.isVisible()) await page.getByTestId('page-switcher').click();
+      await panel.getByRole('button', { name: `Aktionen für ${name}`, exact: true }).click();
+      await page.getByTestId('page-menu').getByRole('menuitem', { name: 'Confluence-Verknüpfung…', exact: true }).click();
+      const link = page.getByTestId('confluence-page-link-dialog');
+      await expect(link.getByTestId('confluence-link-target')).toHaveText('Native Architektur');
+      await expect(link.getByTestId('confluence-link-status')).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
+      await link.getByRole('button', { name: 'Dialog schließen', exact: true }).click();
+      await expect(link).toBeHidden();
+    }
+    if (await page.getByRole('dialog', { name: 'Seiten', exact: true }).isVisible()) await page.keyboard.press('Escape');
     dialog = await openJira(page);
-    // Both links are back after the restart, and each finds Confluence up to date.
-    const linkRows = dialog.getByTestId('confluence-live-links').getByRole('listitem');
-    await expect(linkRows).toHaveCount(2);
-    await expect(linkRows.nth(0)).toContainText('Seite 1 → Native Architektur');
-    await expect(linkRows.nth(1)).toContainText('Seite 2 → Native Architektur');
-    for (const index of [0, 1]) await expect(linkRows.nth(index)).toContainText(/aktualisiert|aktuellen Stand/, { timeout: 25_000 });
+    await expect(dialog.getByRole('heading', { name: 'Seiten live in Confluence' })).toHaveCount(0);
+    await expect(dialog.getByRole('heading', { name: 'Confluence Live Docs' })).toHaveCount(0);
     expect(remote.uploads).toHaveLength(4); // Same content after restart does not create another version.
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
     await expect(dialog).toBeHidden();
