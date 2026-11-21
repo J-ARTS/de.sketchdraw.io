@@ -18,11 +18,11 @@ The screenshots show the German interface; the app is available in German and En
 
 ## Download
 
-The latest published release is [v0.1.6](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.6) with three natively verified installers:
+The latest published release is [v0.1.8](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.8) with three natively verified installers:
 
-- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-windows-x64.exe)
-- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-macos-arm64.dmg)
-- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.6/Sketchdraw-0.1.6-linux-x64.deb)
+- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-linux-x64.deb)
 
 The Windows installer is unsigned; the macOS app is ad-hoc signed and not notarized. Notes on the first start and the native checks that were run are in the release notes and in the [release process](docs/release.md).
 
@@ -30,7 +30,7 @@ The pictures below show this release. The current state of `main` can be [starte
 
 ### Updates
 
-From the release after v0.1.6 on, the installed app looks for a newer release itself: at start-up and every few hours it asks GitHub for the latest published release, and **Check for Updates…** (app menu on macOS, Help menu on Windows and Linux, and the settings) does the same on request. If there is a newer version, Sketchdraw asks before it does anything, then downloads the installer for your platform, compares its size and SHA-256 with the release and installs it: the Windows installer runs silently, the Debian package goes through the system prompt for administrator rights, and on macOS the app is replaced from the disk image once it has quit. Where an installation cannot replace itself – an unpacked copy, a read-only folder, an app started from the disk image – it points to the release page instead. The automatic check can be switched off in the settings; nothing from your documents is sent.
+From v0.1.8 on, the installed app looks for a newer release itself: at start-up and every few hours it asks GitHub for the latest published release, and **Check for Updates…** (app menu on macOS, Help menu on Windows and Linux, and the settings) does the same on request. If there is a newer version, Sketchdraw asks before it does anything, then downloads the installer for your platform, compares its size and SHA-256 with the release and installs it: the Windows installer runs silently, the Debian package goes through the system prompt for administrator rights, and on macOS the app is replaced from the disk image once it has quit. Where an installation cannot replace itself – an unpacked copy, a read-only folder, an app started from the disk image – it points to the release page instead. The automatic check can be switched off in the settings; nothing from your documents is sent.
 
 ## Features
 
