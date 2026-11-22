@@ -480,7 +480,10 @@ function extract(source: string): { visible: string; envelope?: string; pageInde
       continue;
     }
     if ('[({'.includes(c)) depth++;
-    if ('])}'.includes(c)) depth--;
+    // A closing bracket without an opening one is not the end of a label: the open arrow of a sequence diagram
+    // (`A-)B`) is written with one. Counting it kept every later line "inside a label" and hid the embedded
+    // document of the file's own export (#288).
+    if ('])}'.includes(c) && depth > 0) depth--;
   }
   segments.push(value.slice(start));
   const visible = segments.join('').trim();
