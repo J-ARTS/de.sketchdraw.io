@@ -2,6 +2,8 @@ import { applyCommand, createDocument, type SketchDocument, type SketchElement }
 import { importMermaid, InteropError, readMermaidEnvelope, type InteropDiagnostic, type InteropImportResult } from '@/interop';
 import { ELEMENT_CLIPBOARD_FORMAT, elementClipboardPayload, planElementPaste, type ElementClipboardPayload } from '@/renderer/state/element-clipboard';
 import { t } from '@/renderer/i18n';
+import { flowToCode } from './flow-code';
+import { readFlows } from './mermaid-export';
 import { parseSequenceCode, sequenceToCode } from './sequence-code';
 import { buildSequence, readSequences } from './sequence-model';
 
@@ -34,21 +36,22 @@ export function mermaidImportKind(source: string): MermaidImportKind {
 export const MERMAID_SEQUENCE_INVALID = 'MERMAID_SEQUENCE_INVALID';
 
 /**
- * A sequence diagram exported by the app carries the whole document in a comment. It is restored when the code
- * still is what one of the sequence diagrams on the embedded page reads as; an edited code is read as it stands.
+ * A diagram exported by the app carries the whole document in a comment. It is restored when the code still is
+ * what one of the sequence diagrams or processes on the embedded page reads as; an edited code is read as it stands.
  */
-function restoreOwnSequence(source: string): InteropImportResult | null {
+function restoreOwnDiagram(source: string): InteropImportResult | null {
   let own: ReturnType<typeof readMermaidEnvelope>;
   try { own = readMermaidEnvelope(source); } catch { return null; }
   const page = own.document?.pages[own.pageIndex ?? -1];
   if (!own.document || !page) return null;
   const visible = own.visible.replace(/\r\n?/g, '\n').trim();
-  const unchanged = readSequences(own.document.elements.filter((element) => element.pageId === page.id)).some((diagram) => sequenceToCode(diagram.model).trim() === visible);
+  const onPage = own.document.elements.filter((element) => element.pageId === page.id);
+  const unchanged = readSequences(onPage).some((diagram) => sequenceToCode(diagram.model).trim() === visible) || readFlows(onPage).some((flow) => flowToCode(flow.model).trim() === visible);
   if (!unchanged) return null;
   return {
     document: own.document,
     warnings: [],
-    diagnostics: [{ code: 'EMBEDDED_MODEL_RESTORED', severity: 'info', effect: 'preserved-as-data', property: 'metadata', message: `Mermaid: Restored the complete embedded document (${own.document.pages.length} pages). The sequence diagram was verified against page ${own.pageIndex! + 1}: ${page.name}.` }],
+    diagnostics: [{ code: 'EMBEDDED_MODEL_RESTORED', severity: 'info', effect: 'preserved-as-data', property: 'metadata', message: `Mermaid: Restored the complete embedded document (${own.document.pages.length} pages). The diagram was verified against page ${own.pageIndex! + 1}: ${page.name}.` }],
     fidelity: 'own-roundtrip',
     requiresConfirmation: false,
     source: { format: 'mermaid', pageId: page.id },
@@ -56,7 +59,7 @@ function restoreOwnSequence(source: string): InteropImportResult | null {
 }
 
 function importSequence(source: string): InteropImportResult {
-  const restored = restoreOwnSequence(source);
+  const restored = restoreOwnDiagram(source);
   if (restored) return restored;
   const parsed = parseSequenceCode(unfenced(source));
   const diagnostics: InteropDiagnostic[] = parsed.diagnostics.map((entry) => ({
@@ -86,7 +89,10 @@ function importSequence(source: string): InteropImportResult {
 
 /** Converts Mermaid code into a document; throws an `InteropError` when it cannot be read. */
 export function importMermaidCode(source: string): InteropImportResult {
-  return mermaidImportKind(source) === 'sequence' ? importSequence(source) : importMermaid(source);
+  if (mermaidImportKind(source) === 'sequence') return importSequence(source);
+  // The flowchart of a process is the code of the code panel, not the flowchart of the whole page that the exchange
+  // layer verifies; so the own export of a process is recognised here first.
+  return (mermaidImportKind(source) === 'flowchart' ? restoreOwnDiagram(source) : null) ?? importMermaid(source);
 }
 
 /** The elements of one page of an imported document as something that can be inserted into another document. */

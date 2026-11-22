@@ -29,7 +29,7 @@ const mermaidPageId = computed(() => store.state.pages.some(item => item.id === 
 const mermaidTargets = computed(() => props.open && props.mode === 'export' && format.value === 'mermaid' ? mermaidExportTargets(store.state.document, mermaidPageId.value) : []);
 const mermaidTarget = ref('');
 const activeMermaidTarget = computed(() => mermaidTargets.value.find(item => item.id === mermaidTarget.value) ?? mermaidTargets.value[0] ?? null);
-const mermaidTargetOptions = computed(() => mermaidTargets.value.map(item => ({ value: item.id, label: item.kind === 'sequence' ? t('Sequenzdiagramm: {names}', { names: item.names || t('ohne Namen') }) : t('Flowchart aus den übrigen Formen') })));
+const mermaidTargetOptions = computed(() => mermaidTargets.value.map(item => ({ value: item.id, label: item.kind === 'sequence' ? t('Sequenzdiagramm: {names}', { names: item.names || t('ohne Namen') }) : item.kind === 'flow' ? t('Ablauf: {names}', { names: item.names || t('ohne Namen') }) : t('Flowchart der ganzen Seite') })));
 function pickMermaidTarget() { mermaidTarget.value = mermaidTargets.value.length ? defaultMermaidExportTarget(store.state.document, mermaidPageId.value, store.state.selection) : ''; }
 const importPageOptions = computed(() => [
   { value: '', label: t('Bitte eine der {count} Seiten auswählen', { count: pages.value.length }), disabled: true },
@@ -60,7 +60,9 @@ function failure(value: unknown) {
     : value instanceof InteropError && value.code === MERMAID_SEQUENCE_INVALID
     ? t('Der Code des Sequenzdiagramms hat Fehler und wurde nicht importiert. Dein Dokument bleibt erhalten.')
     : value instanceof InteropError ? t('Die Datei konnte nicht verarbeitet werden ({code}). Das aktuelle Dokument bleibt erhalten.', { code: value.code }) : t('Die Datei konnte nicht verarbeitet werden. Das aktuelle Dokument bleibt erhalten.');
-  failures.value = value instanceof InteropError ? value.diagnostics : [];
+  // The message above already says in the language of the app what an unsupported diagram type means; the raw
+  // diagnostic would only repeat it in English. Other failures keep their details (the line of a syntax error).
+  failures.value = value instanceof InteropError && value.code !== 'MERMAID_DIAGRAM_UNSUPPORTED' ? value.diagnostics : [];
 }
 function inspect() {
   imported.value = null; failures.value = []; error.value = ''; pages.value = []; pageIndex.value = null;
@@ -171,7 +173,7 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
         </div>
       </template>
       <AppSelect id="interop-format" class="interop-select" :model-value="format" :options="formatOptions" :label="t('Format')" @update:model-value="selectFormat" />
-      <p v-if="format === 'mermaid'" class="metadata-note">{{ mode === 'import' ? t('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram). Andere Diagrammtypen werden nicht importiert.') : activeMermaidTarget?.kind === 'sequence' ? t('Exportiert wird das Sequenzdiagramm als Mermaid-Code (sequenceDiagram).') : t('Exportiert wird ein Flowchart aus Formen, Texten, Komponenten und den Pfeilen dazwischen. Bilder, Tabellen, Freihandlinien und Teile von Sequenzdiagrammen gehören nicht dazu.') }}</p>
+      <p v-if="format === 'mermaid'" class="metadata-note">{{ mode === 'import' ? t('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram). Andere Diagrammtypen werden nicht importiert.') : activeMermaidTarget?.kind === 'sequence' ? t('Exportiert wird das Sequenzdiagramm als Mermaid-Code (sequenceDiagram).') : activeMermaidTarget?.kind === 'flow' ? t('Exportiert wird der Ablauf als Mermaid-Flowchart, mit demselben Code wie im Code-Panel.') : t('Exportiert wird ein Flowchart aus Formen, Texten, Komponenten und den Pfeilen dazwischen. Bilder, Tabellen, Freihandlinien und Teile von Sequenzdiagrammen gehören nicht dazu.') }}</p>
       <template v-if="mode === 'import'">
         <template v-if="format === 'mermaid'">
           <template v-if="largeFileSource">

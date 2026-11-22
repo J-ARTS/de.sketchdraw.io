@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { createDocument, validateDocument } from '@/domain';
 import { InteropError } from '@/interop';
@@ -60,5 +62,12 @@ describe('Mermaid import (#248)', () => {
     target = applyCommand(target, planElementPaste(payload, target, { x: 500, y: 300 }, (prefix) => `${prefix}:t${serial += 1}`).command);
     expect(readSequences(target.elements)).toHaveLength(1);
     expect(importedPagePayload(createDocument('Empty'), undefined)).toBeNull();
+  });
+
+  test.each(readdirSync(resolve(__dirname, '../../fixtures/mermaid-examples')).filter((name) => name.endsWith('.mmd')))('the example %s of the Mermaid documentation is imported as an editable diagram', (name) => {
+    const result = importMermaidCode(readFileSync(resolve(__dirname, '../../fixtures/mermaid-examples', name), 'utf8'));
+    expect(() => validateDocument(result.document)).not.toThrow();
+    expect(result.document.elements.filter((element) => element.kind === 'connector').length).toBeGreaterThanOrEqual(4);
+    expect(result.diagnostics.filter((entry) => entry.severity === 'error')).toEqual([]);
   });
 });

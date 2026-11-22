@@ -101,19 +101,51 @@ describe('bounded Mermaid flowchart interoperability', () => {
     expect(edges[7]?.style.strokeWidth).toBe(4);
   });
 
-  it.each(['sequenceDiagram\nA->>B: Hello', 'pie\n"A": 1', '---\ntitle: Test\n---\nflowchart LR'])('rejects other diagram types/frontmatter: %s', source => {
+  it.each(['sequenceDiagram\nA->>B: Hello', 'pie\n"A": 1', 'classDiagram\nA <|-- B'])('rejects other diagram types: %s', source => {
     errorCode(source, 'MERMAID_DIAGRAM_UNSUPPORTED');
   });
-  it.each([
-    'flowchart LR\n%%{init: {}}%%\nA --> B', 'flowchart LR\nclick A "https://example.com"',
-    'flowchart LR\nA["<script>alert(1)</script>"]', 'flowchart LR\nA["`markdown`"]',
-    'flowchart LR\nA:::danger', 'flowchart LR\nA & B --> C', 'flowchart LR\nA---oB',
-    'flowchart LR\nA([stadium])', 'flowchart LR\nstyle A fill:red',
-  ])('rejects unsupported syntax without a partial import: %s', source => { errorCode(source, 'MERMAID_SYNTAX_UNSUPPORTED'); });
+  it('reads what real flowcharts contain beyond nodes and arrows, as plain shapes and text', () => {
+    const elements = (source: string) => importMermaid(source).document.elements;
+    const texts = (source: string) => elements(source).filter(el => el.kind !== 'connector').map(el => el.text);
+    // Front matter and configuration directives say nothing about the diagram.
+    expect(texts('---\ntitle: Test\nconfig:\n  theme: dark\n---\nflowchart LR\nA --> B')).toEqual(['A', 'B']);
+    expect(texts('flowchart LR\n%%{init: {"theme": "dark"}}%%\nA --> B')).toEqual(['A', 'B']);
+    expect(texts('flowchart\nA --> B')).toEqual(['A', 'B']);
+    // Markup in a label is never interpreted: a line break tag is a line break, anything else is dropped.
+    expect(texts('flowchart LR\nA["<script>alert(1)</script>Hallo <b>Welt</b>"]')).toEqual(['Hallo Welt']);
+    expect(texts('flowchart LR\nA["Erste<br/>Zweite"]')).toEqual(['Erste\nZweite']);
+    expect(texts('flowchart LR\nA["`**markdown** text`"]\nB[fa:fa-car Car]')).toEqual(['markdown text', 'Car']);
+    // Callbacks and classes without colours leave the nodes as they are.
+    expect(texts('flowchart LR\nA:::danger --> B\nclick A "https://example.com"\nlinkStyle 0 stroke:#f00')).toEqual(['A', 'B']);
+    // Several nodes joined with & connect each with each.
+    const fan = elements('flowchart LR\nA & B --> C & D');
+    expect(fan.filter(el => el.kind === 'connector').map(el => `${el.from!.elementId}>${el.to!.elementId}`)).toEqual(['A>C', 'A>D', 'B>C', 'B>D']);
+    // More node shapes.
+    const shapes = Object.fromEntries(elements('flowchart LR\nA([stadium])\nB(((double)))\nC[/lean/]\nD[\\back\\]\nE[/trap\\]').map(el => [el.text, el.shapeVariant]));
+    expect(shapes).toEqual({ stadium: 'rounded', double: 'circle', lean: 'parallelogram', back: 'parallelogram-reverse', trap: 'trapezoid' });
+    const named = Object.fromEntries(elements('flowchart TD\nForm@{ shape: manual-input, label: "User fills in form" }\nDocs@{ shape: docs, label: "Uploaded documents" }\nDB@{ shape: cyl, label: "Customer database" }\nX@{ shape: no-such-shape, label: \'Quoted "x"\' }\nForm --> Docs').filter(el => el.kind !== 'connector').map(el => [el.text, el.shapeVariant]));
+    expect(named).toEqual({ 'User fills in form': 'manual-input', 'Uploaded documents': 'documents', 'Customer database': 'cylinder', 'Quoted "x"': 'square' });
+  });
+  it('takes the colours of style and classDef statements over', () => {
+    const doc = importMermaid('flowchart TD\nStart([Visit]) --> Valid{OK?}\nValid --> Done:::good\nstyle Start fill:#e8f5e9,stroke:#43a047,stroke-width:4px\nstyle Valid fill:#fc0,color:#123456\nclassDef good fill:#ffffff,stroke:#000000\nstyle Unknown fill:red').document;
+    const byId = (id: string) => doc.elements.find(el => el.id === id)!.style;
+    expect(byId('Start')).toMatchObject({ fill: '#e8f5e9', stroke: '#43a047' });
+    expect(byId('Valid')).toMatchObject({ fill: '#ffcc00', textColor: '#123456' });
+    expect(byId('Done')).toMatchObject({ fill: '#ffffff', stroke: '#000000' });
+  });
   it.each(['flowchart XX\nA', 'flowchart LR\nA -->', 'flowchart LR\nA["unclosed]', 'flowchart LR\nA["a"b"]', 'flowchart LR\nsubgraph X\nA', 'flowchart LR\nend'])('rejects malformed syntax: %s', source => { errorCode(source, 'MERMAID_SYNTAX_INVALID'); });
 
-  it.each(['A --x B --> C', 'A --o B --> C', 'A -- t --- B --> C', 'A -- t ---> B', 'A ==x B ==> C', 'A -.x B -.-> C', 'A == t ==== B ==> C', 'A -. t -.- B -.-> C', 'A ---> B', 'A ---- B', 'A ----> B', 'A ====> B', 'A -.--> B', 'A -- t --- B'])('rejects unsupported edge syntax without swallowing an intermediate node: %s', edge => {
-    errorCode(`flowchart LR\n${edge}`, 'MERMAID_SYNTAX_UNSUPPORTED');
+  it.each([
+    ['A --x B --> C', ['A>B', 'B>C']], ['A --o B --> C', ['A>B', 'B>C']], ['A---oB', ['A>B']], ['A -- t --- B --> C', ['A-B', 'B>C']], ['A -- t ---> B', ['A>B']],
+    ['A ==x B ==> C', ['A>B', 'B>C']], ['A == t ==== B ==> C', ['A-B', 'B>C']], ['A ---> B', ['A>B']], ['A ---- B', ['A-B']], ['A ----> B', ['A>B']], ['A ====> B', ['A>B']], ['A -..-> B', ['A>B']], ['A <--> B', ['A>B']],
+  ] as const)('reads a link of any length and ending without swallowing a node: %s', (edge, expected) => {
+    const result = importMermaid(`flowchart LR\n${edge}`);
+    expect(result.document.elements.filter(el => el.kind === 'connector').map(el => `${el.from!.elementId}${el.endMarker === 'none' ? '-' : '>'}${el.to!.elementId}`)).toEqual(expected);
+  });
+  it.each(['A -.x B -.-> C', 'A -. t -.- B -.-> C', 'A -.--> B'])('still refuses a link it cannot read unambiguously: %s', edge => {
+    let code: string | undefined;
+    try { importMermaid(`flowchart LR\n${edge}`); } catch (error) { code = (error as { code?: string }).code; }
+    expect(['MERMAID_SYNTAX_UNSUPPORTED', 'MERMAID_SYNTAX_INVALID']).toContain(code);
   });
 
   it('keeps arrow-like content literal inside fully quoted edge labels', () => {

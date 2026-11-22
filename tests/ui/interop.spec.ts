@@ -382,7 +382,7 @@ test('a sequence diagram is exported as Mermaid sequenceDiagram; with other shap
   expect(withDocument.startsWith(code)).toBe(true);
   expect(withDocument).toContain('%% sketchdraw-mermaid-v1 0 ');
 
-  await select(page, 'Diagramm', 'Flowchart aus den übrigen Formen');
+  await select(page, 'Diagramm', 'Flowchart der ganzen Seite');
   await expect(panel).toContainText('Exportiert wird ein Flowchart aus Formen, Texten, Komponenten und den Pfeilen dazwischen.');
   const flowchart = await exportOnce(false);
   expect(flowchart).toBe('flowchart LR\n  n0[" "]\n');
