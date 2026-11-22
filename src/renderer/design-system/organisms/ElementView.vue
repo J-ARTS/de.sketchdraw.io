@@ -87,7 +87,8 @@ function clampCardLinkLabel(value: string, count: number, size: number): string 
 }
 const cardTitle = computed(() => clampCardText(e.value.text || e.value.label || 'Ressourcenkarte', Math.max(14, e.value.style.fontSize)));
 const cardDescription = computed(() => clampCardText((e.value.description || 'BESCHREIBUNG').toUpperCase(), Math.max(10, e.value.style.fontSize * .65)));
-const text = computed(() => e.value.text || e.value.label || '');
+/** The text that is shown. A text the user emptied stays empty; the label stands in only where no text was ever set (#258). */
+const text = computed(() => e.value.text ?? e.value.label ?? '');
 function wrapCloudTitle(value: string): string[] {
   const max = Math.max(8, Math.floor((e.value.width - 24) / 8));
   const words = value.trim().split(/\s+/).filter(Boolean);

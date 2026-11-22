@@ -63,24 +63,24 @@ describe('native projection and validated own metadata', () => {
     expect(importDrawio(drawio).document.elements[0]!.style).toMatchObject({ stroke: '#2563eb', textColor: '#e5533a' });
   });
 
-  it('exports visible label fallback as native text, including empty text and component labels', () => {
+  it('exports visible label fallback as native text; an emptied text stays empty (#258)', () => {
     const doc = allKinds();
     doc.elements = [
       createElement('rectangle', { id: 'label', label: 'Label only' }),
-      createElement('rectangle', { id: 'empty', x: 200, text: '', label: 'Empty text fallback' }),
+      createElement('rectangle', { id: 'empty', x: 200, text: '', label: 'Emptied text' }),
       createElement('component', { id: 'component', x: 400, componentType: 'generic.component', label: 'Readable component' }),
       createElement('text', { id: 'preferred', x: 600, text: 'Preferred text', label: 'Alternative label', style: { ...createElement('text').style, opacity: 0, stroke: '#ff0000' } }),
     ];
     const walk = (node: XmlElementNode): XmlElementNode[] => [node, ...getElementChildren(node).flatMap(walk)];
     const nodes = walk(parseXmlDocument(prepareSvgExport(doc, { embedDocument: false }).contents));
     const visibleTexts = nodes.filter(n => n.local === 'text');
-    const expected = ['Label only', 'Empty text fallback', 'Readable component', 'Preferred text'];
+    const expected = ['Label only', 'Readable component', 'Preferred text'];
     expect(visibleTexts.map(getElementTextContent)).toEqual(expected);
     expect(visibleTexts.at(-1)!.attributes['opacity']).toBe('0');
     expect(visibleTexts.at(-1)!.attributes['fill']).toBe('#ff0000');
     const drawio = prepareDrawioExport(doc, { embedDocument: false }).contents;
     const cells = walk(parseXmlDocument(drawio)).filter(n => n.local === 'mxCell' && n.attributes['vertex'] === '1');
-    expect(cells.map(n => n.attributes['value'])).toEqual(expected);
+    expect(cells.map(n => n.attributes['value'])).toEqual(['Label only', '', 'Readable component', 'Preferred text']);
     expect(importDrawio(drawio).document.elements.at(-1)!.style.stroke).toBe('#ff0000');
   });
   for (const format of ['svg', 'drawio'] as const) {

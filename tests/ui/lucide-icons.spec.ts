@@ -75,3 +75,35 @@ test('a Lucide icon stays readable in the dark theme and is found by the general
   const [r, g, b] = (await stroke()).match(/\d+/g)!.map(Number);
   expect(r! + g! + b!).toBeGreaterThan(450);
 });
+
+test('an icon whose text was removed stays without text; the default name does not come back (#258)', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const library = page.getByTestId('shape-library-sidebar');
+  await library.getByRole('searchbox').fill('rocket');
+  await library.locator('.component-tile').filter({ hasText: 'LUCIDE' }).first().click();
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const figure = page.locator('.whiteboard-canvas [data-kind="component"]').first();
+  const label = figure.locator('text');
+  await expect(label).toHaveText('Rocket');
+
+  // Empty the text in place.
+  const box = (await figure.boundingBox())!;
+  await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toHaveValue('Rocket');
+  await editor.fill('');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(editor).toHaveCount(0);
+  await expect(figure.getByTestId('icon-figure')).toBeVisible();
+  await expect(label).toHaveCount(0);
+
+  // It stays empty after other changes and when the editor is opened again, and a new text is taken as usual.
+  await page.keyboard.press('ArrowRight');
+  await expect(label).toHaveCount(0);
+  const moved = (await figure.boundingBox())!;
+  await page.mouse.dblclick(moved.x + moved.width / 2, moved.y + moved.height / 2);
+  await expect(page.getByTestId('canvas-text-editor')).toHaveValue('');
+  await page.keyboard.type('Start');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(label).toHaveText('Start');
+});

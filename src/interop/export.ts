@@ -33,7 +33,8 @@ function svgPaint(el: SketchElement, d: DiagnosticCollector): string {
 const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 function nativeText(el: SketchElement, d: DiagnosticCollector): string {
-  const plainText = el.text || el.label || '';
+  // An emptied text stays empty; the label stands in only where no text was set (#258).
+  const plainText = el.text ?? el.label ?? '';
   const visibleText = el.style.listStyle === 'bullet'
     ? plainText.split('\n').map(line => line ? `• ${line}` : line).join('\n')
     : plainText;
@@ -225,7 +226,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
         diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'Component uses the safe generic icon; provider semantics remain metadata.');
       const tree = icon.tree;
       const footerHeight = isResourceCard(el) ? Math.max(28, Math.min(36, el.height * .24)) : 0;
-      const figure = isIconFigure(el) ? figureLayout(el, (el.text || el.label || '').split('\n').length).icon : null;
+      const figure = isIconFigure(el) ? figureLayout(el, (el.text ?? el.label ?? '').split('\n').length).icon : null;
       const iconSize = figure ? figure.size : isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
       out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : isResourceCard(el) ? 20 : 4, y: figure ? figure.y : isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
@@ -258,7 +259,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   for (const raw of document.elements.filter((candidate) => candidate.pageId === page.id)) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
-    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? (el.text || el.label || '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text || el.label || '';
+    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? (el.text ?? el.label ?? '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text ?? el.label ?? '';
     const text = xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
     const shapeVariant = effectiveShapeVariant(el);
