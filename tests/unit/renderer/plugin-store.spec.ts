@@ -157,6 +157,29 @@ describe('plugin store integration', () => {
     store.dispose();
   });
 
+  it('a card of another Jira site with the same key is neither overwritten nor written to (#286)', async () => {
+    const document = createDocument('Zwei Sites');
+    const foreign = { provider: 'jira' as const, remoteId: '9', key: 'SK-2', url: 'https://other.atlassian.net/browse/SK-2', remoteStatus: 'Done', updatedAt: '2026-10-01T10:00:00.000Z' };
+    document.tasks = [{ id: 'task:other', title: 'Ticket der anderen Site', description: 'bleibt', status: 'done', rank: 0, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', external: foreign }];
+    const { store, plugins } = await setup(document);
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    const tasks = store.state.document.tasks!;
+    // The card of the other site is as it was; the SK-2 of this site has a card of its own.
+    expect(tasks.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Ticket der anderen Site', description: 'bleibt', status: 'done', external: foreign });
+    expect(tasks.filter((task) => task.external?.key === 'SK-2').map((task) => task.external!.url).sort()).toEqual(['https://example.atlassian.net/browse/SK-2', 'https://other.atlassian.net/browse/SK-2']);
+    // Moving or editing it stays in the document: this site has no say over that ticket.
+    expect(await store.moveTask('task:other', 'todo', 0)).toBe(true);
+    expect(await store.updateTask('task:other', { title: 'Neu benannt' })).toBe(true);
+    expect(plugins.transitionJiraIssue).not.toHaveBeenCalled();
+    expect(plugins.updateJiraIssue).not.toHaveBeenCalled();
+    expect(store.state.document.tasks!.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Neu benannt', status: 'todo', external: foreign });
+    // A second sync still leaves it alone.
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    expect(store.state.document.tasks!.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Neu benannt', external: foreign });
+    expect(store.state.document.tasks).toHaveLength(2);
+    store.dispose();
+  });
+
   it('creates a Jira issue with the assignee and due date of a new Sketchdraw task', async () => {
     const { store, plugins } = await setup();
     expect(await store.createTask({ title: 'Release review', description: 'Check release', assignee: 'Mara Muster', dueDate: '2026-11-20' })).toBe(true);

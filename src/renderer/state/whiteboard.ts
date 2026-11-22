@@ -204,23 +204,30 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     name: string;
     /** False for a connection that only reads: nothing is created or changed there. */
     writable: boolean;
+    /**
+     * Whether a ticket reference belongs to the site this connection talks to. Two Jira sites can both have a
+     * TEAM-7: a card of the other site is neither refreshed from this one nor written to it (#286).
+     */
+    owns(reference: { url: string }): boolean;
     list(): Promise<JiraIssueSummary[]>;
     create(input: { title: string; description: string; assignee?: string; dueDate?: string }): Promise<JiraIssueSummary>;
     update(input: { key: string; title?: string; description?: string; assignee?: string | null; dueDate?: string | null }): Promise<JiraIssueSummary>;
     transition(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
   }
+  /** Whether an address lies under the address of a site (a Jira site, an Azure DevOps organization or collection). */
+  const ownsUrl = (site: string) => ({ url }: { url: string }): boolean => Boolean(site) && url.toLowerCase().startsWith(`${site.replace(/\/+$/, '').toLowerCase()}/`);
   /** The ticket system of that name, or null while its plugin is off or the diagram is not a saved local one. */
   function ticketApi(provider: TicketProvider): TicketApi | null {
     const plugins = bridge.plugins;
     if (!plugins || !hasPluginProject()) return null;
     if (provider === 'jira') {
       if (!jiraPluginActive(state.pluginSettings?.atlassian)) return null;
-      return { provider, name: TICKET_PROVIDER_NAME.jira, writable: true, list: () => plugins.listJiraIssues(), create: (input) => plugins.createJiraIssue(input), update: (input) => plugins.updateJiraIssue(input), transition: (input) => plugins.transitionJiraIssue(input) };
+      return { provider, name: TICKET_PROVIDER_NAME.jira, writable: true, owns: ownsUrl(state.pluginSettings!.atlassian.siteUrl), list: () => plugins.listJiraIssues(), create: (input) => plugins.createJiraIssue(input), update: (input) => plugins.updateJiraIssue(input), transition: (input) => plugins.transitionJiraIssue(input) };
     }
     const azure = state.pluginSettings?.azureDevOps;
     const { listAzureWorkItems: list, createAzureWorkItem: create, updateAzureWorkItem: update, transitionAzureWorkItem: transition } = plugins;
     if (!azureDevOpsPluginActive(azure) || !list || !create || !update || !transition) return null;
-    return { provider, name: TICKET_PROVIDER_NAME['azure-devops'], writable: !azure!.readOnly, list: () => list(), create: (input) => create(input), update: (input) => update(input), transition: (input) => transition(input) };
+    return { provider, name: TICKET_PROVIDER_NAME['azure-devops'], writable: !azure!.readOnly, owns: ownsUrl(azure!.organizationUrl), list: () => list(), create: (input) => create(input), update: (input) => update(input), transition: (input) => transition(input) };
   }
   const TICKET_PROVIDERS: readonly TicketProvider[] = ['jira', 'azure-devops'];
   const activeTicketApis = (): TicketApi[] => TICKET_PROVIDERS.flatMap((provider) => { const api = ticketApi(provider); return api ? [api] : []; });
@@ -2338,7 +2345,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe verschoben.');
       const api = previous !== status && task.external ? ticketApi(task.external.provider) : null;
-      if (api?.writable && task.external) {
+      if (api?.writable && task.external && api.owns(task.external)) {
         try {
           const issue = await api.transition({ key: task.external.key, status });
           if (!pluginContextCurrent(generation)) return true;
@@ -2369,7 +2376,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const statusChanged = task.status !== before.status;
         const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined || Object.keys(jiraTexts).length > 0;
         const api = (statusChanged || jiraFieldsChanged) && task.external ? ticketApi(task.external.provider) : null;
-        if (api?.writable && task.external) {
+        if (api?.writable && task.external && api.owns(task.external)) {
           try {
             let issue: JiraIssueSummary | undefined;
             if (jiraFieldsChanged) issue = await api.update({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
@@ -2553,13 +2560,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const apis = activeTicketApis();
       if (!apis.length || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
       try {
-        // Every active system is asked; a ticket belongs to the task with the same system and key.
+        // Every active system is asked; a ticket belongs to the task with the same system and address. The address
+        // names the site, so equal keys of two sites stay two tasks (#286).
         const answers = await Promise.all(apis.map(async (api) => ({ api, issues: await api.list() })));
         if (!pluginContextCurrent(generation)) return false;
         const tasks = clone(state.document.tasks ?? []);
-        const byKey = new Map(tasks.filter((task) => task.external).map((task) => [`${task.external!.provider}\u0000${task.external!.key}`, task]));
+        const byKey = new Map(tasks.filter((task) => task.external).map((task) => [`${task.external!.provider}\u0000${task.external!.url.toLowerCase()}`, task]));
         for (const { api, issues } of answers) for (const issue of issues) {
-          const existing = byKey.get(`${api.provider}\u0000${issue.key}`);
+          const existing = byKey.get(`${api.provider}\u0000${issue.url.toLowerCase()}`);
           if (existing) applyTicket(existing, api.provider, issue, true);
           else {
             const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt };
