@@ -22,6 +22,8 @@ type PluginTestState = {
     azure: ConfigureAzureDevOpsPluginInput[];
     azureCreates: string[];
     azureTransitions: Array<{ key: string; status: string }>;
+    ticketReads: string[];
+    ticketUpdates: Array<Record<string, unknown>>;
     profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
   settings: PluginSettingsSnapshot;
@@ -49,12 +51,17 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       holdJira: false,
       holdJiraCreate: false,
       jiraCreateFailure: '',
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], azure: [], azureCreates: [], azureTransitions: [], profiles: [] },
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], azure: [], azureCreates: [], azureTransitions: [], ticketReads: [], ticketUpdates: [], profiles: [] },
       settings: defaults(),
     };
     // Azure DevOps is not installed at first; the mock keeps one configuration for all profiles.
     const azure: NonNullable<PluginSettingsSnapshot['azureDevOps']> = { installed: false, enabled: false, variant: 'cloud', organizationUrl: '', project: '', workItemType: 'Task', wiqlFilter: '', apiVersion: '7.1', readOnly: false, credentialStored: false, health: 'disabled', message: 'Azure-DevOps-Plugin ist nicht installiert.' };
     control.settings.azureDevOps = azure;
+    const ticketStore = new Map<string, Record<string, unknown>>([
+      ['jira:ARCH-12', { id: '112', key: 'ARCH-12', title: 'Warenkorb übersteht den Gerätewechsel', description: 'Der Warenkorb wird am Konto gespeichert.', status: 'doing', remoteStatus: 'In Progress', assignee: 'Mara Lind', labels: ['checkout', 'q1'], components: ['Storefront'], estimate: '5', url: 'https://example.atlassian.net/browse/ARCH-12', updatedAt: '2026-11-22T08:00:00.000Z' }],
+      ['jira:ARCH-13', { id: '113', key: 'ARCH-13', title: 'Warenkorb leeren nach Bestellung', description: '', status: 'todo', remoteStatus: 'To Do', url: 'https://example.atlassian.net/browse/ARCH-13', updatedAt: '2026-11-22T08:00:00.000Z' }],
+      ['azure-devops:4711', { provider: 'azure-devops', id: '4711', key: '4711', title: 'Checkout absichern', description: 'Aus Azure Boards', status: 'doing', remoteStatus: 'Active', assignee: 'Jonas Reuter', labels: ['security'], components: ['Shop\\Checkout'], estimate: '8', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/4711', updatedAt: '2026-11-22T08:00:00.000Z' }],
+    ]);
     const workItem = (key: string, title: string, description: string, remoteStatus: string, status: 'todo' | 'doing' | 'review' | 'done') => ({ provider: 'azure-devops' as const, id: key, key, title, description, status, remoteStatus, url: `https://dev.azure.com/acme/Shop/_workitems/edit/${key}`, updatedAt: '2026-11-22T10:00:00.000Z' });
     const folders = new Map<string, string>();
     const files = new Map<string, FileReference>();
@@ -199,6 +206,25 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
           if (control.holdJiraCreate) await new Promise<void>(resolve => delayed.jiraCreate.push(resolve));
           if (control.jiraCreateFailure) throw new Error(control.jiraCreateFailure);
           return { id: String(100 + number), key: `SK-${number}`, title: input.title, description: input.description, status: 'todo' as const, remoteStatus: 'To Do', url: `https://example.atlassian.net/browse/SK-${number}`, updatedAt: '2026-11-22T10:00:00.000Z' };
+        },
+        // Ticket cards (#283): single tickets of both trackers, read, found and changed like in the main process.
+        getWorkItem: async ({ provider, key }: { provider: string; key: string }) => {
+          control.calls.ticketReads.push(`${provider}:${key}`);
+          const found = ticketStore.get(`${provider}:${key}`);
+          if (!found) throw new Error('Ungültiges Ticket.');
+          return structuredClone(found);
+        },
+        searchWorkItems: async ({ provider, query }: { provider: string; query: string }) => [...ticketStore.entries()].filter(([id, value]) => id.startsWith(`${provider}:`) && `${String(value.key)} ${String(value.title)}`.toLowerCase().includes(query.toLowerCase())).map(([, value]) => ({ provider, ...structuredClone(value) })),
+        updateWorkItemFields: async (input: Record<string, unknown>) => {
+          control.calls.ticketUpdates.push(structuredClone(input));
+          const { provider, key, assignee, estimate, ...rest } = input;
+          if (Array.isArray(rest.labels) && rest.labels.some((label: string) => /\s/.test(label))) throw new Error('Ein Jira-Label darf keine Leerzeichen enthalten.');
+          const next: Record<string, unknown> = { ...ticketStore.get(`${String(provider)}:${String(key)}`)!, ...rest };
+          if (assignee === null) delete next.assignee; else if (assignee !== undefined) next.assignee = assignee;
+          if (estimate === null) delete next.estimate; else if (estimate !== undefined) next.estimate = estimate;
+          if (rest.status) next.remoteStatus = ({ todo: 'To Do', doing: 'In Progress', review: 'In Review', done: 'Done' } as Record<string, string>)[String(rest.status)];
+          ticketStore.set(`${String(provider)}:${String(key)}`, next);
+          return structuredClone(next);
         },
         listJiraIssues: async () => { control.calls.jiraSyncs += 1; return []; }, updateJiraIssue: async () => { throw new Error('not used'); }, transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
       },
@@ -1084,4 +1110,121 @@ test('the form of a Jira task sends title and description; the next sync keeps t
   await afterNextSync();
   await expect(card).toContainText('Schnittstelle abnehmen');
   await expect(card).not.toContainText('Gesperrter Titel');
+});
+
+async function connectJira(page: Page): Promise<void> {
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+}
+
+/** The drawing of a card lets the pointer through to its rectangle, so the double click goes to the place, not to the drawing. */
+async function openCard(page: Page, card: Locator): Promise<void> {
+  const box = (await card.boundingBox())!;
+  await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`a ticket is found, placed as a card and edited from the canvas (${theme}, #283)`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await desktop(page, { theme });
+    await connectJira(page);
+
+    // Find the ticket by part of its title and put it on the canvas.
+    await page.getByTestId('workspace-menu-button').click();
+    await page.getByRole('menuitem', { name: 'Ticket-Karte einfügen …' }).click();
+    const dialog = page.getByTestId('ticket-dialog');
+    await expect(dialog.getByRole('heading', { name: 'Ticket als Karte einfügen' })).toBeVisible();
+    await expect(dialog.getByTestId('ticket-query')).toBeFocused();
+    await dialog.getByTestId('ticket-query').fill('nichts davon');
+    await dialog.getByTestId('ticket-query').press('Enter');
+    await expect(dialog.getByTestId('ticket-no-results')).toBeVisible();
+    await dialog.getByTestId('ticket-query').fill('Warenkorb');
+    await dialog.getByTestId('ticket-search').click();
+    await expect(dialog.getByTestId('ticket-results').getByRole('listitem')).toHaveCount(2);
+    expect((await new AxeBuilder({ page }).include('.ticket-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+    await dialog.getByRole('button', { name: 'ARCH-12 einfügen' }).click();
+    await expect(dialog).toBeHidden();
+
+    const card = page.getByTestId('ticket-card');
+    await expect(card).toHaveCount(1);
+    await expect(card.getByTestId('ticket-card-key')).toContainText('ARCH-12');
+    await expect(card.getByTestId('ticket-card-status')).toContainText('In Progress');
+    await expect(card.getByTestId('ticket-card-title')).toContainText('Warenkorb übersteht');
+    await expect(card.getByTestId('ticket-card-meta')).toContainText('Mara Lind');
+    await expect(card.getByTestId('ticket-card-meta')).toContainText('5');
+    await expect(card.getByTestId('ticket-card-labels')).toContainText('checkout');
+    await expect(card.getByTestId('ticket-card-labels')).toContainText('Storefront');
+    await expect(page.getByRole('region', { name: 'Meldungen' }).getByText(/Der Inhalt des Tickets steht jetzt im Dokument/)).toBeVisible();
+
+    // A double click opens the ticket, not the text of the rectangle.
+    await openCard(page, card);
+    await expect(dialog.getByRole('heading', { name: 'Ticket ARCH-12' })).toBeVisible();
+    await expect(dialog.getByLabel('Titel', { exact: true })).toHaveValue('Warenkorb übersteht den Gerätewechsel');
+    await expect(dialog.getByLabel('Beschreibung', { exact: true })).toHaveValue('Der Warenkorb wird am Konto gespeichert.');
+    await expect(dialog.getByLabel('Zugewiesen an', { exact: true })).toHaveValue('Mara Lind');
+    await expect(dialog.getByLabel('Labels', { exact: true })).toHaveValue('checkout, q1');
+    await expect(dialog.getByLabel('Komponenten', { exact: true })).toHaveValue('Storefront');
+    await expect(dialog.getByLabel('Schätzung', { exact: true })).toHaveValue('5');
+    expect((await new AxeBuilder({ page }).include('.ticket-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+    if (process.env.TICKET_SHOTS) await page.screenshot({ path: `/tmp/shots/ticket-edit-${theme}.png` });
+
+    // The tracker refuses a label with a space: the dialog stays open with what was typed.
+    await dialog.getByLabel('Labels', { exact: true }).fill('checkout, zwei worte');
+    await dialog.getByTestId('ticket-save').click();
+    await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Jira hat die Änderung nicht übernommen: Ein Jira-Label darf keine Leerzeichen enthalten.')).toBeVisible();
+    await expect(dialog.getByLabel('Labels', { exact: true })).toHaveValue('checkout, zwei worte');
+
+    // Only what changed is sent; the card shows what the tracker answered.
+    await dialog.getByLabel('Labels', { exact: true }).fill('checkout, q2');
+    await dialog.getByLabel('Titel', { exact: true }).fill('Warenkorb am Konto');
+    await dialog.getByLabel('Zugewiesen an', { exact: true }).fill('');
+    await dialog.getByLabel('Schätzung', { exact: true }).fill('8');
+    await dialog.getByRole('combobox', { name: 'Status' }).click();
+    await page.getByRole('option', { name: 'Erledigt' }).click();
+    await dialog.getByTestId('ticket-save').click();
+    await expect(dialog).toBeHidden();
+    expect((await state(page)).calls.ticketUpdates.at(-1)).toEqual({ provider: 'jira', key: 'ARCH-12', title: 'Warenkorb am Konto', status: 'done', assignee: null, labels: ['checkout', 'q2'], estimate: '8' });
+    await expect(card.getByTestId('ticket-card-title')).toContainText('Warenkorb am Konto');
+    await expect(card.getByTestId('ticket-card-status')).toContainText('Done');
+    await expect(card.getByTestId('ticket-card-meta')).toContainText('Niemand zugewiesen');
+    await expect(card.getByTestId('ticket-card-labels')).toContainText('q2');
+    if (process.env.TICKET_SHOTS) await page.screenshot({ path: `/tmp/shots/ticket-card-${theme}.png` });
+  });
+}
+
+test('a pasted ticket address becomes a card; a card without its tracker stays readable (#283)', async ({ page }) => {
+  test.setTimeout(90_000);
+  await desktop(page);
+  await connectJira(page);
+  await page.getByTestId('whiteboard-canvas').click({ position: { x: 500, y: 380 } });
+  await page.evaluate(() => {
+    const data = new DataTransfer(); data.setData('text/plain', 'https://example.atlassian.net/browse/ARCH-13');
+    document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  const card = page.getByTestId('ticket-card');
+  await expect(card.getByTestId('ticket-card-key')).toContainText('ARCH-13');
+  await expect(card.getByTestId('ticket-card-meta')).toContainText('Niemand zugewiesen');
+  expect((await state(page)).calls.ticketReads).toEqual(['jira:ARCH-13']);
+
+  // Jira is switched off: the card keeps its content, the dialog says why nothing can be changed.
+  const plugins = await openPlugins(page);
+  await selectPlugin(plugins, 'Jira');
+  await plugins.getByRole('checkbox', { name: 'Aktiv', exact: true }).uncheck();
+  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await plugins.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await expect(card.getByTestId('ticket-card-title')).toContainText('Warenkorb leeren');
+  await openCard(page, card);
+  const dialog = page.getByTestId('ticket-dialog');
+  await expect(dialog.getByTestId('ticket-offline')).toBeVisible();
+  await expect(dialog.getByLabel('Titel', { exact: true })).toBeDisabled();
+  await expect(dialog.getByTestId('ticket-save')).toHaveCount(0);
+  await expect(dialog.getByTestId('ticket-refresh')).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Schließen', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await page.getByTestId('workspace-menu-button').click();
+  await expect(page.getByRole('menuitem', { name: 'Ticket-Karte einfügen …' })).toHaveCount(0);
 });

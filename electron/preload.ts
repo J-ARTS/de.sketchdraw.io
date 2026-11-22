@@ -364,6 +364,9 @@ export function createPreloadDesktopBridge(
       createAzureWorkItem: (input: import('../src/domain/plugins').CreateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('create-azure-work-item', input),
       updateAzureWorkItem: (input: import('../src/domain/plugins').UpdateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('update-azure-work-item', input),
       transitionAzureWorkItem: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('transition-azure-work-item', input),
+      getWorkItem: (input: { provider: import('../src/domain/plugins').TicketProvider; key: string }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('get-work-item', input),
+      searchWorkItems: (input: { provider: import('../src/domain/plugins').TicketProvider; query: string }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary[]>('search-work-items', input),
+      updateWorkItemFields: (input: import('../src/domain/plugins').UpdateWorkItemFieldsInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('update-work-item-fields', input),
       watchDocument: (handleId: string) => pluginInvoke<PluginOperationResult>('watch-document', handleId),
       onEvent(listener: (event: PluginExternalEvent) => void): () => void {
         if (typeof listener !== 'function') throw new Error('onEvent requires a listener function.');

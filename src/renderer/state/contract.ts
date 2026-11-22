@@ -30,7 +30,7 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
-import type { ConfigureAzureDevOpsPluginInput, TicketProvider } from '@/domain/plugins';
+import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WorkItemSummary } from '@/domain/plugins';
 import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 import type { ConfluenceLiveStatus } from './confluence-live-sync';
@@ -353,6 +353,8 @@ export interface WhiteboardState {
   jiraAvailable: boolean;
   /** The ticket systems a task can get its ticket in right now, in the order they are offered. */
   ticketProviders: Array<{ id: TicketProvider; name: string }>;
+  /** The ticket systems single tickets can be read from right now (ticket cards); a read-only connection counts. */
+  ticketReaders: Array<{ id: TicketProvider; name: string }>;
   /** Tasks whose ticket is being created. One request per task at a time (#293). */
   jiraCreatingTaskIds: string[];
   /** The Git dialog is open (#216). */
@@ -366,6 +368,10 @@ export interface WhiteboardState {
   confluencePageLive: Readonly<Record<string, ConfluenceLiveStatus>>;
   /** The diagram page whose Confluence link dialog is open; null while it is closed. */
   confluenceLinkPageId: string | null;
+  /** The open ticket dialog (#283): the card being edited, or the place a new card is inserted at. */
+  ticketDialog: { mode: 'edit'; elementId: string } | { mode: 'insert'; at: Point } | null;
+  /** A ticket is being read or written. */
+  ticketBusy: boolean;
 }
 
 export interface WhiteboardStore {
@@ -516,6 +522,20 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
+  /** Opens the dialog of a ticket card; double click and Enter on the card do the same. */
+  openTicketCard(elementId: string): void;
+  openTicketInsert(at?: Point): void;
+  closeTicketDialog(): void;
+  /** Tickets of a connected tracker by text or key; null when the tracker is not connected or the search failed. */
+  searchTickets(provider: TicketProvider, query: string): Promise<WorkItemSummary[] | null>;
+  /** Reads a ticket by key or address and puts it on the canvas as a card. An address decides the tracker itself. */
+  insertTicketCard(provider: TicketProvider, keyOrUrl: string, at?: Point): Promise<boolean>;
+  insertTicketCardFromTask(taskId: string): Promise<boolean>;
+  refreshTicketCard(elementId: string): Promise<boolean>;
+  /** What can be done with the ticket of a card right now: change it, only read it again, or neither (no connection to its site). */
+  ticketCardAccess(elementId: string): 'writable' | 'readonly' | 'offline';
+  /** Writes the changed fields of a card to its ticket and takes over what the tracker answers. */
+  saveTicketCard(elementId: string, changes: Omit<UpdateWorkItemFieldsInput, 'provider' | 'key'>): Promise<boolean>;
   /** Creates the ticket of a task that has none, in the named system or in the first available one, and links both. Refused while one is being created for it. */
   createTicketForTask(taskId: string, provider?: TicketProvider): Promise<boolean>;
   createTask(input: { title: string; description?: string; status?: TaskStatus; type?: TaskType; assignee?: string; dueDate?: string }): Promise<boolean>;

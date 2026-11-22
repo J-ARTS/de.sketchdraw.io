@@ -202,6 +202,10 @@ The Jira plugin creates tasks and comments as Jira tickets. Each page of a diagr
 
 The Azure DevOps plugin connects the task board to Azure Boards: it loads work items with a WIQL query, creates tasks, comments and notes as work items and keeps title, description, assignee, due date and state in sync. It works with Azure DevOps Services (cloud) and with Azure DevOps Server; the API version can be set for older servers, and a read-only mode never writes. The plugin is installed from the marketplace of the plugin dialog and needs a personal access token with the scope "Work Items: Read & write". It is tested against a copy of the interface, not yet against a real organization or server ([#284](https://github.com/J-ARTS/de.sketchdraw.io/issues/284)). Publishing diagrams to the Azure DevOps Wiki is not part of it yet.
 
+### Ticket cards
+
+A ticket from Jira or Azure Boards can stand on the canvas as a card: paste its address, pick it in **Insert ticket card…** in the menu, or place it from a task of the board. The card shows key, state, title, assignee, estimate, labels and components. A double click opens the ticket; title, state, description, assignee, labels, components and estimate can be changed there and are written back to the tracker. The content of the ticket is stored in the document, so everyone who receives the file reads the card without a plugin; it is read again when the document is opened with the tracker connected and on request. In the file the card is a rectangle with metadata, which older versions and exports show as a rectangle with the title. Like the plugins, this is tested against a copy of the interfaces ([#283](https://github.com/J-ARTS/de.sketchdraw.io/issues/283)).
+
 ## License
 
 Sketchdraw is published under the **Sketchdraw End User License Agreement** in [LICENSE](LICENSE). The source code is available, but Sketchdraw is not open source. In short:

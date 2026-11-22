@@ -545,6 +545,9 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'create-azure-work-item': return plugins.createAzureWorkItem(payload);
       case 'update-azure-work-item': return plugins.updateAzureWorkItem(payload);
       case 'transition-azure-work-item': return plugins.transitionAzureWorkItem(payload);
+      case 'get-work-item': return plugins.getWorkItem(payload);
+      case 'search-work-items': return plugins.searchWorkItems(payload);
+      case 'update-work-item-fields': return plugins.updateWorkItemFields(payload);
       default: throw new Error('Unbekannte Plugin-Aktion.');
     }
   });

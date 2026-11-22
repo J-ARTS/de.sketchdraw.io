@@ -17,7 +17,7 @@ function boards(options: { base: string; project?: string; legacyPeople?: boolea
   const project = options.project ?? 'Shop';
   const calls: Call[] = [];
   const items = new Map<number, Record<string, unknown>>([
-    [7, { 'System.Id': 7, 'System.Title': 'Checkout absichern', 'System.Description': '<div>Erste Zeile</div><div>Zweite &amp; letzte</div>', 'System.State': 'Active', 'System.WorkItemType': 'Task', 'System.TeamProject': project, 'System.AssignedTo': options.legacyPeople ? 'Mara Muster <mara@example.com>' : { displayName: 'Mara Muster', uniqueName: 'mara@example.com' }, 'System.ChangedDate': '2026-11-20T09:30:00Z', 'Microsoft.VSTS.Scheduling.DueDate': '2026-12-01T00:00:00Z' }],
+    [7, { 'System.Id': 7, 'System.Title': 'Checkout absichern', 'System.Description': '<div>Erste Zeile</div><div>Zweite &amp; letzte</div>', 'System.State': 'Active', 'System.WorkItemType': 'Task', 'System.TeamProject': project, 'System.AssignedTo': options.legacyPeople ? 'Mara Muster <mara@example.com>' : { displayName: 'Mara Muster', uniqueName: 'mara@example.com' }, 'System.ChangedDate': '2026-11-20T09:30:00Z', 'Microsoft.VSTS.Scheduling.DueDate': '2026-12-01T00:00:00Z', 'System.Tags': 'backend; sicherheit', 'System.AreaPath': 'Shop\\Checkout', 'Microsoft.VSTS.Scheduling.StoryPoints': 5 }],
     [3, { 'System.Id': 3, 'System.Title': 'Katalog laden', 'System.State': 'New', 'System.WorkItemType': 'Task', 'System.TeamProject': project, 'System.ChangedDate': '2026-11-19T08:00:00Z' }],
   ]);
   let nextId = 20;
@@ -32,7 +32,12 @@ function boards(options: { base: string; project?: string; legacyPeople?: boolea
     if (authorization !== `Basic ${Buffer.from(':pat-secret').toString('base64')}`) return new Response('<html>Sign in</html>', { status: 203 });
     const route = url.slice(options.base.length).replace(/[?&]api-version=[^&]+/, '');
     if (route === `/_apis/projects/${project}`) return json({ name: project });
-    if (route.startsWith(`/${project}/_apis/wit/wiql`)) return json({ workItems: [{ id: 7 }, { id: 3 }] });
+    if (route.startsWith(`/${project}/_apis/wit/wiql`)) {
+      const query = (body as { query: string }).query;
+      const title = /CONTAINS '((?:[^']|'')*)'/.exec(query)?.[1]?.replace(/''/g, "'"); const id = /\[System\.Id\] = (\d+)/.exec(query)?.[1];
+      const found = [...items.entries()].filter(([key, fields]) => id ? key === Number(id) : title ? String(fields['System.Title']).toLowerCase().includes(title.toLowerCase()) : true).map(([key]) => ({ id: key }));
+      return json({ workItems: found.sort((a, b) => b.id - a.id) });
+    }
     if (route.startsWith('/_apis/wit/workitems?ids=')) return json({ value: route.split('ids=')[1]!.split(',').map(Number).reverse().map(item) });
     if (route === `/${project}/_apis/wit/workitemtypes/Task/states`) return options.noStates ? json({ message: 'not here' }, 404) : json({ value: [{ name: 'New', category: 'Proposed' }, { name: 'Active', category: 'InProgress' }, { name: 'Closed', category: 'Completed' }, { name: 'Removed', category: 'Removed' }] });
     const created = /^\/Shop\/_apis\/wit\/workitems\/\$(.+)$/.exec(route);
@@ -143,8 +148,8 @@ describe('Azure DevOps: work items', () => {
     await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
     const items = await plugins.listAzureWorkItems();
     expect(items).toEqual([
-      { provider: 'azure-devops', id: '7', key: '7', title: 'Checkout absichern', description: 'Erste Zeile\nZweite & letzte', status: 'doing', remoteStatus: 'Active', assignee: 'Mara Muster', dueDate: '2026-12-01', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/7', updatedAt: '2026-11-20T09:30:00.000Z' },
-      { provider: 'azure-devops', id: '3', key: '3', title: 'Katalog laden', description: '', status: 'todo', remoteStatus: 'New', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/3', updatedAt: '2026-11-19T08:00:00.000Z' },
+      { provider: 'azure-devops', id: '7', key: '7', title: 'Checkout absichern', description: 'Erste Zeile\nZweite & letzte', status: 'doing', remoteStatus: 'Active', assignee: 'Mara Muster', dueDate: '2026-12-01', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/7', updatedAt: '2026-11-20T09:30:00.000Z', labels: ['backend', 'sicherheit'], components: ['Shop\\Checkout'], estimate: '5' },
+      { provider: 'azure-devops', id: '3', key: '3', title: 'Katalog laden', description: '', status: 'todo', remoteStatus: 'New', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/3', updatedAt: '2026-11-19T08:00:00.000Z', labels: [], components: [] },
     ]);
     const query = calls.find((call) => call.url.includes('/wiql'))!;
     expect(query.url).toBe('https://dev.azure.com/acme/Shop/_apis/wit/wiql?$top=100&api-version=7.1');
@@ -210,6 +215,96 @@ describe('Azure DevOps: work items', () => {
     await plugins.activateDocument('project');
     await plugins.configureAzureDevOps({ ...cloud, enabled: false, accessToken: undefined });
     await expect(plugins.listAzureWorkItems()).rejects.toThrow('Azure-DevOps-Plugin ist deaktiviert.');
+  });
+});
+
+describe('Azure DevOps: the fields of a ticket card (#283)', () => {
+  it('reads one work item with tags, area and estimate, finds work items by title and by number', async () => {
+    const { fetchFn } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    expect(await plugins.getWorkItem({ provider: 'azure-devops', key: '7' })).toMatchObject({ provider: 'azure-devops', key: '7', title: 'Checkout absichern', labels: ['backend', 'sicherheit'], components: ['Shop\\Checkout'], estimate: '5' });
+    expect((await plugins.searchWorkItems({ provider: 'azure-devops', query: 'katalog' })).map((item) => item.key)).toEqual(['3']);
+    expect((await plugins.searchWorkItems({ provider: 'azure-devops', query: '7' })).map((item) => item.key)).toEqual(['7']);
+    expect(await plugins.searchWorkItems({ provider: 'azure-devops', query: "O'Brien" })).toEqual([]);
+    expect(await plugins.searchWorkItems({ provider: 'azure-devops', query: '' })).toEqual([]);
+    await expect(plugins.getWorkItem({ provider: 'github' as never, key: '7' })).rejects.toThrow('Unbekanntes Ticket-System.');
+  });
+
+  it('writes the seven fields and answers with the work item as it is afterwards', async () => {
+    const { fetchFn, items } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    const updated = await plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', title: 'Checkout härten', description: 'Neu', status: 'done', assignee: 'Ada Lovelace', labels: ['backend', 'release'], components: ['Shop\\Kasse'], estimate: '8' });
+    expect(updated).toMatchObject({ title: 'Checkout härten', description: 'Neu', status: 'done', remoteStatus: 'Closed', assignee: 'Ada Lovelace', labels: ['backend', 'release'], components: ['Shop\\Kasse'], estimate: '8' });
+    expect(items.get(7)).toMatchObject({ 'System.Tags': 'backend; release', 'System.AreaPath': 'Shop\\Kasse', 'Microsoft.VSTS.Scheduling.StoryPoints': 8 });
+    // Emptied: tags and estimate go, the area stays where it is.
+    const cleared = await plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', labels: [], components: [], estimate: null });
+    expect(cleared).toMatchObject({ labels: [], components: ['Shop\\Kasse'] });
+    expect(cleared.estimate).toBeUndefined();
+    await expect(plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', estimate: 'drei Tage' })).rejects.toThrow('Die Schätzung wird in Azure DevOps als Zahl erwartet.');
+    await expect(plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', labels: ['a;b'] })).rejects.toThrow('Semikolon');
+  });
+
+  it('read-only reads the fields and writes none of them', async () => {
+    const { fetchFn } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps({ ...cloud, readOnly: true });
+    expect(await plugins.getWorkItem({ provider: 'azure-devops', key: '7' })).toMatchObject({ estimate: '5' });
+    await expect(plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', labels: ['x'] })).rejects.toThrow('Nur lesen');
+  });
+});
+
+describe('Jira: the fields of a ticket card (#283)', () => {
+  function jira(options: { storyPoints?: boolean } = { storyPoints: true }) {
+    const calls: Array<{ method: string; url: string; body: unknown }> = [];
+    const issue: Record<string, unknown> = { summary: 'Login absichern', description: null, status: { name: 'In Progress' }, assignee: { displayName: 'Mara Muster' }, updated: '2026-11-20T09:30:00.000+0000', labels: ['backend'], components: [{ name: 'API' }], timetracking: { originalEstimate: '3h' }, customfield_10016: options.storyPoints ? 5 : undefined };
+    const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const url = String(input); const method = init?.method ?? 'GET'; const body = typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined;
+      calls.push({ method, url, body });
+      const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
+      if (url.endsWith('/rest/api/3/field')) return json(options.storyPoints ? [{ id: 'summary', name: 'Summary', custom: false }, { id: 'customfield_10016', name: 'Story point estimate', custom: true }] : [{ id: 'summary', name: 'Summary', custom: false }]);
+      if (url.includes('/rest/api/3/search/jql')) return json({ issues: [{ id: '100', key: 'SK-1', fields: issue }] });
+      if (url.includes('/rest/api/3/issue/SK-1') && method === 'PUT') { Object.assign(issue, (body as { fields: Record<string, unknown> }).fields); return new Response(''); }
+      if (url.includes('/rest/api/3/issue/SK-1')) return json({ id: '100', key: 'SK-1', fields: issue });
+      return json({});
+    });
+    return { fetchFn, calls, issue };
+  }
+  const atlassian = { enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', apiToken: 'secret', confluenceSpaceKey: '', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '' };
+
+  it('reads labels, components and story points, and searches by text and by key', async () => {
+    const { fetchFn, calls } = jira();
+    const { plugins } = await service(fetchFn);
+    await plugins.configureAtlassian(atlassian);
+    expect(await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' })).toMatchObject({ provider: 'jira', key: 'SK-1', title: 'Login absichern', status: 'doing', labels: ['backend'], components: ['API'], estimate: '5', url: 'https://example.atlassian.net/browse/SK-1' });
+    expect(calls.find((call) => call.url.includes('/issue/SK-1'))!.url).toContain('labels,components,timetracking,customfield_10016');
+    // The field list of the site is asked once.
+    await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' });
+    expect(calls.filter((call) => call.url.endsWith('/rest/api/3/field'))).toHaveLength(1);
+    expect((await plugins.searchWorkItems({ provider: 'jira', query: 'Login "x"' })).map((item) => item.key)).toEqual(['SK-1']);
+    expect((calls.at(-1)!.body as { jql: string }).jql).toBe('project = "SK" AND summary ~ "Login  x *" ORDER BY updated DESC');
+    await plugins.searchWorkItems({ provider: 'jira', query: 'sk-1' });
+    expect((calls.at(-1)!.body as { jql: string }).jql).toBe('key = "SK-1"');
+  });
+
+  it('writes labels, components and the estimate into the field the site has for it', async () => {
+    const { fetchFn, issue } = jira();
+    const { plugins } = await service(fetchFn);
+    await plugins.configureAtlassian(atlassian);
+    const updated = await plugins.updateWorkItemFields({ provider: 'jira', key: 'SK-1', labels: ['backend', 'release'], components: ['API', 'Web'], estimate: '8' });
+    expect(updated).toMatchObject({ labels: ['backend', 'release'], components: ['API', 'Web'], estimate: '8' });
+    expect(issue).toMatchObject({ labels: ['backend', 'release'], components: [{ name: 'API' }, { name: 'Web' }], customfield_10016: 8 });
+    await expect(plugins.updateWorkItemFields({ provider: 'jira', key: 'SK-1', labels: ['zwei wörter'] })).rejects.toThrow('Ein Jira-Label darf keine Leerzeichen enthalten.');
+  });
+
+  it('a site without story points keeps the estimate as a time estimate', async () => {
+    const { fetchFn, issue } = jira({ storyPoints: false });
+    const { plugins } = await service(fetchFn);
+    await plugins.configureAtlassian(atlassian);
+    expect(await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' })).toMatchObject({ estimate: '3h' });
+    await plugins.updateWorkItemFields({ provider: 'jira', key: 'SK-1', estimate: '2d' });
+    expect(issue.timetracking).toEqual({ originalEstimate: '2d' });
   });
 });
 

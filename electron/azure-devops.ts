@@ -125,13 +125,20 @@ function workItem(connection: AzureDevOpsConnection, value: Record<string, unkno
   const assignee = person(fields['System.AssignedTo']);
   const due = dueDate(fields['Microsoft.VSTS.Scheduling.DueDate']);
   const project = typeof fields['System.TeamProject'] === 'string' && fields['System.TeamProject'] ? fields['System.TeamProject'] : connection.project;
+  const labels = typeof fields['System.Tags'] === 'string' ? fields['System.Tags'].split(';').map((tag) => tag.trim()).filter(Boolean) : [];
+  const area = typeof fields['System.AreaPath'] === 'string' ? fields['System.AreaPath'].trim() : '';
+  const estimateField = ESTIMATE_FIELDS.find((name) => typeof fields[name] === 'number');
   return {
     provider: 'azure-devops', id, key: id, title: String(fields['System.Title'] ?? id), description: htmlToText(fields['System.Description']),
     status: azureStatus(remoteStatus), remoteStatus,
     ...(assignee ? { assignee } : {}), ...(due ? { dueDate: due } : {}),
     url: `${connection.baseUrl}/${encodeURIComponent(project)}/_workitems/edit/${encodeURIComponent(id)}`, updatedAt: isoTimestamp(fields['System.ChangedDate']),
+    labels, components: area ? [area] : [], ...(estimateField ? { estimate: String(fields[estimateField]) } : {}),
   };
 }
+
+/** Where a process keeps its estimate: story points (Agile), effort (Scrum, CMMI) or the original estimate of a task. */
+const ESTIMATE_FIELDS = ['Microsoft.VSTS.Scheduling.StoryPoints', 'Microsoft.VSTS.Scheduling.Effort', 'Microsoft.VSTS.Scheduling.OriginalEstimate'] as const;
 
 const itemId = (key: string): string => { if (!/^\d{1,12}$/.test(key)) throw new Error('Die Nummer des Work Items ist ungültig.'); return key; };
 
@@ -213,4 +220,45 @@ export async function transitionAzureWorkItem(connection: AzureDevOpsConnection,
   const fallback: Readonly<Record<TaskStatus, string>> = { todo: 'New', doing: 'Active', review: 'Resolved', done: 'Closed' };
   if (!target && states.length) throw new Error('Für diese Spalte hat der Typ des Work Items in Azure DevOps keinen passenden Zustand.');
   return workItem(connection, await request(connection, `/_apis/wit/workitems/${id}`, { method: 'PATCH', body: [{ op: 'add', path: '/fields/System.State', value: target?.name ?? fallback[status] }], patch: true }) as Record<string, unknown>);
+}
+
+/** Work items whose title contains the text, or the one with that number; newest first, at most 20. */
+export async function searchAzureWorkItems(connection: AzureDevOpsConnection, text: string): Promise<WorkItemSummary[]> {
+  const query = text.trim();
+  if (!query) return [];
+  const condition = /^#?\d{1,12}$/.test(query) ? `[System.Id] = ${query.replace('#', '')}` : `[System.Title] CONTAINS '${query.replace(/'/g, "''")}'`;
+  const found = await request(connection, `${projectPath(connection)}/_apis/wit/wiql?$top=20`, { method: 'POST', body: { query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND ${condition} ORDER BY [System.ChangedDate] DESC` } }) as { workItems?: Array<{ id?: unknown }> };
+  const ids = (found.workItems ?? []).map((entry) => Number(entry.id)).filter((id) => Number.isInteger(id) && id > 0).slice(0, 20);
+  if (!ids.length) return [];
+  const response = await request(connection, `/_apis/wit/workitems?ids=${ids.join(',')}`) as { value?: Array<Record<string, unknown>> };
+  const byId = new Map((response.value ?? []).map((entry) => [Number(entry.id), entry]));
+  return ids.flatMap((id) => { const entry = byId.get(id); return entry ? [workItem(connection, entry)] : []; });
+}
+
+/**
+ * Writes tags, area path and estimate of a work item. The estimate goes to the field that holds it now, and to the
+ * story points when none does; Azure Boards keeps it as a number.
+ */
+export async function updateAzureWorkItemDetails(connection: AzureDevOpsConnection, key: string, input: { labels?: string[]; components?: string[]; estimate?: string | null }): Promise<WorkItemSummary> {
+  const id = itemId(key);
+  const current = await request(connection, `/_apis/wit/workitems/${id}`) as { fields?: Record<string, unknown> };
+  const operations: PatchOperation[] = [];
+  if (input.labels !== undefined) {
+    if (input.labels.length) operations.push({ op: 'add', path: '/fields/System.Tags', value: input.labels.join('; ') });
+    else if (current.fields?.['System.Tags'] !== undefined) operations.push({ op: 'remove', path: '/fields/System.Tags' });
+  }
+  // A work item always has an area; an emptied field leaves it where it is.
+  if (input.components?.[0]?.trim()) operations.push({ op: 'add', path: '/fields/System.AreaPath', value: input.components[0].trim() });
+  if (input.estimate !== undefined) {
+    const field = ESTIMATE_FIELDS.find((name) => typeof current.fields?.[name] === 'number') ?? ESTIMATE_FIELDS[0];
+    const text = (input.estimate ?? '').trim().replace(',', '.');
+    if (!text) { if (current.fields?.[field] !== undefined) operations.push({ op: 'remove', path: `/fields/${field}` }); }
+    else {
+      const value = Number(text);
+      if (!Number.isFinite(value) || value < 0) throw new Error('Die Schätzung wird in Azure DevOps als Zahl erwartet.');
+      operations.push({ op: 'add', path: `/fields/${field}`, value });
+    }
+  }
+  if (!operations.length) return workItem(connection, current as Record<string, unknown>);
+  return workItem(connection, await request(connection, `/_apis/wit/workitems/${id}`, { method: 'PATCH', body: operations, patch: true }) as Record<string, unknown>);
 }

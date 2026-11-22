@@ -4,12 +4,13 @@ import { figureLayout, isIconFigure } from '@/catalog';
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
-import { alignedTextTop, TEXT_CHAR_WIDTH, wrapTextLines, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
+import { alignedTextTop, readTicketCard, TEXT_CHAR_WIDTH, wrapTextLines, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '@/renderer/lib/theme';
 import { lineSegments, parseTextLinks } from '@/renderer/lib/text-links';
 import { fontFamilyCss } from '@/renderer/lib/constants';
 import { connectorLabelCentre, connectorLabelSize } from '@/renderer/lib/connector-label';
 import { bpmnDecoration } from '@/renderer/lib/bpmn';
+import TicketCardDecor from '@/renderer/design-system/molecules/TicketCardDecor.vue';
 import { SEQUENCE_HEAD_KEY, sequenceRole } from '@/renderer/lib/sequence-model';
 import SequenceDecor from '@/renderer/design-system/molecules/SequenceDecor.vue';
 import BpmnDecor from '@/renderer/design-system/molecules/BpmnDecor.vue';
@@ -50,6 +51,8 @@ const resourceCard = computed(() => isResourceCard(e.value));
 const bpmn = computed(() => bpmnDecoration(e.value));
 /** Parts of a sequence diagram (#199); some of them draw their own text. */
 const sequencePart = computed(() => sequenceRole(e.value));
+/** A ticket from Jira or Azure Boards: the rectangle shows the card of the ticket instead of its text (#283). */
+const ticket = computed(() => readTicketCard(e.value));
 const sequenceOwnText = computed(() => sequencePart.value === 'fragment' || sequencePart.value === 'divider' || (sequencePart.value === 'head' && e.value.metadata?.[SEQUENCE_HEAD_KEY] === 'actor'));
 const cloudProvider = computed(() => {
   const provider = definition.value?.provider;
@@ -200,6 +203,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
     </g>
     <BpmnDecor v-if="bpmn" :element="e" :decoration="bpmn" :stroke="stroke" :fill="fill" :text-color="textColor" :editing="editing" />
     <SequenceDecor v-if="sequencePart" :element="e" :stroke="stroke" :text-color="textColor" :editing="editing" />
+    <TicketCardDecor v-if="ticket" :element="e" :ticket="ticket" :theme="theme" />
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
     <svg v-else-if="resourceCard" :x="cardLayout.icon.x" :y="cardLayout.icon.y" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
@@ -273,7 +277,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
         </div>
       </div>
     </foreignObject>
-    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !bpmn?.role && !sequenceOwnText && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
+    <text v-else-if="displayText && !editing && !resourceCard && !cloudCard && !ticket && !bpmn?.role && !sequenceOwnText && !['annotation', 'table', 'web-embed', 'frame', 'image'].includes(e.kind)" :clip-path="`url(#${uid}-clip)`" :fill="textColor" :fill-opacity="e.kind === 'sticky-note' && !text ? .55 : 1" :font-size="fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" :font-weight="e.style.fontWeight ?? 'normal'" :text-decoration="e.style.textDecoration ?? 'none'" :text-anchor="e.style.textAlign === 'center' ? 'middle' : e.style.textAlign === 'right' ? 'end' : 'start'" dominant-baseline="text-before-edge" pointer-events="none">
       <tspan v-for="(line, i) in lines" :key="i" :x="textX" :y="textY + i * fontSize * 1.25"><template v-if="line.bullet">• </template><template v-for="(segment, j) in lineSegments(line.text, line.from, textLinks)" :key="j"><tspan v-if="segment.url" class="text-link" text-decoration="underline" pointer-events="visiblePainted" :data-text-link="segment.url">{{ segment.text }}</tspan><template v-else>{{ segment.text }}</template></template></tspan>
     </text>
     <text v-if="e.kind === 'sticky-note' && e.author" data-testid="sticky-note-author" x="20" :y="e.height - 20" :fill="textColor" fill-opacity=".82" :font-size="Math.max(12, fontSize * .72)" :font-family="fontFamilyCss(e.style.fontFamily)" dominant-baseline="auto" pointer-events="none">{{ e.author }}</text>

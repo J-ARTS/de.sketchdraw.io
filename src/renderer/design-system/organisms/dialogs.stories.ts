@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import AppDialog from '@/renderer/design-system/organisms/AppDialog.vue';
 import ConfluencePageLinkDialog from '@/renderer/design-system/organisms/ConfluencePageLinkDialog.vue';
 import ProfileDialog from '@/renderer/design-system/organisms/ProfileDialog.vue';
+import TicketCardDialog from '@/renderer/design-system/organisms/TicketCardDialog.vue';
 import SettingsDialog from '@/renderer/design-system/organisms/SettingsDialog.vue';
 import { withWhiteboard } from '@/renderer/design-system/storybook/with-whiteboard';
 
@@ -18,3 +19,5 @@ export const Settings: Story = { name: 'SettingsDialog', decorators: [withWhiteb
 export const Profiles: Story = { name: 'ProfileDialog', decorators: [withWhiteboard()], render: () => ({ components: { ProfileDialog }, template: '<ProfileDialog open />' }) };
 /** Opened from the menu of a page. Without the desktop app and an active Confluence plugin it says what is missing; the linked state is in `Molecules/ConfluenceLinkCard`. */
 export const ConfluencePageLink: Story = { name: 'ConfluencePageLinkDialog', decorators: [withWhiteboard((store) => store.openConfluencePageLink(store.state.pages[0]!.id))], render: () => ({ components: { ConfluencePageLinkDialog }, template: '<ConfluencePageLinkDialog />' }) };
+/** Opened from the main menu to put a ticket of Jira or Azure Boards on the canvas (#283). Without a connected tracker it says what is missing; the card itself is in `Molecules/TicketCardDecor`. */
+export const TicketCard: Story = { name: 'TicketCardDialog', decorators: [withWhiteboard((store) => store.openTicketInsert())], render: () => ({ components: { TicketCardDialog }, template: '<TicketCardDialog />' }) };

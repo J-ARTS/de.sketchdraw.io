@@ -17,6 +17,7 @@ export * from './table';
 export * from './web-embed';
 export * from './frames';
 export * from './atlassian';
+export * from './ticket-card';
 export * from './confluence-live';
 export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';
 export { alignedTextTop, SHAPE_TEXT_SIDE_INSET, supportsVerticalAlign, TEXT_CHAR_WIDTH, TEXT_LINE_HEIGHT, verticalAlignOf, verticalTextInset, visibleLineCount, wrapTextLines, wrapWords, type TextLine } from './text-layout';

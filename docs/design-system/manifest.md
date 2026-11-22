@@ -427,6 +427,19 @@ One task as a card: title, state, assignee, due date and cover, with its inline 
 | `menu` | `[event: MouseEvent]` |  |
 | `open` | `[]` |  |
 
+### TicketCardDecor
+
+What makes a rectangle a ticket card on the canvas: tracker and key, state, title, assignee, estimate, labels and the time the ticket was last read.
+
+- File: `src/renderer/design-system/molecules/TicketCardDecor.vue`
+- Story: `src/renderer/design-system/molecules/TicketCardDecor.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `element` | `SketchElement` | yes |  | The rectangle that carries the ticket. |
+| `ticket` | `TicketCardData` | yes |  | The ticket as read from the element (`readTicketCard`). |
+| `theme` | `ThemeName \| undefined` | no |  | The theme of the canvas; the colours of the card follow it like those of every element. Default: light. |
+
 ### UpdateSettings
 
 The update section of the settings: installed version, what the last check found, the action that fits it and the switch for the automatic check. It only shows a status and reports what the user chose; checking and installing happen in the desktop app.
@@ -806,6 +819,12 @@ The editing layer over a selected table: cell selection, typing and keyboard nav
 The task view of the workspace: tasks as columns of cards, with the forms to create and edit them.
 
 - File: `src/renderer/design-system/organisms/TaskBoard.vue`
+
+### TicketCardDialog
+
+The modal dialog of ticket cards (#283): find a ticket of Jira or Azure Boards and put it on the canvas as a card, or edit the ticket of a card. Opened through `store.openTicketInsert` and `store.openTicketCard`; mounted once in the workspace page.
+
+- File: `src/renderer/design-system/organisms/TicketCardDialog.vue`
 
 ### ToolOptionsBar
 

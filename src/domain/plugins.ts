@@ -265,6 +265,25 @@ export interface JiraIssueSummary {
   dueDate?: string;
   url: string;
   updatedAt: string;
+  /** Read for a single ticket (ticket cards, #283); lists for the task board leave them out. */
+  labels?: string[];
+  /** Jira components; in Azure Boards the area path. */
+  components?: string[];
+  /** Story points, effort or a time estimate, as the tracker shows it. */
+  estimate?: string;
+}
+
+/** What a ticket card can change in its ticket: the seven fields the owner named (#283). */
+export interface UpdateWorkItemFieldsInput {
+  provider: TicketProvider;
+  key: string;
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  assignee?: string | null;
+  labels?: string[];
+  components?: string[];
+  estimate?: string | null;
 }
 
 /**
@@ -366,6 +385,12 @@ export interface PluginBridge extends GitWorkbenchBridge {
   createAzureWorkItem?(input: CreateWorkItemInput): Promise<WorkItemSummary>;
   updateAzureWorkItem?(input: UpdateWorkItemInput): Promise<WorkItemSummary>;
   transitionAzureWorkItem?(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary>;
+  /** One ticket with all fields of a ticket card, by its key (Jira) or number (Azure Boards). */
+  getWorkItem?(input: { provider: TicketProvider; key: string }): Promise<WorkItemSummary>;
+  /** Tickets whose title contains the text, or the ticket with that key; at most 20. */
+  searchWorkItems?(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]>;
+  /** Writes the changed fields of a ticket card and answers with the ticket as it is afterwards. */
+  updateWorkItemFields?(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;
   onEvent(listener: (event: PluginExternalEvent) => void): () => void;
 }

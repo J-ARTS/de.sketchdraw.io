@@ -36,8 +36,8 @@ import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } fro
 import { confluenceStorageLoss } from '../src/domain/atlassian';
 import { CONFLUENCE_LIVE_MAX_IMAGE_BYTES, CONFLUENCE_LIVE_MAX_IMAGES, confluenceLiveFilePrefix, confluenceLiveFilename, isPngImage, managedImageFilenames, planManagedImages, type ManagedImage } from '../src/domain/confluence-live';
 import type { DocumentPersistenceService } from './persistence';
-import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, createAzureWorkItem, listAzureWorkItems, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
-import type { AzureDevOpsPluginSettings, ConfigureAzureDevOpsPluginInput, CreateWorkItemInput, UpdateWorkItemInput, WorkItemSummary } from '../src/domain/plugins';
+import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, createAzureWorkItem, getAzureWorkItem, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
+import type { AzureDevOpsPluginSettings, ConfigureAzureDevOpsPluginInput, CreateWorkItemInput, TicketProvider, UpdateWorkItemFieldsInput, UpdateWorkItemInput, WorkItemSummary } from '../src/domain/plugins';
 
 const execFile = promisify(execFileCallback);
 const CONFIG_VERSION = 2;
@@ -1814,7 +1814,7 @@ export class PluginService {
     }
   }
 
-  private jiraIssue(value: Record<string, unknown>): JiraIssueSummary {
+  private jiraIssue(value: Record<string, unknown>, storyPointsField?: string | null): JiraIssueSummary {
     const fields = (value.fields ?? {}) as Record<string, unknown>;
     const status = (fields.status ?? {}) as Record<string, unknown>;
     const assignee = fields.assignee && typeof fields.assignee === 'object' && !Array.isArray(fields.assignee) ? fields.assignee as Record<string, unknown> : undefined;
@@ -1827,7 +1827,41 @@ export class PluginService {
       status: jiraStatus(remoteStatus), remoteStatus,
       ...(assigneeName ? { assignee: assigneeName } : {}), ...(dueDate ? { dueDate } : {}),
       url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated),
+      ...this.jiraDetails(fields, storyPointsField),
     };
+  }
+
+  /** Labels, components and estimate of an issue; absent when the request did not ask for them (the task board list). */
+  private jiraDetails(fields: Record<string, unknown>, storyPointsField: string | null | undefined): Pick<JiraIssueSummary, 'labels' | 'components' | 'estimate'> {
+    if (storyPointsField === undefined) return {};
+    const labels = Array.isArray(fields.labels) ? fields.labels.filter((label): label is string => typeof label === 'string') : [];
+    const components = Array.isArray(fields.components) ? fields.components.flatMap((entry) => entry && typeof entry === 'object' && typeof (entry as { name?: unknown }).name === 'string' ? [(entry as { name: string }).name] : []) : [];
+    const points = storyPointsField ? fields[storyPointsField] : undefined;
+    const tracking = fields.timetracking && typeof fields.timetracking === 'object' ? (fields.timetracking as { originalEstimate?: unknown }).originalEstimate : undefined;
+    const estimate = typeof points === 'number' ? String(points) : typeof tracking === 'string' && tracking ? tracking : undefined;
+    return { labels, components, ...(estimate ? { estimate } : {}) };
+  }
+
+  /** The field a Jira site keeps story points in, looked up once per site; null when it has none. */
+  private storyPoints: { siteUrl: string; field: string | null } | null = null;
+  private async jiraStoryPointsField(): Promise<string | null> {
+    const siteUrl = this.config.atlassian.siteUrl;
+    if (this.storyPoints?.siteUrl === siteUrl) return this.storyPoints.field;
+    let field: string | null = null;
+    try {
+      const fields = await this.atlassian('/rest/api/3/field') as Array<{ id?: unknown; name?: unknown; custom?: unknown }>;
+      const names = ['story points', 'story point estimate'];
+      const found = Array.isArray(fields) ? names.map((name) => fields.find((entry) => entry.custom === true && typeof entry.name === 'string' && entry.name.toLowerCase() === name)).find(Boolean) : undefined;
+      if (found && typeof found.id === 'string' && /^customfield_\d+$/.test(found.id)) field = found.id;
+    } catch (error) { if (!(error instanceof AtlassianHttpError)) throw error; }
+    if (this.config.atlassian.siteUrl === siteUrl) this.storyPoints = { siteUrl, field };
+    return field;
+  }
+  private async jiraIssueDetails(key: string): Promise<JiraIssueSummary> {
+    const storyPointsField = await this.jiraStoryPointsField();
+    const fields = ['summary', 'description', 'status', 'assignee', 'duedate', 'updated', 'labels', 'components', 'timetracking', ...(storyPointsField ? [storyPointsField] : [])];
+    const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=${fields.join(',')}`) as Record<string, unknown>;
+    return this.jiraIssue(issue, storyPointsField);
   }
 
   private async jiraAssigneeAccountId(value: string, issueKey?: string): Promise<string> {
@@ -1889,6 +1923,77 @@ export class PluginService {
     const key = boundedString(input.key, 128, 'Jira-Key'); const desired: Record<TaskStatus, string[]> = { todo: ['to do', 'open', 'offen'], doing: ['in progress', 'doing', 'in arbeit'], review: ['review', 'in review', 'prüfung'], done: ['done', 'closed', 'resolved', 'erledigt'] };
     const response = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`) as { transitions?: Array<{ id?: string; name?: string; to?: { name?: string } }> }; const transition = (response.transitions ?? []).find((item) => desired[input.status].some((name) => `${item.name ?? ''} ${item.to?.name ?? ''}`.toLocaleLowerCase('en').includes(name)));
     if (!transition?.id) throw new Error('Für diesen Jira-Workflow wurde kein passender Statusübergang gefunden.'); await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, { method: 'POST', body: JSON.stringify({ transition: { id: transition.id } }) }); return this.getJiraIssue(key);
+  }
+
+  // --- Ticket cards (#283): one ticket with all its fields, whichever system it lives in ---------------------------
+
+  private ticketProvider(value: unknown): TicketProvider {
+    if (value !== 'jira' && value !== 'azure-devops') throw new Error('Unbekanntes Ticket-System.');
+    return value;
+  }
+  private ticketList(value: unknown, name: string): string[] {
+    if (!Array.isArray(value) || value.length > 50) throw new Error(`${name} ist ungültig.`);
+    return [...new Set(value.map((entry) => boundedString(entry, 255, name)))];
+  }
+
+  public async getWorkItem(input: { provider: TicketProvider; key: string }): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Ticket.');
+    const provider = this.ticketProvider(input.provider);
+    if (provider === 'azure-devops') { const key = boundedString(input.key, 12, 'Work-Item-Nummer'); return this.azure(false, (connection) => getAzureWorkItem(connection, key)); }
+    this.assertDocumentProject(); this.assertJira();
+    return { provider, ...await this.jiraIssueDetails(input.key) };
+  }
+
+  public async searchWorkItems(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Suche.');
+    const provider = this.ticketProvider(input.provider);
+    const query = boundedString(input.query ?? '', 200, 'Suchtext', true);
+    if (!query) return [];
+    if (provider === 'azure-devops') return this.azure(false, (connection) => searchAzureWorkItems(connection, query));
+    this.assertDocumentProject(); this.assertJira();
+    const quoted = (text: string) => `"${text.replace(/[\\"]/g, ' ')}"`;
+    const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt');
+    const jql = /^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(query) ? `key = ${quoted(query.toUpperCase())}` : `project = ${quoted(project)} AND summary ~ ${quoted(`${query}*`)} ORDER BY updated DESC`;
+    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 20, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> };
+    return (response.issues ?? []).map((issue) => ({ provider, ...this.jiraIssue(issue) }));
+  }
+
+  public async updateWorkItemFields(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Ticket.');
+    const provider = this.ticketProvider(input.provider);
+    if (input.status !== undefined && !['todo', 'doing', 'review', 'done'].includes(input.status)) throw new Error('Ungültiger Status.');
+    const labels = input.labels === undefined ? undefined : this.ticketList(input.labels, 'Labels');
+    const components = input.components === undefined ? undefined : this.ticketList(input.components, 'Komponenten');
+    const estimate = input.estimate === undefined ? undefined : input.estimate === null ? null : boundedString(input.estimate, 40, 'Schätzung', true);
+    const basics = { ...(input.title !== undefined ? { title: input.title } : {}), ...(input.description !== undefined ? { description: input.description } : {}), ...(input.assignee !== undefined ? { assignee: input.assignee } : {}) };
+    const hasBasics = Object.keys(basics).length > 0;
+    if (provider === 'azure-devops') {
+      const key = boundedString(input.key, 12, 'Work-Item-Nummer');
+      // Spaces inside a tag are fine; a semicolon would split it into two.
+      if (labels?.some((label) => label.includes(';'))) throw new Error('Ein Label darf in Azure DevOps kein Semikolon enthalten.');
+      if (hasBasics) await this.updateAzureWorkItem({ key, ...basics });
+      if (labels !== undefined || components !== undefined || estimate !== undefined) await this.azure(true, (connection) => updateAzureWorkItemDetails(connection, key, { ...(labels !== undefined ? { labels } : {}), ...(components !== undefined ? { components } : {}), ...(estimate !== undefined ? { estimate } : {}) }));
+      if (input.status !== undefined) await this.transitionAzureWorkItem({ key, status: input.status });
+      return this.azure(false, (connection) => getAzureWorkItem(connection, key));
+    }
+    this.assertDocumentProject(); this.assertJira();
+    const key = boundedString(input.key, 128, 'Jira-Key');
+    if (labels?.some((label) => /\s/.test(label))) throw new Error('Ein Jira-Label darf keine Leerzeichen enthalten.');
+    if (hasBasics) await this.updateJiraIssue({ key, ...basics });
+    const fields: Record<string, unknown> = {};
+    if (labels !== undefined) fields.labels = labels;
+    if (components !== undefined) fields.components = components.map((name) => ({ name }));
+    if (estimate !== undefined) {
+      const storyPointsField = await this.jiraStoryPointsField();
+      const text = (estimate ?? '').trim().replace(',', '.');
+      const points = text === '' ? null : Number(text);
+      // A number is story points where the site has such a field; anything else is a time estimate like "3h".
+      if (storyPointsField && (points === null || Number.isFinite(points))) fields[storyPointsField] = points;
+      else fields.timetracking = { originalEstimate: text };
+    }
+    if (Object.keys(fields).length) await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ fields }) });
+    if (input.status !== undefined) await this.transitionJiraIssue({ key, status: input.status });
+    return { provider, ...await this.jiraIssueDetails(key) };
   }
 
   public dispose(): void { this.disposed = true; this.revokeAuthority(); this.clearWatchers(); }

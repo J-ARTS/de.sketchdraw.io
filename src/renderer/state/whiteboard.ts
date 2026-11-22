@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -258,6 +258,83 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       return false;
     } finally { state.jiraCreatingTaskIds = state.jiraCreatingTaskIds.filter((id) => id !== taskId); }
   }
+  // --- Ticket cards (#283) -------------------------------------------------------------------------------------
+  /** The addresses under which a pasted link is a ticket of a connected tracker. */
+  const ticketSites = () => ({
+    ...(ticketApi('jira') ? { jira: state.pluginSettings!.atlassian.siteUrl } : {}),
+    ...(ticketApi('azure-devops') ? { azureDevOps: state.pluginSettings!.azureDevOps!.organizationUrl } : {}),
+  });
+  /** Whether single tickets can be read from that tracker right now. */
+  const canReadTickets = (provider: TicketProvider): boolean => Boolean(ticketApi(provider) && bridge.plugins?.getWorkItem);
+  let ticketContentNoticed = false;
+  /** Reads one ticket and puts it on the canvas as a card, centred at `at`. */
+  async function addTicketCard(provider: TicketProvider, key: string, at: Point): Promise<boolean> {
+    const read = bridge.plugins?.getWorkItem;
+    if (!read || !canReadTickets(provider) || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+    const generation = pluginGeneration, owner = activeSession(), pageId = state.activePageId;
+    state.ticketBusy = true;
+    try {
+      const ticket = await read({ provider, key });
+      if (!pluginContextCurrent(generation) || owner !== activeSession() || state.transitioning) return false;
+      if (state.activePageId !== pageId) { notice(t('Die Karte wurde nicht eingefügt, weil die Seite gewechselt wurde.')); return false; }
+      const patch = ticketCardPatch(provider, ticket, new Date().toISOString());
+      const metadata = Object.fromEntries(Object.entries(patch.metadata).filter((entry): entry is [string, string] => entry[1] !== null));
+      const element = createElement('rectangle', {
+        id: uid('ticket'), x: at.x - TICKET_CARD_WIDTH / 2, y: at.y - TICKET_CARD_HEIGHT / 2, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT,
+        text: patch.text, ...(patch.description ? { description: patch.description } : {}), metadata, shapeVariant: 'rounded',
+        style: { ...DEFAULT_STYLE, stroke: '#cbd5e1', fill: '#ffffff', strokeWidth: 1.5, fontSize: 16, textAlign: 'left', cornerRadius: 12 },
+      });
+      if (!await dispatch({ type: 'add', elements: [element] })) return false;
+      setSelection([element.id]); state.tool = 'select';
+      state.liveMessage = t('Ticket {key} als Karte eingefügt.', { key: ticket.key });
+      // Said once: the content of a ticket now is part of the document (decision of the owner, #283).
+      if (!ticketContentNoticed) { ticketContentNoticed = true; notice(t('Der Inhalt des Tickets steht jetzt im Dokument: Er wird mit der Datei gespeichert und mit allen geteilt, die das Dokument erhalten.')); }
+      return true;
+    } catch (error) { if (pluginContextCurrent(generation)) notice(t('Das Ticket konnte nicht gelesen werden: {message}', { message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error'); return false; }
+    finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+  }
+  /** Writes what a tracker answered into its card; the card keeps its place and size. */
+  async function applyTicketToCard(elementId: string, provider: TicketProvider, ticket: WorkItemSummary | JiraIssueSummary): Promise<boolean> {
+    const card = state.document.elements.find((element) => element.id === elementId);
+    if (!card || !isTicketCard(card)) return false;
+    const patch = ticketCardPatch(provider, ticket, new Date().toISOString());
+    return dispatch({ type: 'update', changes: [{ id: elementId, patch: { text: patch.text, description: patch.description, metadata: patch.metadata } }] });
+  }
+  /** Reads the tickets of the cards again. `ids` names the cards; without it every card of a connected tracker. */
+  async function refreshTicketCards(ids: readonly string[] | null, announce: boolean): Promise<boolean> {
+    const read = bridge.plugins?.getWorkItem;
+    if (!read || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+    const cards = state.document.elements.flatMap((element) => { const data = readTicketCard(element); return data && (!ids || ids.includes(element.id)) && canReadTickets(data.provider) && ticketApi(data.provider)!.owns(data) ? [{ id: element.id, data }] : []; });
+    if (!cards.length) { if (announce) notice(t('Diese Karte gehört zu keinem verbundenen Ticket-System.'), 'error'); return false; }
+    const generation = pluginGeneration, owner = activeSession();
+    state.ticketBusy = true;
+    try {
+      const answers = await Promise.allSettled(cards.map(({ data }) => read({ provider: data.provider, key: data.key })));
+      if (!pluginContextCurrent(generation) || owner !== activeSession() || state.transitioning) return false;
+      const fetchedAt = new Date().toISOString();
+      const changes = cards.flatMap(({ id, data }, index) => {
+        const answer = answers[index]!;
+        if (answer.status !== 'fulfilled' || !state.document.elements.some((element) => element.id === id && isTicketCard(element))) return [];
+        const patch = ticketCardPatch(data.provider, answer.value, fetchedAt);
+        return [{ id, patch: { text: patch.text, description: patch.description, metadata: patch.metadata } }];
+      });
+      const failed = answers.find((answer) => answer.status === 'rejected') as PromiseRejectedResult | undefined;
+      if (changes.length && !await dispatch({ type: 'update', changes })) return false;
+      if (announce) {
+        if (failed) notice(t('Das Ticket konnte nicht gelesen werden: {message}', { message: tm(failed.reason instanceof Error ? failed.reason.message : t('unbekannter Fehler')) }), 'error');
+        else notice(tn(changes.length, '{count} Ticket-Karte aktualisiert.', '{count} Ticket-Karten aktualisiert.'));
+      }
+      return !failed;
+    } finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+  }
+  /** The cards of a document are read again once after it was opened with a connected tracker. */
+  let ticketsRefreshedFor = '';
+  function refreshTicketCardsOnOpen(): void {
+    const key = `${state.document.id}\u0000${currentPluginHandle() ?? ''}`;
+    if (!currentPluginHandle() || key === ticketsRefreshedFor || !activeTicketApis().length) return;
+    ticketsRefreshedFor = key;
+    if (state.document.elements.some((element) => isTicketCard(element))) void refreshTicketCards(null, false);
+  }
   const createdLocally = (name: string, message: string) => t('Lokale Aufgabe erstellt; Ticket in {name} nicht angelegt: {message} In der Aufgabe lässt es sich erneut anlegen.', { name, message });
   /**
    * One call of the Git dialog (#216). The dialog is modal, so it shows results and failures itself; a call
@@ -301,7 +378,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
   }
   function clearPluginContext(): void {
-    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false; state.confluenceLinkPageId = null;
+    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false; state.confluenceLinkPageId = null; state.ticketDialog = null; state.ticketBusy = false;
     pendingExternalEvent = null; state.pendingExternalDocument = false;
   }
   const actorId = options.actorId ?? ACTOR_ID;
@@ -345,8 +422,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
 
   /** Pastes Sketchdraw elements from clipboard text, otherwise the clipboard image, at the pointer (#174). */
   async function pasteContent(text: string | null, image: File | null, revision: number): Promise<void> {
-    const payload = text ? parseElementClipboard(text) : null;
+    // The address of a ticket of a connected tracker becomes its card (#283).
+    const pastedTicket = text && !image ? parseTicketUrl(text, ticketSites()) : null;
     const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
+    if (pastedTicket) { await addTicketCard(pastedTicket.provider, pastedTicket.key, at); return; }
+    const payload = text ? parseElementClipboard(text) : null;
     if (!payload) {
       if (image) await store.insertImageFile(image, at);
       else notice(t('Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.'), 'error');
@@ -393,9 +473,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, jiraCreatingTaskIds: [] as string[],
     get jiraAvailable() { return jiraAvailable(); },
     get ticketProviders() { return writableTicketApis().map(({ provider, name }) => ({ id: provider, name })); },
+    get ticketReaders() { return activeTicketApis().filter((api) => canReadTickets(api.provider)).map(({ provider, name }) => ({ id: provider, name })); },
     gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
+    ticketDialog: null as WhiteboardState['ticketDialog'], ticketBusy: false,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -1694,6 +1776,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = t('Frame in der Folienleiste zum Umbenennen ausgewählt.'); return; }
       // A resource card edits the line under the pointer, and its name anywhere else on the card.
       if (isResourceCard(e)) { setSelection([e!.id]); store.startTextEdit(e!.id, cardFieldAt(e!, screenToDoc(state.viewport, input)) ?? 'title'); return; }
+      // A ticket card is edited in its dialog: its text is the title of a ticket, not free text.
+      if (isTicketCard(e)) { setSelection([e!.id]); store.openTicketCard(e!.id); return; }
       if (e && e.kind !== 'table') {
         store.startTextEdit(e.id);
         // A connector without text gets its text where it was double-clicked (#195).
@@ -2079,6 +2163,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     startTextEdit(elementId, field) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
       const e = elementId ? pageEls().find((e) => e.id === elementId) : undefined;
+      if (isTicketCard(e)) { store.openTicketCard(e!.id); return; }
       if (e?.kind === 'table' || isResourceCard(e) !== Boolean(field)) return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       if (e && field) {
@@ -2290,6 +2375,61 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
+    openTicketCard(elementId) {
+      if (state.transitioning) return;
+      if (state.document.elements.some((element) => element.id === elementId && isTicketCard(element))) state.ticketDialog = { mode: 'edit', elementId };
+    },
+    openTicketInsert(at) { if (state.canWrite && !state.transitioning) state.ticketDialog = { mode: 'insert', at: at ?? currentCenter() }; },
+    closeTicketDialog() { state.ticketDialog = null; },
+    async searchTickets(provider, query) {
+      const search = bridge.plugins?.searchWorkItems;
+      if (!search || !canReadTickets(provider)) return null;
+      const generation = pluginGeneration;
+      try { const found = await search({ provider, query }); return pluginContextCurrent(generation) ? found : null; }
+      catch (error) { if (pluginContextCurrent(generation)) notice(t('Die Suche ist fehlgeschlagen: {message}', { message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error'); return null; }
+    },
+    async insertTicketCard(provider, keyOrUrl, at) {
+      const parsed = parseTicketUrl(keyOrUrl, ticketSites());
+      const target = parsed ?? { provider, key: keyOrUrl.trim() };
+      if (!target.key) return false;
+      return addTicketCard(target.provider, target.key, at ?? (state.ticketDialog?.mode === 'insert' ? state.ticketDialog.at : currentCenter()));
+    },
+    async insertTicketCardFromTask(taskId) {
+      const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
+      if (!task?.external) return false;
+      if (!canReadTickets(task.external.provider) || !ticketApi(task.external.provider)!.owns(task.external)) { notice(t('Für die Karte muss {name} mit der Site dieses Tickets verbunden sein.', { name: TICKET_PROVIDER_NAME[task.external.provider] }), 'error'); return false; }
+      return addTicketCard(task.external.provider, task.external.key, currentCenter());
+    },
+    refreshTicketCard(elementId) { return refreshTicketCards([elementId], true); },
+    ticketCardAccess(elementId) {
+      const data = readTicketCard(state.document.elements.find((element) => element.id === elementId));
+      const api = data ? ticketApi(data.provider) : null;
+      if (!data || !api || !canReadTickets(data.provider) || !api.owns(data)) return 'offline';
+      return api.writable && state.canWrite && Boolean(bridge.plugins?.updateWorkItemFields) ? 'writable' : 'readonly';
+    },
+    async saveTicketCard(elementId, changes) {
+      const write = bridge.plugins?.updateWorkItemFields;
+      const card = state.document.elements.find((element) => element.id === elementId);
+      const data = readTicketCard(card);
+      if (!data || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+      const api = ticketApi(data.provider);
+      if (!write || !api || !api.owns(data)) { notice(t('Zum Speichern muss {name} mit der Site dieses Tickets verbunden sein.', { name: TICKET_PROVIDER_NAME[data.provider] }), 'error'); return false; }
+      if (!api.writable) { notice(t('{name} ist auf „Nur lesen“ gestellt; das Ticket wurde nicht geändert.', { name: api.name }), 'error'); return false; }
+      if (!Object.keys(changes).length) return true;
+      const generation = pluginGeneration, owner = activeSession();
+      state.ticketBusy = true;
+      try {
+        const ticket = await write({ provider: data.provider, key: data.key, ...changes } as UpdateWorkItemFieldsInput);
+        if (!pluginContextCurrent(generation) || owner !== activeSession()) return false;
+        if (!await applyTicketToCard(elementId, data.provider, ticket)) return false;
+        notice(t('Ticket {key} gespeichert.', { key: data.key }));
+        return true;
+      } catch (error) {
+        // The tracker may have taken part of the change; the card shows what the tracker has, not what was typed.
+        if (pluginContextCurrent(generation)) notice(t('{name} hat die Änderung nicht übernommen: {message}', { name: api.name, message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error');
+        return false;
+      } finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+    },
     async createTicketForTask(taskId, provider) {
       if (!state.canWrite || state.transitioning) return false;
       return linkTaskToTicket(taskId, provider, pluginGeneration, (name, message) => t('Ticket in {name} nicht angelegt: {message}', { name, message }));
@@ -2404,6 +2544,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const settings = await bridge.plugins.getSettings(handle);
         if (!pluginContextCurrent(generation) || request !== pluginRefreshRequest || handle !== currentPluginHandle()) return;
         state.pluginSettings = settings;
+        refreshTicketCardsOnOpen();
         if (handle && settings.git.enabled) void bridge.plugins.watchDocument(handle).catch(() => undefined);
       } catch (error) { if (pluginContextCurrent(generation) && request === pluginRefreshRequest) fail(error); }
     },
