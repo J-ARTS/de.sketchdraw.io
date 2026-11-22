@@ -127,7 +127,13 @@ export interface MacInstallerOptions {
   readonly failureMarker: string;
   readonly bundleId: string;
   readonly writable?: (file: string) => boolean;
+  /** Pause before the disk image is attached again after the system reported it busy. */
+  readonly attachRetryMs?: number;
 }
+
+/** What hdiutil answers while the disk image service of macOS is still busy with another image (#297). */
+const MAC_ATTACH_BUSY = /resource temporarily unavailable/i;
+export const MAC_ATTACH_ATTEMPTS = 4;
 
 /**
  * macOS: the disk image of the release. The bundle inside is checked (identifier, version), copied next to the running
@@ -153,7 +159,16 @@ export function createMacInstaller(options: MacInstallerOptions): PlatformInstal
       const staged = posix.join(staging, posix.basename(bundle));
       let attached = false;
       try {
-        await must(runner.run('/usr/bin/hdiutil', ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, file], { timeoutMs: 180_000 }), 'Mounting the disk image');
+        // A busy disk image service passes within seconds, so only that answer is asked again; every other one,
+        // and a service that stays busy, is the failure it reports.
+        for (let attempt = 1; ; attempt += 1) {
+          const result = await runner.run('/usr/bin/hdiutil', ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, file], { timeoutMs: 180_000 });
+          if (result.code === 0 || attempt === MAC_ATTACH_ATTEMPTS || !MAC_ATTACH_BUSY.test(result.stderr)) {
+            await must(Promise.resolve(result), 'Mounting the disk image');
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, (options.attachRetryMs ?? 1500) * attempt));
+        }
         attached = true;
         const apps = (await readdir(mount)).filter((name) => name.endsWith('.app'));
         if (apps.length !== 1) throw new UpdateError('install', 'The disk image does not hold exactly one app.');

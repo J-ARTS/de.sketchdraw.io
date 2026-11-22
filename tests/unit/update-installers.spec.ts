@@ -11,6 +11,7 @@ import {
   createMacInstaller,
   createPlatformInstaller,
   createWindowsInstaller,
+  MAC_ATTACH_ATTEMPTS,
   MAC_STAGING_PREFIX,
   MAC_SWAP_SCRIPT,
   macBundlePath,
@@ -165,6 +166,32 @@ describe.skipIf(process.platform === 'win32')('macOS installer steps', () => {
       expect(runner.runs.some((call) => call.command.endsWith('ditto'))).toBe(false);
       expect(readdirSync(join(root, 'tmp'))).toEqual([]);
     }
+  });
+
+  it('attaches again while macOS reports the disk image service busy, and gives up after a few attempts (#297)', async () => {
+    const busy = { code: 1, stderr: 'hdiutil: attach failed - Resource temporarily unavailable' };
+    const patient = (failures: number) => {
+      const tools = macTools();
+      let attaches = 0;
+      const run: CommandRunner['run'] = async (command, args) => {
+        if (command.endsWith('hdiutil') && args[0] === 'attach' && (attaches += 1) <= failures) { tools.runs.push({ command, args: [...args] }); return { stdout: '', ...busy }; }
+        return tools.run(command, args);
+      };
+      return { tools, installer: createMacInstaller({ execPath: join(bundle, 'Contents', 'MacOS', 'Sketchdraw'), pid: 4242, runner: { ...tools, run }, tmpDir: join(root, 'tmp'), failureMarker: join(root, 'update-failed'), bundleId: APP_BUNDLE_ID, attachRetryMs: 1 }) };
+    };
+    const attachCalls = (tools: ReturnType<typeof recorder>) => tools.runs.filter((call) => call.args[0] === 'attach').length;
+
+    const passing = patient(2);
+    await passing.installer.install(join(root, 'x.dmg'), '0.1.7');
+    expect(attachCalls(passing.tools)).toBe(3);
+    expect(stagingFolders()).toHaveLength(1);
+
+    const stuck = patient(MAC_ATTACH_ATTEMPTS);
+    await expect(stuck.installer.install(join(root, 'x.dmg'), '0.1.7')).rejects.toMatchObject({ problem: 'install', message: expect.stringContaining('Resource temporarily unavailable') });
+    expect(attachCalls(stuck.tools)).toBe(MAC_ATTACH_ATTEMPTS);
+    // Nothing was attached, so nothing is detached, and the mount folder is gone.
+    expect(stuck.tools.runs.some((call) => call.args[0] === 'detach')).toBe(false);
+    expect(readdirSync(join(root, 'tmp'))).toEqual([]);
   });
 
   it('reports a failing tool as a failed installation and detaches only what it attached', async () => {
