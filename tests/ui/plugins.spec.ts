@@ -8,6 +8,9 @@ type PluginTestState = {
   jiraFailure: string;
   holdGit: boolean;
   holdJira: boolean;
+  /** Keeps every Jira ticket creation open until the test lets it through. */
+  holdJiraCreate: boolean;
+  jiraCreateFailure: string;
   calls: {
     contexts: Array<string | null | undefined>;
     saves: SaveDocumentRequest[];
@@ -15,11 +18,12 @@ type PluginTestState = {
     jira: ConfigureAtlassianPluginInput[];
     jiraTests: number;
     jiraSyncs: number;
+    jiraCreates: string[];
     profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
   settings: PluginSettingsSnapshot;
 };
-type TestWindow = Window & { __pluginTest: PluginTestState; __resolvePluginRequest: (plugin: 'git' | 'jira') => void };
+type TestWindow = Window & { __pluginTest: PluginTestState; __resolvePluginRequest: (plugin: 'git' | 'jira' | 'jiraCreate') => void };
 
 /** The mock keeps plugin settings per editor profile and only exposes a project folder after a file was saved. */
 async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'light' | 'dark'; configurationIssue?: PluginSettingsSnapshot['configurationIssue'] } = {}): Promise<void> {
@@ -40,7 +44,9 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       jiraFailure: '',
       holdGit: false,
       holdJira: false,
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, profiles: [] },
+      holdJiraCreate: false,
+      jiraCreateFailure: '',
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], profiles: [] },
       settings: defaults(),
     };
     const folders = new Map<string, string>();
@@ -61,8 +67,8 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       if (profiles.some(profile => profile.id !== exceptId && profile.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('Ein Profil mit diesem Namen existiert bereits.');
       return name;
     };
-    const delayed: Record<'git' | 'jira', Array<() => void>> = { git: [], jira: [] };
-    Object.defineProperty(window, '__resolvePluginRequest', { value: (plugin: 'git' | 'jira') => {
+    const delayed: Record<'git' | 'jira' | 'jiraCreate', Array<() => void>> = { git: [], jira: [], jiraCreate: [] };
+    Object.defineProperty(window, '__resolvePluginRequest', { value: (plugin: 'git' | 'jira' | 'jiraCreate') => {
       const resolve = delayed[plugin].shift();
       if (!resolve) throw new Error(`No pending ${plugin} request.`);
       resolve();
@@ -166,7 +172,14 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
         gitSync: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         watchDocument: async () => ({ ok: true, message: 'watching' }),
         listConfluencePages: async () => [], getConfluencePage: async () => { throw new Error('not used'); }, updateConfluencePage: async () => { throw new Error('not used'); },
-        createJiraIssue: async () => { throw new Error('not used'); }, listJiraIssues: async () => { control.calls.jiraSyncs += 1; return []; }, updateJiraIssue: async () => { throw new Error('not used'); }, transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
+        createJiraIssue: async (input: { title: string; description: string }) => {
+          control.calls.jiraCreates.push(input.title);
+          const number = control.calls.jiraCreates.length;
+          if (control.holdJiraCreate) await new Promise<void>(resolve => delayed.jiraCreate.push(resolve));
+          if (control.jiraCreateFailure) throw new Error(control.jiraCreateFailure);
+          return { id: String(100 + number), key: `SK-${number}`, title: input.title, description: input.description, status: 'todo' as const, remoteStatus: 'To Do', url: `https://example.atlassian.net/browse/SK-${number}`, updatedAt: '2026-11-22T10:00:00.000Z' };
+        },
+        listJiraIssues: async () => { control.calls.jiraSyncs += 1; return []; }, updateJiraIssue: async () => { throw new Error('not used'); }, transitionJiraIssue: async () => { throw new Error('not used'); }, onEvent: () => () => {},
       },
     } });
   }, { cancelSave: options.cancelSave ?? false, theme: options.theme ?? 'light', configurationIssue: options.configurationIssue });
@@ -854,4 +867,61 @@ test('Jira and Confluence are two plugins: each has its own switch and fields an
   await expect.poll(async () => (await state(page)).calls.jira.length).toBe(2);
   expect((await state(page)).calls.jira[1]).toMatchObject({ plugin: 'confluence', confluenceSpaceKey: 'DOC', siteUrl: 'https://example.atlassian.net' });
   expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('a task form that is being saved ignores a second submit; a ticket that failed can be created again (#293)', async ({ page }) => {
+  await desktop(page);
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
+  const board = page.getByTestId('task-board');
+
+  // Jira takes its time: Enter and a second click while the first request is on its way create nothing more.
+  await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.holdJiraCreate = true; });
+  await board.getByRole('button', { name: 'Neue Aufgabe' }).click();
+  const form = page.getByRole('dialog', { name: 'Neue Aufgabe' });
+  const title = form.getByRole('textbox', { name: 'Titel' });
+  await title.fill('Freigabe prüfen');
+  await title.press('Enter');
+  const submit = form.getByTestId('task-submit');
+  await expect(submit).toBeDisabled();
+  await expect(submit).toHaveText('Wird gespeichert …');
+  await expect(submit).toHaveAttribute('aria-busy', 'true');
+  await title.press('Enter');
+  await submit.click({ force: true });
+  await expect.poll(async () => (await state(page)).calls.jiraCreates).toEqual(['Freigabe prüfen']);
+  await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('jiraCreate'));
+  await expect(form).toHaveCount(0);
+  await expect(board.locator('.task-card')).toHaveCount(1);
+  await expect(board.locator('.task-card')).toContainText('SK-1');
+  expect((await state(page)).calls.jiraCreates).toEqual(['Freigabe prüfen']);
+
+  // Jira refuses: the card stays local and offers the ticket again, once.
+  await page.evaluate(() => { const control = (window as unknown as TestWindow).__pluginTest; control.holdJiraCreate = false; control.jiraCreateFailure = 'Jira ist nicht erreichbar.'; });
+  await board.getByRole('button', { name: 'Neue Aufgabe' }).click();
+  await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByRole('textbox', { name: 'Titel' }).fill('Zweite Aufgabe');
+  await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByTestId('task-submit').click();
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Lokale Aufgabe erstellt; Jira-Ticket nicht angelegt: Jira ist nicht erreichbar. In der Aufgabe lässt es sich erneut anlegen.')).toBeVisible();
+  await expect(board.locator('.task-card')).toHaveCount(2);
+  await page.evaluate(() => { const control = (window as unknown as TestWindow).__pluginTest; control.jiraCreateFailure = ''; control.holdJiraCreate = true; });
+  await board.locator('.card-open').filter({ hasText: 'Zweite Aufgabe' }).click();
+  const edit = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  const again = edit.getByTestId('task-create-in-jira');
+  await expect(again).toHaveText('In Jira anlegen');
+  await again.click();
+  await expect(again).toBeDisabled();
+  await expect(again).toHaveText('Jira-Ticket wird angelegt …');
+  await again.click({ force: true });
+  await expect.poll(async () => (await state(page)).calls.jiraCreates).toEqual(['Freigabe prüfen', 'Zweite Aufgabe', 'Zweite Aufgabe']);
+  await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('jiraCreate'));
+  await expect(again).toHaveCount(0);
+  await expect(edit.locator('.external-badge')).toContainText('SK-3');
+  await expect(board.locator('.task-card')).toHaveCount(2);
+  // A task that has its ticket offers no second one.
+  expect((await state(page)).calls.jiraCreates).toHaveLength(3);
 });

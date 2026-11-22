@@ -348,6 +348,10 @@ export interface WhiteboardState {
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
   pluginBusy: boolean;
+  /** Whether a task can get a Jira ticket right now: the document is in a project and the Jira plugin is switched on. */
+  jiraAvailable: boolean;
+  /** Tasks whose Jira ticket is being created. One request per task at a time (#293). */
+  jiraCreatingTaskIds: string[];
   /** The Git dialog is open (#216). */
   gitOpen: boolean;
   confluencePages: readonly ConfluencePageSummary[];
@@ -509,6 +513,8 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
+  /** Creates the Jira ticket of a task that has none and links both. Refused while one is being created for it. */
+  createJiraIssueForTask(taskId: string): Promise<boolean>;
   createTask(input: { title: string; description?: string; status?: TaskStatus; type?: TaskType; assignee?: string; dueDate?: string }): Promise<boolean>;
   /** `null` removes type, assignee or due date (#105). */
   updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus; type?: TaskType | null; assignee?: string | null; dueDate?: string | null }): Promise<boolean>;

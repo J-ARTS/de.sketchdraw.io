@@ -45,6 +45,36 @@ describe('plugin store integration', () => {
     store.dispose();
   });
 
+  it('a ticket that could not be created is offered again, and a task gets one request at a time (#293)', async () => {
+    const { store, plugins } = await setup();
+    expect(store.state.jiraAvailable).toBe(true);
+    vi.mocked(plugins.createJiraIssue).mockRejectedValueOnce(new Error('Jira ist nicht erreichbar.'));
+    expect(await store.createTask({ title: 'Freigabe' })).toBe(true);
+    const task = store.state.document.tasks![0]!;
+    expect(task.external).toBeUndefined();
+    expect(store.state.notices.at(-1)?.text).toContain('Jira-Ticket nicht angelegt: Jira ist nicht erreichbar.');
+    expect(store.state.jiraCreatingTaskIds).toEqual([]);
+
+    // The second attempt is held open: a further one for the same task is refused meanwhile.
+    let release: (() => void) | undefined;
+    const original = vi.mocked(plugins.createJiraIssue).getMockImplementation()!;
+    vi.mocked(plugins.createJiraIssue).mockImplementationOnce(async (input) => { await new Promise<void>((resolve) => { release = resolve; }); return original(input); });
+    const first = store.createJiraIssueForTask(task.id);
+    await vi.waitFor(() => expect(release).toBeDefined());
+    expect(store.state.jiraCreatingTaskIds).toEqual([task.id]);
+    expect(await store.createJiraIssueForTask(task.id)).toBe(false);
+    release!();
+    expect(await first).toBe(true);
+    expect(store.state.jiraCreatingTaskIds).toEqual([]);
+    expect(plugins.createJiraIssue).toHaveBeenCalledTimes(2);
+    expect(store.state.document.tasks).toHaveLength(1);
+    expect(store.state.document.tasks![0]!.external?.key).toBe('SK-1');
+    // A linked task gets no second ticket.
+    expect(await store.createJiraIssueForTask(task.id)).toBe(false);
+    expect(plugins.createJiraIssue).toHaveBeenCalledTimes(2);
+    store.dispose();
+  });
+
   it('creates a Jira issue with the assignee and due date of a new Sketchdraw task', async () => {
     const { store, plugins } = await setup();
     expect(await store.createTask({ title: 'Release review', description: 'Check release', assignee: 'Mara Muster', dueDate: '2026-11-20' })).toBe(true);

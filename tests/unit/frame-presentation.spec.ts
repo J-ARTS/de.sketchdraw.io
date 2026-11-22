@@ -81,6 +81,35 @@ describe('frame slides and presenter state', () => {
     expect(store.state.document.metadata[FRAME_ORDER_METADATA_KEY]).toBe(JSON.stringify([first.id]));
   });
 
+  it('sorting or deleting the slides of one page leaves the order of every other page alone (#289)', async () => {
+    const store = createWhiteboardStore({ bridge }); stores.push(store);
+    const draw = async (x: number) => { store.setTool('frame'); store.pointerDown(point(x, 120)); store.pointerMove(point(x + 200, 260)); store.pointerUp(point(x + 200, 260)); await store.whenIdle(); };
+    const pageA = store.state.activePageId;
+    await draw(100); await draw(400); await draw(700);
+    const [a1, a2, a3] = store.state.frameSlides.map((frame) => frame.id) as [string, string, string];
+    store.moveFrame(a3, 0); await store.whenIdle();
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([a3, a1, a2]);
+
+    store.addPage(); await store.whenIdle();
+    const pageB = store.state.activePageId;
+    expect(pageB).not.toBe(pageA);
+    await draw(100); await draw(400);
+    const [b1, b2] = store.state.frameSlides.map((frame) => frame.id) as [string, string];
+    store.moveFrame(b2, 0); await store.whenIdle();
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([b2, b1]);
+
+    store.selectPage(pageA);
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([a3, a1, a2]);
+    // Deleting a slide of A keeps the order of B, and the other way round.
+    store.select([a1]); store.deleteSelection(); await store.whenIdle();
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([a3, a2]);
+    store.selectPage(pageB);
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([b2, b1]);
+    store.select([b2]); store.deleteSelection(); await store.whenIdle();
+    store.selectPage(pageA);
+    expect(store.state.frameSlides.map((frame) => frame.id)).toEqual([a3, a2]);
+  });
+
   it('exports frame viewports as editable outlines while preserving native semantics', () => {
     const document = createDocument('Frame export');
     document.elements = [createElement('frame', { id: 'frame:one', label: 'Release', width: 1280, height: 720 })];

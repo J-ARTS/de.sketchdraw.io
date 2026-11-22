@@ -11,7 +11,7 @@ import {
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
-  FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
+  FRAME_ORDER_METADATA_KEY, frameOrderForPage, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
   type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
   supportsVerticalAlign, verticalAlignOf,
@@ -195,6 +195,31 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const currentPluginHandle = () => guest || state.roomGuest ? null : state.file.handle?.handleId ?? null;
   const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
   const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
+  const jiraAvailable = () => Boolean(bridge.plugins && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian));
+  /**
+   * Creates the Jira ticket of a task that has none and links the two. A task gets one request at a time: a second
+   * call while the first is on its way is refused, so one task never ends up with two tickets (#293). A failure
+   * leaves the task as it is; `failure` words the notice, and the task offers the step again.
+   */
+  async function linkTaskToJira(taskId: string, generation: number, failure: (message: string) => string): Promise<boolean> {
+    const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
+    if (!task || task.external || !jiraAvailable() || state.jiraCreatingTaskIds.includes(taskId)) return false;
+    state.jiraCreatingTaskIds = [...state.jiraCreatingTaskIds, taskId];
+    try {
+      const issue = await bridge.plugins!.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
+      if (!pluginContextCurrent(generation)) return false;
+      const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === taskId);
+      if (!stored || stored.external) return false;
+      applyJiraIssue(stored, issue, true);
+      if (!await dispatch({ type: 'set-tasks', tasks })) return false;
+      notice(t('Jira-Ticket {key} erstellt.', { key: issue.key }));
+      return true;
+    } catch (error) {
+      if (pluginContextCurrent(generation)) notice(failure(error instanceof Error ? error.message : t('unbekannter Fehler')), 'error');
+      return false;
+    } finally { state.jiraCreatingTaskIds = state.jiraCreatingTaskIds.filter((id) => id !== taskId); }
+  }
+  const createdLocally = (message: string) => t('Lokale Aufgabe erstellt; Jira-Ticket nicht angelegt: {message} In der Aufgabe lässt es sich erneut anlegen.', { message });
   /**
    * One call of the Git dialog (#216). The dialog is modal, so it shows results and failures itself; a call
    * therefore answers with the value or with the reason, and never raises a notice behind the dialog.
@@ -326,7 +351,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, paperPattern: savedPreferences.paperPattern, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
-    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
+    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, jiraCreatingTaskIds: [] as string[],
+    get jiraAvailable() { return jiraAvailable(); },
+    gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
     propertyDraft: null as WhiteboardState['propertyDraft'],
@@ -674,7 +701,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const removed = new Set(ids);
     const removesFrame = state.frameSlides.some((frame) => removed.has(frame.id));
     if (!removesFrame) return { type: 'delete', ids: [...ids] };
-    const remaining = state.frameSlides.filter((frame) => !removed.has(frame.id)).map((frame) => frame.id);
+    // The order is kept for the whole document: frames of other pages stay in it (#289).
+    const remaining = orderedFrames(state.document).filter((frame) => !removed.has(frame.id)).map((frame) => frame.id);
     return { type: 'batch', commands: [
       { type: 'delete', ids: [...ids] },
       { type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(remaining) } },
@@ -2219,15 +2247,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToJira(task.id, generation, createdLocally);
       return true;
+    },
+    async createJiraIssueForTask(taskId) {
+      if (!state.canWrite || state.transitioning) return false;
+      return linkTaskToJira(taskId, pluginGeneration, (message) => t('Jira-Ticket nicht angelegt: {message}', { message }));
     },
     async createTaskFromComment(threadId) {
       const generation = pluginGeneration;
@@ -2239,14 +2264,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToJira(task.id, generation, createdLocally);
       return true;
     },
     async createTaskFromStickyNote(elementId) {
@@ -2267,14 +2285,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Notiz erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToJira(task.id, generation, createdLocally);
       return true;
     },
     async moveTask(taskId, status, index) {
@@ -2537,7 +2548,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const target = Math.max(0, Math.min(ids.length - 1, toIndex));
       if (target === from) return;
       ids.splice(target, 0, ids.splice(from, 1)[0]!);
-      void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(ids) } });
+      void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(frameOrderForPage(state.document, state.activePageId, ids)) } });
       state.presenterIndex = target;
     },
     setPresenterNotes(open) { state.presenterNotes = open; },

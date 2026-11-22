@@ -43,9 +43,19 @@ function open(task: SketchTask): void {
 }
 function startCreate(): void { selectedId.value = null; creating.value = true; title.value = ''; description.value = ''; titleError.value = false; type.value = ''; assignee.value = ''; dueDate.value = ''; }
 function closeDialog(): void { creating.value = false; selectedId.value = null; titleError.value = false; }
+/**
+ * A save that is on its way. Creating a task waits for Jira; a second submit in that time (Enter, a second click)
+ * would create the task and its ticket again, so it is ignored and the form says what it is doing (#293).
+ */
+const saving = ref(false);
 async function save(): Promise<void> {
+  if (saving.value) return;
   const normalizedTitle = title.value.trim();
   if (!normalizedTitle) { titleError.value = true; titleInput.value?.focus(); return; }
+  saving.value = true;
+  try { await submit(normalizedTitle); } finally { saving.value = false; }
+}
+async function submit(normalizedTitle: string): Promise<void> {
   if (creating.value) {
     const input = { title: normalizedTitle, description: description.value, ...(type.value ? { type: type.value } : {}), ...(assignee.value.trim() ? { assignee: assignee.value } : {}), ...(dueDate.value ? { dueDate: dueDate.value } : {}) };
     if (await store.createTask(input)) closeDialog();
@@ -63,7 +73,11 @@ async function save(): Promise<void> {
   };
   if (!Object.keys(patch).length || await store.updateTask(task.id, patch)) closeDialog();
 }
-async function removeSelected(): Promise<void> { if (selected.value && await store.deleteTask(selected.value.id)) closeDialog(); }
+async function removeSelected(): Promise<void> { if (!saving.value && selected.value && await store.deleteTask(selected.value.id)) closeDialog(); }
+/** A task without a ticket can get one while Jira is switched on, also after a creation that failed. */
+const jiraCreating = computed(() => Boolean(selected.value && s.jiraCreatingTaskIds.includes(selected.value.id)));
+const canCreateInJira = computed(() => Boolean(selected.value && !selected.value.external && s.jiraAvailable && s.canWrite));
+async function createInJira(): Promise<void> { if (selected.value && !jiraCreating.value) await store.createJiraIssueForTask(selected.value.id); }
 function sourceLabel(task: SketchTask): string | null {
   if (task.sourceThreadId) return t('Kommentar öffnen');
   if (task.sourceElementId) return t('Notiz öffnen');
@@ -265,7 +279,7 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
       <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? t('Neue Aufgabe') : t('Aufgabe bearbeiten') }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Schließen')" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>{{ t('Titel') }}<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">{{ t('Bitte gib einen Titel ein.') }}</span><label>{{ t('Beschreibung') }}<textarea v-model="description" maxlength="50000" :aria-describedby="selected?.external ? 'task-jira-note' : undefined" /></label><p v-if="selected?.external" id="task-jira-note" class="jira-note">{{ t('Titel und Beschreibung werden beim Speichern nach Jira übertragen. Die Beschreibung ersetzt dort den bisherigen Text als einfachen Text.') }}</p>
         <div class="field-row"><AppSelect :label="t('Typ')" :model-value="type" :options="typeOptions" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" :label="t('Fällig am')" /></div>
         <AppSelect v-model="assignee" editable :maxlength="120" :label="t('Zugewiesen an')" :placeholder="t('Name')" :options="assigneeOptions" />
-        <AppSelect v-if="selected" :label="t('Status')" :model-value="status" :options="statusOptions" @update:model-value="status = $event as TaskStatus" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit">{{ creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
+        <AppSelect v-if="selected" :label="t('Status')" :model-value="status" :options="statusOptions" @update:model-value="status = $event as TaskStatus" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" :disabled="saving" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton v-if="canCreateInJira" data-testid="task-create-in-jira" :disabled="jiraCreating || saving" :aria-busy="jiraCreating ? 'true' : undefined" @click="createInJira">{{ jiraCreating ? t('Jira-Ticket wird angelegt …') : t('In Jira anlegen') }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit" data-testid="task-submit" :disabled="saving" :aria-busy="saving ? 'true' : undefined">{{ saving ? t('Wird gespeichert …') : creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
     </dialog>
   </section>
 </template>
