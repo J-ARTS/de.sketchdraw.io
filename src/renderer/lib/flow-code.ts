@@ -25,7 +25,7 @@ import type { SequenceCodeDiagnostic } from './sequence-code';
  * - `[(text)]` is a data store, `[/text/]` a data object, `[text]` a plain box, `([text])` a rounded one.
  * - `subgraph` is a pool, a `subgraph` in it a lane.
  * - `-->` is a sequence flow, `-.->` a message flow, `-.-` an association, `---` a plain line; a text goes
- *   in `-->|text|`.
+ *   in `-->|text|`. `<-->` and `<-.->` point both ways.
  */
 const INDENT = '    ';
 const SYMBOL_TO_CODE: Readonly<Record<string, string>> = Object.freeze({ '✕': 'X', '×': 'X', '○': 'O', '⬠': '*' });
@@ -64,7 +64,7 @@ export function flowToCode(model: FlowModel): string {
   };
   for (const entry of model.groups.filter((other) => !other.parent)) group(entry, 1);
   for (const entry of model.nodes.filter((other) => !other.group)) lines.push(node(entry, INDENT));
-  for (const edge of model.edges) lines.push(`${INDENT}${edge.from} ${ARROWS[edge.kind]}${edge.text ? `|${written(edge.text)}|` : ''} ${edge.to}`);
+  for (const edge of model.edges) lines.push(`${INDENT}${edge.from} ${edge.both && ARROWS[edge.kind].endsWith('>') ? '<' : ''}${ARROWS[edge.kind]}${edge.text ? `|${written(edge.text)}|` : ''} ${edge.to}`);
   return `${lines.join('\n')}\n`;
 }
 
@@ -181,8 +181,10 @@ export function parseFlowCode(code: string): ParsedFlow {
     let at = node(text, line);
     if (!at) { if (!diagnostics.some((entry) => entry.line === line && entry.severity === 'error')) fail(line, t('Zeile nicht verstanden: {text}', { text: text.length > 60 ? `${text.slice(0, 60)}…` : text })); return; }
     for (let guard = 0; guard < 64; guard += 1) {
-      const after = at.rest.trimStart();
-      if (!after) return;
+      if (!at.rest.trim()) return;
+      // `<` before a link is the arrowhead at its start: the link points both ways (#292).
+      const both = /^<(?=[-=])/.test(at.rest.trimStart());
+      const after = both ? at.rest.trimStart().slice(1) : at.rest.trimStart();
       const link = LINKS.map(([pattern, kind]) => ({ match: pattern.exec(after), kind })).find((entry) => entry.match);
       if (!link?.match) { fail(line, t('Nach „{id}“ wird ein Pfeil erwartet, zum Beispiel -->.', { id: at.id })); return; }
       if (/[ox]$/.test(link.match[0]) && !link.match[1]) hint(line, 'ends', t('Pfeilenden mit Kreis oder Kreuz werden als normaler Pfeil gelesen.'));
@@ -193,7 +195,7 @@ export function parseFlowCode(code: string): ParsedFlow {
       if (bars) { label = bars[1]!; tail = tail.slice(bars[0].length).trimStart(); }
       const target = node(tail, line);
       if (!target) { if (!diagnostics.some((entry) => entry.line === line && entry.severity === 'error')) fail(line, t('Nach dem Pfeil fehlt der Knoten, zu dem er führt.')); return; }
-      model.edges.push({ from: at.id, to: target.id, text: read(label), kind: link.kind });
+      model.edges.push({ from: at.id, to: target.id, text: read(label), kind: link.kind, ...(both && (link.kind === 'flow' || link.kind === 'message') ? { both: true } : {}) });
       at = target;
     }
   });
