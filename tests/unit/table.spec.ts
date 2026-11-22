@@ -61,6 +61,78 @@ describe('table domain contract', () => {
   });
 });
 
+describe('table structure follows the selected cells (#285)', () => {
+  async function table(store: WhiteboardStore) {
+    store.setTool('table'); store.pointerDown(point(200, 180)); store.pointerUp(point(200, 180)); await store.whenIdle();
+    const element = store.state.document.elements[0]!;
+    const names = ['A', 'B', 'C'];
+    for (const [row, entry] of element.table!.rows.entries()) for (const [column, columnEntry] of element.table!.columns.entries()) {
+      const cell = element.table!.cells.find((candidate) => candidate.rowId === entry.id && candidate.columnId === columnEntry.id)!;
+      store.setTableCellText(element.id, cell.id, `${names[row]}${column + 1}`); await store.whenIdle();
+    }
+    return element.id;
+  }
+  const now = (store: WhiteboardStore) => store.state.document.elements[0]!.table!;
+  const rowsOf = (store: WhiteboardStore) => now(store).rows.map((row) => now(store).cells.filter((cell) => cell.rowId === row.id).map((cell) => cell.text).join(' '));
+  const columnsOf = (store: WhiteboardStore) => now(store).columns.map((column) => now(store).rows.map((row) => now(store).cells.find((cell) => cell.rowId === row.id && cell.columnId === column.id)!.text).join(' '));
+  const selectRow = (store: WhiteboardStore, id: string, row: number) => store.selectTableCells(id, now(store).cells.filter((cell) => cell.rowId === now(store).rows[row]!.id).map((cell) => cell.id), 'row', row, 0);
+  const selectColumn = (store: WhiteboardStore, id: string, column: number) => store.selectTableCells(id, now(store).cells.filter((cell) => cell.columnId === now(store).columns[column]!.id).map((cell) => cell.id), 'column', 0, column);
+
+  it('deleting after moving a row removes the row that is still marked', async () => {
+    const store = setup(); const id = await table(store);
+    selectRow(store, id, 0);
+    store.changeTableStructure('row-down'); await store.whenIdle();
+    expect(rowsOf(store)).toEqual(['B1 B2 B3', 'A1 A2 A3', 'C1 C2 C3']);
+    expect(store.state.tableSelection).toMatchObject({ mode: 'row', rowIndex: 1 });
+    store.changeTableStructure('row-delete'); await store.whenIdle();
+    expect(rowsOf(store)).toEqual(['B1 B2 B3', 'C1 C2 C3']);
+  });
+
+  it('deleting after moving a column removes the column that is still marked', async () => {
+    const store = setup(); const id = await table(store);
+    selectColumn(store, id, 0);
+    store.changeTableStructure('column-right'); await store.whenIdle();
+    expect(columnsOf(store)).toEqual(['A2 B2 C2', 'A1 B1 C1', 'A3 B3 C3']);
+    expect(store.state.tableSelection).toMatchObject({ mode: 'column', columnIndex: 1 });
+    store.changeTableStructure('column-delete'); await store.whenIdle();
+    expect(columnsOf(store)).toEqual(['A2 B2 C2', 'A3 B3 C3']);
+  });
+
+  it('a row inserted above pushes the marked row down, and the next action still acts on it', async () => {
+    const store = setup(); const id = await table(store);
+    selectRow(store, id, 1);
+    store.changeTableStructure('row-before'); await store.whenIdle();
+    expect(store.state.tableSelection).toMatchObject({ rowIndex: 2 });
+    store.changeTableStructure('row-duplicate'); await store.whenIdle();
+    expect(rowsOf(store)).toEqual(['A1 A2 A3', '  ', 'B1 B2 B3', 'B1 B2 B3', 'C1 C2 C3']);
+  });
+
+  it('after a row is deleted the row that took its place is marked', async () => {
+    const store = setup(); const id = await table(store);
+    selectRow(store, id, 1);
+    store.changeTableStructure('row-delete'); await store.whenIdle();
+    const selection = store.state.tableSelection!;
+    expect(selection).toMatchObject({ mode: 'row', rowIndex: 1 });
+    expect(selection.cellIds.map((cellId) => now(store).cells.find((cell) => cell.id === cellId)!.text)).toEqual(['C1', 'C2', 'C3']);
+    // Deleting the last row marks the row above it.
+    store.changeTableStructure('row-delete'); await store.whenIdle();
+    expect(rowsOf(store)).toEqual(['A1 A2 A3']);
+    expect(store.state.tableSelection).toMatchObject({ rowIndex: 0 });
+    expect(store.state.tableSelection!.cellIds).toHaveLength(3);
+  });
+
+  it('a single cell keeps its row and column through moves in both directions', async () => {
+    const store = setup(); const id = await table(store);
+    const b2 = now(store).cells.find((cell) => cell.text === 'B2')!;
+    store.selectTableCells(id, [b2.id], 'cell', 1, 1);
+    store.changeTableStructure('row-up'); await store.whenIdle();
+    store.changeTableStructure('column-right'); await store.whenIdle();
+    expect(store.state.tableSelection).toMatchObject({ rowIndex: 0, columnIndex: 2, cellIds: [b2.id] });
+    store.changeTableStructure('column-delete'); await store.whenIdle();
+    expect(columnsOf(store)).toEqual(['B1 A1 C1', 'B3 A3 C3']);
+  });
+});
+
 describe('table whiteboard and interoperability', () => {
   it('creates, edits, formats, changes structure and copies a table through the store', async () => {
     const store = setup(); store.setTool('table'); store.pointerDown(point(200, 180)); store.pointerUp(point(200, 180)); await store.whenIdle();

@@ -31,7 +31,7 @@ import { formatDiagram, parseDiagram } from '@/codec';
 import { builtInComponentSets, instantiateComponent, isResourceCard, normalizeResourceCardText, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, resourceCardHeightFor, type ResourceCardField } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, GitAnswer, HandleId, HandleView, Rect,
-  PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore,
+  PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore, TableSelection,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, NEW_TEXT_ALIGNMENT, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
 import { bounds, center, drawnFrame, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
@@ -1173,7 +1173,40 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     } catch (error) { releaseTransition(); fail(error); if (reason === 'close' && requestId) await bridge.respondToClose(requestId, 'cancel').catch(fail); }
   }
 
-  function commitTable(element: SketchElement, table: TableDocument, announcement: string, resizeToContent = false): void {
+  /** The cell at a row and column of a table. */
+  function tableCellAt(table: TableDocument, row: number, column: number) {
+    const rowId = table.rows[row]?.id, columnId = table.columns[column]?.id;
+    return table.cells.find((cell) => cell.rowId === rowId && cell.columnId === columnId);
+  }
+  /**
+   * Where the table selection stands in the table as it is now. The cells stay selected by their ids when a row
+   * or column is moved or inserted, so the place is read from the cell the selection started from and not from
+   * the numbers noted when it was made (#285).
+   */
+  function tableSelectionPlace(table: TableDocument, selection: TableSelection | null): { row: number; column: number } {
+    const anchor = selection?.anchorCellId ? table.cells.find((cell) => cell.id === selection.anchorCellId) : undefined;
+    const row = anchor ? table.rows.findIndex((entry) => entry.id === anchor.rowId) : selection?.rowIndex ?? 0;
+    const column = anchor ? table.columns.findIndex((entry) => entry.id === anchor.columnId) : selection?.columnIndex ?? 0;
+    return { row: Math.max(0, Math.min(table.rows.length - 1, row)), column: Math.max(0, Math.min(table.columns.length - 1, column)) };
+  }
+  /**
+   * The table selection after the structure of the table changed: it follows its cells, and when they were
+   * deleted it moves to the row or column that took their place, so the next action has a visible target.
+   */
+  function tableSelectionAfter(selection: TableSelection, before: { row: number; column: number }, table: TableDocument): TableSelection {
+    const kept = selection.cellIds.filter((id) => table.cells.some((cell) => cell.id === id));
+    if (selection.anchorCellId && table.cells.some((cell) => cell.id === selection.anchorCellId)) {
+      const place = tableSelectionPlace(table, selection);
+      return { ...selection, cellIds: kept, rowIndex: place.row, columnIndex: place.column };
+    }
+    const row = Math.max(0, Math.min(table.rows.length - 1, before.row)), column = Math.max(0, Math.min(table.columns.length - 1, before.column));
+    const anchor = tableCellAt(table, row, column);
+    const cellIds = selection.mode === 'row' ? table.cells.filter((cell) => cell.rowId === table.rows[row]?.id).map((cell) => cell.id)
+      : selection.mode === 'column' ? table.cells.filter((cell) => cell.columnId === table.columns[column]?.id).map((cell) => cell.id)
+      : selection.mode === 'table' ? table.cells.map((cell) => cell.id) : kept.length ? kept : anchor ? [anchor.id] : [];
+    return { ...selection, cellIds, rowIndex: row, columnIndex: column, anchorCellId: anchor?.id };
+  }
+  function commitTable(element: SketchElement, table: TableDocument, announcement: string, resizeToContent = false, committed?: () => void): void {
     const oldColumnUnits = element.table?.columns.reduce((sum, column) => sum + column.width, 0) || element.width;
     const oldRowUnits = element.table?.rows.reduce((sum, row) => sum + row.height, 0) || element.height;
     const width = resizeToContent ? element.width * table.columns.reduce((sum, column) => sum + column.width, 0) / oldColumnUnits : element.width;
@@ -1181,7 +1214,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     // Merged cells (#197) follow the new structure: a merged header row keeps covering a new column.
     const merges = element.table && parseTableMerges(element).length ? { metadata: { [TABLE_MERGES_KEY]: formatTableMerges(adjustTableMerges(element, element.table, table)) } } : {};
     void dispatch({ type: 'update', changes: [{ id: element.id, patch: { table, text: tablePlainText(table), width, height, ...merges } }] }).then((ok) => {
-      if (ok) { setSelection([element.id]); state.liveMessage = announcement; }
+      if (ok) { setSelection([element.id]); committed?.(); state.liveMessage = announcement; }
     });
   }
   /** Writes the merges of the selected table and keeps the cell selection on the merge's top left cell. */
@@ -2027,7 +2060,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const element = pageEls().find((entry) => entry.id === elementId && entry.kind === 'table');
       if (!element?.table) return;
       setSelection([elementId]);
-      state.tableSelection = { elementId, cellIds: cellIds.filter((id) => element.table!.cells.some((cell) => cell.id === id)), mode, rowIndex, columnIndex };
+      state.tableSelection = { elementId, cellIds: cellIds.filter((id) => element.table!.cells.some((cell) => cell.id === id)), mode, rowIndex, columnIndex, anchorCellId: tableCellAt(element.table, rowIndex, columnIndex)?.id };
       state.liveMessage = mode === 'table' ? t('Gesamte Tabelle ausgewählt.') : tn(cellIds.length, '{count} Tabellenzelle ausgewählt.', '{count} Tabellenzellen ausgewählt.');
     },
     setTableCellText(elementId, cellId, text) {
@@ -2051,7 +2084,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const selection = state.tableSelection;
       const element = selection ? pageEls().find((entry) => entry.id === selection.elementId && entry.kind === 'table') : selected()[0];
       if (!element?.table || element.kind !== 'table') return;
-      const row = Math.max(0, selection?.rowIndex ?? 0); const column = Math.max(0, selection?.columnIndex ?? 0);
+      const place = tableSelectionPlace(element.table, selection?.elementId === element.id ? selection : null);
+      const { row, column } = place;
       let table = element.table;
       if (action === 'row-before') table = insertTableRow(table, row);
       else if (action === 'row-after') table = insertTableRow(table, row + 1);
@@ -2065,7 +2099,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       else if (action === 'row-down') table = moveTableRow(table, row, 1);
       else if (action === 'column-left') table = moveTableColumn(table, column, -1);
       else if (action === 'column-right') table = moveTableColumn(table, column, 1);
-      commitTable(element, table, 'Tabellenstruktur aktualisiert.', true);
+      const next = table;
+      commitTable(element, next, 'Tabellenstruktur aktualisiert.', true, () => {
+        if (selection && state.tableSelection === selection) state.tableSelection = tableSelectionAfter(selection, place, next);
+      });
     },
     startComment(elementId, tableCellId, at) {
       if (!state.canWrite || state.transitioning) return;

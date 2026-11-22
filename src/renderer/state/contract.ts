@@ -45,8 +45,11 @@ export interface TableSelection {
   elementId: string;
   cellIds: string[];
   mode: 'cell' | 'row' | 'column' | 'table';
+  /** Row and column of the cell the selection started from, as the table stood when they were last brought up to date. */
   rowIndex: number;
   columnIndex: number;
+  /** The cell the selection started from. Row and column follow it when rows or columns are moved or inserted (#285). */
+  anchorCellId?: string;
 }
 
 /** screen = doc * zoom + pan. Zoom is clamped to 0.1..4. Pan is in CSS pixels of the canvas element. */
