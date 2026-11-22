@@ -1,4 +1,4 @@
-import type { SketchElement, TableCell, TableDocument } from '@/domain';
+import type { SketchElement, TableCell, TableDocument } from './types';
 
 /**
  * Merged table cells (#197). A merge is a rectangle of cells that is drawn and edited as one cell: text and

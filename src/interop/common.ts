@@ -156,10 +156,10 @@ export function finish(ctx: ImportContext, options: ImportOptions, restored?: Sk
  * document when the picture still is what the exporter of that version draws, so every change to the picture of a
  * format gets a new number and the older ones stay reproducible for that comparison (#272).
  */
-export type ProjectionVersion = 1 | 2 | 3 | 4;
-const PROJECTION_VERSIONS: Readonly<Record<InteropFormat, readonly ProjectionVersion[]>> = { svg: [1, 2], drawio: [1, 2, 3, 4], mermaid: [1, 2] };
+export type ProjectionVersion = 1 | 2 | 3 | 4 | 5;
+const PROJECTION_VERSIONS: Readonly<Record<InteropFormat, readonly ProjectionVersion[]>> = { svg: [1, 2, 3], drawio: [1, 2, 3, 4, 5], mermaid: [1, 2] };
 /** The version an export writes today. */
-export const CURRENT_PROJECTION: Readonly<Record<InteropFormat, ProjectionVersion>> = { svg: 2, drawio: 4, mermaid: 2 };
+export const CURRENT_PROJECTION: Readonly<Record<InteropFormat, ProjectionVersion>> = { svg: 3, drawio: 5, mermaid: 2 };
 export function encodeEnvelope(document: SketchDocument, format: InteropFormat, projectionVersion: ProjectionVersion = CURRENT_PROJECTION[format]): string {
   const json = JSON.stringify({ format: 'sketchdraw-interop', version: 1, projection: `${format}-v${projectionVersion}`, encoding: 'base64-json', document: JSON.parse(serializeDocument(document)) });
   if (utf8ByteLength(json) > L.MAX_EMBEDDED_DOCUMENT_BYTES)

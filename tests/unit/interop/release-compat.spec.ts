@@ -57,15 +57,15 @@ describe('files of release 0.1.8', () => {
   it('a file of today names the picture it was written with and comes back as well', () => {
     const document = read('mixed-v0.1.8.svg').document;
     const svg = prepareSvgExport(document).contents, drawio = prepareDrawioExport(document).contents, mermaid = prepareMermaidExport(document).contents;
-    expect(envelopeProjection(svg, /<sd:document[^>]*>([^<]+)</)).toBe('svg-v2');
-    expect(envelopeProjection(drawio, /sketchdrawInterop="([^"]+)"/)).toBe('drawio-v4');
+    expect(envelopeProjection(svg, /<sd:document[^>]*>([^<]+)</)).toBe('svg-v3');
+    expect(envelopeProjection(drawio, /sketchdrawInterop="([^"]+)"/)).toBe('drawio-v5');
     for (const [name, contents] of [['now.svg', svg], ['now.drawio', drawio], ['now.mmd', mermaid]] as const) {
       const result = read(name, contents);
       expect(result.fidelity, name).toBe('own-roundtrip');
       expect(result.document.elements, name).toHaveLength(document.elements.length);
     }
     // The picture of today under the number of the release is not what that release drew: it must not be trusted.
-    const relabelled = svg.replace(/(<sd:document[^>]*>)([^<]+)</, (_all, open: string, envelope: string) => `${open}${Buffer.from(Buffer.from(envelope, 'base64').toString('utf8').replace('"projection":"svg-v2"', '"projection":"svg-v1"'), 'utf8').toString('base64')}<`);
+    const relabelled = svg.replace(/(<sd:document[^>]*>)([^<]+)</, (_all, open: string, envelope: string) => `${open}${Buffer.from(Buffer.from(envelope, 'base64').toString('utf8').replace('"projection":"svg-v3"', '"projection":"svg-v1"'), 'utf8').toString('base64')}<`);
     expect(codes(read('relabelled.svg', relabelled))).toContain('EMBEDDED_MODEL_STALE');
   });
 });

@@ -18,7 +18,7 @@ export * from './frames';
 export * from './atlassian';
 export * from './confluence-live';
 export { resolveAnchorWorldPoint, worldToElementLocalPoint } from './geometry';
-export { alignedTextTop, supportsVerticalAlign, verticalAlignOf, verticalTextInset } from './text-layout';
+export { alignedTextTop, SHAPE_TEXT_SIDE_INSET, supportsVerticalAlign, TEXT_CHAR_WIDTH, TEXT_LINE_HEIGHT, verticalAlignOf, verticalTextInset, visibleLineCount, wrapTextLines, wrapWords, type TextLine } from './text-layout';
 export { DEFAULT_PAGE_ID, DEFAULT_PAGE_NAME } from './migration';
 export { copyPageContent, extractPage, pageElements } from './pages';
 export type { PageCopy } from './pages';

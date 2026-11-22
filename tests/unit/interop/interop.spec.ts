@@ -125,9 +125,10 @@ describe('additional safety and interoperability regressions', () => {
   it('shared blocked use resources and singular transforms remain valid labelled previews', () => { const result = importSvg('<svg xmlns="http://www.w3.org/2000/svg"><defs><image id="img" width="20" height="20" href="https://bad"/></defs><use href="#img"/><use href="#img" x="30"/><rect id="collapsed" width="20" height="20" transform="scale(0)"/></svg>'); expect(new Set(result.document.elements.map(e => e.id)).size).toBe(result.document.elements.length); expect(result.document.elements.every(e => e.kind === 'rectangle')).toBe(true); expect(codes(result)).toContain('TRANSFORM_APPROXIMATED'); });
   it('metadata equality includes root bounds, transforms, whitespace-sensitive text and additional metadata', () => {
     const doc = createDocument('Title');
-    doc.elements = [createElement('text', { id: 't', text: ' spaced ', x: 10, y: 20 })];
+    // Spaces inside a line are part of the picture; spaces around a line are not drawn, on the canvas or in the file.
+    doc.elements = [createElement('text', { id: 't', text: 'two  spaces', x: 10, y: 20 })];
     const svg = prepareSvgExport(doc).contents;
-    for (const changed of [svg.replace('viewBox="', 'viewBox="1 '), svg.replace('translate(10 20)', 'translate(11 20)'), svg.replace(' spaced ', 'spaced'), svg.replace('</metadata>', '<extra xmlns="urn:foreign">data</extra></metadata>')]) {
+    for (const changed of [svg.replace('viewBox="', 'viewBox="1 '), svg.replace('translate(10 20)', 'translate(11 20)'), svg.replace('two  spaces', 'two spaces'), svg.replace('</metadata>', '<extra xmlns="urn:foreign">data</extra></metadata>')]) {
       if (changed.includes('viewBox="1 '))
         errorCode(() => importSvg(changed), 'INVALID_GEOMETRY');
       else

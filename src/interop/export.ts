@@ -1,6 +1,7 @@
-import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, supportsVerticalAlign, validateDocument, verticalAlignOf } from '../domain';
+import { alignedTextTop, annotationPlainText, connectorEndMarker, tablePlainText, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, SHAPE_TEXT_SIDE_INSET, serializeDocument, supportsVerticalAlign, TEXT_LINE_HEIGHT, validateDocument, verticalAlignOf, verticalTextInset, visibleLineCount, wrapTextLines } from '../domain';
 import type { ComponentSet, ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
+import { mergeLayout } from '../domain/table-merge';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
 import { awsGroupOf, builtInComponentSets, CLOUD_CARD_EXPORT_COLORS, CLOUD_CARD_PROVIDER_SIZE, CLOUD_CARD_TITLE_SIZE, cloudCardLayout, cloudCardUsesThemeSurface, cloudProviderLabel, cloudProviderOf, figureLayout, groupChrome, groupTileSvg, isCloudCard, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLines, resourceCardLinks, RESOURCE_CARD_TEXT_COLOR, type CloudCardLayout } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
@@ -35,9 +36,38 @@ const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, mono
 const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 /** The text an element shows. Up to SVG picture 1 and draw.io picture 2 an emptied text fell back to the label. */
 const shownText = (el: SketchElement, legacyLabel: boolean): string => legacyLabel ? el.text || el.label || '' : el.text ?? el.label ?? '';
-function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = false): string {
+/**
+ * Whether the text of an element is plain text inside its box: a shape or free text. Parts of a sequence diagram
+ * that draw their own text (fragment titles, dividers, actors) are not.
+ */
+function hasPlacedText(el: SketchElement): boolean {
+  if (!supportsVerticalAlign(el.kind)) return false;
+  const part = el.metadata?.['sequence:role'];
+  return !(part === 'fragment' || part === 'divider' || (part === 'head' && el.metadata?.['sequence:head'] === 'actor'));
+}
+/**
+ * Text of a shape or of free text as the canvas draws it (#277, #296): broken into the same lines, 8 px from the
+ * side it is aligned to, at the top, in the middle or at the bottom, 1.25 line height. Pictures 1 and 2 wrote it
+ * unbroken into the upper left corner.
+ */
+function placedText(el: SketchElement, plainText: string, d: DiagnosticCollector): string {
+  const font = el.style.fontSize, align = el.style.textAlign, free = el.kind === 'text';
+  const lines = wrapTextLines(xmlText(plainText, d, el), el.width, font, free ? 0 : 2 * SHAPE_TEXT_SIDE_INSET)
+    .slice(0, visibleLineCount(el.height, font))
+    .map(line => el.style.listStyle === 'bullet' && line.text !== '' ? `• ${line.text}` : line.text);
+  const x = align === 'center' ? el.width / 2 : align === 'right' ? el.width - SHAPE_TEXT_SIDE_INSET : free ? 0 : SHAPE_TEXT_SIDE_INSET;
+  const step = font * TEXT_LINE_HEIGHT;
+  const y = alignedTextTop(verticalAlignOf(el), el.height, lines.length * step, verticalTextInset(el.kind)) + font * .93;
+  return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', stroke: 'none', fill: safeTextColor(el, d), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${lines.map((line, i) => `<tspan${attrs({ x, y: y + i * step })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
+}
+function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = false, placed = false): string {
   // An emptied text stays empty; the label stands in only where no text was set (#258).
   const plainText = shownText(el, legacyLabel);
+  if (placed && hasPlacedText(el)) {
+    if (plainText === '') return '';
+    diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Editable text depends on fonts available in the receiving application.');
+    return placedText(el, plainText, d);
+  }
   const visibleText = el.style.listStyle === 'bullet'
     ? plainText.split('\n').map(line => line ? `• ${line}` : line).join('\n')
     : plainText;
@@ -80,24 +110,43 @@ function annotationSvgContent(el: SketchElement, d: DiagnosticCollector): string
     return output;
   }).join('');
 }
-function tableSvgContent(el: SketchElement, d: DiagnosticCollector): string {
+/**
+ * The grid of a table. Merged cells (#197) are drawn as the canvas draws them, once and over their whole region,
+ * with the text and format of their top left cell; the cells below a merge are not drawn (#287). Up to SVG
+ * picture 2 every cell was drawn, which showed the text a merge hides.
+ */
+function tableSvgContent(el: SketchElement, d: DiagnosticCollector, merged: boolean): string {
   if (el.kind !== 'table' || !el.table) return '';
   diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Table text depends on fonts available in the receiving application.');
-  const totalWidth = el.table.columns.reduce((sum, column) => sum + column.width, 0) || 1;
-  const totalHeight = el.table.rows.reduce((sum, row) => sum + row.height, 0) || 1;
+  const table = el.table;
+  const totalWidth = table.columns.reduce((sum, column) => sum + column.width, 0) || 1;
+  const totalHeight = table.rows.reduce((sum, row) => sum + row.height, 0) || 1;
+  const widths = table.columns.map(column => el.width * column.width / totalWidth);
+  const heights = table.rows.map(row => el.height * row.height / totalHeight);
+  const merges = merged ? mergeLayout(el, table) : null;
   let y = 0;
-  return el.table.rows.map((row) => {
-    const height = el.height * row.height / totalHeight; let x = 0;
-    const output = el.table!.columns.map((column) => {
-      const width = el.width * column.width / totalWidth;
-      const cell = el.table!.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)!;
+  return table.rows.map((row, rowIndex) => {
+    let x = 0;
+    const output = table.columns.map((column, columnIndex) => {
+      const cell = table.cells.find((entry) => entry.rowId === row.id && entry.columnId === column.id)!;
+      const region = merges?.anchors.get(cell.id);
+      const width = region ? widths.slice(columnIndex, columnIndex + region.columnSpan).reduce((sum, value) => sum + value, 0) : widths[columnIndex]!;
+      const height = region ? heights.slice(rowIndex, rowIndex + region.rowSpan).reduce((sum, value) => sum + value, 0) : heights[rowIndex]!;
+      if (merges?.covered.has(cell.id)) { x += widths[columnIndex]!; return ''; }
       const align = cell.style.textAlign; const tx = align === 'center' ? x + width / 2 : align === 'right' ? x + width - 10 : x + 10;
       const value = cell.style.listStyle === 'bullet' && cell.text ? `• ${cell.text}` : cell.text;
       const markup = `<rect${attrs({ x, y, width, height, fill: safeColor(cell.style.fill, d, el), stroke: '#cbd5e1', 'stroke-width': 1 })}/>${value ? `<text${attrs({ x: tx, y: y + 10 + cell.style.fontSize, fill: safeColor(cell.style.color, d, el), 'font-size': cell.style.fontSize, 'font-family': SVG_FONT_FAMILY[cell.style.fontFamily], 'font-weight': cell.style.fontWeight, 'text-decoration': cell.style.textDecoration, 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start' })}>${escapeXmlText(xmlText(value, d, el))}</text>` : ''}`;
-      x += width; return markup;
+      x += widths[columnIndex]!; return markup;
     }).join('');
-    y += height; return output;
+    y += heights[rowIndex]!; return output;
   }).join('');
+}
+/** The text of a table as its cells show it: a cell below a merge shows nothing (#287). */
+function visibleTableText(el: SketchElement): string {
+  if (!el.table) return el.text ?? '';
+  const covered = mergeLayout(el, el.table).covered;
+  if (!covered.size) return tablePlainText(el.table);
+  return tablePlainText({ ...el.table, cells: el.table.cells.map(cell => covered.has(cell.id) ? { ...cell, text: '' } : cell) });
 }
 /** What the SVG export needs to draw the card of a cloud component like the canvas does, or null for any other element. */
 function cloudCardExport(el: SketchElement, componentSets: readonly ComponentSet[], d: DiagnosticCollector): { layout: CloudCardLayout; fill: string; stroke: string; text: string; providerText: string; titleColor: string } | null {
@@ -206,6 +255,9 @@ function safeIcon(node: SafeSvgElementNode): string {
 function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.svg, picture: { withoutTitle?: boolean } = {}): string {
   // Picture 1 is what releases up to 0.1.8 wrote; it is drawn again only to verify a file of that version (#272).
   const legacy = projectionVersion < 2;
+  // Picture 3 places the text of shapes and of free text as the canvas does (#277) and draws merged table cells
+  // as one cell (#287).
+  const placed = projectionVersion >= 3;
   const out = new XmlOutputBuilder();
   const map = new Map(document.elements.map(el => [el.id, el]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -250,7 +302,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       out.append(`<defs><filter id="sd-${index}-annotation-shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#263244" flood-opacity=".14"/></filter></defs>`);
       out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: 8, fill: safeColor(el.style.fill, d, el), stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity, filter: `url(#sd-${index}-annotation-shadow)` })}/>`);
     }
-    else if (el.kind === 'table') out.append(tableSvgContent(el, d));
+    else if (el.kind === 'table') out.append(tableSvgContent(el, d, placed));
     else if (el.kind === 'web-embed') {
       out.append(`<a href="${escapeXmlAttr(el.embedUrl!)}"><rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: 8, fill: safeColor(el.style.fill, d, el), stroke: safeColor(el.style.stroke, d, el), 'stroke-width': el.style.strokeWidth, opacity: el.style.opacity })}/>`);
       out.append(`<path d="M0 34H${n(el.width)}" stroke="${safeColor(el.style.stroke, d, el)}" stroke-width="1" opacity=".55"/><circle cx="16" cy="17" r="4" fill="#22c55e"/><text x="28" y="22" font-size="12" font-family="sans-serif" fill="${safeTextColor(el, d)}">${escapeXmlText(xmlText(el.label ?? el.embedUrl ?? 'Web-Embed', d, el))}</text></a>`);
@@ -310,7 +362,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const tree = resolveCatalogIcon(groupTileSvg(group, safeColor(el.style.stroke, d, el))).tree;
       out.append(`<svg${attrs({ ...tree.attributes, x: groupIcon.x, y: groupIcon.y, width: groupIcon.size, height: groupIcon.size, viewBox: tree.viewBox, opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? legacy ? resourceCardSvgContentV1(el, d) : resourceCardSvgContent(el, d, picture.withoutTitle) : cloud ? picture.withoutTitle ? cloud.providerText : cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${picture.withoutTitle ? '' : nativeText(el, d, legacy)}${stickyAuthor(el, d)}`;
+    const visibleText = isResourceCard(el) ? legacy ? resourceCardSvgContentV1(el, d) : resourceCardSvgContent(el, d, picture.withoutTitle) : cloud ? picture.withoutTitle ? cloud.providerText : cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${picture.withoutTitle ? '' : nativeText(el, d, legacy, placed)}${stickyAuthor(el, d)}`;
     const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
     out.append(exportLink
       ? `<a href="${escapeXmlAttr(exportLink)}">${visibleText}</a>`
@@ -329,10 +381,16 @@ const DRAWIO_LABELLED_PICTURES: ReadonlySet<SketchElement['kind']> = new Set(['c
  * cards, tables and notes of Sketchdraw, and a rectangle with a name is not what the diagram looks like. The picture
  * is the one the SVG export draws for the element. `withoutTitle` leaves the text out that draw.io writes itself.
  */
-function elementPicture(el: SketchElement, document: SketchDocument, withoutTitle: boolean): string {
+/**
+ * The SVG picture the pictures of a draw.io picture are drawn with. It is named per draw.io picture and does not
+ * follow the current SVG picture: a change to the SVG export must not change what a draw.io file of an existing
+ * picture number contains (#290). draw.io picture 5 took over SVG picture 3 (merged table cells, #287).
+ */
+const drawioPictureSvg = (projectionVersion: ProjectionVersion): ProjectionVersion => projectionVersion >= 5 ? 3 : 2;
+function elementPicture(el: SketchElement, document: SketchDocument, withoutTitle: boolean, svgPicture: ProjectionVersion): string {
   const single: SketchElement = { ...el, x: 0, y: 0, rotation: 0 };
   delete single.parentId;
-  const picture = nativeSvg({ ...document, elements: [single] }, new DiagnosticCollector(), false, CURRENT_PROJECTION.svg, { withoutTitle });
+  const picture = nativeSvg({ ...document, elements: [single] }, new DiagnosticCollector(), false, svgPicture, { withoutTitle });
   // The frame of the card is drawn on its edge; half of it would be cut off at the border of the picture.
   const pad = Math.ceil(Math.max(1, el.style.strokeWidth) / 2);
   const framed = picture.replace(/^<svg [^>]*>/, `<svg${attrs({ xmlns: SVG_NS, viewBox: `${-pad} ${-pad} ${n(el.width + 2 * pad)} ${n(el.height + 2 * pad)}`, width: el.width, height: el.height })}>`);
@@ -376,7 +434,8 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   for (const raw of document.elements.filter((candidate) => candidate.pageId === page.id)) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
-    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? shownText(el, legacyLabel).split('\n').map(line => line ? `• ${line}` : line).join('\n') : shownText(el, legacyLabel);
+    // The hidden text of a pictured table is what its cells show: from picture 5 on, nothing for a cell below a merge (#287).
+    const sourceText = el.kind === 'table' && el.table && projectionVersion >= 5 ? visibleTableText(el) : el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? shownText(el, legacyLabel).split('\n').map(line => line ? `• ${line}` : line).join('\n') : shownText(el, legacyLabel);
     // Pictures 1 and 2 knew no pictures: every element was a draw.io shape with its text.
     const pictured = !legacyLabel && DRAWIO_PICTURE_KINDS.has(el.kind);
     const labelled = pictured && DRAWIO_LABELLED_PICTURES.has(el.kind);
@@ -461,7 +520,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     if (pictured) {
       // The picture shows the element; a text draw.io writes itself stands on top of it and can be edited there.
       // Any other text stays the value of the cell, hidden, so it is not lost and comes back on import.
-      const entries: Record<string, string | number> = { shape: 'image', image: elementPicture(el, document, labelled), imageAspect: 0, ...(labelled ? drawioLabelStyle(el, componentSets, d) : { noLabel: 1 }) };
+      const entries: Record<string, string | number> = { shape: 'image', image: elementPicture(el, document, labelled, drawioPictureSvg(projectionVersion)), imageAspect: 0, ...(labelled ? drawioLabelStyle(el, componentSets, d) : { noLabel: 1 }) };
       for (const [key, value] of Object.entries(entries)) {
         const at = style.findIndex(entry => entry.startsWith(`${key}=`));
         if (at >= 0) style[at] = `${key}=${value}`; else style.push(`${key}=${value}`);

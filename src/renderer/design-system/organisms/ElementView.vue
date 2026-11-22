@@ -4,10 +4,9 @@ import { figureLayout, isIconFigure } from '@/catalog';
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
-import { alignedTextTop, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
+import { alignedTextTop, TEXT_CHAR_WIDTH, wrapTextLines, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '@/renderer/lib/theme';
 import { lineSegments, parseTextLinks } from '@/renderer/lib/text-links';
-import { wrapWords } from '@/renderer/lib/text-metrics';
 import { fontFamilyCss } from '@/renderer/lib/constants';
 import { connectorLabelCentre, connectorLabelSize } from '@/renderer/lib/connector-label';
 import { bpmnDecoration } from '@/renderer/lib/bpmn';
@@ -106,18 +105,10 @@ const fontSize = computed(() => e.value.style.fontSize);
 const iconFigure = computed(() => isIconFigure(e.value));
 const lines = computed(() => {
   const inset = chrome.value ? chrome.value.label.left + (e.value.width - chrome.value.label.right) : e.value.kind === 'sticky-note' ? 40 : e.value.kind === 'text' ? 0 : iconFigure.value ? 0 : 16;
-  // Group labels and the labels of free-standing symbols wrap at word boundaries like draw.io; other text wraps by character count.
-  const byWords = Boolean(group.value) || iconFigure.value;
-  const max = Math.max(1, Math.floor((e.value.width - inset) / (fontSize.value * (byWords ? .55 : .6))));
-  let offset = 0;
-  return displayText.value.split('\n').flatMap((line) => {
-    if (byWords) { const wrapped = wrapWords(line, offset, max); offset += line.length + 1; return wrapped; }
-    const chars = Array.from(line); const result: Array<{ text: string; from: number }> = [];
-    let at = offset;
-    for (let i = 0; i < chars.length; i += max) { const chunk = chars.slice(i, i + max).join(''); result.push({ text: chunk, from: at }); at += chunk.length; }
-    offset += line.length + 1;
-    return result.length ? result : [{ text: '', from: at }];
-  }).map((entry) => ({ ...entry, bullet: e.value.style.listStyle === 'bullet' && entry.text !== '' }))
+  // Text breaks at word boundaries, as the text field does while it is edited. Group labels and the labels of
+  // free-standing symbols count on narrower characters, like draw.io.
+  const narrow = Boolean(group.value) || iconFigure.value;
+  return wrapTextLines(displayText.value, e.value.width, fontSize.value, inset, narrow ? .55 : TEXT_CHAR_WIDTH).map((entry) => ({ ...entry, bullet: e.value.style.listStyle === 'bullet' && entry.text !== '' }))
     .slice(0, Math.max(1, Math.floor((e.value.height - (e.value.kind === 'sticky-note' ? 68 : 0)) / (fontSize.value * 1.25))));
 });
 const figure = computed(() => iconFigure.value ? figureLayout(e.value, lines.value.length) : null);

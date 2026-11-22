@@ -105,7 +105,8 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   await page.keyboard.press('ControlOrMeta+Enter');
   await expect(editor).toHaveCount(0);
   const text = page.locator('.whiteboard-canvas [data-kind=rectangle] text');
-  await expect(text).toContainText('Entwurf mehr');
+  // The text breaks between its two words; each line is one tspan.
+  await expect(text).toHaveText(/Entwurf\s*mehr/);
   await expect(text).toHaveAttribute('fill', '#e5533a');
   expect(await text.evaluate((node) => node.parentElement?.querySelector(':scope > g')?.getAttribute('stroke'))).toBe('#1e1e1e');
   await expect(text).toHaveCSS('font-family', /Caveat Variable/);
