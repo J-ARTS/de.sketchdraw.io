@@ -16,7 +16,7 @@ async function rectangle(page: Page) {
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
 }
 async function file(page: Page, name: string, contents: string) {
-  await page.getByLabel('Austauschdatei auswählen').setInputFiles({ name, mimeType: name.endsWith('.svg') ? 'image/svg+xml' : /\.(mmd|mermaid)$/i.test(name) ? 'text/plain' : 'application/xml', buffer: Buffer.from(contents) });
+  await page.getByTestId('interop-file').setInputFiles({ name, mimeType: name.endsWith('.svg') ? 'image/svg+xml' : /\.(mmd|mermaid)$/i.test(name) ? 'text/plain' : 'application/xml', buffer: Buffer.from(contents) });
 }
 function cell(id: string, label: string) { return `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="${id}" value="${label}" style="shape=rectangle;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="50" y="50" width="120" height="70" as="geometry"/></mxCell></root></mxGraphModel>`; }
 test.beforeEach(async ({ page }) => { page.on('pageerror', error => { throw error; }); await page.goto('/'); });
@@ -387,4 +387,30 @@ test('a sequence diagram is exported as Mermaid sequenceDiagram; with other shap
   const flowchart = await exportOnce(false);
   expect(flowchart).toBe('flowchart LR\n  n0[" "]\n');
   expect((await new AxeBuilder({ page }).include('[data-testid=interop-panel]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+});
+
+test('the import file is chosen with a button of the app, in the language of the app (#278)', async ({ page }) => {
+  await menu(page, 'import');
+  const panel = page.getByTestId('interop-panel');
+  const choose = panel.getByRole('button', { name: 'Datei auswählen', exact: true });
+  await expect(choose).toBeVisible();
+  await expect(choose).toHaveAccessibleDescription('SVG-, draw.io- oder Mermaid-Datei auswählen');
+  await expect(panel.getByTestId('interop-file-name')).toHaveText('Keine Datei ausgewählt');
+  // The field of the operating system is not shown; the button opens its dialog.
+  await expect(panel.getByTestId('interop-file')).toHaveCSS('position', 'absolute');
+  const chooser = page.waitForEvent('filechooser');
+  await choose.click();
+  await (await chooser).setFiles({ name: 'karte.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="10" y="10" width="50" height="30" fill="#ffffff" stroke="#000000"/></svg>') });
+  await expect(panel.getByTestId('interop-file-name')).toHaveText('karte.svg');
+  await expect(panel.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true })).toBeEnabled();
+  await panel.screenshot({ path: 'test-results/interop-file-button.png' });
+
+  await page.evaluate(() => {
+    const raw = JSON.parse(localStorage.getItem('sketchdraw.preferences.v1') ?? '{}');
+    localStorage.setItem('sketchdraw.preferences.v1', JSON.stringify({ ...raw, version: raw.version ?? 1, language: 'en' }));
+  });
+  await page.reload();
+  await page.getByTestId('file-menu-button').click(); await page.getByTestId('file-menu-interopImport').click();
+  await expect(page.getByTestId('interop-panel').getByRole('button', { name: 'Choose file', exact: true })).toBeVisible();
+  await expect(page.getByTestId('interop-file-name')).toHaveText('No file chosen');
 });

@@ -105,7 +105,8 @@ describe('sticky-note interoperability', () => {
     expect(svg).toContain('feDropShadow');
     expect(svg).toContain('Jeremy Teichmann');
     expect(svg).toContain('font-weight="bold"');
-    expect(drawio).toContain('shape=note');
+    // The note is the picture of its paper with the author; the text is a label of draw.io on top of it (#260).
+    expect(drawio).toContain('sketchdrawKind=sticky-note'); expect(drawio).toContain('shape=image');
     expect(drawio).toContain('sketchdrawAuthor=Jeremy%20Teichmann');
     expect(serializeDocument(importSvg(svg).document)).toBe(before);
     expect(serializeDocument(importDrawio(drawio).document)).toBe(before);

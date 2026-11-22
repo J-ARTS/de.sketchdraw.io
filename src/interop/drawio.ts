@@ -73,7 +73,7 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind', 'noLabel', 'sketchdrawComponent', 'sketchdrawDescription']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind', 'noLabel', 'sketchdrawComponent', 'sketchdrawDescription', 'spacingTop', 'spacingLeft', 'spacingRight', 'link']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
 function safeDecode(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -157,7 +157,9 @@ function styleOf(cell: Cell, ctx: ImportContext) {
 }
 function label(cell: Cell, ctx: ImportContext): string {
   if (cell.style['html'] === '1') {
-    warn(ctx, cell.node, 'TEXT_FORMATTING_LOST', 'value', 'HTML label converted to inert plain text.');
+    // Plain text with line breaks loses nothing; only real markup is worth a note.
+    if (/<(?!br\s*\/?>)/i.test(cell.value))
+      warn(ctx, cell.node, 'TEXT_FORMATTING_LOST', 'value', 'HTML label converted to inert plain text.');
     return plainHtml(cell.value);
   }
   return cell.value;
@@ -338,7 +340,9 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     const ownComponent = namesComponent ? builtInComponent(s['sketchdrawComponent']!) : undefined;
     if (namesComponent && !ownComponent)
       warn(ctx, cell.node, 'COMPONENT_DEFINITION_MISSING', 'sketchdrawComponent', 'The component is not part of the built-in library; it is represented by an editable rectangle with its text.');
-    let kind: SketchElement['kind'] = ownComponent ? 'component' : namesComponent ? 'rectangle' : group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    // Own exports draw notes, tables, rich text and web pages as a picture and name the kind (#260).
+    const ownPicture = namesComponent || ['sticky-note', 'table', 'annotation', 'web-embed'].includes(s['sketchdrawKind'] ?? '');
+    let kind: SketchElement['kind'] = ownComponent ? 'component' : namesComponent || s['sketchdrawKind'] === 'web-embed' ? 'rectangle' : s['sketchdrawKind'] === 'sticky-note' ? 'sticky-note' : group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
     if (!group && !shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
@@ -379,7 +383,7 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     if (ownComponent && !ctx.document.componentSets.some(set => set.id === ownComponent.set.id))
       ctx.document.componentSets.push(JSON.parse(JSON.stringify(ownComponent.set)) as ComponentSet);
     const description = ownComponent ? safeDecode(s['sketchdrawDescription']) : undefined;
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, ...(ownComponent ? { componentType: ownComponent.definition.type, label: ownComponent.definition.name, ...(description ? { description } : {}) } : {}), text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId && !namesComponent ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, ...(ownComponent ? { componentType: ownComponent.definition.type, label: ownComponent.definition.name, ...(description ? { description } : {}) } : {}), text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId && !ownPicture ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }
@@ -396,9 +400,13 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
       const anchorX = cell.style[`${side}X`], anchorY = cell.style[`${side}Y`];
       if (target) {
         const exact = anchorX !== undefined && anchorY !== undefined && cell.style[`${side}Perimeter`] === '0';
-        const anchor = exact ? { x: number(anchorX), y: number(anchorY) } : { x: .5, y: .5 };
-        if (anchor.x < 0 || anchor.x > 1 || anchor.y < 0 || anchor.y > 1)
-          fail('INVALID_REFERENCE', 'Anchor must lie within its terminal.');
+        const stated = exact ? { x: number(anchorX), y: number(anchorY) } : { x: .5, y: .5 };
+        // draw.io writes anchors a little outside the shape (1.005, -0.007) when an arrow was dropped next to an
+        // edge, and allows any offset. Such an end is put on the nearest point of the shape; it is no reason to
+        // refuse the whole file.
+        const anchor = { x: Math.min(1, Math.max(0, stated.x)), y: Math.min(1, Math.max(0, stated.y)) };
+        if (anchor.x !== stated.x || anchor.y !== stated.y)
+          warn(ctx, cell.node, 'ROUTING_APPROXIMATED', attr, 'Connection point outside its shape was moved onto the edge of the shape.');
         if (!exact)
           warn(ctx, cell.node, 'ROUTING_APPROXIMATED', attr, 'Automatic terminal/perimeter routing uses the terminal center.');
         endpoints.push({ point: resolveAnchorWorldPoint(target, anchor), binding: { elementId: target.id, anchor } });
