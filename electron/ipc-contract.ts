@@ -29,8 +29,11 @@ export const IPC_CHANNELS = Object.freeze({
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
-/** `components`: the user's own component library as a file (#244). */
-export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components';
+/**
+ * `components`: the user's own component library as a file (#244). `pptx`: the slides as a PowerPoint file (#266);
+ * it is the only binary format, and its `contents` are the bytes of the package as base64.
+ */
+export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components' | 'pptx';
 export type CloseDecision = 'close' | 'cancel';
 export type AppLanguage = 'de' | 'en';
 
@@ -48,7 +51,13 @@ export const EXPORT_FORMATS: readonly ExportFormat[] = Object.freeze([
   'mermaid',
   'sketchdraw',
   'components',
+  'pptx',
 ]);
+
+/** Standard base64 with padding, as `btoa` and `Buffer#toString('base64')` write it. */
+export function isBase64Text(value: string): boolean {
+  return value.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(value);
+}
 
 export const CLOSE_DECISIONS: readonly CloseDecision[] = Object.freeze([
   'close',
@@ -321,7 +330,18 @@ export function validateExportFileRequest(
       error: {
         status: 'error',
         code: 'INVALID_FORMAT',
-        message: 'Export format must be one of "svg", "drawio", "mermaid", "sketchdraw", or "components".',
+        message: 'Export format must be one of "svg", "drawio", "mermaid", "sketchdraw", "components", or "pptx".',
+      },
+    };
+  }
+
+  if (format === 'pptx' && !isBase64Text(contents)) {
+    return {
+      ok: false,
+      error: {
+        status: 'error',
+        code: 'INVALID_REQUEST',
+        message: 'The contents of a PowerPoint export must be base64.',
       },
     };
   }

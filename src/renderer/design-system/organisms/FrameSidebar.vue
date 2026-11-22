@@ -1,15 +1,24 @@
 <!-- @component The side panel that lists the frames of the page for navigation and presenting. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
-import { t } from '@/renderer/i18n';
-import { nextTick, ref } from 'vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
+import { getDesktopBridge } from '@/platform';
+import { intlLocale, t } from '@/renderer/i18n';
+import { nextTick, onBeforeUnmount, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import FramePreview from '@/renderer/design-system/organisms/FramePreview.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { slideNotes, MAX_SLIDE_NOTES_LENGTH } from '@/renderer/lib/slide-notes';
+import { rasterizeSvgToPng } from '@/renderer/lib/confluence-live-image';
+import { bytesToBase64 } from '@/renderer/lib/pptx';
+import { suggestFileName } from '@/renderer/lib/savestate';
+import { buildSlideDeck } from '@/renderer/lib/slide-export';
+import { loadSlideFont } from '@/renderer/lib/slide-fonts';
 
 const store = useWhiteboard();
 const s = store.state;
+const bridge = getDesktopBridge();
 const editingId = ref<string | null>(null);
 const nameDraft = ref('');
 const draggingId = ref<string | null>(null);
@@ -36,6 +45,72 @@ function drop(toIndex: number): void {
   if (draggingId.value) store.moveFrame(draggingId.value, toIndex);
   draggingId.value = null;
 }
+// --- "…" menu of the panel (#266) ---------------------------------------------
+const menuOpen = ref(false);
+const menuButton = ref<{ focus: () => void } | null>(null);
+const menuEl = ref<HTMLElement | null>(null);
+const exporting = ref(false);
+/** What the last export did; announced politely, errors assertively. */
+const exportNote = ref<{ kind: 'info' | 'error'; text: string } | null>(null);
+let exportRun = 0;
+onBeforeUnmount(() => { exportRun += 1; });
+
+function menuItems(): HTMLElement[] { return Array.from(menuEl.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []); }
+async function toggleMenu(): Promise<void> {
+  menuOpen.value = !menuOpen.value;
+  if (!menuOpen.value) return;
+  await nextTick();
+  menuItems()[0]?.focus();
+}
+function closeMenu(returnFocus: boolean): void {
+  if (!menuOpen.value) return;
+  menuOpen.value = false;
+  if (returnFocus) menuButton.value?.focus();
+}
+function menuKey(event: KeyboardEvent): void {
+  const items = menuItems();
+  const at = items.indexOf(document.activeElement as HTMLElement);
+  if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeMenu(true); }
+  else if (event.key === 'Tab') closeMenu(false);
+  else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); items[(at + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length]?.focus(); }
+  else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); items[event.key === 'Home' ? 0 : items.length - 1]?.focus(); }
+}
+useEventListener(document, 'pointerdown', (event) => {
+  if (menuOpen.value && event.target instanceof Node && !root.value?.querySelector('.panel-menu')?.contains(event.target)) closeMenu(false);
+}, { capture: true });
+
+/** Every frame of the page becomes one slide of a PowerPoint file: a picture of the frame, with its notes. */
+async function exportPowerPoint(): Promise<void> {
+  closeMenu(true);
+  if (exporting.value || !s.frameSlides.length) return;
+  const own = ++exportRun; const authority = store.getAuthority();
+  exporting.value = true; exportNote.value = { kind: 'info', text: t('PowerPoint-Datei wird erstellt …') };
+  try {
+    const order = s.frameSlides.map((frame) => frame.id); const pageId = s.activePageId;
+    const snapshot = await store.prepareDocumentSnapshot();
+    if (own !== exportRun || authority !== store.getAuthority()) return;
+    if (!snapshot) { exportNote.value = { kind: 'error', text: t('Die Folien konnten nicht exportiert werden. Das Dokument bleibt erhalten.') }; return; }
+    const frames = order.flatMap((id) => snapshot.document.elements.filter((element) => element.id === id && element.kind === 'frame'));
+    const deck = await buildSlideDeck(snapshot.document, pageId, frames, {
+      title: snapshot.document.title, language: intlLocale(), created: new Date(),
+      slideName: (index) => t('Folie {index}', { index: index + 1 }),
+      rasterize: rasterizeSvgToPng, loadFont: loadSlideFont,
+    });
+    if (own !== exportRun || authority !== store.getAuthority()) return;
+    const name = suggestFileName(snapshot.document.title).replace(/\.sketchdraw\.json$/, '.pptx');
+    const result = await bridge.exportFile(bytesToBase64(deck), name, 'pptx');
+    if (own !== exportRun) return;
+    if (result.status === 'error') exportNote.value = { kind: 'error', text: t('Export fehlgeschlagen: {message}', { message: result.message }) };
+    else if (result.status === 'exported') exportNote.value = { kind: 'info', text: t('Exportiert: {name}', { name: result.name }) };
+    else if (result.status === 'download-initiated') exportNote.value = { kind: 'info', text: t('Als Download übergeben: {name}', { name: result.name }) };
+    else exportNote.value = null;
+  } catch {
+    if (own === exportRun) exportNote.value = { kind: 'error', text: t('Die Folien konnten nicht exportiert werden. Das Dokument bleibt erhalten.') };
+  } finally {
+    if (own === exportRun) exporting.value = false;
+  }
+}
+
 function cardKey(event: KeyboardEvent, id: string, index: number): void {
   if (event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
     event.preventDefault(); store.moveFrame(id, index + (event.key === 'ArrowDown' ? 1 : -1));
@@ -45,9 +120,20 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
 
 <template>
   <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" ref="root" class="frame-sidebar sd-panel" data-testid="frame-sidebar" :aria-label="t('Folien')">
-    <header><div><span class="eyebrow">{{ t('PRÄSENTATION') }}</span><h2 class="sd-panel-title">{{ t('Folien') }}</h2></div><button class="sd-icon-btn sd-panel-close" :aria-label="t('Folienleiste schließen')" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button></header>
+    <header><div><span class="eyebrow">{{ t('PRÄSENTATION') }}</span><h2 class="sd-panel-title">{{ t('Folien') }}</h2></div>
+      <div class="panel-actions">
+        <div class="panel-menu">
+          <AppIconButton ref="menuButton" icon="more" :label="t('Weitere Aktionen für Folien')" aria-haspopup="menu" :aria-expanded="menuOpen" data-testid="frame-sidebar-menu-button" @click="toggleMenu" />
+          <div v-if="menuOpen" ref="menuEl" class="panel-menu-list" role="menu" data-testid="frame-sidebar-menu" :aria-label="t('Weitere Aktionen für Folien')" @keydown="menuKey">
+            <button type="button" role="menuitem" tabindex="-1" class="panel-menu-item" data-testid="frame-export-pptx" :aria-disabled="!s.frameSlides.length || exporting ? true : undefined" @click="exportPowerPoint">{{ t('Nach PowerPoint exportieren') }}</button>
+          </div>
+        </div>
+        <button class="sd-icon-btn sd-panel-close" :aria-label="t('Folienleiste schließen')" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button>
+      </div>
+    </header>
     <AppButton class="present" :disabled="!s.frameSlides.length" @click="store.startPresentation()"><AppIcon name="maximize" /> {{ t('Präsentieren') }}</AppButton>
     <AppButton class="present" :disabled="!s.frameSlides.length" data-testid="present-with-notes" @click="store.startPresentation(undefined, true)"><AppIcon name="text" /> {{ t('Presenter-Ansicht mit Notizen') }}</AppButton>
+    <p v-if="exportNote" class="export-note" :class="exportNote.kind" :role="exportNote.kind === 'error' ? 'alert' : 'status'" data-testid="frame-export-note">{{ exportNote.text }}</p>
     <p v-if="!s.frameSlides.length" class="empty">{{ t('Ziehe mit') }} <kbd>F</kbd> {{ t('einen Frame auf. Jeder Frame wird hier als Folie angezeigt.') }}</p>
     <ol v-else class="slides">
       <li v-for="(frame, index) in s.frameSlides" :key="frame.id" :class="{ active: s.selection.includes(frame.id) }" draggable="true" @dragstart="draggingId = frame.id" @dragover.prevent @drop.prevent="drop(index)">
@@ -74,5 +160,14 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
 <style scoped>
 .frame-sidebar{position:absolute;top:var(--panel-top);right:16px;bottom:16px;z-index:22;width:280px;display:flex;flex-direction:column;padding:14px;overflow:hidden}.frame-sidebar header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.frame-sidebar h2{margin:2px 0 0}.eyebrow{font-size:9px;letter-spacing:.16em;color:var(--accent);font-weight:750}.present{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:12px}.present :deep(svg){width:17px}.empty{padding:28px 18px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.6}.empty kbd{padding:2px 6px;border:1px solid var(--border-default);border-radius:5px}.slides{display:grid;gap:12px;overflow:auto;list-style:none;padding:2px;margin:0}.slides li{position:relative;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised)}.slides li.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.slide-card{position:relative;width:100%;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--surface-canvas);aspect-ratio:16/9;cursor:pointer}.thumb{position:absolute;inset:0}.index{position:absolute;top:6px;left:6px;z-index:2;display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--surface-panel) 88%,transparent);font-size:11px;font-weight:700}.slide-meta{display:grid;grid-template-columns:minmax(0,1fr) auto 30px;align-items:center;gap:5px;margin-top:7px}.slide-meta input,.name{min-width:0;width:100%;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:12px;font-weight:650;text-align:left;padding:3px}.slide-meta input{outline:1px solid var(--accent);border-radius:4px}.name{display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}.name-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.name :deep(svg){flex:none;color:var(--text-muted);opacity:.6}.name:hover{background:var(--surface-panel)}.name:hover :deep(svg),.name:focus-visible :deep(svg){color:var(--accent);opacity:1}.name:focus-visible{outline:2px solid var(--focus-ring);outline-offset:1px}.name:disabled{cursor:default}.name:disabled :deep(svg){display:none}.slide-meta>span{font-size:9px;color:var(--text-muted)}.grip{width:28px;height:28px;color:var(--text-muted)}.hint{margin:10px 0 0;text-align:center;font-size:9px;color:var(--text-muted)}
 @media(max-width:760px){.frame-sidebar{right:8px;bottom:8px;width:min(270px,calc(100vw - 16px))}}
+.panel-actions{position:relative;display:flex;align-items:center;gap:2px}
+.panel-menu-list{position:absolute;top:calc(100% + 6px);right:0;z-index:30;width:max-content;min-width:200px;max-width:252px;padding:8px;background:var(--menu-surface);border:1px solid var(--border-subtle);border-radius:16px;box-shadow:var(--shadow-panel);color:var(--menu-text)}
+.panel-menu-item{display:block;width:100%;min-height:38px;padding:0 14px;background:transparent;border:0;border-radius:10px;color:inherit;font-size:14px;text-align:left;cursor:pointer}
+.panel-menu-item:hover,.panel-menu-item:focus-visible{background:var(--menu-hover)}
+.panel-menu-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.panel-menu-item[aria-disabled='true']{color:var(--menu-muted);cursor:default}
+.export-note{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:var(--surface-raised);color:var(--text-muted);font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.export-note.error{background:var(--status-error-soft);color:var(--status-error)}
+@media(forced-colors:active){.panel-menu-list{border-color:CanvasText}}
 .slide-notes{margin:4px 2px 0;font-size:12px;color:var(--text-muted)}.slide-notes summary{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0}.has-notes{width:6px;height:6px;border-radius:50%;background:var(--accent)}.slide-notes textarea{width:100%;min-height:72px;margin-top:4px;resize:vertical;padding:8px;border:1px solid var(--border-default);border-radius:8px;background:var(--surface-panel);color:var(--text-primary);font:13px/1.45 var(--font-sans)}
 </style>

@@ -120,6 +120,8 @@ export function redactFilesystemPaths(message: string): string {
   return message.replace(UNIX_OR_WIN_PATH_PATTERN, '[redacted-path]');
 }
 
+/** Every ZIP package, and so every `.pptx`, starts with the header of its first entry. */
+const ZIP_LOCAL_FILE_HEADER = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 const SKETCHDRAW_JSON_EXTENSION = '.sketchdraw.json';
 /** A library of own components (#244): JSON, named so that it is not mistaken for a diagram. */
 const COMPONENTS_EXTENSION = '.sketchdraw-components.json';
@@ -234,6 +236,8 @@ function getDialogFiltersForFormat(
       return [{ name: 'Sketchdraw Document', extensions: ['sketchdraw', 'json'] }];
     case 'components':
       return [{ name: 'Sketchdraw Components', extensions: ['json'] }];
+    case 'pptx':
+      return [{ name: 'PowerPoint Presentation', extensions: ['pptx'] }];
   }
 }
 
@@ -569,7 +573,8 @@ export class DocumentPersistenceService {
 
     const { contents, suggestedName, format } = validated.value;
     const maxBytes = format === 'sketchdraw' ? this.maxDocumentBytes : this.maxExportBytes;
-    const utf8Buffer = Buffer.from(contents, 'utf8');
+    // A PowerPoint file is a ZIP package and arrives as base64 (#266); every other format is text.
+    const utf8Buffer = format === 'pptx' ? Buffer.from(contents, 'base64') : Buffer.from(contents, 'utf8');
 
     if (utf8Buffer.byteLength === 0) {
       return {
@@ -594,12 +599,20 @@ export class DocumentPersistenceService {
       }
     }
 
+    if (format === 'pptx' && !utf8Buffer.subarray(0, 4).equals(ZIP_LOCAL_FILE_HEADER)) {
+      return {
+        status: 'error',
+        code: 'INVALID_EXPORT',
+        message: 'The PowerPoint export is not a package.',
+      };
+    }
+
     const safeDefaultName = sanitizeSuggestedFileName(suggestedName, format);
 
     let saveSelection: SaveDialogSelection;
     try {
       saveSelection = await this.dialogs.showSaveDialog({
-        title: format === 'components' ? 'Komponenten exportieren' : 'Diagramm exportieren',
+        title: format === 'components' ? 'Komponenten exportieren' : format === 'pptx' ? 'Folien exportieren' : 'Diagramm exportieren',
         defaultPath: safeDefaultName,
         filters: getDialogFiltersForFormat(format),
       });

@@ -425,7 +425,8 @@ export interface DesktopBridge {
   readonly platform: 'electron' | 'browser';
   openDocument(): Promise<OpenDocumentResult>;
   saveDocument(request: SaveDocumentRequest): Promise<SaveDocumentResult>;
-  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components'): Promise<ExportFileResult>;
+  /** `pptx` is the only binary format: its `contents` are the bytes of the file as base64 (#266). */
+  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components' | 'pptx'): Promise<ExportFileResult>;
   openExternal(url: string): Promise<void>;
   /** Optional desktop capability: reports the UI language so native menus and dialogs follow it. */
   setLanguage?(language: 'de' | 'en'): Promise<void>;
