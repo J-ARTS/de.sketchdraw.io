@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { applyCommand, createController, createDocument, type DesktopBridge, type SketchDocument } from '@/domain';
-import { builtInComponentSets, instantiateComponent, RESOURCE_CARD_COMPONENT_TYPE, resourceCardFieldAt, resourceCardFieldBox, resourceCardLayout } from '@/catalog';
+import { builtInComponentSets, DASHED_CARD_STYLE, instantiateComponent, normalizeResourceCardText, RESOURCE_CARD_COMPONENT_TYPE, RESOURCE_CARD_LOOK_KEY, resourceCardFieldAt, resourceCardFieldBox, resourceCardHeightFor, resourceCardLayout, resourceCardLines, resourceCardLook } from '@/catalog';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 import type { PointerInput, WhiteboardStore } from '@/renderer/state/contract';
 
@@ -117,12 +117,12 @@ describe('resource card text on the canvas (#189)', () => {
     const store = open(withCard());
     store.doubleClick(linePoint(store, 'description'));
     expect(store.state.textEdit).toMatchObject({ field: 'description', draft: 'takes orders' });
-    // Pasted line breaks become spaces: a card line is a single line.
-    store.setTextDraft('takes\norders\r\n  quickly');
-    expect(store.state.textEdit!.draft).toBe('takes orders quickly');
+    // Line breaks stay (#254); only their spelling is unified and the spaces around them go.
+    store.setTextDraft('takes\norders\r\n  quickly  ');
+    expect(store.state.textEdit!.draft).toBe('takes\norders\n  quickly  ');
     store.commitTextEdit();
     await store.whenIdle();
-    expect(card(store).description).toBe('takes orders quickly');
+    expect(card(store).description).toBe('takes\norders\nquickly');
 
     store.doubleClick(pointer(110, 110));
     expect(store.state.textEdit).toMatchObject({ field: 'title' });
@@ -179,5 +179,120 @@ describe('resource card text on the canvas (#189)', () => {
     await store.whenIdle();
     expect(card(store).text).toBe('Orders');
     expect(card(store).style.textColor).toBeUndefined();
+  });
+});
+
+describe('resource card with several lines (#254)', () => {
+  test('a card with one line each is laid out as it always was', () => {
+    const element = card(open(withCard()));
+    const layout = resourceCardLayout(element);
+    // 360 × 150 at font size 20: these numbers are the layout before several lines existed.
+    expect(layout).toMatchObject({ look: 'solid', footerHeight: 36, bodyHeight: 114, iconSize: 52, textX: 90, extraHeight: 0 });
+    expect(layout.icon).toEqual({ x: 20, y: 31 });
+    expect(layout.footer).toEqual({ x: 0, y: 114, width: 360, height: 36 });
+    expect(layout.title).toMatchObject({ y: 52, fontSize: 20, lines: 1 });
+    expect(layout.description).toMatchObject({ y: 74, fontSize: 13, lines: 1 });
+    expect(resourceCardFieldBox(element, 'title')).toEqual({ x: 90, y: 39, width: 258, height: 26 });
+  });
+
+  test('lines are what is typed, without empty ones at the end, and stored tidy', () => {
+    expect(resourceCardLines('a\nb')).toEqual(['a', 'b']);
+    expect(resourceCardLines('a\r\nb  \n\n')).toEqual(['a', 'b']);
+    expect(resourceCardLines('a\n\nb')).toEqual(['a', '', 'b']);
+    expect(resourceCardLines('')).toEqual(['']);
+    expect(resourceCardLines(undefined)).toEqual(['']);
+    expect(resourceCardLines(Array.from({ length: 40 }, (_, index) => `line ${index}`).join('\n'))).toHaveLength(12);
+    expect(normalizeResourceCardText('  Entry point \r\n  for   all traffic  \n\n')).toBe('Entry point\nfor all traffic');
+    expect(normalizeResourceCardText('\n\n')).toBe('');
+  });
+
+  test('every further line adds its height; the space around the texts, the icon and the footer stay as they were', () => {
+    const one = card(open(withCard()));
+    const before = resourceCardLayout(one);
+    const height = resourceCardHeightFor(one, { description: 'takes orders\nand ships them\nworldwide' });
+    // Two more description lines of 13 × 1.4.
+    expect(height).toBeCloseTo(150 + 2 * 18.2, 5);
+    const three = { ...one, description: 'takes orders\nand ships them\nworldwide', height };
+    const after = resourceCardLayout(three);
+    expect(after.description.lines).toBe(3);
+    expect(after.footerHeight).toBe(before.footerHeight);
+    expect(after.iconSize).toBe(before.iconSize);
+    // The first lines keep their distance to the top edge; the last line keeps its distance to the footer.
+    expect(after.title.y).toBeCloseTo(before.title.y, 5);
+    expect(after.description.y).toBeCloseTo(before.description.y, 5);
+    const last = after.description.y + 2 * after.description.lineHeight;
+    expect(after.footer.y - last).toBeCloseTo(before.footer.y - before.description.y, 5);
+    // The box of the text covers all its lines, and a point in the third line finds the description.
+    const box = resourceCardFieldBox(three, 'description');
+    expect(box.height).toBeCloseTo(13 * 1.3 + 2 * 18.2, 5);
+    expect(resourceCardFieldAt(three, { x: box.x + 10, y: last })).toBe('description');
+    // A second title line pushes the description down by a title line.
+    const titled = resourceCardLayout({ ...one, text: 'Orders\nService', height: resourceCardHeightFor(one, { text: 'Orders\nService' }) });
+    expect(titled.description.y - titled.title.y).toBeCloseTo(before.description.y - before.title.y + 25, 5);
+    // Taking the lines away again gives the card its old height, also when the user had made it taller.
+    expect(resourceCardHeightFor(three, { description: 'takes orders' })).toBeCloseTo(150, 5);
+    expect(resourceCardHeightFor({ ...three, height: height + 40 }, { description: 'takes orders' })).toBeCloseTo(190, 5);
+  });
+
+  test('typing lines grows the card at once; taking the text over stores lines and height as one step', async () => {
+    const store = open(withCard());
+    const shown = () => store.state.displayElements.find((element) => element.id === 'card:1')!;
+    store.doubleClick(linePoint(store, 'description'));
+    store.setTextDraft('takes orders\nand ships them');
+    // The document is untouched while the card on the canvas already has the second line.
+    expect(card(store).height).toBe(150);
+    expect(shown().height).toBeCloseTo(168.2, 5);
+    expect(shown().description).toBe('takes orders\nand ships them');
+    store.setTextDraft('takes orders\nand ships them\nworldwide');
+    expect(shown().height).toBeCloseTo(186.4, 5);
+    store.commitTextEdit();
+    await store.whenIdle();
+    expect(card(store)).toMatchObject({ description: 'takes orders\nand ships them\nworldwide' });
+    expect(card(store).height).toBeCloseTo(186.4, 5);
+    expect(store.state.textEdit).toBeNull();
+    // One undo takes text and height back together.
+    store.undo();
+    await store.whenIdle();
+    expect(card(store)).toMatchObject({ description: 'takes orders', height: 150 });
+
+    // The name takes lines as well; the label that names the card elsewhere stays one line.
+    store.doubleClick(linePoint(store, 'title'));
+    store.setTextDraft('Orders\nService');
+    expect(shown().height).toBeCloseTo(175, 5);
+    store.commitTextEdit();
+    await store.whenIdle();
+    expect(card(store)).toMatchObject({ text: 'Orders\nService', label: 'Orders Service', height: 175 });
+    // Back to one line: the card shrinks again.
+    store.doubleClick(linePoint(store, 'title'));
+    store.setTextDraft('Orders');
+    store.commitTextEdit();
+    await store.whenIdle();
+    expect(card(store)).toMatchObject({ text: 'Orders', label: 'Orders', height: 150 });
+  });
+
+  test('a card saved from its dialog grows with its lines too', async () => {
+    const store = open(withCard());
+    expect(await store.updateResourceCard('card:1', { text: 'Orders', label: 'Orders', description: 'takes orders\nand ships them' })).toBe(true);
+    expect(card(store).height).toBeCloseTo(168.2, 5);
+    expect(await store.updateResourceCard('card:1', { text: 'Orders', label: 'Orders', description: null })).toBe(true);
+    expect(card(store).height).toBeCloseTo(150, 5);
+    expect(card(store).description).toBeUndefined();
+  });
+});
+
+describe('resource card with a dashed frame (#257)', () => {
+  test('the look is a property of the card; the bar of links is set in from the frame', () => {
+    const plain = card(open(withCard()));
+    expect(resourceCardLook(plain)).toBe('solid');
+    const dashed = { ...plain, metadata: { ...plain.metadata, [RESOURCE_CARD_LOOK_KEY]: 'dashed' } };
+    expect(resourceCardLook(dashed)).toBe('dashed');
+    expect(resourceCardLook({ metadata: { [RESOURCE_CARD_LOOK_KEY]: 'something' } })).toBe('solid');
+    const layout = resourceCardLayout(dashed);
+    expect(layout.look).toBe('dashed');
+    expect(layout.footer).toEqual({ x: 10, y: 104, width: 340, height: 36 });
+    // The texts end above the bar.
+    expect(layout.bodyHeight).toBe(100);
+    expect(layout.description.y + layout.description.fontSize / 2).toBeLessThan(layout.footer.y);
+    expect(DASHED_CARD_STYLE.strokeDash).toBe('dashed');
   });
 });

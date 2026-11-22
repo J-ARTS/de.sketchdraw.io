@@ -27,7 +27,7 @@ import { createDocumentAuthority, SessionAccessError, type ActorBinding, type Do
 import type { GuestSession, CollaborationStatus } from '@/collaboration';
 import { getDesktopBridge } from '@/platform';
 import { formatDiagram, parseDiagram } from '@/codec';
-import { builtInComponentSets, instantiateComponent, isResourceCard, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, type ResourceCardField } from '@/catalog';
+import { builtInComponentSets, instantiateComponent, isResourceCard, normalizeResourceCardText, parseComponentSet, prepareComponentSetImport, resourceCardFieldAt, resourceCardFieldBox, resourceCardHeightFor, type ResourceCardField } from '@/catalog';
 import type {
   CreateStoreOptions, DialogChoice, FileState, GitAnswer, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore,
@@ -335,6 +335,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (this.previewCommand) { try { elements = applyCommand(this.document, this.previewCommand).elements; } catch { /* keep the committed elements */ } }
       // An open property draft shows on the canvas as well (#198), so a slider moves what it changes while it is dragged.
       else if (this.propertyDraft) { try { elements = applyCommand(this.document, propertyDraftCommand(this.propertyDraft)).elements; } catch { /* keep the committed elements */ } }
+      // A resource card grows with the lines that are typed into its name or description (#254); what is attached follows.
+      else if (this.textEdit?.field && this.textEdit.elementId) {
+        const card = elements.find((e) => e.id === this.textEdit!.elementId);
+        const patch = card ? cardFieldPatch(card, this.textEdit.field, this.textEdit.draft, true) : null;
+        if (patch && Object.keys(patch).length) { try { elements = applyCommand(this.document, { type: 'update', changes: [{ id: card!.id, patch }] }).elements; } catch { /* keep the committed elements */ } }
+      }
       return elements.filter((e) => e.pageId === this.activePageId);
     },
     get draftElement() { return this.drawing; },
@@ -898,13 +904,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     } catch (error) { fail(error); }
   }
   async function applyCardField(edit: NonNullable<WhiteboardState['textEdit']>, field: ResourceCardField, id: string, styleChanges: Partial<ElementStyle>): Promise<boolean> {
-    const text = edit.draft.replace(/\s+/g, ' ').trim();
     const now = pageEls().find((e) => e.id === id);
-    if (!same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
+    if (!now || !same(now, textBase)) { edit.conflict = t('Das Element wurde inzwischen geändert. Bitte den Textkonflikt lösen.'); return false; }
     // A card always has a name: an emptied name keeps the old one. The description may be cleared.
-    const content: ElementPatch = field === 'title'
-      ? (text && text !== edit.initialText ? { text, label: text } : {})
-      : (text !== edit.initialText.trim() ? { description: text || null } : {});
+    const content: ElementPatch = cardFieldPatch(now, field, edit.draft, false);
     const patch: ElementPatch = { ...content, ...(Object.keys(styleChanges).length ? { style: styleChanges } : {}) };
     if (!Object.keys(patch).length) { state.textEdit = null; changedDraft(); return true; }
     const recover = () => { if (state.textEdit === edit) { state.textEdit = null; changedDraft(); } };
@@ -960,6 +963,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     return ok;
   }
   /** The update an open property draft stands for; shared by the canvas preview and the commit. */
+  /**
+   * What typing into the name or description of a resource card changes (#254): the text with its lines, and the
+   * height that grows and shrinks with them. While typing (`live`) an emptied name shows as empty; when it is
+   * taken over, a card keeps its old name instead of losing it.
+   */
+  function cardFieldPatch(card: SketchElement, field: ResourceCardField, draft: string, live: boolean): ElementPatch {
+    const text = live ? draft.replace(/\r\n?/g, '\n') : normalizeResourceCardText(draft);
+    if (field === 'title') {
+      const current = card.text || card.label || '';
+      if ((!text && !live) || text === current) return {};
+      const height = resourceCardHeightFor(card, { text });
+      return { text, label: text.replace(/\s*\n\s*/g, ' ').trim() || current, ...(height !== card.height ? { height } : {}) };
+    }
+    if (text === (card.description ?? '')) return {};
+    const height = resourceCardHeightFor(card, { description: text });
+    return { description: text || null, ...(height !== card.height ? { height } : {}) };
+  }
   function propertyDraftCommand(draft: NonNullable<WhiteboardState['propertyDraft']>): DocumentCommand {
     const changes = draft.ids.map((id) => {
       const value = clone(draft.patch);
@@ -1934,7 +1954,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
-    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\s*[\r\n]+\s*/g, ' '); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
+    setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\r\n?/g, '\n'); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
     setTextLink(start, end, url) {
       const edit = state.textEdit;
       if (!state.canWrite || !edit || state.transitioning || edit.kind === 'annotation') return false;
@@ -2619,7 +2639,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     resetCodeDraft() { if (!state.transitioning && !unknownWrite) { codeBase = state.document; state.code = { text: formatDiagram(state.document), baseRevision: state.revision, dirty: false, diagnostics: [] }; changedDraft(); } },
     toggleCatalog() { state.catalogOpen = !state.catalogOpen; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.diagramCodeOpen = false; } },
     setCatalogOpen(open) { state.catalogOpen = open; if (state.catalogOpen) { state.codeOpen = false; state.frameSidebarOpen = false; state.diagramCodeOpen = false; } },
-    async insertComponent(set: ComponentSet, type: string, screenAt?: Point) {
+    async insertComponent(set: ComponentSet, type: string, screenAt?: Point, variant?: ElementPatch) {
       if (state.transitioning) return;
       try {
         const definition = set.components.find((component) => component.type === type);
@@ -2630,7 +2650,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         // Dropping from the library into a container makes the new element its child; a click places it at the center.
         const parent = screenAt ? containerAt(pageEls(), centre, new Set()) : undefined;
         const { element, command } = instantiateComponent(state.document, { set, type, id: uid('component'), pageId: state.activePageId, at, ...(parent ? { parentId: parent.id } : {}) });
-        if (await dispatch(command)) { setSelection([element.id]); state.tool = 'select'; }
+        // A variant is part of the same step, so one undo removes the element as it was placed.
+        const placed: DocumentCommand = variant && Object.keys(variant).length ? { type: 'batch', commands: [command, { type: 'update', changes: [{ id: element.id, patch: variant }] }] } : command;
+        if (await dispatch(placed)) { setSelection([element.id]); state.tool = 'select'; }
       }
       catch (error) { fail(error); }
     },
@@ -2639,7 +2661,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       try {
         // Built-in sets are drawn without being part of the document; only other sets must travel with it.
         const addSet = iconSet && !builtInComponentSets.some((set) => set.id === iconSet.id) ? prepareComponentSetImport(state.document, iconSet) : null;
-        const update: DocumentCommand = { type: 'update', changes: [{ id, patch }] };
+        // Saved from the dialog, the card grows and shrinks with the lines of its texts as on the canvas (#254).
+        const card = state.document.elements.find((element) => element.id === id);
+        const texts = { ...(typeof patch.text === 'string' ? { text: patch.text } : {}), ...('description' in patch ? { description: patch.description ?? null } : {}) };
+        const height = card && isResourceCard(card) && patch.height === undefined && Object.keys(texts).length ? resourceCardHeightFor(card, texts) : undefined;
+        const update: DocumentCommand = { type: 'update', changes: [{ id, patch: height !== undefined && height !== card!.height ? { ...patch, height } : patch }] };
         return await dispatch(addSet ? { type: 'batch', commands: [addSet, update] } : update);
       }
       catch (error) { fail(error); return false; }

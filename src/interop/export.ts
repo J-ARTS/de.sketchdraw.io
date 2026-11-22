@@ -1,8 +1,8 @@
 import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
-import type { ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
+import type { ComponentSet, ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
-import { awsGroupOf, builtInComponentSets, figureLayout, groupChrome, groupTileSvg, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLinks } from '../catalog';
+import { awsGroupOf, builtInComponentSets, CLOUD_CARD_EXPORT_COLORS, CLOUD_CARD_PROVIDER_SIZE, CLOUD_CARD_TITLE_SIZE, cloudCardLayout, cloudCardUsesThemeSurface, cloudProviderLabel, cloudProviderOf, figureLayout, groupChrome, groupTileSvg, isCloudCard, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLines, resourceCardLinks, type CloudCardLayout } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
 import { SVG_NS, OWN_NS, color, encodeEnvelope } from './common';
 import { parseXmlDocument } from './xml';
@@ -93,24 +93,47 @@ function tableSvgContent(el: SketchElement, d: DiagnosticCollector): string {
     y += height; return output;
   }).join('');
 }
+/** What the SVG export needs to draw the card of a cloud component like the canvas does, or null for any other element. */
+function cloudCardExport(el: SketchElement, componentSets: readonly ComponentSet[], d: DiagnosticCollector): { layout: CloudCardLayout; fill: string; stroke: string; text: string } | null {
+  if (!isCloudCard(el, componentSets)) return null;
+  const provider = cloudProviderOf(el, componentSets)!;
+  const definition = componentSets.flatMap(set => set.components).find(c => c.type === el.componentType);
+  const layout = cloudCardLayout(el, (el.text ?? el.label) || definition?.name || 'Component');
+  const themed = cloudCardUsesThemeSurface(el, definition);
+  const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
+  const titleFill = el.style.textColor ? safeColor(el.style.textColor, d, el) : CLOUD_CARD_EXPORT_COLORS.text;
+  const title = layout.title.lines.map((line, index) => `<tspan${attrs({ x: layout.title.x, y: layout.title.y + index * layout.title.lineHeight })}>${escapeXmlText(xmlText(line, d, el))}</tspan>`).join('');
+  const text = `<text${attrs({ 'font-size': CLOUD_CARD_TITLE_SIZE, 'font-family': fontFamily, 'font-weight': 650, 'text-anchor': 'middle', fill: titleFill, opacity: el.style.opacity })}>${title}</text>`
+    + `<text${attrs({ x: layout.title.x, y: layout.providerY, 'font-size': CLOUD_CARD_PROVIDER_SIZE, 'font-family': fontFamily, 'font-weight': 500, 'text-anchor': 'middle', fill: CLOUD_CARD_EXPORT_COLORS.provider, opacity: el.style.opacity })}>${escapeXmlText(cloudProviderLabel(provider))}</text>`;
+  return {
+    layout,
+    fill: themed.fill ? CLOUD_CARD_EXPORT_COLORS.surface : safeColor(el.style.fill, d, el),
+    stroke: themed.stroke ? CLOUD_CARD_EXPORT_COLORS.border : safeColor(el.style.stroke, d, el),
+    text,
+  };
+}
 function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): string {
   if (!isResourceCard(el)) return '';
+  // The same layout as on the canvas: several lines per text (#254) and both looks of the card (#257).
+  const layout = resourceCardLayout(el);
+  const dashed = layout.look === 'dashed';
   const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
-  const titleSize = Math.max(14, el.style.fontSize);
-  const descriptionSize = Math.max(10, el.style.fontSize * .65);
-  const footerHeight = Math.max(28, Math.min(36, el.height * .24));
-  const bodyHeight = Math.max(0, el.height - footerHeight);
-  const iconSize = Math.max(28, Math.min(52, bodyHeight * .48, el.width * .16));
-  const textX = 20 + iconSize + 18;
-  const title = escapeXmlText(xmlText(el.text || el.label || 'Ressourcenkarte', d, el));
-  const description = escapeXmlText(xmlText((el.description || 'BESCHREIBUNG').toUpperCase(), d, el));
+  const fill = safeTextColor(el, d);
+  const lines = (block: typeof layout.title, values: string[]) => values.map((line, index) => `<tspan${attrs({ x: layout.textX, y: block.y + index * block.lineHeight })}>${escapeXmlText(xmlText(line, d, el))}</tspan>`).join('');
+  const title = lines(layout.title, resourceCardLines(el.text || el.label || 'Ressourcenkarte'));
+  const description = lines(layout.description, resourceCardLines(el.description || (dashed ? 'Beschreibung' : 'BESCHREIBUNG')).map((line) => dashed ? line : line.toUpperCase()));
   const links = resourceCardLinks(el);
+  const linkSize = Math.max(10, Math.min(14, layout.description.fontSize));
   const linkMarkup = links.map((link, index) => {
-    const width = el.width / links.length;
-    const x = width * (index + .5);
-    return `<a href="${escapeXmlAttr(link.url)}"><text${attrs({ x, y: el.height - footerHeight / 2, 'font-size': Math.max(10, Math.min(14, descriptionSize)), 'font-family': fontFamily, 'font-weight': 650, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#2563eb' })}>${escapeXmlText(xmlText(link.label.toUpperCase(), d, el))}</text></a>`;
+    const width = layout.footer.width / links.length;
+    const left = layout.footer.x + width * index;
+    const y = layout.footer.y + layout.footer.height / 2;
+    const text = dashed
+      ? `<text${attrs({ x: left + 14, y, 'font-size': linkSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill })}>${escapeXmlText(xmlText(link.label, d, el))}</text>`
+      : `<text${attrs({ x: left + width / 2, y, 'font-size': linkSize, 'font-family': fontFamily, 'font-weight': 650, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#2563eb' })}>${escapeXmlText(xmlText(link.label.toUpperCase(), d, el))}</text>`;
+    return `<a href="${escapeXmlAttr(link.url)}">${text}</a>`;
   }).join('');
-  return `<text${attrs({ x: textX, y: bodyHeight / 2 - Math.max(5, titleSize * .25), 'font-size': titleSize, 'font-family': fontFamily, 'font-weight': 600, 'dominant-baseline': 'central', fill: safeTextColor(el, d) })}>${title}</text><text${attrs({ x: textX, y: bodyHeight / 2 + Math.max(16, titleSize * .85), 'font-size': descriptionSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill: safeTextColor(el, d), 'fill-opacity': .55 })}>${description}</text>${linkMarkup}`;
+  return `<text${attrs({ 'font-size': layout.title.fontSize, 'font-family': fontFamily, 'font-weight': 600, 'dominant-baseline': 'central', fill })}>${title}</text><text${attrs({ 'font-size': layout.description.fontSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill })}>${description}</text>${linkMarkup}`;
 }
 const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = {
   none: 'none', 'line-arrow': 'open', 'solid-arrow': 'classic', triangle: 'block',
@@ -149,6 +172,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
   const out = new XmlOutputBuilder();
   const map = new Map(document.elements.map(el => [el.id, el]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const componentSets = [...document.componentSets, ...builtInComponentSets];
   for (const raw of document.elements) {
     const el = syncConnectorEndpoints(raw, map);
     const points = el.points ?? [{ x: 0, y: 0 }, { x: el.width, y: 0 }, { x: el.width, y: el.height }, { x: 0, y: el.height }];
@@ -173,6 +197,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     if (el.description !== undefined)
       out.append(`<desc>${escapeXmlText(xmlText(el.description, d, el))}</desc>`);
     const paint = svgPaint(el, d);
+    const cloud = cloudCardExport(el, componentSets, d);
     const shapeVariant = effectiveShapeVariant(el);
     const markerStart = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
     const markerEnd = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
@@ -208,8 +233,16 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       }
     }
     else if (isResourceCard(el)) {
-      const footerHeight = Math.max(28, Math.min(36, el.height * .24));
-      out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" rx="8"${paint}/><path d="M0 ${n(el.height - footerHeight)}H${n(el.width)}V${n(el.height - 8)}Q${n(el.width)} ${n(el.height)} ${n(el.width - 8)} ${n(el.height)}H8Q0 ${n(el.height)} 0 ${n(el.height - 8)}Z" fill="#eef4fb" stroke="none"/>`);
+      const { look, footer, footerHeight } = resourceCardLayout(el);
+      const bar = look === 'dashed'
+        ? `<rect${attrs({ x: footer.x, y: footer.y, width: footer.width, height: footer.height, rx: 3, fill: safeColor(el.style.stroke, d, el), 'fill-opacity': 0.22, stroke: 'none' })}/>`
+        : `<path d="M0 ${n(el.height - footerHeight)}H${n(el.width)}V${n(el.height - 8)}Q${n(el.width)} ${n(el.height)} ${n(el.width - 8)} ${n(el.height)}H8Q0 ${n(el.height)} 0 ${n(el.height - 8)}Z" fill="#eef4fb" stroke="none"/>`;
+      out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" rx="8"${paint}/>${bar}`);
+    }
+    else if (cloud) {
+      // The card of a cloud component as the canvas draws it (#259): rounded, with the surface of the light theme
+      // while its colours are untouched.
+      out.append(`<rect${attrs({ x: 0, y: 0, width: el.width, height: el.height, rx: cloud.layout.radius, fill: cloud.fill, stroke: cloud.stroke, 'stroke-width': Math.max(1, el.style.strokeWidth), opacity: el.style.opacity, ...(el.style.strokeDash === 'solid' ? {} : { 'stroke-dasharray': el.style.strokeDash === 'dotted' ? '2 4' : '8 6' }) })}/>`);
     }
     else if (['container', 'component'].includes(el.kind))
       out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}"${paint}/>`);
@@ -225,10 +258,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       if (icon.isFallback)
         diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'Component uses the safe generic icon; provider semantics remain metadata.');
       const tree = icon.tree;
-      const footerHeight = isResourceCard(el) ? Math.max(28, Math.min(36, el.height * .24)) : 0;
+      const card = isResourceCard(el) ? resourceCardLayout(el) : null;
       const figure = isIconFigure(el) ? figureLayout(el, (el.text ?? el.label ?? '').split('\n').length).icon : null;
-      const iconSize = figure ? figure.size : isResourceCard(el) ? Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16)) : Math.min(32, el.width, el.height);
-      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : isResourceCard(el) ? 20 : 4, y: figure ? figure.y : isResourceCard(el) ? Math.max(10, (el.height - footerHeight - iconSize) / 2) : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+      const iconSize = figure ? figure.size : card ? card.iconSize : cloud ? cloud.layout.icon.size : Math.min(32, el.width, el.height);
+      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : 4, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
     const group = awsGroupOf(el);
     const groupIcon = group ? groupChrome(group, el.width, el.style.fontSize).icon : null;
@@ -236,7 +269,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const tree = resolveCatalogIcon(groupTileSvg(group, safeColor(el.style.stroke, d, el))).tree;
       out.append(`<svg${attrs({ ...tree.attributes, x: groupIcon.x, y: groupIcon.y, width: groupIcon.size, height: groupIcon.size, viewBox: tree.viewBox, opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : cloud ? cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
     const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
     out.append(exportLink
       ? `<a href="${escapeXmlAttr(exportLink)}">${visibleText}</a>`

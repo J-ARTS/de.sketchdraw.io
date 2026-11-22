@@ -281,3 +281,147 @@ test('the resource card dialog fits a small window, the dark theme and English (
   expect(sum(colours.text)).toBeGreaterThan(500);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
+
+test('name and description take several lines and the card grows and shrinks with them (#254)', async ({ page }) => {
+  const card = await insertResourceCard(page);
+  const surface = card.getByTestId('resource-card-surface');
+  const title = card.getByTestId('resource-card-title');
+  const description = card.getByTestId('resource-card-description');
+  const footer = card.getByTestId('resource-card-footer');
+  const height = async () => Number(await surface.getAttribute('height'));
+  const start = await height();
+  const editor = page.getByTestId('canvas-text-editor');
+
+  // Shift+Enter starts a new line in the description; the card grows while it is typed.
+  const descriptionBox = (await description.boundingBox())!;
+  await page.mouse.click(descriptionBox.x + 6, descriptionBox.y + descriptionBox.height / 2);
+  await expect(editor).toHaveAttribute('data-field', 'description');
+  await editor.fill('');
+  await page.keyboard.type('Entry point for all traffic');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('open for the internet');
+  await expect(editor).toHaveValue('Entry point for all traffic\nopen for the internet');
+  await expect.poll(height).toBeGreaterThan(start + 15);
+  // The field covers both lines and stays inside the card, above the footer.
+  const field = (await editor.boundingBox())!;
+  const bar = (await footer.boundingBox())!;
+  expect(field.height).toBeGreaterThan(30);
+  expect(field.y + field.height).toBeLessThanOrEqual(bar.y + 1);
+  await page.keyboard.press('Alt+Enter');
+  await page.keyboard.type('to consume the service');
+  await page.keyboard.press('Enter');
+  await expect(editor).toHaveCount(0);
+
+  // Three lines are drawn one below the other, and the card is two lines taller than before.
+  await expect(description.locator('tspan')).toHaveText(['ENTRY POINT FOR ALL TRAFFIC', 'OPEN FOR THE INTERNET', 'TO CONSUME THE SERVICE']);
+  const rows = await description.locator('tspan').evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute('y'))));
+  expect(rows[1]! - rows[0]!).toBeCloseTo(18.2, 1);
+  expect(rows[2]! - rows[1]!).toBeCloseTo(18.2, 1);
+  expect(await height()).toBeCloseTo(start + 36.4, 1);
+  const last = (await description.locator('tspan').last().boundingBox())!;
+  expect(last.y + last.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
+
+  // The name takes a second line as well and pushes the description down.
+  const before = rows[0]!;
+  const titleBox = (await title.boundingBox())!;
+  await page.mouse.click(titleBox.x + 6, titleBox.y + titleBox.height / 2);
+  await expect(editor).toHaveAttribute('data-field', 'title');
+  await editor.press('End');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('OpenAI');
+  await page.keyboard.press('Enter');
+  await expect(title.locator('tspan')).toHaveCount(2);
+  await expect(title.locator('tspan').last()).toHaveText('OpenAI');
+  expect(await height()).toBeCloseTo(start + 36.4 + 25, 1);
+  const moved = Number(await description.locator('tspan').first().getAttribute('y'));
+  expect(moved - before).toBeCloseTo(25, 1);
+
+  // One line again: the card goes back to the height it had.
+  const again = (await description.boundingBox())!;
+  await page.mouse.click(again.x + 6, again.y + 6);
+  await editor.fill('Entry point');
+  await page.keyboard.press('Enter');
+  await expect(description.locator('tspan')).toHaveText(['ENTRY POINT']);
+  expect(await height()).toBeCloseTo(start + 25, 1);
+  // Undo brings the three lines and their height back in one step.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(description.locator('tspan')).toHaveCount(3);
+  expect(await height()).toBeCloseTo(start + 36.4 + 25, 1);
+});
+
+test('the dialog keeps the lines of name and description (#254)', async ({ page }) => {
+  const card = await insertResourceCard(page);
+  await page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Ressourcenkarte bearbeiten' }).click();
+  const editor = page.getByTestId('resource-card-editor');
+  await editor.getByRole('textbox', { name: 'Name' }).fill('Azure\nOpenAI');
+  await editor.getByRole('textbox', { name: 'Beschreibung' }).fill('Entry point\nfor the mesh');
+  await editor.getByRole('button', { name: 'Speichern' }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(card.getByTestId('resource-card-title').locator('tspan')).toHaveText(['Azure', 'OpenAI']);
+  await expect(card.getByTestId('resource-card-description').locator('tspan')).toHaveText(['ENTRY POINT', 'FOR THE MESH']);
+  // Opened again, the fields show the lines as they were entered.
+  await page.getByRole('toolbar', { name: 'Eigenschaften' }).getByRole('button', { name: 'Ressourcenkarte bearbeiten' }).click();
+  await expect(editor.getByRole('textbox', { name: 'Name' })).toHaveValue('Azure\nOpenAI');
+  await expect(editor.getByRole('textbox', { name: 'Beschreibung' })).toHaveValue('Entry point\nfor the mesh');
+});
+
+test('the section "Cards" offers the card with a dashed frame and a bar of links in the frame colour (#257)', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const sidebar = page.getByTestId('shape-library-sidebar');
+  await sidebar.getByRole('button', { name: 'Cards', exact: true }).click();
+  await expect(sidebar.getByTestId('resource-card-tile-solid')).toBeVisible();
+  await sidebar.getByTestId('resource-card-tile-dashed').click();
+  await sidebar.getByRole('button', { name: 'Formen schließen' }).click();
+  const card = page.locator('[data-resource-icon-type]');
+  await expect(card).toHaveCount(1);
+  const surface = card.getByTestId('resource-card-surface');
+  const footer = card.getByTestId('resource-card-footer');
+
+  // A dashed frame, and a bar set in from it, filled with the colour of the frame.
+  const frame = await surface.evaluate((node) => { const style = getComputedStyle(node); return { dash: style.strokeDasharray, stroke: style.stroke }; });
+  expect(frame.dash).not.toBe('none');
+  expect(frame.stroke).toBe('rgb(159, 184, 189)');
+  expect(await footer.evaluate((node) => node.tagName.toLowerCase())).toBe('rect');
+  expect(await footer.evaluate((node) => getComputedStyle(node).fill)).toBe(frame.stroke);
+  expect(await footer.evaluate((node) => getComputedStyle(node).strokeDasharray === 'none' || getComputedStyle(node).stroke === 'none')).toBe(true);
+  const outer = (await surface.boundingBox())!;
+  const bar = (await footer.boundingBox())!;
+  expect(bar.x - outer.x).toBeGreaterThanOrEqual(8);
+  expect(outer.x + outer.width - (bar.x + bar.width)).toBeGreaterThanOrEqual(8);
+  expect(outer.y + outer.height - (bar.y + bar.height)).toBeGreaterThanOrEqual(8);
+  // The description is written as typed, not in capitals.
+  await expect(card.getByTestId('resource-card-description')).toHaveText('Beschreibung');
+
+  // Links stand in the bar, left-aligned, in the colour of the card's text.
+  const toolbar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await toolbar.getByRole('button', { name: 'Ressourcenkarte bearbeiten' }).click();
+  const editor = page.getByTestId('resource-card-editor');
+  await expect(editor.getByRole('combobox', { name: 'Darstellung' })).toContainText('Gestrichelt mit Link-Leiste');
+  await editor.getByRole('textbox', { name: 'Beschreibung' }).fill('Entry point for all mesh traffic\nand open for the internet');
+  await editor.getByRole('button', { name: 'Link hinzufügen' }).click();
+  await editor.getByRole('textbox', { name: 'Link 1 Bezeichnung' }).fill('LLM');
+  await editor.getByRole('textbox', { name: 'Link 1 Adresse' }).fill('https://example.com/llm');
+  await editor.getByRole('button', { name: 'Speichern' }).click();
+  await expect(editor).toHaveCount(0);
+  const link = card.getByTestId('resource-card-link-0');
+  await expect(link).toHaveText('LLM');
+  const label = (await link.locator('text').boundingBox())!;
+  const barNow = (await footer.boundingBox())!;
+  expect(label.x - barNow.x).toBeLessThan(24);
+  expect(label.y).toBeGreaterThanOrEqual(barNow.y);
+  expect(label.y + label.height).toBeLessThanOrEqual(barNow.y + barNow.height);
+  expect(await link.locator('text').evaluate((node) => getComputedStyle(node).fill)).toBe(await card.getByTestId('resource-card-title').evaluate((node) => getComputedStyle(node).fill));
+  await expect(card.getByTestId('resource-card-description').locator('tspan')).toHaveText(['Entry point for all mesh traffic', 'and open for the internet']);
+  await page.screenshot({ path: '/tmp/shots/card-dashed.png', clip: { x: Math.max(0, outer.x - 30), y: Math.max(0, outer.y - 30), width: outer.width + 60, height: outer.height + 90 } });
+
+  // The dialog switches an existing card to the classic look and back.
+  await toolbar.getByRole('button', { name: 'Ressourcenkarte bearbeiten' }).click();
+  await editor.getByRole('combobox', { name: 'Darstellung' }).click();
+  await page.getByRole('option', { name: 'Standard', exact: true }).click();
+  await editor.getByRole('button', { name: 'Speichern' }).click();
+  await expect(editor).toHaveCount(0);
+  expect(await footer.evaluate((node) => node.tagName.toLowerCase())).toBe('path');
+  expect(await surface.evaluate((node) => getComputedStyle(node).strokeDasharray)).toBe('none');
+  await expect(card.getByTestId('resource-card-description').locator('tspan').first()).toHaveText('ENTRY POINT FOR ALL MESH TRAFFIC');
+  expect((await new AxeBuilder({ page }).include('[data-testid="whiteboard-canvas"]').withTags(['wcag2a', 'wcag2aa']).analyze()).violations).toEqual([]);
+});

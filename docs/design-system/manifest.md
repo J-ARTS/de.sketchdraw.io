@@ -717,7 +717,7 @@ The pointers of the other people in a session, drawn over the canvas: an arrow i
 
 ### ResourceCardEditor
 
-The modal dialog that edits a resource card: name, description, icon and links.
+The modal dialog that edits a resource card: name, description, look, icon and links.
 
 - File: `src/renderer/design-system/organisms/ResourceCardEditor.vue`
 

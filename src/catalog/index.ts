@@ -48,6 +48,7 @@ export { builtInComponentSets } from './builtin';
 export * from './aws-groups';
 export * from './icon';
 export * from './resource-card';
+export * from './cloud-card';
 export { COMPONENT_PRESENTATION_KEY, ISOMETRIC_ICONS, ISOMETRIC_SET_ID, type IsometricIcon } from './isometric';
 export { figureLayout, isIconFigure, type FigureLayout } from './figure';
 

@@ -1,4 +1,4 @@
-<!-- @component The modal dialog that edits a resource card: name, description, icon and links. -->
+<!-- @component The modal dialog that edits a resource card: name, description, look, icon and links. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';
@@ -9,11 +9,15 @@ import {
   builtInComponentSets,
   isSafeResourceLinkUrl,
   nextResourceCardLinkId,
+  normalizeResourceCardText,
   resourceCardIconType,
   resourceCardLinks,
+  resourceCardLook,
+  resourceCardLookPatch,
   resourceCardMetadataPatch,
   searchCatalogComponents,
   type ResourceCardLink,
+  type ResourceCardLook,
 } from '@/catalog';
 import type { ComponentDefinition, ComponentSet, SketchDocument, SketchElement } from '@/domain';
 import { loadOfficialLibrary, searchOfficial, type OfficialProvider } from '@/renderer/lib/official-library';
@@ -37,7 +41,7 @@ interface IconItem { set: ComponentSet; component: ComponentDefinition }
 const ICON_LIMIT = 120;
 
 const dialog = ref<HTMLDialogElement>();
-const nameInput = ref<HTMLInputElement>();
+const nameInput = ref<HTMLTextAreaElement>();
 const title = ref('');
 const description = ref('');
 const iconType = ref('generic.service');
@@ -87,8 +91,18 @@ watch(iconLibrary, async (library) => {
   finally { libraryLoading.value = false; }
 });
 
+/** How the card is drawn (#257): the classic card or the one with a dashed frame and a bar of links. */
+const look = ref<ResourceCardLook>('solid');
+const lookOptions = computed(() => [
+  { value: 'solid', label: t('Standard') },
+  { value: 'dashed', label: t('Gestrichelt mit Link-Leiste') },
+]);
+/** Name and description take several lines (#254); the fields show as many as there are, within limits. */
+const rowsFor = (value: string, least: number, most: number): number => Math.max(least, Math.min(most, value.split('\n').length));
+
 function reset(): void {
   title.value = props.element.text || props.element.label || t('Ressourcenkarte');
+  look.value = resourceCardLook(props.element);
   description.value = props.element.description ?? '';
   iconType.value = resourceCardIconType(props.element);
   pickedSet.value = null;
@@ -156,16 +170,19 @@ function onNativeClose(): void {
 }
 async function save(): Promise<void> {
   if (busy.value) return;
-  const nextTitle = title.value.trim();
+  const nextTitle = normalizeResourceCardText(title.value);
   if (!nextTitle) { error.value = t('Bitte einen Namen eingeben.'); nameInput.value?.focus(); return; }
   busy.value = true;
   try {
     const metadata = resourceCardMetadataPatch(props.element.metadata, iconType.value, links.value);
+    // Another look brings its frame along; an unchanged look leaves the style alone.
+    const lookPatch = look.value !== resourceCardLook(props.element) ? resourceCardLookPatch(props.element, look.value) : null;
     const saved = await store.updateResourceCard(props.element.id, {
       text: nextTitle,
-      label: nextTitle,
-      description: description.value.trim() || null,
-      metadata,
+      label: nextTitle.replace(/\s*\n\s*/g, ' '),
+      description: normalizeResourceCardText(description.value) || null,
+      metadata: { ...metadata, ...lookPatch?.metadata },
+      ...(lookPatch ? { style: lookPatch.style } : {}),
     }, pickedSet.value ?? undefined);
     if (!saved) { error.value = t('Die Ressourcenkarte konnte nicht gespeichert werden.'); return; }
     error.value = '';
@@ -200,8 +217,9 @@ onBeforeUnmount(() => { closing = true; dialog.value?.close(); });
       </header>
 
       <div class="dialog-body">
-        <label class="field"><span>{{ t('Name') }}</span><input ref="nameInput" v-model="title" type="text" maxlength="200" autocomplete="off" /></label>
-        <label class="field"><span>{{ t('Beschreibung') }}</span><textarea v-model="description" rows="2" maxlength="500" /></label>
+        <label class="field"><span>{{ t('Name') }}</span><textarea ref="nameInput" v-model="title" class="name" data-testid="resource-card-name" :rows="rowsFor(title, 1, 4)" maxlength="200" autocomplete="off" /></label>
+        <label class="field"><span>{{ t('Beschreibung') }}</span><textarea v-model="description" data-testid="resource-card-description-input" :rows="rowsFor(description, 2, 8)" maxlength="500" /></label>
+        <div class="field look-field"><span id="resource-card-look-label">{{ t('Darstellung') }}</span><AppSelect v-model="look" data-testid="resource-card-look" :options="lookOptions" :label="t('Darstellung')" /></div>
 
         <section class="icon-section" aria-labelledby="resource-card-icon-heading">
           <div class="section-head">
@@ -289,6 +307,7 @@ onBeforeUnmount(() => { closing = true; dialog.value?.close(); });
 .field input,.field textarea,.search,.link-row input{box-sizing:border-box;border:1px solid var(--border-default);border-radius:10px;background:var(--surface-panel);color:var(--text-primary);font:inherit;font-size:14px}
 .field input{width:100%;height:44px;padding:0 14px}
 .field textarea{width:100%;min-height:64px;padding:11px 14px;resize:vertical;line-height:1.4}
+.field textarea.name{min-height:44px}
 .field input:focus,.field textarea:focus,.link-row input:focus,.search:focus-within{border-color:var(--accent);outline:0;background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
 .section-head{display:flex;align-items:center;gap:10px;min-height:36px}
 .section-head h3{flex:1;margin:0;font-size:16px}

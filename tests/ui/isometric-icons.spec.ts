@@ -18,8 +18,9 @@ test('the isometric library offers its symbols by category and places them as fr
   // The symbols are a library of their own; the section "Cards" offers the resource card only (#225).
   await library.getByRole('button', { name: 'Cards', exact: true }).click();
   await expect(library.getByRole('button', { name: 'Message Queue', exact: true })).toHaveCount(0);
-  await expect(library.locator('#shape-section-architecture .component-tile')).toHaveCount(1);
-  await expect(library.locator('#shape-section-architecture .component-tile')).toContainText('Ressourcenkarte');
+  // The resource card in its two looks (#257).
+  await expect(library.locator('#shape-section-architecture .component-tile')).toHaveCount(2);
+  await expect(library.locator('#shape-section-architecture .component-tile')).toContainText(['Ressourcenkarte', 'Ressourcenkarte, gestrichelt']);
   for (const name of ['Service', 'Database', 'Queue', 'User', 'Network']) await expect(library.locator('#shape-section-architecture').getByRole('button', { name, exact: true })).toHaveCount(0);
   await expect(library.getByRole('button', { name: 'Architektur', exact: true })).toHaveCount(0);
   await library.getByTestId('open-isometric-library').click();

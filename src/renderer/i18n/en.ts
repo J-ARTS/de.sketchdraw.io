@@ -1632,4 +1632,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Exportiert wird ein Mermaid-Flowchart.': 'A Mermaid flowchart is exported.',
   'In die aktuelle Seite einfügen': 'Insert into the current page',
   'Session-Link kopieren': 'Copy session link',
+  'Ressourcenkarte, gestrichelt': 'Resource card, dashed',
+  'Gestrichelt mit Link-Leiste': 'Dashed with link bar',
+  'Darstellung': 'Look',
 };

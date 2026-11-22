@@ -1,10 +1,12 @@
-import type { ComponentSet } from '@/domain';
+import type { ComponentSet, ElementPatch } from '@/domain';
 
 export const COMPONENT_DRAG_MIME = 'application/x-sketchdraw-component';
 
 export interface ComponentDragPayload {
   set: ComponentSet;
   type: string;
+  /** Changes the new element gets on top of its definition, for a tile that offers a variant of a component. */
+  variant?: ElementPatch;
 }
 
 let activePayload: ComponentDragPayload | null = null;

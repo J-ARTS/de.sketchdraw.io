@@ -17,7 +17,7 @@ import BpmnDecor from '@/renderer/design-system/molecules/BpmnDecor.vue';
 import { describeElement } from '@/renderer/lib/describe';
 import SafeIcon from '@/renderer/design-system/atoms/SafeIcon';
 import { shapeEntryForElement } from '@/renderer/lib/shapes';
-import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLinks, RESOURCE_CARD_TEXT_COLOR, type ResourceCardField } from '@/catalog';
+import { awsGroupOf, builtInComponentSets, groupChrome, groupTileSvg, cloudCardLayout, cloudCardUsesThemeSurface, cloudProviderLabel, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLines, resourceCardLinks, RESOURCE_CARD_TEXT_COLOR, type ResourceCardField } from '@/catalog';
 import AnnotationContent from '@/renderer/design-system/molecules/AnnotationContent.vue';
 import TableContent from '@/renderer/design-system/molecules/TableContent.vue';
 
@@ -57,19 +57,18 @@ const cloudProvider = computed(() => {
   return provider === 'aws' || provider === 'azure' || provider === 'gcp' || provider === 'kubernetes' ? provider : null;
 });
 const cloudCard = computed(() => Boolean(cloudProvider.value) && e.value.width >= 120 && e.value.height >= 120);
-const cloudProviderLabel = computed(() => cloudProvider.value === 'gcp' ? 'GCP' : cloudProvider.value?.toUpperCase() ?? '');
-/** Components are created with these style defaults; as long as they are untouched the card keeps its themed surface. */
-const COMPONENT_DEFAULT_FILL = '#ffffff';
-const COMPONENT_DEFAULT_STROKE = '#1e293b';
-const cloudFill = computed(() => [COMPONENT_DEFAULT_FILL, definition.value?.style?.fill].includes(e.value.style.fill) ? 'var(--surface-raised)' : fill.value);
-const cloudStroke = computed(() => [COMPONENT_DEFAULT_STROKE, definition.value?.style?.stroke].includes(e.value.style.stroke) ? 'var(--border-subtle)' : stroke.value);
-const cloudIconSize = computed(() => Math.max(40, Math.min(64, e.value.width * .38, e.value.height * .38)));
+const providerLabel = computed(() => cloudProvider.value ? cloudProviderLabel(cloudProvider.value) : '');
+/** A card that still has the colours it was created with takes the surface of the theme; the layout is shared with the exports (#259). */
+const cloudTheme = computed(() => cloudCardUsesThemeSurface(e.value, definition.value));
+const cloudFill = computed(() => cloudTheme.value.fill ? 'var(--surface-raised)' : fill.value);
+const cloudStroke = computed(() => cloudTheme.value.stroke ? 'var(--border-subtle)' : stroke.value);
+const cloudLayout = computed(() => cloudCardLayout(e.value, text.value || definition.value?.name || t('Komponente')));
+const cloudIconSize = computed(() => cloudLayout.value.icon.size);
 const definitions = computed(() => [...props.document.componentSets, ...builtInComponentSets].flatMap((set) => set.components));
 const resourceIcon = computed(() => definitions.value.find((candidate) => candidate.type === resourceCardIconType(e.value)) ?? definition.value);
 const cardLinks = computed(() => resourceCardLinks(e.value));
 const cardLayout = computed(() => resourceCardLayout(e.value));
 const cardFooterHeight = computed(() => cardLayout.value.footerHeight);
-const cardBodyHeight = computed(() => cardLayout.value.bodyHeight);
 const cardIconSize = computed(() => cardLayout.value.iconSize);
 const cardTextX = computed(() => cardLayout.value.textX);
 /** Resource card text is black unless a text colour was chosen; it does not follow the frame colour (#189). */
@@ -79,36 +78,27 @@ function clampCardText(value: string, size: number): string {
   const max = Math.max(3, Math.floor(available / (size * .58)));
   return value.length > max ? `${Array.from(value).slice(0, Math.max(1, max - 1)).join('')}…` : value;
 }
-function clampCardLinkLabel(value: string, count: number, size: number): string {
-  const available = Math.max(20, e.value.width / Math.max(1, count) - 16);
+/** The dashed look (#257) writes its texts as typed; the classic card sets description and links in capitals. */
+const cardDashed = computed(() => cardLayout.value.look === 'dashed');
+const cardLinkWidth = computed(() => cardLayout.value.footer.width / Math.max(1, cardLinks.value.length));
+function clampCardLinkLabel(value: string, size: number): string {
+  const available = Math.max(20, cardLinkWidth.value - (cardDashed.value ? 28 : 16));
   const max = Math.max(3, Math.floor(available / (size * .58)));
-  const characters = Array.from(value.toUpperCase());
+  const characters = Array.from(cardDashed.value ? value : value.toUpperCase());
   return characters.length > max ? `${characters.slice(0, Math.max(1, max - 1)).join('')}…` : characters.join('');
 }
-const cardTitle = computed(() => clampCardText(e.value.text || e.value.label || 'Ressourcenkarte', Math.max(14, e.value.style.fontSize)));
-const cardDescription = computed(() => clampCardText((e.value.description || 'BESCHREIBUNG').toUpperCase(), Math.max(10, e.value.style.fontSize * .65)));
+/** Title and description are drawn line by line (#254); a line that is wider than the card is cut. */
+const cardTitleLines = computed(() => resourceCardLines(e.value.text || e.value.label || 'Ressourcenkarte').map((line) => clampCardText(line, cardLayout.value.title.fontSize)));
+const cardDescriptionLines = computed(() => {
+  const placeholder = cardDashed.value ? 'Beschreibung' : 'BESCHREIBUNG';
+  return resourceCardLines(e.value.description || placeholder).map((line) => clampCardText(cardDashed.value ? line : line.toUpperCase(), cardLayout.value.description.fontSize));
+});
 /** The text that is shown. A text the user emptied stays empty; the label stands in only where no text was ever set (#258). */
 const text = computed(() => e.value.text ?? e.value.label ?? '');
-function wrapCloudTitle(value: string): string[] {
-  const max = Math.max(8, Math.floor((e.value.width - 24) / 8));
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  for (const word of words) {
-    if (!lines.length) { lines.push(word); continue; }
-    const candidate = `${lines[lines.length - 1]} ${word}`;
-    if (candidate.length <= max || lines.length >= 2) lines[lines.length - 1] = candidate;
-    else lines.push(word);
-  }
-  return lines.slice(0, 2).map((line) => line.length > max ? `${line.slice(0, Math.max(1, max - 1))}…` : line);
-}
-const cloudTitleLines = computed(() => wrapCloudTitle(text.value || definition.value?.name || t('Komponente')));
+const cloudTitleLines = computed(() => cloudLayout.value.title.lines);
 const CLOUD_TITLE_LINE_HEIGHT = 18;
-const CLOUD_PROVIDER_GAP = 24;
-const cloudTitleY = computed(() => cloudTitleLines.value.length > 1 ? Math.max(94, 24 + cloudIconSize.value) : Math.max(104, 30 + cloudIconSize.value));
-const cloudProviderY = computed(() => Math.min(
-  e.value.height - 12,
-  cloudTitleY.value + (cloudTitleLines.value.length - 1) * CLOUD_TITLE_LINE_HEIGHT + CLOUD_PROVIDER_GAP,
-));
+const cloudTitleY = computed(() => cloudLayout.value.title.y);
+const cloudProviderY = computed(() => cloudLayout.value.providerY);
 const displayText = computed(() => e.value.kind === 'sticky-note' && !text.value ? t('Schreib etwas, @erwähne jemanden') : text.value);
 const annotation = computed(() => e.value.annotation ?? createAnnotationDocument(e.value.text ?? ''));
 const fontSize = computed(() => e.value.style.fontSize);
@@ -202,7 +192,8 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       </svg>
       <template v-else-if="resourceCard">
         <rect data-testid="resource-card-surface" :width="e.width" :height="e.height" rx="8" />
-        <path :d="`M0 ${e.height - cardFooterHeight} H${e.width} V${e.height - 8} Q${e.width} ${e.height} ${e.width - 8} ${e.height} H8 Q0 ${e.height} 0 ${e.height - 8} Z`" fill="var(--accent-soft)" stroke="none" />
+        <rect v-if="cardDashed" data-testid="resource-card-footer" :x="cardLayout.footer.x" :y="cardLayout.footer.y" :width="cardLayout.footer.width" :height="cardLayout.footer.height" rx="3" :fill="stroke" fill-opacity=".22" stroke="none" />
+        <path v-else data-testid="resource-card-footer" :d="`M0 ${e.height - cardFooterHeight} H${e.width} V${e.height - 8} Q${e.width} ${e.height} ${e.width - 8} ${e.height} H8 Q0 ${e.height} 0 ${e.height - 8} Z`" fill="var(--accent-soft)" stroke="none" />
       </template>
       <rect v-else-if="cloudCard" data-testid="cloud-component-surface" :width="e.width" :height="e.height" rx="14" :fill="cloudFill" :stroke="cloudStroke" :stroke-width="Math.max(1, e.style.strokeWidth)" />
       <rect v-else-if="group" data-testid="aws-group-surface" :data-group="group.id" :width="e.width" :height="e.height" rx="0" />
@@ -219,7 +210,7 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
     <BpmnDecor v-if="bpmn" :element="e" :decoration="bpmn" :stroke="stroke" :fill="fill" :text-color="textColor" :editing="editing" />
     <SequenceDecor v-if="sequencePart" :element="e" :stroke="stroke" :text-color="textColor" :editing="editing" />
     <svg v-if="group && chrome?.icon && groupTile" data-testid="aws-group-icon" :x="chrome.icon.x" :y="chrome.icon.y" :width="chrome.icon.size" :height="chrome.icon.size" pointer-events="none"><SafeIcon :source="groupTile" :size="chrome.icon.size" /></svg>
-    <svg v-else-if="resourceCard" :x="20" :y="Math.max(10, (cardBodyHeight - cardIconSize) / 2)" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
+    <svg v-else-if="resourceCard" :x="cardLayout.icon.x" :y="cardLayout.icon.y" :width="cardIconSize" :height="cardIconSize"><SafeIcon :source="resourceIcon?.iconSvg" :size="cardIconSize" /></svg>
     <svg v-else-if="cloudCard" :x="e.width / 2 - cloudIconSize / 2" y="16" :width="cloudIconSize" :height="cloudIconSize"><SafeIcon :source="definition?.iconSvg" :size="cloudIconSize" /></svg>
     <svg v-else-if="figure" data-testid="icon-figure" :x="figure.icon.x" :y="figure.icon.y" :width="figure.icon.size" :height="figure.icon.size" :color="stroke" pointer-events="none"><SafeIcon :source="figureIcon" :size="figure.icon.size" /></svg>
     <svg v-else-if="e.kind === 'component'" :x="e.width / 2 - 16" :y="Math.max(8, e.height * .15)" width="32" height="32"><SafeIcon :source="definition?.iconSvg" /></svg>
@@ -227,18 +218,18 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
       <text data-testid="cloud-component-title" :x="e.width / 2" :y="cloudTitleY" :fill="textColor" font-size="14" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle">
         <tspan v-for="(line, index) in cloudTitleLines" :key="`${index}:${line}`" :x="e.width / 2" :dy="index === 0 ? 0 : CLOUD_TITLE_LINE_HEIGHT">{{ line }}</tspan>
       </text>
-      <text data-testid="cloud-component-provider" :x="e.width / 2" :y="cloudProviderY" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ cloudProviderLabel }}</text>
+      <text data-testid="cloud-component-provider" :x="e.width / 2" :y="cloudProviderY" fill="var(--text-muted)" font-size="12" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" text-anchor="middle">{{ providerLabel }}</text>
     </g>
     <g v-if="resourceCard" data-testid="resource-card-content" pointer-events="none">
-      <text v-if="editingField !== 'title'" data-testid="resource-card-title" :x="cardTextX" :y="cardLayout.title.y" :fill="cardTextColor" :font-size="cardLayout.title.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central">{{ cardTitle }}</text>
-      <text v-if="editingField !== 'description'" data-testid="resource-card-description" :x="cardTextX" :y="cardLayout.description.y" :fill="cardTextColor" :font-size="cardLayout.description.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ cardDescription }}</text>
+      <text v-if="editingField !== 'title'" data-testid="resource-card-title" :fill="cardTextColor" :font-size="cardLayout.title.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="600" dominant-baseline="central"><tspan v-for="(line, index) in cardTitleLines" :key="index" :x="cardTextX" :y="cardLayout.title.y + index * cardLayout.title.lineHeight">{{ line }}</tspan></text>
+      <text v-if="editingField !== 'description'" data-testid="resource-card-description" :fill="cardTextColor" :font-size="cardLayout.description.fontSize" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central"><tspan v-for="(line, index) in cardDescriptionLines" :key="index" :x="cardTextX" :y="cardLayout.description.y + index * cardLayout.description.lineHeight">{{ line }}</tspan></text>
     </g>
     <template v-if="resourceCard">
       <g
         v-for="(link, index) in cardLinks"
         :key="link.id"
         :data-testid="`resource-card-link-${index}`"
-        :transform="`translate(${index * e.width / cardLinks.length} ${e.height - cardFooterHeight})`"
+        :transform="`translate(${cardLayout.footer.x + index * cardLinkWidth} ${cardLayout.footer.y})`"
         :role="staticPreview ? undefined : 'link'"
         :tabindex="staticPreview ? -1 : 0"
         :pointer-events="staticPreview ? 'none' : 'all'"
@@ -248,9 +239,10 @@ const frameTitle = computed(() => e.value.label?.trim() || t('Folie'));
         @keydown.enter.stop.prevent="emit('openLink', link.url)"
         @keydown.space.stop.prevent="emit('openLink', link.url)"
       >
-        <rect :width="e.width / cardLinks.length" :height="cardFooterHeight" fill="transparent" stroke="none" />
-        <line v-if="index" y1="7" :y2="cardFooterHeight - 7" stroke="var(--border-default)" stroke-width="1" />
-        <text :x="e.width / cardLinks.length / 2" :y="cardFooterHeight / 2" fill="var(--accent)" :font-size="Math.max(10, Math.min(14, e.style.fontSize * .65))" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle" dominant-baseline="central">{{ clampCardLinkLabel(link.label, cardLinks.length, Math.max(10, e.style.fontSize * .65)) }}</text>
+        <rect :width="cardLinkWidth" :height="cardFooterHeight" fill="transparent" stroke="none" />
+        <line v-if="index" y1="7" :y2="cardFooterHeight - 7" :stroke="cardDashed ? stroke : 'var(--border-default)'" stroke-width="1" />
+        <text v-if="cardDashed" x="14" :y="cardFooterHeight / 2" :fill="cardTextColor" :font-size="Math.max(10, Math.min(14, e.style.fontSize * .65))" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="500" dominant-baseline="central">{{ clampCardLinkLabel(link.label, Math.max(10, e.style.fontSize * .65)) }}</text>
+        <text v-else :x="cardLinkWidth / 2" :y="cardFooterHeight / 2" fill="var(--accent)" :font-size="Math.max(10, Math.min(14, e.style.fontSize * .65))" :font-family="fontFamilyCss(e.style.fontFamily)" font-weight="650" text-anchor="middle" dominant-baseline="central">{{ clampCardLinkLabel(link.label, Math.max(10, e.style.fontSize * .65)) }}</text>
       </g>
     </template>
     <g v-if="e.kind === 'frame'" data-testid="frame-label" pointer-events="none">

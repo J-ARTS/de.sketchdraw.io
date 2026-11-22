@@ -628,7 +628,8 @@ export interface WhiteboardStore {
   toggleCatalog(): void;
   setCatalogOpen(open: boolean): void;
   /** Inserts a component at the canvas centre or, when supplied, centred on a screen-space point. */
-  insertComponent(set: ComponentSet, type: string, screenAt?: Point): Promise<void>;
+  /** Places a component; `variant` are changes the new element gets on top of its definition (e.g. the dashed card, #257). */
+  insertComponent(set: ComponentSet, type: string, screenAt?: Point, variant?: ElementPatch): Promise<void>;
   /**
    * Writes the resource card dialog's changes as one undo step. `iconSet` is the set of a newly picked icon; a set
    * the document does not have yet (a provider library) is added with the same command, so the icon can be drawn.
