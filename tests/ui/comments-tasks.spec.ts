@@ -63,6 +63,46 @@ test('the task board creates, edits, moves and deletes a standalone task', async
   await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
 });
 
+test('a status chosen in the task form takes effect on save; Cancel and Escape leave the card where it is (#273)', async ({ page }) => {
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
+  const board = page.getByTestId('task-board');
+  await board.getByRole('button', { name: 'Neue Aufgabe' }).click();
+  await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByRole('textbox', { name: 'Titel' }).fill('Status prüfen');
+  await page.getByRole('button', { name: 'Aufgabe erstellen' }).click();
+  const todo = board.locator('[data-status="todo"]'); const doing = board.locator('[data-status="doing"]');
+  await expect(todo).toContainText('Status prüfen');
+  const dialog = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  const chooseDoing = async () => {
+    await board.locator('.card-open').filter({ hasText: 'Status prüfen' }).click();
+    await dialog.getByRole('combobox', { name: 'Status', exact: true }).click();
+    await page.getByRole('listbox', { name: 'Status', exact: true }).getByRole('option', { name: 'In Arbeit', exact: true }).click();
+    await expect(dialog.getByRole('combobox', { name: 'Status', exact: true })).toContainText('In Arbeit');
+    // The card has not moved while the form is open.
+    await expect(todo).toContainText('Status prüfen'); await expect(doing).not.toContainText('Status prüfen');
+  };
+
+  await chooseDoing();
+  await dialog.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(todo).toContainText('Status prüfen'); await expect(doing).not.toContainText('Status prüfen');
+
+  await chooseDoing();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(todo).toContainText('Status prüfen'); await expect(doing).not.toContainText('Status prüfen');
+
+  // Reopened, the form shows the status of the task again, not the abandoned choice.
+  await board.locator('.card-open').filter({ hasText: 'Status prüfen' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Status', exact: true })).toContainText('Offen');
+  await page.keyboard.press('Escape');
+
+  await chooseDoing();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(doing).toContainText('Status prüfen'); await expect(todo).not.toContainText('Status prüfen');
+});
+
 test('comments support pins, replies, editing, sidebar focus and a linked task board', async ({ page }) => {
   await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
   await page.mouse.move(300, 210); await page.mouse.down(); await page.mouse.move(520, 350); await page.mouse.up();

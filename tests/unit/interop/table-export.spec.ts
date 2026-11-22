@@ -79,11 +79,11 @@ describe('draw.io table export colors (#180)', () => {
     expect(imported.diagnostics).toContainEqual(expect.objectContaining({ code: 'EMBEDDED_MODEL_STALE' }));
   });
 
-  it('restores new v2 exports and respects visible edits after metadata becomes stale', () => {
+  it('restores exports of today and respects visible edits after metadata becomes stale', () => {
     const doc = tableDocument('#123456', '#abcdef');
     const output = prepareDrawioExport(doc).contents;
     const encoded = /sketchdrawInterop="([^"]+)"/.exec(output)![1]!;
-    expect(JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')).projection).toBe('drawio-v2');
+    expect(JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')).projection).toBe('drawio-v3'); // the table colours came with picture 2; picture 3 keeps them
     expect(serializeDocument(importDrawio(output).document)).toBe(serializeDocument(doc));
     const edited = importDrawio(output.replace('fontColor=#123456;', 'fontColor=#654321;'));
     expect(edited.diagnostics).toContainEqual(expect.objectContaining({ code: 'EMBEDDED_MODEL_STALE' }));

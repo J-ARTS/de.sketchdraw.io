@@ -1,6 +1,7 @@
 import { awsGroupByDrawioIcon, awsGroupById, GROUP_METADATA_KEY, type AwsGroup } from '../catalog/aws-groups';
 import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, MAX_TABLE_CELLS, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
-import type { ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
+import type { ComponentSet, ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
+import { builtInComponentSets } from '../catalog';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
@@ -72,8 +73,22 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
   }
   return result;
 }
-const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind']);
+const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind', 'noLabel', 'sketchdrawComponent', 'sketchdrawDescription']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
+function safeDecode(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try { return decodeURIComponent(value); } catch { return undefined; }
+}
+/** The component of the built-in library that an own export names in `sketchdrawComponent`. */
+function builtInComponent(encoded: string): { set: ComponentSet; definition: ComponentSet['components'][number] } | undefined {
+  const type = safeDecode(encoded);
+  if (!type) return undefined;
+  for (const set of builtInComponentSets) {
+    const definition = set.components.find(candidate => candidate.type === type);
+    if (definition) return { set, definition };
+  }
+  return undefined;
+}
 /** Styles of draw.io's AWS group shapes that the group look already covers (#143). */
 const GROUP_STYLE_KEYS = new Set(['sketchdrawGroup', 'grIcon', 'grStroke', 'grIconSize', 'spacingLeft', 'spacingTop', 'pointerEvents', 'collapsible', 'recursiveResize', 'outlineConnect', 'gradientColor', 'points']);
 /** The AWS group a vertex stands for: our own marker, or draw.io's `mxgraph.aws4.group` with a known icon. */
@@ -317,7 +332,13 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     const s = cell.style, hasChildren = (childCounts.get(cell.id) ?? 0) > 0;
     const shapeVariant = typeof s['sketchdrawShapeVariant'] === 'string' && shapeVariants.has(s['sketchdrawShapeVariant'] as ShapeVariant) ? s['sketchdrawShapeVariant'] as ShapeVariant : undefined;
     const group = awsGroupOfStyle(s);
-    let kind: SketchElement['kind'] = group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
+    // A component of an own export is a picture of its card that names its type (#260). A type of the built-in
+    // library becomes that component again; any other one cannot be rebuilt without the embedded document.
+    const namesComponent = !group && typeof s['sketchdrawComponent'] === 'string';
+    const ownComponent = namesComponent ? builtInComponent(s['sketchdrawComponent']!) : undefined;
+    if (namesComponent && !ownComponent)
+      warn(ctx, cell.node, 'COMPONENT_DEFINITION_MISSING', 'sketchdrawComponent', 'The component is not part of the built-in library; it is represented by an editable rectangle with its text.');
+    let kind: SketchElement['kind'] = ownComponent ? 'component' : namesComponent ? 'rectangle' : group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
     if (!group && !shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
@@ -355,7 +376,10 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
       entry.text = tableRows![rowIndex]?.[columnIndex] ?? '';
       entry.style = { fill: cellFill!, color: cellInk!, fontSize: outerStyle.fontSize, fontFamily: outerStyle.fontFamily ?? 'sans', fontWeight: outerStyle.fontWeight ?? 'normal', textDecoration: outerStyle.textDecoration ?? 'none', listStyle: outerStyle.listStyle ?? 'none', textAlign: outerStyle.textAlign };
     });
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
+    if (ownComponent && !ctx.document.componentSets.some(set => set.id === ownComponent.set.id))
+      ctx.document.componentSets.push(JSON.parse(JSON.stringify(ownComponent.set)) as ComponentSet);
+    const description = ownComponent ? safeDecode(s['sketchdrawDescription']) : undefined;
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, ...(ownComponent ? { componentType: ownComponent.definition.type, label: ownComponent.definition.name, ...(description ? { description } : {}) } : {}), text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId && !namesComponent ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }

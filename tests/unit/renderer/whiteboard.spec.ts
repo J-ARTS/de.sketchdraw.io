@@ -335,6 +335,38 @@ describe('draft and lifecycle recovery', () => {
     expect(store.state.dialog?.kind).toBe('unsaved'); expect(store.state.document.elements).toHaveLength(1);
     await store.resolveDialog('cancel'); expect(store.state.transitioning).toBe(false);
   });
+  test('a link set on unchanged text is an open draft: closing asks, saving keeps the link, discarding drops it (#268)', async () => {
+    const note = createElement('sticky-note', { id: 'note:1', x: 100, y: 100, text: 'Hallo' });
+    const document = createDocument('Notiz'); document.elements = [{ ...note, pageId: document.pages[0]!.id }];
+    const linkOnly = async (bridgeOverrides: Partial<DesktopBridge> = {}) => {
+      const context = setup(bridgeOverrides, structuredClone(document));
+      await context.store.save(); expect(context.store.needsCloseWarning()).toBe(false);
+      context.store.startTextEdit('note:1');
+      expect(context.store.setTextLink(0, 5, 'https://example.com')).toBe(true);
+      // Not one letter changed, yet there is something to lose.
+      expect(context.store.state.textEdit!.draft).toBe('Hallo');
+      expect(context.store.state.hasDraft).toBe(true); expect(context.store.needsCloseWarning()).toBe(true);
+      return context;
+    };
+    const savedLinks = (bridge: DesktopBridge) => deserializeDocument(vi.mocked(bridge.saveDocument).mock.calls.at(-1)![0].text).elements[0]!.metadata ?? {};
+
+    const saving = await linkOnly(); saving.close(); await tick();
+    expect(saving.store.state.dialog?.kind).toBe('unsaved');
+    await saving.store.resolveDialog('save');
+    expect(saving.bridge.respondToClose).toHaveBeenCalledWith('close-1', 'close');
+    expect(JSON.stringify(savedLinks(saving.bridge))).toContain('https://example.com');
+
+    const cancelling = await linkOnly(); cancelling.close(); await tick();
+    await cancelling.store.resolveDialog('cancel');
+    expect(cancelling.bridge.respondToClose).toHaveBeenCalledWith('close-1', 'cancel');
+    expect(cancelling.store.state.textEdit?.links).toHaveLength(1);
+
+    const discarding = await linkOnly(); const writes = vi.mocked(discarding.bridge.saveDocument).mock.calls.length; discarding.close(); await tick();
+    await discarding.store.resolveDialog('discard');
+    expect(discarding.bridge.respondToClose).toHaveBeenCalledWith('close-1', 'close');
+    expect(vi.mocked(discarding.bridge.saveDocument).mock.calls).toHaveLength(writes);
+    expect(JSON.stringify(savedLinks(discarding.bridge))).not.toContain('https://example.com');
+  });
   test('successful close saves both title and text drafts under final write barrier', async () => {
     const { store, bridge, close } = setup();
     store.updateTitleDraft('Entwurfstitel'); store.startTextEdit(); store.setTextDraft('Noch nicht übernommen');

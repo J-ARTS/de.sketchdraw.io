@@ -74,6 +74,45 @@ describe('plugin store integration', () => {
     store.dispose();
   });
 
+  it('sends a changed title and description to Jira, so the next sync keeps them (#270)', async () => {
+    const document = createDocument('Jira texts');
+    document.tasks = [{
+      id: 'task:jira', title: 'Review', description: 'Old text', status: 'todo', rank: 0,
+      createdAt: '2026-10-18T09:00:00.000Z', updatedAt: '2026-10-18T09:00:00.000Z',
+      external: { provider: 'jira', remoteId: '100', key: 'SK-1', url: 'https://example.atlassian.net/browse/SK-1', remoteStatus: 'To Do', updatedAt: '2026-10-18T09:00:00.000Z' },
+    }];
+    const { store, plugins } = await setup(document);
+    // A stand-in for Jira: it keeps what it is sent and answers the next sync with it.
+    const remote = { id: '100', key: 'SK-1', title: 'Review', description: 'Old text', status: 'todo' as const, remoteStatus: 'To Do', url: 'https://example.atlassian.net/browse/SK-1', updatedAt: '2026-10-18T10:00:00.000Z' };
+    vi.mocked(plugins.updateJiraIssue).mockImplementation(async (input) => { if (input.title !== undefined) remote.title = input.title; if (input.description !== undefined) remote.description = input.description; return { ...remote }; });
+    vi.mocked(plugins.listJiraIssues).mockImplementation(async () => [{ ...remote }]);
+
+    expect(await store.updateTask('task:jira', { title: 'Review the API', description: 'First line\nSecond line' })).toBe(true);
+    expect(plugins.updateJiraIssue).toHaveBeenCalledWith({ key: 'SK-1', title: 'Review the API', description: 'First line\nSecond line' });
+    expect(await store.syncJiraTasks({ announce: false })).toBe(true);
+    expect(store.state.document.tasks?.[0]).toMatchObject({ title: 'Review the API', description: 'First line\nSecond line' });
+
+    // An unchanged text is not sent again: the description in Jira is replaced as plain text, so only a change may do that.
+    vi.mocked(plugins.updateJiraIssue).mockClear();
+    expect(await store.updateTask('task:jira', { title: 'Review the API', description: 'First line\nSecond line', type: 'bug' })).toBe(true);
+    expect(plugins.updateJiraIssue).not.toHaveBeenCalled();
+    store.dispose();
+  });
+
+  it('says so when Jira refuses a changed text', async () => {
+    const document = createDocument('Jira refusal');
+    document.tasks = [{
+      id: 'task:jira', title: 'Review', description: '', status: 'todo', rank: 0,
+      createdAt: '2026-10-18T09:00:00.000Z', updatedAt: '2026-10-18T09:00:00.000Z',
+      external: { provider: 'jira', remoteId: '100', key: 'SK-1', url: 'https://example.atlassian.net/browse/SK-1', remoteStatus: 'To Do', updatedAt: '2026-10-18T09:00:00.000Z' },
+    }];
+    const { store, plugins } = await setup(document);
+    vi.mocked(plugins.updateJiraIssue).mockRejectedValueOnce(new Error('Feld gesperrt.'));
+    expect(await store.updateTask('task:jira', { title: 'Neuer Titel' })).toBe(true);
+    expect(store.state.notices.at(-1)).toMatchObject({ kind: 'error', text: 'Jira hat die Änderung nicht übernommen: Feld gesperrt. Beim nächsten Abgleich gilt wieder der Stand aus Jira.' });
+    store.dispose();
+  });
+
   it('pushes changed assignee and due date from a linked Sketchdraw task to Jira', async () => {
     const document = createDocument('Jira fields');
     document.tasks = [{

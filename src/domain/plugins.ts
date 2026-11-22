@@ -213,6 +213,10 @@ export interface CreateJiraIssueInput {
 
 export interface UpdateJiraIssueInput {
   key: string;
+  /** The summary of the issue; left out when the title did not change. */
+  title?: string;
+  /** The description as plain text; it replaces the description in Jira, so it is only sent when it changed. */
+  description?: string;
   assignee?: string | null;
   dueDate?: string | null;
 }

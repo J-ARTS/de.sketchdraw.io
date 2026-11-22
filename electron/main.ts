@@ -26,6 +26,7 @@ import type {
   SaveDocumentResult,
 } from '../src/domain/types';
 import { CloseHandshakeCoordinator } from './close-handshake';
+import { QuitLifecycle } from './quit-lifecycle';
 import { installElectronAgentBridge } from './agent-access/electron-bridge';
 import {
   IPC_CHANNELS,
@@ -74,6 +75,8 @@ let updateService: UpdateService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let pluginService: PluginService | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
+/** Finishes a confirmed quit after the window closed and ends the services only at the real end (#218). */
+let quitLifecycle: QuitLifecycle | null = null;
 let activeTarget: RendererTarget | null = null;
 let directService: DirectService | null = null;
 let relayHelper: PeerRelayHelper | null = null;
@@ -415,7 +418,7 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       if (!closeCoordinator) {
         throw new Error('Close handshake coordinator is not initialized.');
       }
-      closeCoordinator.handleRendererResponse(rawPayload);
+      quitLifecycle?.onCloseDecision(closeCoordinator.handleRendererResponse(rawPayload));
     },
   );
 
@@ -567,6 +570,7 @@ async function createMainWindow(target: RendererTarget): Promise<BrowserWindow> 
       mainWindow = null;
       closeCoordinator = null;
     }
+    quitLifecycle?.onWindowClosed();
   });
 
   mainWindow = win;
@@ -668,7 +672,15 @@ void app
     pluginService = plugins;
     const updates = createUpdateService();
     updateService = updates;
-    app.once('before-quit', () => { pluginService = null; plugins.dispose(); disposeDirectService(); updates.dispose(); });
+    const lifecycle = new QuitLifecycle({
+      quit: () => app.quit(),
+      windowCount: () => BrowserWindow.getAllWindows().length,
+      disposeServices: () => { pluginService = null; plugins.dispose(); disposeDirectService(); updates.dispose(); },
+    });
+    quitLifecycle = lifecycle;
+    // A quit can still be cancelled in the dialog for unsaved work; the services stay until it is final.
+    app.on('before-quit', () => lifecycle.onBeforeQuit());
+    app.on('will-quit', () => lifecycle.onWillQuit());
     registerIpcHandlers(persistence, plugins);
     applyBranding();
     Menu.setApplicationMenu(buildApplicationMenu());

@@ -1,7 +1,7 @@
 import { createElement, DOMAIN_LIMITS, serializeDocument, validateDocument } from '../domain';
 import type { ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { utf8ByteLength } from '../domain/validation';
-import { add, context, decodeEnvelope, encodeEnvelope, fail, finish, importBoundary, type ImportContext } from './common';
+import { add, context, CURRENT_PROJECTION, decodeEnvelopeWithProjection, encodeEnvelope, fail, finish, importBoundary, type ImportContext, type ProjectionVersion } from './common';
 import { DiagnosticCollector, hasWarningDiagnostics, sanitizeXml10Text, XmlOutputBuilder } from './diagnostics';
 import { INTEROP_LIMITS } from './limits';
 import { InteropError, type ImportOptions, type InteropExportOptions, type InteropExportResult, type InteropImportResult } from './types';
@@ -367,9 +367,9 @@ export function importMermaid(source: string, options: ImportOptions = {}): Inte
     const input = extract(source), ctx = context('mermaid', 'Imported Mermaid');
     if (input.envelope !== undefined) {
       try {
-        const document = decodeEnvelope(input.envelope, 'mermaid');
+        const { document, projectionVersion } = decodeEnvelopeWithProjection(input.envelope, 'mermaid');
         const page = document.pages[input.pageIndex ?? -1];
-        if (!page || projection(document, page.id, new DiagnosticCollector()).trim() !== input.visible.replace(/\r\n/g, '\n'))
+        if (!page || projection(document, page.id, new DiagnosticCollector(), projectionVersion).trim() !== input.visible.replace(/\r\n/g, '\n'))
           fail('EMBEDDED_MODEL_STALE', 'Visible Mermaid no longer matches its embedded document.');
         ctx.diagnostics.add({ code: 'EMBEDDED_MODEL_RESTORED', severity: 'info', effect: 'preserved-as-data', property: 'metadata', pageIndex: input.pageIndex,
           message: `Mermaid: Restored the complete embedded document (${document.pages.length} pages). The visible projection was verified against page ${input.pageIndex! + 1}: ${page.name}. Other pages, assets, comments and tasks come from the embedded native document.` });
@@ -399,8 +399,31 @@ function escaped(value: string, d: DiagnosticCollector, elementId: string): stri
   // quoted labels. Encode them and slashes rather than exposing that syntax.
   return Array.from(normalized, c => /[\p{L}\p{N} ,.!?_'-]/u.test(c) ? c : `#${c.codePointAt(0)};`).join('');
 }
-function projection(document: SketchDocument, pageId: string, d: DiagnosticCollector): string {
-  const elements = document.elements.filter(el => el.pageId === pageId);
+/** Kinds a flowchart has no way to show: they are left out instead of standing in as a box with a made-up text. */
+const NOT_IN_A_FLOWCHART: ReadonlySet<SketchElement['kind']> = new Set(['image', 'web-embed', 'table', 'annotation', 'path', 'frame']);
+/** The parts of a sequence diagram carry this key; Mermaid has a diagram of its own for them (`sequenceDiagram`). */
+const SEQUENCE_ROLE_KEY = 'sequence:role';
+/**
+ * The elements of a page that the flowchart of today (picture 2) shows: shapes, texts, notes, components,
+ * containers and the arrows between them. Parts of a sequence diagram and kinds without a flowchart form are left
+ * out, and so is everything inside a left-out container (#261).
+ */
+function flowchartElements(pageElements: readonly SketchElement[], d: DiagnosticCollector): SketchElement[] {
+  const byId = new Map(pageElements.map(el => [el.id, el]));
+  const inSequence = (el: SketchElement | undefined, depth = 0): boolean => !!el && depth <= DOMAIN_LIMITS.MAX_CONTAINER_DEPTH && (el.metadata?.[SEQUENCE_ROLE_KEY] !== undefined || inSequence(el.parentId ? byId.get(el.parentId) : undefined, depth + 1));
+  const nodes = pageElements.filter(el => el.kind !== 'connector' && !NOT_IN_A_FLOWCHART.has(el.kind) && !inSequence(el));
+  const shown = new Set(nodes.map(el => el.id));
+  const arrows = pageElements.filter(el => el.kind === 'connector' && !inSequence(el) && !!el.from && !!el.to && shown.has(el.from.elementId) && shown.has(el.to.elementId));
+  const kept = new Set([...nodes, ...arrows].map(el => el.id));
+  const omitted = pageElements.length - kept.size;
+  if (omitted) warning(d, 'MERMAID_ELEMENTS_OMITTED', `${omitted} element(s) are not part of the flowchart: images, tables, rich text, freehand lines, frames, parts of sequence diagrams and arrows with a free end have no flowchart form.`, undefined, 'elements');
+  return pageElements.filter(el => kept.has(el.id));
+}
+function projection(document: SketchDocument, pageId: string, d: DiagnosticCollector, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.mermaid): string {
+  // Picture 1 (releases up to 0.1.8) turned every element into a node; it is written again only to verify such a file.
+  const legacy = projectionVersion < 2;
+  const pageElements = document.elements.filter(el => el.pageId === pageId);
+  const elements = legacy ? pageElements : flowchartElements(pageElements, d);
   const ids = new Map(elements.filter(el => el.kind !== 'connector').map((el, i) => [el.id, `n${i}`]));
   const out = new XmlOutputBuilder(MAX_VISIBLE_BYTES); out.append('flowchart LR\n');
   const children = new Map<string | undefined, SketchElement[]>();
@@ -413,14 +436,14 @@ function projection(document: SketchDocument, pageId: string, d: DiagnosticColle
   const emit = (parent?: string, depth = 1): void => {
     for (const el of children.get(parent) ?? []) {
       const id = ids.get(el.id)!, indent = '  '.repeat(depth);
-      const text = escaped(el.text || el.label || (el.kind === 'image' ? 'Image' : el.kind === 'web-embed' ? 'Web page' : ''), d, el.id);
+      const text = escaped(legacy ? el.text || el.label || (el.kind === 'image' ? 'Image' : el.kind === 'web-embed' ? 'Web page' : '') : el.text ?? el.label ?? '', d, el.id);
       if (el.kind === 'container') {
         out.append(`${indent}subgraph ${id}["${text}"]\n`); emit(el.id, depth + 1); out.append(`${indent}end\n`); continue;
       }
       const shape = el.shapeVariant ?? (el.kind === 'ellipse' ? 'circle' : el.kind === 'diamond' ? 'diamond' : 'square');
       const delimiters = SHAPES.find(([, , variant]) => variant === shape) ?? SHAPES[4]!;
       out.append(`${indent}${id}${delimiters[0]}"${text}"${delimiters[1]}\n`);
-      if (!['rectangle', 'ellipse', 'diamond', 'text'].includes(el.kind)) warning(d, 'MERMAID_ELEMENT_APPROXIMATED', `${el.kind} content is represented as a labelled flowchart node; images, rich content and native behavior are unavailable to other Mermaid tools.`, el.id, 'kind');
+      if (legacy && !['rectangle', 'ellipse', 'diamond', 'text'].includes(el.kind)) warning(d, 'MERMAID_ELEMENT_APPROXIMATED', `${el.kind} content is represented as a labelled flowchart node; images, rich content and native behavior are unavailable to other Mermaid tools.`, el.id, 'kind');
       if (!SHAPES.some(([, , variant]) => variant === shape)) warning(d, 'MERMAID_SHAPE_APPROXIMATED', 'This shape is represented as a rectangle.', el.id, 'shapeVariant');
     }
   };
@@ -440,7 +463,7 @@ function projection(document: SketchDocument, pageId: string, d: DiagnosticColle
     const dotted = el.style.strokeDash === 'dashed' || el.style.strokeDash === 'dotted';
     let link = dotted ? (end || start ? '-.->' : '-.-') : (end || start ? '-->' : '---');
     if (start && end) link = `<${link}`;
-    const edgeText = el.text || el.label;
+    const edgeText = legacy ? el.text || el.label : el.text ?? el.label;
     const text = edgeText ? `|"${escaped(edgeText, d, el.id)}"|` : '';
     out.append(`  ${start && !end ? to : from} ${link}${text} ${start && !end ? from : to}\n`);
     if ([el.startMarker, el.endMarker].some(marker => marker && !['none', 'solid-arrow'].includes(marker))) warning(d, 'MERMAID_MARKER_APPROXIMATED', 'Connector marker styles are represented as ordinary arrowheads.', el.id, 'markers');
@@ -454,6 +477,23 @@ function projection(document: SketchDocument, pageId: string, d: DiagnosticColle
   return out.toString();
 }
 
+/** The comment line that carries the whole document in a Mermaid file; other Mermaid tools ignore it. */
+export function mermaidEnvelopeLine(document: SketchDocument, pageIndex: number): string {
+  return `${ENVELOPE_PREFIX}${pageIndex} ${encodeEnvelope(document, 'mermaid')}`;
+}
+/**
+ * Splits Mermaid text into the diagram and the document one of our exports embedded in it. The document is
+ * returned as it was embedded; whether the diagram still is what that document shows is for the caller to verify.
+ */
+export function readMermaidEnvelope(source: string): { visible: string; document?: SketchDocument; pageIndex?: number } {
+  const input = extract(source);
+  if (input.envelope === undefined) return { visible: input.visible };
+  try {
+    const { document } = decodeEnvelopeWithProjection(input.envelope, 'mermaid');
+    return document.pages[input.pageIndex ?? -1] ? { visible: input.visible, document, pageIndex: input.pageIndex! } : { visible: input.visible };
+  } catch { return { visible: input.visible }; }
+}
+
 export function prepareMermaidExport(document: SketchDocument, options: InteropExportOptions = {}): InteropExportResult {
   return importBoundary(() => {
     const full = validateDocument(document); serializeDocument(full);
@@ -464,7 +504,7 @@ export function prepareMermaidExport(document: SketchDocument, options: InteropE
     out.append(projection(full, pageId, d));
     const embed = options.embedDocument !== false;
     if (embed) {
-      out.append(`${ENVELOPE_PREFIX}${pageIndex} ${encodeEnvelope(full, 'mermaid')}\n`);
+      out.append(`${mermaidEnvelopeLine(full, pageIndex)}\n`);
       d.add({ code: 'MERMAID_EMBEDDED_DOCUMENT', severity: 'info', effect: 'preserved-as-data', property: 'metadata', message: 'Mermaid: The comment contains the complete document, including other pages, assets, comments and tasks. Other Mermaid tools ignore these data; disable embedded data for a portable visible-page-only export.' });
     }
     const contents = out.toString();

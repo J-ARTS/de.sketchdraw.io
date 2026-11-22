@@ -73,3 +73,47 @@ test('speaker notes per slide are edited in the slide bar and shown only in the 
   await page.keyboard.press('Escape');
   await expect(presenter).toHaveCount(0);
 });
+
+for (const language of ['de', 'en'] as const) {
+  test(`a slide is renamed with the keyboard alone; Enter and Escape hand the focus back (${language}, #275)`, async ({ page }) => {
+    const text = language === 'de'
+      ? { frame: 'Frame', slide: 'Folie 1', rename: 'Folie 1 umbenennen', field: 'Folienname', renamed: 'Einführung umbenennen' }
+      : { frame: 'Frame', slide: 'Slide 1', rename: 'Rename Slide 1', field: 'Slide name', renamed: 'Rename Einführung' };
+    if (language === 'en') {
+      await page.evaluate(() => {
+        const raw = JSON.parse(localStorage.getItem('sketchdraw.preferences.v1') ?? '{}');
+        localStorage.setItem('sketchdraw.preferences.v1', JSON.stringify({ ...raw, version: raw.version ?? 1, language: 'en' }));
+      });
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    }
+    await page.getByRole('button', { name: text.frame, exact: true }).click();
+    await page.mouse.move(260, 230); await page.mouse.down(); await page.mouse.move(740, 500); await page.mouse.up();
+    const sidebar = page.getByTestId('frame-sidebar');
+    const nameButton = sidebar.getByRole('button', { name: text.rename, exact: true });
+    await expect(nameButton).toBeVisible();
+
+    // Enter on the name opens the field; it has the focus and its text is selected, so typing replaces the name.
+    await nameButton.focus();
+    await page.keyboard.press('Enter');
+    const field = sidebar.getByRole('textbox', { name: text.field, exact: true });
+    await expect(field).toBeFocused();
+    await page.keyboard.type('Einführung');
+    await page.keyboard.press('Enter');
+    await expect(field).toHaveCount(0);
+    const renamed = sidebar.getByRole('button', { name: text.renamed, exact: true });
+    await expect(renamed).toBeFocused();
+    await expect(page.locator('.whiteboard-canvas [data-kind="frame"]').first().getByTestId('frame-label')).toContainText('Einführung');
+
+    // Space opens it as well; Escape discards what was typed and returns to the name.
+    await page.keyboard.press('Space');
+    await expect(field).toBeFocused();
+    await page.keyboard.type('Verworfen');
+    await page.keyboard.press('Escape');
+    await expect(field).toHaveCount(0);
+    await expect(renamed).toBeFocused();
+    await expect(sidebar).not.toContainText('Verworfen');
+    // The side panel is still open: Escape only closed the field.
+    await expect(sidebar).toBeVisible();
+  });
+}

@@ -108,6 +108,14 @@ describe('PluginService', () => {
     expect(JSON.parse(String(assignCall?.[1]?.body))).toEqual({ accountId: 'account-anna' });
     const dueDateCall = fetchFn.mock.calls.find(([input, init]) => String(input).includes('/issue/SK-2') && !String(input).includes('/assignee') && init?.method === 'PUT');
     expect(JSON.parse(String(dueDateCall?.[1]?.body))).toEqual({ fields: { duedate: '2026-11-21' } });
+
+    // Title and description are fields of the issue too; the description may have several lines (#270).
+    fetchFn.mockClear();
+    await service.updateJiraIssue({ key: 'SK-2', title: 'Review the API', description: 'First line\nSecond line' });
+    const textCall = fetchFn.mock.calls.find(([input, init]) => String(input).includes('/issue/SK-2') && init?.method === 'PUT');
+    expect(JSON.parse(String(textCall?.[1]?.body))).toEqual({ fields: { summary: 'Review the API', description: { version: 1, type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'First line' }] }, { type: 'paragraph', content: [{ type: 'text', text: 'Second line' }] }] } } });
+    await expect(service.updateJiraIssue({ key: 'SK-2', title: '   ' })).rejects.toThrow('Jira-Titel');
+    await expect(service.createJiraIssue({ title: 'Mehrzeilig', description: 'Eins\nZwei' })).resolves.toMatchObject({ key: 'SK-2' });
     service.dispose();
   });
 

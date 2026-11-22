@@ -14,15 +14,23 @@ const editingId = ref<string | null>(null);
 const nameDraft = ref('');
 const draggingId = ref<string | null>(null);
 
+const root = ref<HTMLElement | null>(null);
+/** The name field that is open. Found through its reference, not through its label, which depends on the language (#275). */
+let nameInput: HTMLInputElement | null = null;
+function setNameInput(element: unknown): void { nameInput = element instanceof HTMLInputElement ? element : null; }
+
 async function edit(id: string, name: string): Promise<void> {
   editingId.value = id; nameDraft.value = name;
   await nextTick();
-  const input = document.querySelector<HTMLInputElement>('.frame-sidebar input[aria-label="Folienname"]');
-  input?.focus(); input?.select();
+  nameInput?.focus(); nameInput?.select();
 }
-function commit(): void {
-  if (editingId.value) store.renameFrame(editingId.value, nameDraft.value);
+/** Closes the name field. Enter and Escape hand the focus back to the name; leaving the field with Tab or the mouse does not. */
+function finish(save: boolean, returnFocus: boolean): void {
+  const id = editingId.value;
+  if (!id) return;
   editingId.value = null;
+  if (save) store.renameFrame(id, nameDraft.value);
+  if (returnFocus) void nextTick(() => root.value?.querySelector<HTMLElement>(`[data-frame-name="${CSS.escape(id)}"]`)?.focus());
 }
 function drop(toIndex: number): void {
   if (draggingId.value) store.moveFrame(draggingId.value, toIndex);
@@ -36,7 +44,7 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
 </script>
 
 <template>
-  <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" class="frame-sidebar sd-panel" data-testid="frame-sidebar" :aria-label="t('Folien')">
+  <aside v-if="s.frameSidebarOpen && s.workspaceView === 'canvas'" ref="root" class="frame-sidebar sd-panel" data-testid="frame-sidebar" :aria-label="t('Folien')">
     <header><div><span class="eyebrow">{{ t('PRÄSENTATION') }}</span><h2 class="sd-panel-title">{{ t('Folien') }}</h2></div><button class="sd-icon-btn sd-panel-close" :aria-label="t('Folienleiste schließen')" @click="store.toggleFrameSidebar(false)"><AppIcon name="close" /></button></header>
     <AppButton class="present" :disabled="!s.frameSlides.length" @click="store.startPresentation()"><AppIcon name="maximize" /> {{ t('Präsentieren') }}</AppButton>
     <AppButton class="present" :disabled="!s.frameSlides.length" data-testid="present-with-notes" @click="store.startPresentation(undefined, true)"><AppIcon name="text" /> {{ t('Presenter-Ansicht mit Notizen') }}</AppButton>
@@ -48,8 +56,8 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
           <span class="thumb"><FramePreview :frame="frame" :document="s.document" :theme="s.theme" /></span>
         </button>
         <div class="slide-meta">
-          <input v-if="editingId === frame.id" v-model="nameDraft" maxlength="120" :aria-label="t('Folienname')" @keydown.enter.prevent="commit" @keydown.escape.prevent="editingId = null" @blur="commit" />
-          <button v-else class="name" :title="t('Doppelklick zum Umbenennen')" @dblclick="edit(frame.id, frame.label || t('Folie {index}', { index: index + 1 }))">{{ frame.label || t('Folie {index}', { index: index + 1 }) }}</button>
+          <input v-if="editingId === frame.id" :ref="setNameInput" v-model="nameDraft" maxlength="120" :aria-label="t('Folienname')" @keydown.enter.prevent="finish(true, true)" @keydown.escape.prevent.stop="finish(false, true)" @blur="finish(true, false)" />
+          <button v-else type="button" class="name" :data-frame-name="frame.id" :disabled="!s.canWrite" :title="t('Umbenennen')" :aria-label="t('{name} umbenennen', { name: frame.label || t('Folie {index}', { index: index + 1 }) })" @click="edit(frame.id, frame.label || t('Folie {index}', { index: index + 1 }))"><span class="name-text">{{ frame.label || t('Folie {index}', { index: index + 1 }) }}</span><AppIcon name="rename" :size="13" /></button>
           <span>{{ Math.round(frame.width) }} × {{ Math.round(frame.height) }}</span>
           <button class="grip sd-icon-btn" :aria-label="t('Folie ziehen; Alt und Pfeiltasten ändern die Reihenfolge')"><AppIcon name="grip" /></button>
         </div>
@@ -59,12 +67,12 @@ function cardKey(event: KeyboardEvent, id: string, index: number): void {
         </details>
       </li>
     </ol>
-    <p class="hint">{{ t('Doppelklick benennt um · Ziehen oder Alt+↑/↓ sortiert') }}</p>
+    <p class="hint">{{ t('Klick auf den Namen benennt um · Ziehen oder Alt+↑/↓ sortiert') }}</p>
   </aside>
 </template>
 
 <style scoped>
-.frame-sidebar{position:absolute;top:var(--panel-top);right:16px;bottom:16px;z-index:22;width:280px;display:flex;flex-direction:column;padding:14px;overflow:hidden}.frame-sidebar header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.frame-sidebar h2{margin:2px 0 0}.eyebrow{font-size:9px;letter-spacing:.16em;color:var(--accent);font-weight:750}.present{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:12px}.present :deep(svg){width:17px}.empty{padding:28px 18px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.6}.empty kbd{padding:2px 6px;border:1px solid var(--border-default);border-radius:5px}.slides{display:grid;gap:12px;overflow:auto;list-style:none;padding:2px;margin:0}.slides li{position:relative;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised)}.slides li.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.slide-card{position:relative;width:100%;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--surface-canvas);aspect-ratio:16/9;cursor:pointer}.thumb{position:absolute;inset:0}.index{position:absolute;top:6px;left:6px;z-index:2;display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--surface-panel) 88%,transparent);font-size:11px;font-weight:700}.slide-meta{display:grid;grid-template-columns:minmax(0,1fr) auto 30px;align-items:center;gap:5px;margin-top:7px}.slide-meta input,.name{min-width:0;width:100%;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:12px;font-weight:650;text-align:left;padding:3px}.slide-meta input{outline:1px solid var(--accent);border-radius:4px}.slide-meta>span{font-size:9px;color:var(--text-muted)}.grip{width:28px;height:28px;color:var(--text-muted)}.hint{margin:10px 0 0;text-align:center;font-size:9px;color:var(--text-muted)}
+.frame-sidebar{position:absolute;top:var(--panel-top);right:16px;bottom:16px;z-index:22;width:280px;display:flex;flex-direction:column;padding:14px;overflow:hidden}.frame-sidebar header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.frame-sidebar h2{margin:2px 0 0}.eyebrow{font-size:9px;letter-spacing:.16em;color:var(--accent);font-weight:750}.present{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:12px}.present :deep(svg){width:17px}.empty{padding:28px 18px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.6}.empty kbd{padding:2px 6px;border:1px solid var(--border-default);border-radius:5px}.slides{display:grid;gap:12px;overflow:auto;list-style:none;padding:2px;margin:0}.slides li{position:relative;padding:8px;border:1px solid var(--border-subtle);border-radius:12px;background:var(--surface-raised)}.slides li.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.slide-card{position:relative;width:100%;padding:0;border:0;border-radius:8px;overflow:hidden;background:var(--surface-canvas);aspect-ratio:16/9;cursor:pointer}.thumb{position:absolute;inset:0}.index{position:absolute;top:6px;left:6px;z-index:2;display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:color-mix(in srgb,var(--surface-panel) 88%,transparent);font-size:11px;font-weight:700}.slide-meta{display:grid;grid-template-columns:minmax(0,1fr) auto 30px;align-items:center;gap:5px;margin-top:7px}.slide-meta input,.name{min-width:0;width:100%;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:12px;font-weight:650;text-align:left;padding:3px}.slide-meta input{outline:1px solid var(--accent);border-radius:4px}.name{display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}.name-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.name :deep(svg){flex:none;color:var(--text-muted);opacity:.6}.name:hover{background:var(--surface-panel)}.name:hover :deep(svg),.name:focus-visible :deep(svg){color:var(--accent);opacity:1}.name:focus-visible{outline:2px solid var(--focus-ring);outline-offset:1px}.name:disabled{cursor:default}.name:disabled :deep(svg){display:none}.slide-meta>span{font-size:9px;color:var(--text-muted)}.grip{width:28px;height:28px;color:var(--text-muted)}.hint{margin:10px 0 0;text-align:center;font-size:9px;color:var(--text-muted)}
 @media(max-width:760px){.frame-sidebar{right:8px;bottom:8px;width:min(270px,calc(100vw - 16px))}}
 .slide-notes{margin:4px 2px 0;font-size:12px;color:var(--text-muted)}.slide-notes summary{cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0}.has-notes{width:6px;height:6px;border-radius:50%;background:var(--accent)}.slide-notes textarea{width:100%;min-height:72px;margin-top:4px;resize:vertical;padding:8px;border:1px solid var(--border-default);border-radius:8px;background:var(--surface-panel);color:var(--text-primary);font:13px/1.45 var(--font-sans)}
 </style>

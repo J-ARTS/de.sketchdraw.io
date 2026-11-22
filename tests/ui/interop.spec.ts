@@ -18,19 +18,18 @@ async function rectangle(page: Page) {
 async function file(page: Page, name: string, contents: string) {
   await page.getByLabel('Austauschdatei auswählen').setInputFiles({ name, mimeType: name.endsWith('.svg') ? 'image/svg+xml' : /\.(mmd|mermaid)$/i.test(name) ? 'text/plain' : 'application/xml', buffer: Buffer.from(contents) });
 }
-async function acceptConversion(page: Page) {
-  const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ });
-  if (await consent.isVisible()) await consent.check();
-}
 function cell(id: string, label: string) { return `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="${id}" value="${label}" style="shape=rectangle;fillColor=#ffffff;strokeColor=#000000;" vertex="1" parent="1"><mxGeometry x="50" y="50" width="120" height="70" as="geometry"/></mxCell></root></mxGraphModel>`; }
 test.beforeEach(async ({ page }) => { page.on('pageerror', error => { throw error; }); await page.goto('/'); });
 
-test('warning preview requires acceptance; dirty cancellation preserves canvas; imported revision zero stays dirty', async ({ page }) => {
+test('a preview with approximations opens without a confirmation box; dirty cancellation preserves canvas; imported revision zero stays dirty', async ({ page }) => {
   await rectangle(page); await menu(page, 'import');
   await file(page, 'curve.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M 10 20 C 30 0 50 0 70 20" fill="none" stroke="#000000"/></svg>');
   const apply = page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true });
-  await expect(apply).toBeDisabled(); await expect(page.getByRole('region', { name: 'Konvertierungsbericht' })).toBeVisible();
-  await page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }).check();
+  // No list of notes and nothing to tick before the import (#276); the summary names the kind of conversion.
+  await expect(page.getByTestId('interop-panel')).toContainText('Mit Annäherungen konvertiert');
+  await expect(page.getByTestId('interop-panel').getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByTestId('interop-panel').getByRole('region')).toHaveCount(0);
+  await expect(apply).toBeEnabled();
   await apply.click(); await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('button', { name: 'Abbrechen', exact: true }).click();
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
@@ -54,7 +53,6 @@ test('draw.io multi-page source requires explicit selection and unsafe XML never
   await select(page, 'Seite auswählen', '2 · Zweite');
   await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Zweite Seite');
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-element-id]')).toHaveCount(0);
-  const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
   await page.getByRole('button', { name: 'Als neues Dokument öffnen' }).click();
   await expect(page.getByTestId('whiteboard-canvas')).toContainText('Zweite Seite');
   await menu(page, 'import'); await file(page, 'bad.svg', '<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///not-accessed">]><svg xmlns="http://www.w3.org/2000/svg"><text>&x;</text></svg>');
@@ -67,12 +65,10 @@ test('SVG export uses real download and own metadata roundtrip; edits invalidate
   await rectangle(page); await menu(page, 'export'); await select(page, 'Format', 'SVG');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   const output = page.getByRole('button', { name: 'Datei exportieren', exact: true });
-  const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
   await expect(output).toBeEnabled();
   await page.getByTestId('document-title').fill('Nach Vorschau geändert');
   await expect(output).toBeDisabled();
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
-  if (await consent.isVisible()) await consent.check();
   const downloadEvent = page.waitForEvent('download'); await output.click(); const download = await downloadEvent;
   const svg = await readFile((await download.path())!, 'utf8'); expect(svg).toContain('<svg'); expect(svg).toContain('<rect'); expect(svg).toContain('sketchdraw');
   await expect(page.getByTestId('interop-panel')).toContainText('Als Download übergeben');
@@ -88,7 +84,7 @@ test('export and import panels satisfy automated accessibility checks', async ({
   await menu(page, 'export');
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze(); expect(result.violations).toEqual([]);
   await menu(page, 'import');
-  await select(page, 'Format', 'Mermaid (Flowchart)');
+  await select(page, 'Format', 'Mermaid');
   const mermaid = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze(); expect(mermaid.violations).toEqual([]);
 });
 
@@ -97,7 +93,6 @@ test('importing all pages of a draw.io file creates a document with those pages'
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('a', 'Zweite Seite')}</diagram></mxfile>`);
   await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren');
   await expect(page.getByTestId('interop-panel')).toContainText('2 Seiten');
-  const consent = page.getByRole('checkbox', { name: /Ich habe die beschriebenen Verluste/ }); if (await consent.isVisible()) await consent.check();
   await page.getByRole('button', { name: 'Als neues Dokument öffnen' }).click();
   await expect(page.getByTestId('whiteboard-canvas')).toContainText('Erste Seite');
   await expect(page.getByTestId('page-switcher')).toHaveAccessibleName(/^Seiten \(2\)/);
@@ -111,12 +106,11 @@ for (const extension of ['mmd', 'mermaid']) {
   test(`Mermaid .${extension} files are detected and only applied after preview`, async ({ page }) => {
     await menu(page, 'import');
     await file(page, `flow.${extension}`, 'flowchart LR\n  A[Browser] --> B[Server]');
-    await expect(page.getByRole('combobox', { name: 'Format', exact: true })).toHaveText('Mermaid (Flowchart)');
+    await expect(page.getByRole('combobox', { name: 'Format', exact: true })).toHaveText('Mermaid');
     await expect(page.getByLabel('Mermaid-Code einfügen')).toHaveValue('flowchart LR\n  A[Browser] --> B[Server]');
     const preview = page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' });
     await expect(preview).toContainText('Browser'); await expect(preview).toContainText('Server');
     await expect(page.getByTestId('whiteboard-canvas').locator('[data-element-id]')).toHaveCount(0);
-    await acceptConversion(page);
     await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
     await expect(page.getByTestId('interop-panel')).not.toBeVisible();
     await expect(page.getByTestId('whiteboard-canvas')).toContainText('Browser');
@@ -127,13 +121,13 @@ for (const extension of ['mmd', 'mermaid']) {
 
 test('pasted Mermaid requires explicit preview; edits and unsupported diagrams cannot replace the canvas', async ({ page }) => {
   await rectangle(page); await menu(page, 'import');
-  await select(page, 'Format', 'Mermaid (Flowchart)');
+  await select(page, 'Format', 'Mermaid');
   const source = page.getByLabel('Mermaid-Code einfügen');
   const preview = page.getByRole('button', { name: 'Importvorschau erstellen', exact: true });
   const apply = page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true });
   await source.fill('```mermaid\nflowchart TD\n A[Quelle] --> B[Ziel]\n```');
   await expect(apply).toHaveCount(0);
-  await preview.click(); await acceptConversion(page); await expect(apply).toBeEnabled();
+  await preview.click(); await expect(apply).toBeEnabled();
   await apply.click(); await page.getByRole('button', { name: 'Abbrechen', exact: true }).click();
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
   await expect(apply).toBeVisible();
@@ -153,10 +147,9 @@ test('pasted Mermaid requires explicit preview; edits and unsupported diagrams c
 
 test('Mermaid exports a real .mmd download and roundtrips the embedded document', async ({ page }) => {
   await rectangle(page); await page.getByTestId('document-title').fill('Mermaid Roundtrip');
-  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   await expect(page.getByTestId('interop-panel')).toContainText('Mermaid vorbereitet');
-  await acceptConversion(page);
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
   const download = await downloadEvent;
@@ -175,17 +168,17 @@ test('Mermaid exports a real .mmd download and roundtrips the embedded document'
 test('Mermaid defaults to the active page and exports the explicitly selected page', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('b', 'Zweite Seite')}</diagram></mxfile>`);
-  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren'); await acceptConversion(page);
+  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren');
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
   await page.getByTestId('page-switcher').click(); await page.getByRole('button', { name: /^Zweite/ }).click();
-  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid');
   const selectedPage = page.getByRole('combobox', { name: 'Seite für den Mermaid-Export', exact: true });
   await expect(selectedPage).toHaveText('Zweite');
   await page.getByRole('checkbox', { name: 'Vollständiges Sketchdraw-Modell einbetten' }).uncheck();
   for (const label of ['Zweite', 'Erste']) {
     await select(page, 'Seite für den Mermaid-Export', label);
     await expect(page.getByRole('button', { name: 'Datei exportieren', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click(); await acceptConversion(page);
+    await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
     const downloadEvent = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
     const mermaid = await readFile((await (await downloadEvent).path())!, 'utf8');
@@ -197,11 +190,11 @@ test('Mermaid defaults to the active page and exports the explicitly selected pa
 test('a Mermaid roundtrip previews its exported second page and reports the restored pages', async ({ page }) => {
   await menu(page, 'import');
   await file(page, 'pages.drawio', `<mxfile><diagram name="Erste">${cell('a', 'Erste Seite')}</diagram><diagram name="Zweite">${cell('b', 'Zweite Seite')}</diagram></mxfile>`);
-  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren'); await acceptConversion(page);
+  await select(page, 'Seite auswählen', 'Alle 2 Seiten importieren');
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
-  await menu(page, 'export'); await select(page, 'Format', 'Mermaid (Flowchart)');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid');
   await select(page, 'Seite für den Mermaid-Export', 'Zweite');
-  await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click(); await acceptConversion(page);
+  await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
   const mermaid = await readFile((await (await downloadEvent).path())!, 'utf8');
@@ -210,8 +203,6 @@ test('a Mermaid roundtrip previews its exported second page and reports the rest
   await expect(preview).toContainText('Zweite Seite'); await expect(preview).not.toContainText('Erste Seite');
   await expect(page.getByTestId('interop-panel')).toContainText('Eigener unveränderter Roundtrip');
   await expect(page.getByTestId('interop-panel')).toContainText('2 Seiten');
-  const report = page.getByRole('region', { name: 'Konvertierungsbericht' });
-  await expect(report).toContainText('2'); await expect(report).toContainText('Zweite');
   await expect(page.getByTestId('whiteboard-canvas')).toContainText('Erste Seite');
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
   await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
@@ -290,13 +281,13 @@ test('changing format during a pending export snapshot discards the old preview'
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { exportGate: { held: boolean } }).exportGate.held)).toBe(true);
   await expect(page.getByTestId('interop-panel')).toContainText('Wird geprüft');
-  await select(page, 'Format', 'Mermaid (Flowchart)');
+  await select(page, 'Format', 'Mermaid');
   await page.evaluate(() => (window as unknown as { exportGate: { release: () => Promise<void> } }).exportGate.release());
   await expect(page.getByTestId('document-title')).toHaveValue('Pending export');
   await expect(page.getByRole('button', { name: 'Datei exportieren', exact: true })).toHaveCount(0);
   await expect(page.getByTestId('interop-panel')).not.toContainText('SVG vorbereitet');
   await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
-  await expect(page.getByTestId('interop-panel')).toContainText('Mermaid vorbereitet'); await acceptConversion(page);
+  await expect(page.getByTestId('interop-panel')).toContainText('Mermaid vorbereitet');
   const downloadEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
   const download = await downloadEvent;
@@ -306,7 +297,7 @@ test('changing format during a pending export snapshot discards the old preview'
 
 test('a Mermaid sequence diagram is imported into the current page as an editable sequence diagram (#248)', async ({ page }) => {
   await rectangle(page); await menu(page, 'import');
-  await select(page, 'Format', 'Mermaid (Flowchart)');
+  await select(page, 'Format', 'Mermaid');
   const panel = page.getByTestId('interop-panel');
   await expect(panel).toContainText('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram).');
   const source = page.getByLabel('Mermaid-Code einfügen');
@@ -317,7 +308,7 @@ test('a Mermaid sequence diagram is imported into the current page as an editabl
   await source.fill('sequenceDiagram\n    Note irgendwo: Text\n    Client->>Dienst: Anfrage');
   await preview.click();
   await expect(page.getByRole('alert')).toContainText('Der Code des Sequenzdiagramms hat Fehler');
-  await expect(panel.getByRole('region', { name: 'Konvertierungsbericht' })).toContainText('Zeile 2');
+  await expect(panel.getByRole('region', { name: 'Grund des Fehlers' })).toContainText('Zeile 2');
   await expect(insert).toHaveCount(0);
 
   await source.fill('```mermaid\nsequenceDiagram\n    actor Kunde\n    participant Dienst\n    Kunde->>Dienst: Bestellen\n    Dienst-->>Kunde: Bestätigung\n```');
@@ -353,4 +344,47 @@ test('a Mermaid file with a sequence diagram can be opened as a new document (#2
   await expect(page.getByRole('img', { name: 'Sichere Vorschau des konvertierten Diagramms' })).toContainText('Anfrage');
   await page.getByRole('button', { name: 'Als neues Dokument öffnen', exact: true }).click();
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-sequence-role="lifeline"]')).toHaveCount(2);
+});
+
+test('a sequence diagram is exported as Mermaid sequenceDiagram; with other shapes on the page the diagram is chosen (#261)', async ({ page }) => {
+  const code = 'sequenceDiagram\n    participant Client\n    participant Dienst\n    Client->>Dienst: Anfrage\n    Dienst-->>Client: Antwort\n';
+  await menu(page, 'import'); await select(page, 'Format', 'Mermaid');
+  await page.getByLabel('Mermaid-Code einfügen').fill(code);
+  await page.getByRole('button', { name: 'Importvorschau erstellen', exact: true }).click();
+  await page.getByRole('button', { name: 'In die aktuelle Seite einfügen', exact: true }).click();
+  await expect(page.getByTestId('interop-panel')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  const exportOnce = async (embed: boolean) => {
+    await page.getByRole('checkbox', { name: 'Vollständiges Sketchdraw-Modell einbetten' }).setChecked(embed);
+    await page.getByRole('button', { name: 'Exportvorschau erstellen', exact: true }).click();
+    const downloadEvent = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Datei exportieren', exact: true }).click();
+    return readFile((await (await downloadEvent).path())!, 'utf8');
+  };
+
+  // Only the sequence diagram is on the page: there is nothing to choose, and the file is the code of the diagram.
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid');
+  const panel = page.getByTestId('interop-panel');
+  await expect(panel).toContainText('Exportiert wird das Sequenzdiagramm als Mermaid-Code (sequenceDiagram).');
+  await expect(panel.getByRole('combobox', { name: 'Diagramm', exact: true })).toHaveCount(0);
+  expect(await exportOnce(false)).toBe(code);
+  await panel.getByRole('button', { name: 'Austauschansicht schließen' }).click();
+
+  // With a shape next to it the page holds two diagrams for Mermaid; the sequence diagram stays the default.
+  await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+  await page.mouse.move(980, 620); await page.mouse.down(); await page.mouse.move(1120, 700); await page.mouse.up();
+  await page.keyboard.press('Escape');
+  await menu(page, 'export'); await select(page, 'Format', 'Mermaid');
+  const target = panel.getByRole('combobox', { name: 'Diagramm', exact: true });
+  await expect(target).toHaveText('Sequenzdiagramm: Client, Dienst');
+  const withDocument = await exportOnce(true);
+  expect(withDocument.startsWith(code)).toBe(true);
+  expect(withDocument).toContain('%% sketchdraw-mermaid-v1 0 ');
+
+  await select(page, 'Diagramm', 'Flowchart aus den übrigen Formen');
+  await expect(panel).toContainText('Exportiert wird ein Flowchart aus Formen, Texten, Komponenten und den Pfeilen dazwischen.');
+  const flowchart = await exportOnce(false);
+  expect(flowchart).toBe('flowchart LR\n  n0[" "]\n');
+  expect((await new AxeBuilder({ page }).include('[data-testid=interop-panel]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });

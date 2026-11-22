@@ -351,6 +351,14 @@ function boundedString(value: unknown, max: number, name: string, allowEmpty = f
   return normalized;
 }
 
+/** Text of several lines: line breaks and tabs are allowed, other control characters are not. */
+function boundedMultilineText(value: unknown, max: number, name: string): string {
+  if (typeof value !== 'string') throw new Error(`${name} muss Text sein.`);
+  const normalized = value.replace(/\r\n?/g, '\n').trim();
+  if (normalized.length > max || /[\u0000-\u0008\u000b-\u001f\u007f]/.test(normalized)) throw new Error(`${name} ist ungültig.`);
+  return normalized;
+}
+
 function normalizeSiteUrl(value: string): string {
   const parsed = new URL(boundedString(value, 2048, 'Atlassian-URL'));
   if (parsed.username || parsed.password || (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname)))) throw new Error('Atlassian benötigt eine HTTPS-URL ohne eingebettete Zugangsdaten.');
@@ -1636,7 +1644,7 @@ export class PluginService {
       project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') },
       issuetype: { name: this.config.atlassian.jiraIssueType },
       summary: boundedString(input.title, 255, 'Jira-Titel'),
-      description: descriptionAdf(boundedString(input.description, 50_000, 'Jira-Beschreibung', true)),
+      description: descriptionAdf(boundedMultilineText(input.description, 50_000, 'Jira-Beschreibung')),
     };
     if (input.assignee) fields.assignee = { accountId: await this.jiraAssigneeAccountId(input.assignee) };
     if (input.dueDate) fields.duedate = jiraDueDate(input.dueDate);
@@ -1662,10 +1670,12 @@ export class PluginService {
       const accountId = input.assignee === null || !input.assignee.trim() ? null : await this.jiraAssigneeAccountId(input.assignee, key);
       await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/assignee`, { method: 'PUT', body: JSON.stringify({ accountId }) });
     }
-    if (input.dueDate !== undefined) {
-      const dueDate = input.dueDate === null || input.dueDate === '' ? null : jiraDueDate(input.dueDate);
-      await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ fields: { duedate: dueDate } }) });
-    }
+    // Summary, description and due date are fields of the issue and travel in one request (#270).
+    const fields: Record<string, unknown> = {};
+    if (input.title !== undefined) fields.summary = boundedString(input.title, 255, 'Jira-Titel');
+    if (input.description !== undefined) fields.description = descriptionAdf(boundedMultilineText(input.description, 50_000, 'Jira-Beschreibung'));
+    if (input.dueDate !== undefined) fields.duedate = input.dueDate === null || input.dueDate === '' ? null : jiraDueDate(input.dueDate);
+    if (Object.keys(fields).length) await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ fields }) });
     return this.getJiraIssue(key);
   }
 

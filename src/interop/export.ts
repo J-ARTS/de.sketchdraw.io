@@ -2,10 +2,11 @@ import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData
 import type { ComponentSet, ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
-import { awsGroupOf, builtInComponentSets, CLOUD_CARD_EXPORT_COLORS, CLOUD_CARD_PROVIDER_SIZE, CLOUD_CARD_TITLE_SIZE, cloudCardLayout, cloudCardUsesThemeSurface, cloudProviderLabel, cloudProviderOf, figureLayout, groupChrome, groupTileSvg, isCloudCard, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLines, resourceCardLinks, type CloudCardLayout } from '../catalog';
+import { awsGroupOf, builtInComponentSets, CLOUD_CARD_EXPORT_COLORS, CLOUD_CARD_PROVIDER_SIZE, CLOUD_CARD_TITLE_SIZE, cloudCardLayout, cloudCardUsesThemeSurface, cloudProviderLabel, cloudProviderOf, figureLayout, groupChrome, groupTileSvg, isCloudCard, isIconFigure, isResourceCard, resourceCardIconType, resourceCardLayout, resourceCardLines, resourceCardLinks, RESOURCE_CARD_TEXT_COLOR, type CloudCardLayout } from '../catalog';
 import { DiagnosticCollector, XmlOutputBuilder, escapeXmlAttr, escapeXmlText, hasWarningDiagnostics, sanitizeXml10Text } from './diagnostics';
-import { SVG_NS, OWN_NS, color, encodeEnvelope } from './common';
+import { SVG_NS, OWN_NS, color, CURRENT_PROJECTION, encodeEnvelope, type ProjectionVersion } from './common';
 import { parseXmlDocument } from './xml';
+import { encodeBytesToBase64 } from './compression';
 import { InteropError, type InteropExportOptions, type InteropExportResult, type InteropFormat } from './types';
 const n = (v: number): string => String(Object.is(v, -0) ? 0 : v);
 export function worldPoint(el: SketchElement, point: Point): Point {
@@ -32,9 +33,11 @@ function svgPaint(el: SketchElement, d: DiagnosticCollector): string {
 }
 const SVG_FONT_FAMILY = { sans: 'Inter, sans-serif', mono: 'JetBrains Mono, monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
 const DRAWIO_FONT_FAMILY = { sans: 'sans-serif', mono: 'monospace', roboto: 'Roboto, sans-serif', scribbled: 'Caveat, cursive' } as const;
-function nativeText(el: SketchElement, d: DiagnosticCollector): string {
+/** The text an element shows. Up to SVG picture 1 and draw.io picture 2 an emptied text fell back to the label. */
+const shownText = (el: SketchElement, legacyLabel: boolean): string => legacyLabel ? el.text || el.label || '' : el.text ?? el.label ?? '';
+function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = false): string {
   // An emptied text stays empty; the label stands in only where no text was set (#258).
-  const plainText = el.text ?? el.label ?? '';
+  const plainText = shownText(el, legacyLabel);
   const visibleText = el.style.listStyle === 'bullet'
     ? plainText.split('\n').map(line => line ? `• ${line}` : line).join('\n')
     : plainText;
@@ -112,13 +115,40 @@ function cloudCardExport(el: SketchElement, componentSets: readonly ComponentSet
     text,
   };
 }
+/** The resource card of SVG picture 1 (releases up to 0.1.8): one line per text. Only drawn to verify such a file. */
+function resourceCardSvgContentV1(el: SketchElement, d: DiagnosticCollector): string {
+  if (!isResourceCard(el)) return '';
+  const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
+  const titleSize = Math.max(14, el.style.fontSize);
+  const descriptionSize = Math.max(10, el.style.fontSize * .65);
+  const footerHeight = Math.max(28, Math.min(36, el.height * .24));
+  const bodyHeight = Math.max(0, el.height - footerHeight);
+  const iconSize = Math.max(28, Math.min(52, bodyHeight * .48, el.width * .16));
+  const textX = 20 + iconSize + 18;
+  const title = escapeXmlText(xmlText(el.text || el.label || 'Ressourcenkarte', d, el));
+  const description = escapeXmlText(xmlText((el.description || 'BESCHREIBUNG').toUpperCase(), d, el));
+  const links = resourceCardLinks(el);
+  const linkMarkup = links.map((link, index) => {
+    const width = el.width / links.length;
+    const x = width * (index + .5);
+    return `<a href="${escapeXmlAttr(link.url)}"><text${attrs({ x, y: el.height - footerHeight / 2, 'font-size': Math.max(10, Math.min(14, descriptionSize)), 'font-family': fontFamily, 'font-weight': 650, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#2563eb' })}>${escapeXmlText(xmlText(link.label.toUpperCase(), d, el))}</text></a>`;
+  }).join('');
+  return `<text${attrs({ x: textX, y: bodyHeight / 2 - Math.max(5, titleSize * .25), 'font-size': titleSize, 'font-family': fontFamily, 'font-weight': 600, 'dominant-baseline': 'central', fill: safeTextColor(el, d) })}>${title}</text><text${attrs({ x: textX, y: bodyHeight / 2 + Math.max(16, titleSize * .85), 'font-size': descriptionSize, 'font-family': fontFamily, 'font-weight': 500, 'dominant-baseline': 'central', fill: safeTextColor(el, d), 'fill-opacity': .55 })}>${description}</text>${linkMarkup}`;
+}
+/** Where SVG picture 1 put the icon of a resource card. */
+function legacyResourceCardIcon(el: SketchElement): { iconSize: number; icon: Point } {
+  const footerHeight = Math.max(28, Math.min(36, el.height * .24));
+  const iconSize = Math.max(28, Math.min(52, (el.height - footerHeight) * .48, el.width * .16));
+  return { iconSize, icon: { x: 20, y: Math.max(10, (el.height - footerHeight - iconSize) / 2) } };
+}
 function resourceCardSvgContent(el: SketchElement, d: DiagnosticCollector): string {
   if (!isResourceCard(el)) return '';
   // The same layout as on the canvas: several lines per text (#254) and both looks of the card (#257).
   const layout = resourceCardLayout(el);
   const dashed = layout.look === 'dashed';
   const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
-  const fill = safeTextColor(el, d);
+  // Without a chosen text colour the card is written in black, as on the canvas (#189), not in its frame colour.
+  const fill = el.style.textColor ? safeColor(el.style.textColor, d, el) : RESOURCE_CARD_TEXT_COLOR;
   const lines = (block: typeof layout.title, values: string[]) => values.map((line, index) => `<tspan${attrs({ x: layout.textX, y: block.y + index * block.lineHeight })}>${escapeXmlText(xmlText(line, d, el))}</tspan>`).join('');
   const title = lines(layout.title, resourceCardLines(el.text || el.label || 'Ressourcenkarte'));
   const description = lines(layout.description, resourceCardLines(el.description || (dashed ? 'Beschreibung' : 'BESCHREIBUNG')).map((line) => dashed ? line : line.toUpperCase()));
@@ -168,7 +198,9 @@ function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: n
 function safeIcon(node: SafeSvgElementNode): string {
   return `<${node.tag}${attrs(node.attributes)}>${node.children.map(safeIcon).join('')}</${node.tag}>`;
 }
-function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: boolean): string {
+function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.svg): string {
+  // Picture 1 is what releases up to 0.1.8 wrote; it is drawn again only to verify a file of that version (#272).
+  const legacy = projectionVersion < 2;
   const out = new XmlOutputBuilder();
   const map = new Map(document.elements.map(el => [el.id, el]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -188,7 +220,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
   const bounds = document.elements.length ? [minX, minY, maxX - minX, maxY - minY] : [0, 0, 1, 1];
   out.append(`<svg xmlns="${SVG_NS}" viewBox="${bounds.map(n).join(' ')}"><title>${escapeXmlText(xmlText(document.title, d))}</title>`);
   if (embed)
-    out.append(`<metadata><sd:document xmlns:sd="${OWN_NS}">${encodeEnvelope(document, 'svg')}</sd:document></metadata>`);
+    out.append(`<metadata><sd:document xmlns:sd="${OWN_NS}">${encodeEnvelope(document, 'svg', projectionVersion)}</sd:document></metadata>`);
   for (let index = 0; index < document.elements.length; index++) {
     const el = syncConnectorEndpoints(document.elements[index]!, map);
     out.append(`<g${attrs({ id: `sd-${index}`, transform: `translate(${n(el.x)} ${n(el.y)}) rotate(${n(el.rotation)} ${n(el.width / 2)} ${n(el.height / 2)})` })}>`);
@@ -197,7 +229,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     if (el.description !== undefined)
       out.append(`<desc>${escapeXmlText(xmlText(el.description, d, el))}</desc>`);
     const paint = svgPaint(el, d);
-    const cloud = cloudCardExport(el, componentSets, d);
+    const cloud = legacy ? null : cloudCardExport(el, componentSets, d);
     const shapeVariant = effectiveShapeVariant(el);
     const markerStart = el.kind === 'connector' ? connectorStartMarker(el) : 'none';
     const markerEnd = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
@@ -232,6 +264,10 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
         out.append(`<g${attrs({ width: el.width, height: el.height, 'data-sketchdraw-shape': shapeVariant })}${paint}>${paths.map((path, pathIndex) => `<path d="${escapeXmlAttr(path)}" transform="translate(${-el.width / 6} ${-el.height / 6}) scale(${n(el.width / 18)} ${n(el.height / 18)})" fill="${pathIndex === 0 ? 'inherit' : 'none'}" vector-effect="non-scaling-stroke"/>`).join('')}</g>`);
       }
     }
+    else if (legacy && isResourceCard(el)) {
+      const footerHeight = Math.max(28, Math.min(36, el.height * .24));
+      out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" rx="8"${paint}/><path d="M0 ${n(el.height - footerHeight)}H${n(el.width)}V${n(el.height - 8)}Q${n(el.width)} ${n(el.height)} ${n(el.width - 8)} ${n(el.height)}H8Q0 ${n(el.height)} 0 ${n(el.height - 8)}Z" fill="#eef4fb" stroke="none"/>`);
+    }
     else if (isResourceCard(el)) {
       const { look, footer, footerHeight } = resourceCardLayout(el);
       const bar = look === 'dashed'
@@ -258,8 +294,8 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       if (icon.isFallback)
         diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'Component uses the safe generic icon; provider semantics remain metadata.');
       const tree = icon.tree;
-      const card = isResourceCard(el) ? resourceCardLayout(el) : null;
-      const figure = isIconFigure(el) ? figureLayout(el, (el.text ?? el.label ?? '').split('\n').length).icon : null;
+      const card = isResourceCard(el) ? legacy ? legacyResourceCardIcon(el) : resourceCardLayout(el) : null;
+      const figure = isIconFigure(el) ? figureLayout(el, shownText(el, legacy).split('\n').length).icon : null;
       const iconSize = figure ? figure.size : card ? card.iconSize : cloud ? cloud.layout.icon.size : Math.min(32, el.width, el.height);
       out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : 4, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
@@ -269,7 +305,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const tree = resolveCatalogIcon(groupTileSvg(group, safeColor(el.style.stroke, d, el))).tree;
       out.append(`<svg${attrs({ ...tree.attributes, x: groupIcon.x, y: groupIcon.y, width: groupIcon.size, height: groupIcon.size, viewBox: tree.viewBox, opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? resourceCardSvgContent(el, d) : cloud ? cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d)}${stickyAuthor(el, d)}`;
+    const visibleText = isResourceCard(el) ? legacy ? resourceCardSvgContentV1(el, d) : resourceCardSvgContent(el, d) : cloud ? cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${nativeText(el, d, legacy)}${stickyAuthor(el, d)}`;
     const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
     out.append(exportLink
       ? `<a href="${escapeXmlAttr(exportLink)}">${visibleText}</a>`
@@ -279,7 +315,25 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
   out.append('</svg>');
   return out.toString();
 }
-function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: 1 | 2 = 2): string {
+/**
+ * A component as the picture the canvas shows: card, icon and text as one SVG image for draw.io (#260). draw.io has
+ * no shapes for the cards of Sketchdraw, and a rectangle with a name is not what the diagram looks like. The picture
+ * is the one the SVG export draws for the element, laid out for the size of the element.
+ */
+function componentPicture(el: SketchElement, document: SketchDocument): string {
+  const single: SketchElement = { ...el, x: 0, y: 0, rotation: 0 };
+  delete single.parentId;
+  const picture = nativeSvg({ ...document, elements: [single] }, new DiagnosticCollector(), false);
+  // The frame of the card is drawn on its edge; half of it would be cut off at the border of the picture.
+  const pad = Math.ceil(Math.max(1, el.style.strokeWidth) / 2);
+  const framed = picture.replace(/^<svg [^>]*>/, `<svg${attrs({ xmlns: SVG_NS, viewBox: `${-pad} ${-pad} ${n(el.width + 2 * pad)} ${n(el.height + 2 * pad)}`, width: el.width, height: el.height })}>`);
+  // draw.io writes the data of an image without the `;base64` marker, because `;` separates the entries of a style.
+  return `data:image/svg+xml,${encodeBytesToBase64(new TextEncoder().encode(framed))}`;
+}
+function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.drawio): string {
+  // Pictures 1 and 2 are drawn again only to verify a file of that version: they fell back to the label for an
+  // emptied text and showed a component as a rectangle with its name.
+  const legacyLabel = projectionVersion < 3;
   const out = new XmlOutputBuilder();
   const ids = new Map(document.elements.map((e, i) => [e.id, `sd-${i}`]));
   const map = new Map(document.elements.map(e => [e.id, e]));
@@ -292,7 +346,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   for (const raw of document.elements.filter((candidate) => candidate.pageId === page.id)) {
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
-    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? (el.text ?? el.label ?? '').split('\n').map(line => line ? `• ${line}` : line).join('\n') : el.text ?? el.label ?? '';
+    const sourceText = el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? shownText(el, legacyLabel).split('\n').map(line => line ? `• ${line}` : line).join('\n') : shownText(el, legacyLabel);
     const text = xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
     const shapeVariant = effectiveShapeVariant(el);
@@ -300,7 +354,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const endMarker = el.kind === 'connector' ? connectorEndMarker(el) : 'none';
     // v1 used the outer border/text style even for tables. Keep that exact
     // projection exclusively for validating legacy envelopes before restoring them.
-    const table = projectionVersion === 2 && el.kind === 'table' ? el.table : undefined;
+    const table = projectionVersion >= 2 && el.kind === 'table' ? el.table : undefined;
     const firstCell = table?.cells.find(cell => cell.rowId === table.rows[0]!.id && cell.columnId === table.columns[0]!.id);
     if (firstCell && table!.cells.some(cell => cell.style.color.toLowerCase() !== firstCell.style.color.toLowerCase() || cell.style.fill.toLowerCase() !== firstCell.style.fill.toLowerCase()))
       d.add({ code: 'STYLE_APPROXIMATED', elementId: el.id, property: 'table.colors', severity: 'warning', effect: embed ? 'approximated' : 'omitted', message: embed ? 'The native table projection uses the first visible cell colors; mixed cell colors remain in embedded metadata only.' : 'The portable table projection uses the first visible cell colors; other cell colors are omitted.' });
@@ -347,6 +401,11 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     }
     else if (el.kind === 'image')
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
+    else if (el.kind === 'component' && !legacyLabel) {
+      // The text is part of the picture; it stays the value of the cell, hidden, so it is not lost for draw.io and
+      // comes back when the file is read without its embedded document.
+      style.push('shape=image', `image=${componentPicture(el, document)}`, 'imageAspect=0', 'noLabel=1', `sketchdrawComponent=${encodeURIComponent(el.componentType ?? '')}`, ...(el.description ? [`sketchdrawDescription=${encodeURIComponent(el.description)}`] : []));
+    }
     else if (el.kind === 'sticky-note')
       style.push('shape=note', 'shadow=1', 'verticalAlign=top', 'spacing=20', `sketchdrawAuthor=${encodeURIComponent(el.author ?? '')}`, `sketchdrawListStyle=${el.style.listStyle ?? 'none'}`);
     else if (el.kind === 'annotation')
@@ -370,8 +429,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       if (el.kind === 'path')
         diagnostic(d, el, 'PATH_PROJECTION_APPROXIMATED', 'Freehand path is projected as an editable native edge; path identity/fill may differ.');
     }
-    if (el.kind === 'component')
+    if (el.kind === 'component' && legacyLabel)
       diagnostic(d, el, 'COMPONENT_ICON_FALLBACK', 'draw.io component is an editable named rectangle; catalog/icon semantics remain metadata.');
+    else if (el.kind === 'component')
+      diagnostic(d, el, 'COMPONENT_PROJECTED_AS_IMAGE', 'Component is exported as a picture of its card with icon and text; the text is not editable in draw.io.', false);
     if (text)
       diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Text rendering depends on receiver fonts and text layout.');
     out.append(`<mxCell${attrs({ id: ids.get(el.id), parent: el.parentId ? ids.get(el.parentId) : '1', value: text, style: style.join(';') + ';', ...(edge ? { edge: '1', source: el.from ? ids.get(el.from.elementId) : undefined, target: el.to ? ids.get(el.to.elementId) : undefined } : { vertex: '1' }) })}>`);
@@ -406,8 +467,13 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
   return out.toString();
 }
 /** Internal comparison surface; old versions are never selected by export callers. */
-export function drawioProjectionForValidation(document: SketchDocument, projectionVersion: 1 | 2): string {
+export function drawioProjectionForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): string {
   return nativeDrawio(document, new DiagnosticCollector(), false, projectionVersion);
+}
+/** The SVG picture of an embedded document as the exporter of the given version drew it; see `drawioProjectionForValidation`. */
+export function svgProjectionForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): string {
+  const full = validateDocument(document);
+  return nativeSvg(full.pages.length > 1 ? extractPage(full, full.pages[0]!.id) : full, new DiagnosticCollector(), true, projectionVersion);
 }
 export function prepareExport(document: SketchDocument, format: Exclude<InteropFormat, 'mermaid'>, options: InteropExportOptions = {}): InteropExportResult {
   const full = validateDocument(document);

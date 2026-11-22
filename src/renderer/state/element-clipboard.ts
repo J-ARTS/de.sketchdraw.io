@@ -70,15 +70,7 @@ export function elementClipboardPayload(document: SketchDocument, selection: rea
     if (element.assetId && document.assets[element.assetId]) assets[element.assetId] = clone(document.assets[element.assetId]!);
   }
 
-  const componentTypes = new Set(elements.flatMap((element) => [
-    ...(element.componentType ? [element.componentType] : []),
-    ...(isResourceCard(element) ? [resourceCardIconType(element)] : []),
-  ]));
-  const componentSets = document.componentSets
-    .filter((set) => set.components.some((definition) => componentTypes.has(definition.type)))
-    .map(clone);
-
-  return { format: ELEMENT_CLIPBOARD_FORMAT, version: 1, elements, assets, componentSets };
+  return { format: ELEMENT_CLIPBOARD_FORMAT, version: 1, elements, assets, componentSets: usedComponentSets(document, elements) };
 }
 
 /** Treats OS clipboard text as hostile input and returns a detached, fully validated payload. */
@@ -109,6 +101,41 @@ export function parseElementClipboard(text: string): ElementClipboardPayload | n
   } catch { return null; }
 }
 
+/** The component sets of the document that the given elements need: what a clipboard has to carry along. */
+export function usedComponentSets(document: Pick<SketchDocument, 'componentSets'>, elements: readonly SketchElement[]): ComponentSet[] {
+  const componentTypes = new Set(elements.flatMap((element) => [
+    ...(element.componentType ? [element.componentType] : []),
+    ...(isResourceCard(element) ? [resourceCardIconType(element)] : []),
+  ]));
+  return document.componentSets
+    .filter((set) => set.components.some((definition) => componentTypes.has(definition.type)))
+    .map(clone);
+}
+
+/**
+ * The sets among `sets` that the document still lacks for the given elements. A definition that differs from the
+ * one the document already has under the same type is a conflict and throws, so nothing is replaced silently.
+ */
+export function missingComponentSets(sets: readonly ComponentSet[], elements: readonly SketchElement[], document: Pick<SketchDocument, 'componentSets'>): ComponentSet[] {
+  const currentDefinitions = new Map(document.componentSets.flatMap((set) => set.components.map((definition) => [definition.type, definition] as const)));
+  const neededTypes = new Set(elements.flatMap((element) => element.componentType ? [element.componentType] : []));
+  const additions: ComponentSet[] = [];
+  for (const set of sets) {
+    const needed = set.components.filter((definition) => neededTypes.has(definition.type));
+    if (!needed.length) continue;
+    for (const definition of needed) {
+      const current = currentDefinitions.get(definition.type);
+      if (current && !same(current, definition)) throw new Error(`Component type "${definition.type}" conflicts with the current document.`);
+    }
+    if (needed.every((definition) => currentDefinitions.has(definition.type))) continue;
+    const currentSet = document.componentSets.find((entry) => entry.id === set.id);
+    if (currentSet && !same(currentSet, set)) throw new Error(`Component set "${set.id}" conflicts with the current document.`);
+    additions.push(clone(set));
+    for (const definition of set.components) currentDefinitions.set(definition.type, definition);
+  }
+  return additions;
+}
+
 /** Creates one atomic command whose pasted selection is centred at `at`. */
 export function planElementPaste(
   payload: ElementClipboardPayload,
@@ -136,22 +163,7 @@ export function planElementPaste(
   });
   const assets = Object.entries(payload.assets).map(([sourceId, source]) => ({ ...clone(source), id: assetIds.get(sourceId)! }));
 
-  const currentDefinitions = new Map(document.componentSets.flatMap((set) => set.components.map((definition) => [definition.type, definition] as const)));
-  const neededTypes = new Set(elements.flatMap((element) => element.componentType ? [element.componentType] : []));
-  const additions: ComponentSet[] = [];
-  for (const set of payload.componentSets) {
-    const needed = set.components.filter((definition) => neededTypes.has(definition.type));
-    if (!needed.length) continue;
-    for (const definition of needed) {
-      const current = currentDefinitions.get(definition.type);
-      if (current && !same(current, definition)) throw new Error(`Component type "${definition.type}" conflicts with the current document.`);
-    }
-    if (needed.every((definition) => currentDefinitions.has(definition.type))) continue;
-    const currentSet = document.componentSets.find((entry) => entry.id === set.id);
-    if (currentSet && !same(currentSet, set)) throw new Error(`Component set "${set.id}" conflicts with the current document.`);
-    additions.push(clone(set));
-    for (const definition of set.components) currentDefinitions.set(definition.type, definition);
-  }
+  const additions = missingComponentSets(payload.componentSets, elements, document);
 
   const add: DocumentCommand = { type: 'add', elements, ...(assets.length ? { assets } : {}) };
   const command: DocumentCommand = additions.length

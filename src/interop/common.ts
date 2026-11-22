@@ -151,13 +151,22 @@ export function finish(ctx: ImportContext, options: ImportOptions, restored?: Sk
   const diagnostics = ctx.diagnostics.finalize();
   return { document, diagnostics, warnings: extractWarnings(diagnostics), requiresConfirmation: hasWarningDiagnostics(diagnostics), fidelity: computeImportFidelity(diagnostics, !!restored), source: { format: ctx.format, ...(page ? { page } : {}) } };
 }
-export function encodeEnvelope(document: SketchDocument, format: InteropFormat, projectionVersion: 1 | 2 = 1): string {
+/**
+ * The versions of the visible picture each format has written. An own file is only restored from its embedded
+ * document when the picture still is what the exporter of that version draws, so every change to the picture of a
+ * format gets a new number and the older ones stay reproducible for that comparison (#272).
+ */
+export type ProjectionVersion = 1 | 2 | 3;
+const PROJECTION_VERSIONS: Readonly<Record<InteropFormat, readonly ProjectionVersion[]>> = { svg: [1, 2], drawio: [1, 2, 3], mermaid: [1, 2] };
+/** The version an export writes today. */
+export const CURRENT_PROJECTION: Readonly<Record<InteropFormat, ProjectionVersion>> = { svg: 2, drawio: 3, mermaid: 2 };
+export function encodeEnvelope(document: SketchDocument, format: InteropFormat, projectionVersion: ProjectionVersion = CURRENT_PROJECTION[format]): string {
   const json = JSON.stringify({ format: 'sketchdraw-interop', version: 1, projection: `${format}-v${projectionVersion}`, encoding: 'base64-json', document: JSON.parse(serializeDocument(document)) });
   if (utf8ByteLength(json) > L.MAX_EMBEDDED_DOCUMENT_BYTES)
     fail('LIMIT_EXCEEDED', 'Embedded document envelope exceeds its byte limit.');
   return encodeUtf8JsonToBase64(json);
 }
-export function decodeEnvelopeWithProjection(value: string, format: InteropFormat): { document: SketchDocument; projectionVersion: 1 | 2 } {
+export function decodeEnvelopeWithProjection(value: string, format: InteropFormat): { document: SketchDocument; projectionVersion: ProjectionVersion } {
   const json = decodeBase64ToUtf8String(value, L.MAX_EMBEDDED_DOCUMENT_BYTES);
   const parsed = parseStrictJsonObject(json, { lineNumber: 1, lineOffset: 0 });
   if (!parsed.ok)
@@ -165,7 +174,7 @@ export function decodeEnvelopeWithProjection(value: string, format: InteropForma
   const data = parsed.value;
   if (Object.keys(data).sort().join(',') !== 'document,encoding,format,projection,version' || data['format'] !== 'sketchdraw-interop' || data['version'] !== 1 || data['encoding'] !== 'base64-json')
     fail('EMBEDDED_MODEL_INVALID', 'Unsupported embedded envelope.');
-  const projectionVersion = data['projection'] === `${format}-v1` ? 1 : format === 'drawio' && data['projection'] === 'drawio-v2' ? 2 : undefined;
+  const projectionVersion = PROJECTION_VERSIONS[format].find(version => data['projection'] === `${format}-v${version}`);
   if (projectionVersion === undefined)
     fail('EMBEDDED_MODEL_STALE', 'Unknown projection version cannot confirm the native projection.');
   return { document: validateDocument(data['document']), projectionVersion };

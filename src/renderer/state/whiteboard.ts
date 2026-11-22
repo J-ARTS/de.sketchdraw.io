@@ -43,7 +43,7 @@ import {
 } from './pages';
 import { anchorPoint, nearestSideAnchor, planQuickConnect, QUICK_SIDES, quickConnectCopy } from '../lib/quick-connect';
 import { SWAPPABLE_KINDS } from '../lib/shapes';
-import { elementClipboardPayload, parseElementClipboard, planElementPaste } from './element-clipboard';
+import { elementClipboardPayload, missingComponentSets, parseElementClipboard, planElementPaste } from './element-clipboard';
 import { CUSTOM_COMPONENT_LIMITS, CUSTOM_COMPONENTS_FILE_MAX_BYTES, normalizeComponentName, useCustomComponents, type CustomComponentImportResult } from '../lib/custom-components';
 import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedLifeline, sequenceSelection, toggleSequenceNumbers, withSequenceLayout, type SequenceEdit, type SequenceTexts } from '../lib/sequence-diagram';
 import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
@@ -349,7 +349,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     get empty() { return !this.document.elements.some((e) => e.pageId === this.activePageId); },
     get saveStatus() { const status = deriveSaveStatus(this.file, this.revision).status; return this.hasDraft && !['saving', 'error', 'conflict'].includes(status) ? 'dirty' : status; },
     get saveStatusText() { return this.hasDraft && !this.file.saving ? t('Offener Entwurf') : deriveSaveStatus(this.file, this.revision).text; },
-    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && (this.textEdit.draft !== this.textEdit.initialText || !areAnnotationDocumentsEqual(this.textEdit.annotationDraft ?? undefined, this.textEdit.initialAnnotation ?? undefined) || Object.keys(textStyleChanges(this.textEdit)).length > 0)) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
+    get hasDraft() { void this.draftVersion; return Boolean(this.propertyDraft) || Boolean(this.textEdit && textEditChanges(this.textEdit).any) || this.code.dirty || titleDraft !== this.document.title || Boolean(this.drawing || this.previewCommand || this.gestureConflict); },
     get history() { void this.revision; try { return this.canWrite ? (guest?.source ?? bindings.human.source).getHistoryState() : { canUndo: false, canRedo: false }; } catch { return { canUndo: false, canRedo: false }; } },
     get cursor() {
       if (this.transitioning) return 'wait';
@@ -478,6 +478,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const changes: Record<string, unknown> = {};
     for (const key of Object.keys(edit.style) as Array<keyof ElementStyle>) if (!same(edit.style[key], edit.initialStyle[key])) changes[key] = edit.style[key];
     return changes as Partial<ElementStyle>;
+  }
+  /**
+   * What an open text edit would change when it is applied. The draft check (save status, close warning) and
+   * `applyText` both read it, so a change that would be saved always counts as an open draft (#268).
+   */
+  function textEditChanges(edit: NonNullable<WhiteboardState['textEdit']>) {
+    const styleChanges = textStyleChanges(edit);
+    const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
+    const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
+    const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
+    const linksChanged = edit.kind !== 'annotation' && !sameTextLinks(edit.links ?? [], edit.initialLinks ?? []);
+    return { styleChanges, textChanged, styleChanged, annotationChanged, authorChanged, linksChanged, any: textChanged || styleChanged || annotationChanged || authorChanged || linksChanged };
   }
   /** Hints leave on their own; errors stay until they are closed so they can be read and acted on (#166). */
   const noticeTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -930,12 +942,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (!edit) return true;
     if (edit.composing) { notice(t('Bitte die laufende Texteingabe zuerst abschließen.'), 'error'); return false; }
     if (edit.conflict) { notice(edit.conflict, 'error'); return false; }
-    const styleChanges = textStyleChanges(edit);
-    const annotationChanged = !areAnnotationDocumentsEqual(edit.annotationDraft ?? undefined, edit.initialAnnotation ?? undefined);
-    const textChanged = edit.draft !== edit.initialText, styleChanged = Object.keys(styleChanges).length > 0;
-    const authorChanged = (edit.author ?? null) !== (edit.initialAuthor ?? null);
-    const linksChanged = edit.kind !== 'annotation' && !sameTextLinks(edit.links ?? [], edit.initialLinks ?? []);
-    if ((!textChanged && !annotationChanged && !styleChanged && !authorChanged && !linksChanged) || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
+    const { styleChanges, textChanged, styleChanged, authorChanged, linksChanged, any } = textEditChanges(edit);
+    if (!any || (!edit.elementId && !edit.draft.trim())) { state.textEdit = null; changedDraft(); return true; }
     if (edit.field && edit.elementId) return applyCardField(edit, edit.field, edit.elementId, styleChanges);
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
     const existing = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : undefined;
@@ -2240,9 +2248,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const generation = pluginGeneration;
       if (!state.canWrite || state.transitioning) return false;
       const tasks = clone(state.document.tasks ?? []); const task = tasks.find((entry) => entry.id === taskId); if (!task) return false;
+      // Jira receives a text only when it changed: the description replaces the one in Jira as plain text (#270).
+      const before = { title: task.title, description: task.description, status: task.status };
       if (value.title !== undefined && value.title.trim()) task.title = value.title.trim();
       if (value.description !== undefined) task.description = value.description;
-      if (value.status !== undefined) { task.status = value.status; task.rank = tasks.filter((entry) => entry.status === value.status).length; }
+      if (value.status !== undefined && value.status !== before.status) { task.status = value.status; task.rank = tasks.filter((entry) => entry.status === value.status && entry.id !== taskId).length; }
       if (value.type !== undefined) { if (value.type) task.type = value.type; else delete task.type; }
       if (value.assignee !== undefined) { const name = value.assignee?.trim().slice(0, 120); if (name) task.assignee = name; else delete task.assignee; }
       if (value.dueDate !== undefined) { if (value.dueDate) task.dueDate = value.dueDate; else delete task.dueDate; }
@@ -2251,16 +2261,18 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (ok) {
         if (!pluginContextCurrent(generation)) return true;
         state.liveMessage = t('Aufgabe aktualisiert.');
-        const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined;
-        if ((value.status !== undefined || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+        const jiraTexts = { ...(task.title !== before.title ? { title: task.title } : {}), ...(task.description !== before.description ? { description: task.description } : {}) };
+        const statusChanged = task.status !== before.status;
+        const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined || Object.keys(jiraTexts).length > 0;
+        if ((statusChanged || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
           try {
             let issue: JiraIssueSummary | undefined;
-            if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
-            if (value.status !== undefined) issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: value.status });
+            if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
+            if (statusChanged) issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: task.status });
             if (!pluginContextCurrent(generation)) return true;
             const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
             if (synced?.external && issue) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe gespeichert; Jira-Felder konnten nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Jira hat die Änderung nicht übernommen: {message} Beim nächsten Abgleich gilt wieder der Stand aus Jira.', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -2606,19 +2618,31 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const page = state.document.pages.find((entry) => entry.id === id);
       if (!page) return;
       try {
-        await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, state.document.elements.filter((e) => e.pageId === id), state.document.assets)));
+        await clipboard.writeText(JSON.stringify(pageClipboardPayload(page.name, state.document.elements.filter((e) => e.pageId === id), state.document.assets, state.document.componentSets)));
         notice(t('Inhalt von „{name}“ kopiert.', { name: page.name }));
       } catch { notice(t('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.'), 'error'); }
     },
     async pastePage() {
       if (!state.canWrite || state.transitioning) return;
       if (state.document.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
+      // Reading the clipboard takes time. The page belongs into the document this action started in; when another
+      // document is open by the time the clipboard answers, the result is dropped (#274).
+      const owner = activeSession();
       let text: string;
-      try { text = await clipboard.readText(); } catch { notice(t('Die Zwischenablage ist nicht verfügbar. Der Seiteninhalt wurde nicht kopiert.'), 'error'); return; }
+      try { text = await clipboard.readText(); } catch { if (owner === activeSession()) notice(t('Die Zwischenablage ist nicht verfügbar. Die Seite wurde nicht eingefügt.'), 'error'); return; }
+      if (owner !== activeSession() || state.transitioning || !state.canWrite) return;
+      if (state.document.pages.length >= MAX_PAGES) { notice(t('Ein Dokument kann höchstens {MAX_PAGES} Seiten enthalten.', { MAX_PAGES }), 'error'); return; }
       const payload = parsePageClipboard(text);
       if (!payload) { notice(t('Die Zwischenablage enthält keinen Seiteninhalt.'), 'error'); return; }
       const copy = copyPageContent({ name: payload.name, elements: payload.elements, assets: payload.assets }, uid);
-      const ok = await dispatch({ type: 'add-page', page: copy.page, elements: copy.elements, assets: copy.assets });
+      const addPage: DocumentCommand = { type: 'add-page', page: copy.page, elements: copy.elements, assets: copy.assets };
+      let command: DocumentCommand = addPage;
+      try {
+        // The definitions of the library components on the page come along, as with copied elements (#269).
+        const additions = missingComponentSets(payload.componentSets, copy.elements, state.document);
+        if (additions.length) command = { type: 'batch', commands: [{ type: 'set-component-sets', sets: [...clone(state.document.componentSets), ...additions] }, addPage] };
+      } catch (error) { fail(error); return; }
+      const ok = await dispatch(command);
       if (ok) { store.selectPage(copy.page.id); notice(t('Seite „{name}“ eingefügt.', { name: copy.page.name })); }
     },
     togglePropertiesCollapsed(collapsed) { state.propertiesCollapsed = collapsed ?? !state.propertiesCollapsed; },

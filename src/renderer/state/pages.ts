@@ -1,4 +1,5 @@
-import { DOMAIN_LIMITS, createDocument, validateDocument, type SketchAsset, type SketchDocument, type SketchElement, type SketchPage } from '@/domain';
+import { DOMAIN_LIMITS, createDocument, validateDocument, type ComponentSet, type SketchAsset, type SketchDocument, type SketchElement, type SketchPage } from '@/domain';
+import { usedComponentSets } from './element-clipboard';
 import type { PageSummary } from './contract';
 import { t } from '@/renderer/i18n';
 
@@ -32,21 +33,25 @@ export interface PageClipboardPayload {
   name: string;
   elements: SketchElement[];
   assets: Record<string, SketchAsset>;
+  /** The definitions of the library components on the page (#269). Payloads written before that have none. */
+  componentSets?: ComponentSet[];
 }
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-export function pageClipboardPayload(name: string, elements: readonly SketchElement[], assets: Readonly<Record<string, SketchAsset>>): PageClipboardPayload {
+export function pageClipboardPayload(name: string, elements: readonly SketchElement[], assets: Readonly<Record<string, SketchAsset>>, componentSets: readonly ComponentSet[] = []): PageClipboardPayload {
   const used: Record<string, SketchAsset> = {};
   for (const element of elements) {
     const asset = element.assetId ? assets[element.assetId] : undefined;
     if (asset && element.assetId) used[element.assetId] = asset;
   }
-  return { format: 'sketchdraw.page', version: 1, name, elements: clone([...elements]), assets: clone(used) };
+  // Like the clipboard for elements, the page carries the definitions its components need: without them a page
+  // with a library component is not a valid document on its own and could not be pasted anywhere (#269).
+  return { format: 'sketchdraw.page', version: 1, name, elements: clone([...elements]), assets: clone(used), componentSets: usedComponentSets({ componentSets: [...componentSets] }, elements) };
 }
 
 /** Parses and validates clipboard text; anything that is not a valid page payload yields null. */
-export function parsePageClipboard(text: string): { name: string; elements: SketchElement[]; assets: Record<string, SketchAsset> } | null {
+export function parsePageClipboard(text: string): { name: string; elements: SketchElement[]; assets: Record<string, SketchAsset>; componentSets: ComponentSet[] } | null {
   let raw: unknown;
   try { raw = JSON.parse(text); } catch { return null; }
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
@@ -59,7 +64,8 @@ export function parsePageClipboard(text: string): { name: string; elements: Sket
       pages: [{ id: base.pages[0]!.id, name: payload['name'].trim().slice(0, MAX_PAGE_NAME_LENGTH) || t('Seite 1') }],
       elements: payload['elements'].map((element) => (typeof element === 'object' && element !== null ? { ...(element as object), pageId: base.pages[0]!.id } : element)),
       assets: typeof payload['assets'] === 'object' && payload['assets'] !== null ? payload['assets'] : {},
+      componentSets: Array.isArray(payload['componentSets']) ? payload['componentSets'] : [],
     });
-    return { name: validated.pages[0]!.name, elements: validated.elements, assets: validated.assets };
+    return { name: validated.pages[0]!.name, elements: validated.elements, assets: validated.assets, componentSets: validated.componentSets };
   } catch { return null; }
 }

@@ -1,9 +1,9 @@
 import { createElement, DOMAIN_LIMITS, shapeBaseKind, SHAPE_VARIANTS } from '../domain';
 import type { ElementStyle, Point, ShapeVariant } from '../domain';
-import { context, importBoundary, add, baseStyle, color, decodeEnvelope, fail, findOwnSvgEnvelope, finish, imageAsset, length, number, placeholder, pointsElement, SVG_NS, textOf, warn } from './common';
+import { context, importBoundary, add, baseStyle, color, decodeEnvelopeWithProjection, fail, findOwnSvgEnvelope, finish, imageAsset, length, number, placeholder, pointsElement, SVG_NS, textOf, warn } from './common';
 import { flattenPath, IDENTITY, multiply, parseNumbers, parseTransform, rectangleTransform, transformPoint, type Matrix } from './geometry';
 import { INTEROP_LIMITS as L } from './limits';
-import { prepareSvgExport } from './export';
+import { svgProjectionForValidation } from './export';
 import { areXmlTreesEquivalent, stripSvgEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type ImportOptions, type InteropImportResult } from './types';
 const presentation = new Set(['fill', 'stroke', 'stroke-width', 'opacity', 'font-size', 'font-family', 'text-anchor', 'stroke-dasharray', 'display', 'visibility', 'color', 'fill-opacity', 'stroke-opacity', 'fill-rule', 'stroke-linecap', 'stroke-linejoin', 'clip-path', 'filter', 'mask', 'marker-start', 'marker-mid', 'marker-end', 'mix-blend-mode', 'font-weight', 'font-style', 'text-decoration', 'writing-mode', 'direction']);
@@ -29,8 +29,9 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
     try {
       if (envelope.length !== 1 || envelope[0]!.local !== 'document')
         throw new Error('Bad envelope');
-      const doc = decodeEnvelope(textOf(envelope[0]!), 'svg');
-      const expected = parseXmlDocument(prepareSvgExport(doc).contents);
+      const { document: doc, projectionVersion } = decodeEnvelopeWithProjection(textOf(envelope[0]!), 'svg');
+      // Compared with the picture of the version that wrote the file, so a release file stays restorable (#272).
+      const expected = parseXmlDocument(svgProjectionForValidation(doc, projectionVersion));
       if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
         return finish(ctx, options, doc);
       warn(ctx, envelope[0], 'EMBEDDED_MODEL_STALE', 'metadata', 'Visible projection changed; embedded document ignored.');

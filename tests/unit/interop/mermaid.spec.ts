@@ -171,7 +171,9 @@ describe('bounded Mermaid flowchart interoperability', () => {
     expect(importMermaid(result.contents)).toMatchObject({ fidelity: 'own-roundtrip', document });
     expect(importMermaid(result.contents).source.pageId).toBe('page:2');
     expect(importMermaid(result.contents).diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'EMBEDDED_MODEL_RESTORED', severity: 'info', pageIndex: 1, message: expect.stringContaining('(2 pages)') })]));
-    expect(result.diagnostics.map(d => d.code)).toEqual(expect.arrayContaining(['MERMAID_LAYOUT_LOSS', 'MERMAID_STYLE_LOSS', 'MERMAID_ELEMENT_APPROXIMATED', 'MERMAID_OTHER_PAGES_OMITTED']));
+    expect(result.diagnostics.map(d => d.code)).toEqual(expect.arrayContaining(['MERMAID_LAYOUT_LOSS', 'MERMAID_STYLE_LOSS', 'MERMAID_ELEMENTS_OMITTED', 'MERMAID_OTHER_PAGES_OMITTED']));
+    // The image of the page has no flowchart form: it is not in the code, only in the embedded document (#261).
+    expect(result.contents.split('%%')[0]).toBe('flowchart LR\n  n0["Second"]\n');
     const changed = importMermaid(result.contents.replace('["Second"]', '["Edited"]'));
     expect(changed.fidelity).not.toBe('own-roundtrip');
     expect(changed.document.pages).toHaveLength(1);
@@ -232,12 +234,13 @@ describe('bounded Mermaid flowchart interoperability', () => {
     expect(imported.document.elements.filter(el => el.kind === 'connector')).toHaveLength(1);
   });
 
-  it('represents free endpoints explicitly and requires review for lossy convenience exports', () => {
+  it('leaves an arrow with a free end out instead of inventing nodes for it, and requires review for lossy convenience exports', () => {
     const doc = createDocument();
     doc.elements.push(createElement('connector', { id: 'free' }));
     const result = prepareMermaidExport(doc, { embedDocument: false });
-    expect(result.diagnostics.some(d => d.code === 'MERMAID_FREE_ENDPOINT_APPROXIMATED')).toBe(true);
-    expect(importMermaid(result.contents).document.elements).toHaveLength(3);
+    expect(result.contents).toBe('flowchart LR\n');
+    expect(result.diagnostics.some(d => d.code === 'MERMAID_ELEMENTS_OMITTED')).toBe(true);
+    expect(result.diagnostics.some(d => d.code === 'MERMAID_FREE_ENDPOINT_APPROXIMATED')).toBe(false);
     expect(() => exportMermaid(doc)).toThrow(expect.objectContaining({ code: 'LOSS_CONFIRMATION_REQUIRED' }));
     expect(() => prepareMermaidExport(doc, { pageId: 'missing' })).toThrow(expect.objectContaining({ code: 'PAGE_NOT_FOUND' }));
   });
@@ -245,11 +248,15 @@ describe('bounded Mermaid flowchart interoperability', () => {
   it('preserves label-only nodes and connectors in the portable projection', () => {
     const doc = importMermaid('flowchart LR\nA --> B').document;
     const node = doc.elements.find(el => el.id === 'A')!, edge = doc.elements.find(el => el.kind === 'connector')!;
-    node.text = ''; node.label = 'Node label';
-    edge.text = ''; edge.label = 'Ja | nein; "x"';
+    delete node.text; node.label = 'Node label';
+    delete edge.text; edge.label = 'Ja | nein; "x"';
     const result = importMermaid(prepareMermaidExport(doc, { embedDocument: false }).contents);
     expect(result.document.elements.some(el => el.text === 'Node label')).toBe(true);
     expect(result.document.elements.find(el => el.kind === 'connector')?.text).toBe('Ja | nein; "x"');
+    // A text that was emptied stays empty; the label stands in only where no text was set (#258).
+    node.text = ''; edge.text = '';
+    const emptied = prepareMermaidExport(doc, { embedDocument: false }).contents;
+    expect(emptied).not.toContain('Node label'); expect(emptied).not.toContain('nein');
   });
 
   it('does not interpret metadata-looking lines inside quoted labels', () => {
@@ -262,7 +269,7 @@ describe('bounded Mermaid flowchart interoperability', () => {
     const doc = createDocument();
     doc.elements.push(createElement('sticky-note', { text: 'x'.repeat(40_000) }));
     const exported = prepareMermaidExport(doc);
-    expect(exported.diagnostics.map(d => d.code)).toEqual(expect.arrayContaining(['MERMAID_EMBEDDED_DOCUMENT', 'MERMAID_RENDERER_SIZE_LIMIT', 'MERMAID_ELEMENT_APPROXIMATED']));
+    expect(exported.diagnostics.map(d => d.code)).toEqual(expect.arrayContaining(['MERMAID_EMBEDDED_DOCUMENT', 'MERMAID_RENDERER_SIZE_LIMIT', 'MERMAID_LAYOUT_LOSS']));
     expect(importMermaid(exported.contents).document).toEqual(doc);
     expect(prepareMermaidExport(doc, { embedDocument: false }).diagnostics.some(d => d.code === 'MERMAID_RENDERER_SIZE_LIMIT')).toBe(false);
   });

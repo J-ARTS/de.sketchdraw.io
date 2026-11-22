@@ -1,0 +1,80 @@
+import { validateDocument, type SketchDocument, type SketchElement } from '@/domain';
+import { InteropError, mermaidEnvelopeLine, prepareMermaidExport, type InteropDiagnostic, type InteropExportOptions, type InteropExportResult } from '@/interop';
+import { sequenceToCode } from './sequence-code';
+import { readSequences, sequenceRole, type SequenceDiagram } from './sequence-model';
+
+/**
+ * Export as Mermaid code (#261). A Mermaid file holds one diagram of one type, so a page is not written as a
+ * whole: a sequence diagram becomes a `sequenceDiagram` – the same code the code panel shows – and everything a
+ * flowchart can show becomes a `flowchart`. What Mermaid has no form for is left out rather than approximated.
+ */
+export interface MermaidExportTarget {
+  /** `flowchart`, or `sequence:` and the id of the first lifeline of that diagram. */
+  id: string;
+  kind: 'sequence' | 'flowchart';
+  /** What tells this diagram apart from the others on the page: its participants. Empty for the flowchart. */
+  names: string;
+}
+
+export const MERMAID_FLOWCHART_TARGET = 'flowchart';
+const NOT_IN_A_FLOWCHART: ReadonlySet<SketchElement['kind']> = new Set(['connector', 'image', 'web-embed', 'table', 'annotation', 'path', 'frame']);
+const flat = (text: string): string => text.replace(/\s+/g, ' ').trim();
+const sequenceTargetId = (diagram: SequenceDiagram): string => `sequence:${diagram.model.participants[0]!.id}`;
+const pageElements = (document: SketchDocument, pageId: string): SketchElement[] => document.elements.filter((element) => element.pageId === pageId);
+
+/** Whether an element is, or lies inside, a part of a sequence diagram. */
+function inSequence(element: SketchElement, byId: ReadonlyMap<string, SketchElement>): boolean {
+  for (let current: SketchElement | undefined = element, depth = 0; current && depth < 64; current = current.parentId ? byId.get(current.parentId) : undefined, depth += 1) {
+    if (sequenceRole(current)) return true;
+  }
+  return false;
+}
+
+/**
+ * What a page can be exported as, in the order it is offered: every sequence diagram on it, then the flowchart of
+ * the remaining shapes when there are any. A page without a sequence diagram always offers the flowchart.
+ */
+export function mermaidExportTargets(document: SketchDocument, pageId: string): MermaidExportTarget[] {
+  const elements = pageElements(document, pageId);
+  const byId = new Map(elements.map((element) => [element.id, element]));
+  const sequences: MermaidExportTarget[] = readSequences(elements)
+    .filter((diagram) => diagram.model.participants.length > 0)
+    .map((diagram) => ({ id: sequenceTargetId(diagram), kind: 'sequence', names: diagram.model.participants.map((participant) => flat(participant.name)).filter(Boolean).join(', ') }));
+  const hasFlowchart = elements.some((element) => !NOT_IN_A_FLOWCHART.has(element.kind) && !inSequence(element, byId));
+  return sequences.length && !hasFlowchart ? sequences : [...sequences, { id: MERMAID_FLOWCHART_TARGET, kind: 'flowchart', names: '' }];
+}
+
+/** The target for a selection: the sequence diagram all of it belongs to, otherwise the first one that is offered. */
+export function defaultMermaidExportTarget(document: SketchDocument, pageId: string, selection: readonly string[] = []): string {
+  const targets = mermaidExportTargets(document, pageId);
+  const elements = pageElements(document, pageId);
+  const picked = selection.filter((id) => elements.some((element) => element.id === id));
+  if (picked.length) {
+    const diagram = readSequences(elements).find((entry) => picked.every((id) => entry.members.has(id)));
+    if (diagram && targets.some((target) => target.id === sequenceTargetId(diagram))) return sequenceTargetId(diagram);
+    if (targets.some((target) => target.id === MERMAID_FLOWCHART_TARGET)) return MERMAID_FLOWCHART_TARGET;
+  }
+  return targets[0]!.id;
+}
+
+/** Prepares the Mermaid file of one diagram of a page. Without `target` the first diagram that is offered is taken. */
+export function prepareMermaidCodeExport(document: SketchDocument, options: InteropExportOptions & { target?: string } = {}): InteropExportResult {
+  const full = validateDocument(document);
+  const pageId = options.pageId ?? full.pages[0]!.id;
+  const pageIndex = full.pages.findIndex((page) => page.id === pageId);
+  if (pageIndex < 0) throw new InteropError('PAGE_NOT_FOUND', 'The selected Mermaid export page does not exist.');
+  const targets = mermaidExportTargets(full, pageId);
+  const target = targets.find((entry) => entry.id === options.target) ?? targets[0]!;
+  if (target.kind === 'flowchart') return prepareMermaidExport(full, { pageId, ...(options.embedDocument === undefined ? {} : { embedDocument: options.embedDocument }) });
+
+  const elements = pageElements(full, pageId);
+  const diagram = readSequences(elements).find((entry) => sequenceTargetId(entry) === target.id)!;
+  const embed = options.embedDocument !== false;
+  const others = elements.filter((element) => !diagram.members.has(element.id)).length;
+  const diagnostics: InteropDiagnostic[] = [
+    ...(others ? [{ code: 'MERMAID_ELEMENTS_OMITTED', severity: 'warning', effect: embed ? 'approximated' : 'omitted', property: 'elements', message: `${others} element(s) of the page are not part of this sequence diagram and not in the Mermaid code.` } satisfies InteropDiagnostic] : []),
+    ...(embed ? [{ code: 'MERMAID_EMBEDDED_DOCUMENT', severity: 'info', effect: 'preserved-as-data', property: 'metadata', message: 'Mermaid: The comment contains the complete document. Other Mermaid tools ignore these data.' } satisfies InteropDiagnostic] : []),
+  ];
+  const contents = `${sequenceToCode(diagram.model)}${embed ? `${mermaidEnvelopeLine(full, pageIndex)}\n` : ''}`;
+  return { format: 'mermaid', contents, mimeType: 'text/plain', suggestedExtension: '.mmd', diagnostics, requiresConfirmation: diagnostics.some((entry) => entry.severity === 'warning'), embedsDocument: embed };
+}

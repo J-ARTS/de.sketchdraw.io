@@ -1,9 +1,9 @@
 import { applyCommand, createDocument, type SketchDocument, type SketchElement } from '@/domain';
-import { importMermaid, InteropError, type InteropDiagnostic, type InteropImportResult } from '@/interop';
+import { importMermaid, InteropError, readMermaidEnvelope, type InteropDiagnostic, type InteropImportResult } from '@/interop';
 import { ELEMENT_CLIPBOARD_FORMAT, elementClipboardPayload, planElementPaste, type ElementClipboardPayload } from '@/renderer/state/element-clipboard';
 import { t } from '@/renderer/i18n';
-import { parseSequenceCode } from './sequence-code';
-import { buildSequence } from './sequence-model';
+import { parseSequenceCode, sequenceToCode } from './sequence-code';
+import { buildSequence, readSequences } from './sequence-model';
 
 /**
  * Import of Mermaid code (#248). Flowcharts (`flowchart`, `graph`) are converted by the exchange layer into
@@ -33,7 +33,31 @@ export function mermaidImportKind(source: string): MermaidImportKind {
 /** The code of a sequence diagram has errors; `diagnostics` names them by line. */
 export const MERMAID_SEQUENCE_INVALID = 'MERMAID_SEQUENCE_INVALID';
 
+/**
+ * A sequence diagram exported by the app carries the whole document in a comment. It is restored when the code
+ * still is what one of the sequence diagrams on the embedded page reads as; an edited code is read as it stands.
+ */
+function restoreOwnSequence(source: string): InteropImportResult | null {
+  let own: ReturnType<typeof readMermaidEnvelope>;
+  try { own = readMermaidEnvelope(source); } catch { return null; }
+  const page = own.document?.pages[own.pageIndex ?? -1];
+  if (!own.document || !page) return null;
+  const visible = own.visible.replace(/\r\n?/g, '\n').trim();
+  const unchanged = readSequences(own.document.elements.filter((element) => element.pageId === page.id)).some((diagram) => sequenceToCode(diagram.model).trim() === visible);
+  if (!unchanged) return null;
+  return {
+    document: own.document,
+    warnings: [],
+    diagnostics: [{ code: 'EMBEDDED_MODEL_RESTORED', severity: 'info', effect: 'preserved-as-data', property: 'metadata', message: `Mermaid: Restored the complete embedded document (${own.document.pages.length} pages). The sequence diagram was verified against page ${own.pageIndex! + 1}: ${page.name}.` }],
+    fidelity: 'own-roundtrip',
+    requiresConfirmation: false,
+    source: { format: 'mermaid', pageId: page.id },
+  };
+}
+
 function importSequence(source: string): InteropImportResult {
+  const restored = restoreOwnSequence(source);
+  if (restored) return restored;
   const parsed = parseSequenceCode(unfenced(source));
   const diagnostics: InteropDiagnostic[] = parsed.diagnostics.map((entry) => ({
     code: entry.severity === 'error' ? MERMAID_SEQUENCE_INVALID : 'MERMAID_SEQUENCE_APPROXIMATED',

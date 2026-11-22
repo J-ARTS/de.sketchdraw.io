@@ -15,6 +15,10 @@ const store = useWhiteboard(); const s = store.state;
 const query = ref(''); const selectedId = ref<string | null>(null);
 const creating = ref(false); const title = ref(''); const description = ref(''); const titleError = ref(false);
 const type = ref<TaskType | ''>(''); const assignee = ref(''); const dueDate = ref('');
+/** The status chosen in the form. It is part of the draft: the card and Jira change on save, not before (#273). */
+const status = ref<TaskStatus>('todo');
+/** What the form showed when it opened. Only fields the user changed are saved, so a sync that arrives meanwhile is not undone. */
+let opened = { title: '', description: '', type: '' as TaskType | '', assignee: '', dueDate: '', status: 'todo' as TaskStatus };
 const columns: ReadonlyArray<{ status: TaskStatus; label: string }> = [
   { status: 'todo', label: L('Offen') }, { status: 'doing', label: L('In Arbeit') },
   { status: 'review', label: L('Prüfung') }, { status: 'done', label: L('Erledigt') },
@@ -34,7 +38,8 @@ function tasksFor(status: TaskStatus): SketchTask[] { return tasks.value.filter(
 function columnLabel(status: TaskStatus): string { return t(columns.find((entry) => entry.status === status)?.label ?? status); }
 function open(task: SketchTask): void {
   creating.value = false; selectedId.value = task.id; title.value = task.title; description.value = task.description; titleError.value = false;
-  type.value = task.type ?? ''; assignee.value = task.assignee ?? ''; dueDate.value = task.dueDate ?? '';
+  type.value = task.type ?? ''; assignee.value = task.assignee ?? ''; dueDate.value = task.dueDate ?? ''; status.value = task.status;
+  opened = { title: title.value, description: description.value, type: type.value, assignee: assignee.value, dueDate: dueDate.value, status: status.value };
 }
 function startCreate(): void { selectedId.value = null; creating.value = true; title.value = ''; description.value = ''; titleError.value = false; type.value = ''; assignee.value = ''; dueDate.value = ''; }
 function closeDialog(): void { creating.value = false; selectedId.value = null; titleError.value = false; }
@@ -46,7 +51,17 @@ async function save(): Promise<void> {
     if (await store.createTask(input)) closeDialog();
     return;
   }
-  if (selected.value && await store.updateTask(selected.value.id, { title: normalizedTitle, description: description.value, type: type.value || null, assignee: assignee.value.trim() || null, dueDate: dueDate.value || null })) closeDialog();
+  const task = selected.value;
+  if (!task) return;
+  const patch: Parameters<typeof store.updateTask>[1] = {
+    ...(normalizedTitle !== opened.title.trim() ? { title: normalizedTitle } : {}),
+    ...(description.value !== opened.description ? { description: description.value } : {}),
+    ...(type.value !== opened.type ? { type: type.value || null } : {}),
+    ...(assignee.value.trim() !== opened.assignee.trim() ? { assignee: assignee.value.trim() || null } : {}),
+    ...(dueDate.value !== opened.dueDate ? { dueDate: dueDate.value || null } : {}),
+    ...(status.value !== opened.status ? { status: status.value } : {}),
+  };
+  if (!Object.keys(patch).length || await store.updateTask(task.id, patch)) closeDialog();
 }
 async function removeSelected(): Promise<void> { if (selected.value && await store.deleteTask(selected.value.id)) closeDialog(); }
 function sourceLabel(task: SketchTask): string | null {
@@ -247,10 +262,10 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
     </div>
 
     <dialog ref="taskDialog" class="task-dialog" aria-labelledby="task-dialog-title" @cancel.prevent="closeDialog" @pointerdown.self="closeDialog" @keydown.stop="taskDialog && wrapTabFocus($event, taskDialog)">
-      <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? t('Neue Aufgabe') : t('Aufgabe bearbeiten') }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Schließen')" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>{{ t('Titel') }}<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">{{ t('Bitte gib einen Titel ein.') }}</span><label>{{ t('Beschreibung') }}<textarea v-model="description" maxlength="50000" /></label>
+      <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? t('Neue Aufgabe') : t('Aufgabe bearbeiten') }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Schließen')" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>{{ t('Titel') }}<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">{{ t('Bitte gib einen Titel ein.') }}</span><label>{{ t('Beschreibung') }}<textarea v-model="description" maxlength="50000" :aria-describedby="selected?.external ? 'task-jira-note' : undefined" /></label><p v-if="selected?.external" id="task-jira-note" class="jira-note">{{ t('Titel und Beschreibung werden beim Speichern nach Jira übertragen. Die Beschreibung ersetzt dort den bisherigen Text als einfachen Text.') }}</p>
         <div class="field-row"><AppSelect :label="t('Typ')" :model-value="type" :options="typeOptions" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" :label="t('Fällig am')" /></div>
         <AppSelect v-model="assignee" editable :maxlength="120" :label="t('Zugewiesen an')" :placeholder="t('Name')" :options="assigneeOptions" />
-        <AppSelect v-if="selected" :label="t('Status')" :model-value="selected.status" :options="statusOptions" @update:model-value="store.updateTask(selected.id, { status: $event as TaskStatus })" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit">{{ creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
+        <AppSelect v-if="selected" :label="t('Status')" :model-value="status" :options="statusOptions" @update:model-value="status = $event as TaskStatus" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit">{{ creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
     </dialog>
   </section>
 </template>
@@ -262,5 +277,6 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
 :global(body.task-dragging),:global(body.task-dragging *){cursor:grabbing!important;user-select:none!important}
 .card-menu{position:fixed;z-index:70;display:grid;min-width:220px;padding:6px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--surface-panel);box-shadow:var(--shadow-panel)}.card-menu-item{min-height:36px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--text-primary);font-size:13px;text-align:left;cursor:pointer}.card-menu-item:hover,.card-menu-item:focus-visible{background:var(--surface-raised);outline:none}.card-menu-item:focus-visible{box-shadow:inset 0 0 0 2px var(--focus-ring)}.card-menu-item.danger{color:var(--status-error)}.menu-sep{height:1px;margin:5px 6px;background:var(--border-subtle)}
 .new-task-fab{position:fixed;z-index:6;right:max(28px,env(safe-area-inset-right));bottom:max(28px,env(safe-area-inset-bottom));display:grid;width:56px;height:56px;padding:0;place-items:center;border:0;border-radius:50%;background:var(--accent);color:var(--accent-contrast);box-shadow:var(--shadow-panel),0 12px 28px color-mix(in srgb,var(--accent) 30%,transparent);cursor:pointer}.new-task-fab:hover{transform:translateY(-1px);filter:brightness(1.05)}.new-task-fab:active{transform:translateY(0)}.new-task-fab:focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}.task-dialog{width:min(520px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);padding:0;border:0;background:transparent;color:var(--text-primary);overflow:visible}.task-dialog::backdrop{background:var(--scrim)}.task-form{display:flex;flex-direction:column;max-height:calc(100dvh - 32px);overflow:hidden}.task-form header{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 4px}.task-fields{min-height:0;overflow-y:auto;padding:0 16px 4px}.task-form label,.task-fields>.app-field{display:grid;gap:6px;margin-top:12px;font-size:12px;color:var(--text-muted)}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.task-form input,.task-form textarea,.task-form select{min-height:42px;padding:9px 10px;border:1px solid var(--border-subtle);border-radius:9px;background:var(--surface-raised);color:var(--text-primary)}.task-form input[aria-invalid='true']{border-color:var(--status-error)}.task-form textarea{min-height:120px;resize:vertical}.form-error{display:block;margin-top:5px;color:var(--status-error);font-size:11px}.dialog-actions{display:flex;flex:none;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:14px 16px 16px;border-top:1px solid var(--border-subtle)}.sd-btn.danger{margin-right:auto;color:var(--status-error)}@media(max-width:1100px){.columns{grid-template-columns:repeat(2,minmax(240px,1fr))}}@media(max-width:720px){.task-board{padding:82px var(--chrome-inset) 92px}.board-head{align-items:stretch;flex-direction:column}.head-actions{align-items:center;flex-direction:row;flex-wrap:wrap}.board-search{width:auto;flex:1 1 210px}.new-task-fab{right:max(16px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:52px;height:52px}.columns{grid-template-columns:1fr}.task-column{min-height:280px}.field-row{grid-template-columns:1fr}}
+.jira-note{margin:6px 0 0;font-size:11px;line-height:1.5;color:var(--text-muted)}
 .external-badge{display:inline-flex;margin-bottom:7px;padding:3px 7px;border-radius:999px;background:color-mix(in srgb,#1868db 12%,var(--surface-raised));color:color-mix(in srgb,#1868db 70%,var(--text-primary));font-size:10px;font-weight:750}
 </style>
