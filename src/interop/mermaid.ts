@@ -1,4 +1,4 @@
-import { createElement, DOMAIN_LIMITS, serializeDocument, validateDocument } from '../domain';
+import { createElement, DOMAIN_LIMITS, isTicketCard, serializeDocument, ticketCardPlainText, validateDocument } from '../domain';
 import type { ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { utf8ByteLength } from '../domain/validation';
 import { add, context, CURRENT_PROJECTION, decodeEnvelopeWithProjection, encodeEnvelope, fail, finish, importBoundary, type ImportContext, type ProjectionVersion } from './common';
@@ -552,6 +552,8 @@ function flowchartElements(pageElements: readonly SketchElement[], d: Diagnostic
 function projection(document: SketchDocument, pageId: string, d: DiagnosticCollector, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.mermaid): string {
   // Picture 1 (releases up to 0.1.8) turned every element into a node; it is written again only to verify such a file.
   const legacy = projectionVersion < 2;
+  // Picture 3 names a ticket card by key and title (#283); before, it was a node with the title alone.
+  const cards = projectionVersion >= 3;
   const pageElements = document.elements.filter(el => el.pageId === pageId);
   const elements = legacy ? pageElements : flowchartElements(pageElements, d);
   const ids = new Map(elements.filter(el => el.kind !== 'connector').map((el, i) => [el.id, `n${i}`]));
@@ -566,7 +568,7 @@ function projection(document: SketchDocument, pageId: string, d: DiagnosticColle
   const emit = (parent?: string, depth = 1): void => {
     for (const el of children.get(parent) ?? []) {
       const id = ids.get(el.id)!, indent = '  '.repeat(depth);
-      const text = escaped(legacy ? el.text || el.label || (el.kind === 'image' ? 'Image' : el.kind === 'web-embed' ? 'Web page' : '') : el.text ?? el.label ?? '', d, el.id);
+      const text = escaped(cards && isTicketCard(el) ? ticketCardPlainText(el) : legacy ? el.text || el.label || (el.kind === 'image' ? 'Image' : el.kind === 'web-embed' ? 'Web page' : '') : el.text ?? el.label ?? '', d, el.id);
       if (el.kind === 'container') {
         out.append(`${indent}subgraph ${id}["${text}"]\n`); emit(el.id, depth + 1); out.append(`${indent}end\n`); continue;
       }

@@ -4,7 +4,7 @@ import { figureLayout, isIconFigure } from '@/catalog';
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
-import { alignedTextTop, readTicketCard, TEXT_CHAR_WIDTH, wrapTextLines, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
+import { alignedTextTop, readTicketCard, roundedCornerRadius, TEXT_CHAR_WIDTH, wrapTextLines, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '@/renderer/lib/theme';
 import { lineSegments, parseTextLinks } from '@/renderer/lib/text-links';
 import { fontFamilyCss } from '@/renderer/lib/constants';
@@ -131,10 +131,7 @@ const connectorLabel = computed(() => connectorLabelSize(text.value, fontSize.va
 const connectorLabelWidth = computed(() => connectorLabel.value.width);
 const shape = computed(() => shapeEntryForElement(e.value));
 /** Rounded rectangles: the radius is capped to half the shorter side; the default matches the former icon-based corner. */
-const cornerRadius = computed(() => {
-  const half = Math.min(e.value.width, e.value.height) / 2;
-  return Math.max(0, Math.min(e.value.style.cornerRadius ?? Math.min(e.value.width, e.value.height) / 6, half));
-});
+const cornerRadius = computed(() => roundedCornerRadius(e.value));
 /** Diamond and triangles are sharp by default; the corner radius is capped to half the shorter side. */
 const polygonRadius = computed(() => Math.max(0, Math.min(e.value.style.cornerRadius ?? 0, Math.min(e.value.width, e.value.height) / 2)));
 const embedHost = computed(() => {

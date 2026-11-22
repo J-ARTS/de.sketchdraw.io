@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import { createCrdtController } from '@/crdt';
 import { createController, createDocument, createElement, readTicketCard, serializeDocument, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type SketchDocument } from '@/domain';
 import { setLocale } from '@/renderer/i18n';
+import { describeSelection } from '@/renderer/lib/describe';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 
 async function setup(document: SketchDocument = createDocument('Plugins'), open = true) {
@@ -562,6 +563,10 @@ describe('ticket cards on the canvas (#283)', () => {
     // Centred on the place it was asked for, selected, and a plain rectangle for every reader of the file.
     expect(card!.element).toMatchObject({ kind: 'rectangle', x: 400 - TICKET_CARD_WIDTH / 2, y: 300 - TICKET_CARD_HEIGHT / 2, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT, text: 'Warenkorb sichern' });
     expect(store.state.selection).toEqual([card!.id]);
+    // A screen reader hears the ticket, not a rectangle with a text.
+    expect(describeSelection([card!.element], store.state.document)).toMatch(/^Ticket SK-7: Warenkorb sichern, In Progress/);
+    // A version without ticket cards writes the title of the rectangle in this colour instead of the pale frame colour.
+    expect(card!.element.style).toMatchObject({ fill: '#ffffff', textColor: '#1e1e1e', textAlign: 'left' });
     expect(notices(store).some((message) => message.startsWith('Der Inhalt des Tickets steht jetzt im Dokument'))).toBe(true);
     store.undo();
     await vi.waitFor(() => expect(cards(store)).toEqual([]));

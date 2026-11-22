@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -282,7 +282,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const element = createElement('rectangle', {
         id: uid('ticket'), x: at.x - TICKET_CARD_WIDTH / 2, y: at.y - TICKET_CARD_HEIGHT / 2, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT,
         text: patch.text, ...(patch.description ? { description: patch.description } : {}), metadata, shapeVariant: 'rounded',
-        style: { ...DEFAULT_STYLE, stroke: '#cbd5e1', fill: '#ffffff', strokeWidth: 1.5, fontSize: 16, textAlign: 'left', cornerRadius: 12 },
+        // The text colour is named: a version that shows the rectangle writes its title in it, not in the pale frame colour.
+        style: { ...DEFAULT_STYLE, stroke: '#cbd5e1', fill: TICKET_CARD_COLORS.surface, textColor: TICKET_CARD_COLORS.ink, strokeWidth: 1.5, fontSize: 16, textAlign: 'left', cornerRadius: 12 },
       });
       if (!await dispatch({ type: 'add', elements: [element] })) return false;
       setSelection([element.id]); state.tool = 'select';

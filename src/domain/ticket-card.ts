@@ -97,3 +97,9 @@ export function parseTicketUrl(value: string, sites: { jira?: string; azureDevOp
   }
   return null;
 }
+
+/** What stands for a ticket card where only text can (the hidden text of a picture, a node of a flowchart): key and title. */
+export function ticketCardPlainText(element: Pick<SketchElement, 'kind' | 'metadata' | 'text' | 'description'>): string {
+  const ticket = readTicketCard(element);
+  return ticket ? `${ticket.key}: ${ticket.title}` : '';
+}

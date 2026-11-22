@@ -12,3 +12,10 @@ under these numbers changed twice in that time (#290):
 
 `tests/unit/interop/intermediate-builds.spec.ts` reads them. They are never regenerated: they are what those builds
 wrote.
+
+## Ticket cards before they had a picture of their own
+
+`tickets-66857f3.svg`, `.drawio` and `.mmd` were written on 2026-11-23 by build `66857f3`, the first with ticket
+cards (#283). It wrote them under `svg-v3`, `drawio-v5` and `mermaid-v2` as rectangles with the title of the ticket.
+Since `svg-v4`, `drawio-v6` and `mermaid-v3` a card is exported as the card of the canvas; the files of that build
+still are the picture their numbers stand for. `tests/unit/interop/ticket-card-export.spec.ts` reads them.

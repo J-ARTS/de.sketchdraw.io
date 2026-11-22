@@ -1784,4 +1784,5 @@ export const EN: Readonly<Record<string, string>> = {
   '{key} einfügen': 'Insert {key}',
   '{name} hat die Änderung nicht übernommen: {message}': '{name} did not accept the change: {message}',
   '{name} ist auf „Nur lesen“ gestellt; das Ticket wurde nicht geändert.': '{name} is set to read-only; the ticket was not changed.',
+  'Ticket {key}: {title}, {status}': 'Ticket {key}: {title}, {status}',
 };

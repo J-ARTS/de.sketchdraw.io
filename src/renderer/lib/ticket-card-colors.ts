@@ -1,24 +1,8 @@
-import type { TaskStatus } from '@/domain';
+import { TICKET_CARD_COLORS, type TicketCardPalette } from '@/domain';
 import { themeColor, type ThemeName } from './theme';
 
-export interface ChipTone { fill: string; ink: string }
-export interface TicketCardColors {
-  /** The fill a new card gets; the rectangle underneath is drawn with the user's own fill. */
-  surface: string;
-  /** Title, unless the rectangle has a text colour of its own. */
-  ink: string;
-  /** Key, assignee, estimate and the time of the last read. */
-  muted: string;
-  state: Readonly<Record<TaskStatus, ChipTone>>;
-  label: ChipTone;
-  component: ChipTone;
-}
-
-const LIGHT: TicketCardColors = {
-  surface: '#ffffff', ink: '#1e1e1e', muted: '#5f6b7a',
-  state: { todo: { fill: '#e9edf2', ink: '#3b4756' }, doing: { fill: '#dbe7ff', ink: '#1d4ed8' }, review: { fill: '#fdebc8', ink: '#8a5300' }, done: { fill: '#d6f2df', ink: '#17663a' } },
-  label: { fill: '#f1f3f6', ink: '#3b4756' }, component: { fill: '#eef0ff', ink: '#3b3fa8' },
-};
+export type TicketCardColors = TicketCardPalette;
+const LIGHT = TICKET_CARD_COLORS;
 /**
  * Neutral colours follow the mapping of the canvas, so the card matches its rectangle in the dark theme. The
  * coloured chips have dark tones of their own: the general mapping leaves them below a readable contrast.

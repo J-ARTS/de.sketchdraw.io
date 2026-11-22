@@ -239,7 +239,10 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
         return;
       }
       const left = ellipse ? length(attrs['cx'], 0, view.width) - rx : x(), top = ellipse ? length(attrs['cy'], 0, view.height) - ry : y(), shape = rectangleTransform(matrix, left, top, rx * 2, ry * 2);
-      if (attrs['rx'] && !ellipse || attrs['ry'] && !ellipse)
+      // A rounded rectangle of Sketchdraw (SVG picture 4) comes back as one, with its corner radius.
+      const roundedShape = node.local === 'rect' && attrs['data-sketchdraw-shape'] === 'rounded';
+      const cornerRadius = roundedShape ? length(attrs['rx'], 0, view.width) : 0;
+      if (!roundedShape && (attrs['rx'] && !ellipse || attrs['ry'] && !ellipse))
         warn(ctx, node, 'STYLE_APPROXIMATED', 'radius', 'Rounded corners approximated by square corners.');
       if (node.local === 'image') {
         const asset = imageAsset(ctx, attrs['href'] ?? node.attributeList.find(a => a.uri === 'http://www.w3.org/1999/xlink' && a.local === 'href')?.value, node);
@@ -254,8 +257,8 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
         return;
       }
       if (shape) {
-        const style = { ...painted.style };
-        add(ctx, createElement(ellipse ? 'ellipse' : 'rectangle', { id: elementId, ...shape, style, ...accessible }), node);
+        const style = { ...painted.style, ...(roundedShape && cornerRadius >= 0 ? { cornerRadius } : {}) };
+        add(ctx, createElement(ellipse ? 'ellipse' : 'rectangle', { id: elementId, ...shape, style, ...(roundedShape ? { shapeVariant: 'rounded' as const } : {}), ...accessible }), node);
       }
       else {
         warn(ctx, node, 'TRANSFORM_FLATTENED', 'transform', 'Skew/reflection transformed to editable points.');
