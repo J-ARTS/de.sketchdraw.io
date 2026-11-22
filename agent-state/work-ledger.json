@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-22T22:34:55.091057+00:00",
+  "updatedAt": "2026-11-22T22:57:59.777536+00:00",
   "issues": [
     {
       "number": 1,
@@ -3523,7 +3523,7 @@
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/297",
       "owner": "Claude Code",
       "phase": "Testing / DevOps",
-      "status": "completed",
+      "status": "review",
       "estimatedEffort": {
         "unit": "story_points",
         "value": null,
@@ -3533,7 +3533,30 @@
       "relatedIssues": [],
       "evidence": [
         "tests/unit/update-installers.spec.ts"
-      ]
+      ],
+      "nextStep": "Wieder geöffnet am 22.11.2026: Die Wiederholung (bf19540) half auf dem macOS-15-Runner nicht. 4df4d83 hängt eine private Kopie des Images ein und hängt erst sanft aus. Der macOS-Job muss über mehrere Läufe zeigen, ob das die Ursache trifft."
+    },
+    {
+      "number": 280,
+      "title": "draw.io-Import: Icons aus draw.io-Bibliotheken (Azure, Kubernetes) als Icons der App",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/280",
+      "owner": "Claude Code",
+      "phase": "UI and interfaces",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [],
+      "evidence": [
+        "tests/unit/interop/drawio-library-icons.spec.ts",
+        "tests/ui/drawio-library-icons.spec.ts",
+        "tests/fixtures/interop/external/drawio-library-icons.drawio",
+        "docs/contracts-interop.md"
+      ],
+      "nextStep": "Mit der Datei des Owners prüfen (16 Azure- und 27 Kubernetes-Icons); sie lag der Sitzung nicht vor."
     }
   ],
   "runs": [
@@ -12137,9 +12160,10 @@
         267,
         270,
         271,
+        280,
         297
       ],
-      "status": "completed_and_closed_in_github",
+      "status": "completed_297_under_observation",
       "startedAt": "2026-11-22T21:59:00+00:00",
       "endedAt": null,
       "observedSeconds": null,
@@ -12153,16 +12177,22 @@
         "0beca7c feat(agents): the installed app sets its skill up for Claude Code, Codex and Antigravity",
         "docs/reviews/2026-11-22-agent-skill-265.md",
         "docs/reviews/267-code-ui-ux/audit.md",
-        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md",
+        "b567199 docs(audit): the audit of 0.1.8 is part of the repository; ledger and graph follow GitHub",
+        "1a5b6e6 feat(import): icons of draw.io libraries arrive as icons of the app",
+        "4df4d83 fix(update): the disk image is attached from a private copy and let go of gently",
+        "test(electron): the bridge of the desktop app has the key agentSkill"
       ],
       "concerns": [
         "#266: The exported file was opened with Keynote 14 and the Office importer of QuickLook, not with PowerPoint.",
         "#265: Main process and IPC were implemented by Claude Code although the ticket assigns them to Antigravity; not run in a packaged app and not on Windows or Linux.",
         "#270: No real Jira tenant was available; all evidence uses a simulated interface.",
-        "#297: The transient hdiutil error could not be triggered locally; the test reproduces its message.",
-        "Local session on macOS 14.6.1 arm64, working in its own worktree; coordinated with the cloud session of Claude Code that closed #285 to #295."
+        "Local session on macOS 14.6.1 arm64, working in its own worktree; coordinated with the cloud session of Claude Code that closed #285 to #295.",
+        "#297: Closed too early after bf19540; the macOS job failed again on b567199. The cause is assumed from two failing runs (always the third image, written under the name of the first) and could not be reproduced on macOS 14.",
+        "#280: Checked with a file rebuilt by hand, not with the file of the owner.",
+        "#265: The Electron tests were not run before 0beca7c was pushed; two of them failed in the CI on the exact key list of the bridge and were corrected afterwards."
       ],
-      "nextStep": "Open #266 once in PowerPoint; let Antigravity review the agent skill service."
+      "nextStep": "Watch the macOS job for #297; open #266 once in PowerPoint; let Antigravity review the agent skill service."
     }
   ],
   "evidencePolicy": {
