@@ -6,7 +6,7 @@ import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
 import { context, importBoundary, add, baseStyle, color, decodeEnvelopeWithProjection, fail, finish, imageAsset, number, plainHtml, placeholder, pointsElement, warn, type ImportContext } from './common';
-import { drawioProjectionForValidation } from './export';
+import { drawioProjectionsForValidation } from './export';
 import { areXmlTreesEquivalent, stripDrawioEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, getElementTextContent as text, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type DrawioImportOptions, type DrawioPageInfo, type InteropImportResult } from './types';
 function named(node: XmlElementNode, local: string): boolean { return node.uri === '' && node.local === local; }
@@ -198,9 +198,10 @@ function restoreEmbeddedModel(ctx: ImportContext, root: XmlElementNode, envelope
     if (envelopes.length !== 1 || envelopes[0]!.node.attributes['id'] !== '0')
       throw new Error('Duplicate or misplaced metadata');
     const { document: doc, projectionVersion } = decodeEnvelopeWithProjection(envelopes[0]!.value, 'drawio');
-    const expected = parseXmlDocument(drawioProjectionForValidation(doc, projectionVersion));
-    // Always compare every visible page, even when the caller imports only one.
-    if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
+    // Always compare every visible page, even when the caller imports only one. A number can stand for more than
+    // one picture of builds between releases (#290); the file is its exporter's when it equals one of them.
+    const visible = stripEnvelope(root);
+    if (drawioProjectionsForValidation(doc, projectionVersion).some(draw => areXmlTreesEquivalent(visible, stripEnvelope(parseXmlDocument(draw())))))
       return doc;
     warn(ctx, envelopes[0]!.node, 'EMBEDDED_MODEL_STALE', 'sketchdrawInterop', 'Visible native projection changed; embedded document ignored.');
   }
