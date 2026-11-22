@@ -3,7 +3,7 @@
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { intlLocale, L, t } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import type { SketchTask, TaskStatus, TaskType } from '@/domain';
+import { TICKET_PROVIDER_NAME, type SketchTask, type TaskStatus, type TaskType, type TicketProvider } from '@/domain';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
@@ -76,12 +76,13 @@ async function submit(normalizedTitle: string): Promise<void> {
 async function removeSelected(): Promise<void> { if (!saving.value && selected.value && await store.deleteTask(selected.value.id)) closeDialog(); }
 /** A task without a ticket can get one while Jira is switched on, also after a creation that failed. */
 const jiraCreating = computed(() => Boolean(selected.value && s.jiraCreatingTaskIds.includes(selected.value.id)));
-const canCreateInJira = computed(() => Boolean(selected.value && !selected.value.external && s.jiraAvailable && s.canWrite));
-async function createInJira(): Promise<void> { if (selected.value && !jiraCreating.value) await store.createJiraIssueForTask(selected.value.id); }
+/** The ticket systems an unlinked task can get its ticket in; with Jira and Azure DevOps both switched on, the user chooses. */
+const ticketTargets = computed(() => selected.value && !selected.value.external && s.canWrite ? s.ticketProviders : []);
+async function createTicket(provider: TicketProvider): Promise<void> { if (selected.value && !jiraCreating.value) await store.createTicketForTask(selected.value.id, provider); }
 function sourceLabel(task: SketchTask): string | null {
   if (task.sourceThreadId) return t('Kommentar öffnen');
   if (task.sourceElementId) return t('Notiz öffnen');
-  if (task.external) return t('In Jira öffnen');
+  if (task.external) return t('In {name} öffnen', { name: TICKET_PROVIDER_NAME[task.external.provider] });
   return null;
 }
 function openSource(task: SketchTask): void {
@@ -279,7 +280,7 @@ onBeforeUnmount(() => { taskDialog.value?.close(); stopListening(); document.rem
       <form v-if="dialogOpen" class="task-form sd-panel" @submit.prevent="save"><header><div><h2 id="task-dialog-title" class="sd-panel-title">{{ creating ? t('Neue Aufgabe') : t('Aufgabe bearbeiten') }}</h2><span v-if="selected?.external" class="external-badge">{{ selected.external.key }} · {{ selected.external.remoteStatus }}</span></div><button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Schließen')" @click="closeDialog"><AppIcon name="close" /></button></header><div class="task-fields"><label>{{ t('Titel') }}<input ref="titleInput" v-model="title" maxlength="50000" required :aria-invalid="titleError || undefined" aria-describedby="task-title-error" /></label><span v-if="titleError" id="task-title-error" class="form-error">{{ t('Bitte gib einen Titel ein.') }}</span><label>{{ t('Beschreibung') }}<textarea v-model="description" maxlength="50000" :aria-describedby="selected?.external ? 'task-jira-note' : undefined" /></label><p v-if="selected?.external" id="task-jira-note" class="jira-note">{{ t('Titel und Beschreibung werden beim Speichern nach Jira übertragen. Die Beschreibung ersetzt dort den bisherigen Text als einfachen Text.') }}</p>
         <div class="field-row"><AppSelect :label="t('Typ')" :model-value="type" :options="typeOptions" @update:model-value="type = $event as TaskType | ''" /><AppDatePicker v-model="dueDate" :label="t('Fällig am')" /></div>
         <AppSelect v-model="assignee" editable :maxlength="120" :label="t('Zugewiesen an')" :placeholder="t('Name')" :options="assigneeOptions" />
-        <AppSelect v-if="selected" :label="t('Status')" :model-value="status" :options="statusOptions" @update:model-value="status = $event as TaskStatus" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" :disabled="saving" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton v-if="canCreateInJira" data-testid="task-create-in-jira" :disabled="jiraCreating || saving" :aria-busy="jiraCreating ? 'true' : undefined" @click="createInJira">{{ jiraCreating ? t('Jira-Ticket wird angelegt …') : t('In Jira anlegen') }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit" data-testid="task-submit" :disabled="saving" :aria-busy="saving ? 'true' : undefined">{{ saving ? t('Wird gespeichert …') : creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
+        <AppSelect v-if="selected" :label="t('Status')" :model-value="status" :options="statusOptions" @update:model-value="status = $event as TaskStatus" /></div><div class="dialog-actions"><AppButton v-if="selected" class="danger" :disabled="saving" @click="removeSelected">{{ t('Löschen') }}</AppButton><AppButton v-if="selected && sourceLabel(selected)" @click="openSource(selected)">{{ sourceLabel(selected) }}</AppButton><AppButton v-for="target in ticketTargets" :key="target.id" :data-testid="target.id === 'jira' ? 'task-create-in-jira' : 'task-create-in-' + target.id" :disabled="jiraCreating || saving" :aria-busy="jiraCreating ? 'true' : undefined" @click="createTicket(target.id)">{{ jiraCreating ? t('Ticket wird angelegt …') : t('In {name} anlegen', { name: target.name }) }}</AppButton><AppButton @click="closeDialog">{{ t('Abbrechen') }}</AppButton><AppButton intent="primary" type="submit" data-testid="task-submit" :disabled="saving" :aria-busy="saving ? 'true' : undefined">{{ saving ? t('Wird gespeichert …') : creating ? t('Aufgabe erstellen') : t('Speichern') }}</AppButton></div></form>
     </dialog>
   </section>
 </template>

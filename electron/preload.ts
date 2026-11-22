@@ -342,6 +342,12 @@ export function createPreloadDesktopBridge(
       listJiraIssues: () => pluginInvoke<JiraIssueSummary[]>('list-jira-issues'),
       updateJiraIssue: (input: UpdateJiraIssueInput) => pluginInvoke<JiraIssueSummary>('update-jira-issue', input),
       transitionJiraIssue: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<JiraIssueSummary>('transition-jira-issue', input),
+      configureAzureDevOps: (input: import('../src/domain/plugins').ConfigureAzureDevOpsPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-azure-devops', input),
+      testAzureDevOps: () => pluginInvoke<PluginOperationResult>('test-azure-devops'),
+      listAzureWorkItems: () => pluginInvoke<import('../src/domain/plugins').WorkItemSummary[]>('list-azure-work-items'),
+      createAzureWorkItem: (input: import('../src/domain/plugins').CreateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('create-azure-work-item', input),
+      updateAzureWorkItem: (input: import('../src/domain/plugins').UpdateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('update-azure-work-item', input),
+      transitionAzureWorkItem: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('transition-azure-work-item', input),
       watchDocument: (handleId: string) => pluginInvoke<PluginOperationResult>('watch-document', handleId),
       onEvent(listener: (event: PluginExternalEvent) => void): () => void {
         if (typeof listener !== 'function') throw new Error('onEvent requires a listener function.');

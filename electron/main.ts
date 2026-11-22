@@ -20,6 +20,7 @@ import { createPlatformInstaller } from './update-installers';
 import { RELEASE_PAGE_URL, UpdateService } from './update-service';
 import { createUpdatePrompts } from './update-dialogs';
 import type { UpdateStatus } from '../src/domain/updates';
+import type { PluginId } from '../src/domain/plugins';
 import type {
   ExportFileResult,
   OpenDocumentResult,
@@ -483,8 +484,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'create-profile': return plugins.createProfile(payload);
       case 'rename-profile': return plugins.renameProfile(payload);
       case 'delete-profile': return plugins.deleteProfile(String(request.payload ?? ''));
-      case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as 'git' | 'jira');
-      case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as 'git' | 'jira');
+      case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as PluginId);
+      case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as PluginId);
       case 'configure-git': return plugins.configureGit(payload);
       case 'configure-atlassian': return plugins.configureAtlassian(payload);
       case 'test-atlassian': return plugins.testAtlassian();
@@ -510,6 +511,12 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'list-jira-issues': return plugins.listJiraIssues();
       case 'update-jira-issue': return plugins.updateJiraIssue(payload);
       case 'transition-jira-issue': return plugins.transitionJiraIssue(payload);
+      case 'configure-azure-devops': return plugins.configureAzureDevOps(payload);
+      case 'test-azure-devops': return plugins.testAzureDevOps();
+      case 'list-azure-work-items': return plugins.listAzureWorkItems();
+      case 'create-azure-work-item': return plugins.createAzureWorkItem(payload);
+      case 'update-azure-work-item': return plugins.updateAzureWorkItem(payload);
+      case 'transition-azure-work-item': return plugins.transitionAzureWorkItem(payload);
       default: throw new Error('Unbekannte Plugin-Aktion.');
     }
   });

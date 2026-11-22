@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, PluginSettingsSnapshot, SaveDocumentRequest, FileReference } from '../../src/domain';
+import type { ConfigureAtlassianPluginInput, ConfigureAzureDevOpsPluginInput, ConfigureGitPluginInput, PluginSettingsSnapshot, SaveDocumentRequest, FileReference } from '../../src/domain';
 
 type PluginTestState = {
   cancelSave: boolean;
@@ -19,6 +19,9 @@ type PluginTestState = {
     jiraTests: number;
     jiraSyncs: number;
     jiraCreates: string[];
+    azure: ConfigureAzureDevOpsPluginInput[];
+    azureCreates: string[];
+    azureTransitions: Array<{ key: string; status: string }>;
     profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
   settings: PluginSettingsSnapshot;
@@ -46,9 +49,13 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       holdJira: false,
       holdJiraCreate: false,
       jiraCreateFailure: '',
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], profiles: [] },
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], azure: [], azureCreates: [], azureTransitions: [], profiles: [] },
       settings: defaults(),
     };
+    // Azure DevOps is not installed at first; the mock keeps one configuration for all profiles.
+    const azure: NonNullable<PluginSettingsSnapshot['azureDevOps']> = { installed: false, enabled: false, variant: 'cloud', organizationUrl: '', project: '', workItemType: 'Task', wiqlFilter: '', apiVersion: '7.1', readOnly: false, credentialStored: false, health: 'disabled', message: 'Azure-DevOps-Plugin ist nicht installiert.' };
+    control.settings.azureDevOps = azure;
+    const workItem = (key: string, title: string, description: string, remoteStatus: string, status: 'todo' | 'doing' | 'review' | 'done') => ({ provider: 'azure-devops' as const, id: key, key, title, description, status, remoteStatus, url: `https://dev.azure.com/acme/Shop/_workitems/edit/${key}`, updatedAt: '2026-11-22T10:00:00.000Z' });
     const folders = new Map<string, string>();
     const files = new Map<string, FileReference>();
     // The settings object of a profile stays the same object while the profile exists, like the real service keeps
@@ -59,7 +66,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
     const compose = (): void => {
       const config = configs.get(activeProfileId)!;
       config.git.folderPath = folder;
-      control.settings = { available: true, projectFolder: folder, profiles: profiles.map(profile => ({ ...profile })), activeProfileId, ...(configurationIssue ? { configurationIssue } : {}), git: config.git, atlassian: config.atlassian };
+      control.settings = { available: true, projectFolder: folder, profiles: profiles.map(profile => ({ ...profile })), activeProfileId, ...(configurationIssue ? { configurationIssue } : {}), git: config.git, atlassian: config.atlassian, azureDevOps: azure };
     };
     const profileName = (value: string, exceptId?: string): string => {
       const name = String(value ?? '').trim();
@@ -130,11 +137,13 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
           if (activeProfileId === id) activeProfileId = profiles[0]!.id;
           compose(); return snapshot();
         },
-        installPlugin: async (id: 'git' | 'jira') => {
+        installPlugin: async (id: 'git' | 'jira' | 'azure-devops') => {
+          if (id === 'azure-devops') { azure.installed = true; azure.message = 'Azure-DevOps-Plugin ist deaktiviert.'; return snapshot(); }
           (id === 'git' ? control.settings.git : control.settings.atlassian).installed = true;
           return snapshot();
         },
-        uninstallPlugin: async (id: 'git' | 'jira') => {
+        uninstallPlugin: async (id: 'git' | 'jira' | 'azure-devops') => {
+          if (id === 'azure-devops') { Object.assign(azure, { installed: false, enabled: false, organizationUrl: '', project: '', credentialStored: false, health: 'disabled', message: 'Azure-DevOps-Plugin ist nicht installiert.' }); return snapshot(); }
           const settings = id === 'git' ? control.settings.git : control.settings.atlassian;
           settings.installed = false; settings.enabled = false;
           return snapshot();
@@ -172,6 +181,18 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
         gitSync: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         watchDocument: async () => ({ ok: true, message: 'watching' }),
         listConfluencePages: async () => [], getConfluencePage: async () => { throw new Error('not used'); }, updateConfluencePage: async () => { throw new Error('not used'); },
+        configureAzureDevOps: async (input: ConfigureAzureDevOpsPluginInput) => {
+          control.calls.azure.push(structuredClone(input));
+          if (input.enabled && (!input.organizationUrl || !input.project || !(input.accessToken || azure.credentialStored))) throw new Error('Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.');
+          const { accessToken, clearCredential, ...fields } = input;
+          Object.assign(azure, fields, { apiVersion: input.apiVersion || (input.variant === 'server' ? '6.0' : '7.1'), credentialStored: clearCredential ? false : Boolean(accessToken || azure.credentialStored), health: input.enabled ? 'attention' : 'disabled', message: input.enabled ? 'Azure DevOps ist eingerichtet. Verbindung testen, um den Zugriff zu prüfen.' : 'Azure-DevOps-Plugin ist deaktiviert.' });
+          return snapshot();
+        },
+        testAzureDevOps: async () => { Object.assign(azure, { health: 'ready', message: `Azure DevOps: verbunden mit Projekt „${azure.project}“` }); return { ok: true, message: azure.message }; },
+        listAzureWorkItems: async () => [workItem('7', 'Checkout absichern', 'Aus Azure Boards', 'Active', 'doing')],
+        createAzureWorkItem: async (input: { title: string; description: string }) => { control.calls.azureCreates.push(input.title); return workItem(String(19 + control.calls.azureCreates.length), input.title, input.description, 'New', 'todo'); },
+        updateAzureWorkItem: async (input: { key: string; title?: string }) => workItem(input.key, input.title ?? 'Checkout absichern', '', 'Active', 'doing'),
+        transitionAzureWorkItem: async (input: { key: string; status: 'todo' | 'doing' | 'review' | 'done' }) => { control.calls.azureTransitions.push(input); return workItem(input.key, 'Checkout absichern', 'Aus Azure Boards', input.status === 'done' ? 'Closed' : 'Active', input.status); },
         createJiraIssue: async (input: { title: string; description: string }) => {
           control.calls.jiraCreates.push(input.title);
           const number = control.calls.jiraCreates.length;
@@ -906,7 +927,7 @@ test('a task form that is being saved ignores a second submit; a ticket that fai
   await board.getByRole('button', { name: 'Neue Aufgabe' }).click();
   await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByRole('textbox', { name: 'Titel' }).fill('Zweite Aufgabe');
   await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByTestId('task-submit').click();
-  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Lokale Aufgabe erstellt; Jira-Ticket nicht angelegt: Jira ist nicht erreichbar. In der Aufgabe lässt es sich erneut anlegen.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Lokale Aufgabe erstellt; Ticket in Jira nicht angelegt: Jira ist nicht erreichbar. In der Aufgabe lässt es sich erneut anlegen.')).toBeVisible();
   await expect(board.locator('.task-card')).toHaveCount(2);
   await page.evaluate(() => { const control = (window as unknown as TestWindow).__pluginTest; control.jiraCreateFailure = ''; control.holdJiraCreate = true; });
   await board.locator('.card-open').filter({ hasText: 'Zweite Aufgabe' }).click();
@@ -915,7 +936,7 @@ test('a task form that is being saved ignores a second submit; a ticket that fai
   await expect(again).toHaveText('In Jira anlegen');
   await again.click();
   await expect(again).toBeDisabled();
-  await expect(again).toHaveText('Jira-Ticket wird angelegt …');
+  await expect(again).toHaveText('Ticket wird angelegt …');
   await again.click({ force: true });
   await expect.poll(async () => (await state(page)).calls.jiraCreates).toEqual(['Freigabe prüfen', 'Zweite Aufgabe', 'Zweite Aufgabe']);
   await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('jiraCreate'));
@@ -925,3 +946,61 @@ test('a task form that is being saved ignores a second submit; a ticket that fai
   // A task that has its ticket offers no second one.
   expect((await state(page)).calls.jiraCreates).toHaveLength(3);
 });
+
+test('Azure DevOps is installed from the marketplace, set up for cloud or server, and feeds the task board (#284)', async ({ page }) => {
+  await desktop(page);
+  const dialog = await prepareProject(page);
+  // Not installed: it is offered in the marketplace only.
+  await expect(dialog.getByRole('complementary').getByRole('button', { name: /^Azure DevOps\b/ })).toHaveCount(0);
+  await dialog.getByRole('tab', { name: /Marketplace/ }).click();
+  await dialog.getByRole('complementary').getByRole('button', { name: /^Azure DevOps\b/ }).click();
+  await expect(dialog.getByText('Work Items per WIQL-Abfrage laden')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Installieren', exact: true }).click();
+  const config = dialog.getByTestId('azure-devops-config');
+  await expect(config.getByRole('heading', { name: 'Azure-DevOps-Konfiguration' })).toBeVisible();
+
+  // The server variant asks for the address of the collection and proposes the version servers know.
+  await config.getByRole('radio', { name: /Azure DevOps Server/ }).check();
+  await expect(config.getByLabel('Adresse der Sammlung', { exact: true })).toBeVisible();
+  await expect(config.getByLabel('API-Version', { exact: true })).toHaveValue('6.0');
+  await config.getByRole('radio', { name: /Azure DevOps Services/ }).check();
+  await expect(config.getByLabel('API-Version', { exact: true })).toHaveValue('7.1');
+
+  // Switched on without a token: the reason is shown and the draft stays.
+  await config.getByLabel('Organisation', { exact: true }).fill('https://dev.azure.com/acme');
+  await config.getByLabel('Projekt', { exact: true }).fill('Shop');
+  await config.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await config.getByTestId('azure-devops-save').click();
+  await expect(dialog.getByText('Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.')).toBeVisible();
+  await expect(config.getByLabel('Projekt', { exact: true })).toHaveValue('Shop');
+  await expect(config.getByTestId('azure-devops-test')).toBeDisabled();
+
+  await config.getByLabel('Personal Access Token', { exact: true }).fill('pat-secret');
+  await config.getByTestId('azure-devops-save').click();
+  await expect(dialog.getByText('Azure-DevOps-Plugin gespeichert.')).toBeVisible();
+  // The token is never shown again.
+  await expect(config.getByLabel('Personal Access Token', { exact: true })).toHaveValue('');
+  await expect(config.getByLabel('Personal Access Token', { exact: true })).toHaveAttribute('placeholder', 'Gespeichert – leer lassen zum Behalten');
+  expect((await state(page)).calls.azure.at(-1)).toMatchObject({ enabled: true, variant: 'cloud', organizationUrl: 'https://dev.azure.com/acme', project: 'Shop', apiVersion: '7.1', readOnly: false, accessToken: 'pat-secret' });
+  await config.getByTestId('azure-devops-test').click();
+  await expect(dialog.getByText('Azure DevOps: verbunden mit Projekt „Shop“').first()).toBeVisible();
+  expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+
+  // The task board reads the work items and creates new tasks as work items.
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
+  const board = page.getByTestId('task-board');
+  await expect(board.locator('.task-card', { hasText: 'Checkout absichern' })).toContainText('7', { timeout: 8_000 });
+  await board.getByRole('button', { name: 'Neue Aufgabe' }).click();
+  await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByRole('textbox', { name: 'Titel' }).fill('Warenkorb');
+  await page.getByRole('dialog', { name: 'Neue Aufgabe' }).getByTestId('task-submit').click();
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Ticket 20 in Azure DevOps erstellt.')).toBeVisible();
+  expect((await state(page)).calls.azureCreates).toEqual(['Warenkorb']);
+  expect((await state(page)).calls.jiraCreates).toEqual([]);
+  await board.locator('.card-open').filter({ hasText: 'Warenkorb' }).click();
+  const edit = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  await expect(edit.locator('.external-badge')).toContainText('20');
+  await expect(edit.getByRole('button', { name: 'In Azure DevOps öffnen' })).toBeVisible();
+});
+

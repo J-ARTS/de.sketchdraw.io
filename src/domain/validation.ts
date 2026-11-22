@@ -1898,7 +1898,7 @@ function validateTasks(
         issues.push({ path: externalPath, code: 'INVALID_EXTERNAL_TASK', message: 'External task reference must be a plain object.' });
       } else {
         checkObjectKeys(value.external, externalPath, EXTERNAL_TASK_KEYS, issues);
-        if (value.external.provider !== 'jira') issues.push({ path: joinPath(externalPath, 'provider'), code: 'INVALID_EXTERNAL_PROVIDER', message: 'External task provider must be jira.' });
+        if (value.external.provider !== 'jira' && value.external.provider !== 'azure-devops') issues.push({ path: joinPath(externalPath, 'provider'), code: 'INVALID_EXTERNAL_PROVIDER', message: 'External task provider must be jira or azure-devops.' });
         for (const key of ['remoteId', 'key', 'remoteStatus'] as const) validateCommentText(value.external[key], joinPath(externalPath, key), issues);
         if (typeof value.external.url !== 'string' || value.external.url.length > 2048) issues.push({ path: joinPath(externalPath, 'url'), code: 'INVALID_EXTERNAL_URL', message: 'External task URL must be a bounded string.' });
         else {

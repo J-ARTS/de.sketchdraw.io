@@ -128,6 +128,23 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     expect(await exists(path.join(folderA, '.sketchdraw-plugins.json'))).toBe(false);
     expect(await exists(path.join(folderA, '.git', 'HEAD'))).toBe(false);
 
+    // Azure DevOps (#284) is installed from the marketplace and saved through the real bridge; its settings land in the profile file.
+    await dialog.getByRole('tab', { name: /Marketplace/ }).click();
+    await dialog.getByRole('complementary').getByRole('button', { name: /^Azure DevOps\b/ }).click();
+    await dialog.getByRole('button', { name: 'Installieren', exact: true }).click();
+    const azure = dialog.getByTestId('azure-devops-config');
+    await azure.getByRole('radio', { name: /Azure DevOps Server/ }).check();
+    await azure.getByLabel('Adresse der Sammlung', { exact: true }).fill('https://tfs.example.com/tfs/DefaultCollection/');
+    await azure.getByLabel('Projekt', { exact: true }).fill('Shop');
+    await azure.getByTestId('azure-devops-save').click();
+    await expect.poll(async () => (await store()).profiles?.[0]?.azure).toMatchObject({ installed: true, enabled: false, variant: 'server', organizationUrl: 'https://tfs.example.com/tfs/DefaultCollection', project: 'Shop', apiVersion: '6.0' });
+    await azure.getByLabel('Adresse der Sammlung', { exact: true }).fill('http://tfs.example.com/tfs/DefaultCollection');
+    await azure.getByTestId('azure-devops-save').click();
+    await expect(dialog).toContainText('Azure DevOps wird nur über https angesprochen.');
+    await dialog.getByRole('button', { name: 'Deinstallieren', exact: true }).click();
+    await expect.poll(async () => (await store()).profiles?.[0]?.azure).toBeUndefined();
+    await dialog.getByRole('tab', { name: /Installiert/ }).click();
+
     // A second profile is created in the profile dialog behind the pen of the workspace menu; it starts empty and keeps its own settings.
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
     await page.getByTestId('workspace-menu-button').click();

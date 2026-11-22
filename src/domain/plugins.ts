@@ -4,7 +4,11 @@ import type { FileReference, TaskStatus } from './types';
 export * from './git-workbench';
 
 export type PluginHealth = 'disabled' | 'ready' | 'attention' | 'error';
-export type PluginId = 'git' | 'jira' | 'confluence';
+export type PluginId = 'git' | 'jira' | 'confluence' | 'azure-devops';
+/** The systems a task can have its ticket in. */
+export type TicketProvider = 'jira' | 'azure-devops';
+/** Their names as the interface shows them; product names read the same in every language. */
+export const TICKET_PROVIDER_NAME: Readonly<Record<TicketProvider, string>> = { jira: 'Jira', 'azure-devops': 'Azure DevOps' };
 export type GitAuthMode = 'system' | 'token';
 
 export interface GitPluginSettings {
@@ -47,6 +51,27 @@ export interface AtlassianPluginSettings {
   jiraProjectKey: string;
   jiraIssueType: string;
   jqlFilter: string;
+  credentialStored: boolean;
+  health: PluginHealth;
+  message: string;
+}
+
+/** Azure Boards (#284): Azure DevOps Services in the cloud or an Azure DevOps Server, with a personal access token. */
+export interface AzureDevOpsPluginSettings {
+  installed: boolean;
+  enabled: boolean;
+  variant: 'cloud' | 'server';
+  /** Address of the organization (cloud) or of the collection (server). */
+  organizationUrl: string;
+  project: string;
+  /** The type new work items get, for example "Task" or "User Story". */
+  workItemType: string;
+  /** A WIQL query that names the work items of the task board; empty reads the newest of the project. */
+  wiqlFilter: string;
+  /** Version of the REST interface. Servers know older versions than the cloud. */
+  apiVersion: string;
+  /** Work items are read and never created or changed. */
+  readOnly: boolean;
   credentialStored: boolean;
   health: PluginHealth;
   message: string;
@@ -104,6 +129,8 @@ export interface PluginSettingsSnapshot {
   configurationIssue?: PluginConfigurationIssue;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
+  /** Absent in a snapshot of a version that does not know the plugin. */
+  azureDevOps?: AzureDevOpsPluginSettings;
   /**
    * Link of the whole open diagram, as versions before #240 made it; absent without one. The app turns it into links
    * per page (`convertConfluenceLiveLink`) and never publishes through it itself.
@@ -139,6 +166,23 @@ export interface ConfigureAtlassianPluginInput {
   jiraIssueType: string;
   jqlFilter: string;
 }
+
+export interface ConfigureAzureDevOpsPluginInput {
+  enabled: boolean;
+  variant: 'cloud' | 'server';
+  organizationUrl: string;
+  project: string;
+  workItemType: string;
+  wiqlFilter: string;
+  /** Empty takes the usual version of the variant. */
+  apiVersion?: string;
+  readOnly: boolean;
+  accessToken?: string;
+  clearCredential?: boolean;
+}
+
+/** Installed and switched on. */
+export const azureDevOpsPluginActive = (azure: Pick<AzureDevOpsPluginSettings, 'installed' | 'enabled'> | null | undefined): boolean => Boolean(azure && azure.installed && azure.enabled);
 
 type AtlassianState = Pick<AtlassianPluginSettings, 'installed' | 'enabled' | 'jiraInstalled' | 'jiraEnabled' | 'confluenceInstalled' | 'confluenceEnabled'> | null | undefined;
 export const jiraPluginInstalled = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.jiraInstalled ?? atlassian.installed));
@@ -223,6 +267,37 @@ export interface JiraIssueSummary {
   updatedAt: string;
 }
 
+/**
+ * A ticket as the task board shows it, whichever system it comes from (#281): the fields are the ones of a
+ * Jira issue, and `provider` names the system.
+ */
+export interface WorkItemSummary extends JiraIssueSummary {
+  provider: TicketProvider;
+}
+
+export interface CreateWorkItemInput {
+  title: string;
+  description: string;
+  assignee?: string;
+  dueDate?: string;
+}
+
+export interface UpdateWorkItemInput {
+  key: string;
+  title?: string;
+  description?: string;
+  assignee?: string | null;
+  dueDate?: string | null;
+}
+
+/** What a system of tickets offers the task board. Jira and Azure Boards each provide it in the main process. */
+export interface WorkItemProvider {
+  list(): Promise<WorkItemSummary[]>;
+  create(input: CreateWorkItemInput): Promise<WorkItemSummary>;
+  update(input: UpdateWorkItemInput): Promise<WorkItemSummary>;
+  transition(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary>;
+}
+
 export interface CreateJiraIssueInput {
   title: string;
   description: string;
@@ -284,6 +359,13 @@ export interface PluginBridge extends GitWorkbenchBridge {
   listJiraIssues(): Promise<JiraIssueSummary[]>;
   updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary>;
   transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
+  /** Azure Boards (#284). Absent in a desktop version that does not know the plugin. */
+  configureAzureDevOps?(input: ConfigureAzureDevOpsPluginInput): Promise<PluginSettingsSnapshot>;
+  testAzureDevOps?(): Promise<PluginOperationResult>;
+  listAzureWorkItems?(): Promise<WorkItemSummary[]>;
+  createAzureWorkItem?(input: CreateWorkItemInput): Promise<WorkItemSummary>;
+  updateAzureWorkItem?(input: UpdateWorkItemInput): Promise<WorkItemSummary>;
+  transitionAzureWorkItem?(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;
   onEvent(listener: (event: PluginExternalEvent) => void): () => void;
 }

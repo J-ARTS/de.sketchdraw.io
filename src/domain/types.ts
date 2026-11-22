@@ -235,7 +235,8 @@ export type TaskStatus = 'todo' | 'doing' | 'review' | 'done';
 export type TaskType = 'feature' | 'bug' | 'design' | 'research' | 'docs' | 'ops';
 
 export interface ExternalTaskReference {
-  provider: 'jira';
+  /** The system the ticket of the task lives in. */
+  provider: 'jira' | 'azure-devops';
   remoteId: string;
   key: string;
   url: string;

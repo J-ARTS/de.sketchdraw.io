@@ -30,6 +30,7 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
+import type { ConfigureAzureDevOpsPluginInput, TicketProvider } from '@/domain/plugins';
 import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 import type { ConfluenceLiveStatus } from './confluence-live-sync';
@@ -350,7 +351,9 @@ export interface WhiteboardState {
   pluginBusy: boolean;
   /** Whether a task can get a Jira ticket right now: the document is in a project and the Jira plugin is switched on. */
   jiraAvailable: boolean;
-  /** Tasks whose Jira ticket is being created. One request per task at a time (#293). */
+  /** The ticket systems a task can get its ticket in right now, in the order they are offered. */
+  ticketProviders: Array<{ id: TicketProvider; name: string }>;
+  /** Tasks whose ticket is being created. One request per task at a time (#293). */
   jiraCreatingTaskIds: string[];
   /** The Git dialog is open (#216). */
   gitOpen: boolean;
@@ -513,8 +516,8 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
-  /** Creates the Jira ticket of a task that has none and links both. Refused while one is being created for it. */
-  createJiraIssueForTask(taskId: string): Promise<boolean>;
+  /** Creates the ticket of a task that has none, in the named system or in the first available one, and links both. Refused while one is being created for it. */
+  createTicketForTask(taskId: string, provider?: TicketProvider): Promise<boolean>;
   createTask(input: { title: string; description?: string; status?: TaskStatus; type?: TaskType; assignee?: string; dueDate?: string }): Promise<boolean>;
   /** `null` removes type, assignee or due date (#105). */
   updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus; type?: TaskType | null; assignee?: string | null; dueDate?: string | null }): Promise<boolean>;
@@ -534,6 +537,8 @@ export interface WhiteboardStore {
   configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
   configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;
   testAtlassianPlugin(): Promise<boolean>;
+  configureAzureDevOpsPlugin(input: ConfigureAzureDevOpsPluginInput): Promise<boolean>;
+  testAzureDevOpsPlugin(): Promise<boolean>;
   refreshGitStatus(): Promise<boolean>;
   syncGit(): Promise<boolean>;
   /** Opens or closes the Git dialog (#216). */
@@ -567,7 +572,8 @@ export interface WhiteboardStore {
   /** Opens the dialog that links this page of the diagram to a Confluence page. */
   openConfluencePageLink(diagramPageId: string): void;
   closeConfluencePageLink(): void;
-  syncJiraTasks(options?: { announce?: boolean }): Promise<boolean>;
+  /** Reads the tickets of every active ticket system (Jira, Azure Boards) into the task board. */
+  syncTicketTasks(options?: { announce?: boolean }): Promise<boolean>;
   acceptExternalDocument(): Promise<boolean>;
 
   toggleFrameSidebar(open?: boolean): void;

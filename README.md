@@ -110,7 +110,7 @@ A comment is attached to an element, a table cell or a free spot. Replies form a
 
 ![A comment thread on an element of the diagram](docs/images/readme/comments.png)
 
-Comments and sticky notes become tasks. The board belongs to the document and shows them with type, due date and assignee in four columns. With the Atlassian plugin, tasks become Jira tickets.
+Comments and sticky notes become tasks. The board belongs to the document and shows them with type, due date and assignee in four columns. With the Jira plugin, tasks become Jira tickets; with the Azure DevOps plugin, work items in Azure Boards.
 
 ![The task board with four columns](docs/images/readme/tasks.png)
 
@@ -196,7 +196,11 @@ The interface comes in light and dark and in German and English. The background 
 
 ### Confluence and Jira
 
-The Atlassian plugin creates tasks and comments as Jira tickets. Each page of a diagram can be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
+The Jira plugin creates tasks and comments as Jira tickets. Each page of a diagram can be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
+
+### Azure DevOps
+
+The Azure DevOps plugin connects the task board to Azure Boards: it loads work items with a WIQL query, creates tasks, comments and notes as work items and keeps title, description, assignee, due date and state in sync. It works with Azure DevOps Services (cloud) and with Azure DevOps Server; the API version can be set for older servers, and a read-only mode never writes. The plugin is installed from the marketplace of the plugin dialog and needs a personal access token with the scope "Work Items: Read & write". It is tested against a copy of the interface, not yet against a real organization or server ([#284](https://github.com/J-ARTS/de.sketchdraw.io/issues/284)). Publishing diagrams to the Azure DevOps Wiki is not part of it yet.
 
 ## License
 

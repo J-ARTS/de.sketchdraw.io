@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -13,7 +13,7 @@ import {
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
   FRAME_ORDER_METADATA_KEY, frameOrderForPage, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
-  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent, type TicketProvider, type TaskStatus,
   supportsVerticalAlign, verticalAlignOf,
 } from '@/domain';
 import { createConfluenceLiveSync, type ConfluenceLiveContext, type ConfluenceLiveSync } from './confluence-live-sync';
@@ -101,7 +101,7 @@ type Gesture = {
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: boolean): void {
+function applyTicket(task: SketchTask, provider: TicketProvider, issue: JiraIssueSummary, pullContent: boolean): void {
   if (pullContent) {
     task.title = issue.title;
     task.description = issue.description;
@@ -110,7 +110,7 @@ function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: 
   }
   if (issue.assignee) task.assignee = issue.assignee; else delete task.assignee;
   if (issue.dueDate) task.dueDate = issue.dueDate; else delete task.dueDate;
-  task.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt };
+  task.external = { provider, remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt };
 }
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -195,31 +195,63 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const currentPluginHandle = () => guest || state.roomGuest ? null : state.file.handle?.handleId ?? null;
   const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
   const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
-  const jiraAvailable = () => Boolean(bridge.plugins && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian));
   /**
-   * Creates the Jira ticket of a task that has none and links the two. A task gets one request at a time: a second
+   * What the task board asks of a ticket system (#281). Jira and Azure Boards answer the same four questions; the
+   * board does not know which of them a task belongs to beyond the name it shows.
+   */
+  interface TicketApi {
+    provider: TicketProvider;
+    name: string;
+    /** False for a connection that only reads: nothing is created or changed there. */
+    writable: boolean;
+    list(): Promise<JiraIssueSummary[]>;
+    create(input: { title: string; description: string; assignee?: string; dueDate?: string }): Promise<JiraIssueSummary>;
+    update(input: { key: string; title?: string; description?: string; assignee?: string | null; dueDate?: string | null }): Promise<JiraIssueSummary>;
+    transition(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
+  }
+  /** The ticket system of that name, or null while its plugin is off or the diagram is not a saved local one. */
+  function ticketApi(provider: TicketProvider): TicketApi | null {
+    const plugins = bridge.plugins;
+    if (!plugins || !hasPluginProject()) return null;
+    if (provider === 'jira') {
+      if (!jiraPluginActive(state.pluginSettings?.atlassian)) return null;
+      return { provider, name: TICKET_PROVIDER_NAME.jira, writable: true, list: () => plugins.listJiraIssues(), create: (input) => plugins.createJiraIssue(input), update: (input) => plugins.updateJiraIssue(input), transition: (input) => plugins.transitionJiraIssue(input) };
+    }
+    const azure = state.pluginSettings?.azureDevOps;
+    const { listAzureWorkItems: list, createAzureWorkItem: create, updateAzureWorkItem: update, transitionAzureWorkItem: transition } = plugins;
+    if (!azureDevOpsPluginActive(azure) || !list || !create || !update || !transition) return null;
+    return { provider, name: TICKET_PROVIDER_NAME['azure-devops'], writable: !azure!.readOnly, list: () => list(), create: (input) => create(input), update: (input) => update(input), transition: (input) => transition(input) };
+  }
+  const TICKET_PROVIDERS: readonly TicketProvider[] = ['jira', 'azure-devops'];
+  const activeTicketApis = (): TicketApi[] => TICKET_PROVIDERS.flatMap((provider) => { const api = ticketApi(provider); return api ? [api] : []; });
+  /** The systems a new ticket can be created in, Jira first: the first one receives the ticket of a new task. */
+  const writableTicketApis = (): TicketApi[] => activeTicketApis().filter((api) => api.writable);
+  const jiraAvailable = () => ticketApi('jira') !== null;
+  /**
+   * Creates the ticket of a task that has none and links the two. A task gets one request at a time: a second
    * call while the first is on its way is refused, so one task never ends up with two tickets (#293). A failure
    * leaves the task as it is; `failure` words the notice, and the task offers the step again.
    */
-  async function linkTaskToJira(taskId: string, generation: number, failure: (message: string) => string): Promise<boolean> {
+  async function linkTaskToTicket(taskId: string, provider: TicketProvider | undefined, generation: number, failure: (name: string, message: string) => string): Promise<boolean> {
+    const api = provider ? writableTicketApis().find((entry) => entry.provider === provider) : writableTicketApis()[0];
     const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
-    if (!task || task.external || !jiraAvailable() || state.jiraCreatingTaskIds.includes(taskId)) return false;
+    if (!api || !task || task.external || state.jiraCreatingTaskIds.includes(taskId)) return false;
     state.jiraCreatingTaskIds = [...state.jiraCreatingTaskIds, taskId];
     try {
-      const issue = await bridge.plugins!.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
+      const issue = await api.create({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
       if (!pluginContextCurrent(generation)) return false;
       const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === taskId);
       if (!stored || stored.external) return false;
-      applyJiraIssue(stored, issue, true);
+      applyTicket(stored, api.provider, issue, true);
       if (!await dispatch({ type: 'set-tasks', tasks })) return false;
-      notice(t('Jira-Ticket {key} erstellt.', { key: issue.key }));
+      notice(t('Ticket {key} in {name} erstellt.', { name: api.name, key: issue.key }));
       return true;
     } catch (error) {
-      if (pluginContextCurrent(generation)) notice(failure(error instanceof Error ? error.message : t('unbekannter Fehler')), 'error');
+      if (pluginContextCurrent(generation)) notice(failure(api.name, error instanceof Error ? error.message : t('unbekannter Fehler')), 'error');
       return false;
     } finally { state.jiraCreatingTaskIds = state.jiraCreatingTaskIds.filter((id) => id !== taskId); }
   }
-  const createdLocally = (message: string) => t('Lokale Aufgabe erstellt; Jira-Ticket nicht angelegt: {message} In der Aufgabe lässt es sich erneut anlegen.', { message });
+  const createdLocally = (name: string, message: string) => t('Lokale Aufgabe erstellt; Ticket in {name} nicht angelegt: {message} In der Aufgabe lässt es sich erneut anlegen.', { name, message });
   /**
    * One call of the Git dialog (#216). The dialog is modal, so it shows results and failures itself; a call
    * therefore answers with the value or with the reason, and never raises a notice behind the dialog.
@@ -353,6 +385,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, paperPattern: savedPreferences.paperPattern, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, jiraCreatingTaskIds: [] as string[],
     get jiraAvailable() { return jiraAvailable(); },
+    get ticketProviders() { return writableTicketApis().map(({ provider, name }) => ({ id: provider, name })); },
     gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
@@ -2247,12 +2280,12 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe erstellt.');
-      await linkTaskToJira(task.id, generation, createdLocally);
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
-    async createJiraIssueForTask(taskId) {
+    async createTicketForTask(taskId, provider) {
       if (!state.canWrite || state.transitioning) return false;
-      return linkTaskToJira(taskId, pluginGeneration, (message) => t('Jira-Ticket nicht angelegt: {message}', { message }));
+      return linkTaskToTicket(taskId, provider, pluginGeneration, (name, message) => t('Ticket in {name} nicht angelegt: {message}', { name, message }));
     },
     async createTaskFromComment(threadId) {
       const generation = pluginGeneration;
@@ -2264,7 +2297,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
-      await linkTaskToJira(task.id, generation, createdLocally);
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
     async createTaskFromStickyNote(elementId) {
@@ -2285,7 +2318,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Notiz erstellt.');
-      await linkTaskToJira(task.id, generation, createdLocally);
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
     async moveTask(taskId, status, index) {
@@ -2304,13 +2337,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe verschoben.');
-      if (previous !== status && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
+      const api = previous !== status && task.external ? ticketApi(task.external.provider) : null;
+      if (api?.writable && task.external) {
         try {
-          const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
+          const issue = await api.transition({ key: task.external.key, status });
           if (!pluginContextCurrent(generation)) return true;
           const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-          if (synced?.external) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+          if (synced?.external) { applyTicket(synced, api.provider, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; der Status in {name} konnte nicht aktualisiert werden: {message}', { name: api.name, message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -2334,15 +2368,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const jiraTexts = { ...(task.title !== before.title ? { title: task.title } : {}), ...(task.description !== before.description ? { description: task.description } : {}) };
         const statusChanged = task.status !== before.status;
         const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined || Object.keys(jiraTexts).length > 0;
-        if ((statusChanged || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
+        const api = (statusChanged || jiraFieldsChanged) && task.external ? ticketApi(task.external.provider) : null;
+        if (api?.writable && task.external) {
           try {
             let issue: JiraIssueSummary | undefined;
-            if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
-            if (statusChanged) issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: task.status });
+            if (jiraFieldsChanged) issue = await api.update({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
+            if (statusChanged) issue = await api.transition({ key: task.external.key, status: task.status });
             if (!pluginContextCurrent(generation)) return true;
             const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-            if (synced?.external && issue) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Jira hat die Änderung nicht übernommen: {message} Beim nächsten Abgleich gilt wieder der Stand aus Jira.', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+            if (synced?.external && issue) { applyTicket(synced, api.provider, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
+          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('{name} hat die Änderung nicht übernommen: {message} Beim nächsten Abgleich gilt wieder der Stand aus {name}.', { name: api.name, message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -2386,7 +2421,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async setPluginInstalled(id, installed) {
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
-      try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
+      try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: ({ git: 'Git', jira: 'Jira', confluence: 'Confluence', 'azure-devops': 'Azure DevOps' } as const)[id] })); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
@@ -2399,6 +2434,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, ...(input.plugin ? { plugin: input.plugin } : {}), siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(input.plugin === 'confluence' ? t('Confluence-Plugin gespeichert.') : t('Jira-Plugin gespeichert.')); return true; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async configureAzureDevOpsPlugin(input) {
+      const configure = bridge.plugins?.configureAzureDevOps;
+      if (!configure || !state.pluginSettings?.available || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try {
+        const settings = await configure({ enabled: input.enabled, variant: input.variant, organizationUrl: input.organizationUrl, project: input.project, workItemType: input.workItemType, wiqlFilter: input.wiqlFilter, apiVersion: input.apiVersion, readOnly: input.readOnly, accessToken: input.accessToken, clearCredential: input.clearCredential });
+        if (!pluginContextCurrent(generation)) return false;
+        state.pluginSettings = settings; notice(t('Azure-DevOps-Plugin gespeichert.')); return true;
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async testAzureDevOpsPlugin() {
+      const test = bridge.plugins?.testAzureDevOps;
+      if (!test || !state.pluginSettings?.available || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const result = await test(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
@@ -2496,22 +2548,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     syncConfluencePage(diagramPageId) { liveSyncs.get(diagramPageId)?.syncNow(); },
     openConfluencePageLink(diagramPageId) { if (state.document.pages.some((page) => page.id === diagramPageId)) state.confluenceLinkPageId = diagramPageId; },
     closeConfluencePageLink() { state.confluenceLinkPageId = null; },
-    async syncJiraTasks(options) {
+    async syncTicketTasks(options) {
       const generation = pluginGeneration;
-      if (!bridge.plugins || !hasPluginProject() || !jiraPluginActive(state.pluginSettings?.atlassian) || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
+      const apis = activeTicketApis();
+      if (!apis.length || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
       try {
-        const issues = await bridge.plugins.listJiraIssues(); if (!pluginContextCurrent(generation)) return false; const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
-        for (const issue of issues) {
-          const existing = byKey.get(issue.key);
-          if (existing) applyJiraIssue(existing, issue, true);
+        // Every active system is asked; a ticket belongs to the task with the same system and key.
+        const answers = await Promise.all(apis.map(async (api) => ({ api, issues: await api.list() })));
+        if (!pluginContextCurrent(generation)) return false;
+        const tasks = clone(state.document.tasks ?? []);
+        const byKey = new Map(tasks.filter((task) => task.external).map((task) => [`${task.external!.provider}\u0000${task.external!.key}`, task]));
+        for (const { api, issues } of answers) for (const issue of issues) {
+          const existing = byKey.get(`${api.provider}\u0000${issue.key}`);
+          if (existing) applyTicket(existing, api.provider, issue, true);
           else {
-            const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } };
-            if (issue.assignee) task.assignee = issue.assignee;
-            if (issue.dueDate) task.dueDate = issue.dueDate;
+            const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt };
+            applyTicket(task, api.provider, issue, false);
             tasks.push(task);
           }
         }
-        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok && options?.announce !== false) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
+        const ok = await dispatch({ type: 'set-tasks', tasks });
+        if (ok && options?.announce !== false) for (const { api, issues } of answers) notice(t('{count} Vorgänge aus {name} synchronisiert.', { count: issues.length, name: api.name }));
+        return ok;
       } catch (error) { if (pluginContextCurrent(generation) && options?.announce !== false) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async acceptExternalDocument() {

@@ -1,0 +1,258 @@
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PluginService } from '../../electron/plugin-service';
+import { azureStatus, htmlToText, normalizeAzureDevOpsUrl, textToHtml } from '../../electron/azure-devops';
+import type { DocumentPersistenceService } from '../../electron/persistence';
+
+// #284: Azure Boards for Azure DevOps Services (cloud) and Azure DevOps Server, against a copy of their interface.
+const cleanup: string[] = [];
+afterEach(async () => { vi.restoreAllMocks(); await Promise.all(cleanup.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
+const credentials = () => ({ available: () => true, encrypt: (value: string) => Buffer.from(value).toString('base64'), decrypt: (value: string) => Buffer.from(value, 'base64').toString('utf8') });
+
+interface Call { method: string; url: string; headers: Record<string, string>; body: unknown }
+/** A small Azure Boards: two work items, the states of the Agile process, the usual answers. */
+function boards(options: { base: string; project?: string; legacyPeople?: boolean; noStates?: boolean } = { base: 'https://dev.azure.com/acme' }) {
+  const project = options.project ?? 'Shop';
+  const calls: Call[] = [];
+  const items = new Map<number, Record<string, unknown>>([
+    [7, { 'System.Id': 7, 'System.Title': 'Checkout absichern', 'System.Description': '<div>Erste Zeile</div><div>Zweite &amp; letzte</div>', 'System.State': 'Active', 'System.WorkItemType': 'Task', 'System.TeamProject': project, 'System.AssignedTo': options.legacyPeople ? 'Mara Muster <mara@example.com>' : { displayName: 'Mara Muster', uniqueName: 'mara@example.com' }, 'System.ChangedDate': '2026-11-20T09:30:00Z', 'Microsoft.VSTS.Scheduling.DueDate': '2026-12-01T00:00:00Z' }],
+    [3, { 'System.Id': 3, 'System.Title': 'Katalog laden', 'System.State': 'New', 'System.WorkItemType': 'Task', 'System.TeamProject': project, 'System.ChangedDate': '2026-11-19T08:00:00Z' }],
+  ]);
+  let nextId = 20;
+  const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+  const item = (id: number) => ({ id, fields: items.get(id) });
+  const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input); const method = init?.method ?? 'GET';
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined;
+    calls.push({ method, url, headers: init?.headers as Record<string, string>, body });
+    if (!url.startsWith(`${options.base}/`)) return json({ message: 'unknown host' }, 404);
+    const authorization = (init?.headers as Record<string, string>).Authorization;
+    if (authorization !== `Basic ${Buffer.from(':pat-secret').toString('base64')}`) return new Response('<html>Sign in</html>', { status: 203 });
+    const route = url.slice(options.base.length).replace(/[?&]api-version=[^&]+/, '');
+    if (route === `/_apis/projects/${project}`) return json({ name: project });
+    if (route.startsWith(`/${project}/_apis/wit/wiql`)) return json({ workItems: [{ id: 7 }, { id: 3 }] });
+    if (route.startsWith('/_apis/wit/workitems?ids=')) return json({ value: route.split('ids=')[1]!.split(',').map(Number).reverse().map(item) });
+    if (route === `/${project}/_apis/wit/workitemtypes/Task/states`) return options.noStates ? json({ message: 'not here' }, 404) : json({ value: [{ name: 'New', category: 'Proposed' }, { name: 'Active', category: 'InProgress' }, { name: 'Closed', category: 'Completed' }, { name: 'Removed', category: 'Removed' }] });
+    const created = /^\/Shop\/_apis\/wit\/workitems\/\$(.+)$/.exec(route);
+    if (created && method === 'POST') {
+      const id = nextId++; const fields: Record<string, unknown> = { 'System.Id': id, 'System.State': 'New', 'System.WorkItemType': decodeURIComponent(created[1]!), 'System.TeamProject': project, 'System.ChangedDate': '2026-11-22T10:00:00Z' };
+      for (const operation of body as Array<{ op: string; path: string; value?: unknown }>) fields[operation.path.slice('/fields/'.length)] = operation.value;
+      items.set(id, fields); return json(item(id));
+    }
+    const single = /^\/_apis\/wit\/workitems\/(\d+)$/.exec(route);
+    if (single) {
+      const id = Number(single[1]); const fields = items.get(id);
+      if (!fields) return json({ message: 'Work item does not exist.' }, 404);
+      if (method === 'PATCH') for (const operation of body as Array<{ op: string; path: string; value?: unknown }>) {
+        const name = operation.path.slice('/fields/'.length);
+        if (operation.op === 'remove') { if (!(name in fields)) return json({ message: `Cannot remove ${name}.` }, 400); delete fields[name]; } else fields[name] = operation.value;
+      }
+      return json(item(id));
+    }
+    return json({ message: `no route ${route}` }, 404);
+  });
+  return { fetchFn, calls, items };
+}
+
+async function service(fetchFn: unknown) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-azure-')); cleanup.push(dir);
+  const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+  const persistence = { getHandleLocation: (handleId: string) => handleId === 'project' ? { selectedPath: documentPath, canonicalPath: documentPath, versionToken: 'sha256:project' } : null } as unknown as DocumentPersistenceService;
+  void realpath;
+  const configPath = path.join(dir, 'profiles', 'plugins.json');
+  const make = () => new PluginService({ configPath, persistence, credentials: credentials(), emitEvent: vi.fn(), fetchFn: fetchFn as typeof fetch });
+  const plugins = make();
+  await plugins.activateDocument('project');
+  return { plugins, configPath, make };
+}
+const cloud = { enabled: true, variant: 'cloud' as const, organizationUrl: 'acme', project: 'Shop', workItemType: 'Task', wiqlFilter: '', readOnly: false, accessToken: 'pat-secret' };
+
+describe('Azure DevOps: connection', () => {
+  it('is a plugin that has to be installed; it keeps its token encrypted in the profile and never shows it', async () => {
+    const { fetchFn } = boards();
+    const { plugins, configPath } = await service(fetchFn);
+    expect((await plugins.getSettings()).azureDevOps).toMatchObject({ installed: false, enabled: false, health: 'disabled' });
+    await expect(plugins.configureAzureDevOps(cloud)).rejects.toThrow('Azure-DevOps-Plugin ist nicht installiert.');
+    expect((await plugins.installPlugin('azure-devops')).azureDevOps).toMatchObject({ installed: true, enabled: false });
+
+    const snapshot = await plugins.configureAzureDevOps(cloud);
+    expect(snapshot.azureDevOps).toMatchObject({ installed: true, enabled: true, variant: 'cloud', organizationUrl: 'https://dev.azure.com/acme', project: 'Shop', apiVersion: '7.1', credentialStored: true, readOnly: false });
+    expect(JSON.stringify(snapshot)).not.toContain('pat-secret');
+    const stored = await readFile(configPath, 'utf8');
+    expect(stored).not.toContain('pat-secret');
+    expect(stored).toContain(Buffer.from('pat-secret').toString('base64'));
+    // Jira and Confluence are untouched.
+    expect(snapshot.atlassian).toMatchObject({ installed: true, enabled: false });
+
+    expect(await plugins.testAzureDevOps()).toEqual({ ok: true, message: 'Azure DevOps: verbunden mit Projekt „Shop“' });
+    expect((await plugins.getSettings()).azureDevOps).toMatchObject({ health: 'ready' });
+  });
+
+  it('needs organization, project and token to be switched on, and only speaks https', async () => {
+    const { plugins } = await service(boards().fetchFn);
+    await plugins.installPlugin('azure-devops');
+    await expect(plugins.configureAzureDevOps({ ...cloud, accessToken: '' })).rejects.toThrow('Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.');
+    await expect(plugins.configureAzureDevOps({ ...cloud, project: '' })).rejects.toThrow();
+    await expect(plugins.configureAzureDevOps({ ...cloud, variant: 'server', organizationUrl: 'http://tfs.example.com/tfs/DefaultCollection' })).rejects.toThrow('Azure DevOps wird nur über https angesprochen.');
+    await expect(plugins.configureAzureDevOps({ ...cloud, apiVersion: 'latest' })).rejects.toThrow('Die API-Version wird in der Form 7.1 oder 6.0 erwartet.');
+    expect(normalizeAzureDevOpsUrl('https://dev.azure.com/acme/', 'cloud')).toBe('https://dev.azure.com/acme');
+    expect(() => normalizeAzureDevOpsUrl('https://user:pw@dev.azure.com/acme', 'cloud')).toThrow();
+  });
+
+  it('a wrong token is reported as such; another address starts without the stored token', async () => {
+    const { plugins } = await service(boards().fetchFn);
+    await plugins.installPlugin('azure-devops');
+    await plugins.configureAzureDevOps({ ...cloud, accessToken: 'wrong' });
+    expect(await plugins.testAzureDevOps()).toEqual({ ok: false, message: 'Azure DevOps: Azure DevOps hat das Token nicht angenommen.' });
+    expect((await plugins.getSettings()).azureDevOps).toMatchObject({ health: 'error' });
+    await expect(plugins.configureAzureDevOps({ ...cloud, organizationUrl: 'other', accessToken: undefined })).rejects.toThrow('Personal Access Token');
+  });
+
+  it('survives a restart, is copied with its profile and disappears with the plugin', async () => {
+    const { plugins, make, configPath } = await service(boards().fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    const again = make(); await again.activateDocument('project');
+    expect((await again.getSettings()).azureDevOps).toMatchObject({ installed: true, enabled: true, project: 'Shop', credentialStored: true });
+    const copy = await again.createProfile({ name: 'Kopie', copyFrom: 'default' });
+    expect(copy.azureDevOps).toMatchObject({ enabled: true, project: 'Shop', credentialStored: true });
+    const empty = await again.createProfile({ name: 'Leer' });
+    expect(empty.azureDevOps).toMatchObject({ installed: false, enabled: false, credentialStored: false });
+    await again.selectProfile('default');
+    expect((await again.uninstallPlugin('azure-devops')).azureDevOps).toMatchObject({ installed: false, enabled: false, organizationUrl: '', credentialStored: false });
+    const profiles = JSON.parse(await readFile(configPath, 'utf8')) as { profiles: Array<{ id: string; azure?: unknown }> };
+    expect(profiles.profiles.find((profile) => profile.id === 'default')).not.toHaveProperty('azure');
+  });
+
+  it('a profile file with a broken Azure DevOps entry is not taken over', async () => {
+    const { plugins, make, configPath } = await service(boards().fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    const stored = JSON.parse(await readFile(configPath, 'utf8')) as { profiles: Array<{ azure: Record<string, unknown> }> };
+    stored.profiles[0]!.azure.organizationUrl = 'http://dev.azure.com/acme';
+    await writeFile(configPath, JSON.stringify(stored));
+    const again = make();
+    expect((await again.getSettings()).configurationIssue).toMatchObject({ source: 'profiles', kind: 'invalid-data' });
+  });
+});
+
+describe('Azure DevOps: work items', () => {
+  it('reads the work items of the project in the order of the query', async () => {
+    const { fetchFn, calls } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    const items = await plugins.listAzureWorkItems();
+    expect(items).toEqual([
+      { provider: 'azure-devops', id: '7', key: '7', title: 'Checkout absichern', description: 'Erste Zeile\nZweite & letzte', status: 'doing', remoteStatus: 'Active', assignee: 'Mara Muster', dueDate: '2026-12-01', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/7', updatedAt: '2026-11-20T09:30:00.000Z' },
+      { provider: 'azure-devops', id: '3', key: '3', title: 'Katalog laden', description: '', status: 'todo', remoteStatus: 'New', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/3', updatedAt: '2026-11-19T08:00:00.000Z' },
+    ]);
+    const query = calls.find((call) => call.url.includes('/wiql'))!;
+    expect(query.url).toBe('https://dev.azure.com/acme/Shop/_apis/wit/wiql?$top=100&api-version=7.1');
+    expect(query.body).toEqual({ query: 'SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project ORDER BY [System.ChangedDate] DESC' });
+  });
+
+  it('uses the configured WIQL query', async () => {
+    const { fetchFn, calls } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops');
+    await plugins.configureAzureDevOps({ ...cloud, wiqlFilter: 'SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @me' });
+    await plugins.listAzureWorkItems();
+    expect(calls.find((call) => call.url.includes('/wiql'))!.body).toEqual({ query: 'SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @me' });
+  });
+
+  it('creates a work item of the configured type and changes title, description, person and date', async () => {
+    const { fetchFn, calls, items } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps({ ...cloud, workItemType: 'User Story' });
+    const created = await plugins.createAzureWorkItem({ title: 'Warenkorb', description: 'Zeile 1\n<b>Zeile 2</b>', assignee: 'Mara Muster', dueDate: '2026-12-24' });
+    expect(created).toMatchObject({ provider: 'azure-devops', key: '20', title: 'Warenkorb', description: 'Zeile 1\n<b>Zeile 2</b>', status: 'todo', assignee: 'Mara Muster', dueDate: '2026-12-24', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/20' });
+    const post = calls.find((call) => call.method === 'POST' && call.url.includes('/workitems/$'))!;
+    expect(post.url).toBe('https://dev.azure.com/acme/Shop/_apis/wit/workitems/$User%20Story?api-version=7.1');
+    expect(post.headers['Content-Type']).toBe('application/json-patch+json');
+    expect(items.get(20)!['System.Description']).toBe('<div>Zeile 1</div><div>&lt;b&gt;Zeile 2&lt;/b&gt;</div>');
+
+    const updated = await plugins.updateAzureWorkItem({ key: '20', title: 'Warenkorb neu', assignee: null, dueDate: null });
+    expect(updated).toMatchObject({ title: 'Warenkorb neu' });
+    expect(updated.assignee).toBeUndefined(); expect(updated.dueDate).toBeUndefined();
+    // Clearing a field that is already empty is not sent: Azure DevOps refuses such a removal.
+    await expect(plugins.updateAzureWorkItem({ key: '20', assignee: null })).resolves.toMatchObject({ key: '20' });
+    await expect(plugins.updateAzureWorkItem({ key: '20; DROP', title: 'x' })).rejects.toThrow();
+  });
+
+  it('moves a work item to the state of its type that stands for the column', async () => {
+    const { fetchFn } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    expect(await plugins.transitionAzureWorkItem({ key: '3', status: 'doing' })).toMatchObject({ remoteStatus: 'Active', status: 'doing' });
+    expect(await plugins.transitionAzureWorkItem({ key: '3', status: 'done' })).toMatchObject({ remoteStatus: 'Closed', status: 'done' });
+    // The Agile task has no state for "review".
+    await expect(plugins.transitionAzureWorkItem({ key: '3', status: 'review' })).rejects.toThrow('keinen passenden Zustand');
+  });
+
+  it('read-only reads and refuses every change', async () => {
+    const { fetchFn, calls } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps({ ...cloud, readOnly: true });
+    expect(await plugins.listAzureWorkItems()).toHaveLength(2);
+    const before = calls.length;
+    await expect(plugins.createAzureWorkItem({ title: 'Neu', description: '' })).rejects.toThrow('Nur lesen');
+    await expect(plugins.updateAzureWorkItem({ key: '7', title: 'Neu' })).rejects.toThrow('Nur lesen');
+    await expect(plugins.transitionAzureWorkItem({ key: '7', status: 'done' })).rejects.toThrow('Nur lesen');
+    expect(calls.length).toBe(before);
+  });
+
+  it('works for an open local diagram only, and not while the plugin is switched off', async () => {
+    const { fetchFn } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    await plugins.getSettings(null);
+    await expect(plugins.listAzureWorkItems()).rejects.toThrow('Speichere oder öffne zuerst ein lokales Diagramm.');
+    await plugins.activateDocument('project');
+    await plugins.configureAzureDevOps({ ...cloud, enabled: false, accessToken: undefined });
+    await expect(plugins.listAzureWorkItems()).rejects.toThrow('Azure-DevOps-Plugin ist deaktiviert.');
+  });
+});
+
+describe('Azure DevOps Server', () => {
+  const base = 'https://tfs.example.com/tfs/DefaultCollection';
+  const server = { ...cloud, variant: 'server' as const, organizationUrl: `${base}/` };
+
+  it('uses the address of the collection and the version of the interface the server knows', async () => {
+    const { fetchFn, calls } = boards({ base, legacyPeople: true });
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops');
+    expect((await plugins.configureAzureDevOps(server)).azureDevOps).toMatchObject({ variant: 'server', organizationUrl: base, apiVersion: '6.0' });
+    expect(await plugins.testAzureDevOps()).toMatchObject({ ok: true });
+    const items = await plugins.listAzureWorkItems();
+    expect(items[0]).toMatchObject({ key: '7', assignee: 'Mara Muster', url: `${base}/Shop/_workitems/edit/7` });
+    expect(calls.every((call) => call.url.startsWith(`${base}/`) && call.url.endsWith('api-version=6.0'))).toBe(true);
+
+    // An older server: the version can be set.
+    await plugins.configureAzureDevOps({ ...server, apiVersion: '5.0', accessToken: undefined });
+    calls.length = 0;
+    await plugins.listAzureWorkItems();
+    expect(calls.every((call) => call.url.endsWith('api-version=5.0'))).toBe(true);
+  });
+
+  it('a server that does not name the states of a type gets the usual state names', async () => {
+    const { fetchFn, items } = boards({ base, noStates: true });
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(server);
+    expect(await plugins.transitionAzureWorkItem({ key: '3', status: 'done' })).toMatchObject({ remoteStatus: 'Closed' });
+    expect(items.get(3)!['System.State']).toBe('Closed');
+  });
+});
+
+describe('Azure DevOps: texts and states', () => {
+  it('reads HTML descriptions as plain text and writes plain text as HTML', () => {
+    expect(htmlToText('<div>A&nbsp;&amp;&nbsp;B</div><ul><li>eins</li><li>zwei</li></ul><p>Ende<br>hier &#228;</p>')).toBe('A & B\n• eins\n• zwei\nEnde\nhier ä');
+    expect(htmlToText(undefined)).toBe('');
+    expect(textToHtml('a < b\n\nc')).toBe('<div>a &lt; b</div><div><br></div><div>c</div>');
+  });
+  it('maps the state names of the usual processes to the four columns', () => {
+    expect(['New', 'To Do', 'Proposed', 'Approved'].map(azureStatus)).toEqual(['todo', 'todo', 'todo', 'todo']);
+    expect(['Active', 'In Progress', 'Committed', 'Doing'].map(azureStatus)).toEqual(['doing', 'doing', 'doing', 'doing']);
+    expect(['Resolved', 'In Review', 'Ready for Test'].map(azureStatus)).toEqual(['review', 'review', 'review']);
+    expect(['Closed', 'Done', 'Completed', 'Removed'].map(azureStatus)).toEqual(['done', 'done', 'done', 'done']);
+  });
+});
