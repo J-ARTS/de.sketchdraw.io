@@ -141,6 +141,17 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await azure.getByLabel('Adresse der Sammlung', { exact: true }).fill('http://tfs.example.com/tfs/DefaultCollection');
     await azure.getByTestId('azure-devops-save').click();
     await expect(dialog).toContainText('Azure DevOps wird nur über https angesprochen.');
+    // Ticket cards (#283) read, find and change single tickets through the same bridge. Every call reaches the
+    // service in the main process: it answers with its own refusals, and the plugin that is switched off stays off.
+    const refusal = (method: 'getWorkItem' | 'searchWorkItems' | 'updateWorkItemFields', input: Record<string, unknown>) => page.evaluate(async ({ method, input }) => {
+      const plugins = (window as unknown as { sketchdraw: { plugins: Record<string, (value: unknown) => Promise<unknown>> } }).sketchdraw.plugins;
+      return plugins[method]!(input).then((value) => `answered: ${JSON.stringify(value)}`, (error: Error) => error.message);
+    }, { method, input });
+    expect(await refusal('getWorkItem', { provider: 'trello', key: '1' })).toContain('Unbekanntes Ticket-System.');
+    expect(await refusal('updateWorkItemFields', { provider: 'trello', key: '1', title: 'x' })).toContain('Unbekanntes Ticket-System.');
+    expect(await refusal('updateWorkItemFields', { provider: 'azure-devops', key: '1', status: 'archived' })).toContain('Ungültiger Status.');
+    expect(await refusal('searchWorkItems', { provider: 'azure-devops', query: '' })).toBe('answered: []');
+    expect(await refusal('getWorkItem', { provider: 'azure-devops', key: '7' })).toContain('Azure-DevOps-Plugin ist deaktiviert.');
     await dialog.getByRole('button', { name: 'Deinstallieren', exact: true }).click();
     await expect.poll(async () => (await store()).profiles?.[0]?.azure).toBeUndefined();
     await dialog.getByRole('tab', { name: /Installiert/ }).click();
