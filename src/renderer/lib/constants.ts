@@ -41,16 +41,19 @@ export const DEFAULT_STYLE: Readonly<ElementStyle> = {
   fontFamily: 'sans',
 };
 
+/** Text of a new element starts in the middle, across and down (#296). Documents written before keep their alignment. */
+export const NEW_TEXT_ALIGNMENT = Object.freeze({ textAlign: 'center', verticalAlign: 'middle' }) satisfies Partial<ElementStyle>;
+
 /** Overrides applied on top of DEFAULT_STYLE when a new element of that kind is created. */
 export const STYLE_BY_KIND: Readonly<Partial<Record<ElementKind, Readonly<Partial<ElementStyle>>>>> = {
   container: { stroke: '#868e96', strokeDash: 'dashed', strokeWidth: 1 },
   // Legacy text inherits style.stroke until the user chooses an independent style.textColor.
   // 1 instead of 0 because the domain's accepted lower bound for strokeWidth is unverified.
-  text: { strokeWidth: 1 },
+  text: { strokeWidth: 1, ...NEW_TEXT_ALIGNMENT },
   // Labels inside shapes start centered, matching the in-place editor (#41).
-  rectangle: { textAlign: 'center' },
-  ellipse: { textAlign: 'center' },
-  diamond: { textAlign: 'center' },
+  rectangle: { ...NEW_TEXT_ALIGNMENT },
+  ellipse: { ...NEW_TEXT_ALIGNMENT },
+  diamond: { ...NEW_TEXT_ALIGNMENT },
   'sticky-note': {
     fill: '#aeeebd', stroke: '#53675a', strokeWidth: 0, fontSize: 20,
     textAlign: 'left', fontFamily: 'sans', fontWeight: 'normal', textDecoration: 'none', listStyle: 'none',

@@ -83,6 +83,7 @@ const STYLE_FIELD_LIST: ReadonlyArray<keyof ElementStyle> = [
   'textDecoration',
   'listStyle',
   'cornerRadius',
+  'verticalAlign',
 ];
 
 interface HistoryEntry {

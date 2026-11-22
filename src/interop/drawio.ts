@@ -1,5 +1,5 @@
 import { awsGroupByDrawioIcon, awsGroupById, GROUP_METADATA_KEY, type AwsGroup } from '../catalog/aws-groups';
-import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, MAX_TABLE_CELLS, shapeBaseKind, SHAPE_VARIANTS, tablePlainText } from '../domain';
+import { createElement, createTableDocument, DEFAULT_PAGE_ID, DOMAIN_LIMITS, extractPage, MAX_TABLE_CELLS, shapeBaseKind, SHAPE_VARIANTS, supportsVerticalAlign, tablePlainText } from '../domain';
 import type { ComponentSet, ConnectorMarker, Endpoint, Point, ShapeVariant, SketchDocument, SketchElement } from '../domain';
 import { builtInComponentSets } from '../catalog';
 import { resolveAnchorWorldPoint } from '../domain/geometry';
@@ -364,6 +364,12 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
       ? importedLabel.split('\n').map(line => line.replace(/^•\s?/, '')).join('\n')
       : importedLabel;
     const outerStyle = styleOf(cell, ctx);
+    // draw.io places text in the middle unless the style says otherwise. A shape of ours does the same without
+    // the field and free text without it starts at the top, so only the difference is stored (#296).
+    if (supportsVerticalAlign(kind) && !ownPicture) {
+      const vertical = ['top', 'middle', 'bottom'].includes(s['verticalAlign'] ?? '') ? s['verticalAlign'] as 'top' | 'middle' | 'bottom' : 'middle';
+      if (vertical !== (kind === 'text' ? 'top' : 'middle')) outerStyle.verticalAlign = vertical;
+    }
     if (kind === 'table' && importedText.length > DOMAIN_LIMITS.MAX_TEXT_LENGTH)
       fail('LIMIT_EXCEEDED', 'Table text exceeds the document text limit.');
     const tableRows = kind === 'table' ? importedText.split('\n').map(row => row.split('\t')) : undefined;

@@ -71,6 +71,7 @@ const POSITIVE_AREA_KINDS: ReadonlySet<ElementKind> = new Set<ElementKind>([
 ]);
 
 const TEXT_ALIGNS: ReadonlySet<ElementStyle['textAlign']> = new Set(['left', 'center', 'right']);
+const VERTICAL_ALIGNS: ReadonlySet<string> = new Set(['top', 'middle', 'bottom']);
 const STROKE_DASHES: ReadonlySet<ElementStyle['strokeDash']> = new Set([
   'solid',
   'dashed',
@@ -171,6 +172,7 @@ export const STYLE_KEYS: ReadonlySet<string> = new Set([
   'textDecoration',
   'listStyle',
   'cornerRadius',
+  'verticalAlign',
 ]);
 
 const POINT_KEYS: ReadonlySet<string> = new Set(['x', 'y']);
@@ -820,6 +822,12 @@ export function validateStyle(
   if (Object.prototype.hasOwnProperty.call(value, 'textDecoration') && value.textDecoration !== undefined) {
     if (typeof value.textDecoration !== 'string' || !TEXT_DECORATIONS.has(value.textDecoration as NonNullable<ElementStyle['textDecoration']>)) {
       issues.push({ path: joinPath(path, 'textDecoration'), code: 'INVALID_STYLE_FIELD', message: 'Style textDecoration must be "none" or "line-through".' });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'verticalAlign') && value.verticalAlign !== undefined) {
+    if (typeof value.verticalAlign !== 'string' || !VERTICAL_ALIGNS.has(value.verticalAlign)) {
+      issues.push({ path: joinPath(path, 'verticalAlign'), code: 'INVALID_STYLE_FIELD', message: 'Style verticalAlign must be "top", "middle", or "bottom".' });
     }
   }
 

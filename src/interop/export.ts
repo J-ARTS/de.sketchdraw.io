@@ -1,4 +1,4 @@
-import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, validateDocument } from '../domain';
+import { annotationPlainText, connectorEndMarker, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, serializeDocument, supportsVerticalAlign, validateDocument, verticalAlignOf } from '../domain';
 import type { ComponentSet, ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { resolveCatalogIcon, type SafeSvgElementNode } from '../catalog/icon';
@@ -454,6 +454,10 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
       style.push('rounded=1', 'arcSize=8', 'whiteSpace=wrap', 'verticalAlign=top', 'sketchdrawKind=web-embed', `link=${encodeURIComponent(el.embedUrl ?? '')}`);
       diagnostic(d, el, 'WEB_EMBED_PROJECTED_AS_LINK', 'Web embed is exported as a static linked card; remote page content is not embedded.');
     }
+    // draw.io puts text in the middle unless told otherwise. Free text of older documents starts at the top, and
+    // text and shapes can be aligned to the top or the bottom (#296); picture 4 says so, earlier pictures did not.
+    if (projectionVersion >= 4 && !pictured && supportsVerticalAlign(el.kind) && verticalAlignOf(el) !== 'middle')
+      style.push(`verticalAlign=${verticalAlignOf(el)}`);
     if (pictured) {
       // The picture shows the element; a text draw.io writes itself stands on top of it and can be edited there.
       // Any other text stays the value of the cell, hidden, so it is not lost and comes back on import.

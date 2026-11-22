@@ -224,7 +224,7 @@ export interface SelectionInfo {
   values: {
     x?: number; y?: number; width?: number; height?: number; rotation?: number;
     stroke?: string; fill?: string; textColor?: string; strokeWidth?: number; opacity?: number; fontSize?: number;
-    textAlign?: ElementStyle['textAlign']; strokeDash?: ElementStyle['strokeDash'];
+    textAlign?: ElementStyle['textAlign']; verticalAlign?: ElementStyle['verticalAlign']; strokeDash?: ElementStyle['strokeDash'];
     fontFamily?: 'sans' | 'mono' | 'roboto' | 'scribbled'; label?: string; description?: string; text?: string;
     fontWeight?: ElementStyle['fontWeight']; textDecoration?: ElementStyle['textDecoration']; listStyle?: ElementStyle['listStyle']; cornerRadius?: number; author?: string;
     connectorFrom?: string; connectorTo?: string; connectorRouting?: ConnectorRouting;

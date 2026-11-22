@@ -15,11 +15,12 @@ import LaserPointerOverlay from '@/renderer/design-system/organisms/LaserPointer
 import RemoteCursors from '@/renderer/design-system/organisms/RemoteCursors.vue';
 import SmartGuides from '@/renderer/design-system/organisms/SmartGuides.vue';
 import { awsGroupOf, defaultCardTextColor, groupChrome, RESOURCE_CARD_TEXT_COLOR, resourceCardFieldBox, resourceCardLayout } from '@/catalog';
-import { createElement, type SketchElement } from '@/domain';
+import { createElement, supportsVerticalAlign, verticalAlignOf, verticalTextInset, type SketchElement } from '@/domain';
 import { docToScreen, screenToDoc } from '@/renderer/lib/viewport';
 import { themeColor } from '@/renderer/lib/theme';
 import { DOCK_POINTS, rotatePoint } from '@/renderer/lib/geometry';
 import { defaultSizeFor, DEFAULT_STYLE, STYLE_BY_KIND, fontFamilyCss } from '@/renderer/lib/constants';
+import { freeTextHeight } from '@/renderer/lib/text-metrics';
 import type { PointerInput } from '@/renderer/state/contract';
 import { COMPONENT_DRAG_MIME, peekComponentDrag, takeComponentDrag } from '@/renderer/lib/component-drag';
 import { CUSTOM_COMPONENT_DRAG_MIME } from '@/renderer/lib/custom-components';
@@ -108,12 +109,17 @@ const editStyle = computed(() => {
   const figureElement = edited && isIconFigure(edited) ? { ...edited, width: edit.box.width, height: edit.box.height } : null;
   const topInset = chrome ? chrome.label.top : sticky ? 20 : annotation ? 0 : edit.kind === 'container' ? 8 : figureElement ? figureLayout(figureElement, (figureElement.text ?? '').split('\n').length).labelTop : edit.kind === 'component' ? edit.box.height * 0.58 : 0;
   const sideInset = sticky ? 20 : free || annotation ? 0 : 8;
+  // Text that can be aligned between top and bottom is edited where the canvas draws it (#296).
+  const vertical = supportsVerticalAlign(edit.kind) && !topInset && !chrome ? verticalAlignOf({ kind: edit.kind, style: edit.style }) : null;
+  const edgeInset = vertical === 'middle' || !vertical ? 0 : verticalTextInset(edit.kind);
+  const freeElement = free && edit.elementId ? s.document.elements.find((element) => element.id === edit.elementId) : undefined;
+  const freeHeight = free ? freeTextHeight(freeElement, edit.draft, freeElement?.width ?? edit.box.width, edit.style.fontSize) : 0;
   return {
     left: `${x}px`, top: `${y}px`,
     width: `${Math.max(free ? 120 : 24, edit.box.width * zoom)}px`,
-    ...(free ? { minHeight: `${edit.style.fontSize * 1.25 * zoom}px` } : { height: `${Math.max(24, edit.box.height * zoom)}px` }),
-    alignItems: free || topInset ? 'flex-start' : 'center',
-    padding: free ? '0' : chrome ? `${topInset * zoom}px ${(edit.box.width - chrome.label.right) * zoom}px 0 ${chrome.label.left * zoom}px` : `${topInset * zoom}px ${sideInset * zoom}px ${sticky ? 56 * zoom : 0}px`,
+    ...(free ? { minHeight: `${Math.max(edit.style.fontSize * 1.25, freeHeight) * zoom}px` } : { height: `${Math.max(24, edit.box.height * zoom)}px` }),
+    alignItems: vertical === 'top' ? 'flex-start' : vertical === 'bottom' ? 'flex-end' : vertical === 'middle' ? 'center' : free || topInset ? 'flex-start' : 'center',
+    padding: free ? '0' : vertical ? `${vertical === 'top' ? edgeInset * zoom : 0}px ${sideInset * zoom}px ${vertical === 'bottom' ? edgeInset * zoom : 0}px` : chrome ? `${topInset * zoom}px ${(edit.box.width - chrome.label.right) * zoom}px 0 ${chrome.label.left * zoom}px` : `${topInset * zoom}px ${sideInset * zoom}px ${sticky ? 56 * zoom : 0}px`,
     boxSizing: 'border-box' as const,
     transform: `rotate(${edit.rotation}deg)`,
     fontSize: `${edit.style.fontSize * zoom}px`,

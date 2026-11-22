@@ -200,6 +200,9 @@ export function createElement(
         ...(overrides.style.cornerRadius !== undefined
           ? { cornerRadius: overrides.style.cornerRadius }
           : baseStyle.cornerRadius !== undefined ? { cornerRadius: baseStyle.cornerRadius } : {}),
+        ...(overrides.style.verticalAlign !== undefined
+          ? { verticalAlign: overrides.style.verticalAlign }
+          : baseStyle.verticalAlign !== undefined ? { verticalAlign: baseStyle.verticalAlign } : {}),
       }
     : baseStyle;
 

@@ -4,7 +4,7 @@ import { figureLayout, isIconFigure } from '@/catalog';
 import { ROUNDABLE_POLYGONS, roundedPolygonPath } from '@/renderer/lib/geometry';
 import { t } from '@/renderer/i18n';
 import { computed, ref, useId, watch } from 'vue';
-import { connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
+import { alignedTextTop, connectorEndMarker, connectorPathData, connectorStartMarker, createAnnotationDocument, verticalAlignOf, verticalTextInset, type ConnectorMarker, type SketchDocument, type SketchElement } from '@/domain';
 import { themeColor } from '@/renderer/lib/theme';
 import { lineSegments, parseTextLinks } from '@/renderer/lib/text-links';
 import { wrapWords } from '@/renderer/lib/text-metrics';
@@ -125,7 +125,7 @@ const figureIcon = computed(() => iconFigure.value ? (definition.value ?? defini
 /** Hyperlinks on parts of the text, drawn underlined and opened with Ctrl/Cmd+click. */
 const textLinks = computed(() => (text.value ? parseTextLinks(e.value.metadata, text.value.length) : []));
 const textX = computed(() => chrome.value ? (e.value.style.textAlign === 'center' ? (chrome.value.label.left + chrome.value.label.right) / 2 : e.value.style.textAlign === 'right' ? chrome.value.label.right : chrome.value.label.left) : e.value.style.textAlign === 'center' ? e.value.width / 2 : e.value.style.textAlign === 'right' ? e.value.width - (e.value.kind === 'sticky-note' ? 20 : 8) : e.value.kind === 'text' ? 0 : e.value.kind === 'sticky-note' ? 20 : 8);
-const textY = computed(() => chrome.value ? chrome.value.label.top : e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : e.value.kind === 'text' ? 0 : figure.value ? figure.value.labelTop : e.value.kind === 'component' ? e.value.height * .58 : Math.max(4, (e.value.height - lines.value.length * fontSize.value * 1.25) / 2));
+const textY = computed(() => chrome.value ? chrome.value.label.top : e.value.kind === 'sticky-note' ? 20 : e.value.kind === 'container' ? 8 : figure.value ? figure.value.labelTop : e.value.kind === 'component' ? e.value.height * .58 : alignedTextTop(verticalAlignOf(e.value), e.value.height, lines.value.length * fontSize.value * 1.25, verticalTextInset(e.value.kind)));
 const connectorPath = computed(() => e.value.kind === 'connector' ? connectorPathData(e.value) : '');
 const startMarker = computed(() => e.value.kind === 'connector' ? connectorStartMarker(e.value) : 'none');
 const endMarker = computed(() => e.value.kind === 'connector' ? connectorEndMarker(e.value) : 'none');

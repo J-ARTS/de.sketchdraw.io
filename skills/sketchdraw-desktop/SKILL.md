@@ -38,7 +38,7 @@ An added element needs `id` (you choose it, e.g. `box:api`), `kind`, `x` and `y`
 - `text` is the visible caption. `label` is the accessible name and is shown when `text` is empty.
 - Coordinates are absolute document units, `y` grows downwards. Captions need room: about 160 × 80 per box with 80 between boxes reads well.
 - Membership: set `parentId` to a container or frame and place the element inside its rectangle; the parent is not resized for you. Moving the parent moves its children.
-- Style keys: `stroke`, `fill`, `textColor`, `strokeWidth`, `opacity`, `fontSize`, `textAlign` (`left`, `center`, `right`), `strokeDash` (`solid`, `dashed`, `dotted`, `animated`), `fontFamily`, `fontWeight`, `cornerRadius`.
+- Style keys: `stroke`, `fill`, `textColor`, `strokeWidth`, `opacity`, `fontSize`, `textAlign` (`left`, `center`, `right`), `verticalAlign` (`top`, `middle`, `bottom`; for `text`, `rectangle`, `ellipse`, `diamond`), `strokeDash` (`solid`, `dashed`, `dotted`, `animated`), `fontFamily`, `fontWeight`, `cornerRadius`.
 - Pages: once a document has several pages, every `add` needs a `pageId` (on the command or per element); the first page is usually `page:1`. For a new page choose the ID yourself and add to it in the same batch: `{ "type": "batch", "commands": [{ "type": "add-page", "page": { "id": "page:deploy", "name": "Deployment" } }, { "type": "add", "pageId": "page:deploy", "elements": [ … ] }] }`.
 
 **Connectors.** Give both ends and nothing else; the route is computed and follows the elements when they move:

@@ -95,7 +95,7 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
 
   // Alignment too.
   await bar.getByRole('button', { name: 'Textausrichtung' }).click();
-  await page.getByRole('button', { name: 'Rechts', exact: true }).click();
+  await page.getByRole('button', { name: 'Rechtsbündig', exact: true }).click();
   await expect(editor.locator('xpath=ancestor::div[contains(@class,"text-edit-wrap")]')).toHaveCSS('text-align', 'right');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 

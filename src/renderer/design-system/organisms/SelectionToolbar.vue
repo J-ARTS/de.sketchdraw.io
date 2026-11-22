@@ -8,7 +8,7 @@ import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import type { IconName } from '@/renderer/design-system/atoms/icons';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { useHorizontalOverflow } from '@/renderer/design-system/composables/use-horizontal-overflow';
-import { effectiveShapeVariant, parseWebEmbedUrl, webEmbedLabel, type ConnectorMarker, type ConnectorRouting, type ElementPatch, type ElementStyle } from '@/domain';
+import { effectiveShapeVariant, parseWebEmbedUrl, supportsVerticalAlign, webEmbedLabel, type ConnectorMarker, type ConnectorRouting, type ElementPatch, type ElementStyle, type VerticalAlign } from '@/domain';
 import ColorPalette from '@/renderer/design-system/molecules/ColorPalette.vue';
 import { fillMode, NO_COLOR, normalizeHex, withFillMode, type FillMode } from '@/renderer/lib/color';
 import { docToScreen } from '@/renderer/lib/viewport';
@@ -40,9 +40,14 @@ const definition = computed(() => s.document.componentSets.flatMap((set) => set.
 const SIZE_PRESETS = [{ label: L('Klein'), value: 14 }, { label: L('Mittel'), value: 20 }, { label: L('Groß'), value: 28 }, { label: L('Sehr groß'), value: 40 }] as const;
 const HEADING_LEVELS = [1, 2, 3, 4] as const;
 const ALIGNMENTS: ReadonlyArray<{ value: ElementStyle['textAlign']; label: string; icon: IconName }> = [
-  { value: 'left', label: L('Links'), icon: 'align-left' },
-  { value: 'center', label: L('Mitte'), icon: 'align-center' },
-  { value: 'right', label: L('Rechts'), icon: 'align-right' },
+  { value: 'left', label: L('Linksbündig'), icon: 'align-left' },
+  { value: 'center', label: L('Zentriert'), icon: 'align-center' },
+  { value: 'right', label: L('Rechtsbündig'), icon: 'align-right' },
+];
+const VERTICAL_ALIGNMENTS: ReadonlyArray<{ value: VerticalAlign; label: string; icon: IconName }> = [
+  { value: 'top', label: L('Oben'), icon: 'align-top' },
+  { value: 'middle', label: L('Mittig'), icon: 'align-middle' },
+  { value: 'bottom', label: L('Unten'), icon: 'align-bottom' },
 ];
 const FILL_MODES: ReadonlyArray<{ value: FillMode; label: string }> = [
   { value: 'fill', label: L('Füllung') },
@@ -112,6 +117,8 @@ function setLabelPosition(percent: number): void { if (Number.isFinite(percent))
 function commitLabelPosition(): void { void store.commitPropertyDraft(); }
 function setRadius(value: number): void { if (Number.isFinite(value)) store.setPropertyDraft({ style: { cornerRadius: Math.max(0, Math.min(radiusMax.value, Math.round(value))) } }); }
 function commitRadius(): void { void store.commitPropertyDraft(); }
+/** Free text and plain shapes can place their text between top and bottom; a table aligns per cell and has no such row. */
+const verticalCapable = computed(() => !tableOnly.value && info.value.kinds.some((kind) => supportsVerticalAlign(kind)));
 const textCapable = computed(() => !resourceCardOnly.value && !annotationOnly.value && info.value.kinds.some((kind) => !['image', 'path', 'connector', 'web-embed'].includes(kind)));
 const textColorCapable = computed(() => info.value.kinds.some((kind) => !['image', 'path', 'web-embed', 'frame'].includes(kind)));
 
@@ -783,8 +790,13 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <label class="field">{{ t('Autor') }}<input v-model="authorDraft" class="ctx-input wide" type="text" :aria-label="t('Autor')" :placeholder="t('Name')" maxlength="240" @change="saveAuthor" @keydown.enter.prevent="saveAuthor" /></label>
     </template>
 
-    <div v-else-if="openSegment === 'align'" class="choices" role="group" :aria-label="t('Textausrichtung')">
-      <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
+    <div v-else-if="openSegment === 'align'" class="align-rows">
+      <div class="choices" role="group" :aria-label="t('Waagerechte Ausrichtung')">
+        <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
+      </div>
+      <div v-if="verticalCapable" class="choices" role="group" data-testid="vertical-align" :aria-label="t('Senkrechte Ausrichtung')">
+        <button v-for="align in VERTICAL_ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.verticalAlign === align.value && !info.mixed.includes('verticalAlign')" @click="style({ verticalAlign: align.value })"><AppIcon :name="align.icon" /></button>
+      </div>
     </div>
 
     <div v-else-if="openSegment === 'actions'" class="action-strip">
@@ -1228,6 +1240,12 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
 
 .choices.column {
   flex-direction: column;
+}
+
+/* Horizontal and vertical alignment: two rows of three, one above the other. */
+.align-rows {
+  display: grid;
+  gap: 4px;
 }
 
 .choice {

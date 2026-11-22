@@ -98,7 +98,14 @@ export interface ElementStyle {
   listStyle?: 'none' | 'bullet';
   /** Corner radius in document units for rounded rectangles; missing keeps the default (one sixth of the shorter side). */
   cornerRadius?: number;
+  /**
+   * Where the text stands between the top and the bottom of its element. Missing keeps the position the kind has
+   * always had (see `verticalAlignOf`), so documents written before the field look as they did.
+   */
+  verticalAlign?: VerticalAlign;
 }
+
+export type VerticalAlign = 'top' | 'middle' | 'bottom';
 
 export interface Endpoint {
   elementId: string;

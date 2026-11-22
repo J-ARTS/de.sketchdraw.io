@@ -38,7 +38,7 @@ const mcpElement = z.looseObject({
   label: z.string().optional().describe('Accessible name; shown as caption when "text" is empty.'),
   parentId: idSchema.optional().describe('ID of the container or frame this element belongs to; coordinates stay absolute.'),
   pageId: idSchema.optional().describe('Page of the element. May be omitted only while the document has a single page; otherwise give it here or once as the command\'s "pageId". sketchdraw_analyze_document lists the page IDs.'),
-  style: z.looseObject({}).optional().describe('Any of stroke, fill, textColor (CSS colors), strokeWidth, opacity (0..1), fontSize, textAlign (left|center|right), strokeDash (solid|dashed|dotted|animated), fontFamily (sans|mono|roboto|scribbled), fontWeight (normal|bold), cornerRadius. Omitted keys get the defaults of the kind.'),
+  style: z.looseObject({}).optional().describe('Any of stroke, fill, textColor (CSS colors), strokeWidth, opacity (0..1), fontSize, textAlign (left|center|right), verticalAlign (top|middle|bottom; text, rectangle, ellipse, diamond), strokeDash (solid|dashed|dotted|animated), fontFamily (sans|mono|roboto|scribbled), fontWeight (normal|bold), cornerRadius. Omitted keys get the defaults of the kind.'),
   from: endpoint.optional().describe('Connector only: start. With "from" and "to" and no "points", position and route are computed from the two elements.'),
   to: endpoint.optional().describe('Connector only: end (arrowhead side).'),
   connectorRouting: z.enum(['straight', 'elbowed', 'curved']).optional().describe('Connector only. Computed connectors default to "elbowed".'),

@@ -58,7 +58,7 @@ describe('files of release 0.1.8', () => {
     const document = read('mixed-v0.1.8.svg').document;
     const svg = prepareSvgExport(document).contents, drawio = prepareDrawioExport(document).contents, mermaid = prepareMermaidExport(document).contents;
     expect(envelopeProjection(svg, /<sd:document[^>]*>([^<]+)</)).toBe('svg-v2');
-    expect(envelopeProjection(drawio, /sketchdrawInterop="([^"]+)"/)).toBe('drawio-v3');
+    expect(envelopeProjection(drawio, /sketchdrawInterop="([^"]+)"/)).toBe('drawio-v4');
     for (const [name, contents] of [['now.svg', svg], ['now.drawio', drawio], ['now.mmd', mermaid]] as const) {
       const result = read(name, contents);
       expect(result.fidelity, name).toBe('own-roundtrip');

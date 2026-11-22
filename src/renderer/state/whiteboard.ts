@@ -14,6 +14,7 @@ import {
   FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
   type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
+  supportsVerticalAlign, verticalAlignOf,
 } from '@/domain';
 import { createConfluenceLiveSync, type ConfluenceLiveContext, type ConfluenceLiveSync } from './confluence-live-sync';
 import { rasterizeSvgToPng, renderLivePages } from '../lib/confluence-live-image';
@@ -32,7 +33,7 @@ import type {
   CreateStoreOptions, DialogChoice, FileState, GitAnswer, HandleId, HandleView, Rect,
   PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore,
 } from './contract';
-import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
+import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, NEW_TEXT_ALIGNMENT, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
 import { bounds, center, drawnFrame, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
 import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '../lib/viewport';
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
@@ -69,7 +70,7 @@ import { isCanvasBackground, isPaperPattern, LANGUAGES, loadPreferences, savePre
 import { CONNECTOR_END_MARKER_OPTIONS, CONNECTOR_ROUTING_OPTIONS, loadConnectorDefaults, saveConnectorDefaults } from '../lib/connector-preferences';
 
 import { setLocale, t, tm, tn } from '@/renderer/i18n';
-import { fittedTextHeight } from '../lib/text-metrics';
+import { fittedTextHeight, freeTextHeight, hasFittedTextHeight } from '../lib/text-metrics';
 import { normalizeLinkUrl, parseTextLinks, removeLinks, sameTextLinks, serializeTextLinks, setLink, shiftLinks, TEXT_LINKS_KEY } from '../lib/text-links';
 import { MAX_SLIDE_NOTES_LENGTH, SLIDE_NOTES_KEY, slideNotes } from '../lib/slide-notes';
 type Gesture = {
@@ -113,6 +114,8 @@ function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: 
 }
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+/** Style of a text the user starts typing on the empty canvas. */
+const NEW_TEXT_STYLE: Readonly<ElementStyle> = { ...DEFAULT_STYLE, ...NEW_TEXT_ALIGNMENT };
 const uid = (prefix: string) => `${prefix}:${crypto.randomUUID()}`;
 /** Digest of the page text an embedded Confluence page was loaded with; sending back requires the page to still have it. */
 const CONFLUENCE_BODY_HASH_KEY = 'sketchdraw.atlassian.pageBodyHash';
@@ -426,7 +429,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const displayed = elements.map((element): SelectionInfo['values'] => {
         const withDraft = draft ? { ...element, ...draft, style: { ...element.style, ...draft.style } } : element;
         const e = editStyle && edit!.elementId === element.id ? { ...withDraft, style: { ...withDraft.style, ...editStyle } } : withDraft;
-        return { ...e.style, textColor: e.style.textColor ?? e.style.stroke, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, author: e.author ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
+        return { ...e.style, verticalAlign: supportsVerticalAlign(e.kind) ? verticalAlignOf(e) : undefined, textColor: e.style.textColor ?? e.style.stroke, x: e.x, y: e.y, width: e.width, height: e.height, rotation: e.rotation, label: e.label ?? undefined, description: e.description ?? undefined, text: e.text ?? undefined, author: e.author ?? undefined, connectorFrom: e.from?.elementId, connectorTo: e.to?.elementId,
           connectorRouting: e.kind === 'connector' ? connectorRouting({ connectorRouting: e.connectorRouting ?? undefined }) : undefined,
           startMarker: e.kind === 'connector' ? connectorStartMarker({ startMarker: e.startMarker ?? undefined }) : undefined,
           endMarker: e.kind === 'connector' ? connectorEndMarker({ endMarker: e.endMarker ?? undefined }) : undefined };
@@ -947,9 +950,10 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (edit.field && edit.elementId) return applyCardField(edit, edit.field, edit.elementId, styleChanges);
     const id = edit.elementId ?? uid(edit.kind === 'annotation' ? 'annotation' : 'text');
     const existing = edit.elementId ? pageEls().find((e) => e.id === edit.elementId) : undefined;
-    // Free text grows and shrinks with its line count; the width stays whatever the user chose.
+    // Free text grows and shrinks with its line count; the width stays whatever the user chose, and so does a
+    // height the user made larger than the lines need (room for text in the middle or at the bottom, #296).
     const textWidth = existing?.width ?? edit.box.width;
-    const fitHeight = edit.kind === 'text' ? fittedTextHeight(edit.draft, textWidth, edit.style.fontSize) : null;
+    const fitHeight = edit.kind === 'text' ? freeTextHeight(existing, edit.draft, textWidth, edit.style.fontSize) : null;
     const heightPatch = fitHeight !== null && (existing ? Math.abs(existing.height - fitHeight) > 0.5 : true) ? { height: fitHeight } : {};
     const contentPatch = edit.kind === 'annotation' && edit.annotationDraft
       ? { annotation: edit.annotationDraft, text: annotationPlainText(edit.annotationDraft) }
@@ -998,12 +1002,29 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const height = resourceCardHeightFor(card, { description: text });
     return { description: text || null, ...(height !== card.height ? { height } : {}) };
   }
+  /**
+   * A style change as one element takes it: the vertical alignment only reaches kinds that have one, and a free
+   * text whose box fitted its lines follows a new font size instead of cutting the text off (#296).
+   */
+  function stylePatchFor(element: SketchElement, value: ElementPatch): ElementPatch {
+    const style = value.style;
+    if (!style) return value;
+    let next = value;
+    if (style.verticalAlign !== undefined && !supportsVerticalAlign(element.kind)) {
+      const { verticalAlign: _dropped, ...rest } = style;
+      next = { ...next, style: rest };
+    }
+    if (element.kind === 'text' && style.fontSize !== undefined && style.fontSize !== element.style.fontSize && value.height === undefined && hasFittedTextHeight(element)) {
+      next = { ...next, height: fittedTextHeight(element.text ?? '', value.width ?? element.width, style.fontSize) };
+    }
+    return next;
+  }
   function propertyDraftCommand(draft: NonNullable<WhiteboardState['propertyDraft']>): DocumentCommand {
     const changes = draft.ids.map((id) => {
       const value = clone(draft.patch);
       const e = pageEls().find((element) => element.id === id);
       if (e?.points && (value.width !== undefined || value.height !== undefined)) value.points = e.points.map((p) => ({ x: value.width !== undefined && e.width ? p.x * value.width / e.width : p.x, y: value.height !== undefined && e.height ? p.y * value.height / e.height : p.y }));
-      return { id, patch: value };
+      return { id, patch: e ? stylePatchFor(e, value) : value };
     });
     return { type: 'update', changes };
   }
@@ -1370,7 +1391,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         store.startTextEdit(target.id);
         return;
       }
-      if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x, y: point.y, width: 240, height: 48 }; return; }
+      // New text is centred (#296): its box is centred on the click, so the caret stands where the user clicked.
+      if (state.tool === 'text' && kind === 'draw') { store.startTextEdit(); if ((state.textEdit as WhiteboardState['textEdit'])) (state.textEdit as unknown as NonNullable<WhiteboardState['textEdit']>).box = { x: point.x - 120, y: point.y, width: 240, height: 48 }; return; }
       if (state.tool === 'image') return;
       const editField = kind === 'move' && target && !input.shiftKey && state.selection.length === 1 && state.selection[0] === target.id ? cardFieldAt(target, point) : null;
       if (kind === 'move' && target) {
@@ -1936,7 +1958,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       patch(selected().map((element) => {
         if (element.kind !== 'connector' || !value.connectorRouting || value.connectorRouting === connectorRouting(element)) {
-          return { id: element.id, patch: value };
+          return { id: element.id, patch: stylePatchFor(element, value) };
         }
         const route = connectorRoutePointsForRouting(element, value.connectorRouting);
         return { id: element.id, patch: { ...value, ...connectorGeometryPatch(element, route) } };
@@ -1969,7 +1991,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? textEditBox(e) : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? textEditBox(e) : { x: point.x - 120, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? NEW_TEXT_STYLE) }, initialStyle: { ...(e?.style ?? NEW_TEXT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\r\n?/g, '\n'); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },
