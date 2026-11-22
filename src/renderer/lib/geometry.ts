@@ -119,6 +119,23 @@ export function insideContainer(element: SketchElement, point: Point): boolean {
   return point.x >= element.x && point.x <= element.x + element.width && point.y >= element.y && point.y <= element.y + element.height;
 }
 
+/**
+ * The frame around an element as it is drawn: centre, size and rotation. For a connector this is the box around
+ * its line. The stored box of a connector is the one it was created with; when a shape it is attached to moves,
+ * the line follows and leaves that box, so the stored box must not be shown (#264).
+ */
+export function drawnFrame(element: SketchElement): { cx: number; cy: number; width: number; height: number; rotation: number } {
+  const pivot = center(element);
+  if (element.kind !== 'connector') return { cx: pivot.x, cy: pivot.y, width: element.width, height: element.height, rotation: element.rotation };
+  const line = connectorPolyline(element);
+  if (line.length < 2) return { cx: pivot.x, cy: pivot.y, width: element.width, height: element.height, rotation: element.rotation };
+  const xs = line.map((point) => point.x); const ys = line.map((point) => point.y);
+  const left = Math.min(...xs); const right = Math.max(...xs); const top = Math.min(...ys); const bottom = Math.max(...ys);
+  // The line is turned around the centre of the stored box; the middle of its own box is turned with it.
+  const middle = rotatePoint({ x: element.x + (left + right) / 2, y: element.y + (top + bottom) / 2 }, pivot, element.rotation);
+  return { cx: middle.x, cy: middle.y, width: right - left, height: bottom - top, rotation: element.rotation };
+}
+
 export function hitElement(element: SketchElement, point: Point, tolerance: number): boolean {
   const p = rotatePoint(point, center(element), -element.rotation);
   const x = p.x - element.x;

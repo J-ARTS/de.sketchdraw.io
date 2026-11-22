@@ -55,3 +55,33 @@ describe('selecting a curved connector (#255)', () => {
     expect(hitElement(elbowed, { x: 50, y: 50 }, TOLERANCE)).toBe(false);
   });
 });
+
+describe('the frame around a selected connector (#264)', () => {
+  test('follows the line when an attached shape moves; the stored box stays where the connector was made', async () => {
+    const { applyCommand, createDocument } = await import('@/domain');
+    const { drawnFrame } = await import('@/renderer/lib/geometry');
+    const a = createElement('rectangle', { id: 'a', x: 0, y: 0, width: 120, height: 80 });
+    const b = createElement('rectangle', { id: 'b', x: 200, y: 0, width: 120, height: 80 });
+    const edge = createElement('connector', { id: 'edge', x: 120, y: 40, width: 80, height: 1, connectorRouting: 'curved', points: [{ x: 0, y: 0 }, { x: 80, y: 0 }], from: { elementId: 'a', anchor: { x: 1, y: 0.5 } }, to: { elementId: 'b', anchor: { x: 0, y: 0.5 } } });
+    let document = applyCommand(createDocument(), { type: 'add', elements: [a, b, edge] });
+    document = applyCommand(document, { type: 'update', changes: [{ id: 'b', patch: { x: 420, y: 300 } }] });
+    const moved = document.elements.find((element) => element.id === 'edge')!;
+    const line = connectorPolyline(moved).map((point) => world(moved, point));
+    const end = line.at(-1)!;
+    expect(end.x).toBeCloseTo(420, 5);
+    expect(end.y).toBeCloseTo(340, 5);
+    // The stored box does not reach the new end of the line …
+    expect(moved.x + moved.width).toBeLessThan(end.x - 100);
+    // … the frame does: it encloses every point of the drawn line and nothing more.
+    const frame = drawnFrame(moved);
+    const left = frame.cx - frame.width / 2; const top = frame.cy - frame.height / 2;
+    for (const point of line) {
+      expect(point.x).toBeGreaterThanOrEqual(left - 1e-6); expect(point.x).toBeLessThanOrEqual(left + frame.width + 1e-6);
+      expect(point.y).toBeGreaterThanOrEqual(top - 1e-6); expect(point.y).toBeLessThanOrEqual(top + frame.height + 1e-6);
+    }
+    expect(left).toBeCloseTo(Math.min(...line.map((point) => point.x)), 5);
+    expect(frame.height).toBeCloseTo(300, 0);
+    // Other elements keep the frame of their box.
+    expect(drawnFrame(b)).toEqual({ cx: 260, cy: 40, width: 120, height: 80, rotation: 0 });
+  });
+});

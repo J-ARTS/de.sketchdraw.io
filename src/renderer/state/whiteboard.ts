@@ -33,7 +33,7 @@ import type {
   PencilPreset, SelectionInfo, Tool, Viewport, WhiteboardState, WhiteboardStore,
 } from './contract';
 import { ACTOR_ID, DEFAULT_STYLE, defaultSizeFor, QUICK_CONNECT_KINDS, ROTATABLE_KINDS, STYLE_BY_KIND } from '../lib/constants';
-import { bounds, center, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
+import { bounds, center, drawnFrame, endpointAt, hitElement, insideContainer, normalizedRect, rotatePoint, topSelected } from '../lib/geometry';
 import { docToScreen, fitRect, screenToDoc, wheelToAction, zoomAround } from '../lib/viewport';
 import { deriveSaveStatus, needsClosePrompt, suggestFileName } from '../lib/savestate';
 import { describeElement, describeSelection } from '../lib/describe';
@@ -366,7 +366,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const elements = this.displayElements.filter((e) => this.selection.includes(e.id));
       const first = elements[0];
       if (!first) return null;
-      if (elements.length === 1) return { cx: first.x + first.width / 2, cy: first.y + first.height / 2, width: first.width, height: first.height, rotation: first.rotation, single: true };
+      if (elements.length === 1) return { ...drawnFrame(first), single: true };
       const rect = bounds(elements)!;
       return { cx: rect.x + rect.width / 2, cy: rect.y + rect.height / 2, width: rect.width, height: rect.height, rotation: 0, single: false };
     },
@@ -881,6 +881,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
 
   /** The editor box of a connector's text: centred on the text's point on the line. */
+  /**
+   * The box in which the text of an element is edited. A narrow element gets a field of a usable width; it grows
+   * to the side the text does not start from, so centred text stays centred on the element (#263).
+   */
+  function textEditBox(element: SketchElement): { x: number; y: number; width: number; height: number } {
+    const width = Math.max(120, element.width);
+    const extra = width - element.width;
+    const align = element.style.textAlign;
+    return { x: element.x - (align === 'center' ? extra / 2 : align === 'right' ? extra : 0), y: element.y, width, height: Math.max(48, element.height) };
+  }
   function connectorTextBox(element: SketchElement, position: number) {
     const at = connectorLabelCentre(element, position);
     const middle = rotatePoint({ x: element.x + at.x, y: element.y + at.y }, center(element), element.rotation);
@@ -1951,7 +1961,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       }
       const point = currentCenter();
       const annotation = e?.kind === 'annotation' ? cloneAnnotationDocument(e.annotation ?? createAnnotationDocument(e.text ?? '')) : null;
-      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? { x: e.x, y: e.y, width: Math.max(120, e.width), height: Math.max(48, e.height) } : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
+      state.textEdit = { elementId: e?.id ?? null, kind: e?.kind ?? 'text', box: e?.kind === 'connector' ? connectorTextBox(e, connectorLabelPosition(e)) : e ? textEditBox(e) : { x: point.x, y: point.y, width: 240, height: 48 }, rotation: e?.rotation ?? 0, style: { ...(e?.style ?? DEFAULT_STYLE) }, initialStyle: { ...(e?.style ?? DEFAULT_STYLE) }, initialText: e?.text ?? '', draft: e?.text ?? '', author: e?.author ?? null, initialAuthor: e?.author ?? null, links: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialLinks: parseTextLinks(e?.metadata, (e?.text ?? '').length), initialAnnotation: annotation ? cloneAnnotationDocument(annotation) : null, annotationDraft: annotation, composing: false, conflict: null }; changedDraft();
     },
     setTextAuthor(author) { if (state.canWrite && state.textEdit && state.textEdit.elementId && !state.transitioning) { state.textEdit.author = author; changedDraft(); } },
     setTextDraft(text) { if (state.canWrite && state.textEdit && !state.transitioning) { if (state.textEdit.field) text = text.replace(/\r\n?/g, '\n'); state.textEdit.links = shiftLinks(state.textEdit.links ?? [], state.textEdit.draft, text); state.textEdit.draft = text; changedDraft(); } },

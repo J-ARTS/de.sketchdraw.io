@@ -162,3 +162,48 @@ test('dragging the quick-connect arrow onto another shape connects both without 
   await expect(page.locator(shapes)).toHaveCount(2);
   await expect(page.locator(arrows)).toHaveCount(1);
 });
+
+test('the frame around a selected arrow follows the arrow after its shape was moved (#264)', async ({ page }) => {
+  await drawRectangle(page);
+  await page.getByTestId('quick-connect-right').click();
+  await expect(page.locator(shapes)).toHaveCount(2);
+  // Make the arrow a curved one: its stored box does not follow the shapes it is attached to.
+  const short = (await page.locator(`${arrows} path[marker-end]`).first().boundingBox())!;
+  await page.keyboard.press('Escape');
+  await page.mouse.click(200, 620);
+  await page.mouse.click(short.x + short.width / 2, short.y + short.height / 2);
+  const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
+  await bar.getByRole('button', { name: /^Linienform:/ }).click();
+  await page.getByRole('group', { name: 'Linienform' }).getByRole('button', { name: 'Gebogen' }).click();
+  await page.keyboard.press('Escape');
+  await page.mouse.click(200, 620);
+  // Move the new shape down and to the right; the arrow follows.
+  const copy = (await page.locator(shapes).nth(1).boundingBox())!;
+  await page.mouse.move(copy.x + copy.width / 2, copy.y + copy.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(copy.x + copy.width / 2 + 120, copy.y + copy.height / 2 + 220, { steps: 10 });
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+  await page.mouse.click(200, 620);
+
+  const path = page.locator(`${arrows} path[marker-end]`).first();
+  const middle = await path.evaluate((el: SVGPathElement) => {
+    const point = el.getPointAtLength(el.getTotalLength() / 2);
+    const matrix = el.getScreenCTM()!;
+    return { x: matrix.a * point.x + matrix.c * point.y + matrix.e, y: matrix.b * point.x + matrix.d * point.y + matrix.f };
+  });
+  await page.mouse.click(middle.x, middle.y);
+  const frame = page.getByTestId('selection-frame');
+  await expect(frame).toBeVisible();
+  const line = (await path.boundingBox())!;
+  const box = (await frame.boundingBox())!;
+  expect(line.height).toBeGreaterThan(150);
+  // The frame encloses the whole line, with its few pixels of margin, and is not left behind at the old place.
+  expect(box.x).toBeLessThanOrEqual(line.x + 2);
+  expect(box.y).toBeLessThanOrEqual(line.y + 2);
+  // The arrowhead reaches a few pixels beyond the line it ends.
+  expect(box.x + box.width).toBeGreaterThanOrEqual(line.x + line.width - 8);
+  expect(box.y + box.height).toBeGreaterThanOrEqual(line.y + line.height - 8);
+  expect(box.width).toBeLessThanOrEqual(line.width + 24);
+  expect(box.height).toBeLessThanOrEqual(line.height + 24);
+});

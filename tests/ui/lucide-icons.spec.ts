@@ -107,3 +107,32 @@ test('an icon whose text was removed stays without text; the default name does n
   await page.keyboard.press('ControlOrMeta+Enter');
   await expect(label).toHaveText('Start');
 });
+
+test('the text of an icon is edited where it is drawn: centred under the icon (#263)', async ({ page }) => {
+  await page.getByTestId('more-shapes').click();
+  const library = page.getByTestId('shape-library-sidebar');
+  await library.getByRole('searchbox').fill('rocket');
+  await library.locator('.component-tile').filter({ hasText: 'LUCIDE' }).first().click();
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const figure = page.locator('.whiteboard-canvas [data-kind="component"]').first();
+  const icon = (await figure.getByTestId('icon-figure').boundingBox())!;
+  const label = (await figure.locator('text').boundingBox())!;
+  const centre = icon.x + icon.width / 2;
+  expect(Math.abs(label.x + label.width / 2 - centre)).toBeLessThanOrEqual(2);
+
+  await page.mouse.dblclick(centre, icon.y + icon.height / 2);
+  const editor = page.getByTestId('canvas-text-editor');
+  await expect(editor).toBeFocused();
+  // The field is wider than the narrow icon, to both sides: its middle is the middle of the icon.
+  const field = (await editor.boundingBox())!;
+  expect(field.width).toBeGreaterThan(icon.width);
+  expect(Math.abs(field.x + field.width / 2 - centre)).toBeLessThanOrEqual(2);
+  expect(Math.abs(field.y - label.y)).toBeLessThanOrEqual(3);
+  expect(await editor.evaluate((el) => getComputedStyle(el).textAlign)).toBe('center');
+  // A second line stays under the icon as well.
+  await editor.fill('test\ntes');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  const lines = figure.locator('text tspan');
+  await expect(lines).toHaveCount(2);
+  for (const line of await lines.all()) { const box = (await line.boundingBox())!; expect(Math.abs(box.x + box.width / 2 - centre)).toBeLessThanOrEqual(3); }
+});

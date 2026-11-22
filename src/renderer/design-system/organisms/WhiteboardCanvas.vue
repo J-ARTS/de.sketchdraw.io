@@ -250,7 +250,7 @@ onMounted(() => canvas.value?.focus());
         </g>
         <rect v-if="dropTarget" data-testid="drop-target-highlight" :data-element-id="dropTarget.id" :x="dropTarget.x - 2 / s.viewport.zoom" :y="dropTarget.y - 2 / s.viewport.zoom" :width="dropTarget.width + 4 / s.viewport.zoom" :height="dropTarget.height + 4 / s.viewport.zoom" fill="var(--accent-soft)" fill-opacity=".25" stroke="var(--accent)" :stroke-width="2 / s.viewport.zoom" pointer-events="none" />
         <rect v-if="s.marquee" v-bind="s.marquee" fill="var(--accent-soft)" fill-opacity=".4" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
-        <rect v-if="s.frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
+        <rect v-if="s.frame" data-testid="selection-frame" :x="s.frame.cx - s.frame.width / 2 - 4 / s.viewport.zoom" :y="s.frame.cy - s.frame.height / 2 - 4 / s.viewport.zoom" :width="s.frame.width + 8 / s.viewport.zoom" :height="s.frame.height + 8 / s.viewport.zoom" :transform="`rotate(${s.frame.rotation} ${s.frame.cx} ${s.frame.cy})`" fill="none" stroke="var(--accent)" :stroke-width="1 / s.viewport.zoom" />
       </g>
       <g v-if="!s.textEdit && s.canWrite" pointer-events="none">
         <template v-for="handle in s.handles" :key="handle.id">
