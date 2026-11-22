@@ -18,9 +18,12 @@ describe('session link', () => {
     expect(link.startsWith('sketchdraw://join#' + HDHT_LINK_PARAM + '=')).toBe(true);
     // Links of earlier versions carried a web address; only the fragment ever mattered.
     expect(parseHdhtInvitation('https://de.sketchdraw.io/#' + link.split('#')[1])).toEqual(value);
-    expect(link).not.toMatch(/pin/i);
+    // The payload is random base64url text, in which the letters "pin" turn up by chance now and then (this failed
+    // on 2026-11-22). What must hold: no field of the invitation and no part of the address names a PIN.
+    expect(link.split('=')[0]).not.toMatch(/pin/i);
     expect(isHdhtLink(link)).toBe(true);
     expect(parseHdhtInvitation(link)).toEqual(value);
+    expect(Object.keys(parseHdhtInvitation(link) ?? {}).join(' ')).not.toMatch(/pin/i);
   });
 
   it('rejects expired, malformed and unsafe links', () => {

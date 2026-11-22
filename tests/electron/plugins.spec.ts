@@ -85,7 +85,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     const folderA = path.join(root, 'project-a'); const folderB = path.join(root, 'project-b');
     await mkdir(folderA); await mkdir(folderB);
     const storePath = path.join(root, 'profile', 'plugins.json');
-    const store = async () => JSON.parse(await readFile(storePath, 'utf8').catch(() => '{}')) as { version?: number; activeProfileId?: string; profiles?: Array<{ id: string; name: string; git: Record<string, unknown>; atlassian: Record<string, unknown> }> };
+    const store = async () => JSON.parse(await readFile(storePath, 'utf8').catch(() => '{}')) as { version?: number; activeProfileId?: string; profiles?: Array<{ id: string; name: string; git: Record<string, unknown>; atlassian: Record<string, unknown>; azure?: Record<string, unknown> }> };
     const exists = (file: string) => readFile(file).then(() => true).catch(() => false);
     const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(entry[0])));
     app = await electron.launch({ args: [root], env: environment, chromiumSandbox: true });
