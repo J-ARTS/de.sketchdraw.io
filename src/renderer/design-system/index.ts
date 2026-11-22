@@ -39,6 +39,7 @@ export { default as ConfluenceLinkCard } from './molecules/ConfluenceLinkCard.vu
 export { default as FindReplaceBar } from './molecules/FindReplaceBar.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';
 export { default as UpdateSettings } from './molecules/UpdateSettings.vue';
+export { default as AgentSkillSettings } from './molecules/AgentSkillSettings.vue';
 
 // organisms
 export { default as AnnotationEditor } from './organisms/AnnotationEditor.vue';
@@ -93,4 +94,5 @@ export { ICON_PATHS, type IconName } from './atoms/icons';
 export { useWhiteboard } from './composables/use-whiteboard';
 export { useAnchoredPopover } from './composables/use-anchored-popover';
 export { useAppUpdates } from './composables/use-app-updates';
+export { useAgentSkill } from './composables/use-agent-skill';
 export { useHorizontalOverflow } from './composables/use-horizontal-overflow';

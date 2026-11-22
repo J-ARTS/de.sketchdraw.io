@@ -175,6 +175,22 @@ A small picture of a connector end (arrow, circle, diamond …) for the menus th
 
 A few atoms that do one thing together.
 
+### AgentSkillSettings
+
+The agent section of the settings: the switch that lets the desktop app keep its skill in the skill folders of Claude Code, Codex and Antigravity up to date, and where the skill stands for each of them. It only shows a status and reports what the user chose; the desktop app does the writing.
+
+- File: `src/renderer/design-system/molecules/AgentSkillSettings.vue`
+- Story: `src/renderer/design-system/molecules/AgentSkillSettings.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `status` | `AgentSkillStatus` | yes |  | Where the skill stands, as the desktop app reports it. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `replace` | `[client: AgentSkillClientId]` |  |
+| `update:automatic` | `[enabled: boolean]` |  |
+
 ### AnnotationContent
 
 The content of an annotation on the canvas: its number badge and text, drawn inside the SVG of an element.
@@ -754,7 +770,7 @@ The session button of the workspace bar and its menu. It is shown while this dev
 
 ### SettingsDialog
 
-The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates.
+The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates and the skill for AI agents.
 
 - File: `src/renderer/design-system/organisms/SettingsDialog.vue`
 

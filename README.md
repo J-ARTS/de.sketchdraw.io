@@ -156,7 +156,7 @@ A change made by an agent appears on the canvas at once and is not saved to disk
 The tools work on their own: the server tells every client the workflow and the error rules when it connects. The [`sketchdraw-desktop` skill](skills/sketchdraw-desktop/SKILL.md) adds the longer guide – the command table, connectors, diagram code and what to do for each error – and is loaded by the agent only when a task is about a Sketchdraw diagram. It is one folder with a `SKILL.md`, in the open Agent Skills format, so the same folder works in every client that supports skills.
 
 1. **Connect the MCP server once.** The skill describes how to use the `sketchdraw` server; it does not replace it. See [Connecting and using MCP](docs/agent-integration.md).
-2. **Copy the skill folder** into the skills directory of your client:
+2. **Let the app set the skill up, or copy the folder yourself.** The installed app asks once whether it may put the skill into the skill folders of Claude Code, Codex and Antigravity and keep it up to date with every update; **Settings → AI agents** changes the answer later. It writes only into its own folder `sketchdraw-desktop`, creates nothing for a client that is not on the computer, and never replaces a copy you changed unless you ask for it. For a single project or another client, copy the folder into the skills directory of the client:
 
 | Client | For all your projects | For one project |
 | --- | --- | --- |

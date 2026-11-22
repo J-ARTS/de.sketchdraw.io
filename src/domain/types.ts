@@ -445,4 +445,6 @@ export interface DesktopBridge {
   readonly helper?: import('../collaboration/hdht/types').HelperBridge;
   /** Optional desktop-only capability: check for a newer release and install it. */
   readonly updates?: import('./updates').UpdateBridge;
+  /** Optional desktop capability: the skill of the app in the skill folders of the agents (#265). */
+  readonly agentSkill?: import('./agent-skill').AgentSkillBridge;
 }

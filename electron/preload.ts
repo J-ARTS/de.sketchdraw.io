@@ -36,6 +36,7 @@ import type {
   UpdateJiraIssueInput,
 } from '../src/domain/plugins';
 import type { UpdateStatus } from '../src/domain/updates';
+import type { AgentSkillClientId, AgentSkillStatus } from '../src/domain/agent-skill';
 import {
   type CloseDecision,
   type AppLanguage,
@@ -47,6 +48,8 @@ import {
   isValidCloseRequestId,
   type MenuCommand,
   validateExportFileRequest,
+  validateAgentSkillRequest,
+  isAgentSkillStatus,
   parseDirectEvent,
   validateDirectRequest,
   validateExternalHttpUrl,
@@ -128,6 +131,13 @@ export function createPreloadDesktopBridge(
   const updateInvoke = async (request: unknown): Promise<UpdateStatus> => {
     const status: unknown = await ipc.invoke(IPC_CHANNELS.UPDATE_INVOKE, validateUpdateRequest(request));
     if (!isUpdateStatus(status)) throw new Error('The update service answered with an invalid status.');
+    return status;
+  };
+
+  /** Every answer about the agent skill is a status; anything else from the channel is an error. */
+  const agentSkillInvoke = async (request: unknown): Promise<AgentSkillStatus> => {
+    const status: unknown = await ipc.invoke(IPC_CHANNELS.AGENT_SKILL_INVOKE, validateAgentSkillRequest(request));
+    if (!isAgentSkillStatus(status)) throw new Error('The agent skill service answered with an invalid status.');
     return status;
   };
 
@@ -307,6 +317,12 @@ export function createPreloadDesktopBridge(
         ipc.on(IPC_CHANNELS.UPDATE_EVENT, wrapped);
         return () => ipc.removeListener(IPC_CHANNELS.UPDATE_EVENT, wrapped);
       },
+    }),
+
+    agentSkill: Object.freeze({
+      getStatus: () => agentSkillInvoke({ action: 'status' }),
+      setAutomatic: (enabled: boolean) => agentSkillInvoke({ action: 'set-automatic', enabled }),
+      replace: (client: AgentSkillClientId) => agentSkillInvoke({ action: 'replace', client }),
     }),
 
     plugins: Object.freeze({
