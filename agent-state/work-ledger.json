@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "J-ARTS/de.sketchdraw.io",
-  "updatedAt": "2026-11-16T12:39:37.583018+00:00",
+  "updatedAt": "2026-11-22T22:34:55.091057+00:00",
   "issues": [
     {
       "number": 1,
@@ -2809,15 +2809,16 @@
       "title": "macOS: Reguläres Beenden ohne Quit-Absicht; vorzeitiges before-quit-Cleanup",
       "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218",
       "owner": "OpenAI Codex (architecture/testing and diagnosis), Google Antigravity (application lifecycle responsibility)",
-      "phase": "GitHub bestätigt: offen / status: review; begrenzte Fable-/Codex-/Live-Nachweise dokumentiert, Zielbranchintegration bzw. benannte Abnahmelücken offen.",
-      "status": "review",
+      "phase": "GitHub-Abschluss nach der ersten Audit-Runde im Abgleich am 22.11.2026 bestätigt.",
+      "status": "completed",
       "dependencies": [],
       "relatedIssues": [
         217,
         210,
         208,
         220,
-        221
+        221,
+        267
       ],
       "estimatedEffort": {
         "kind": "planning_estimate",
@@ -2864,15 +2865,16 @@
         "docs/reviews/210-confluence-auto-sync/full-fable-review/final-graph-refresh-result.json",
         "https://github.com/J-ARTS/de.sketchdraw.io/issues/221",
         "docs/reviews/210-confluence-auto-sync/full-fable-review/final-acceptance.md",
-        "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998"
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998",
+        "docs/reviews/267-code-ui-ux/audit.md"
       ],
-      "nextStep": "Geprüfte Quit-Korrektur zusammen mit dem lokalen Integrationsstand in den Zielbranch übernehmen. Echte reguläre Quit-Abnahme gilt für das vorangegangene #218-Paket; kein zusätzlicher Quit des final geöffneten Pakets behauptet.",
+      "nextStep": "Frühere Audit- und Integrationsnachweise bleiben im Issue dokumentiert.",
       "localIntegration": {
         "branch": "codex/210-confluence-integration",
         "commit": "c572671f1ba17adf957fe4eff1e53457a4c20fc6",
         "publication": "Local uncommitted #210/#217 changes; #218 diagnosis in progress. No target-branch integration, push or merge."
       },
-      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-6916613998"
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/218#issuecomment-7077619327"
     },
     {
       "number": 219,
@@ -2949,6 +2951,589 @@
       ],
       "titleSource": "Exakter von Root bestätigter GitHub-Titel nach Duplikatsuche.",
       "nextStep": "Konkurrierende unabhängige Einstellungsänderungen isoliert reproduzieren und den Vertrag für atomare Teiländerungen festlegen; keine Umsetzung im aktuellen Korrekturlauf."
+    },
+    {
+      "number": 260,
+      "title": "draw.io-Export: Diagramme sollen in draw.io wie in Sketchdraw aussehen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/260",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 261,
+      "title": "Mermaid-Export: nur unterstützte Komponenten, korrekt dargestellt",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/261",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 263,
+      "title": "Icon-Text: Bearbeitungsfeld steht nach rechts versetzt",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/263",
+      "owner": "Claude Code",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 264,
+      "title": "Auswahlrahmen eines Pfeils bleibt stehen, wenn eine verbundene Form verschoben wird",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/264",
+      "owner": "Claude Code",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 267,
+      "title": "Code-, UI- und UX-Audit für Sketchdraw 0.1.8 (22.11.2026)",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/267",
+      "owner": "OpenAI Codex",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        218,
+        260,
+        261,
+        263,
+        264,
+        268,
+        269,
+        270,
+        271,
+        272,
+        273,
+        274,
+        275,
+        285,
+        286,
+        287,
+        288,
+        289,
+        290,
+        291,
+        292,
+        293,
+        294,
+        295
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "docs/reviews/267-code-ui-ux/ec2-v0.1.8.svg",
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ],
+      "nextStep": "Abgeschlossen am 22.11.2026: Auditberichte, SVG-Beispieldatei und Ledger sind auf main integriert. Die Befunde werden in den verknüpften Tickets geführt.",
+      "lastConfirmedGitHubComment": "https://github.com/J-ARTS/de.sketchdraw.io/issues/267#issuecomment-7083738231"
+    },
+    {
+      "number": 268,
+      "title": "Haftnotiz: Linkänderung geht beim Schließen ohne Speicherwarnung verloren",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/268",
+      "owner": "Antigravity (Entwurfslogik), Claude Code (Editor), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 269,
+      "title": "Seite mit AWS-Komponente lässt sich über die Seitenzwischenablage nicht einfügen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/269",
+      "owner": "Antigravity (Datenformat), Claude Code (Seitenaktion), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 270,
+      "title": "Jira-Aufgabe: Speichern von Titel und Beschreibung wird beim nächsten Abruf rückgängig gemacht",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/270",
+      "owner": "Antigravity (Jira-Vertrag), Claude Code (Aufgabenformular), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "tests/ui/plugins.spec.ts"
+      ],
+      "nextStep": "Abgeschlossen am 22.11.2026: Formulartest ergänzt (1ee1e48). Nicht gegen einen echten Jira-Mandanten geprüft."
+    },
+    {
+      "number": 271,
+      "title": "macOS-Lifecycle-Test schlägt nach regulärem Entwicklerstart am bereits gesetzten App-Namen fehl",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/271",
+      "owner": "Codex (Testing), Antigravity (Build)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "tests/unit/brand-dev-electron.test.mjs"
+      ],
+      "nextStep": "Abgeschlossen am 22.11.2026 mit 24f8ad7: Der Test stellt beide Ausgangszustände in seiner Kopie her."
+    },
+    {
+      "number": 272,
+      "title": "Unveränderte SVG aus v0.1.8 verliert beim Rückimport die AWS-Karte und Dokumentmetadaten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/272",
+      "owner": "Antigravity (Interoperabilität), Codex (Kompatibilitätstests)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "docs/reviews/267-code-ui-ux/ec2-v0.1.8.svg"
+      ]
+    },
+    {
+      "number": 273,
+      "title": "Aufgabe bearbeiten: „Abbrechen“ lässt einen Statuswechsel bestehen und sendet ihn bereits an Jira",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/273",
+      "owner": "Claude Code (Aufgabenformular), Antigravity (Zustandswechsel), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 274,
+      "title": "Verzögertes „Seite einfügen“ schreibt nach Dokumentwechsel in das falsche Dokument",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/274",
+      "owner": "Antigravity (Dokumentzustand), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 275,
+      "title": "Folien umbenennen: Tastatur öffnet den Namenseditor nicht, englische Oberfläche verliert den Fokus",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/275",
+      "owner": "Claude Code (UI und Accessibility), Codex (Abnahme)",
+      "phase": "Code-, UI- und UX-Audit November 2026",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/audit.md"
+      ]
+    },
+    {
+      "number": 285,
+      "title": "Tabelle: Löschen nach dem Verschieben trifft die falsche Zeile oder Spalte",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/285",
+      "owner": "Claude Code / Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 286,
+      "title": "Jira: Gleiche Ticketschlüssel aus verschiedenen Sites überschreiben dieselbe Aufgabenkarte",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/286",
+      "owner": "Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 287,
+      "title": "Export verbundener Tabellenzellen zeichnet verdeckte Zelltexte wieder sichtbar",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/287",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 288,
+      "title": "Mermaid: Asynchroner Sequenzpfeil verhindert die Wiederherstellung des eingebetteten Dokuments",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/288",
+      "owner": "Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 289,
+      "title": "Folien sortieren oder löschen setzt die gespeicherte Reihenfolge anderer Seiten zurück",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/289",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 290,
+      "title": "SVG/draw.io: Bereits geschriebene Exportdarstellungen teilen eine Versionsnummer mit einer inkompatiblen Darstellung",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/290",
+      "owner": "Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 291,
+      "title": "Frei platzierter Kommentar auf Seite B blockiert den eingebetteten SVG-Export von Seite A",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/291",
+      "owner": "Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 292,
+      "title": "Mermaid-Prozessexport verliert die zweite Pfeilspitze einer bidirektionalen Verbindung",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/292",
+      "owner": "Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 293,
+      "title": "Aufgabenformular kann während einer Jira-Anlage dieselbe Aufgabe ein zweites Mal anlegen",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/293",
+      "owner": "Claude Code / Google Antigravity",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 294,
+      "title": "Kopierte Ressourcenkarte verliert ihr gewähltes Bibliothekssymbol im Zieldokument",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/294",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 295,
+      "title": "Bildimport fügt das Bild nach einem Seitenwechsel auf der inzwischen aktiven Seite ein",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/295",
+      "owner": "Google Antigravity / Claude Code",
+      "phase": "Statische Codeprüfung auf main 14001e6",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [
+        267
+      ],
+      "nextStep": "In GitHub am 22.11.2026 als erledigt geschlossen; Nachweise stehen im Issue.",
+      "evidence": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ]
+    },
+    {
+      "number": 265,
+      "title": "Agent-Skill beim Installieren und Aktualisieren der App automatisch einrichten",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/265",
+      "owner": "Claude Code (Umsetzung), Antigravity (Gegenprüfung Hauptprozess/IAM offen)",
+      "phase": "Agent access",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [],
+      "evidence": [
+        "docs/reviews/2026-11-22-agent-skill-265.md",
+        "tests/unit/agent-skill.spec.ts",
+        "tests/ui/agent-skill-settings.spec.ts"
+      ],
+      "nextStep": "Gegenlesen von electron/agent-skill-service.ts durch Antigravity; Ablauf in einer gepackten App auf den drei Plattformen ist nicht geprüft."
+    },
+    {
+      "number": 266,
+      "title": "Folien: „…\"-Menü mit „Nach PowerPoint exportieren\"",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/266",
+      "owner": "Claude Code",
+      "phase": "UI and interfaces",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [],
+      "evidence": [
+        "tests/unit/platform/pptx-export.spec.ts",
+        "tests/ui/slides-pptx.spec.ts",
+        "docs/contracts-interop.md"
+      ],
+      "nextStep": "Die erzeugte Datei einmal mit PowerPoint öffnen; geprüft wurden Keynote 14 und der Office-Import von QuickLook."
+    },
+    {
+      "number": 297,
+      "title": "CI macOS: Update-Installer-Test scheitert zeitweise an hdiutil („Resource temporarily unavailable“)",
+      "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues/297",
+      "owner": "Claude Code",
+      "phase": "Testing / DevOps",
+      "status": "completed",
+      "estimatedEffort": {
+        "unit": "story_points",
+        "value": null,
+        "kind": "planning_estimate"
+      },
+      "dependencies": [],
+      "relatedIssues": [],
+      "evidence": [
+        "tests/unit/update-installers.spec.ts"
+      ]
     }
   ],
   "runs": [
@@ -11475,6 +12060,109 @@
       ],
       "measurementSource": "Tatsächliche Wrapper-Zeit mit time.monotonic gemessen; Exit 1 und Vor-/Nachherhashes im Resultat. Keine Modellnutzung gemessen; Tokens/Kosten null.",
       "nextStep": "Quellknotenverlust separat anhand tatsächlich gelöschter oder verschobener Symbole abgleichen; kein Force und kein weiterer Refresh in dieser Übergabe. Ledgerprojektion und Check getrennt dokumentieren."
+    },
+    {
+      "id": "codex-audit-267-20261122",
+      "tool": "OpenAI Codex",
+      "model": "GPT-6",
+      "issues": [
+        218,
+        260,
+        261,
+        263,
+        264,
+        267,
+        268,
+        269,
+        270,
+        271,
+        272,
+        273,
+        274,
+        275
+      ],
+      "status": "audit_verified_integrated",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "docs/reviews/267-code-ui-ux/ec2-v0.1.8.svg",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/267#issuecomment-7077663703"
+      ],
+      "concerns": [
+        "Current main ddde566a: twelve confirmed product findings and one test infrastructure finding. The native macOS process exit, current visual rendering and external editors remain unverified.",
+        "Full suite results and environment limits are recorded in the audit. Test findings were reproduced with isolated renderer, converter and Main event probes."
+      ],
+      "nextStep": "Auditartefakte sind auf main integriert. Die Produktkorrekturen werden in den verknüpften Tickets geführt."
+    },
+    {
+      "id": "codex-static-267-14001e6",
+      "tool": "OpenAI Codex",
+      "model": "GPT-6",
+      "issues": [
+        267,
+        285,
+        286,
+        287,
+        288,
+        289,
+        290,
+        291,
+        292,
+        293,
+        294,
+        295
+      ],
+      "status": "static_review_complete_integrated",
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md",
+        "https://github.com/J-ARTS/de.sketchdraw.io/issues/267#issuecomment-7083738231"
+      ],
+      "concerns": [
+        "Findings follow from the product source at 14001e675fa9c4122c0b3a9c969266a261399e45. No runtime verification in this review."
+      ],
+      "nextStep": "Bericht und Ledger sind auf main integriert. #285–#295 sind in GitHub geschlossen."
+    },
+    {
+      "id": "claude-code-open-tickets-20261122",
+      "tool": "Claude Code",
+      "model": null,
+      "issues": [
+        265,
+        266,
+        267,
+        270,
+        271,
+        297
+      ],
+      "status": "completed_and_closed_in_github",
+      "startedAt": "2026-11-22T21:59:00+00:00",
+      "endedAt": null,
+      "observedSeconds": null,
+      "tokens": null,
+      "costUsd": null,
+      "artifacts": [
+        "24f8ad7 test(dev): the native branding test sets up its own starting state",
+        "bf19540 fix(update): attach the disk image again while macOS reports the service busy",
+        "1ee1e48 test(tasks): the form of a Jira task keeps title and description over the next sync",
+        "8515510 feat(slides): the \"…\" menu of the slides exports to PowerPoint",
+        "0beca7c feat(agents): the installed app sets its skill up for Claude Code, Codex and Antigravity",
+        "docs/reviews/2026-11-22-agent-skill-265.md",
+        "docs/reviews/267-code-ui-ux/audit.md",
+        "docs/reviews/267-code-ui-ux/code-review-14001e6.md"
+      ],
+      "concerns": [
+        "#266: The exported file was opened with Keynote 14 and the Office importer of QuickLook, not with PowerPoint.",
+        "#265: Main process and IPC were implemented by Claude Code although the ticket assigns them to Antigravity; not run in a packaged app and not on Windows or Linux.",
+        "#270: No real Jira tenant was available; all evidence uses a simulated interface.",
+        "#297: The transient hdiutil error could not be triggered locally; the test reproduces its message.",
+        "Local session on macOS 14.6.1 arm64, working in its own worktree; coordinated with the cloud session of Claude Code that closed #285 to #295."
+      ],
+      "nextStep": "Open #266 once in PowerPoint; let Antigravity review the agent skill service."
     }
   ],
   "evidencePolicy": {
