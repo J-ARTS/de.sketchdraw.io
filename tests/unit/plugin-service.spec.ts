@@ -433,7 +433,7 @@ describe('PluginService', () => {
     expect(await service.getSettings('project')).toMatchObject({ git: { installed: true, enabled: false }, atlassian: { installed: true, enabled: false } });
     expect(runGit).not.toHaveBeenCalled(); expect(fetchFn).not.toHaveBeenCalled();
     await expect(readFile(path.join(dir, '.sketchdraw-plugins.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
-    await service.uninstallPlugin('git'); await service.uninstallPlugin('jira');
+    await service.uninstallPlugin('git'); await service.uninstallPlugin('jira'); await service.uninstallPlugin('confluence');
     await service.getSettings(null);
     expect(await service.getSettings('project')).toMatchObject({ git: { installed: false, enabled: false }, atlassian: { installed: false, enabled: false } });
     service.dispose();
@@ -641,6 +641,72 @@ describe('PluginService', () => {
   });
 
 
+  it('treats Jira and Confluence as two plugins on one Atlassian connection (#282)', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-split-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    const configPath = await profileStore();
+    const fetchFn = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes('/rest/api/3/search/jql')) return new Response(JSON.stringify({ issues: [] }), { status: 200 });
+      if (url.includes('/wiki/api/v2/spaces')) return new Response(JSON.stringify({ results: [{ id: '7' }] }), { status: 200 });
+      if (url.includes('/wiki/api/v2/pages')) return new Response(JSON.stringify({ results: [] }), { status: 200 });
+      return new Response('{}', { status: 200 });
+    });
+    const open = async () => { const service = new PluginService({ configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn: fetchFn as typeof fetch }); await service.getSettings('project'); return service; };
+    let service = await open();
+    // Configured the way a version before the split did it: one switch, all fields.
+    const legacy = { enabled: true, siteUrl: 'https://example.atlassian.net', email: 'alice@example.com', apiToken: 'secret', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '' };
+    expect((await service.configureAtlassian(legacy)).atlassian).toMatchObject({ installed: true, enabled: true, jiraInstalled: true, jiraEnabled: true, confluenceInstalled: true, confluenceEnabled: true, credentialStored: true });
+    await expect(service.listJiraIssues()).resolves.toEqual([]);
+    await expect(service.listConfluencePages('')).resolves.toEqual([]);
+
+    // Switching Confluence off alone leaves Jira as it is, and Confluence needs no Jira project.
+    const confluenceOff = await service.configureAtlassian({ ...legacy, plugin: 'confluence', enabled: false, apiToken: '', jiraProjectKey: '', jiraIssueType: '', confluenceSpaceKey: 'TEAM' });
+    expect(confluenceOff.atlassian).toMatchObject({ enabled: true, jiraEnabled: true, confluenceEnabled: false, jiraProjectKey: 'SK', jiraIssueType: 'Task', confluenceSpaceKey: 'TEAM', credentialStored: true });
+    await expect(service.listConfluencePages('')).rejects.toThrow('Confluence-Plugin ist deaktiviert.');
+    await expect(service.listJiraIssues()).resolves.toEqual([]);
+    await service.configureAtlassian({ ...legacy, plugin: 'confluence', enabled: true, apiToken: '', confluenceSpaceKey: 'TEAM' });
+
+    // Removing Jira keeps the connection for Confluence; Jira is refused from then on.
+    const withoutJira = await service.uninstallPlugin('jira');
+    expect(withoutJira.atlassian).toMatchObject({ installed: true, enabled: true, jiraInstalled: false, jiraEnabled: false, confluenceInstalled: true, confluenceEnabled: true, jiraProjectKey: '', credentialStored: true, siteUrl: legacy.siteUrl });
+    await expect(service.listJiraIssues()).rejects.toThrow('Jira-Plugin ist deaktiviert.');
+    await expect(service.listConfluencePages('')).resolves.toEqual([]);
+    await expect(service.configureAtlassian({ ...legacy, plugin: 'jira' })).rejects.toThrow('Jira-Plugin ist nicht installiert.');
+    // A version from before the split reads `installed` and `enabled`: they stay true while one of the two is in use.
+    const stored = JSON.parse(await readFile(configPath, 'utf8')) as { profiles: Array<{ atlassian: Record<string, unknown> }> };
+    expect(stored.profiles[0]!.atlassian).toMatchObject({ installed: true, enabled: true, jiraInstalled: false, confluenceInstalled: true });
+    service.dispose();
+
+    // Reopened, the state is the same; Jira can be installed again and starts switched off, with the connection in place.
+    service = await open();
+    expect((await service.getSettings()).atlassian).toMatchObject({ jiraInstalled: false, confluenceEnabled: true });
+    expect((await service.installPlugin('jira')).atlassian).toMatchObject({ jiraInstalled: true, jiraEnabled: false, confluenceEnabled: true, credentialStored: true });
+    await expect(service.configureAtlassian({ ...legacy, plugin: 'jira', apiToken: '', jiraProjectKey: '' })).rejects.toThrow('Jira-Projekt');
+    expect((await service.configureAtlassian({ ...legacy, plugin: 'jira', apiToken: '', jiraProjectKey: 'OPS' })).atlassian).toMatchObject({ jiraEnabled: true, jiraProjectKey: 'OPS', confluenceSpaceKey: 'TEAM' });
+
+    // The token goes with the last of the two plugins.
+    expect((await service.uninstallPlugin('confluence')).atlassian).toMatchObject({ installed: true, confluenceInstalled: false, confluenceSpaceKey: '', credentialStored: true });
+    expect((await service.uninstallPlugin('jira')).atlassian).toMatchObject({ installed: false, enabled: false, credentialStored: false, siteUrl: '' });
+    service.dispose();
+  });
+
+  it('gives both plugins to a profile stored before the split', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-split-legacy-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    const configPath = await profileStore();
+    // What 0.1.8 wrote: one plugin, switched on, with a token and a link of a page.
+    const atlassian = { installed: true, enabled: true, siteUrl: 'https://example.atlassian.net', email: 'alice@example.com', encryptedApiToken: Buffer.from('secret').toString('base64'), confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '' };
+    const git = { installed: true, enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' };
+    await writeFile(configPath, JSON.stringify({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', git, atlassian }, { id: 'off', name: 'Aus', git, atlassian: { ...atlassian, installed: false, enabled: false, encryptedApiToken: undefined } }] }));
+    const service = new PluginService({ configPath, persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn: vi.fn() as unknown as typeof fetch });
+    const settings = await service.getSettings('project');
+    expect(settings.configurationIssue).toBeUndefined();
+    expect(settings.atlassian).toMatchObject({ installed: true, enabled: true, jiraInstalled: true, jiraEnabled: true, confluenceInstalled: true, confluenceEnabled: true, credentialStored: true, jiraProjectKey: 'SK', confluenceSpaceKey: 'DOC' });
+    expect((await service.selectProfile('off')).atlassian).toMatchObject({ installed: false, jiraInstalled: false, confluenceInstalled: false, jiraEnabled: false, confluenceEnabled: false });
+    service.dispose();
+  });
+
   it('does not reuse a Jira credential for a changed site or reinstall an explicitly removed plugin', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-jira-credential-scope-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
@@ -652,7 +718,7 @@ describe('PluginService', () => {
     expect((await service.getSettings()).atlassian.siteUrl).toBe(input.siteUrl);
     const changed = await service.configureAtlassian({ ...input, enabled: false, siteUrl: 'https://different.atlassian.net', apiToken: '' });
     expect(changed.atlassian.credentialStored).toBe(false);
-    await service.uninstallPlugin('jira'); await expect(service.configureAtlassian(input)).rejects.toThrow('nicht installiert');
+    await service.uninstallPlugin('jira'); await service.uninstallPlugin('confluence'); await expect(service.configureAtlassian(input)).rejects.toThrow('nicht installiert');
     service.dispose();
   });
 

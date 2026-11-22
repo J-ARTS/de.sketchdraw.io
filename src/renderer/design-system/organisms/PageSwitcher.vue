@@ -1,6 +1,7 @@
 <!-- @component The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId } from 'vue';
+import { confluencePluginActive } from '@/domain';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
@@ -25,7 +26,7 @@ const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
 /** The Confluence plugin is configured: pages can be linked to Confluence pages (#240). Guests never link. */
-const confluenceOffered = computed(() => Boolean(s.pluginSettings?.available && s.pluginSettings.atlassian.installed && s.pluginSettings.atlassian.enabled) && !s.roomGuest);
+const confluenceOffered = computed(() => Boolean(s.pluginSettings?.available && confluencePluginActive(s.pluginSettings.atlassian)) && !s.roomGuest);
 const confluenceLinks = computed(() => new Map((confluenceOffered.value ? s.pluginSettings?.confluencePageLinks ?? [] : []).map((link) => [link.diagramPageId, link])));
 /** A linked page whose publication needs the user is marked; everything else is the calm "linked". */
 const confluenceProblem = (id: string): boolean => s.confluencePageLive[id]?.state === 'error';

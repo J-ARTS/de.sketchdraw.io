@@ -146,8 +146,17 @@ interface PersistedGitConfig {
 }
 
 interface PersistedAtlassianConfig {
+  /** Whether Jira or Confluence is installed, and whether one of them is switched on. Versions before the split (#282) only know these two. */
   installed: boolean;
   enabled: boolean;
+  /**
+   * Jira and Confluence are two plugins that share one Atlassian connection (#282). A profile written before the
+   * split has none of these four; both plugins then take `installed` and `enabled`.
+   */
+  jiraInstalled?: boolean;
+  jiraEnabled?: boolean;
+  confluenceInstalled?: boolean;
+  confluenceEnabled?: boolean;
   siteUrl: string;
   email: string;
   encryptedApiToken?: string;
@@ -207,6 +216,16 @@ const DEFAULT_CONFIG: PersistedPluginConfig = {
   git: { installed: true, enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' },
   atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' },
 };
+
+/** The state of the two Atlassian plugins; a profile from before the split gives both what the one plugin had. */
+function atlassianParts(config: PersistedAtlassianConfig): { jiraInstalled: boolean; jiraEnabled: boolean; confluenceInstalled: boolean; confluenceEnabled: boolean } {
+  const jiraInstalled = config.jiraInstalled ?? config.installed, confluenceInstalled = config.confluenceInstalled ?? config.installed;
+  return { jiraInstalled, confluenceInstalled, jiraEnabled: jiraInstalled && (config.jiraEnabled ?? config.enabled), confluenceEnabled: confluenceInstalled && (config.confluenceEnabled ?? config.enabled) };
+}
+/** Writes the state of both plugins and keeps `installed` and `enabled` true for a version that only knows those. */
+function withAtlassianParts<T extends PersistedAtlassianConfig>(config: T, parts: ReturnType<typeof atlassianParts>): T {
+  return { ...config, ...parts, installed: parts.jiraInstalled || parts.confluenceInstalled, enabled: parts.jiraEnabled || parts.confluenceEnabled };
+}
 
 function defaultProfile(): PersistedProfile {
   return { id: DEFAULT_PROFILE_ID, name: DEFAULT_PROFILE_NAME, git: { ...DEFAULT_CONFIG.git }, atlassian: { ...DEFAULT_CONFIG.atlassian } };
@@ -303,8 +322,14 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
     }
     if (plugin === 'git' && 'authMode' in config && config.authMode !== 'system' && config.authMode !== 'token') throw new Error('PROFILE_STORE_INVALID');
   }
+  for (const key of ['jiraInstalled', 'jiraEnabled', 'confluenceInstalled', 'confluenceEnabled']) {
+    const value = (record.atlassian as Record<string, unknown>)[key];
+    if (value !== undefined && typeof value !== 'boolean') throw new Error('PROFILE_STORE_INVALID');
+  }
   const git = { ...DEFAULT_CONFIG.git, ...(record.git as PersistedGitConfig) };
-  const atlassian = { ...DEFAULT_CONFIG.atlassian, ...(record.atlassian as PersistedAtlassianConfig) };
+  const loadedAtlassian = { ...DEFAULT_CONFIG.atlassian, ...(record.atlassian as PersistedAtlassianConfig) };
+  const parts = atlassianParts(loadedAtlassian);
+  const atlassian = withAtlassianParts(loadedAtlassian, parts);
   // Loading a profile or adopting a folder file must enforce the same boundaries as explicit configuration.
   git.remote = normalizeGitRemote(git.remote);
   git.remoteUrl = normalizeGitRemoteUrl(git.remoteUrl);
@@ -315,7 +340,7 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   atlassian.siteUrl = atlassian.siteUrl.trim() ? normalizeSiteUrl(atlassian.siteUrl) : '';
   atlassian.email = boundedString(atlassian.email, 320, 'E-Mail', !atlassian.enabled);
   atlassian.confluenceSpaceKey = boundedString(atlassian.confluenceSpaceKey, 128, 'Confluence-Space', true);
-  atlassian.jiraProjectKey = boundedString(atlassian.jiraProjectKey, 128, 'Jira-Projekt', !atlassian.enabled).toUpperCase();
+  atlassian.jiraProjectKey = boundedString(atlassian.jiraProjectKey, 128, 'Jira-Projekt', !parts.jiraEnabled).toUpperCase();
   atlassian.jiraIssueType = boundedString(atlassian.jiraIssueType, 128, 'Jira-Vorgangstyp');
   atlassian.jqlFilter = boundedString(atlassian.jqlFilter, 2000, 'Jira-Filter', true);
   if (atlassian.enabled && (!atlassian.siteUrl || !atlassian.encryptedApiToken)) throw new Error('PROFILE_STORE_INVALID');
@@ -721,9 +746,10 @@ export class PluginService {
     const { installed: gitInstalled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username } = this.config.git;
     this.gitRuntime = { ...this.defaultGitRuntime(), installed: gitInstalled, enabled: gitEnabled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username, credentialStored: gitCredentialStored, health: gitEnabled ? 'attention' : 'disabled', message: !gitInstalled ? 'Git-Plugin ist nicht installiert.' : gitEnabled ? 'Repository-Konfiguration noch nicht geprüft.' : 'Git-Plugin ist deaktiviert.' };
     const atlassianCredentialStored = Boolean(this.config.atlassian.encryptedApiToken) && this.credentials.available();
-    const atlassianEnabled = this.config.atlassian.installed && this.config.atlassian.enabled;
-    const { installed, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter } = this.config.atlassian;
-    this.atlassianRuntime = { installed, enabled: atlassianEnabled, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
+    const parts = atlassianParts(this.config.atlassian);
+    const installed = parts.jiraInstalled || parts.confluenceInstalled, atlassianEnabled = parts.jiraEnabled || parts.confluenceEnabled;
+    const { siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter } = this.config.atlassian;
+    this.atlassianRuntime = { installed, enabled: atlassianEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
   }
 
   public async getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot> {
@@ -757,7 +783,7 @@ export class PluginService {
   /** What the renderer may know about the link: the target and whether it can be used, never a credential. */
   private liveLinkView(): ConfluenceLiveLink | undefined {
     const link = this.activeLiveLink();
-    if (!link || !this.config.atlassian.installed) return undefined;
+    if (!link || !atlassianParts(this.config.atlassian).confluenceInstalled) return undefined;
     return this.linkView(link);
   }
 
@@ -766,7 +792,7 @@ export class PluginService {
   }
 
   private pageLinkViews(): ConfluencePageLiveLink[] {
-    if (!this.config.atlassian.installed) return [];
+    if (!atlassianParts(this.config.atlassian).confluenceInstalled) return [];
     return this.activePageLinks().map((link) => ({ ...this.linkView(link), diagramPageId: link.diagramPageId! }));
   }
 
@@ -798,16 +824,32 @@ export class PluginService {
     await this.ensureLoaded();
     const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
-    if (id === 'git') next.git.installed = true; else if (id === 'jira') next.atlassian.installed = true; else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (id === 'jira') this.revokeAuthority(); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+    const parts = atlassianParts(next.atlassian);
+    if (id === 'git') next.git.installed = true;
+    else if (id === 'jira') next.atlassian = withAtlassianParts(next.atlassian, { ...parts, jiraInstalled: true });
+    else if (id === 'confluence') next.atlassian = withAtlassianParts(next.atlassian, { ...parts, confluenceInstalled: true });
+    else throw new Error('Unbekanntes Plugin.');
+    await this.saveConfig(next, profileId); if (id !== 'git') this.revokeAuthority(); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
   public async uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
     await this.ensureLoaded();
     const profileId = this.activeProfileId;
     const next = structuredClone(this.config);
-    if (id === 'git') next.git = { ...DEFAULT_CONFIG.git, installed: false }; else if (id === 'jira') next.atlassian = { ...DEFAULT_CONFIG.atlassian, installed: false }; else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (id === 'jira') this.revokeAuthority(); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
+    const parts = atlassianParts(next.atlassian);
+    const empty = { ...DEFAULT_CONFIG.atlassian, installed: false, jiraInstalled: false, jiraEnabled: false, confluenceInstalled: false, confluenceEnabled: false };
+    if (id === 'git') next.git = { ...DEFAULT_CONFIG.git, installed: false };
+    else if (id === 'jira') {
+      // Removing one plugin leaves the other with the shared connection; the token goes with the last of the two.
+      const { jiraProjectKey, jiraIssueType, jqlFilter } = DEFAULT_CONFIG.atlassian;
+      next.atlassian = parts.confluenceInstalled ? withAtlassianParts({ ...next.atlassian, jiraProjectKey, jiraIssueType, jqlFilter }, { ...parts, jiraInstalled: false, jiraEnabled: false }) : empty;
+    }
+    else if (id === 'confluence') {
+      const { confluenceLinks: _links, confluencePageLinks: _pageLinks, ...kept } = next.atlassian;
+      next.atlassian = parts.jiraInstalled ? withAtlassianParts({ ...kept, confluenceSpaceKey: '' }, { ...parts, confluenceInstalled: false, confluenceEnabled: false }) : empty;
+    }
+    else throw new Error('Unbekanntes Plugin.');
+    await this.saveConfig(next, profileId); if (id !== 'git') this.revokeAuthority(); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
   }
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
@@ -850,19 +892,40 @@ export class PluginService {
 
   public async configureAtlassian(input: ConfigureAtlassianPluginInput): Promise<PluginSettingsSnapshot> {
     await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Atlassian-Konfiguration.');
-    if (!this.config.atlassian.installed) throw new Error('Jira-Plugin ist nicht installiert.');
+    const current = atlassianParts(this.config.atlassian);
+    // With `plugin` the call configures that one plugin: its switch and its own fields. Without it – as before the
+    // split – the switch and all fields apply to whichever of the two is installed.
+    const target = input.plugin === 'jira' || input.plugin === 'confluence' ? input.plugin : undefined;
+    if (target === 'jira' ? !current.jiraInstalled : target === 'confluence' ? !current.confluenceInstalled : !this.config.atlassian.installed) throw new Error(target === 'confluence' ? 'Confluence-Plugin ist nicht installiert.' : 'Jira-Plugin ist nicht installiert.');
+    const parts = {
+      ...current,
+      jiraEnabled: current.jiraInstalled && (target === 'confluence' ? current.jiraEnabled : Boolean(input.enabled)),
+      confluenceEnabled: current.confluenceInstalled && (target === 'jira' ? current.confluenceEnabled : Boolean(input.enabled)),
+    };
+    const anyEnabled = parts.jiraEnabled || parts.confluenceEnabled;
     const profileId = this.activeProfileId;
     const siteInput = typeof input.siteUrl === 'string' ? input.siteUrl : ''; const siteUrl = siteInput.trim() ? normalizeSiteUrl(siteInput) : '';
     const previousToken = this.config.atlassian.encryptedApiToken; let encryptedApiToken = input.clearCredential || siteUrl !== this.config.atlassian.siteUrl ? undefined : previousToken;
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
-    const email = boundedString(input.email, 320, 'E-Mail', !input.enabled); const confluenceSpaceKey = boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true); const jiraProjectKey = boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !input.enabled).toUpperCase();
-    if (input.enabled && (!siteUrl || !encryptedApiToken)) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: true, enabled: Boolean(input.enabled), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType: boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp'), jqlFilter: boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true), ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}), ...(this.config.atlassian.confluencePageLinks ? { confluencePageLinks: this.config.atlassian.confluencePageLinks } : {}) } };
+    const own = this.config.atlassian;
+    const email = boundedString(input.email, 320, 'E-Mail', !anyEnabled);
+    // Each plugin keeps its own fields when the other one is configured.
+    const confluenceSpaceKey = target === 'jira' ? own.confluenceSpaceKey : boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true);
+    const jiraProjectKey = target === 'confluence' ? own.jiraProjectKey : boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !parts.jiraEnabled).toUpperCase();
+    const jiraIssueType = target === 'confluence' ? own.jiraIssueType : boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp');
+    const jqlFilter = target === 'confluence' ? own.jqlFilter : boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true);
+    if (parts.jiraEnabled && !jiraProjectKey) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
+    if (anyEnabled && (!siteUrl || !encryptedApiToken)) throw new Error(target === 'confluence' ? 'Für das Confluence-Plugin werden URL, Benutzername und API-Token benötigt.' : 'Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
+    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: parts.jiraInstalled || parts.confluenceInstalled, enabled: anyEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}), ...(this.config.atlassian.confluencePageLinks ? { confluencePageLinks: this.config.atlassian.confluencePageLinks } : {}) } };
     // Saved Atlassian settings are a new authority even when every value is as before: work that ran under the
     // previous site, account or switch never continues, and a pause a server asked the previous site for ends.
     await this.saveConfig(next, profileId); this.revokeAuthority(); if (this.cooldown && this.cooldown.siteUrl !== siteUrl) this.cooldown = null;
     if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
+
+  /** A call for Jira needs Jira installed and switched on; Confluence alone does not grant it, and the reverse (#282). */
+  private assertJira(): void { if (!atlassianParts(this.config.atlassian).jiraEnabled) throw new Error('Jira-Plugin ist deaktiviert.'); }
+  private assertConfluence(): void { if (!atlassianParts(this.config.atlassian).confluenceEnabled) throw new Error('Confluence-Plugin ist deaktiviert.'); }
 
   /** Jira and Confluence work on behalf of an open local diagram; unsaved, imported and guest diagrams never trigger them. */
   private assertDocumentProject(): void {
@@ -896,7 +959,7 @@ export class PluginService {
     const generation = this.projectGeneration;
     const check = () => { this.assertGeneration(generation); options.guard?.(); };
     options.guard?.();
-    if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
+    if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error(atlassianParts(this.config.atlassian).jiraInstalled || !this.config.atlassian.installed ? 'Jira-Plugin ist deaktiviert.' : 'Confluence-Plugin ist deaktiviert.');
     const base = normalizeSiteUrl(this.config.atlassian.siteUrl);
     // A pause the server asked for holds for every request to that site, whoever starts it and however often.
     if (this.cooldown && this.cooldown.siteUrl === base) {
@@ -953,9 +1016,12 @@ export class PluginService {
 
   public async testAtlassian(): Promise<PluginOperationResult> {
     const generation = this.projectGeneration;
-    const checks: Array<Promise<unknown>> = [this.atlassian('/rest/api/3/myself')]; if (this.config.atlassian.confluenceSpaceKey) checks.push(this.atlassian('/wiki/api/v2/spaces?limit=1'));
-    const results = await Promise.allSettled(checks); this.assertGeneration(generation); const jira = results[0]; const confluence = results[1];
-    const details = [jira?.status === 'fulfilled' ? 'Jira: verbunden' : `Jira: ${jira?.status === 'rejected' && jira.reason instanceof Error ? jira.reason.message : 'Verbindung fehlgeschlagen'}`];
+    // Each installed plugin is tested with its own product; Confluence alongside Jira only once a space is named, as before.
+    const parts = atlassianParts(this.config.atlassian);
+    const testJira = parts.jiraInstalled || !parts.confluenceInstalled, testConfluence = parts.confluenceInstalled && (Boolean(this.config.atlassian.confluenceSpaceKey) || !testJira);
+    const checks: Array<Promise<unknown>> = [...(testJira ? [this.atlassian('/rest/api/3/myself')] : []), ...(testConfluence ? [this.atlassian('/wiki/api/v2/spaces?limit=1')] : [])];
+    const results = await Promise.allSettled(checks); this.assertGeneration(generation); const jira = testJira ? results[0] : undefined; const confluence = testConfluence ? results[testJira ? 1 : 0] : undefined;
+    const details = jira ? [jira.status === 'fulfilled' ? 'Jira: verbunden' : `Jira: ${jira.reason instanceof Error ? jira.reason.message : 'Verbindung fehlgeschlagen'}`] : [];
     if (confluence) details.push(confluence.status === 'fulfilled' ? 'Confluence: verbunden' : `Confluence: ${confluence.reason instanceof Error ? confluence.reason.message : 'Verbindung fehlgeschlagen'}`);
     const ok = results.every((entry) => entry.status === 'fulfilled'); const message = details.join(' · '); this.atlassianRuntime = { ...this.atlassianRuntime, health: ok ? 'ready' : 'error', message }; return { ok, message };
   }
@@ -1186,7 +1252,7 @@ export class PluginService {
   private async confluenceSpaceId(): Promise<string | undefined> { const key = this.config.atlassian.confluenceSpaceKey; if (!key) return undefined; const response = await this.atlassian(`/wiki/api/v2/spaces?keys=${encodeURIComponent(key)}&limit=1`) as { results?: Array<{ id?: string }> }; return response.results?.[0]?.id; }
 
   public async listConfluencePages(query: string): Promise<ConfluencePageSummary[]> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertConfluence();
     const spaceId = await this.confluenceSpaceId(); const params = new URLSearchParams({ limit: '100', sort: '-modified-date' }); if (spaceId) params.set('space-id', spaceId);
     const response = await this.atlassian(`/wiki/api/v2/pages?${params}`) as { results?: Array<Record<string, unknown>> }; const needle = query.trim().toLocaleLowerCase('de'); const base = this.config.atlassian.siteUrl;
     return (response.results ?? []).map((page) => ({ id: String(page.id ?? ''), title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), url: `${base}/wiki/spaces/${encodeURIComponent(this.config.atlassian.confluenceSpaceKey)}/pages/${encodeURIComponent(String(page.id ?? ''))}` })).filter((page) => page.id && (!needle || page.title.toLocaleLowerCase('de').includes(needle))).slice(0, 100);
@@ -1200,7 +1266,7 @@ export class PluginService {
   }
 
   public async getConfluencePage(pageId: string): Promise<ConfluencePage> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertConfluence();
     return this.readConfluencePage(pageId);
   }
 
@@ -1319,7 +1385,7 @@ export class PluginService {
       return this.getSettings();
     }
     const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
-    if (!this.config.atlassian.installed || !this.config.atlassian.enabled) throw new Error('Jira-Plugin ist deaktiviert.');
+    this.assertConfluence();
     const siteUrl = this.config.atlassian.siteUrl;
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID');
     if (!/^[0-9A-Za-z_-]+$/.test(pageId)) throw new Error('Confluence-Seiten-ID ist ungültig.');
@@ -1345,7 +1411,7 @@ export class PluginService {
     // The epoch alone decides; the values are checked as well so a missed invalidation cannot send anything elsewhere.
     const atlassian = this.config.atlassian;
     const link = this.activeLinkByToken(job.linkToken);
-    if (job.profileId !== this.activeProfileId || job.documentPath !== this.activeDocumentPath || !atlassian.installed || !atlassian.enabled || atlassian.siteUrl !== job.siteUrl
+    if (job.profileId !== this.activeProfileId || job.documentPath !== this.activeDocumentPath || !atlassianParts(atlassian).confluenceEnabled || atlassian.siteUrl !== job.siteUrl
       || !link || link.pageId !== job.pageId || link.documentId !== job.documentId || link.siteUrl !== job.siteUrl || link.diagramPageId !== job.diagramPageId) throw new AuthorityChanged();
   }
 
@@ -1370,7 +1436,7 @@ export class PluginService {
       const link = diagramPageId === undefined ? this.activeLiveLink() : this.activePageLinks().find((entry) => entry.diagramPageId === diagramPageId);
       if (!link) throw new LiveSyncFailure(diagramPageId === undefined ? 'Dieses Diagramm ist mit keiner Confluence-Seite verknüpft.' : 'Diese Seite ist mit keiner Confluence-Seite verknüpft.');
       const atlassian = this.config.atlassian;
-      if (!atlassian.installed || !atlassian.enabled) throw new LiveSyncFailure('Jira-Plugin ist deaktiviert.');
+      if (!atlassianParts(atlassian).confluenceEnabled) throw new LiveSyncFailure('Confluence-Plugin ist deaktiviert.');
       if (!atlassian.encryptedApiToken || !this.credentials.available()) throw new LiveSyncFailure('Kein sicher gespeichertes Atlassian-Token vorhanden.');
       if (link.siteUrl !== atlassian.siteUrl) throw new LiveSyncFailure('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe das Diagramm neu.');
       if (boundedString(input.documentId, 256, 'Diagramm-ID') !== link.documentId) throw new LiveSyncFailure('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe dieses Diagramm neu.');
@@ -1639,7 +1705,7 @@ export class PluginService {
   }
 
   public async createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertJira();
     const fields: Record<string, unknown> = {
       project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') },
       issuetype: { name: this.config.atlassian.jiraIssueType },
@@ -1658,13 +1724,13 @@ export class PluginService {
   }
 
   public async listJiraIssues(): Promise<JiraIssueSummary[]> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertJira();
     const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'); const configuredFilter = boundedString(this.config.atlassian.jqlFilter, 2000, 'Jira-Filter', true); const baseFilter = configuredFilter || `project = "${project.replaceAll('"', '')}"`; const jql = /\border\s+by\b/i.test(baseFilter) ? baseFilter : `${baseFilter} ORDER BY updated DESC`;
     const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> }; return (response.issues ?? []).map((issue) => this.jiraIssue(issue));
   }
 
   public async updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertJira();
     const key = boundedString(input.key, 128, 'Jira-Key');
     if (input.assignee !== undefined) {
       const accountId = input.assignee === null || !input.assignee.trim() ? null : await this.jiraAssigneeAccountId(input.assignee, key);
@@ -1680,7 +1746,7 @@ export class PluginService {
   }
 
   public async transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary> {
-    this.assertDocumentProject();
+    this.assertDocumentProject(); this.assertJira();
     const key = boundedString(input.key, 128, 'Jira-Key'); const desired: Record<TaskStatus, string[]> = { todo: ['to do', 'open', 'offen'], doing: ['in progress', 'doing', 'in arbeit'], review: ['review', 'in review', 'prüfung'], done: ['done', 'closed', 'resolved', 'erledigt'] };
     const response = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`) as { transitions?: Array<{ id?: string; name?: string; to?: { name?: string } }> }; const transition = (response.transitions ?? []).find((item) => desired[input.status].some((name) => `${item.name ?? ''} ${item.to?.name ?? ''}`.toLocaleLowerCase('en').includes(name)));
     if (!transition?.id) throw new Error('Für diesen Jira-Workflow wurde kein passender Statusübergang gefunden.'); await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, { method: 'POST', body: JSON.stringify({ transition: { id: transition.id } }) }); return this.getJiraIssue(key);

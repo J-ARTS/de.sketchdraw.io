@@ -254,7 +254,7 @@ test('bundled plugins start installed, are configurable in the profile right awa
   await desktop(page);
   const dialog = await openPlugins(page);
   await expect(dialog.getByRole('tab', { name: /Installiert/ })).toHaveAttribute('aria-selected', 'true');
-  await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('2');
+  await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('3');
   await expect(dialog.getByRole('button', { name: 'Installieren', exact: true })).toHaveCount(0);
   // Settings belong to the editor profile (#168): no saved diagram is needed to edit them.
   await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
@@ -418,10 +418,10 @@ test('disabled configuration fields do not trap reverse Tab navigation', async (
   await start(page);
   const dialog = await openPlugins(page);
   const installed = dialog.getByRole('tab', { name: /Installiert/ });
-  const jira = dialog.getByRole('complementary').getByRole('button', { name: /^Jira\b/ });
+  const last = dialog.getByRole('complementary').getByRole('button', { name: /^Confluence\b/ });
   await installed.focus();
   await page.keyboard.press('Shift+Tab');
-  await expect(jira).toBeFocused();
+  await expect(last).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(installed).toBeFocused();
 });
@@ -524,8 +524,10 @@ for (const theme of ['light', 'dark'] as const) {
     const dialog = await openPlugins(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     const tiles = dialog.locator('.plugin-list-item .plugin-logo');
-    await expect(tiles).toHaveCount(2);
-    for (const tile of await tiles.all()) {
+    // Git and Jira have a vendor file; Confluence has none yet and shows its letter (#282).
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles.nth(2)).toHaveText('C');
+    for (const tile of (await tiles.all()).slice(0, 2)) {
       expect(await tile.evaluate(element => { const style = getComputedStyle(element); return [style.backgroundColor, style.backgroundImage]; })).toEqual(['rgb(255, 255, 255)', 'none']);
       // The logo replaces the letter, is decorative (the name stands next to it) and keeps its proportions.
       await expect(tile).toHaveText('');
@@ -543,7 +545,7 @@ for (const theme of ['light', 'dark'] as const) {
 test('browser shows the bundled plugins but explains why native configuration is unavailable', async ({ page }) => {
   await start(page);
   const dialog = await openPlugins(page);
-  await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('2');
+  await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('3');
   await expect(dialog).toContainText('Desktop-App');
   await expect(dialog.getByRole('button', { name: 'Diagramm speichern', exact: true })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
@@ -830,4 +832,26 @@ test('the browser preview has no profiles in the menu or the plugin dialog', asy
   await menu.getByRole('menuitemcheckbox', { name: 'Plugins', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Plugins', exact: true });
   await expect(dialog.getByTestId('plugin-active-profile')).toHaveCount(0);
+});
+
+test('Jira and Confluence are two plugins: each has its own switch and fields and saves only for itself (#282)', async ({ page }) => {
+  await desktop(page);
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect.poll(async () => (await state(page)).calls.jira.length).toBe(1);
+  expect((await state(page)).calls.jira[0]).toMatchObject({ plugin: 'jira', jiraProjectKey: 'ARCH' });
+  // The Jira card no longer asks for the Confluence space.
+  await expect(dialog.getByLabel('Confluence-Space (optional)', { exact: true })).toHaveCount(0);
+
+  await dialog.getByRole('complementary').getByRole('button', { name: /^Confluence\b/ }).click();
+  await expect(dialog.getByRole('heading', { name: 'Confluence-Konfiguration', exact: true })).toBeVisible();
+  // The connection is shared: address and user are already there; only the space belongs to Confluence.
+  await expect(dialog.getByLabel('Atlassian-URL', { exact: true })).toHaveValue('https://example.atlassian.net');
+  await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveCount(0);
+  await dialog.getByLabel('Confluence-Space (optional)', { exact: true }).fill('DOC');
+  await dialog.getByRole('button', { name: 'Confluence speichern', exact: true }).click();
+  await expect.poll(async () => (await state(page)).calls.jira.length).toBe(2);
+  expect((await state(page)).calls.jira[1]).toMatchObject({ plugin: 'confluence', confluenceSpaceKey: 'DOC', siteUrl: 'https://example.atlassian.net' });
+  expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });

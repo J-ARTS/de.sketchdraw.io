@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
+import { confluencePluginActive } from '@/domain';
 import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
 import { useElementSize, useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '@/agent-access/renderer-session';
@@ -41,7 +42,7 @@ const stopJiraAutoSync = startJiraAutoSync({
   isReady: () => Boolean(
     s.file.handle && !s.roomGuest && s.canWrite && !s.transitioning && !s.pluginBusy
     && s.pluginSettings?.available && s.pluginSettings.projectFolder
-    && s.pluginSettings.atlassian.installed && s.pluginSettings.atlassian.enabled
+    && confluencePluginActive(s.pluginSettings.atlassian)
     && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
     && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey,
   ),

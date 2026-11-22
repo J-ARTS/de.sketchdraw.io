@@ -114,12 +114,13 @@ async function open(app: ElectronApplication, page: Page, documentPath: string) 
 /** Configures the Atlassian plugin and links each named diagram page to the Confluence page through its page menu (#240). */
 async function configureAndLink(page: Page, pageNames: string[] = ['Seite 1']) {
   const dialog = await openJira(page);
+  // Confluence is a plugin of its own (#282): it is switched on and connected on its own card, without a Jira project.
+  await dialog.getByRole('complementary').getByRole('button', { name: /^Confluence\b/ }).click();
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
   await dialog.getByLabel('Atlassian-URL', { exact: true }).fill(syntheticSite);
   await dialog.getByLabel('Username oder E-Mail', { exact: true }).fill(syntheticEmail);
   await dialog.getByLabel('API-Token', { exact: true }).fill(syntheticToken);
-  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('NATIVE');
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Confluence speichern', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeEnabled();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
   await expect(dialog).toBeHidden();

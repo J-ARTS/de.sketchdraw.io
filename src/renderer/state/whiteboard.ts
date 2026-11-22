@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, createDocument, createElement, deserializeDocument,
+  applyCommand, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -2160,7 +2160,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe erstellt.');
-      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
           if (!pluginContextCurrent(generation)) return true;
@@ -2180,7 +2180,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
-      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           if (!pluginContextCurrent(generation)) return true;
@@ -2208,7 +2208,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Notiz erstellt.');
-      if (hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
         try {
           const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
           if (!pluginContextCurrent(generation)) return true;
@@ -2234,7 +2234,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe verschoben.');
-      if (previous !== status && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+      if (previous !== status && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
         try {
           const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
           if (!pluginContextCurrent(generation)) return true;
@@ -2264,7 +2264,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const jiraTexts = { ...(task.title !== before.title ? { title: task.title } : {}), ...(task.description !== before.description ? { description: task.description } : {}) };
         const statusChanged = task.status !== before.status;
         const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined || Object.keys(jiraTexts).length > 0;
-        if ((statusChanged || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && state.pluginSettings?.atlassian.enabled && bridge.plugins) {
+        if ((statusChanged || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
           try {
             let issue: JiraIssueSummary | undefined;
             if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
@@ -2328,7 +2328,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async configureAtlassianPlugin(input: ConfigureAtlassianPluginInput) {
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
-      try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t('Atlassian-Plugin gespeichert.')); return true; }
+      try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, ...(input.plugin ? { plugin: input.plugin } : {}), siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(input.plugin === 'confluence' ? t('Confluence-Plugin gespeichert.') : t('Jira-Plugin gespeichert.')); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
@@ -2428,7 +2428,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     closeConfluencePageLink() { state.confluenceLinkPageId = null; },
     async syncJiraTasks(options) {
       const generation = pluginGeneration;
-      if (!bridge.plugins || !hasPluginProject() || !state.pluginSettings?.atlassian.enabled || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
+      if (!bridge.plugins || !hasPluginProject() || !jiraPluginActive(state.pluginSettings?.atlassian) || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
       try {
         const issues = await bridge.plugins.listJiraIssues(); if (!pluginContextCurrent(generation)) return false; const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
         for (const issue of issues) {
@@ -2739,7 +2739,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     if (disposed || !bridge.plugins?.publishConfluenceLive || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
     const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
     const paused = (message: string): ConfluenceLiveContext => ({ kind: 'paused', key, message });
-    if (!settings.atlassian.installed || !settings.atlassian.enabled) return paused(t('Das Jira-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
+    if (!confluencePluginActive(settings.atlassian)) return paused(t('Das Confluence-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
     if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
     if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
     if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.'));

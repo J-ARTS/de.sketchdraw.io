@@ -3,7 +3,7 @@
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, PluginId } from '@/domain';
+import { confluencePluginActive, confluencePluginInstalled, jiraPluginActive, jiraPluginInstalled, type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type PluginId } from '@/domain';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import { pluginLogoUrl } from '@/renderer/lib/plugin-logos';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
@@ -19,18 +19,22 @@ const selectedPlugin = ref<PluginId>('git');
 const search = ref('');
 const git = ref<ConfigureGitPluginInput>({ enabled: false, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', accessToken: '' });
 const atlassian = ref<ConfigureAtlassianPluginInput>({ enabled: false, siteUrl: '', email: '', apiToken: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' });
+/** Confluence shares the Atlassian connection with Jira and has its own switch and space (#282). */
+const confluence = ref({ enabled: false, siteUrl: '', email: '', apiToken: '', confluenceSpaceKey: '' });
 const closeButton = ref<HTMLButtonElement | null>(null);
 const dialog = ref<HTMLDialogElement | null>(null);
 let opener: HTMLElement | null = null;
 
 const catalog = computed(() => [
   { id: 'git' as const, title: 'Git', category: t('Versionierung'), summary: t('Diagramme im Projektordner versionieren und automatisch synchronisieren.'), badge: 'G' },
-  { id: 'jira' as const, title: 'Jira', category: t('Aufgaben & Dokumentation'), summary: t('Jira-Tickets laden, erstellen und automatisch mit dem Aufgabenboard synchronisieren.'), badge: 'J' },
+  { id: 'jira' as const, title: 'Jira', category: t('Aufgaben'), summary: t('Jira-Tickets laden, erstellen und automatisch mit dem Aufgabenboard synchronisieren.'), badge: 'J' },
+  { id: 'confluence' as const, title: 'Confluence', category: t('Dokumentation'), summary: t('Diagrammseiten mit Confluence-Seiten verknüpfen und dort automatisch aktuell halten.'), badge: 'C' },
 ]);
 const installedIds = computed<PluginId[]>(() => {
   const ids: PluginId[] = [];
   if (s.pluginSettings?.git.installed) ids.push('git');
-  if (s.pluginSettings?.atlassian.installed) ids.push('jira');
+  if (jiraPluginInstalled(s.pluginSettings?.atlassian)) ids.push('jira');
+  if (confluencePluginInstalled(s.pluginSettings?.atlassian)) ids.push('confluence');
   return ids;
 });
 const visiblePlugins = computed(() => catalog.value.filter((plugin) => {
@@ -54,6 +58,8 @@ const gitBaseline = ref('');
 const jiraBaseline = ref('');
 const gitDirty = computed(() => JSON.stringify(git.value) !== gitBaseline.value);
 const jiraDirty = computed(() => JSON.stringify(atlassian.value) !== jiraBaseline.value);
+const confluenceBaseline = ref('');
+const confluenceDirty = computed(() => JSON.stringify(confluence.value) !== confluenceBaseline.value);
 const busy = computed(() => pending.value || s.pluginBusy);
 const controlsDisabled = computed(() => busy.value || !canConfigure.value);
 let contextKey = '';
@@ -68,18 +74,24 @@ function seedGit(): void {
 }
 function seedJira(): void {
   const settings = s.pluginSettings?.atlassian;
-  atlassian.value = { enabled: settings?.enabled ?? false, siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '', jiraProjectKey: settings?.jiraProjectKey ?? '', jiraIssueType: settings?.jiraIssueType ?? 'Task', jqlFilter: settings?.jqlFilter ?? '' };
+  atlassian.value = { enabled: jiraPluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '', jiraProjectKey: settings?.jiraProjectKey ?? '', jiraIssueType: settings?.jiraIssueType ?? 'Task', jqlFilter: settings?.jqlFilter ?? '' };
   jiraBaseline.value = JSON.stringify(atlassian.value);
+}
+function seedConfluence(): void {
+  const settings = s.pluginSettings?.atlassian;
+  confluence.value = { enabled: confluencePluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '' };
+  confluenceBaseline.value = JSON.stringify(confluence.value);
 }
 watch(() => s.pluginSettings, (settings) => {
   const key = settings ? `${settings.available}:${settings.projectFolder}:${settings.activeProfileId}` : '';
   if (key !== contextKey) {
     contextKey = key; operationEpoch++; pendingOperation++; pending.value = false; feedback.value = null;
-    seedGit(); seedJira();
+    seedGit(); seedJira(); seedConfluence();
   } else {
     // Health refreshes must not replace either unsaved draft.
     if (!gitDirty.value) seedGit();
     if (!jiraDirty.value) seedJira();
+    if (!confluenceDirty.value) seedConfluence();
   }
 }, { immediate: true });
 
@@ -93,7 +105,7 @@ watch(visiblePlugins, (plugins) => {
 
 /** The native modal keeps focus inside and makes the workspace inert. */
 watch(() => props.open, async (open) => {
-  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; seedGit(); seedJira();
+  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; seedGit(); seedJira(); seedConfluence();
   await nextTick();
   if (open) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -182,12 +194,18 @@ async function saveProject(): Promise<void> {
   } finally { if (request === pendingOperation) pending.value = false; }
 }
 async function saveGit(): Promise<void> { if (await runOperation(() => store.configureGitPlugin(git.value), t('Git-Plugin gespeichert.'))) seedGit(); }
-async function saveJira(): Promise<void> { if (await runOperation(() => store.configureAtlassianPlugin(atlassian.value), t('Atlassian-Plugin gespeichert.'))) seedJira(); }
+// Each plugin saves its own switch and fields; the connection (address, user, token) is shared, so both drafts are seeded again.
+async function saveJira(): Promise<void> { if (await runOperation(() => store.configureAtlassianPlugin({ ...atlassian.value, plugin: 'jira' }), t('Jira-Plugin gespeichert.'))) { seedJira(); seedConfluence(); } }
+async function saveConfluence(): Promise<void> {
+  const current = s.pluginSettings?.atlassian;
+  const input: ConfigureAtlassianPluginInput = { plugin: 'confluence', ...confluence.value, jiraProjectKey: current?.jiraProjectKey ?? '', jiraIssueType: current?.jiraIssueType ?? 'Task', jqlFilter: current?.jqlFilter ?? '' };
+  if (await runOperation(() => store.configureAtlassianPlugin(input), t('Confluence-Plugin gespeichert.'))) { seedJira(); seedConfluence(); }
+}
 async function installPlugin(id: PluginId): Promise<void> {
   if (await runOperation(() => store.setPluginInstalled(id, true), t('Installiert'))) { selectedPlugin.value = id; activeTab.value = 'installed'; focusDetail(); }
 }
 async function uninstallPlugin(id: PluginId): Promise<void> {
-  if (await runOperation(() => store.setPluginInstalled(id, false), t('Deinstallieren'))) { activeTab.value = 'marketplace'; selectedPlugin.value = id; id === 'git' ? seedGit() : seedJira(); focusDetail(); }
+  if (await runOperation(() => store.setPluginInstalled(id, false), t('Deinstallieren'))) { activeTab.value = 'marketplace'; selectedPlugin.value = id; seedGit(); seedJira(); seedConfluence(); focusDetail(); }
 }
 </script>
 
@@ -248,10 +266,15 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <h4>{{ t('Funktionen') }}</h4>
                 <ul><li>{{ t('Automatische Commits beim Speichern') }}</li><li>{{ t('Pull und Push über vorhandene Git-Credentials oder einen verschlüsselt gespeicherten Token') }}</li><li>{{ t('Externe Änderungen erkennen und kontrolliert neu laden') }}</li></ul>
               </template>
+              <template v-else-if="selectedPlugin === 'confluence'">
+                <p>{{ t('Confluence hält Diagramme in deiner Dokumentation aktuell. Jede Seite eines Diagramms lässt sich mit einer Confluence-Seite verknüpfen; Änderungen erscheinen dort als Bild.') }}</p>
+                <h4>{{ t('Funktionen') }}</h4>
+                <ul><li>{{ t('Diagramme automatisch auf einer Confluence-Seite aktuell halten') }}</li><li>{{ t('Eine Confluence-Seite je Diagrammseite verknüpfen') }}</li><li>{{ t('Nutzt dieselbe Atlassian-Verbindung wie Jira, falls beide installiert sind') }}</li></ul>
+              </template>
               <template v-else>
                 <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren Jira-Filter. Neue Aufgaben werden im Jira-Projekt des aktiven Profils erstellt.') }}</p>
                 <h4>{{ t('Funktionen') }}</h4>
-                <ul><li>{{ t('Jira-Vorgänge per JQL laden') }}</li><li>{{ t('Aufgaben und Kommentare als Jira-Tickets erstellen') }}</li><li>{{ t('Zuständigkeit, Fälligkeit und Status zwischen Board und Jira synchronisieren') }}</li><li>{{ t('Diagramme automatisch auf einer Confluence-Seite aktuell halten') }}</li></ul>
+                <ul><li>{{ t('Jira-Vorgänge per JQL laden') }}</li><li>{{ t('Aufgaben und Kommentare als Jira-Tickets erstellen') }}</li><li>{{ t('Zuständigkeit, Fälligkeit und Status zwischen Board und Jira synchronisieren') }}</li></ul>
               </template>
               <div class="security-panel"><AppIcon name="info" /><span>{{ t('Zugangstokens werden verschlüsselt im Profil auf diesem Gerät gespeichert und niemals an das Diagramm oder die Oberfläche zurückgegeben.') }}</span></div>
             </section>
@@ -280,6 +303,20 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
               <p v-if="gitDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.refreshGitStatus(), t('Status geprüft.'))">{{ t('Status prüfen') }}</button><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.syncGit(), t('Synchronisierung abgeschlossen.'))">{{ t('Jetzt synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveGit">{{ t('Git speichern') }}</button></footer>
             </section>
 
+            <section v-else-if="selectedPlugin === 'confluence'" class="config-content">
+              <div class="section-title"><div><h3>{{ t('Confluence-Konfiguration') }}</h3><p>{{ t('Diese Einstellungen gehören zum Profil „{name}“. Die Atlassian-Verbindung teilt sich Confluence mit Jira.', { name: activeProfileName }) }}</p></div><label class="switch"><input v-model="confluence.enabled" type="checkbox" /><span>{{ t('Aktiv') }}</span></label></div>
+              <div class="form-grid two">
+                <label class="wide">{{ t('Atlassian-URL') }}<input v-model="confluence.siteUrl" type="url" placeholder="https://example.atlassian.net" autocomplete="url" /></label>
+                <label>{{ t('Username oder E-Mail') }}<input v-model="confluence.email" autocomplete="username" /></label>
+                <label>{{ t('API-Token') }}<input v-model="confluence.apiToken" type="password" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label>
+                <label class="wide">{{ t('Confluence-Space (optional)') }}<input v-model="confluence.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
+              </div>
+              <p class="security-copy">{{ t('Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen.') }}</p>
+              <p class="security-copy">{{ t('Eine Diagrammseite verknüpfst du über ihr Menü in der Seitenleiste mit einer Confluence-Seite.') }}</p><p v-if="confluenceDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="confluence-test" :disabled="busy || !confluencePluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || confluenceDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="confluence-save" :disabled="s.pluginBusy" @click="saveConfluence">{{ t('Confluence speichern') }}</AppButton></footer>
+
+              <div v-if="linkedPages.length" class="integration-section"><h3>{{ t('Verknüpfte Seiten') }}</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || t('Confluence-Seite') }}</strong><span>{{ t('Version {version}', { version: String(element.metadata?.['sketchdraw.atlassian.pageVersion'] ?? '') }) }}</span></div><span class="row-actions"><button class="sd-btn" @click="runOperation(() => store.refreshConfluenceElement(element.id), t('Confluence-Seite neu geladen.'))">{{ t('Neu laden') }}</button><button class="sd-btn" @click="runOperation(() => store.syncConfluenceElement(element.id), t('Confluence-Seite aktualisiert.'))">{{ t('Senden') }}</button></span></li></ul></div>
+            </section>
+
             <section v-else class="config-content">
               <div class="section-title"><div><h3>{{ t('Jira-Konfiguration') }}</h3><p>{{ t('Diese Einstellungen gehören zum Profil „{name}“. Tickets werden im Jira-Projekt erstellt und über den JQL-Filter geladen.', { name: activeProfileName }) }}</p></div><label class="switch"><input v-model="atlassian.enabled" type="checkbox" /><span>{{ t('Aktiv') }}</span></label></div>
               <div class="form-grid two">
@@ -289,12 +326,9 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <label>{{ t('Jira-Projekt') }}<input v-model="atlassian.jiraProjectKey" placeholder="PROJ" autocomplete="off" /></label>
                 <label>{{ t('Jira-Vorgangstyp') }}<input v-model="atlassian.jiraIssueType" :placeholder="t('Task')" autocomplete="off" /></label>
                 <label class="wide">{{ t('JQL-Filter') }}<input v-model="atlassian.jqlFilter" :placeholder="t('z. B. project = PROJ AND assignee = currentUser()')" autocomplete="off" /></label>
-                <label class="wide">{{ t('Confluence-Space (optional)') }}<input v-model="atlassian.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
               </div>
               <p class="security-copy">{{ t('Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen.') }}</p>
-              <p class="security-copy">{{ t('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.') }}</p><p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.pluginSettings?.atlassian.enabled || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Jira speichern') }}</button></footer>
-
-              <div v-if="linkedPages.length" class="integration-section"><h3>{{ t('Verknüpfte Seiten') }}</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || t('Confluence-Seite') }}</strong><span>{{ t('Version {version}', { version: String(element.metadata?.['sketchdraw.atlassian.pageVersion'] ?? '') }) }}</span></div><span class="row-actions"><button class="sd-btn" @click="runOperation(() => store.refreshConfluenceElement(element.id), t('Confluence-Seite neu geladen.'))">{{ t('Neu laden') }}</button><button class="sd-btn" @click="runOperation(() => store.syncConfluenceElement(element.id), t('Confluence-Seite aktualisiert.'))">{{ t('Senden') }}</button></span></li></ul></div>
+              <p class="security-copy">{{ t('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.') }}</p><p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !jiraPluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Jira speichern') }}</button></footer>
             </section>
             </fieldset>
           </template>

@@ -4,7 +4,7 @@ import type { FileReference, TaskStatus } from './types';
 export * from './git-workbench';
 
 export type PluginHealth = 'disabled' | 'ready' | 'attention' | 'error';
-export type PluginId = 'git' | 'jira';
+export type PluginId = 'git' | 'jira' | 'confluence';
 export type GitAuthMode = 'system' | 'token';
 
 export interface GitPluginSettings {
@@ -29,8 +29,18 @@ export interface GitPluginSettings {
 }
 
 export interface AtlassianPluginSettings {
+  /** Whether Jira or Confluence is installed, and whether one of them is installed and switched on. */
   installed: boolean;
   enabled: boolean;
+  /**
+   * Jira and Confluence are two plugins that share this Atlassian connection (#282). `…Enabled` already includes
+   * "installed". A snapshot from before the split has none of the four; read them through `jiraPluginActive` and
+   * its siblings, which then fall back to `installed` and `enabled`.
+   */
+  jiraInstalled?: boolean;
+  jiraEnabled?: boolean;
+  confluenceInstalled?: boolean;
+  confluenceEnabled?: boolean;
   siteUrl: string;
   email: string;
   confluenceSpaceKey: string;
@@ -117,6 +127,8 @@ export interface ConfigureGitPluginInput {
 }
 
 export interface ConfigureAtlassianPluginInput {
+  /** The plugin this call configures: its switch and its own fields. Without it the call applies to both, as before the split. */
+  plugin?: 'jira' | 'confluence';
   enabled: boolean;
   siteUrl: string;
   email: string;
@@ -127,6 +139,13 @@ export interface ConfigureAtlassianPluginInput {
   jiraIssueType: string;
   jqlFilter: string;
 }
+
+type AtlassianState = Pick<AtlassianPluginSettings, 'installed' | 'enabled' | 'jiraInstalled' | 'jiraEnabled' | 'confluenceInstalled' | 'confluenceEnabled'> | null | undefined;
+export const jiraPluginInstalled = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.jiraInstalled ?? atlassian.installed));
+export const confluencePluginInstalled = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.confluenceInstalled ?? atlassian.installed));
+/** Installed and switched on. */
+export const jiraPluginActive = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.jiraEnabled ?? (atlassian.installed && atlassian.enabled)));
+export const confluencePluginActive = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.confluenceEnabled ?? (atlassian.installed && atlassian.enabled)));
 
 export interface PluginOperationResult {
   ok: boolean;

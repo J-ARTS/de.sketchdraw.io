@@ -99,7 +99,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     };
     const chooseSavePath = async (filePath: string) => desktop.evaluate(({ dialog }, destination) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: destination }); }, filePath);
     let dialog = await openPlugins();
-    await expect(dialog.getByRole('tab', { name: /Installiert.*2/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(dialog.getByRole('tab', { name: /Installiert.*3/ })).toHaveAttribute('aria-selected', 'true');
     await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
 
     // The profile is configured before any diagram is saved.

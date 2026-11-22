@@ -9,7 +9,7 @@ import ConfluenceLinkCard from '@/renderer/design-system/molecules/ConfluenceLin
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { t, tm } from '@/renderer/i18n';
 import { wrapTabFocus } from '@/renderer/lib/focus';
-import type { ConfluencePageSummary } from '@/domain';
+import { confluencePluginActive, type ConfluencePageSummary } from '@/domain';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -24,8 +24,8 @@ const status = computed(() => (diagramPageId.value ? s.confluencePageLive[diagra
 /** Why nothing can be linked right now; empty when linking is possible. */
 const blocked = computed(() => {
   if (s.roomGuest) return t('Nur wer das Diagramm lokal geöffnet hat, kann Seiten mit Confluence verknüpfen.');
-  if (!s.pluginSettings?.atlassian.installed || !s.pluginSettings.atlassian.enabled) return t('Aktiviere das Jira-Plugin in den Plugin-Einstellungen, um Seiten mit Confluence zu verknüpfen.');
-  if (!s.file.handle || !s.pluginSettings.projectFolder) return t('Speichere das Diagramm lokal, um seine Seiten mit Confluence zu verknüpfen.');
+  if (!confluencePluginActive(s.pluginSettings?.atlassian)) return t('Aktiviere das Confluence-Plugin in den Plugin-Einstellungen, um Seiten mit Confluence zu verknüpfen.');
+  if (!s.file.handle || !s.pluginSettings?.projectFolder) return t('Speichere das Diagramm lokal, um seine Seiten mit Confluence zu verknüpfen.');
   return '';
 });
 
