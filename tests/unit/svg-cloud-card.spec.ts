@@ -66,10 +66,12 @@ describe('SVG export of a cloud component (#259)', () => {
     expect(Number(lines[1]!.attributes['y']) - Number(lines[0]!.attributes['y'])).toBe(18);
   });
 
-  it('exports a small cloud component as before: it is no card on the canvas either', () => {
+  it('exports a small cloud component like the canvas draws it: no card, the symbol centred at the top', () => {
     const document = withCloudCard({ width: 100, height: 60 });
     const { surface, icon } = exported(document);
     expect(surface.attributes['rx']).toBeUndefined();
-    expect(Number(icon.attributes['x'])).toBe(4);
+    // 32 px wide, centred: (100 - 32) / 2; 15 % of the height from the top, at least 8 px.
+    expect(Number(icon.attributes['x'])).toBe(34);
+    expect(Number(icon.attributes['y'])).toBe(9);
   });
 });

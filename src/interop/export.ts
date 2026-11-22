@@ -45,13 +45,16 @@ function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = fal
     return '';
   diagnostic(d, el, 'FONT_RENDERING_DEPENDENT', 'Editable text depends on fonts available in the receiving application.');
   const font = el.style.fontSize, align = el.kind === 'connector' ? 'center' : el.style.textAlign;
-  const inset = el.kind === 'sticky-note' ? 20 : 0;
   const group = awsGroupOf(el);
+  // A component with a small symbol (service, database, queue …) has its symbol centred at the top and its text in
+  // the lower half, 8 px from the side, as the canvas draws it. Picture 1 wrote the text over the symbol.
+  const plainComponent = !legacyLabel && el.kind === 'component' && !isIconFigure(el) && !group;
+  const inset = el.kind === 'sticky-note' ? 20 : plainComponent ? 8 : 0;
   const label = group ? groupChrome(group, el.width, font).label : null;
   const x = label ? (align === 'center' ? (label.left + label.right) / 2 : align === 'right' ? label.right : label.left) : align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
   // A free-standing symbol (isometric icons) carries its label below the symbol.
   const figure = isIconFigure(el) ? figureLayout(el, visibleText.split('\n').length) : null;
-  const y = label ? label.top + font * .93 : figure ? figure.labelTop + font * .93 : el.kind === 'connector' ? el.height / 2 : font + inset;
+  const y = label ? label.top + font * .93 : figure ? figure.labelTop + font * .93 : el.kind === 'connector' ? el.height / 2 : plainComponent ? el.height * .58 + font * .93 : font + inset;
   const text = xmlText(visibleText, d, el);
   return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', ...(el.kind === 'connector' ? { 'dominant-baseline': 'middle', 'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 8, 'stroke-linejoin': 'round' } : { stroke: 'none' }), fill: safeTextColor(el, d), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${text.split('\n').map((line, i) => `<tspan${attrs({ x, y: y + i * font * 1.2 })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
 }
@@ -297,7 +300,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const card = isResourceCard(el) ? legacy ? legacyResourceCardIcon(el) : resourceCardLayout(el) : null;
       const figure = isIconFigure(el) ? figureLayout(el, shownText(el, legacy).split('\n').length).icon : null;
       const iconSize = figure ? figure.size : card ? card.iconSize : cloud ? cloud.layout.icon.size : Math.min(32, el.width, el.height);
-      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : 4, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : 4, width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : legacy ? 4 : el.width / 2 - iconSize / 2, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : legacy ? 4 : Math.max(8, el.height * .15), width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
     const group = awsGroupOf(el);
     const groupIcon = group ? groupChrome(group, el.width, el.style.fontSize).icon : null;
