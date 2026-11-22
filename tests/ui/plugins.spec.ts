@@ -1004,3 +1004,84 @@ test('Azure DevOps is installed from the marketplace, set up for cloud or server
   await expect(edit.getByRole('button', { name: 'In Azure DevOps öffnen' })).toBeVisible();
 });
 
+
+test('the form of a Jira task sends title and description; the next sync keeps them and a refusal is said (#270)', async ({ page }) => {
+  test.setTimeout(90_000);
+  await desktop(page);
+  // A stand-in for Jira: it keeps what it is sent and answers every sync with it.
+  await page.evaluate(() => {
+    const control = (window as unknown as TestWindow).__pluginTest;
+    const remote = { id: '100', key: 'ARCH-7', title: 'Schnittstelle prüfen', description: 'Text aus Jira', status: 'todo' as const, remoteStatus: 'To Do', url: 'https://example.atlassian.net/browse/ARCH-7', updatedAt: '2026-11-22T10:00:00.000Z' };
+    const jira = { updates: [] as Array<Record<string, unknown>>, failure: '' };
+    Object.assign(window, { __jiraForm: jira });
+    const plugins = (window as unknown as { sketchdraw: { plugins: Record<string, unknown> } }).sketchdraw.plugins;
+    plugins['listJiraIssues'] = async () => { control.calls.jiraSyncs += 1; return [{ ...remote }]; };
+    plugins['updateJiraIssue'] = async (input: { key: string; title?: string; description?: string }) => {
+      jira.updates.push(input);
+      if (jira.failure) throw new Error(jira.failure);
+      if (input.title !== undefined) remote.title = input.title;
+      if (input.description !== undefined) remote.description = input.description;
+      remote.updatedAt = new Date().toISOString();
+      return { ...remote };
+    };
+  });
+  const jira = () => page.evaluate(() => (window as unknown as { __jiraForm: { updates: Array<Record<string, unknown>>; failure: string } }).__jiraForm);
+  /** Two more answers from Jira: one sync may already be on its way when the count is read. */
+  const afterNextSync = async () => {
+    const seen = (await state(page)).calls.jiraSyncs;
+    await expect.poll(async () => (await state(page)).calls.jiraSyncs, { timeout: 20_000 }).toBeGreaterThanOrEqual(seen + 2);
+  };
+
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await page.getByTestId('workspace-menu-button').click();
+  await page.getByTestId('workspace-menu-tasks').click();
+  const board = page.getByTestId('task-board');
+  const card = board.locator('.task-card');
+  await expect(card).toHaveCount(1, { timeout: 15_000 });
+  await expect(card).toContainText('ARCH-7');
+
+  // The form says what saving does to the text in Jira, and the note belongs to the description field.
+  await board.locator('.card-open').filter({ hasText: 'Schnittstelle prüfen' }).click();
+  let form = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  await expect(form.locator('.external-badge')).toContainText('ARCH-7');
+  const note = form.getByText('Titel und Beschreibung werden beim Speichern nach Jira übertragen. Die Beschreibung ersetzt dort den bisherigen Text als einfachen Text.');
+  await expect(note).toBeVisible();
+  await expect(form.getByRole('textbox', { name: 'Beschreibung' })).toHaveAttribute('aria-describedby', (await note.getAttribute('id'))!);
+  await expect(form.getByRole('textbox', { name: 'Beschreibung' })).toHaveValue('Text aus Jira');
+
+  await form.getByRole('textbox', { name: 'Titel' }).fill('Schnittstelle abnehmen');
+  await form.getByRole('textbox', { name: 'Beschreibung' }).fill('Erste Zeile\nZweite Zeile');
+  await form.getByTestId('task-submit').click();
+  await expect(form).toHaveCount(0);
+  await expect.poll(async () => (await jira()).updates).toEqual([{ key: 'ARCH-7', title: 'Schnittstelle abnehmen', description: 'Erste Zeile\nZweite Zeile' }]);
+
+  // The next answers from Jira carry the saved texts; nothing falls back.
+  await afterNextSync();
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText('Schnittstelle abnehmen');
+  await board.locator('.card-open').filter({ hasText: 'Schnittstelle abnehmen' }).click();
+  form = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  await expect(form.getByRole('textbox', { name: 'Titel' })).toHaveValue('Schnittstelle abnehmen');
+  await expect(form.getByRole('textbox', { name: 'Beschreibung' })).toHaveValue('Erste Zeile\nZweite Zeile');
+
+  // Saving without a change of the texts sends neither of them again.
+  await form.getByTestId('task-submit').click();
+  await expect(form).toHaveCount(0);
+  expect((await jira()).updates).toHaveLength(1);
+
+  // Jira refuses: the message says so and says what happens next, and the next sync shows the text of Jira again.
+  await page.evaluate(() => { (window as unknown as { __jiraForm: { failure: string } }).__jiraForm.failure = 'Feld gesperrt.'; });
+  await board.locator('.card-open').filter({ hasText: 'Schnittstelle abnehmen' }).click();
+  form = page.getByRole('dialog', { name: 'Aufgabe bearbeiten' });
+  await form.getByRole('textbox', { name: 'Titel' }).fill('Gesperrter Titel');
+  await form.getByTestId('task-submit').click();
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Jira hat die Änderung nicht übernommen: Feld gesperrt. Beim nächsten Abgleich gilt wieder der Stand aus Jira.')).toBeVisible();
+  await afterNextSync();
+  await expect(card).toContainText('Schnittstelle abnehmen');
+  await expect(card).not.toContainText('Gesperrter Titel');
+});
