@@ -1,0 +1,43 @@
+<mxfile host="app.diagrams.net" agent="rebuilt by hand for #280" version="24.7.17">
+  <diagram id="library-icons" name="Plattform">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="blob" value="Rohdaten" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Blob_Block.svg;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="openai" value="Azure OpenAI" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/ai_machine_learning/Azure_OpenAI.svg;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="api" value="API" style="sketch=0;html=1;dashed=0;whitespace=wrap;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];verticalLabelPosition=bottom;align=center;verticalAlign=top;shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=api" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="ccm" value="" style="sketch=0;html=1;dashed=0;whitespace=wrap;fillColor=#2875E2;strokeColor=#ffffff;verticalLabelPosition=bottom;align=center;verticalAlign=top;shape=mxgraph.kubernetes.icon2;kubernetesLabel=1;prIcon=c_c_m" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="deploy" value="Shop" style="sketch=0;html=1;dashed=0;whitespace=wrap;fillColor=#2875E2;strokeColor=#ffffff;verticalLabelPosition=bottom;align=center;verticalAlign=top;shape=mxgraph.kubernetes.icon;prIcon=deploy" vertex="1" parent="1">
+          <mxGeometry x="480" y="240" width="50" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="unknown-azure" value="Neuer Dienst" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/general/Service_That_Does_Not_Exist.svg;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="68" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="clipart" value="Laptop" style="image;html=1;image=img/lib/clip_art/computers/Laptop_128x128.png" vertex="1" parent="1">
+          <mxGeometry x="280" y="240" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="web" value="Logo" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;imageAspect=0;aspect=fixed;image=https://example.com/logo.png" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="plain" value="Notiz" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-1" value="liest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="openai" target="blob">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="api" target="deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

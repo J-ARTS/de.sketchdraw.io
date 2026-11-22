@@ -1,11 +1,13 @@
 <!-- @component The side panel for import and export (draw.io, SVG, Mermaid, PNG …). -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
-import { t, tm } from '@/renderer/i18n';
+import { t, tm, tn } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { importDrawio, importSvg, inspectDrawio, INTEROP_LIMITS, InteropError, prepareDrawioExport, prepareSvgExport, type DrawioPageInfo, type InteropDiagnostic, type InteropExportResult, type InteropFormat, type InteropImportResult } from '@/interop';
 import { getDesktopBridge } from '@/platform';
 import { importedPagePayload, importMermaidCode, MERMAID_SEQUENCE_INVALID } from '@/renderer/lib/mermaid-import';
+import { drawioLibraryIconCount, resolveDrawioLibraryIcons } from '@/renderer/lib/drawio-library-icons';
+import { loadOfficialLibrary } from '@/renderer/lib/official-library';
 import { defaultMermaidExportTarget, mermaidExportTargets, prepareMermaidCodeExport } from '@/renderer/lib/mermaid-export';
 import type { DocumentAuthority } from '@/session';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
@@ -38,6 +40,36 @@ const importPageOptions = computed(() => [
 ]);
 const exportPageOptions = computed(() => store.state.pages.map(item => ({ value: item.id, label: tm(item.name) })));
 const imported = shallowRef<InteropImportResult | null>(null);
+/** Icons of draw.io libraries in the file (#280): how many became icons of the app and how many stayed boxes. */
+const libraryIcons = ref<{ resolved: number; unresolved: number } | null>(null);
+/** True while the icon library is loaded for the preview; the document must not be opened half resolved. */
+const resolvingIcons = ref(false);
+let iconRun = 0;
+watch(imported, (result) => { if (!result) { iconRun++; libraryIcons.value = null; resolvingIcons.value = false; } });
+async function resolveLibraryIcons(): Promise<void> {
+  const result = imported.value; const own = ++iconRun;
+  libraryIcons.value = null; resolvingIcons.value = false;
+  if (!result || result.source.format !== 'drawio') return;
+  const named = drawioLibraryIconCount(result.document);
+  if (!named) return;
+  resolvingIcons.value = true;
+  try {
+    const resolution = await resolveDrawioLibraryIcons(result.document, loadOfficialLibrary);
+    if (own !== iconRun || imported.value !== result) return;
+    libraryIcons.value = { resolved: resolution.resolved, unresolved: resolution.unresolved };
+    imported.value = { ...result, document: resolution.document };
+  } catch {
+    // The file is still imported: every named icon stays the labelled box it already is.
+    if (own === iconRun && imported.value === result) libraryIcons.value = { resolved: 0, unresolved: named };
+  } finally { if (own === iconRun) resolvingIcons.value = false; }
+}
+const libraryIconSummary = computed(() => {
+  const icons = libraryIcons.value; if (!icons) return '';
+  return [
+    icons.resolved ? tn(icons.resolved, '{count} Icon aus einer draw.io-Bibliothek ist jetzt ein Icon der App.', '{count} Icons aus draw.io-Bibliotheken sind jetzt Icons der App.') : '',
+    icons.unresolved ? tn(icons.unresolved, '{count} Icon gibt es in der App nicht; es bleibt ein beschrifteter Kasten.', '{count} Icons gibt es in der App nicht; sie bleiben beschriftete Kästen.') : '',
+  ].filter(Boolean).join(' ');
+});
 const exported = shallowRef<{ result: InteropExportResult; authority: DocumentAuthority | null; revision: number; title: string } | null>(null);
 const embedDocument = ref(true); const busy = ref(false); const error = ref(''); const status = ref('');
 const failures = shallowRef<readonly InteropDiagnostic[]>([]); let serial = 0;
@@ -77,6 +109,7 @@ function convert() {
   if (!source.value || (format.value === 'drawio' && pageIndex.value === null)) return;
   try { imported.value = format.value === 'svg' ? importSvg(source.value) : format.value === 'mermaid' ? importMermaidCode(source.value) : importDrawio(source.value, { pageIndex: pageIndex.value! }); }
   catch (value) { failure(value); }
+  void resolveLibraryIcons();
 }
 function selectFormat(value: string) {
   if (value === 'drawio' || value === 'svg' || value === 'mermaid') format.value = value;
@@ -105,7 +138,7 @@ async function readFile(event: Event) {
   finally { if (own === serial) busy.value = false; }
 }
 async function applyImport() {
-  if (!imported.value || busy.value) return;
+  if (!imported.value || busy.value || resolvingIcons.value) return;
   await store.importDocument(imported.value.document);
   // Dirty cancellation keeps this preview. Successful install clears it through the authority hook.
 }
@@ -113,7 +146,7 @@ async function applyImport() {
 const insertable = computed(() => imported.value !== null && imported.value.document.pages.length === 1 && imported.value.document.elements.length > 0);
 async function insertImport() {
   const result = imported.value;
-  if (!result || busy.value) return;
+  if (!result || busy.value || resolvingIcons.value) return;
   const payload = importedPagePayload(result.document, result.source.pageId);
   if (payload && await store.insertElements(payload)) emit('close');
 }
@@ -184,7 +217,7 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
           <AppButton class="full" :disabled="busy || store.state.transitioning || !source.trim()" @click="inspect">{{ t('Importvorschau erstellen') }}</AppButton>
         </template>
         <AppSelect v-if="pages.length > 1" id="interop-page" class="interop-select" :model-value="pageIndex === null ? '' : String(pageIndex)" :options="importPageOptions" :label="t('Seite auswählen')" @update:model-value="selectImportPage" />
-        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p v-if="imported.document.pages.length > 1">{{ t('{count} Seiten', { count: imported.document.pages.length }) }}</p><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in previewElements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
+        <div v-if="imported" class="import-summary"><h3>{{ imported.document.title }}</h3><p v-if="imported.document.pages.length > 1">{{ t('{count} Seiten', { count: imported.document.pages.length }) }}</p><p>{{ t('{count} Elemente · {fidelity}', { count: imported.document.elements.length, fidelity: imported.fidelity === 'own-roundtrip' ? t('Eigener unveränderter Roundtrip') : imported.fidelity === 'supported-subset' ? t('Unterstützte Formatteilmenge') : t('Mit Annäherungen konvertiert') }) }}</p><p v-if="resolvingIcons" role="status" data-testid="interop-library-icons-loading">{{ t('Icons aus draw.io-Bibliotheken werden zugeordnet …') }}</p><p v-else-if="libraryIconSummary" role="status" data-testid="interop-library-icons">{{ libraryIconSummary }}</p><svg class="preview" :viewBox="previewBounds" role="img" :aria-label="t('Sichere Vorschau des konvertierten Diagramms')"><ElementView v-for="element in previewElements" :key="element.id" :element="element" :document="imported.document" :theme="store.state.theme" /></svg></div>
       </template>
       <template v-else>
         <AppSelect v-if="format !== 'drawio' && store.state.pages.length > 1" id="interop-export-page" v-model="exportPageId" class="interop-select" :options="exportPageOptions" :label="format === 'svg' ? t('Seite für den SVG-Export') : t('Seite für den Mermaid-Export')" :disabled="busy" />
@@ -195,8 +228,8 @@ onBeforeUnmount(() => { unsubscribe(); clear(); });
         <p v-if="staleExport" class="error" role="status">{{ t('Das Dokument oder ein Entwurf wurde geändert. Bitte die Exportvorschau neu erstellen.') }}</p>
       </template>
       <section v-if="failures.length" class="diagnostics" :aria-label="t('Grund des Fehlers')"><ul><li v-for="(item, index) in failures" :key="index" :class="item.severity"><strong>{{ item.sourceId || item.elementId || item.property || item.code }}</strong><span>{{ item.message }}</span><small v-if="item.sourcePath">{{ item.sourcePath }}</small></li></ul></section>
-      <AppButton intent="primary" v-if="mode === 'import' && imported" class="full" :disabled="busy || store.state.transitioning" @click="applyImport">{{ t('Als neues Dokument öffnen') }}</AppButton>
-      <AppButton v-if="mode === 'import' && imported && insertable" class="full" data-testid="interop-insert" :disabled="busy || store.state.transitioning || !store.state.canWrite" @click="insertImport">{{ t('In die aktuelle Seite einfügen') }}</AppButton>
+      <AppButton intent="primary" v-if="mode === 'import' && imported" class="full" :disabled="busy || resolvingIcons || store.state.transitioning" @click="applyImport">{{ t('Als neues Dokument öffnen') }}</AppButton>
+      <AppButton v-if="mode === 'import' && imported && insertable" class="full" data-testid="interop-insert" :disabled="busy || resolvingIcons || store.state.transitioning || !store.state.canWrite" @click="insertImport">{{ t('In die aktuelle Seite einfügen') }}</AppButton>
       <AppButton intent="primary" v-if="mode === 'export' && exported" class="full" :disabled="busy || staleExport || store.state.transitioning" @click="writeExport">{{ t('Datei exportieren') }}</AppButton>
       <p v-if="busy" role="status" class="summary">{{ t('Wird geprüft …') }}</p><p v-if="error" role="alert" class="error">{{ error }}</p><p v-if="status" role="status" class="summary">{{ status }}</p>
     </div>
