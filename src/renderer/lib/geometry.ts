@@ -1,4 +1,5 @@
-import { connectorRoutePoints, effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
+import { effectiveShapeVariant, type Point, type ShapeVariant, type SketchElement } from '@/domain';
+import { connectorPolyline } from './connector-label';
 import { awsGroupOf, groupChrome } from '@/catalog/aws-groups';
 import type { Rect } from '@/renderer/state/contract';
 import { NO_FILL } from './constants';
@@ -123,7 +124,9 @@ export function hitElement(element: SketchElement, point: Point, tolerance: numb
   const x = p.x - element.x;
   const y = p.y - element.y;
   if (element.kind === 'path' || element.kind === 'connector') {
-    const points = element.kind === 'connector' ? connectorRoutePoints(element) : (element.points ?? []);
+    // A connector is hit where it is drawn. The route of a curved one holds the two control points of its curve,
+    // which lie beside the line; testing against them missed the visible curve and hit empty space (#255).
+    const points = element.kind === 'connector' ? connectorPolyline(element) : (element.points ?? []);
     return points.some((b, i) => i > 0 && segmentDistance({ x, y }, points[i - 1]!, b) <= tolerance + element.style.strokeWidth / 2);
   }
   // Frames are viewports around ordinary canvas elements. Only their outline is selectable so

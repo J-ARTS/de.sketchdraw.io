@@ -329,3 +329,52 @@ test('a connector can use an animated dashed line', async ({ page }) => {
   await expect(connector.locator(':scope > g').first()).toHaveAttribute('stroke-dasharray', '8 6');
   await expect.poll(() => connector.locator(':scope > g').first().evaluate((element) => getComputedStyle(element).animationName)).toMatch(/sd-dash-flow/);
 });
+
+test('a curved arrow is selected by a click anywhere on its line (#255)', async ({ page }) => {
+  // An ER relationship is a curved connector; moving one table down turns it into an S-curve.
+  await page.getByTestId('more-shapes').click();
+  await page.getByTestId('open-diagram-library-er').click();
+  const library = page.getByTestId('shape-library-sidebar');
+  await library.getByRole('button', { name: 'Beispiel: Kunde und Bestellung', exact: true }).click();
+  await library.getByRole('button', { name: 'Formen schließen' }).click();
+  const canvas = page.locator('.whiteboard-canvas');
+  await page.mouse.click(640, 220);
+  const table = canvas.locator('[data-kind="table"]').last();
+  const box = (await table.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 6, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 6, box.y + box.height / 2 + 200, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.press('Escape');
+  await page.mouse.click(640, 120);
+
+  const path = canvas.locator('[data-kind="connector"] path[marker-end]').first();
+  expect(await path.getAttribute('d')).toMatch(/C/);
+  /** A point of the drawn line, at a share of its length, in screen coordinates. */
+  const at = (share: number) => path.evaluate((el: SVGPathElement, value: number) => {
+    const point = el.getPointAtLength(el.getTotalLength() * value);
+    const matrix = el.getScreenCTM()!;
+    return { x: matrix.a * point.x + matrix.c * point.y + matrix.e, y: matrix.b * point.x + matrix.d * point.y + matrix.f };
+  }, share);
+  const handle = page.getByTestId('connector-control-handle-1');
+  // Near the ends the curve runs far from the straight ways between its control points; these places were dead.
+  for (const share of [0.12, 0.25, 0.4, 0.5, 0.6, 0.75, 0.88]) {
+    await page.keyboard.press('Escape');
+    await page.mouse.click(640, 120);
+    await expect(handle).toHaveCount(0);
+    const point = await at(share);
+    await page.mouse.click(point.x, point.y);
+    await expect(handle, `click at ${Math.round(share * 100)} % of the curve`).toBeVisible();
+  }
+  // A few pixels beside the line still count; the open space the curve bends around does not.
+  await page.mouse.click(640, 120);
+  const quarter = await at(0.25);
+  await page.mouse.click(quarter.x, quarter.y + 5);
+  await expect(handle).toBeVisible();
+  await page.mouse.click(640, 120);
+  await expect(handle).toHaveCount(0);
+  const start = await at(0);
+  const end = await at(1);
+  await page.mouse.click(end.x - 12, start.y + 4);
+  await expect(handle).toHaveCount(0);
+});
