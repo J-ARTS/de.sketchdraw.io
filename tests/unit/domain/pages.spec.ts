@@ -163,3 +163,49 @@ describe('canonical element order', () => {
     expect(doc.elements.map((element) => element.id)).toEqual(['c', 'd', 'a', 'b', 'late']);
   });
 });
+
+describe('extracting one page (#291)', () => {
+  const message = (id: string) => ({ id: `message:${id}`, authorId: 'user:1', authorName: 'User', body: id, createdAt: '2026-11-22T10:00:00.000Z' });
+  const stamp = { createdAt: '2026-11-22T10:00:00.000Z', updatedAt: '2026-11-22T10:00:00.000Z' };
+  function commented(): SketchDocument {
+    const doc = twoPages();
+    doc.elements = [rect('a', 'page:1'), rect('b', 'page:2'), createElement('sticky-note', { id: 'note', pageId: 'page:1', x: 100, y: 0, width: 240, height: 240, text: 'Notiz', author: 'User' })];
+    doc.commentThreads = [
+      { id: 'thread:on-a', target: { elementId: 'a', anchor: { x: .5, y: .5 }, fallback: { x: 0, y: 0 } }, messages: [message('on-a')], resolved: false, ...stamp },
+      { id: 'thread:on-b', target: { elementId: 'b', anchor: { x: .5, y: .5 }, fallback: { x: 0, y: 0 } }, messages: [message('on-b')], resolved: false, ...stamp },
+      { id: 'thread:free-a', target: { anchor: { x: .5, y: .5 }, fallback: { x: 10, y: 10 } }, messages: [message('free-a')], resolved: false, ...stamp },
+      { id: 'thread:free-b', target: { pageId: 'page:2', anchor: { x: .5, y: .5 }, fallback: { x: 10, y: 10 } }, messages: [message('free-b')], resolved: false, ...stamp },
+    ];
+    doc.tasks = [
+      { id: 'task:1', sourceThreadId: 'thread:free-b', title: 'Aus Kommentar auf B', description: '', status: 'todo', rank: 0, createdAt: '2026-11-22T10:00:00.000Z', updatedAt: '2026-11-22T10:00:00.000Z' },
+      { id: 'task:2', sourceElementId: 'note', title: 'Aus Notiz auf A', description: '', status: 'todo', rank: 1, createdAt: '2026-11-22T10:00:00.000Z', updatedAt: '2026-11-22T10:00:00.000Z' },
+    ];
+    return validateDocument(doc);
+  }
+
+  it('takes the comments of that page along and no others; the result is a valid document', async () => {
+    const { extractPage } = await import('../../../src/domain');
+    const a = extractPage(commented(), 'page:1');
+    expect(a.commentThreads!.map((thread) => thread.id)).toEqual(['thread:on-a', 'thread:free-a']);
+    expect(() => serializeDocument(a)).not.toThrow();
+    // Tasks stay with the document; a task no longer names a comment or element that is not there.
+    expect(a.tasks).toMatchObject([{ id: 'task:1', title: 'Aus Kommentar auf B' }, { id: 'task:2', sourceElementId: 'note' }]);
+    expect(a.tasks![0]).not.toHaveProperty('sourceThreadId');
+
+    const b = extractPage(commented(), 'page:2');
+    expect(b.commentThreads!.map((thread) => thread.id)).toEqual(['thread:on-b', 'thread:free-b']);
+    expect(b.tasks![0]).toMatchObject({ sourceThreadId: 'thread:free-b' });
+    expect(b.tasks![1]).not.toHaveProperty('sourceElementId');
+    expect(() => serializeDocument(b)).not.toThrow();
+  });
+
+  it('a free comment on another page no longer blocks the SVG export with the embedded document', async () => {
+    const { prepareSvgExport, importSvg } = await import('../../../src/interop');
+    const doc = commented();
+    const svg = prepareSvgExport(doc, { pageId: 'page:1' });
+    expect(svg.embedsDocument).toBe(true);
+    const back = importSvg(svg.contents);
+    expect(back.fidelity).toBe('own-roundtrip');
+    expect(back.document.commentThreads!.map((thread) => thread.id)).toEqual(['thread:on-a', 'thread:free-a']);
+  });
+});

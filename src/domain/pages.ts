@@ -27,19 +27,26 @@ export function extractPage(document: SketchDocument, pageId: string): SketchDoc
     componentSets: document.componentSets,
     metadata: { ...document.metadata },
   };
+  // A comment belongs to one page: to the page of its element, or as a free comment to the page it names (the
+  // first page when it names none). Only the comments of the extracted page come along. A comment of another page
+  // would name a page the result does not have (#291), or show up on this page as if it had been made here.
+  const firstPageId = document.pages[0]?.id;
+  const keptThreads = new Set<string>();
   if (document.commentThreads) {
-    result.commentThreads = document.commentThreads.map((thread) => {
-      if (thread.target.elementId === undefined || ids.has(thread.target.elementId)) return thread;
-      const target = { ...thread.target };
-      delete target.elementId; delete target.tableCellId;
-      return { ...thread, target };
-    });
+    result.commentThreads = document.commentThreads.filter((thread) => thread.target.elementId !== undefined
+      ? ids.has(thread.target.elementId)
+      : (thread.target.pageId ?? firstPageId) === pageId);
+    for (const thread of result.commentThreads) keptThreads.add(thread.id);
   }
   if (document.tasks) {
+    // Tasks belong to the document and stay; what they point to on another page is no longer named.
     result.tasks = document.tasks.map((task) => {
-      if (task.sourceElementId === undefined || ids.has(task.sourceElementId)) return task;
+      const lostElement = task.sourceElementId !== undefined && !ids.has(task.sourceElementId);
+      const lostThread = task.sourceThreadId !== undefined && !keptThreads.has(task.sourceThreadId);
+      if (!lostElement && !lostThread) return task;
       const detached = { ...task };
-      delete detached.sourceElementId;
+      if (lostElement) delete detached.sourceElementId;
+      if (lostThread) delete detached.sourceThreadId;
       return detached;
     });
   }
