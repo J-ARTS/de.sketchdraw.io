@@ -2637,12 +2637,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice(t('Erlaubt sind PNG, JPEG und WebP.'), 'error'); return; }
       if (file.size > DOMAIN_LIMITS.MAX_ASSET_BYTES) { notice(t('Das Bild ist zu groß (maximal 8 MB).'), 'error'); return; }
       const owner = activeSession(); const revision = state.revision;
+      // The page and the place are the ones of the moment the image was chosen. Reading and decoding take time, and
+      // changing the page does not change the revision: without this the image landed on the page shown by then (#295).
+      const pageId = state.activePageId; const place = at ?? currentCenter();
       try {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
         const image = new Image(); image.src = dataUrl; await image.decode();
         if (activeSession() !== owner || state.transitioning) { notice(t('Das Bild wurde nicht eingefügt, weil das Dokument gewechselt hat.')); return; }
+        if (state.activePageId !== pageId) { notice(t('Das Bild wurde nicht eingefügt, weil die Seite gewechselt wurde.')); return; }
         const scale = Math.min(1, 640 / Math.max(image.naturalWidth, image.naturalHeight));
-        const p = at ?? currentCenter(); const width = Math.max(1, image.naturalWidth * scale); const height = Math.max(1, image.naturalHeight * scale);
+        const p = place; const width = Math.max(1, image.naturalWidth * scale); const height = Math.max(1, image.naturalHeight * scale);
         const asset = { id: uid('asset'), mimeType: file.type as 'image/png' | 'image/jpeg' | 'image/webp', dataUrl, name: file.name };
         const e = createElement('image', { x: p.x - width / 2, y: p.y - height / 2, width, height, assetId: asset.id, label: file.name, style: { ...DEFAULT_STYLE } });
         if (await dispatch({ type: 'add', elements: [e], assets: [asset] }, revision, 'import')) { setSelection([e.id]); state.tool = 'select'; }

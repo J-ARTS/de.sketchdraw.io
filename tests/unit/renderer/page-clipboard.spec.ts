@@ -62,6 +62,32 @@ describe('page clipboard', () => {
     expect(other.store.state.document.componentSets).toHaveLength(0);
   });
 
+  it('a resource card brings the symbol chosen for it into another document, as an element and with its page (#294)', async () => {
+    const cards = builtInComponentSets.find((set) => set.components.some((definition) => definition.type === 'generic.resource-card'))!;
+    // A symbol from a library that is not built in: the document carries its definition.
+    const symbols = { ...structuredClone(aws), id: 'test.kubernetes', name: 'Kubernetes', components: [{ ...structuredClone(aws.components[0]!), type: 'test.kubernetes.api-server', name: 'API Server' }] };
+    const document = createDocument('Karten');
+    document.componentSets = [structuredClone(cards), symbols];
+    document.elements = [createElement('component', { id: 'card', pageId: document.pages[0]!.id, componentType: 'generic.resource-card', x: 100, y: 100, width: 280, height: 120, text: 'Gateway', metadata: { 'resource-card:icon': 'test.kubernetes.api-server' } })];
+    const { store, clipboard } = setup(memoryClipboard(), document);
+    store.select(['card']);
+    await store.copySelection();
+
+    const other = setup(clipboard);
+    await other.store.pasteSelection(); await other.store.whenIdle();
+    expect(other.store.state.notices.at(-1)?.kind).not.toBe('error');
+    const pasted = other.store.state.document.elements.find((element) => element.kind === 'component')!;
+    expect(pasted.metadata?.['resource-card:icon']).toBe('test.kubernetes.api-server');
+    expect(other.store.state.document.componentSets.flatMap((set) => set.components.map((definition) => definition.type))).toContain('test.kubernetes.api-server');
+
+    // The same holds for a copied page.
+    await store.copyPage(store.state.activePageId);
+    const third = setup(clipboard);
+    await third.store.pastePage(); await third.store.whenIdle();
+    expect(third.store.state.notices.at(-1)?.kind).not.toBe('error');
+    expect(third.store.state.document.componentSets.map((set) => set.id)).toContain('test.kubernetes');
+  });
+
   it('still reads a page copied before definitions were carried along, and refuses a component without its definition', () => {
     const rectangle = createElement('rectangle', { id: 'el:1', text: 'Alt' });
     const old = JSON.stringify({ format: 'sketchdraw.page', version: 1, name: 'Alte Seite', elements: [rectangle], assets: {} });

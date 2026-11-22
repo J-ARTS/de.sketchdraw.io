@@ -101,12 +101,21 @@ export function parseElementClipboard(text: string): ElementClipboardPayload | n
   } catch { return null; }
 }
 
-/** The component sets of the document that the given elements need: what a clipboard has to carry along. */
-export function usedComponentSets(document: Pick<SketchDocument, 'componentSets'>, elements: readonly SketchElement[]): ComponentSet[] {
-  const componentTypes = new Set(elements.flatMap((element) => [
+/**
+ * The component definitions the given elements are drawn with: the type of a component, and for a resource card
+ * also the symbol chosen for it. Packing and pasting both ask this, so what was carried along is also taken over
+ * (#294: pasting only looked at the type and left the chosen symbol behind).
+ */
+function neededComponentTypes(elements: readonly SketchElement[]): Set<string> {
+  return new Set(elements.flatMap((element) => [
     ...(element.componentType ? [element.componentType] : []),
     ...(isResourceCard(element) ? [resourceCardIconType(element)] : []),
   ]));
+}
+
+/** The component sets of the document that the given elements need: what a clipboard has to carry along. */
+export function usedComponentSets(document: Pick<SketchDocument, 'componentSets'>, elements: readonly SketchElement[]): ComponentSet[] {
+  const componentTypes = neededComponentTypes(elements);
   return document.componentSets
     .filter((set) => set.components.some((definition) => componentTypes.has(definition.type)))
     .map(clone);
@@ -118,7 +127,7 @@ export function usedComponentSets(document: Pick<SketchDocument, 'componentSets'
  */
 export function missingComponentSets(sets: readonly ComponentSet[], elements: readonly SketchElement[], document: Pick<SketchDocument, 'componentSets'>): ComponentSet[] {
   const currentDefinitions = new Map(document.componentSets.flatMap((set) => set.components.map((definition) => [definition.type, definition] as const)));
-  const neededTypes = new Set(elements.flatMap((element) => element.componentType ? [element.componentType] : []));
+  const neededTypes = neededComponentTypes(elements);
   const additions: ComponentSet[] = [];
   for (const set of sets) {
     const needed = set.components.filter((definition) => neededTypes.has(definition.type));

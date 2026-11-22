@@ -947,6 +947,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Präsentation beendet.': 'Presentation ended.',
   'Erlaubt sind PNG, JPEG und WebP.': 'PNG, JPEG and WebP are allowed.',
   'Das Bild ist zu groß (maximal 8 MB).': 'The image is too large (maximum 8 MB).',
+  'Das Bild wurde nicht eingefügt, weil die Seite gewechselt wurde.': 'The image was not inserted because the page changed.',
   'Das Bild wurde nicht eingefügt, weil das Dokument gewechselt hat.': 'The image was not inserted because the document was switched.',
   'Dieses Austauschformat ist noch nicht angebunden.': 'This exchange format is not connected yet.',
   'Speicherkonflikt. Abbrechen und über „Speichern unter“ eine Kopie anlegen.': 'Save conflict. Cancel and create a copy via “Save as”.',

@@ -180,3 +180,39 @@ test('pages can be duplicated, reordered by menu, keyboard and drag and drop, an
   await page.getByRole('button', { name: /^Seite 1 Kopie$/ }).click();
   await expect(page.locator('[data-kind=rectangle]')).toHaveCount(1);
 });
+
+test('an image that is still being read when the page changes is not inserted on the other page (#295)', async ({ page }) => {
+  // Decoding waits until the test lets it through, so the page can change in between.
+  await page.addInitScript(() => {
+    const decode = HTMLImageElement.prototype.decode;
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    (window as unknown as { __releaseImage: () => void }).__releaseImage = release;
+    HTMLImageElement.prototype.decode = async function (this: HTMLImageElement) { await gate; return decode.call(this); };
+  });
+  await page.reload(); await expect(page.getByTestId('whiteboard-canvas')).toBeVisible();
+  await openPages(page);
+  await page.getByTestId('page-add').click();
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName('Seiten (2), aktuelle Seite: Seite 2');
+  await page.keyboard.press('Escape');
+
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGP8z8Dwn4GBgYGJAQoAHxcCAr7cLDAAAAAASUVORK5CYII=', 'base64');
+  await page.locator('input[type=file][accept*="image"]').setInputFiles({ name: 'bild.png', mimeType: 'image/png', buffer: png });
+  // The image is on its way; the user goes back to page 1.
+  await openPages(page);
+  await page.getByRole('dialog', { name: 'Seiten' }).locator('[data-page-id]').first().click();
+  await expect(page.getByTestId('page-switcher')).toHaveAccessibleName('Seiten (2), aktuelle Seite: Seite 1');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => (window as unknown as { __releaseImage: () => void }).__releaseImage());
+  await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Das Bild wurde nicht eingefügt, weil die Seite gewechselt wurde.')).toBeVisible();
+  await expect(page.locator('.whiteboard-canvas [data-kind=image]')).toHaveCount(0);
+  // Page 2 did not get it either: nothing was inserted behind the user's back.
+  await openPages(page);
+  await page.getByRole('dialog', { name: 'Seiten' }).locator('[data-page-id]').nth(1).click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.whiteboard-canvas [data-kind=image]')).toHaveCount(0);
+
+  // Staying on the page inserts the image there.
+  await page.locator('input[type=file][accept*="image"]').setInputFiles({ name: 'bild.png', mimeType: 'image/png', buffer: png });
+  await expect(page.locator('.whiteboard-canvas [data-kind=image]')).toHaveCount(1);
+});
