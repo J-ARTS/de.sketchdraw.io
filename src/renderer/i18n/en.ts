@@ -445,7 +445,7 @@ export const EN: Readonly<Record<string, string>> = {
   'Annotation': 'Annotation',
   'Tabelle': 'Table',
   'Architektur': 'Architecture',
-  'Azure Diagrams': 'Azure Diagrams',
+  'Cards': 'Cards',
   "Lucide Icons": "Lucide Icons",
   "Die Bibliothek konnte nicht geladen werden.": "The library could not be loaded.",
   "Die ersten {count} Treffer werden gezeigt. Mit einem genaueren Suchwort findest du den Rest.": "The first {count} matches are shown. A more specific search word finds the rest.",

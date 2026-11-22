@@ -52,7 +52,7 @@ The library holds basic shapes, flowchart symbols and the official architecture 
 
 ### Architecture and cloud diagrams
 
-Cloud services stand on the canvas as cards with icon, name and provider. For AWS there are the group frames of the reference architectures – cloud, region, VPC, subnets and more. The resource card under "Azure Diagrams" takes a title, a description and an icon from any library.
+Cloud services stand on the canvas as cards with icon, name and provider. For AWS there are the group frames of the reference architectures – cloud, region, VPC, subnets and more. The resource card under "Cards" takes a title, a description and an icon from any library.
 
 ![A shop platform on AWS with cloud and VPC frames](docs/images/readme/cloud.png)
 

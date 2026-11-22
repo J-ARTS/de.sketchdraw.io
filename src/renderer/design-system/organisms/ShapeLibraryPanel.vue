@@ -122,10 +122,10 @@ const ISOMETRIC_CATEGORIES: Record<string, string> = { 'Services and data': L('D
 /** The isometric icons are a library of their own and stay out of the short list of generic components. */
 const isometricSets = computed(() => sets.value.filter((set) => set.id === ISOMETRIC_SET_ID));
 /**
- * The section "Azure Diagrams" offers the resource card only (#225). The generic starter symbols stay defined, so
+ * The section "Cards" (called "Azure Diagrams" until #256) offers the resource cards only (#225). The generic starter symbols stay defined, so
  * existing diagrams, the text syntax and the icon of a resource card keep working, and the search still finds them.
  */
-const azureDiagramComponents = computed(() => searchCatalogComponents(sets.value.filter((set) => set.id !== ISOMETRIC_SET_ID && !set.id.startsWith(LUCIDE_SET_PREFIX)), query.value, 'generic').filter((item) => item.component.type === RESOURCE_CARD_COMPONENT_TYPE));
+const cardComponents = computed(() => searchCatalogComponents(sets.value.filter((set) => set.id !== ISOMETRIC_SET_ID && !set.id.startsWith(LUCIDE_SET_PREFIX)), query.value, 'generic').filter((item) => item.component.type === RESOURCE_CARD_COMPONENT_TYPE));
 const libraryComponents = computed(() => {
   if (isometricOpen.value) return searchCatalogComponents(isometricSets.value, query.value, 'generic');
   // Browsing shows every category; a search word that matches hundreds of icons is cut off, as nobody scrolls them.
@@ -352,9 +352,9 @@ onBeforeUnmount(() => {
           </div>
         </section>
         <section class="accordion-section">
-          <button type="button" class="accordion-trigger" :aria-expanded="expanded.architecture" aria-controls="shape-section-architecture" @click="toggleSection('architecture')"><span>{{ t('Azure Diagrams') }}</span><AppIcon class="section-chevron" name="chevron-down" :size="22" /></button>
+          <button type="button" class="accordion-trigger" :aria-expanded="expanded.architecture" aria-controls="shape-section-architecture" @click="toggleSection('architecture')"><span>{{ t('Cards') }}</span><AppIcon class="section-chevron" name="chevron-down" :size="22" /></button>
           <div v-if="expanded.architecture" id="shape-section-architecture" class="component-grid">
-            <button v-for="item in azureDiagramComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag"><span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span><SafeIcon v-else :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
+            <button v-for="item in cardComponents" :key="`${item.set.id}:${item.component.type}`" type="button" class="component-tile" :class="{ 'resource-card-tile': item.component.type === RESOURCE_CARD_COMPONENT_TYPE }" :disabled="s.transitioning || !s.canWrite" draggable="true" @click="activateComponent(item)" @dragstart="dragComponent($event, item)" @dragend="clearComponentDrag"><span v-if="item.component.type === RESOURCE_CARD_COMPONENT_TYPE" class="resource-card-preview" aria-hidden="true"><SafeIcon :source="item.component.iconSvg" :size="28" /><span><b>{{ t('Resource Name') }}</b><small>{{ t('Description') }}</small></span></span><SafeIcon v-else :source="item.component.iconSvg" :size="38" /><span>{{ item.component.name }}</span><small>{{ item.component.category }}</small></button>
           </div>
         </section>
 
