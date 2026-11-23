@@ -56,7 +56,7 @@ describe('English translation', () => {
   it('translates messages that arrive from the main process or validators', () => {
     const untranslated: string[] = [];
     setLocale('en');
-    for (const file of ['electron/plugin-service.ts', 'electron/git-workbench.ts', 'electron/main.ts', 'src/catalog/resource-card.ts', 'src/domain/web-embed.ts']) {
+    for (const file of ['electron/plugin-service.ts', 'electron/azure-devops.ts', 'electron/azure-devops-wiki.ts', 'electron/git-workbench.ts', 'electron/main.ts', 'src/catalog/resource-card.ts', 'src/domain/web-embed.ts']) {
       for (const entry of scan([join(ROOT, file)]) as Array<{ text: string }>) {
         const sample = entry.text.replace(/\$\{[^}]*\}/g, 'X');
         if (['prüfung', 'Datei', 'Öffnen…', 'Speichern', 'Speichern unter…', 'Bearbeiten', 'Rückgängig', 'Wiederholen'].includes(sample)) continue; // matching keywords, native menu (electron/i18n.ts)

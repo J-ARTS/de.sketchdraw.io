@@ -1,4 +1,6 @@
 import type { ElementKind, Endpoint, SketchDocument, SketchElement } from '@/domain/types';
+import { readTicketCard } from '@/domain/ticket-card';
+import { TICKET_CARD_WORDS } from '@/domain/ticket-card-layout';
 
 import { L, t, tn } from '@/renderer/i18n';
 export const KIND_LABELS: Record<ElementKind, string> = {
@@ -85,6 +87,14 @@ function endpointName(
 function nameParts(element: SketchElement, doc: SketchDocument, depth: number): NameParts {
   const label = collapse(element.label);
   if (label !== '') return { name: label, includesKind: false, includesPosition: false };
+
+  // A ticket card is named by what it stands for, not as a rectangle with a text (#283).
+  const ticket = readTicketCard(element);
+  if (ticket) {
+    // Only the title is shortened: key and state are what tells one card from another.
+    const name = t('Ticket {key}: {title}, {status}', { key: ticket.key, title: truncate(collapse(ticket.title) || t('Ohne Titel'), MAX_TEXT_NAME_LENGTH), status: ticket.remoteStatus || t(TICKET_CARD_WORDS.state[ticket.status]) });
+    return { name, includesKind: true, includesPosition: false };
+  }
 
   const text = collapse(element.text);
   if (text !== '') {

@@ -3,7 +3,7 @@
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { confluencePluginActive, confluencePluginInstalled, jiraPluginActive, jiraPluginInstalled, type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type PluginId } from '@/domain';
+import { azureDevOpsPluginActive, confluencePluginActive, confluencePluginInstalled, jiraPluginActive, jiraPluginInstalled, type ConfigureAtlassianPluginInput, type ConfigureAzureDevOpsPluginInput, type ConfigureGitPluginInput, type PluginId } from '@/domain';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import { pluginLogoUrl } from '@/renderer/lib/plugin-logos';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
@@ -21,6 +21,8 @@ const git = ref<ConfigureGitPluginInput>({ enabled: false, autoCommit: true, aut
 const atlassian = ref<ConfigureAtlassianPluginInput>({ enabled: false, siteUrl: '', email: '', apiToken: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' });
 /** Confluence shares the Atlassian connection with Jira and has its own switch and space (#282). */
 const confluence = ref({ enabled: false, siteUrl: '', email: '', apiToken: '', confluenceSpaceKey: '' });
+/** Azure Boards: cloud or server, with a personal access token (#284). */
+const azure = ref<ConfigureAzureDevOpsPluginInput>({ enabled: false, variant: 'cloud', organizationUrl: '', project: '', workItemType: 'Task', wiqlFilter: '', apiVersion: '', readOnly: false, accessToken: '' });
 const closeButton = ref<HTMLButtonElement | null>(null);
 const dialog = ref<HTMLDialogElement | null>(null);
 let opener: HTMLElement | null = null;
@@ -29,12 +31,14 @@ const catalog = computed(() => [
   { id: 'git' as const, title: 'Git', category: t('Versionierung'), summary: t('Diagramme im Projektordner versionieren und automatisch synchronisieren.'), badge: 'G' },
   { id: 'jira' as const, title: 'Jira', category: t('Aufgaben'), summary: t('Jira-Tickets laden, erstellen und automatisch mit dem Aufgabenboard synchronisieren.'), badge: 'J' },
   { id: 'confluence' as const, title: 'Confluence', category: t('Dokumentation'), summary: t('Diagrammseiten mit Confluence-Seiten verknüpfen und dort automatisch aktuell halten.'), badge: 'C' },
+  { id: 'azure-devops' as const, title: 'Azure DevOps', category: t('Aufgaben'), summary: t('Work Items aus Azure Boards laden, erstellen und mit dem Aufgabenboard synchronisieren – in der Cloud oder auf einem Azure DevOps Server.'), badge: 'Az' },
 ]);
 const installedIds = computed<PluginId[]>(() => {
   const ids: PluginId[] = [];
   if (s.pluginSettings?.git.installed) ids.push('git');
   if (jiraPluginInstalled(s.pluginSettings?.atlassian)) ids.push('jira');
   if (confluencePluginInstalled(s.pluginSettings?.atlassian)) ids.push('confluence');
+  if (s.pluginSettings?.azureDevOps?.installed) ids.push('azure-devops');
   return ids;
 });
 const visiblePlugins = computed(() => catalog.value.filter((plugin) => {
@@ -60,6 +64,8 @@ const gitDirty = computed(() => JSON.stringify(git.value) !== gitBaseline.value)
 const jiraDirty = computed(() => JSON.stringify(atlassian.value) !== jiraBaseline.value);
 const confluenceBaseline = ref('');
 const confluenceDirty = computed(() => JSON.stringify(confluence.value) !== confluenceBaseline.value);
+const azureBaseline = ref('');
+const azureDirty = computed(() => JSON.stringify(azure.value) !== azureBaseline.value);
 const busy = computed(() => pending.value || s.pluginBusy);
 const controlsDisabled = computed(() => busy.value || !canConfigure.value);
 let contextKey = '';
@@ -82,16 +88,28 @@ function seedConfluence(): void {
   confluence.value = { enabled: confluencePluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '' };
   confluenceBaseline.value = JSON.stringify(confluence.value);
 }
+function seedAzure(): void {
+  const settings = s.pluginSettings?.azureDevOps;
+  azure.value = { enabled: azureDevOpsPluginActive(settings), variant: settings?.variant ?? 'cloud', organizationUrl: settings?.organizationUrl ?? '', project: settings?.project ?? '', workItemType: settings?.workItemType ?? 'Task', wiqlFilter: settings?.wiqlFilter ?? '', apiVersion: settings?.apiVersion ?? '', readOnly: settings?.readOnly ?? false, accessToken: '' };
+  azureBaseline.value = JSON.stringify(azure.value);
+}
+/** The usual version of the interface follows the variant until the user names another one. */
+function pickAzureVariant(variant: 'cloud' | 'server'): void {
+  const usual = { cloud: '7.1', server: '6.0' } as const;
+  if (!azure.value.apiVersion || azure.value.apiVersion === usual[azure.value.variant]) azure.value.apiVersion = usual[variant];
+  azure.value.variant = variant;
+}
 watch(() => s.pluginSettings, (settings) => {
   const key = settings ? `${settings.available}:${settings.projectFolder}:${settings.activeProfileId}` : '';
   if (key !== contextKey) {
     contextKey = key; operationEpoch++; pendingOperation++; pending.value = false; feedback.value = null;
-    seedGit(); seedJira(); seedConfluence();
+    seedGit(); seedJira(); seedConfluence(); seedAzure();
   } else {
     // Health refreshes must not replace either unsaved draft.
     if (!gitDirty.value) seedGit();
     if (!jiraDirty.value) seedJira();
     if (!confluenceDirty.value) seedConfluence();
+    if (!azureDirty.value) seedAzure();
   }
 }, { immediate: true });
 
@@ -105,7 +123,7 @@ watch(visiblePlugins, (plugins) => {
 
 /** The native modal keeps focus inside and makes the workspace inert. */
 watch(() => props.open, async (open) => {
-  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; seedGit(); seedJira(); seedConfluence();
+  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; seedGit(); seedJira(); seedConfluence(); seedAzure();
   await nextTick();
   if (open) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -201,11 +219,12 @@ async function saveConfluence(): Promise<void> {
   const input: ConfigureAtlassianPluginInput = { plugin: 'confluence', ...confluence.value, jiraProjectKey: current?.jiraProjectKey ?? '', jiraIssueType: current?.jiraIssueType ?? 'Task', jqlFilter: current?.jqlFilter ?? '' };
   if (await runOperation(() => store.configureAtlassianPlugin(input), t('Confluence-Plugin gespeichert.'))) { seedJira(); seedConfluence(); }
 }
+async function saveAzure(): Promise<void> { if (await runOperation(() => store.configureAzureDevOpsPlugin(azure.value), t('Azure-DevOps-Plugin gespeichert.'))) seedAzure(); }
 async function installPlugin(id: PluginId): Promise<void> {
   if (await runOperation(() => store.setPluginInstalled(id, true), t('Installiert'))) { selectedPlugin.value = id; activeTab.value = 'installed'; focusDetail(); }
 }
 async function uninstallPlugin(id: PluginId): Promise<void> {
-  if (await runOperation(() => store.setPluginInstalled(id, false), t('Deinstallieren'))) { activeTab.value = 'marketplace'; selectedPlugin.value = id; seedGit(); seedJira(); seedConfluence(); focusDetail(); }
+  if (await runOperation(() => store.setPluginInstalled(id, false), t('Deinstallieren'))) { activeTab.value = 'marketplace'; selectedPlugin.value = id; seedGit(); seedJira(); seedConfluence(); seedAzure(); focusDetail(); }
 }
 </script>
 
@@ -271,6 +290,11 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <h4>{{ t('Funktionen') }}</h4>
                 <ul><li>{{ t('Diagramme automatisch auf einer Confluence-Seite aktuell halten') }}</li><li>{{ t('Eine Confluence-Seite je Diagrammseite verknüpfen') }}</li><li>{{ t('Nutzt dieselbe Atlassian-Verbindung wie Jira, falls beide installiert sind') }}</li></ul>
               </template>
+              <template v-else-if="selectedPlugin === 'azure-devops'">
+                <p>{{ t('Azure DevOps verbindet das Aufgabenboard mit Azure Boards. Das Plugin spricht Azure DevOps Services in der Cloud und Azure DevOps Server über dieselbe Schnittstelle; für ältere Server lässt sich die API-Version einstellen.') }}</p>
+                <h4>{{ t('Funktionen') }}</h4>
+                <ul><li>{{ t('Work Items per WIQL-Abfrage laden') }}</li><li>{{ t('Aufgaben, Kommentare und Notizen als Work Items erstellen') }}</li><li>{{ t('Titel, Beschreibung, Zuständigkeit, Fälligkeit und Zustand zwischen Board und Azure Boards abgleichen') }}</li><li>{{ t('Seiten des Diagramms als Bild auf Seiten des Wikis zeigen und aktuell halten') }}</li><li>{{ t('Nur-lesen-Modus für Tokens ohne Schreibrecht') }}</li></ul>
+              </template>
               <template v-else>
                 <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren Jira-Filter. Neue Aufgaben werden im Jira-Projekt des aktiven Profils erstellt.') }}</p>
                 <h4>{{ t('Funktionen') }}</h4>
@@ -283,7 +307,7 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
           <template v-else-if="selectedInstalled">
             <section class="config-head">
               <span class="plugin-logo" aria-hidden="true"><img v-if="pluginLogoUrl(selectedCatalogPlugin.id)" :src="pluginLogoUrl(selectedCatalogPlugin.id)!" alt="" /><template v-else>{{ selectedCatalogPlugin.badge }}</template></span>
-              <div><h2 :id="`plugin-${selectedPlugin}-title`" tabindex="-1">{{ selectedCatalogPlugin.title }}</h2><p>{{ selectedPlugin === 'git' ? tm(s.pluginSettings?.git.message ?? '') : tm(s.pluginSettings?.atlassian.message ?? '') }}</p></div>
+              <div><h2 :id="`plugin-${selectedPlugin}-title`" tabindex="-1">{{ selectedCatalogPlugin.title }}</h2><p>{{ selectedPlugin === 'git' ? tm(s.pluginSettings?.git.message ?? '') : selectedPlugin === 'azure-devops' ? tm(s.pluginSettings?.azureDevOps?.message ?? '') : tm(s.pluginSettings?.atlassian.message ?? '') }}</p></div>
               <button class="text-button danger" type="button" :disabled="controlsDisabled" @click="uninstallPlugin(selectedPlugin)">{{ t('Deinstallieren') }}</button>
             </section>
 
@@ -315,6 +339,22 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
               <p class="security-copy">{{ t('Eine Diagrammseite verknüpfst du über ihr Menü in der Seitenleiste mit einer Confluence-Seite.') }}</p><p v-if="confluenceDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="confluence-test" :disabled="busy || !confluencePluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || confluenceDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="confluence-save" :disabled="s.pluginBusy" @click="saveConfluence">{{ t('Confluence speichern') }}</AppButton></footer>
 
               <div v-if="linkedPages.length" class="integration-section"><h3>{{ t('Verknüpfte Seiten') }}</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || t('Confluence-Seite') }}</strong><span>{{ t('Version {version}', { version: String(element.metadata?.['sketchdraw.atlassian.pageVersion'] ?? '') }) }}</span></div><span class="row-actions"><button class="sd-btn" @click="runOperation(() => store.refreshConfluenceElement(element.id), t('Confluence-Seite neu geladen.'))">{{ t('Neu laden') }}</button><button class="sd-btn" @click="runOperation(() => store.syncConfluenceElement(element.id), t('Confluence-Seite aktualisiert.'))">{{ t('Senden') }}</button></span></li></ul></div>
+            </section>
+
+            <section v-else-if="selectedPlugin === 'azure-devops'" class="config-content" data-testid="azure-devops-config">
+              <div class="section-title"><div><h3>{{ t('Azure-DevOps-Konfiguration') }}</h3><p>{{ t('Diese Einstellungen gehören zum Profil „{name}“. Work Items werden im Projekt erstellt und über die WIQL-Abfrage geladen.', { name: activeProfileName }) }}</p></div><label class="switch"><input v-model="azure.enabled" type="checkbox" /><span>{{ t('Aktiv') }}</span></label></div>
+              <fieldset class="auth-fieldset"><legend>{{ t('Variante') }}</legend><div class="auth-options"><label :class="{ active: azure.variant === 'cloud' }"><input type="radio" name="azure-variant" value="cloud" :checked="azure.variant === 'cloud'" @change="pickAzureVariant('cloud')" /><strong>{{ t('Azure DevOps Services') }}</strong><span>{{ t('Die Cloud unter dev.azure.com.') }}</span></label><label :class="{ active: azure.variant === 'server' }"><input type="radio" name="azure-variant" value="server" :checked="azure.variant === 'server'" @change="pickAzureVariant('server')" /><strong>{{ t('Azure DevOps Server') }}</strong><span>{{ t('Eine eigene Installation mit der Adresse ihrer Sammlung.') }}</span></label></div></fieldset>
+              <div class="form-grid two">
+                <label class="wide">{{ azure.variant === 'cloud' ? t('Organisation') : t('Adresse der Sammlung') }}<input v-model="azure.organizationUrl" :placeholder="azure.variant === 'cloud' ? 'https://dev.azure.com/organisation' : 'https://server.example.com/tfs/DefaultCollection'" autocomplete="url" /></label>
+                <label>{{ t('Projekt') }}<input v-model="azure.project" maxlength="64" autocomplete="off" /></label>
+                <label>{{ t('Personal Access Token') }}<input v-model="azure.accessToken" type="password" :placeholder="s.pluginSettings?.azureDevOps?.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('Personal Access Token')" autocomplete="new-password" /></label>
+                <label>{{ t('Work-Item-Typ') }}<input v-model="azure.workItemType" placeholder="Task" autocomplete="off" /></label>
+                <label>{{ t('API-Version') }}<input v-model="azure.apiVersion" :placeholder="azure.variant === 'cloud' ? '7.1' : '6.0'" autocomplete="off" /></label>
+                <label class="wide">{{ t('WIQL-Abfrage (optional)') }}<input v-model="azure.wiqlFilter" placeholder="SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @me" autocomplete="off" /></label>
+              </div>
+              <div class="option-list"><label><input v-model="azure.readOnly" type="checkbox" /> <span><strong>{{ t('Nur lesen') }}</strong><small>{{ t('Work Items werden geladen, aber weder erstellt noch geändert; ins Wiki wird nichts übertragen.') }}</small></span></label></div>
+              <p class="security-copy">{{ t('Das Token braucht den Umfang „Work Items: Lesen und Schreiben“ und, um Seiten im Wiki zu zeigen, „Wiki: Lesen und Schreiben“; für „Nur lesen“ genügt „Work Items: Lesen“. Es wird verschlüsselt im Profil auf diesem Gerät abgelegt und nicht in Diagramme oder Git übernommen.') }}</p>
+              <p class="security-copy">{{ t('Azure DevOps wird nur über https angesprochen. Work Items werden alle fünf Sekunden automatisch abgeglichen.') }}</p><p v-if="azureDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="azure-devops-test" :disabled="busy || !azureDevOpsPluginActive(s.pluginSettings?.azureDevOps) || !s.pluginSettings?.azureDevOps?.credentialStored || azureDirty" @click="runOperation(() => store.testAzureDevOpsPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="azure-devops-save" :disabled="s.pluginBusy" @click="saveAzure">{{ t('Azure DevOps speichern') }}</AppButton></footer>
             </section>
 
             <section v-else class="config-content">

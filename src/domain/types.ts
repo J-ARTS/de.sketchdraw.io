@@ -235,7 +235,8 @@ export type TaskStatus = 'todo' | 'doing' | 'review' | 'done';
 export type TaskType = 'feature' | 'bug' | 'design' | 'research' | 'docs' | 'ops';
 
 export interface ExternalTaskReference {
-  provider: 'jira';
+  /** The system the ticket of the task lives in. */
+  provider: 'jira' | 'azure-devops';
   remoteId: string;
   key: string;
   url: string;
@@ -424,7 +425,8 @@ export interface DesktopBridge {
   readonly platform: 'electron' | 'browser';
   openDocument(): Promise<OpenDocumentResult>;
   saveDocument(request: SaveDocumentRequest): Promise<SaveDocumentResult>;
-  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components'): Promise<ExportFileResult>;
+  /** `pptx` is the only binary format: its `contents` are the bytes of the file as base64 (#266). */
+  exportFile(contents: string, suggestedName: string, format: 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components' | 'pptx'): Promise<ExportFileResult>;
   openExternal(url: string): Promise<void>;
   /** Optional desktop capability: reports the UI language so native menus and dialogs follow it. */
   setLanguage?(language: 'de' | 'en'): Promise<void>;
@@ -443,4 +445,6 @@ export interface DesktopBridge {
   readonly helper?: import('../collaboration/hdht/types').HelperBridge;
   /** Optional desktop-only capability: check for a newer release and install it. */
   readonly updates?: import('./updates').UpdateBridge;
+  /** Optional desktop capability: the skill of the app in the skill folders of the agents (#265). */
+  readonly agentSkill?: import('./agent-skill').AgentSkillBridge;
 }

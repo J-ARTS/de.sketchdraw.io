@@ -14,7 +14,7 @@ import type {
   SketchDocument,
 } from '../domain/types';
 
-export type BrowserExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components';
+export type BrowserExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components' | 'pptx';
 export type BrowserCloseDecision = 'close' | 'cancel';
 export type BrowserMenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
 
@@ -43,6 +43,7 @@ const ALLOWED_EXPORT_FORMATS = new Set<BrowserExportFormat>([
   'mermaid',
   'sketchdraw',
   'components',
+  'pptx',
 ]);
 
 // SHA-256 constants for deterministic fallback when crypto.subtle is unavailable
@@ -318,6 +319,8 @@ function getMimeTypeForFormat(format: BrowserExportFormat): string {
     case 'sketchdraw':
     case 'components':
       return 'application/json;charset=utf-8';
+    case 'pptx':
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
   }
 }
 
@@ -513,7 +516,7 @@ export function createBrowserDesktopBridge(
   }
 
   function triggerBlobDownload(
-    contents: string,
+    contents: string | Uint8Array<ArrayBuffer>,
     safeFileName: string,
     mimeType: string,
   ): { ok: true } | { ok: false; error: FileError } {
@@ -861,11 +864,34 @@ export function createBrowserDesktopBridge(
         return {
           status: 'error',
           code: 'INVALID_FORMAT',
-          message: 'Export format must be "svg", "drawio", "mermaid", "sketchdraw", or "components".',
+          message: 'Export format must be "svg", "drawio", "mermaid", "sketchdraw", "components", or "pptx".',
         };
       }
 
-      const utf8Bytes = new TextEncoder().encode(contents);
+      // A PowerPoint file is a ZIP package and arrives as base64 (#266); every other format is text.
+      let utf8Bytes: Uint8Array<ArrayBuffer>;
+      if (format === 'pptx') {
+        try {
+          const binary = atob(contents);
+          utf8Bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index += 1) utf8Bytes[index] = binary.charCodeAt(index);
+        } catch {
+          return {
+            status: 'error',
+            code: 'INVALID_REQUEST',
+            message: 'The contents of a PowerPoint export must be base64.',
+          };
+        }
+        if (utf8Bytes[0] !== 0x50 || utf8Bytes[1] !== 0x4b || utf8Bytes[2] !== 0x03 || utf8Bytes[3] !== 0x04) {
+          return {
+            status: 'error',
+            code: 'INVALID_EXPORT',
+            message: 'The PowerPoint export is not a package.',
+          };
+        }
+      } else {
+        utf8Bytes = new TextEncoder().encode(contents);
+      }
       if (utf8Bytes.byteLength === 0) {
         return {
           status: 'error',
@@ -892,7 +918,7 @@ export function createBrowserDesktopBridge(
 
       const safeFileName = sanitizeDownloadFileName(suggestedName, format);
       const outcome = triggerBlobDownload(
-        contents,
+        format === 'pptx' ? utf8Bytes : contents,
         safeFileName,
         getMimeTypeForFormat(format),
       );

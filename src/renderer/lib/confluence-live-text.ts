@@ -13,14 +13,16 @@ export interface ConfluenceLiveStatus {
 }
 
 /** What a publication is doing, in one sentence; the message of the publication itself wins when there is one. */
-export function confluenceLiveStatusText(status: ConfluenceLiveStatus): string {
+/** `wiki` says where the page goes: Confluence (default) or the wiki of Azure DevOps (#284). */
+export function confluenceLiveStatusText(status: ConfluenceLiveStatus, wiki: 'confluence' | 'azure-devops' = 'confluence'): string {
+  const azure = wiki === 'azure-devops';
   if (status.message) return status.message;
   switch (status.state) {
     case 'off': return t('Noch nicht übertragen.');
     case 'paused': return t('Übertragung pausiert.');
-    case 'pending': return t('Änderungen werden gleich nach Confluence übertragen.');
-    case 'syncing': return t('Diagramm wird nach Confluence übertragen …');
-    case 'synced': return t('Confluence ist auf dem aktuellen Stand.');
+    case 'pending': return azure ? t('Änderungen werden gleich ins Wiki übertragen.') : t('Änderungen werden gleich nach Confluence übertragen.');
+    case 'syncing': return azure ? t('Diagramm wird ins Wiki übertragen …') : t('Diagramm wird nach Confluence übertragen …');
+    case 'synced': return azure ? t('Das Wiki ist auf dem aktuellen Stand.') : t('Confluence ist auf dem aktuellen Stand.');
     case 'retrying': return t('Übertragung wird wiederholt.');
     case 'error': return t('Übertragung fehlgeschlagen.');
   }

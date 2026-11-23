@@ -70,7 +70,15 @@ Für wiederverwendbare Arbeitsregeln liegt [der Sketchdraw-Skill](../skills/sket
 | Linux | `<Installationsordner>/resources/skills/sketchdraw-desktop/SKILL.md` |
 | Windows | `<Installationsordner>\resources\skills\sketchdraw-desktop\SKILL.md` |
 
-In das Skill-Verzeichnis eines Clients trägt die App ihn nicht selbst ein. Wer ihn dort dauerhaft haben möchte, kopiert den Ordner `sketchdraw-desktop` in das Skill-Verzeichnis des Clients:
+Die installierte App legt den Skill auf Wunsch selbst in die Skill-Verzeichnisse von Claude Code, Codex und Antigravity und erneuert ihn bei jedem Update der App ([#265](https://github.com/J-ARTS/de.sketchdraw.io/issues/265)). Sie fragt beim ersten Start einmal danach, sofern mindestens einer der drei Clients auf dem Computer vorhanden ist; die Antwort lässt sich unter **Einstellungen → KI-Agenten** jederzeit ändern. Dabei gilt:
+
+- Geschrieben wird erst nach Zustimmung und nur von der installierten App, nicht bei einem Start aus den Quellen.
+- Die App legt ausschließlich den eigenen Ordner `sketchdraw-desktop` im Benutzerverzeichnis des Clients an und ersetzt nur ihn. Für einen Client, dessen Ordner (`~/.claude`, `~/.codex`, `~/.gemini`) fehlt, legt sie nichts an.
+- Eine Kopie, die verändert, von Hand in einer anderen Fassung abgelegt oder verlinkt wurde, bleibt unangetastet. Die Einstellungen zeigen sie als geändert und bieten „Ersetzen“ an. Ein Link wird dabei als Link entfernt; sein Ziel bleibt unverändert.
+- Ausschalten lässt vorhandene Ordner liegen.
+- Der Renderer benennt einen Client nur über seine Kennung; alle Pfade bildet der Hauptprozess (`electron/agent-skill-service.ts`).
+
+Für ein einzelnes Projekt oder einen anderen Client kopiert man den Ordner `sketchdraw-desktop` weiterhin von Hand in das Skill-Verzeichnis:
 
 | Client | Für alle eigenen Projekte | Für ein Projekt |
 | --- | --- | --- |

@@ -1,4 +1,4 @@
-import { alignedTextTop, annotationPlainText, connectorEndMarker, tablePlainText, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, SHAPE_TEXT_SIDE_INSET, serializeDocument, supportsVerticalAlign, TEXT_LINE_HEIGHT, validateDocument, verticalAlignOf, verticalTextInset, visibleLineCount, wrapTextLines } from '../domain';
+import { alignedTextTop, annotationPlainText, roundedCornerRadius, isTicketCard, readTicketCard, TICKET_CARD_COLORS, TICKET_CARD_TYPE, ticketCardFetchedText, ticketCardLayout, ticketCardPlainText, connectorEndMarker, tablePlainText, extractPage, connectorPathData, connectorRouting, connectorStartMarker, effectiveShapeVariant, SHAPE_PATHS, SHAPE_TEXT_SIDE_INSET, serializeDocument, supportsVerticalAlign, TEXT_LINE_HEIGHT, validateDocument, verticalAlignOf, verticalTextInset, visibleLineCount, wrapTextLines } from '../domain';
 import type { ComponentSet, ConnectorMarker, Point, SketchDocument, SketchElement } from '../domain';
 import { resolveAnchorWorldPoint, syncConnectorEndpoints } from '../domain/geometry';
 import { mergeLayout } from '../domain/table-merge';
@@ -60,7 +60,7 @@ function placedText(el: SketchElement, plainText: string, d: DiagnosticCollector
   const y = alignedTextTop(verticalAlignOf(el), el.height, lines.length * step, verticalTextInset(el.kind)) + font * .93;
   return `<text${attrs({ x, y, 'font-size': font, 'font-family': SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'], 'font-weight': el.style.fontWeight ?? 'normal', 'text-decoration': el.style.textDecoration ?? 'none', 'text-anchor': align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start', stroke: 'none', fill: safeTextColor(el, d), opacity: el.style.opacity, 'xml:space': 'preserve' })}>${lines.map((line, i) => `<tspan${attrs({ x, y: y + i * step })}>${escapeXmlText(line)}</tspan>`).join('')}</text>`;
 }
-function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = false, placed = false): string {
+function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = false, placed = false, earlyComponents = false): string {
   // An emptied text stays empty; the label stands in only where no text was set (#258).
   const plainText = shownText(el, legacyLabel);
   if (placed && hasPlacedText(el)) {
@@ -78,7 +78,7 @@ function nativeText(el: SketchElement, d: DiagnosticCollector, legacyLabel = fal
   const group = awsGroupOf(el);
   // A component with a small symbol (service, database, queue …) has its symbol centred at the top and its text in
   // the lower half, 8 px from the side, as the canvas draws it. Picture 1 wrote the text over the symbol.
-  const plainComponent = !legacyLabel && el.kind === 'component' && !isIconFigure(el) && !group;
+  const plainComponent = !legacyLabel && !earlyComponents && el.kind === 'component' && !isIconFigure(el) && !group;
   const inset = el.kind === 'sticky-note' ? 20 : plainComponent ? 8 : 0;
   const label = group ? groupChrome(group, el.width, font).label : null;
   const x = label ? (align === 'center' ? (label.left + label.right) / 2 : align === 'right' ? label.right : label.left) : align === 'center' ? el.width / 2 : align === 'right' ? el.width - inset : inset;
@@ -229,6 +229,38 @@ const DRAWIO_MARKER: Readonly<Record<ConnectorMarker, string>> = {
   'zero-or-many': 'ERzeroToMany', 'one-or-many': 'ERoneToMany',
 };
 const DRAWIO_FILLED_MARKERS: ReadonlySet<ConnectorMarker> = new Set(['solid-arrow', 'solid-triangle', 'solid-circle']);
+/**
+ * A ticket card as the canvas draws it (#283): key, state, title, assignee, estimate, labels and components, from the
+ * layout the canvas uses. The words that are not content of the ticket are fixed, and the time of the last read is
+ * written in UTC, so the picture is the same in every language and time zone.
+ */
+function ticketCardSvgContent(el: SketchElement, d: DiagnosticCollector): string {
+  const ticket = readTicketCard(el);
+  if (!ticket) return '';
+  const layout = ticketCardLayout(el, ticket), colors = TICKET_CARD_COLORS, type = TICKET_CARD_TYPE;
+  const fontFamily = SVG_FONT_FAMILY[el.style.fontFamily ?? 'sans'];
+  const write = (value: string): string => escapeXmlText(xmlText(value, d, el));
+  const line = (x: number, y: number, size: number, weight: number, fill: string, value: string, anchor?: 'middle'): string =>
+    `<text${attrs({ x, y, 'font-size': size, 'font-family': fontFamily, 'font-weight': weight, 'text-anchor': anchor, 'dominant-baseline': 'central', fill })}>${write(value)}</text>`;
+  const state = colors.state[layout.state.status];
+  const middle = layout.key.y, chipMiddle = layout.chips.y + layout.chips.height / 2;
+  const fetched = ticketCardFetchedText(ticket.fetchedAt);
+  return [
+    `<rect${attrs({ x: layout.mark.x, y: layout.mark.y, width: layout.mark.size, height: layout.mark.size, rx: 6, fill: layout.mark.color })}/>`,
+    line(layout.mark.x + layout.mark.size / 2, middle, type.mark, 700, '#ffffff', layout.mark.text, 'middle'),
+    line(layout.key.x, middle, type.key, 650, colors.muted, layout.key.text),
+    `<rect${attrs({ x: layout.state.x, y: layout.state.y, width: layout.state.width, height: layout.state.height, rx: 11, fill: state.fill })}/>`,
+    line(layout.state.x + layout.state.width / 2, middle, type.state, 650, state.ink, layout.state.label, 'middle'),
+    `<text${attrs({ 'font-size': type.title, 'font-family': fontFamily, 'font-weight': 600, fill: el.style.textColor ? safeColor(el.style.textColor, d, el) : colors.ink })}>${layout.title.map((entry) => `<tspan${attrs({ x: entry.x, y: entry.y })}>${write(entry.text)}</tspan>`).join('')}</text>`,
+    `<text${attrs({ x: layout.meta.x, y: layout.meta.y, 'font-size': type.meta, 'font-family': fontFamily, 'font-weight': 500, fill: colors.muted })}>${write(layout.meta.text)}</text>`,
+    ...layout.chips.shown.flatMap((chip) => {
+      const tone = chip.component ? colors.component : colors.label;
+      return [`<rect${attrs({ x: chip.x, y: layout.chips.y, width: chip.width, height: layout.chips.height, rx: 6, fill: tone.fill })}/>`, line(chip.x + chip.width / 2, chipMiddle, type.chip, 550, tone.ink, chip.text, 'middle')];
+    }),
+    ...(layout.chips.more > 0 ? [line(layout.chips.moreX + 2, chipMiddle, type.chip, 600, colors.muted, `+${layout.chips.more}`)] : []),
+    ...(fetched ? [line(layout.footer.x, layout.footer.y, type.footer, 400, colors.muted, fetched)] : []),
+  ].join('');
+}
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {
   if (marker === 'none') return '';
   const er = ['exactly-one', 'many', 'zero-or-one', 'zero-or-many', 'one-or-many'].includes(marker);
@@ -252,12 +284,17 @@ function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: n
 function safeIcon(node: SafeSvgElementNode): string {
   return `<${node.tag}${attrs(node.attributes)}>${node.children.map(safeIcon).join('')}</${node.tag}>`;
 }
-function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.svg, picture: { withoutTitle?: boolean } = {}): string {
+function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.svg, picture: { withoutTitle?: boolean; earlyComponents?: boolean } = {}): string {
   // Picture 1 is what releases up to 0.1.8 wrote; it is drawn again only to verify a file of that version (#272).
   const legacy = projectionVersion < 2;
   // Picture 3 places the text of shapes and of free text as the canvas does (#277) and draws merged table cells
   // as one cell (#287).
   const placed = projectionVersion >= 3;
+  // Picture 4 draws a ticket card as the card of the canvas instead of a rectangle with its title (#283).
+  const cards = projectionVersion >= 4;
+  // Picture 4 also draws a rounded rectangle over its whole box with its corner radius, as the canvas does. Before,
+  // it was the outline of its toolbar symbol, a ninth of the size smaller on every side.
+  const roundedBox = projectionVersion >= 4;
   const out = new XmlOutputBuilder();
   const map = new Map(document.elements.map(el => [el.id, el]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -315,6 +352,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
     else if (shapeVariant) {
       if (shapeVariant === 'square') out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" data-sketchdraw-shape="square"${paint}/>`);
       else if (shapeVariant === 'circle') out.append(`<ellipse cx="${n(el.width / 2)}" cy="${n(el.height / 2)}" rx="${n(el.width / 2)}" ry="${n(el.height / 2)}" data-sketchdraw-shape="circle"${paint}/>`);
+      else if (shapeVariant === 'rounded' && roundedBox) { const radius = n(roundedCornerRadius(el)); out.append(`<rect x="0" y="0" width="${n(el.width)}" height="${n(el.height)}" rx="${radius}" ry="${radius}" data-sketchdraw-shape="rounded"${paint}/>`); }
       else if (shapeVariant === 'diamond') out.append(`<polygon points="${n(el.width / 2)},0 ${n(el.width)},${n(el.height / 2)} ${n(el.width / 2)},${n(el.height)} 0,${n(el.height / 2)}" data-sketchdraw-shape="diamond"${paint}/>`);
       else {
         const paths = SHAPE_PATHS[shapeVariant];
@@ -354,7 +392,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const card = isResourceCard(el) ? legacy ? legacyResourceCardIcon(el) : resourceCardLayout(el) : null;
       const figure = isIconFigure(el) ? figureLayout(el, shownText(el, legacy).split('\n').length).icon : null;
       const iconSize = figure ? figure.size : card ? card.iconSize : cloud ? cloud.layout.icon.size : Math.min(32, el.width, el.height);
-      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : legacy ? 4 : el.width / 2 - iconSize / 2, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : legacy ? 4 : Math.max(8, el.height * .15), width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
+      out.append(`<svg${attrs({ ...tree.attributes, x: figure ? figure.x : card ? card.icon.x : cloud ? cloud.layout.icon.x : legacy || picture.earlyComponents ? 4 : el.width / 2 - iconSize / 2, y: figure ? figure.y : card ? card.icon.y : cloud ? cloud.layout.icon.y : legacy || picture.earlyComponents ? 4 : Math.max(8, el.height * .15), width: iconSize, height: iconSize, viewBox: tree.viewBox, color: safeColor(el.style.stroke,d,el), opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
     const group = awsGroupOf(el);
     const groupIcon = group ? groupChrome(group, el.width, el.style.fontSize).icon : null;
@@ -362,7 +400,7 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
       const tree = resolveCatalogIcon(groupTileSvg(group, safeColor(el.style.stroke, d, el))).tree;
       out.append(`<svg${attrs({ ...tree.attributes, x: groupIcon.x, y: groupIcon.y, width: groupIcon.size, height: groupIcon.size, viewBox: tree.viewBox, opacity: el.style.opacity })}>${tree.children.map(safeIcon).join('')}</svg>`);
     }
-    const visibleText = isResourceCard(el) ? legacy ? resourceCardSvgContentV1(el, d) : resourceCardSvgContent(el, d, picture.withoutTitle) : cloud ? picture.withoutTitle ? cloud.providerText : cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${picture.withoutTitle ? '' : nativeText(el, d, legacy, placed)}${stickyAuthor(el, d)}`;
+    const visibleText = cards && isTicketCard(el) ? ticketCardSvgContent(el, d) : isResourceCard(el) ? legacy ? resourceCardSvgContentV1(el, d) : resourceCardSvgContent(el, d, picture.withoutTitle) : cloud ? picture.withoutTitle ? cloud.providerText : cloud.text : el.kind === 'annotation' ? annotationSvgContent(el, d) : ['table', 'web-embed'].includes(el.kind) ? '' : `${picture.withoutTitle ? '' : nativeText(el, d, legacy, placed, picture.earlyComponents)}${stickyAuthor(el, d)}`;
     const exportLink = el.kind === 'sticky-note' ? el.documentationUrl : undefined;
     out.append(exportLink
       ? `<a href="${escapeXmlAttr(exportLink)}">${visibleText}</a>`
@@ -372,6 +410,14 @@ function nativeSvg(document: SketchDocument, d: DiagnosticCollector, embed: bool
   out.append('</svg>');
   return out.toString();
 }
+/**
+ * Builds between releases 0.1.8 and 0.1.9 wrote more than one picture under the same number (#290): SVG picture 2
+ * first kept the symbol of a plain component in its corner (build 41dc689) and then centred it, and draw.io picture
+ * 3 first drew only components as pictures, with that early (stage 1, 41dc689) or the centred symbol (stage 2,
+ * 1fd1e8d), before notes and tables became pictures too. A file of such a build is still the picture its exporter
+ * drew, so each of these stages can be drawn again to verify it. Stage 0 is the picture the number stands for.
+ */
+type EarlyStage = 0 | 1 | 2;
 /** Element kinds draw.io has no shape for: they are written as the picture the canvas shows (#260). */
 const DRAWIO_PICTURE_KINDS: ReadonlySet<SketchElement['kind']> = new Set(['component', 'sticky-note', 'table', 'annotation', 'web-embed']);
 /** Of those, the kinds whose text draw.io writes itself on top of the picture, so it can be edited there. */
@@ -384,13 +430,14 @@ const DRAWIO_LABELLED_PICTURES: ReadonlySet<SketchElement['kind']> = new Set(['c
 /**
  * The SVG picture the pictures of a draw.io picture are drawn with. It is named per draw.io picture and does not
  * follow the current SVG picture: a change to the SVG export must not change what a draw.io file of an existing
- * picture number contains (#290). draw.io picture 5 took over SVG picture 3 (merged table cells, #287).
+ * picture number contains (#290). draw.io picture 5 took over SVG picture 3 (merged table cells, #287), picture 6
+ * SVG picture 4 (ticket cards, #283).
  */
-const drawioPictureSvg = (projectionVersion: ProjectionVersion): ProjectionVersion => projectionVersion >= 5 ? 3 : 2;
-function elementPicture(el: SketchElement, document: SketchDocument, withoutTitle: boolean, svgPicture: ProjectionVersion): string {
+const drawioPictureSvg = (projectionVersion: ProjectionVersion): ProjectionVersion => projectionVersion >= 6 ? 4 : projectionVersion >= 5 ? 3 : 2;
+function elementPicture(el: SketchElement, document: SketchDocument, withoutTitle: boolean, svgPicture: ProjectionVersion, earlyComponents = false): string {
   const single: SketchElement = { ...el, x: 0, y: 0, rotation: 0 };
   delete single.parentId;
-  const picture = nativeSvg({ ...document, elements: [single] }, new DiagnosticCollector(), false, svgPicture, { withoutTitle });
+  const picture = nativeSvg({ ...document, elements: [single] }, new DiagnosticCollector(), false, svgPicture, { withoutTitle, earlyComponents });
   // The frame of the card is drawn on its edge; half of it would be cut off at the border of the picture.
   const pad = Math.ceil(Math.max(1, el.style.strokeWidth) / 2);
   const framed = picture.replace(/^<svg [^>]*>/, `<svg${attrs({ xmlns: SVG_NS, viewBox: `${-pad} ${-pad} ${n(el.width + 2 * pad)} ${n(el.height + 2 * pad)}`, width: el.width, height: el.height })}>`);
@@ -417,7 +464,7 @@ function drawioLabelStyle(el: SketchElement, componentSets: readonly ComponentSe
 }
 /** Text as the HTML of a draw.io label: nothing but the characters and line breaks. */
 const drawioHtml = (text: string): string => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.drawio): string {
+function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: boolean, projectionVersion: ProjectionVersion = CURRENT_PROJECTION.drawio, stage: EarlyStage = 0): string {
   // Pictures 1 and 2 are drawn again only to verify a file of that version: they fell back to the label for an
   // emptied text and showed a component as a rectangle with its name.
   const legacyLabel = projectionVersion < 3;
@@ -435,10 +482,13 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     const el = syncConnectorEndpoints(raw, map), parent = el.parentId ? map.get(el.parentId) : undefined;
     const p = { x: parent?.x ?? 0, y: parent?.y ?? 0 };
     // The hidden text of a pictured table is what its cells show: from picture 5 on, nothing for a cell below a merge (#287).
-    const sourceText = el.kind === 'table' && el.table && projectionVersion >= 5 ? visibleTableText(el) : el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? shownText(el, legacyLabel).split('\n').map(line => line ? `• ${line}` : line).join('\n') : shownText(el, legacyLabel);
+    // From picture 6 on a ticket card is the picture of its card (#283); its hidden text names key and title.
+    const ticketCard = projectionVersion >= 6 && isTicketCard(el);
+    const sourceText = ticketCard ? ticketCardPlainText(el) : el.kind === 'table' && el.table && projectionVersion >= 5 ? visibleTableText(el) : el.kind === 'annotation' && el.annotation ? annotationPlainText(el.annotation) : el.style.listStyle === 'bullet' ? shownText(el, legacyLabel).split('\n').map(line => line ? `• ${line}` : line).join('\n') : shownText(el, legacyLabel);
     // Pictures 1 and 2 knew no pictures: every element was a draw.io shape with its text.
-    const pictured = !legacyLabel && DRAWIO_PICTURE_KINDS.has(el.kind);
-    const labelled = pictured && DRAWIO_LABELLED_PICTURES.has(el.kind);
+    // The first builds of picture 3 drew only components as pictures, with their text inside the picture.
+    const pictured = !legacyLabel && (stage ? el.kind === 'component' : ticketCard || DRAWIO_PICTURE_KINDS.has(el.kind));
+    const labelled = pictured && !stage && DRAWIO_LABELLED_PICTURES.has(el.kind);
     const text = labelled ? drawioHtml(xmlText(sourceText, d, el)) : xmlText(sourceText, d, el);
     const fontStyle = (el.style.fontWeight === 'bold' ? 1 : 0) + (el.style.textDecoration === 'line-through' ? 8 : 0);
     const shapeVariant = effectiveShapeVariant(el);
@@ -493,6 +543,8 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     }
     else if (el.kind === 'image')
       style.push('shape=image', `image=${document.assets[el.assetId!]!.dataUrl.replace(';base64,', ',')}`, 'imageAspect=0');
+    else if (pictured && stage)
+      style.push('shape=image', `image=${elementPicture(el, document, false, 2, stage === 1)}`, 'imageAspect=0', 'noLabel=1', `sketchdrawComponent=${encodeURIComponent(el.componentType ?? '')}`, ...(el.description ? [`sketchdrawDescription=${encodeURIComponent(el.description)}`] : []));
     else if (pictured && el.kind === 'component')
       style.push(`sketchdrawComponent=${encodeURIComponent(el.componentType ?? '')}`, ...(el.description ? [`sketchdrawDescription=${encodeURIComponent(el.description)}`] : []));
     else if (pictured && el.kind === 'sticky-note')
@@ -517,7 +569,7 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
     // text and shapes can be aligned to the top or the bottom (#296); picture 4 says so, earlier pictures did not.
     if (projectionVersion >= 4 && !pictured && supportsVerticalAlign(el.kind) && verticalAlignOf(el) !== 'middle')
       style.push(`verticalAlign=${verticalAlignOf(el)}`);
-    if (pictured) {
+    if (pictured && !stage) {
       // The picture shows the element; a text draw.io writes itself stands on top of it and can be edited there.
       // Any other text stays the value of the cell, hidden, so it is not lost and comes back on import.
       const entries: Record<string, string | number> = { shape: 'image', image: elementPicture(el, document, labelled, drawioPictureSvg(projectionVersion)), imageAspect: 0, ...(labelled ? drawioLabelStyle(el, componentSets, d) : { noLabel: 1 }) };
@@ -579,6 +631,19 @@ function nativeDrawio(document: SketchDocument, d: DiagnosticCollector, embed: b
 /** Internal comparison surface; old versions are never selected by export callers. */
 export function drawioProjectionForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): string {
   return nativeDrawio(document, new DiagnosticCollector(), false, projectionVersion);
+}
+/**
+ * Every picture a build has written under the given number, the one the number stands for first (#290). A file is
+ * the file of its exporter when it equals one of them; they are drawn one after another only until one fits.
+ */
+export function drawioProjectionsForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): Array<() => string> {
+  const stages: EarlyStage[] = projectionVersion === 3 ? [0, 2, 1] : [0];
+  return stages.map((stage) => () => nativeDrawio(document, new DiagnosticCollector(), false, projectionVersion, stage));
+}
+export function svgProjectionsForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): Array<() => string> {
+  const full = validateDocument(document);
+  const page = full.pages.length > 1 ? extractPage(full, full.pages[0]!.id) : full;
+  return (projectionVersion === 2 ? [false, true] : [false]).map((earlyComponents) => () => nativeSvg(page, new DiagnosticCollector(), true, projectionVersion, { earlyComponents }));
 }
 /** The SVG picture of an embedded document as the exporter of the given version drew it; see `drawioProjectionForValidation`. */
 export function svgProjectionForValidation(document: SketchDocument, projectionVersion: ProjectionVersion): string {

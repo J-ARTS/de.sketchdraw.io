@@ -1,0 +1,11 @@
+architecture-beta
+    service user(internet)[User]
+    service lb(server)[Load Balancer]
+    service app1(server)[App Server 1]
+    service app2(server)[App Server 2]
+    junction fanout
+
+    user:R -- L:lb
+    lb:R -- L:fanout
+    app1:B -- T:fanout
+    app2:T -- B:fanout

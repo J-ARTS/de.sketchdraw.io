@@ -85,7 +85,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     const folderA = path.join(root, 'project-a'); const folderB = path.join(root, 'project-b');
     await mkdir(folderA); await mkdir(folderB);
     const storePath = path.join(root, 'profile', 'plugins.json');
-    const store = async () => JSON.parse(await readFile(storePath, 'utf8').catch(() => '{}')) as { version?: number; activeProfileId?: string; profiles?: Array<{ id: string; name: string; git: Record<string, unknown>; atlassian: Record<string, unknown> }> };
+    const store = async () => JSON.parse(await readFile(storePath, 'utf8').catch(() => '{}')) as { version?: number; activeProfileId?: string; profiles?: Array<{ id: string; name: string; git: Record<string, unknown>; atlassian: Record<string, unknown>; azure?: Record<string, unknown> }> };
     const exists = (file: string) => readFile(file).then(() => true).catch(() => false);
     const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && !/^(ELECTRON_RUN_AS_NODE|ELECTRON_DISABLE_SANDBOX|NODE_OPTIONS|NODE_PATH|SKETCHDRAW_.*)$/i.test(entry[0])));
     app = await electron.launch({ args: [root], env: environment, chromiumSandbox: true });
@@ -127,6 +127,38 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect.poll(async () => (await store()).profiles?.[0]?.git?.remote).toBe('team');
     expect(await exists(path.join(folderA, '.sketchdraw-plugins.json'))).toBe(false);
     expect(await exists(path.join(folderA, '.git', 'HEAD'))).toBe(false);
+
+    // Azure DevOps (#284) is installed from the marketplace and saved through the real bridge; its settings land in the profile file.
+    await dialog.getByRole('tab', { name: /Marketplace/ }).click();
+    await dialog.getByRole('complementary').getByRole('button', { name: /^Azure DevOps\b/ }).click();
+    await dialog.getByRole('button', { name: 'Installieren', exact: true }).click();
+    const azure = dialog.getByTestId('azure-devops-config');
+    await azure.getByRole('radio', { name: /Azure DevOps Server/ }).check();
+    await azure.getByLabel('Adresse der Sammlung', { exact: true }).fill('https://tfs.example.com/tfs/DefaultCollection/');
+    await azure.getByLabel('Projekt', { exact: true }).fill('Shop');
+    await azure.getByTestId('azure-devops-save').click();
+    await expect.poll(async () => (await store()).profiles?.[0]?.azure).toMatchObject({ installed: true, enabled: false, variant: 'server', organizationUrl: 'https://tfs.example.com/tfs/DefaultCollection', project: 'Shop', apiVersion: '6.0' });
+    await azure.getByLabel('Adresse der Sammlung', { exact: true }).fill('http://tfs.example.com/tfs/DefaultCollection');
+    await azure.getByTestId('azure-devops-save').click();
+    await expect(dialog).toContainText('Azure DevOps wird nur über https angesprochen.');
+    // Ticket cards (#283) read, find and change single tickets through the same bridge. Every call reaches the
+    // service in the main process: it answers with its own refusals, and the plugin that is switched off stays off.
+    const refusal = (method: 'getWorkItem' | 'searchWorkItems' | 'updateWorkItemFields' | 'listAzureWikiPages' | 'setAzureWikiLiveLink' | 'publishAzureWikiLive', input: unknown) => page.evaluate(async ({ method, input }) => {
+      const plugins = (window as unknown as { sketchdraw: { plugins: Record<string, (value: unknown) => Promise<unknown>> } }).sketchdraw.plugins;
+      return plugins[method]!(input).then((value) => `answered: ${JSON.stringify(value)}`, (error: Error) => error.message);
+    }, { method, input });
+    expect(await refusal('getWorkItem', { provider: 'trello', key: '1' })).toContain('Unbekanntes Ticket-System.');
+    expect(await refusal('updateWorkItemFields', { provider: 'trello', key: '1', title: 'x' })).toContain('Unbekanntes Ticket-System.');
+    expect(await refusal('updateWorkItemFields', { provider: 'azure-devops', key: '1', status: 'archived' })).toContain('Ungültiger Status.');
+    expect(await refusal('searchWorkItems', { provider: 'azure-devops', query: '' })).toBe('answered: []');
+    expect(await refusal('getWorkItem', { provider: 'azure-devops', key: '7' })).toContain('Azure-DevOps-Plugin ist deaktiviert.');
+    // The wiki of Azure DevOps (#284) goes the same way: the plugin that is switched off finds, links and publishes nothing.
+    expect(await refusal('listAzureWikiPages', 'architektur')).toContain('Azure-DevOps-Plugin ist deaktiviert.');
+    expect(await refusal('setAzureWikiLiveLink', { handleId: 'unbekannt', documentId: 'doc', diagramPageId: 'page:1', wikiPage: 'wiki\n/Seite' })).toContain('Das Dokument gehört nicht zum aktuellen Projektordner.');
+    expect(await refusal('publishAzureWikiLive', { handleId: 'unbekannt', documentId: 'doc', title: 'x', diagramPageId: 'page:1', images: [] })).toContain('"status":"failed"');
+    await dialog.getByRole('button', { name: 'Deinstallieren', exact: true }).click();
+    await expect.poll(async () => (await store()).profiles?.[0]?.azure).toBeUndefined();
+    await dialog.getByRole('tab', { name: /Installiert/ }).click();
 
     // A second profile is created in the profile dialog behind the pen of the workspace menu; it starts empty and keeps its own settings.
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();

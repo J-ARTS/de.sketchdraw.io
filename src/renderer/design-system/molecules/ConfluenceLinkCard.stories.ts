@@ -24,3 +24,5 @@ export const Paused: Story = { args: { status: { state: 'paused', message: 'Das 
 export const Busy: Story = { args: { busy: true } };
 /** A long title wraps inside the card. */
 export const LongTitle: Story = { args: { title: 'Referenzarchitektur AWS Bedrock AgentCore mit Gateway, Identity, Memory und Observability – Zielbild 2027' } };
+/** The same card for a page of the Azure DevOps wiki (#284): the wording names the wiki. */
+export const AzureDevOpsWiki: Story = { args: { provider: 'azure-devops', title: 'Shop.wiki/Architektur/Übersicht', siteUrl: 'https://dev.azure.com/acme', status: { state: 'synced', message: '', syncedAt: '2026-11-23T08:12:00.000Z' } } };

@@ -15,7 +15,11 @@ export type FlowEdgeKind = 'flow' | 'message' | 'association' | 'line';
 export type FlowDirection = 'LR' | 'TD';
 export interface FlowNode { id: string; shape: FlowShape; type: string | null; text: string; group: string | null }
 export interface FlowGroup { id: string; text: string; parent: string | null }
-export interface FlowEdge { from: string; to: string; text: string; kind: FlowEdgeKind }
+export interface FlowEdge {
+  from: string; to: string; text: string; kind: FlowEdgeKind;
+  /** An arrowhead at both ends of a sequence or message flow (`<-->`, `<-.->`). Without it the start has the look of its kind (#292). */
+  both?: boolean;
+}
 export interface FlowModel { direction: FlowDirection; groups: FlowGroup[]; nodes: FlowNode[]; edges: FlowEdge[] }
 export interface FlowDiagram {
   model: FlowModel;
@@ -65,6 +69,10 @@ function edgeKind(element: SketchElement): FlowEdgeKind {
   const arrow = Boolean(element.endMarker && element.endMarker !== 'none');
   return broken ? (arrow ? 'message' : 'association') : arrow ? 'flow' : 'line';
 }
+/** A marker that is an arrowhead; a circle or a diamond at the start is part of the look of a kind, not a direction. */
+const isArrowHead = (marker: ConnectorMarker | null | undefined): boolean => Boolean(marker && (marker.includes('arrow') || marker.includes('triangle')));
+/** Whether a connector points both ways: an arrowhead at its start as well as at its end. */
+const pointsBothWays = (element: SketchElement): boolean => isArrowHead(element.startMarker) && isArrowHead(element.endMarker);
 const EDGE_LOOK: Readonly<Record<FlowEdgeKind, { dash: ElementStyle['strokeDash']; start: ConnectorMarker; end: ConnectorMarker }>> = Object.freeze({
   flow: { dash: 'solid', start: 'none', end: 'solid-arrow' }, message: { dash: 'dashed', start: 'circle', end: 'triangle' },
   association: { dash: 'dotted', start: 'none', end: 'none' }, line: { dash: 'solid', start: 'none', end: 'none' },
@@ -129,7 +137,7 @@ export function readFlow(elements: readonly SketchElement[], elementId: string):
     direction,
     groups: orderedGroups.map((group) => ({ id: idOf.get(group.id)!, text: group.text ?? group.label ?? '', parent: owner(group) })),
     nodes: orderedNodes.map((node) => ({ id: idOf.get(node.id)!, ...kinds.get(node.id)!, text: node.text ?? '', group: owner(node) })),
-    edges: sortedEdges.map((edge) => ({ from: idOf.get(edge.from!.elementId)!, to: idOf.get(edge.to!.elementId)!, text: edge.text ?? '', kind: edgeKind(edge) })),
+    edges: sortedEdges.map((edge) => ({ from: idOf.get(edge.from!.elementId)!, to: idOf.get(edge.to!.elementId)!, text: edge.text ?? '', kind: edgeKind(edge), ...(pointsBothWays(edge) ? { both: true } : {}) })),
   };
   return {
     model,
@@ -331,16 +339,19 @@ export function planFlow(elements: readonly SketchElement[], diagram: FlowDiagra
     const [from, to] = [elementOf.get(edge.from), elementOf.get(edge.to)];
     if (!from || !to || !nextNodes.has(edge.from) || !nextNodes.has(edge.to)) continue;
     const look = EDGE_LOOK[edge.kind];
+    // Both ways: the start carries the arrowhead of the end.
+    const both = Boolean(edge.both) && isArrowHead(look.end);
+    const start = both ? look.end : look.start;
     const existing = byId.get(waiting.get(`${edge.from}>${edge.to}`)?.shift() ?? '');
     if (existing) {
       if ((existing.text ?? '') !== edge.text) patch(existing.id, { text: edge.text || null });
-      if (edgeKind(existing) !== edge.kind) patch(existing.id, { startMarker: look.start, endMarker: look.end, style: { strokeDash: look.dash } });
+      if (edgeKind(existing) !== edge.kind || pointsBothWays(existing) !== both) patch(existing.id, { startMarker: start, endMarker: look.end, style: { strokeDash: look.dash } });
       if (existing.from!.elementId !== from) patch(existing.id, { from: { elementId: from, anchor: existing.from!.anchor } });
       if (existing.to!.elementId !== to) patch(existing.id, { to: { elementId: to, anchor: existing.to!.anchor } });
       continue;
     }
     const routed = routeBoundConnector({ kind: 'connector', id: createId('connector'), from: { elementId: from }, to: { elementId: to } }, (id) => finalBox.get(id)) as Partial<SketchElement> & { id: string };
-    addedEdges.push(onPage(createElement('connector', { ...routed, startMarker: look.start, endMarker: look.end, ...(edge.text ? { text: edge.text } : {}), style: { ...DEFAULT_STYLE, fontSize: 14, strokeDash: look.dash } })));
+    addedEdges.push(onPage(createElement('connector', { ...routed, startMarker: start, endMarker: look.end, ...(edge.text ? { text: edge.text } : {}), style: { ...DEFAULT_STYLE, fontSize: 14, strokeDash: look.dash } })));
   }
   for (const ids of waiting.values()) for (const id of ids) deletes.add(id);
 

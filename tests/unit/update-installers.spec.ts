@@ -11,6 +11,7 @@ import {
   createMacInstaller,
   createPlatformInstaller,
   createWindowsInstaller,
+  MAC_ATTACH_ATTEMPTS,
   MAC_STAGING_PREFIX,
   MAC_SWAP_SCRIPT,
   macBundlePath,
@@ -99,12 +100,15 @@ describe.skipIf(process.platform === 'win32')('macOS installer steps', () => {
   let bundle: string;
   let runner: ReturnType<typeof recorder>;
   let image: { identifier: string; version: string; apps: string[] };
+  /** What each attach found in the file it was given. */
+  let attachedCopies: string[];
 
   /** Stands in for hdiutil, plutil and ditto: the "disk image" is a folder that attach fills. */
   function macTools(): ReturnType<typeof recorder> {
     return recorder(({ command, args }) => {
       if (command.endsWith('hdiutil') && args[0] === 'attach') {
         const mount = args[args.indexOf('-mountpoint') + 1]!;
+        attachedCopies.push(readFileSync(args.at(-1)!, 'utf8'));
         for (const app of image.apps) {
           mkdirSync(join(mount, app, 'Contents', 'MacOS'), { recursive: true });
           writeFileSync(join(mount, app, 'Contents', 'Info.plist'), 'plist');
@@ -124,7 +128,10 @@ describe.skipIf(process.platform === 'win32')('macOS installer steps', () => {
     mkdirSync(join(bundle, 'Contents', 'MacOS'), { recursive: true });
     writeFileSync(join(bundle, 'Contents', 'MacOS', 'Sketchdraw'), 'old 0.1.6');
     mkdirSync(join(root, 'tmp'));
+    // The downloaded files: the installer attaches a private copy of each, so they must exist.
+    for (const name of ['x.dmg', 'Sketchdraw-0.1.7-macos-arm64.dmg']) writeFileSync(join(root, name), `disk image ${name}`);
     image = { identifier: APP_BUNDLE_ID, version: '0.1.7', apps: ['Sketchdraw.app'] };
+    attachedCopies = [];
     runner = macTools();
   });
   afterEach(() => { rmSync(root, { recursive: true, force: true }); });
@@ -137,15 +144,21 @@ describe.skipIf(process.platform === 'win32')('macOS installer steps', () => {
 
     const [attach, identifier, version, ditto, detach] = runner.runs;
     const mount = attach!.args.at(-2)!;
-    expect(attach).toEqual({ command: '/usr/bin/hdiutil', args: ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, join(root, 'Sketchdraw-0.1.7-macos-arm64.dmg')] });
+    // The image is attached from a private copy named after the mount folder, never from the downloaded file itself.
+    expect(attach).toEqual({ command: '/usr/bin/hdiutil', args: ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, `${mount}.dmg`] });
+    expect(attachedCopies).toEqual(['disk image Sketchdraw-0.1.7-macos-arm64.dmg']);
     expect(mount.startsWith(join(root, 'tmp', 'sketchdraw-update-'))).toBe(true);
     expect(identifier).toEqual({ command: '/usr/bin/plutil', args: ['-extract', 'CFBundleIdentifier', 'raw', '-o', '-', join(mount, 'Sketchdraw.app', 'Contents', 'Info.plist')] });
     expect(version!.args[1]).toBe('CFBundleShortVersionString');
     const [staging] = stagingFolders();
     const staged = join(root, 'Applications', staging!, 'Sketchdraw.app');
     expect(ditto).toEqual({ command: '/usr/bin/ditto', args: [join(mount, 'Sketchdraw.app'), staged] });
-    expect(detach).toEqual({ command: '/usr/bin/hdiutil', args: ['detach', mount, '-force'] });
+    expect(detach).toEqual({ command: '/usr/bin/hdiutil', args: ['detach', mount] });
+    expect(runner.runs).toHaveLength(5);
     expect(existsSync(mount)).toBe(false);
+    // Neither the mount folder nor the private copy is left, and the download is untouched.
+    expect(readdirSync(join(root, 'tmp'))).toEqual([]);
+    expect(readFileSync(join(root, 'Sketchdraw-0.1.7-macos-arm64.dmg'), 'utf8')).toBe('disk image Sketchdraw-0.1.7-macos-arm64.dmg');
     expect(readFileSync(join(staged, 'Contents', 'MacOS', 'Sketchdraw'), 'utf8')).toBe('new 0.1.7');
     // The running app is untouched until it quits.
     expect(readFileSync(join(bundle, 'Contents', 'MacOS', 'Sketchdraw'), 'utf8')).toBe('old 0.1.6');
@@ -165,6 +178,47 @@ describe.skipIf(process.platform === 'win32')('macOS installer steps', () => {
       expect(runner.runs.some((call) => call.command.endsWith('ditto'))).toBe(false);
       expect(readdirSync(join(root, 'tmp'))).toEqual([]);
     }
+  });
+
+  it('attaches again while macOS reports the disk image service busy, and gives up after a few attempts (#297)', async () => {
+    const busy = { code: 1, stderr: 'hdiutil: attach failed - Resource temporarily unavailable' };
+    const patient = (failures: number) => {
+      const tools = macTools();
+      let attaches = 0;
+      const run: CommandRunner['run'] = async (command, args) => {
+        if (command.endsWith('hdiutil') && args[0] === 'attach' && (attaches += 1) <= failures) { tools.runs.push({ command, args: [...args] }); return { stdout: '', ...busy }; }
+        return tools.run(command, args);
+      };
+      return { tools, installer: createMacInstaller({ execPath: join(bundle, 'Contents', 'MacOS', 'Sketchdraw'), pid: 4242, runner: { ...tools, run }, tmpDir: join(root, 'tmp'), failureMarker: join(root, 'update-failed'), bundleId: APP_BUNDLE_ID, attachRetryMs: 1 }) };
+    };
+    const attachCalls = (tools: ReturnType<typeof recorder>) => tools.runs.filter((call) => call.args[0] === 'attach').length;
+
+    const passing = patient(2);
+    await passing.installer.install(join(root, 'x.dmg'), '0.1.7');
+    expect(attachCalls(passing.tools)).toBe(3);
+    expect(stagingFolders()).toHaveLength(1);
+
+    const stuck = patient(MAC_ATTACH_ATTEMPTS);
+    await expect(stuck.installer.install(join(root, 'x.dmg'), '0.1.7')).rejects.toMatchObject({ problem: 'install', message: expect.stringContaining('Resource temporarily unavailable') });
+    expect(attachCalls(stuck.tools)).toBe(MAC_ATTACH_ATTEMPTS);
+    // Nothing was attached, so nothing is detached, and the mount folder is gone.
+    expect(stuck.tools.runs.some((call) => call.args[0] === 'detach')).toBe(false);
+    expect(readdirSync(join(root, 'tmp'))).toEqual([]);
+  });
+
+  it('asks macOS to let go of the image and forces it only when that is refused; a download that is gone fails before anything is attached', async () => {
+    const tools = macTools();
+    runner = { ...tools, run: async (command, args) => (command.endsWith('hdiutil') && args[0] === 'detach' && !args.includes('-force') ? (tools.runs.push({ command, args: [...args] }), { code: 16, stdout: '', stderr: 'hdiutil: couldn\'t unmount "disk4" - Resource busy' }) : tools.run(command, args)) };
+    await installer().install(join(root, 'x.dmg'), '0.1.7');
+    const mount = tools.runs[0]!.args.at(-2)!;
+    expect(tools.runs.slice(-2).map((call) => call.args)).toEqual([['detach', mount], ['detach', mount, '-force']]);
+    expect(readdirSync(join(root, 'tmp'))).toEqual([]);
+
+    const missing = macTools();
+    runner = missing;
+    await expect(installer().install(join(root, 'not-downloaded.dmg'), '0.1.7')).rejects.toMatchObject({ problem: 'install', message: expect.stringContaining('Preparing the disk image failed') });
+    expect(missing.runs).toEqual([]);
+    expect(readdirSync(join(root, 'tmp'))).toEqual([]);
   });
 
   it('reports a failing tool as a failed installation and detaches only what it attached', async () => {

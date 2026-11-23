@@ -175,6 +175,22 @@ A small picture of a connector end (arrow, circle, diamond …) for the menus th
 
 A few atoms that do one thing together.
 
+### AgentSkillSettings
+
+The agent section of the settings: the switch that lets the desktop app keep its skill in the skill folders of Claude Code, Codex and Antigravity up to date, and where the skill stands for each of them. It only shows a status and reports what the user chose; the desktop app does the writing.
+
+- File: `src/renderer/design-system/molecules/AgentSkillSettings.vue`
+- Story: `src/renderer/design-system/molecules/AgentSkillSettings.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `status` | `AgentSkillStatus` | yes |  | Where the skill stands, as the desktop app reports it. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `replace` | `[client: AgentSkillClientId]` |  |
+| `update:automatic` | `[enabled: boolean]` |  |
+
 ### AnnotationContent
 
 The content of an annotation on the canvas: its number badge and text, drawn inside the SVG of an element.
@@ -278,7 +294,7 @@ The colour choice of the app: theme palette, recent colours and a free hex value
 
 ### ConfluenceLinkCard
 
-The live link of one diagram page to a Confluence page: where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store.
+The live link of one diagram page to a page of a wiki (Confluence or Azure DevOps): where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store.
 
 - File: `src/renderer/design-system/molecules/ConfluenceLinkCard.vue`
 - Story: `src/renderer/design-system/molecules/ConfluenceLinkCard.stories.ts`
@@ -290,6 +306,7 @@ The live link of one diagram page to a Confluence page: where it goes, what the 
 | `title` | `string` | yes |  | Title of the linked Confluence page. |
 | `busy` | `boolean \| undefined` | no | `false` | Another operation is running: no action can start. |
 | `lastSyncedAt` | `string \| undefined` | no |  | Time of the last confirmed publication as stored with the link; `status.syncedAt` wins when it is newer knowledge. |
+| `provider` | `WikiProviderId \| undefined` | no | `"confluence"` | The wiki the page is in; the wording follows it. Default: Confluence. |
 
 | Event | Payload | Description |
 | --- | --- | --- |
@@ -411,6 +428,19 @@ One task as a card: title, state, assignee, due date and cover, with its inline 
 | `menu` | `[event: MouseEvent]` |  |
 | `open` | `[]` |  |
 
+### TicketCardDecor
+
+What makes a rectangle a ticket card on the canvas: tracker and key, state, title, assignee, estimate, labels and the time the ticket was last read.
+
+- File: `src/renderer/design-system/molecules/TicketCardDecor.vue`
+- Story: `src/renderer/design-system/molecules/TicketCardDecor.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `element` | `SketchElement` | yes |  | The rectangle that carries the ticket. |
+| `ticket` | `TicketCardData` | yes |  | The ticket as read from the element (`readTicketCard`). |
+| `theme` | `ThemeName \| undefined` | no |  | The theme of the canvas; the colours of the card follow it like those of every element. Default: light. |
+
 ### UpdateSettings
 
 The update section of the settings: installed version, what the last check found, the action that fits it and the switch for the automatic check. It only shows a status and reports what the user chose; checking and installing happen in the desktop app.
@@ -475,7 +505,7 @@ Comment pins and the open comment thread, laid over the canvas.
 
 ### ConfluencePageLinkDialog
 
-The modal dialog that links one page of the diagram to a Confluence page (#240): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page.
+The modal dialog that links one page of the diagram to a page of a wiki, Confluence (#240) or the Azure DevOps wiki (#284): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page.
 
 - File: `src/renderer/design-system/organisms/ConfluencePageLinkDialog.vue`
 
@@ -653,7 +683,7 @@ The small overview of the page with the visible area, for jumping around large b
 
 ### PageSwitcher
 
-The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active.
+The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when a wiki plugin (Confluence, Azure DevOps) is active.
 
 - File: `src/renderer/design-system/organisms/PageSwitcher.vue`
 
@@ -754,7 +784,7 @@ The session button of the workspace bar and its menu. It is shown while this dev
 
 ### SettingsDialog
 
-The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates.
+The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates and the skill for AI agents.
 
 - File: `src/renderer/design-system/organisms/SettingsDialog.vue`
 
@@ -790,6 +820,12 @@ The editing layer over a selected table: cell selection, typing and keyboard nav
 The task view of the workspace: tasks as columns of cards, with the forms to create and edit them.
 
 - File: `src/renderer/design-system/organisms/TaskBoard.vue`
+
+### TicketCardDialog
+
+The modal dialog of ticket cards (#283): find a ticket of Jira or Azure Boards and put it on the canvas as a card, or edit the ticket of a card. Opened through `store.openTicketInsert` and `store.openTicketCard`; mounted once in the workspace page.
+
+- File: `src/renderer/design-system/organisms/TicketCardDialog.vue`
 
 ### ToolOptionsBar
 

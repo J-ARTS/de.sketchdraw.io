@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
-import { confluencePluginActive } from '@/domain';
+import { azureDevOpsPluginActive, jiraPluginActive } from '@/domain';
 import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
 import { useElementSize, useEventListener } from '@vueuse/core';
 import { attachRendererAgentSession, type RendererAgentSession } from '@/agent-access/renderer-session';
@@ -31,6 +31,7 @@ import PresenterMode from '@/renderer/design-system/organisms/PresenterMode.vue'
 import PluginSettings from '@/renderer/design-system/organisms/PluginSettings.vue';
 import ProfileDialog from '@/renderer/design-system/organisms/ProfileDialog.vue';
 import ConfluencePageLinkDialog from '@/renderer/design-system/organisms/ConfluencePageLinkDialog.vue';
+import TicketCardDialog from '@/renderer/design-system/organisms/TicketCardDialog.vue';
 import GitDialog from '@/renderer/design-system/organisms/GitDialog.vue';
 import SettingsDialog from '@/renderer/design-system/organisms/SettingsDialog.vue';
 import { resolveCanvasBackground } from '@/renderer/lib/preferences';
@@ -42,11 +43,12 @@ const stopJiraAutoSync = startJiraAutoSync({
   isReady: () => Boolean(
     s.file.handle && !s.roomGuest && s.canWrite && !s.transitioning && !s.pluginBusy
     && s.pluginSettings?.available && s.pluginSettings.projectFolder
-    && confluencePluginActive(s.pluginSettings.atlassian)
-    && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
-    && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey,
+    && ((jiraPluginActive(s.pluginSettings.atlassian)
+      && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
+      && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey)
+      || (azureDevOpsPluginActive(s.pluginSettings.azureDevOps) && s.pluginSettings.azureDevOps?.credentialStored)),
   ),
-  sync: () => store.syncJiraTasks({ announce: false }),
+  sync: () => store.syncTicketTasks({ announce: false }),
 });
 const collaborationOpen = ref(false);
 /** A session link the app was opened with (`#sketchdraw-hdht=…` or a `sketchdraw://join` app link); the panel prefills it and the fragment is removed. */
@@ -190,6 +192,7 @@ onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dis
       <span class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ s.liveMessage }}</span>
       <AppDialog />
       <ConfluencePageLinkDialog />
+      <TicketCardDialog />
       <PresenterMode v-if="s.presenterOpen" />
     </template>
   </WorkspaceLayout>

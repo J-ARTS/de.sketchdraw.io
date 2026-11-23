@@ -28,6 +28,7 @@ export { default as AnnotationContent } from './molecules/AnnotationContent.vue'
 export { default as AppDatePicker } from './molecules/AppDatePicker.vue';
 export { default as AppSelect } from './molecules/AppSelect.vue';
 export { default as BpmnDecor } from './molecules/BpmnDecor.vue';
+export { default as TicketCardDecor } from './molecules/TicketCardDecor.vue';
 export { default as ColorPalette } from './molecules/ColorPalette.vue';
 export { default as ColorPicker } from './molecules/ColorPicker.vue';
 export { default as DiffView } from './molecules/DiffView.vue';
@@ -39,6 +40,7 @@ export { default as ConfluenceLinkCard } from './molecules/ConfluenceLinkCard.vu
 export { default as FindReplaceBar } from './molecules/FindReplaceBar.vue';
 export { default as TaskCard } from './molecules/TaskCard.vue';
 export { default as UpdateSettings } from './molecules/UpdateSettings.vue';
+export { default as AgentSkillSettings } from './molecules/AgentSkillSettings.vue';
 
 // organisms
 export { default as AnnotationEditor } from './organisms/AnnotationEditor.vue';
@@ -55,6 +57,7 @@ export { default as FramePreview } from './organisms/FramePreview.vue';
 export { default as FrameSidebar } from './organisms/FrameSidebar.vue';
 export { default as FollowIndicator } from './organisms/FollowIndicator.vue';
 export { default as ConfluencePageLinkDialog } from './organisms/ConfluencePageLinkDialog.vue';
+export { default as TicketCardDialog } from './organisms/TicketCardDialog.vue';
 export { default as GitDialog } from './organisms/GitDialog.vue';
 export { default as HdhtSession } from './organisms/HdhtSession.vue';
 export { default as InteropPanel } from './organisms/InteropPanel.vue';
@@ -93,4 +96,5 @@ export { ICON_PATHS, type IconName } from './atoms/icons';
 export { useWhiteboard } from './composables/use-whiteboard';
 export { useAnchoredPopover } from './composables/use-anchored-popover';
 export { useAppUpdates } from './composables/use-app-updates';
+export { useAgentSkill } from './composables/use-agent-skill';
 export { useHorizontalOverflow } from './composables/use-horizontal-overflow';

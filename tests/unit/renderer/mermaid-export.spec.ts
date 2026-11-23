@@ -31,6 +31,22 @@ describe('Mermaid export keeps the type of the diagram (#261)', () => {
     expect(result.diagnostics.filter((entry) => entry.severity === 'warning')).toEqual([]);
   });
 
+  it('a sequence with an open arrow (A-)B) still comes back as the whole document: second page and tasks included (#288)', () => {
+    const code = 'sequenceDiagram\n    participant A\n    participant B\n    A-)B: Ereignis\n';
+    let document = documentWith(sequenceElements(code), 'Asynchron');
+    document = applyCommand(document, { type: 'add-page', page: { id: 'page:zwei', name: 'Zweite Seite' } });
+    document = applyCommand(document, { type: 'set-tasks', tasks: [{ id: 'task:1', title: 'Nicht verlieren', description: '', status: 'todo', rank: 0, createdAt: '2026-11-22T10:00:00.000Z', updatedAt: '2026-11-22T10:00:00.000Z' }] });
+    const exported = prepareMermaidCodeExport(document, { pageId: document.pages[0]!.id }).contents;
+    expect(visible(exported)).toContain('A-)B: Ereignis');
+    const restored = importMermaidCode(exported);
+    expect(restored.fidelity).toBe('own-roundtrip');
+    expect(restored.document.pages.map((page) => page.name)).toEqual([document.pages[0]!.name, 'Zweite Seite']);
+    expect(restored.document.tasks).toMatchObject([{ title: 'Nicht verlieren' }]);
+    // The same line inside a label is text and no authority to restore a hidden document.
+    const forged = 'flowchart LR\n  A["x\n%% sketchdraw-mermaid 0 abc"] --> B\n';
+    expect(importMermaid(forged).fidelity).not.toBe('own-roundtrip');
+  });
+
   it('what it wrote is read back: unchanged as the whole document, edited as the code that stands there', () => {
     const document = documentWith(sequenceElements(), 'Mit Sequenz');
     const exported = prepareMermaidCodeExport(document).contents;

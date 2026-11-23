@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, wikiPageLinks, WIKI_PROVIDER_NAME, type WikiProvider, type WikiProviderId, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -11,9 +11,9 @@ import {
   type ComponentSet, type DocumentCommand, type DocumentSession, type ElementPatch,
   type Point, type SketchDocument, type SketchElement, type ElementStyle, type AnnotationDocument, type TableCellStyle, type TableDocument,
   type ShapeVariant, type CommentTarget, type CommentThread, type CommentMessage, type SketchTask, effectiveShapeVariant, shapeBaseKind,
-  FRAME_ORDER_METADATA_KEY, frameOrderMetadata, nextFrameLabel, orderedFrames,
+  FRAME_ORDER_METADATA_KEY, frameOrderForPage, frameOrderMetadata, nextFrameLabel, orderedFrames,
   annotationToConfluenceStorage, confluenceStorageToAnnotation,
-  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent,
+  type ConfigureAtlassianPluginInput, type ConfigureGitPluginInput, type ConfluenceLiveImage, type DesktopBridge, type GitWorkbenchResult, type JiraIssueSummary, type PluginExternalEvent, type TicketProvider, type TaskStatus,
   supportsVerticalAlign, verticalAlignOf,
 } from '@/domain';
 import { createConfluenceLiveSync, type ConfluenceLiveContext, type ConfluenceLiveSync } from './confluence-live-sync';
@@ -50,6 +50,7 @@ import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedL
 import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
 import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
 import { diagramCodeDiagnostics, diagramCodeView } from '../lib/diagram-code';
+import { MERMAID_CODE_KEY, mermaidCodeOf, mermaidDiagramName, MermaidRenderError, renderMermaidImage } from '../lib/mermaid-render';
 import { parseFlowCode } from '../lib/flow-code';
 import { planFlow, readFlow } from '../lib/flow-model';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
@@ -101,7 +102,7 @@ type Gesture = {
 };
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: boolean): void {
+function applyTicket(task: SketchTask, provider: TicketProvider, issue: JiraIssueSummary, pullContent: boolean): void {
   if (pullContent) {
     task.title = issue.title;
     task.description = issue.description;
@@ -110,7 +111,7 @@ function applyJiraIssue(task: SketchTask, issue: JiraIssueSummary, pullContent: 
   }
   if (issue.assignee) task.assignee = issue.assignee; else delete task.assignee;
   if (issue.dueDate) task.dueDate = issue.dueDate; else delete task.dueDate;
-  task.external = { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt };
+  task.external = { provider, remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt };
 }
 const freshFile = (): FileState => ({ handle: null, savedRevision: null, handedOffRevision: null, saving: false, lastError: null, conflict: false });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -196,6 +197,175 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   const pluginContextCurrent = (generation: number) => !disposed && generation === pluginGeneration;
   const hasPluginProject = () => Boolean(currentPluginHandle() && state.pluginSettings?.available && state.pluginSettings.projectFolder);
   /**
+   * What the task board asks of a ticket system (#281). Jira and Azure Boards answer the same four questions; the
+   * board does not know which of them a task belongs to beyond the name it shows.
+   */
+  interface TicketApi {
+    provider: TicketProvider;
+    name: string;
+    /** False for a connection that only reads: nothing is created or changed there. */
+    writable: boolean;
+    /**
+     * Whether a ticket reference belongs to the site this connection talks to. Two Jira sites can both have a
+     * TEAM-7: a card of the other site is neither refreshed from this one nor written to it (#286).
+     */
+    owns(reference: { url: string }): boolean;
+    list(): Promise<JiraIssueSummary[]>;
+    create(input: { title: string; description: string; assignee?: string; dueDate?: string }): Promise<JiraIssueSummary>;
+    update(input: { key: string; title?: string; description?: string; assignee?: string | null; dueDate?: string | null }): Promise<JiraIssueSummary>;
+    transition(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
+  }
+  /** Whether an address lies under the address of a site (a Jira site, an Azure DevOps organization or collection). */
+  const ownsUrl = (site: string) => ({ url }: { url: string }): boolean => Boolean(site) && url.toLowerCase().startsWith(`${site.replace(/\/+$/, '').toLowerCase()}/`);
+  /** The ticket system of that name, or null while its plugin is off or the diagram is not a saved local one. */
+  function ticketApi(provider: TicketProvider): TicketApi | null {
+    const plugins = bridge.plugins;
+    if (!plugins || !hasPluginProject()) return null;
+    if (provider === 'jira') {
+      if (!jiraPluginActive(state.pluginSettings?.atlassian)) return null;
+      return { provider, name: TICKET_PROVIDER_NAME.jira, writable: true, owns: ownsUrl(state.pluginSettings!.atlassian.siteUrl), list: () => plugins.listJiraIssues(), create: (input) => plugins.createJiraIssue(input), update: (input) => plugins.updateJiraIssue(input), transition: (input) => plugins.transitionJiraIssue(input) };
+    }
+    const azure = state.pluginSettings?.azureDevOps;
+    const { listAzureWorkItems: list, createAzureWorkItem: create, updateAzureWorkItem: update, transitionAzureWorkItem: transition } = plugins;
+    if (!azureDevOpsPluginActive(azure) || !list || !create || !update || !transition) return null;
+    return { provider, name: TICKET_PROVIDER_NAME['azure-devops'], writable: !azure!.readOnly, owns: ownsUrl(azure!.organizationUrl), list: () => list(), create: (input) => create(input), update: (input) => update(input), transition: (input) => transition(input) };
+  }
+  const TICKET_PROVIDERS: readonly TicketProvider[] = ['jira', 'azure-devops'];
+  const activeTicketApis = (): TicketApi[] => TICKET_PROVIDERS.flatMap((provider) => { const api = ticketApi(provider); return api ? [api] : []; });
+  /** The systems a new ticket can be created in, Jira first: the first one receives the ticket of a new task. */
+  const writableTicketApis = (): TicketApi[] => activeTicketApis().filter((api) => api.writable);
+  const jiraAvailable = () => ticketApi('jira') !== null;
+  /**
+   * Creates the ticket of a task that has none and links the two. A task gets one request at a time: a second
+   * call while the first is on its way is refused, so one task never ends up with two tickets (#293). A failure
+   * leaves the task as it is; `failure` words the notice, and the task offers the step again.
+   */
+  async function linkTaskToTicket(taskId: string, provider: TicketProvider | undefined, generation: number, failure: (name: string, message: string) => string): Promise<boolean> {
+    const api = provider ? writableTicketApis().find((entry) => entry.provider === provider) : writableTicketApis()[0];
+    const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
+    if (!api || !task || task.external || state.jiraCreatingTaskIds.includes(taskId)) return false;
+    state.jiraCreatingTaskIds = [...state.jiraCreatingTaskIds, taskId];
+    try {
+      const issue = await api.create({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
+      if (!pluginContextCurrent(generation)) return false;
+      const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === taskId);
+      if (!stored || stored.external) return false;
+      applyTicket(stored, api.provider, issue, true);
+      if (!await dispatch({ type: 'set-tasks', tasks })) return false;
+      notice(t('Ticket {key} in {name} erstellt.', { name: api.name, key: issue.key }));
+      return true;
+    } catch (error) {
+      if (pluginContextCurrent(generation)) notice(failure(api.name, error instanceof Error ? error.message : t('unbekannter Fehler')), 'error');
+      return false;
+    } finally { state.jiraCreatingTaskIds = state.jiraCreatingTaskIds.filter((id) => id !== taskId); }
+  }
+  // --- Wikis (#281, #284) --------------------------------------------------------------------------------------
+  /**
+   * The wiki of a provider as the interface uses it: find pages, link a page of the diagram, publish it. Null
+   * while its plugin is off or the desktop app does not offer it. Removing a link needs no active plugin.
+   */
+  function wikiApi(provider: WikiProviderId, forUnlink = false): WikiProvider | null {
+    const plugins = bridge.plugins, settings = state.pluginSettings;
+    if (!plugins || !settings?.available) return null;
+    if (provider === 'confluence') {
+      const { setConfluenceLiveLink, publishConfluenceLive } = plugins;
+      if (!setConfluenceLiveLink || !publishConfluenceLive || (!forUnlink && !confluencePluginActive(settings.atlassian))) return null;
+      return {
+        id: provider, name: WIKI_PROVIDER_NAME[provider],
+        searchPages: async (query) => (await plugins.listConfluencePages(query)).map((page) => ({ provider, id: page.id, title: page.title, detail: t('Version {version}', { version: page.version }), url: page.url })),
+        setLink: ({ handleId, documentId, diagramPageId, diagramPageIds, pageId }) => setConfluenceLiveLink({ handleId, documentId, pageId, diagramPageId, diagramPageIds }),
+        publish: (input) => publishConfluenceLive(input),
+      };
+    }
+    const { listAzureWikiPages, setAzureWikiLiveLink, publishAzureWikiLive } = plugins;
+    if (!listAzureWikiPages || !setAzureWikiLiveLink || !publishAzureWikiLive || (!forUnlink && !azureDevOpsPluginActive(settings.azureDevOps))) return null;
+    return {
+      id: provider, name: WIKI_PROVIDER_NAME[provider],
+      searchPages: (query) => listAzureWikiPages(query),
+      setLink: ({ handleId, documentId, diagramPageId, pageId }) => setAzureWikiLiveLink({ handleId, documentId, diagramPageId, wikiPage: pageId }),
+      publish: (input) => publishAzureWikiLive(input),
+    };
+  }
+  // --- Ticket cards (#283) -------------------------------------------------------------------------------------
+  /** The addresses under which a pasted link is a ticket of a connected tracker. */
+  const ticketSites = () => ({
+    ...(ticketApi('jira') ? { jira: state.pluginSettings!.atlassian.siteUrl } : {}),
+    ...(ticketApi('azure-devops') ? { azureDevOps: state.pluginSettings!.azureDevOps!.organizationUrl } : {}),
+  });
+  /** Whether single tickets can be read from that tracker right now. */
+  const canReadTickets = (provider: TicketProvider): boolean => Boolean(ticketApi(provider) && bridge.plugins?.getWorkItem);
+  let ticketContentNoticed = false;
+  /** Reads one ticket and puts it on the canvas as a card, centred at `at`. */
+  async function addTicketCard(provider: TicketProvider, key: string, at: Point): Promise<boolean> {
+    const read = bridge.plugins?.getWorkItem;
+    if (!read || !canReadTickets(provider) || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+    const generation = pluginGeneration, owner = activeSession(), pageId = state.activePageId;
+    state.ticketBusy = true;
+    try {
+      const ticket = await read({ provider, key });
+      if (!pluginContextCurrent(generation) || owner !== activeSession() || state.transitioning) return false;
+      if (state.activePageId !== pageId) { notice(t('Die Karte wurde nicht eingefügt, weil die Seite gewechselt wurde.')); return false; }
+      const patch = ticketCardPatch(provider, ticket, new Date().toISOString());
+      const metadata = Object.fromEntries(Object.entries(patch.metadata).filter((entry): entry is [string, string] => entry[1] !== null));
+      const element = createElement('rectangle', {
+        id: uid('ticket'), x: at.x - TICKET_CARD_WIDTH / 2, y: at.y - TICKET_CARD_HEIGHT / 2, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT,
+        text: patch.text, ...(patch.description ? { description: patch.description } : {}), metadata, shapeVariant: 'rounded',
+        // The text colour is named: a version that shows the rectangle writes its title in it, not in the pale frame colour.
+        style: { ...DEFAULT_STYLE, stroke: '#cbd5e1', fill: TICKET_CARD_COLORS.surface, textColor: TICKET_CARD_COLORS.ink, strokeWidth: 1.5, fontSize: 16, textAlign: 'left', cornerRadius: 12 },
+      });
+      if (!await dispatch({ type: 'add', elements: [element] })) return false;
+      setSelection([element.id]); state.tool = 'select';
+      state.liveMessage = t('Ticket {key} als Karte eingefügt.', { key: ticket.key });
+      // Said once: the content of a ticket now is part of the document (decision of the owner, #283).
+      if (!ticketContentNoticed) { ticketContentNoticed = true; notice(t('Der Inhalt des Tickets steht jetzt im Dokument: Er wird mit der Datei gespeichert und mit allen geteilt, die das Dokument erhalten.')); }
+      return true;
+    } catch (error) { if (pluginContextCurrent(generation)) notice(t('Das Ticket konnte nicht gelesen werden: {message}', { message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error'); return false; }
+    finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+  }
+  /** Writes what a tracker answered into its card; the card keeps its place and size. */
+  async function applyTicketToCard(elementId: string, provider: TicketProvider, ticket: WorkItemSummary | JiraIssueSummary): Promise<boolean> {
+    const card = state.document.elements.find((element) => element.id === elementId);
+    if (!card || !isTicketCard(card)) return false;
+    const patch = ticketCardPatch(provider, ticket, new Date().toISOString());
+    return dispatch({ type: 'update', changes: [{ id: elementId, patch: { text: patch.text, description: patch.description, metadata: patch.metadata } }] });
+  }
+  /** Reads the tickets of the cards again. `ids` names the cards; without it every card of a connected tracker. */
+  async function refreshTicketCards(ids: readonly string[] | null, announce: boolean): Promise<boolean> {
+    const read = bridge.plugins?.getWorkItem;
+    if (!read || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+    const cards = state.document.elements.flatMap((element) => { const data = readTicketCard(element); return data && (!ids || ids.includes(element.id)) && canReadTickets(data.provider) && ticketApi(data.provider)!.owns(data) ? [{ id: element.id, data }] : []; });
+    if (!cards.length) { if (announce) notice(t('Diese Karte gehört zu keinem verbundenen Ticket-System.'), 'error'); return false; }
+    const generation = pluginGeneration, owner = activeSession();
+    state.ticketBusy = true;
+    try {
+      const answers = await Promise.allSettled(cards.map(({ data }) => read({ provider: data.provider, key: data.key })));
+      if (!pluginContextCurrent(generation) || owner !== activeSession() || state.transitioning) return false;
+      const fetchedAt = new Date().toISOString();
+      const changes = cards.flatMap(({ id, data }, index) => {
+        const answer = answers[index]!;
+        if (answer.status !== 'fulfilled' || !state.document.elements.some((element) => element.id === id && isTicketCard(element))) return [];
+        const patch = ticketCardPatch(data.provider, answer.value, fetchedAt);
+        return [{ id, patch: { text: patch.text, description: patch.description, metadata: patch.metadata } }];
+      });
+      const failed = answers.find((answer) => answer.status === 'rejected') as PromiseRejectedResult | undefined;
+      if (changes.length && !await dispatch({ type: 'update', changes })) return false;
+      if (announce) {
+        if (failed) notice(t('Das Ticket konnte nicht gelesen werden: {message}', { message: tm(failed.reason instanceof Error ? failed.reason.message : t('unbekannter Fehler')) }), 'error');
+        else notice(tn(changes.length, '{count} Ticket-Karte aktualisiert.', '{count} Ticket-Karten aktualisiert.'));
+      }
+      return !failed;
+    } finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+  }
+  /** The cards of a document are read again once after it was opened with a connected tracker. */
+  let ticketsRefreshedFor = '';
+  function refreshTicketCardsOnOpen(): void {
+    const key = `${state.document.id}\u0000${currentPluginHandle() ?? ''}`;
+    if (!currentPluginHandle() || key === ticketsRefreshedFor || !activeTicketApis().length) return;
+    ticketsRefreshedFor = key;
+    if (state.document.elements.some((element) => isTicketCard(element))) void refreshTicketCards(null, false);
+  }
+  const createdLocally = (name: string, message: string) => t('Lokale Aufgabe erstellt; Ticket in {name} nicht angelegt: {message} In der Aufgabe lässt es sich erneut anlegen.', { name, message });
+  /**
    * One call of the Git dialog (#216). The dialog is modal, so it shows results and failures itself; a call
    * therefore answers with the value or with the reason, and never raises a notice behind the dialog.
    */
@@ -237,7 +407,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
   }
   function clearPluginContext(): void {
-    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false; state.confluenceLinkPageId = null;
+    pluginGeneration++; state.pluginSettings = null; state.confluencePages = []; state.pluginBusy = false; state.confluenceLinkPageId = null; state.ticketDialog = null; state.ticketBusy = false;
     pendingExternalEvent = null; state.pendingExternalDocument = false;
   }
   const actorId = options.actorId ?? ACTOR_ID;
@@ -281,8 +451,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
 
   /** Pastes Sketchdraw elements from clipboard text, otherwise the clipboard image, at the pointer (#174). */
   async function pasteContent(text: string | null, image: File | null, revision: number): Promise<void> {
-    const payload = text ? parseElementClipboard(text) : null;
+    // The address of a ticket of a connected tracker becomes its card (#283).
+    const pastedTicket = text && !image ? parseTicketUrl(text, ticketSites()) : null;
     const at = lastPointerScreen ? screenToDoc(state.viewport, lastPointerScreen) : currentCenter();
+    if (pastedTicket) { await addTicketCard(pastedTicket.provider, pastedTicket.key, at); return; }
+    const payload = text ? parseElementClipboard(text) : null;
     if (!payload) {
       if (image) await store.insertImageFile(image, at);
       else notice(t('Die Zwischenablage enthält weder Sketchdraw-Elemente noch ein Bild.'), 'error');
@@ -326,9 +499,15 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     file: freshFile(), dialog: null as WhiteboardState['dialog'], notices: [] as WhiteboardState['notices'],
     liveMessage: '', offscreenChanges: 0, objectsOpen: false, propertiesCollapsed: false,
     theme: options.initialTheme ?? savedPreferences.theme ?? 'light', canvasBackground: savedPreferences.canvasBackground, paperPattern: savedPreferences.paperPattern, smartGuides: savedPreferences.smartGuides, guides: [] as readonly SmartGuide[], language: savedPreferences.language, bridgePlatform: bridge.platform,
-    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, gitOpen: false,
+    pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, jiraCreatingTaskIds: [] as string[],
+    get jiraAvailable() { return jiraAvailable(); },
+    get ticketProviders() { return writableTicketApis().map(({ provider, name }) => ({ id: provider, name })); },
+    get wikiProviders() { return (['confluence', 'azure-devops'] as const).flatMap((id) => { const api = wikiApi(id); return api ? [{ id, name: api.name }] : []; }); },
+    get ticketReaders() { return activeTicketApis().filter((api) => canReadTickets(api.provider)).map(({ provider, name }) => ({ id: provider, name })); },
+    gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
+    ticketDialog: null as WhiteboardState['ticketDialog'], ticketBusy: false, diagramCodeProblem: null as string | null,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -674,7 +853,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     const removed = new Set(ids);
     const removesFrame = state.frameSlides.some((frame) => removed.has(frame.id));
     if (!removesFrame) return { type: 'delete', ids: [...ids] };
-    const remaining = state.frameSlides.filter((frame) => !removed.has(frame.id)).map((frame) => frame.id);
+    // The order is kept for the whole document: frames of other pages stay in it (#289).
+    const remaining = orderedFrames(state.document).filter((frame) => !removed.has(frame.id)).map((frame) => frame.id);
     return { type: 'batch', commands: [
       { type: 'delete', ids: [...ids] },
       { type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(remaining) } },
@@ -1626,6 +1806,8 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (e?.kind === 'frame') { setSelection([e.id]); state.frameSidebarOpen = true; state.liveMessage = t('Frame in der Folienleiste zum Umbenennen ausgewählt.'); return; }
       // A resource card edits the line under the pointer, and its name anywhere else on the card.
       if (isResourceCard(e)) { setSelection([e!.id]); store.startTextEdit(e!.id, cardFieldAt(e!, screenToDoc(state.viewport, input)) ?? 'title'); return; }
+      // A ticket card is edited in its dialog: its text is the title of a ticket, not free text.
+      if (isTicketCard(e)) { setSelection([e!.id]); store.openTicketCard(e!.id); return; }
       if (e && e.kind !== 'table') {
         store.startTextEdit(e.id);
         // A connector without text gets its text where it was double-clicked (#195).
@@ -1814,6 +1996,27 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.transitioning) return null;
       const view = diagramCodeView(pageEls(), anchorId);
       if (!view || diagramCodeDiagnostics(view.kind, code).some((entry) => entry.severity === 'error')) return null;
+      if (view.kind === 'mermaid') {
+        // Mermaid draws the code again (#279). The image keeps its place and width; a code Mermaid cannot read
+        // leaves the image as it is, and the panel shows what Mermaid said.
+        if (!state.canWrite) return null;
+        const owner = activeSession(), pageId = state.activePageId;
+        state.diagramCodeProblem = null;
+        try {
+          const rendered = await renderMermaidImage(code);
+          const image = pageEls().find((element) => element.id === anchorId);
+          if (owner !== activeSession() || state.transitioning || state.activePageId !== pageId || !image || mermaidCodeOf(image) === null) return null;
+          const asset = { id: uid('asset'), name: `${mermaidDiagramName(code)}.png`, mimeType: 'image/png' as const, dataUrl: rendered.dataUrl };
+          const height = Math.max(1, Math.round(image.width * rendered.height / rendered.width));
+          const command: DocumentCommand = { type: 'batch', commands: [{ type: 'add', elements: [], assets: [asset] }, { type: 'update', changes: [{ id: anchorId, patch: { assetId: asset.id, height, label: mermaidDiagramName(code), metadata: { [MERMAID_CODE_KEY]: code } } }] }] };
+          if (!(await dispatch(command))) return null;
+          state.liveMessage = t('Diagramm neu gezeichnet.');
+          return anchorId;
+        } catch (error) {
+          if (owner === activeSession()) state.diagramCodeProblem = error instanceof MermaidRenderError && error.reason !== 'size' ? error.message : error instanceof MermaidRenderError ? t('Das Diagramm ist zu groß, um es als Bild zu übernehmen.') : t('Mermaid konnte nicht geladen werden.');
+          return null;
+        }
+      }
       try {
         let command: DocumentCommand | null;
         // The element that names the diagram afterwards; it is known before the command runs.
@@ -2011,6 +2214,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     startTextEdit(elementId, field) {
       if (!state.canWrite || state.transitioning || state.textEdit) return;
       const e = elementId ? pageEls().find((e) => e.id === elementId) : undefined;
+      if (isTicketCard(e)) { store.openTicketCard(e!.id); return; }
       if (e?.kind === 'table' || isResourceCard(e) !== Boolean(field)) return;
       textBase = e ? clone(e) : null; textRevision = state.revision;
       if (e && field) {
@@ -2219,15 +2423,67 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description, ...(task.assignee ? { assignee: task.assignee } : {}), ...(task.dueDate ? { dueDate: task.dueDate } : {}) });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
+    },
+    openTicketCard(elementId) {
+      if (state.transitioning) return;
+      if (state.document.elements.some((element) => element.id === elementId && isTicketCard(element))) state.ticketDialog = { mode: 'edit', elementId };
+    },
+    openTicketInsert(at) { if (state.canWrite && !state.transitioning) state.ticketDialog = { mode: 'insert', at: at ?? currentCenter() }; },
+    closeTicketDialog() { state.ticketDialog = null; },
+    async searchTickets(provider, query) {
+      const search = bridge.plugins?.searchWorkItems;
+      if (!search || !canReadTickets(provider)) return null;
+      const generation = pluginGeneration;
+      try { const found = await search({ provider, query }); return pluginContextCurrent(generation) ? found : null; }
+      catch (error) { if (pluginContextCurrent(generation)) notice(t('Die Suche ist fehlgeschlagen: {message}', { message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error'); return null; }
+    },
+    async insertTicketCard(provider, keyOrUrl, at) {
+      const parsed = parseTicketUrl(keyOrUrl, ticketSites());
+      const target = parsed ?? { provider, key: keyOrUrl.trim() };
+      if (!target.key) return false;
+      return addTicketCard(target.provider, target.key, at ?? (state.ticketDialog?.mode === 'insert' ? state.ticketDialog.at : currentCenter()));
+    },
+    async insertTicketCardFromTask(taskId) {
+      const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
+      if (!task?.external) return false;
+      if (!canReadTickets(task.external.provider) || !ticketApi(task.external.provider)!.owns(task.external)) { notice(t('Für die Karte muss {name} mit der Site dieses Tickets verbunden sein.', { name: TICKET_PROVIDER_NAME[task.external.provider] }), 'error'); return false; }
+      return addTicketCard(task.external.provider, task.external.key, currentCenter());
+    },
+    refreshTicketCard(elementId) { return refreshTicketCards([elementId], true); },
+    ticketCardAccess(elementId) {
+      const data = readTicketCard(state.document.elements.find((element) => element.id === elementId));
+      const api = data ? ticketApi(data.provider) : null;
+      if (!data || !api || !canReadTickets(data.provider) || !api.owns(data)) return 'offline';
+      return api.writable && state.canWrite && Boolean(bridge.plugins?.updateWorkItemFields) ? 'writable' : 'readonly';
+    },
+    async saveTicketCard(elementId, changes) {
+      const write = bridge.plugins?.updateWorkItemFields;
+      const card = state.document.elements.find((element) => element.id === elementId);
+      const data = readTicketCard(card);
+      if (!data || !state.canWrite || state.transitioning || state.ticketBusy) return false;
+      const api = ticketApi(data.provider);
+      if (!write || !api || !api.owns(data)) { notice(t('Zum Speichern muss {name} mit der Site dieses Tickets verbunden sein.', { name: TICKET_PROVIDER_NAME[data.provider] }), 'error'); return false; }
+      if (!api.writable) { notice(t('{name} ist auf „Nur lesen“ gestellt; das Ticket wurde nicht geändert.', { name: api.name }), 'error'); return false; }
+      if (!Object.keys(changes).length) return true;
+      const generation = pluginGeneration, owner = activeSession();
+      state.ticketBusy = true;
+      try {
+        const ticket = await write({ provider: data.provider, key: data.key, ...changes } as UpdateWorkItemFieldsInput);
+        if (!pluginContextCurrent(generation) || owner !== activeSession()) return false;
+        if (!await applyTicketToCard(elementId, data.provider, ticket)) return false;
+        notice(t('Ticket {key} gespeichert.', { key: data.key }));
+        return true;
+      } catch (error) {
+        // The tracker may have taken part of the change; the card shows what the tracker has, not what was typed.
+        if (pluginContextCurrent(generation)) notice(t('{name} hat die Änderung nicht übernommen: {message}', { name: api.name, message: tm(error instanceof Error ? error.message : t('unbekannter Fehler')) }), 'error');
+        return false;
+      } finally { if (pluginContextCurrent(generation)) state.ticketBusy = false; }
+    },
+    async createTicketForTask(taskId, provider) {
+      if (!state.canWrite || state.transitioning) return false;
+      return linkTaskToTicket(taskId, provider, pluginGeneration, (name, message) => t('Ticket in {name} nicht angelegt: {message}', { name, message }));
     },
     async createTaskFromComment(threadId) {
       const generation = pluginGeneration;
@@ -2239,14 +2495,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Kommentar erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
     async createTaskFromStickyNote(elementId) {
@@ -2267,14 +2516,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe aus Notiz erstellt.');
-      if (hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
-        try {
-          const issue = await bridge.plugins.createJiraIssue({ title: task.title, description: task.description });
-          if (!pluginContextCurrent(generation)) return true;
-          const tasks = clone(state.document.tasks ?? []); const stored = tasks.find((entry) => entry.id === task.id);
-          if (stored) { applyJiraIssue(stored, issue, true); await dispatch({ type: 'set-tasks', tasks }); notice(t('Jira-Ticket {key} erstellt.', { key: issue.key })); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokale Aufgabe erstellt; Jira-Synchronisation fehlgeschlagen: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
-      }
+      await linkTaskToTicket(task.id, undefined, generation, createdLocally);
       return true;
     },
     async moveTask(taskId, status, index) {
@@ -2293,13 +2535,14 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!ok) return false;
       if (!pluginContextCurrent(generation)) return true;
       state.liveMessage = t('Aufgabe verschoben.');
-      if (previous !== status && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
+      const api = previous !== status && task.external ? ticketApi(task.external.provider) : null;
+      if (api?.writable && task.external && api.owns(task.external)) {
         try {
-          const issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status });
+          const issue = await api.transition({ key: task.external.key, status });
           if (!pluginContextCurrent(generation)) return true;
           const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-          if (synced?.external) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
-        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; Jira-Status konnte nicht aktualisiert werden: {message}', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+          if (synced?.external) { applyTicket(synced, api.provider, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
+        } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Lokaler Status gespeichert; der Status in {name} konnte nicht aktualisiert werden: {message}', { name: api.name, message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
       }
       return true;
     },
@@ -2323,15 +2566,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const jiraTexts = { ...(task.title !== before.title ? { title: task.title } : {}), ...(task.description !== before.description ? { description: task.description } : {}) };
         const statusChanged = task.status !== before.status;
         const jiraFieldsChanged = value.assignee !== undefined || value.dueDate !== undefined || Object.keys(jiraTexts).length > 0;
-        if ((statusChanged || jiraFieldsChanged) && task.external?.provider === 'jira' && hasPluginProject() && jiraPluginActive(state.pluginSettings?.atlassian) && bridge.plugins) {
+        const api = (statusChanged || jiraFieldsChanged) && task.external ? ticketApi(task.external.provider) : null;
+        if (api?.writable && task.external && api.owns(task.external)) {
           try {
             let issue: JiraIssueSummary | undefined;
-            if (jiraFieldsChanged) issue = await bridge.plugins.updateJiraIssue({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
-            if (statusChanged) issue = await bridge.plugins.transitionJiraIssue({ key: task.external.key, status: task.status });
+            if (jiraFieldsChanged) issue = await api.update({ key: task.external.key, ...jiraTexts, ...(value.assignee !== undefined ? { assignee: value.assignee } : {}), ...(value.dueDate !== undefined ? { dueDate: value.dueDate } : {}) });
+            if (statusChanged) issue = await api.transition({ key: task.external.key, status: task.status });
             if (!pluginContextCurrent(generation)) return true;
             const current = clone(state.document.tasks ?? []); const synced = current.find((entry) => entry.id === taskId);
-            if (synced?.external && issue) { applyJiraIssue(synced, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
-          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('Jira hat die Änderung nicht übernommen: {message} Beim nächsten Abgleich gilt wieder der Stand aus Jira.', { message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
+            if (synced?.external && issue) { applyTicket(synced, api.provider, issue, false); await dispatch({ type: 'set-tasks', tasks: current }); }
+          } catch (error) { if (!pluginContextCurrent(generation)) return true; notice(t('{name} hat die Änderung nicht übernommen: {message} Beim nächsten Abgleich gilt wieder der Stand aus {name}.', { name: api.name, message: error instanceof Error ? error.message : t('unbekannter Fehler') }), 'error'); }
         }
       }
       return ok;
@@ -2351,6 +2595,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const settings = await bridge.plugins.getSettings(handle);
         if (!pluginContextCurrent(generation) || request !== pluginRefreshRequest || handle !== currentPluginHandle()) return;
         state.pluginSettings = settings;
+        refreshTicketCardsOnOpen();
         if (handle && settings.git.enabled) void bridge.plugins.watchDocument(handle).catch(() => undefined);
       } catch (error) { if (pluginContextCurrent(generation) && request === pluginRefreshRequest) fail(error); }
     },
@@ -2375,7 +2620,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     async setPluginInstalled(id, installed) {
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
-      try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: id === 'git' ? 'Git' : 'Jira' })); return true; }
+      try { const settings = installed ? await bridge.plugins.installPlugin(id) : await bridge.plugins.uninstallPlugin(id); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(t(installed ? '{name} installiert.' : '{name} deinstalliert.', { name: ({ git: 'Git', jira: 'Jira', confluence: 'Confluence', 'azure-devops': 'Azure DevOps' } as const)[id] })); return true; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async configureGitPlugin(input: ConfigureGitPluginInput) {
@@ -2388,6 +2633,23 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
       try { const payload: ConfigureAtlassianPluginInput = { enabled: input.enabled, ...(input.plugin ? { plugin: input.plugin } : {}), siteUrl: input.siteUrl, email: input.email, apiToken: input.apiToken, clearCredential: input.clearCredential, confluenceSpaceKey: input.confluenceSpaceKey, jiraProjectKey: input.jiraProjectKey, jiraIssueType: input.jiraIssueType, jqlFilter: input.jqlFilter }; const settings = await bridge.plugins.configureAtlassian(payload); if (!pluginContextCurrent(generation)) return false; state.pluginSettings = settings; notice(input.plugin === 'confluence' ? t('Confluence-Plugin gespeichert.') : t('Jira-Plugin gespeichert.')); return true; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async configureAzureDevOpsPlugin(input) {
+      const configure = bridge.plugins?.configureAzureDevOps;
+      if (!configure || !state.pluginSettings?.available || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try {
+        const settings = await configure({ enabled: input.enabled, variant: input.variant, organizationUrl: input.organizationUrl, project: input.project, workItemType: input.workItemType, wiqlFilter: input.wiqlFilter, apiVersion: input.apiVersion, readOnly: input.readOnly, accessToken: input.accessToken, clearCredential: input.clearCredential });
+        if (!pluginContextCurrent(generation)) return false;
+        state.pluginSettings = settings; notice(t('Azure-DevOps-Plugin gespeichert.')); return true;
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async testAzureDevOpsPlugin() {
+      const test = bridge.plugins?.testAzureDevOps;
+      if (!test || !state.pluginSettings?.available || state.pluginBusy) return false;
+      const generation = pluginGeneration; state.pluginBusy = true;
+      try { const result = await test(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async testAtlassianPlugin() {
@@ -2483,24 +2745,57 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     syncConfluencePage(diagramPageId) { liveSyncs.get(diagramPageId)?.syncNow(); },
+    async searchWikiPages(provider, query) {
+      const api = wikiApi(provider);
+      if (!api || !hasPluginProject() || state.pluginBusy) return null;
+      const generation = pluginGeneration;
+      state.pluginBusy = true;
+      try { const pages = await api.searchPages(query); return pluginContextCurrent(generation) ? pages : null; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return null; }
+      finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async setWikiPageLink(diagramPageId, provider, pageId) {
+      const generation = pluginGeneration; const handle = currentPluginHandle();
+      const page = state.document.pages.find((entry) => entry.id === diagramPageId);
+      const api = wikiApi(provider, pageId === null);
+      if (!api || !handle || !page || !hasPluginProject() || state.pluginBusy) return false;
+      state.pluginBusy = true;
+      try {
+        const settings = await api.setLink({ handleId: handle, documentId: state.document.id, diagramPageId, diagramPageIds: state.document.pages.map((entry) => entry.id), pageId });
+        if (!pluginContextCurrent(generation) || handle !== currentPluginHandle()) return false;
+        state.pluginSettings = settings;
+        const title = wikiPageLinks(settings).find((link) => link.diagramPageId === diagramPageId)?.pageTitle ?? '';
+        notice(pageId === null
+          ? t('Verknüpfung von „{page}“ mit {wiki} gelöst.', { page: page.name, wiki: api.name })
+          : t('„{page}“ ist mit der Seite „{title}“ in {wiki} verknüpft. Änderungen werden automatisch übertragen.', { page: page.name, title, wiki: api.name }));
+        return true;
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
     openConfluencePageLink(diagramPageId) { if (state.document.pages.some((page) => page.id === diagramPageId)) state.confluenceLinkPageId = diagramPageId; },
     closeConfluencePageLink() { state.confluenceLinkPageId = null; },
-    async syncJiraTasks(options) {
+    async syncTicketTasks(options) {
       const generation = pluginGeneration;
-      if (!bridge.plugins || !hasPluginProject() || !jiraPluginActive(state.pluginSettings?.atlassian) || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
+      const apis = activeTicketApis();
+      if (!apis.length || !state.canWrite || state.transitioning || state.pluginBusy) return false; state.pluginBusy = true;
       try {
-        const issues = await bridge.plugins.listJiraIssues(); if (!pluginContextCurrent(generation)) return false; const tasks = clone(state.document.tasks ?? []); const byKey = new Map(tasks.filter((task) => task.external?.provider === 'jira').map((task) => [task.external!.key, task]));
-        for (const issue of issues) {
-          const existing = byKey.get(issue.key);
-          if (existing) applyJiraIssue(existing, issue, true);
+        // Every active system is asked; a ticket belongs to the task with the same system and address. The address
+        // names the site, so equal keys of two sites stay two tasks (#286).
+        const answers = await Promise.all(apis.map(async (api) => ({ api, issues: await api.list() })));
+        if (!pluginContextCurrent(generation)) return false;
+        const tasks = clone(state.document.tasks ?? []);
+        const byKey = new Map(tasks.filter((task) => task.external).map((task) => [`${task.external!.provider}\u0000${task.external!.url.toLowerCase()}`, task]));
+        for (const { api, issues } of answers) for (const issue of issues) {
+          const existing = byKey.get(`${api.provider}\u0000${issue.url.toLowerCase()}`);
+          if (existing) applyTicket(existing, api.provider, issue, true);
           else {
-            const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt, external: { provider: 'jira', remoteId: issue.id, key: issue.key, url: issue.url, remoteStatus: issue.remoteStatus, updatedAt: issue.updatedAt } };
-            if (issue.assignee) task.assignee = issue.assignee;
-            if (issue.dueDate) task.dueDate = issue.dueDate;
+            const task: SketchTask = { id: uid('task'), title: issue.title, description: issue.description, status: issue.status, rank: tasks.filter((entry) => entry.status === issue.status).length, createdAt: issue.updatedAt, updatedAt: issue.updatedAt };
+            applyTicket(task, api.provider, issue, false);
             tasks.push(task);
           }
         }
-        const ok = await dispatch({ type: 'set-tasks', tasks }); if (ok && options?.announce !== false) notice(t('{count} Jira-Vorgänge synchronisiert.', { count: issues.length })); return ok;
+        const ok = await dispatch({ type: 'set-tasks', tasks });
+        if (ok && options?.announce !== false) for (const { api, issues } of answers) notice(t('{count} Vorgänge aus {name} synchronisiert.', { count: issues.length, name: api.name }));
+        return ok;
       } catch (error) { if (pluginContextCurrent(generation) && options?.announce !== false) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async acceptExternalDocument() {
@@ -2537,7 +2832,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const target = Math.max(0, Math.min(ids.length - 1, toIndex));
       if (target === from) return;
       ids.splice(target, 0, ids.splice(from, 1)[0]!);
-      void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(ids) } });
+      void dispatch({ type: 'set-metadata', patch: { [FRAME_ORDER_METADATA_KEY]: frameOrderMetadata(frameOrderForPage(state.document, state.activePageId, ids)) } });
       state.presenterIndex = target;
     },
     setPresenterNotes(open) { state.presenterNotes = open; },
@@ -2568,12 +2863,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { notice(t('Erlaubt sind PNG, JPEG und WebP.'), 'error'); return; }
       if (file.size > DOMAIN_LIMITS.MAX_ASSET_BYTES) { notice(t('Das Bild ist zu groß (maximal 8 MB).'), 'error'); return; }
       const owner = activeSession(); const revision = state.revision;
+      // The page and the place are the ones of the moment the image was chosen. Reading and decoding take time, and
+      // changing the page does not change the revision: without this the image landed on the page shown by then (#295).
+      const pageId = state.activePageId; const place = at ?? currentCenter();
       try {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
         const image = new Image(); image.src = dataUrl; await image.decode();
         if (activeSession() !== owner || state.transitioning) { notice(t('Das Bild wurde nicht eingefügt, weil das Dokument gewechselt hat.')); return; }
+        if (state.activePageId !== pageId) { notice(t('Das Bild wurde nicht eingefügt, weil die Seite gewechselt wurde.')); return; }
         const scale = Math.min(1, 640 / Math.max(image.naturalWidth, image.naturalHeight));
-        const p = at ?? currentCenter(); const width = Math.max(1, image.naturalWidth * scale); const height = Math.max(1, image.naturalHeight * scale);
+        const p = place; const width = Math.max(1, image.naturalWidth * scale); const height = Math.max(1, image.naturalHeight * scale);
         const asset = { id: uid('asset'), mimeType: file.type as 'image/png' | 'image/jpeg' | 'image/webp', dataUrl, name: file.name };
         const e = createElement('image', { x: p.x - width / 2, y: p.y - height / 2, width, height, assetId: asset.id, label: file.name, style: { ...DEFAULT_STYLE } });
         if (await dispatch({ type: 'add', elements: [e], assets: [asset] }, revision, 'import')) { setSelection([e.id]); state.tool = 'select'; }
@@ -2794,18 +3093,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
    */
   function liveContext(diagramPageId: string): ConfluenceLiveContext {
     const settings = state.pluginSettings; const handle = currentPluginHandle();
-    const link = settings?.confluencePageLinks?.find((entry) => entry.diagramPageId === diagramPageId);
-    if (disposed || !bridge.plugins?.publishConfluenceLive || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
-    const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
+    const link = wikiPageLinks(settings).find((entry) => entry.diagramPageId === diagramPageId);
+    const publisher = link?.provider === 'azure-devops' ? bridge.plugins?.publishAzureWikiLive : bridge.plugins?.publishConfluenceLive;
+    if (disposed || !publisher || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
+    const key = [handle, settings.activeProfileId, link.provider, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
     const paused = (message: string): ConfluenceLiveContext => ({ kind: 'paused', key, message });
-    if (!confluencePluginActive(settings.atlassian)) return paused(t('Das Confluence-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
-    if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
-    if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
+    if (link.provider === 'azure-devops') {
+      // The wiki of Azure DevOps (#284): the same conditions, said for that plugin.
+      const azure = settings.azureDevOps;
+      if (!azureDevOpsPluginActive(azure)) return paused(t('Das Azure-DevOps-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder ins Wiki übertragen werden.'));
+      if (!azure!.credentialStored) return paused(t('Personal Access Token fehlt.'));
+      if (azure!.readOnly) return paused(t('Azure DevOps ist auf „Nur lesen“ gestellt; das Wiki wird nicht geändert.'));
+      if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Organisation oder einem anderen Projekt als das aktive Profil. Verknüpfe die Seite neu.'));
+    } else {
+      if (!confluencePluginActive(settings.atlassian)) return paused(t('Das Confluence-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
+      if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
+      if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
+    }
     if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.'));
     // A deleted page keeps its link: undoing the deletion continues where it stopped.
     if (!state.document.pages.some((page) => page.id === diagramPageId)) return paused(t('Diese Seite gibt es im Diagramm nicht mehr.'));
-    if (state.pendingExternalDocument) return paused(t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
-    if (state.file.conflict) return paused(t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
+    if (state.pendingExternalDocument) return paused(link.provider === 'azure-devops' ? t('Eine externe Änderung wartet. Das Wiki wird wieder aktualisiert, sobald die externe Version geladen ist.') : t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
+    if (state.file.conflict) return paused(link.provider === 'azure-devops' ? t('Speicherkonflikt: Das Wiki wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.') : t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
     if (state.transitioning) return paused('');
     return { kind: 'active', key, handleId: handle, document: state.document, ...(link.lastSyncedAt ? { syncedAt: link.lastSyncedAt } : {}) };
   }
@@ -2826,7 +3135,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       render: (document) => renderLiveImage(document, diagramPageId),
       async publish(input) {
         const generation = pluginGeneration;
-        const result = await bridge.plugins!.publishConfluenceLive!({ ...input, diagramPageId });
+        // The link of the moment decides where the page goes: Confluence or the wiki of Azure DevOps.
+        const azure = wikiPageLinks(state.pluginSettings).find((entry) => entry.diagramPageId === diagramPageId)?.provider === 'azure-devops';
+        const send = azure ? bridge.plugins!.publishAzureWikiLive : bridge.plugins!.publishConfluenceLive;
+        if (!send) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
+        const result = await send({ ...input, diagramPageId });
         // A result that arrives after the diagram, profile or project changed belongs to nobody any more.
         if (!pluginContextCurrent(generation)) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
         return result;
@@ -2842,7 +3155,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   /** One synchronisation per linked page: started for a new link, stopped with a removed one, told about every change of its context. */
   function reconcileLive(): void {
-    const linked = new Set(disposed || !currentPluginHandle() ? [] : (state.pluginSettings?.confluencePageLinks ?? []).map((link) => link.diagramPageId));
+    const linked = new Set(disposed || !currentPluginHandle() ? [] : wikiPageLinks(state.pluginSettings).map((link) => link.diagramPageId));
     for (const [diagramPageId, sync] of [...liveSyncs]) {
       if (linked.has(diagramPageId)) continue;
       sync.dispose(); liveSyncs.delete(diagramPageId); liveImageCache.delete(diagramPageId);
@@ -2881,7 +3194,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     watch(() => state.viewportSize, () => { if (state.following) applyFollow(true); emitView(); }, { flush: 'sync' });
     watch(() => state.following, () => emitView(), { flush: 'sync' });
     // Every change of a link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
-    watch(() => (state.pluginSettings?.confluencePageLinks ?? []).map((link) => {
+    watch(() => wikiPageLinks(state.pluginSettings).map((link) => {
       const context = liveContext(link.diagramPageId);
       return `${link.diagramPageId}\n${context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`}`;
     }).join('\n\n'), reconcileLive, { flush: 'sync' });

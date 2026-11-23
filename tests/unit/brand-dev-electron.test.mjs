@@ -103,10 +103,13 @@ test('the development start brands the bundle before it launches Electron', asyn
   t.diagnostic('branding runs once per start, before the launch');
 });
 
-// The real tools on the real Electron bundle (a copy): the branded bundle must still verify and start.
+// The real tools on the real Electron bundle (a copy): the branded bundle must still verify and start. A development
+// start brands the installed bundle in place, so the copy may already carry the Sketchdraw name (#271). The test puts
+// the copy into each starting state itself and never touches the installed bundle.
 test('a copy of the installed Electron bundle is branded, keeps a valid signature and still starts', { skip: process.platform !== 'darwin', timeout: 240_000 }, async (t) => {
   const electronBinary = (await import('electron')).default;
   const original = path.resolve(electronBinary, '../../..');
+  const originalPlist = readFileSync(path.join(original, 'Contents', 'Info.plist'));
   const root = realpathSync(mkdtempSync(path.join(tmpdir(), 'sketchdraw-brand-native-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const bundle = path.join(root, 'dist', 'Electron.app');
@@ -114,18 +117,32 @@ test('a copy of the installed Electron bundle is branded, keeps a valid signatur
   execFileSync('/usr/bin/ditto', [original, bundle]);
   const binary = path.join(bundle, 'Contents', 'MacOS', 'Electron');
   const plist = path.join(bundle, 'Contents', 'Info.plist');
+  const marker = path.join(root, 'dist', '.sketchdraw-dev-brand');
   const read = (key) => execFileSync('/usr/bin/plutil', ['-extract', key, 'raw', '-o', '-', plist], { encoding: 'utf8' }).trim();
-  assert.equal(read('CFBundleName'), 'Electron');
-
-  const warnings = [];
-  assert.equal(brandDevElectron({ electronBinary: binary, iconPath: ICON, warn: (message) => warnings.push(message) }), 'branded', warnings.join('\n'));
-  assert.equal(read('CFBundleName'), 'Sketchdraw');
-  assert.equal(read('CFBundleDisplayName'), 'Sketchdraw');
-  assert.deepEqual(readFileSync(path.join(bundle, 'Contents', 'Resources', read('CFBundleIconFile'))), readFileSync(ICON));
-  execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle], { stdio: 'pipe' });
+  const iconTarget = path.join(bundle, 'Contents', 'Resources', read('CFBundleIconFile'));
+  const foreignIcon = Buffer.from('an icon that is not the Sketchdraw icon');
+  /** The state a bundle is in before a start: the name it carries, an icon that is not ours, and no marker. */
+  const startFrom = (name) => {
+    for (const key of ['CFBundleName', 'CFBundleDisplayName']) execFileSync('/usr/bin/plutil', ['-replace', key, '-string', name, plist]);
+    writeFileSync(iconTarget, foreignIcon);
+    rmSync(marker, { force: true });
+  };
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
-  const version = execFileSync(binary, ['--version'], { encoding: 'utf8', timeout: 120_000, env }).trim();
-  assert.match(version, /^v\d+\.\d+\.\d+/);
-  assert.equal(brandDevElectron({ electronBinary: binary, iconPath: ICON }), 'current');
+
+  // 'Electron': a fresh installation. 'Sketchdraw': a bundle an earlier development start branded, reinstalled icon.
+  for (const name of ['Electron', 'Sketchdraw']) {
+    startFrom(name);
+    assert.equal(read('CFBundleName'), name);
+    const warnings = [];
+    assert.equal(brandDevElectron({ electronBinary: binary, iconPath: ICON, warn: (message) => warnings.push(message) }), 'branded', warnings.join('\n'));
+    assert.equal(read('CFBundleName'), 'Sketchdraw');
+    assert.equal(read('CFBundleDisplayName'), 'Sketchdraw');
+    assert.deepEqual(readFileSync(iconTarget), readFileSync(ICON));
+    execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', bundle], { stdio: 'pipe' });
+    const version = execFileSync(binary, ['--version'], { encoding: 'utf8', timeout: 120_000, env }).trim();
+    assert.match(version, /^v\d+\.\d+\.\d+/);
+    assert.equal(brandDevElectron({ electronBinary: binary, iconPath: ICON }), 'current');
+  }
+  assert.deepEqual(readFileSync(path.join(original, 'Contents', 'Info.plist')), originalPlist, 'the installed bundle is left as it was');
 });

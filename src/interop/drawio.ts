@@ -6,7 +6,7 @@ import { resolveAnchorWorldPoint } from '../domain/geometry';
 import { decompressDrawioPageXml } from './compression';
 import { INTEROP_LIMITS as L } from './limits';
 import { context, importBoundary, add, baseStyle, color, decodeEnvelopeWithProjection, fail, finish, imageAsset, number, plainHtml, placeholder, pointsElement, warn, type ImportContext } from './common';
-import { drawioProjectionForValidation } from './export';
+import { drawioProjectionsForValidation } from './export';
 import { areXmlTreesEquivalent, stripDrawioEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, getElementTextContent as text, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type DrawioImportOptions, type DrawioPageInfo, type InteropImportResult } from './types';
 function named(node: XmlElementNode, local: string): boolean { return node.uri === '' && node.local === local; }
@@ -75,6 +75,18 @@ function styles(value: string, ctx: ImportContext, node: XmlElementNode, defs: s
 }
 const knownStyles = new Set(['html', 'strokeColor', 'fillColor', 'strokeWidth', 'opacity', 'fontSize', 'fontColor', 'fontFamily', 'fontStyle', 'align', 'rotation', 'dashed', 'dashPattern', 'flowAnimation', 'startArrow', 'endArrow', 'startFill', 'endFill', 'ellipse', 'rhombus', 'text', 'group', 'shape', 'image', 'imageAspect', 'edgeStyle', 'noEdgeStyle', 'curved', 'exitX', 'exitY', 'entryX', 'entryY', 'exitPerimeter', 'entryPerimeter', 'whiteSpace', 'verticalAlign', 'spacing', 'labelBackgroundColor', 'container', 'rounded', 'arcSize', 'direction', 'shadow', 'swimlane', 'childLayout', 'sketchdrawAuthor', 'sketchdrawListStyle', 'sketchdrawShapeVariant', 'sketchdrawKind', 'noLabel', 'sketchdrawComponent', 'sketchdrawDescription', 'spacingTop', 'spacingLeft', 'spacingRight', 'link']);
 const shapeVariants = new Set<ShapeVariant>(SHAPE_VARIANTS);
+/**
+ * A file written by draw.io names the icons of draw.io's libraries instead of carrying them. The import cannot draw
+ * them, so the cell stays a labelled box and this key notes the name it found: `<library>/<name>`, for example
+ * `azure2/general/Blob_Block` or `kubernetes/api`. The app looks the name up in its own icon library afterwards (#280).
+ */
+export const DRAWIO_LIBRARY_ICON_KEY = 'sketchdraw.drawio.library-icon';
+function libraryIcon(style: Readonly<Record<string, string>>): string | undefined {
+  const image = /^img\/lib\/([A-Za-z0-9_]+)\/([A-Za-z0-9_][A-Za-z0-9_ ./-]{0,200})\.(?:svg|png)$/.exec(style['image'] ?? '');
+  if (image && !image[2]!.includes('..')) return `${image[1]}/${image[2]}`;
+  if (/^mxgraph\.kubernetes\.icon2?$/.test(style['shape'] ?? '') && /^[A-Za-z0-9_]{1,60}$/.test(style['prIcon'] ?? '')) return `kubernetes/${style['prIcon']}`;
+  return undefined;
+}
 function safeDecode(value: string | undefined): string | undefined {
   if (!value) return undefined;
   try { return decodeURIComponent(value); } catch { return undefined; }
@@ -198,9 +210,10 @@ function restoreEmbeddedModel(ctx: ImportContext, root: XmlElementNode, envelope
     if (envelopes.length !== 1 || envelopes[0]!.node.attributes['id'] !== '0')
       throw new Error('Duplicate or misplaced metadata');
     const { document: doc, projectionVersion } = decodeEnvelopeWithProjection(envelopes[0]!.value, 'drawio');
-    const expected = parseXmlDocument(drawioProjectionForValidation(doc, projectionVersion));
-    // Always compare every visible page, even when the caller imports only one.
-    if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
+    // Always compare every visible page, even when the caller imports only one. A number can stand for more than
+    // one picture of builds between releases (#290); the file is its exporter's when it equals one of them.
+    const visible = stripEnvelope(root);
+    if (drawioProjectionsForValidation(doc, projectionVersion).some(draw => areXmlTreesEquivalent(visible, stripEnvelope(parseXmlDocument(draw())))))
       return doc;
     warn(ctx, envelopes[0]!.node, 'EMBEDDED_MODEL_STALE', 'sketchdrawInterop', 'Visible native projection changed; embedded document ignored.');
   }
@@ -343,7 +356,10 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     // Own exports draw notes, tables, rich text and web pages as a picture and name the kind (#260).
     const ownPicture = namesComponent || ['sticky-note', 'table', 'annotation', 'web-embed'].includes(s['sketchdrawKind'] ?? '');
     let kind: SketchElement['kind'] = ownComponent ? 'component' : namesComponent || s['sketchdrawKind'] === 'web-embed' ? 'rectangle' : s['sketchdrawKind'] === 'sticky-note' ? 'sticky-note' : group ? 'container' : shapeVariant ? shapeBaseKind(shapeVariant) : s['sketchdrawKind'] === 'table' ? 'table' : s['sketchdrawKind'] === 'annotation' ? 'annotation' : s['shape'] === 'note' ? 'sticky-note' : s['ellipse'] === '1' || s['shape'] === 'ellipse' ? 'ellipse' : s['rhombus'] === '1' || s['shape'] === 'rhombus' ? 'diamond' : s['text'] === '1' || s['shape'] === 'text' ? 'text' : s['shape'] === 'image' || s['image'] === '1' ? 'image' : hasChildren || s['group'] === '1' || s['container'] === '1' || s['swimlane'] === '1' ? 'container' : 'rectangle';
-    if (!group && !shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
+    const iconReference = !group && !ownPicture ? libraryIcon(s) : undefined;
+    if (iconReference)
+      warn(ctx, cell.node, 'DRAWIO_LIBRARY_ICON', s['image'] ? 'image' : 'shape', 'The icon belongs to a draw.io library and is not part of the file; the cell is a labelled box unless the app has the icon in its own library.');
+    else if (!group && !shapeVariant && s['shape'] && !['rectangle', 'ellipse', 'rhombus', 'text', 'image', 'note', 'table'].includes(s['shape']))
       warn(ctx, cell.node, 'UNSUPPORTED_SHAPE', 'shape', 'Foreign stencil represented by an editable rectangle.');
     const rotation = number(s['rotation']);
     if (kind === 'container' && (rotation !== 0 || cell.node.attributes['collapsed'] === '1'))
@@ -351,7 +367,7 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     const bounds = world(cell);
     if (bounds.width <= 0 || bounds.height <= 0)
       fail('INVALID_GEOMETRY', 'Vertex bounds must be positive.');
-    const assetId = kind === 'image' ? imageAsset(ctx, s['image']?.replace(/^data:(image\/(?:png|jpeg|webp)),/, 'data:$1;base64,'), cell.node) : undefined;
+    const assetId = kind === 'image' && !iconReference ? imageAsset(ctx, s['image']?.replace(/^data:(image\/(?:png|jpeg|webp)),/, 'data:$1;base64,'), cell.node) : undefined;
     if (kind === 'image' && !assetId)
       kind = 'rectangle';
     let author: string | undefined;
@@ -389,7 +405,7 @@ function importPage(ctx: ImportContext, root: XmlElementNode, page: XmlElementNo
     if (ownComponent && !ctx.document.componentSets.some(set => set.id === ownComponent.set.id))
       ctx.document.componentSets.push(JSON.parse(JSON.stringify(ownComponent.set)) as ComponentSet);
     const description = ownComponent ? safeDecode(s['sketchdrawDescription']) : undefined;
-    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, ...(ownComponent ? { componentType: ownComponent.definition.type, label: ownComponent.definition.name, ...(description ? { description } : {}) } : {}), text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId && !ownPicture ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : {}) });
+    const element = createElement(kind, { ...bounds, id: ctx.ids.resolveId(cell.id, 'cell', ctx.diagnostics, { sourcePath: cell.node.path }), rotation: kind === 'container' ? 0 : rotation, style: outerStyle, ...(ownComponent ? { componentType: ownComponent.definition.type, label: ownComponent.definition.name, ...(description ? { description } : {}) } : {}), text: table ? tablePlainText(table) : importedText || (s['shape'] === 'image' && !assetId && !ownPicture && !iconReference ? 'Blocked image' : ''), ...(table ? { table } : {}), ...(shapeVariant ? { shapeVariant } : {}), ...(assetId ? { assetId } : {}), ...(author ? { author } : {}), ...(group ? { metadata: { [GROUP_METADATA_KEY]: group.id } } : iconReference ? { metadata: { [DRAWIO_LIBRARY_ICON_KEY]: iconReference } } : {}) });
     add(ctx, element, cell.wrapper ?? cell.node);
     elements.set(cell.id, element);
   }

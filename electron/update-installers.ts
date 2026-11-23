@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { accessSync, constants, existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readdir, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { type InstallPlan, type PlatformInstaller, UpdateError } from './update-service';
 
@@ -127,7 +127,13 @@ export interface MacInstallerOptions {
   readonly failureMarker: string;
   readonly bundleId: string;
   readonly writable?: (file: string) => boolean;
+  /** Pause before the disk image is attached again after the system reported it busy. */
+  readonly attachRetryMs?: number;
 }
+
+/** What hdiutil answers while the disk image service of macOS is still busy with another image (#297). */
+const MAC_ATTACH_BUSY = /resource temporarily unavailable/i;
+export const MAC_ATTACH_ATTEMPTS = 4;
 
 /**
  * macOS: the disk image of the release. The bundle inside is checked (identifier, version), copied next to the running
@@ -149,11 +155,27 @@ export function createMacInstaller(options: MacInstallerOptions): PlatformInstal
     async install(file, version): Promise<InstallPlan> {
       if (!bundle) throw new UpdateError('install', 'The app does not run from an app bundle.');
       const mount = await mkdtemp(path.join(options.tmpDir, 'sketchdraw-update-'));
+      // The image is attached from a private copy with a name of its own. macOS remembers an attached image by its
+      // file for a while after it was detached: a second attempt with a new file of the same name, as a repeated
+      // download gives, was refused as busy for many seconds on macOS 15 (#297). On APFS the copy is a clone.
+      const image = `${mount}.dmg`;
       const staging = posix.join(posix.dirname(bundle), `${MAC_STAGING_PREFIX}${randomBytes(6).toString('hex')}`);
       const staged = posix.join(staging, posix.basename(bundle));
       let attached = false;
       try {
-        await must(runner.run('/usr/bin/hdiutil', ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, file], { timeoutMs: 180_000 }), 'Mounting the disk image');
+        await copyFile(file, image, constants.COPYFILE_FICLONE).catch((error: unknown) => {
+          throw new UpdateError('install', `Preparing the disk image failed: ${error instanceof Error ? error.message.slice(0, 200) : 'unknown error'}`);
+        });
+        // A busy disk image service passes within seconds, so only that answer is asked again; every other one,
+        // and a service that stays busy, is the failure it reports.
+        for (let attempt = 1; ; attempt += 1) {
+          const result = await runner.run('/usr/bin/hdiutil', ['attach', '-nobrowse', '-readonly', '-noautoopen', '-mountpoint', mount, image], { timeoutMs: 180_000 });
+          if (result.code === 0 || attempt === MAC_ATTACH_ATTEMPTS || !MAC_ATTACH_BUSY.test(result.stderr)) {
+            await must(Promise.resolve(result), 'Mounting the disk image');
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, (options.attachRetryMs ?? 1500) * attempt));
+        }
         attached = true;
         const apps = (await readdir(mount)).filter((name) => name.endsWith('.app'));
         if (apps.length !== 1) throw new UpdateError('install', 'The disk image does not hold exactly one app.');
@@ -168,8 +190,13 @@ export function createMacInstaller(options: MacInstallerOptions): PlatformInstal
         await rm(staging, { recursive: true, force: true }).catch(() => undefined);
         throw error;
       } finally {
-        if (attached) await runner.run('/usr/bin/hdiutil', ['detach', mount, '-force'], { timeoutMs: 60_000 }).catch(() => undefined);
+        if (attached) {
+          // Asked first, so macOS lets go of the image in its own order; forced only when that is refused.
+          const released = await runner.run('/usr/bin/hdiutil', ['detach', mount], { timeoutMs: 60_000 }).catch(() => null);
+          if (released?.code !== 0) await runner.run('/usr/bin/hdiutil', ['detach', mount, '-force'], { timeoutMs: 60_000 }).catch(() => undefined);
+        }
         await rm(mount, { recursive: true, force: true }).catch(() => undefined);
+        await rm(image, { force: true }).catch(() => undefined);
       }
       return {
         onQuit: () => runner.launch('/bin/sh', ['-c', MAC_SWAP_SCRIPT, 'sketchdraw-update', String(options.pid), bundle, staged, staging, options.failureMarker, version]),

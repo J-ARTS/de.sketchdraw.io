@@ -4,6 +4,8 @@ import { BPMN_ICON_KEY } from '@/renderer/lib/bpmn';
 import { diagramCodeAnchor, diagramCodeView } from '@/renderer/lib/diagram-code';
 import { diagramTemplate } from '@/renderer/lib/diagram-libraries';
 import { flowToCode, parseFlowCode } from '@/renderer/lib/flow-code';
+import { importMermaid } from '@/interop';
+import { defaultMermaidExportTarget, prepareMermaidCodeExport } from '@/renderer/lib/mermaid-export';
 import { FLOW_ID_KEY, flowNodeKind, planFlow, readFlow } from '@/renderer/lib/flow-model';
 import { planElementPaste } from '@/renderer/state/element-clipboard';
 
@@ -75,6 +77,46 @@ describe('a process as Mermaid code (#206)', () => {
     expect(parseFlowCode('flowchart LR\n').diagnostics.map((entry) => entry.severity)).toEqual(['error']);
     expect(parseFlowCode('flowchart XY\na --> b').diagnostics.map((entry) => entry.line)).toEqual([1]);
     expect(parseFlowCode('a --> b').diagnostics).toEqual([]);
+  });
+});
+
+describe('arrows that point both ways (#292)', () => {
+  test('the code keeps the second arrowhead of a sequence and a message flow', () => {
+    const parsed = parseFlowCode('flowchart LR\n  A[Eins] <--> B[Zwei]\n  B <-.->|fragt| C[Drei]\n  C --> A\n');
+    expect(parsed.diagnostics.filter((entry) => entry.severity === 'error')).toEqual([]);
+    expect(parsed.model.edges).toEqual([
+      { from: 'A', to: 'B', text: '', kind: 'flow', both: true },
+      { from: 'B', to: 'C', text: 'fragt', kind: 'message', both: true },
+      { from: 'C', to: 'A', text: '', kind: 'flow' },
+    ]);
+    expect(lines(flowToCode(parsed.model)).slice(-3)).toEqual(['A <--> B', 'B <-.->|fragt| C', 'C --> A']);
+    // A line without an arrowhead has none to double.
+    expect(parseFlowCode('flowchart LR\n  A <--- B\n').model.edges[0]).not.toHaveProperty('both');
+  });
+
+  test('a Mermaid flowchart with A <--> B comes back from the canvas with both arrowheads', () => {
+    const imported = importMermaid('flowchart LR\n  A[Eins] <--> B[Zwei]\n');
+    const document = imported.document;
+    const connector = document.elements.find((element) => element.kind === 'connector')!;
+    expect(connector.startMarker).not.toBe('none');
+    const flow = readFlow(page(document), connector.id)!;
+    expect(flow.model.edges).toMatchObject([{ kind: 'flow', both: true }]);
+    expect(flowToCode(flow.model)).toMatch(/<-->/);
+    // And the whole way the export goes: portable Mermaid code of the page.
+    const exported = prepareMermaidCodeExport(document, { pageId: document.pages[0]!.id, embedDocument: false, target: defaultMermaidExportTarget(document, document.pages[0]!.id) });
+    expect(exported.contents).toMatch(/<-->/);
+    expect(exported.contents).not.toMatch(/[^<]-->/);
+  });
+
+  test('applying code turns one arrowhead into two and back, on the same connector', () => {
+    const { document, anchor } = example();
+    const first = applyCode(document, anchor, [...EXAMPLE.slice(0, 5), 'e1 <--> t1', 't1 --> g1', 'g1 --> e2'].join('\n'));
+    const both = page(first.document).filter((element) => element.kind === 'connector' && element.startMarker && element.startMarker !== 'none');
+    expect(both).toHaveLength(1);
+    expect(both[0]!.startMarker).toBe(both[0]!.endMarker);
+    const back = applyCode(first.document, anchor, EXAMPLE.join('\n'));
+    expect(page(back.document).filter((element) => element.kind === 'connector' && element.startMarker && element.startMarker !== 'none')).toHaveLength(0);
+    expect(page(back.document).find((element) => element.id === both[0]!.id)).toBeDefined();
   });
 });
 

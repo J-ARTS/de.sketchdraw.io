@@ -1,8 +1,9 @@
-<!-- @component The live link of one diagram page to a Confluence page: where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store. -->
+<!-- @component The live link of one diagram page to a page of a wiki (Confluence or Azure DevOps): where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store. -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
+import type { WikiProviderId } from '@/domain';
 import { confluenceLiveStatusText, confluenceLiveTime, type ConfluenceLiveStatus } from '@/renderer/lib/confluence-live-text';
 
 const props = withDefaults(defineProps<{
@@ -16,7 +17,9 @@ const props = withDefaults(defineProps<{
   lastSyncedAt?: string;
   /** Another operation is running: no action can start. */
   busy?: boolean;
-}>(), { busy: false });
+  /** The wiki the page is in; the wording follows it. Default: Confluence. */
+  provider?: WikiProviderId;
+}>(), { busy: false, provider: 'confluence' });
 const emit = defineEmits<{
   /** Publish now instead of after the next change. */
   sync: [];
@@ -26,7 +29,8 @@ const emit = defineEmits<{
   unlink: [];
 }>();
 
-const statusText = computed(() => confluenceLiveStatusText(props.status));
+const statusText = computed(() => confluenceLiveStatusText(props.status, props.provider));
+const azure = computed(() => props.provider === 'azure-devops');
 /** A pause the server asked for is shown with its end, so waiting is never mistaken for a hang. */
 const retryText = computed(() => { const time = confluenceLiveTime(props.status.retryAt); return time ? t('Nächster Versuch nicht vor {time}', { time }) : ''; });
 const syncedText = computed(() => { const time = confluenceLiveTime(props.status.syncedAt ?? props.lastSyncedAt); return time ? t('Zuletzt übertragen: {time}', { time }) : ''; });
@@ -35,13 +39,13 @@ const cannotSync = computed(() => props.busy || props.status.state === 'off' || 
 
 <template>
   <div class="link-card" data-testid="confluence-link-card">
-    <div class="link-target"><span class="link-label">{{ t('Verknüpft mit') }}</span><strong data-testid="confluence-link-target">{{ title || t('Confluence-Seite') }}</strong><span>{{ siteUrl }}</span></div>
+    <div class="link-target"><span class="link-label">{{ t('Verknüpft mit') }}</span><strong data-testid="confluence-link-target">{{ title || (azure ? t('Wiki-Seite') : t('Confluence-Seite')) }}</strong><span>{{ siteUrl }}</span></div>
     <p class="link-status" :class="`link-status--${status.state}`" :role="status.state === 'error' ? 'alert' : 'status'" data-testid="confluence-link-status"><span class="link-dot" aria-hidden="true"></span><span>{{ statusText }}</span></p>
     <p v-if="retryText" class="link-time" data-testid="confluence-link-retry-at">{{ retryText }}</p>
     <p v-if="syncedText" class="link-time" data-testid="confluence-link-synced-at">{{ syncedText }}</p>
     <div class="link-actions">
       <AppButton intent="primary" data-testid="confluence-link-sync-now" :disabled="cannotSync" @click="emit('sync')">{{ t('Jetzt synchronisieren') }}</AppButton>
-      <AppButton data-testid="confluence-link-open" @click="emit('open')">{{ t('In Confluence öffnen') }} ↗</AppButton>
+      <AppButton data-testid="confluence-link-open" @click="emit('open')">{{ azure ? t('Im Wiki öffnen') : t('In Confluence öffnen') }} ↗</AppButton>
       <AppButton class="link-unlink" intent="danger" data-testid="confluence-link-unlink" :disabled="busy" @click="emit('unlink')">{{ t('Verknüpfung lösen') }}</AppButton>
     </div>
   </div>

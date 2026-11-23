@@ -1,0 +1,22 @@
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant Shop as Web Shop
+    participant Pay as Payment Service
+    participant Bank
+
+    Customer->>Shop: Place order
+    activate Shop
+    Shop->>Pay: Create payment request
+    activate Pay
+    Pay->>Bank: Authorize card
+    Bank-->>Pay: Authorization result
+    alt Payment approved
+        Pay-->>Shop: Payment confirmed
+        Shop-->>Customer: Show receipt
+    else Payment declined
+        Pay-->>Shop: Payment failed
+        Shop-->>Customer: Ask for another card
+    end
+    deactivate Pay
+    deactivate Shop

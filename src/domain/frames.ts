@@ -28,6 +28,15 @@ export function orderedFrames(document: SketchDocument): SketchElement[] {
   return result;
 }
 
+/**
+ * The order of all frames of the document after the frames of one page were put into `pageOrder`. The order is
+ * one list for the whole document; the frames of every other page keep the place they have (#289).
+ */
+export function frameOrderForPage(document: SketchDocument, pageId: string, pageOrder: readonly string[]): string[] {
+  const others = orderedFrames(document).filter((frame) => frame.pageId !== pageId).map((frame) => frame.id);
+  return [...others, ...pageOrder];
+}
+
 export function frameOrderMetadata(ids: readonly string[]): string | null {
   return ids.length ? JSON.stringify([...new Set(ids)]) : null;
 }

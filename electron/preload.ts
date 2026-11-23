@@ -36,6 +36,7 @@ import type {
   UpdateJiraIssueInput,
 } from '../src/domain/plugins';
 import type { UpdateStatus } from '../src/domain/updates';
+import type { AgentSkillClientId, AgentSkillStatus } from '../src/domain/agent-skill';
 import {
   type CloseDecision,
   type AppLanguage,
@@ -47,6 +48,8 @@ import {
   isValidCloseRequestId,
   type MenuCommand,
   validateExportFileRequest,
+  validateAgentSkillRequest,
+  isAgentSkillStatus,
   parseDirectEvent,
   validateDirectRequest,
   validateExternalHttpUrl,
@@ -128,6 +131,13 @@ export function createPreloadDesktopBridge(
   const updateInvoke = async (request: unknown): Promise<UpdateStatus> => {
     const status: unknown = await ipc.invoke(IPC_CHANNELS.UPDATE_INVOKE, validateUpdateRequest(request));
     if (!isUpdateStatus(status)) throw new Error('The update service answered with an invalid status.');
+    return status;
+  };
+
+  /** Every answer about the agent skill is a status; anything else from the channel is an error. */
+  const agentSkillInvoke = async (request: unknown): Promise<AgentSkillStatus> => {
+    const status: unknown = await ipc.invoke(IPC_CHANNELS.AGENT_SKILL_INVOKE, validateAgentSkillRequest(request));
+    if (!isAgentSkillStatus(status)) throw new Error('The agent skill service answered with an invalid status.');
     return status;
   };
 
@@ -309,6 +319,12 @@ export function createPreloadDesktopBridge(
       },
     }),
 
+    agentSkill: Object.freeze({
+      getStatus: () => agentSkillInvoke({ action: 'status' }),
+      setAutomatic: (enabled: boolean) => agentSkillInvoke({ action: 'set-automatic', enabled }),
+      replace: (client: AgentSkillClientId) => agentSkillInvoke({ action: 'replace', client }),
+    }),
+
     plugins: Object.freeze({
       getSettings: (handleId?: string | null) => pluginInvoke<PluginSettingsSnapshot>('get-settings', handleId),
       afterDocumentSaved: (handleId: string) => pluginInvoke<void>('after-document-saved', handleId),
@@ -338,10 +354,22 @@ export function createPreloadDesktopBridge(
       setConfluenceLiveLink: (input: { handleId: string; documentId: string; pageId: string | null; diagramPageId?: string; diagramPageIds?: string[] }) => pluginInvoke<PluginSettingsSnapshot>('set-confluence-live-link', input),
       convertConfluenceLiveLink: (input: { handleId: string; documentId: string; diagramPageIds: string[] }) => pluginInvoke<PluginSettingsSnapshot>('convert-confluence-live-link', input),
       publishConfluenceLive: (input: ConfluenceLivePublishInput) => pluginInvoke<ConfluenceLivePublishResult>('publish-confluence-live', input),
+      listAzureWikiPages: (query: string) => pluginInvoke<import('../src/domain/plugins').WikiPageSummary[]>('list-azure-wiki-pages', query),
+      setAzureWikiLiveLink: (input: { handleId: string; documentId: string; diagramPageId: string; wikiPage: string | null }) => pluginInvoke<PluginSettingsSnapshot>('set-azure-wiki-live-link', input),
+      publishAzureWikiLive: (input: ConfluenceLivePublishInput) => pluginInvoke<ConfluenceLivePublishResult>('publish-azure-wiki-live', input),
       createJiraIssue: (input: CreateJiraIssueInput) => pluginInvoke<JiraIssueSummary>('create-jira-issue', input),
       listJiraIssues: () => pluginInvoke<JiraIssueSummary[]>('list-jira-issues'),
       updateJiraIssue: (input: UpdateJiraIssueInput) => pluginInvoke<JiraIssueSummary>('update-jira-issue', input),
       transitionJiraIssue: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<JiraIssueSummary>('transition-jira-issue', input),
+      configureAzureDevOps: (input: import('../src/domain/plugins').ConfigureAzureDevOpsPluginInput) => pluginInvoke<PluginSettingsSnapshot>('configure-azure-devops', input),
+      testAzureDevOps: () => pluginInvoke<PluginOperationResult>('test-azure-devops'),
+      listAzureWorkItems: () => pluginInvoke<import('../src/domain/plugins').WorkItemSummary[]>('list-azure-work-items'),
+      createAzureWorkItem: (input: import('../src/domain/plugins').CreateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('create-azure-work-item', input),
+      updateAzureWorkItem: (input: import('../src/domain/plugins').UpdateWorkItemInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('update-azure-work-item', input),
+      transitionAzureWorkItem: (input: { key: string; status: import('../src/domain/types').TaskStatus }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('transition-azure-work-item', input),
+      getWorkItem: (input: { provider: import('../src/domain/plugins').TicketProvider; key: string }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('get-work-item', input),
+      searchWorkItems: (input: { provider: import('../src/domain/plugins').TicketProvider; query: string }) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary[]>('search-work-items', input),
+      updateWorkItemFields: (input: import('../src/domain/plugins').UpdateWorkItemFieldsInput) => pluginInvoke<import('../src/domain/plugins').WorkItemSummary>('update-work-item-fields', input),
       watchDocument: (handleId: string) => pluginInvoke<PluginOperationResult>('watch-document', handleId),
       onEvent(listener: (event: PluginExternalEvent) => void): () => void {
         if (typeof listener !== 'function') throw new Error('onEvent requires a listener function.');

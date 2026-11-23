@@ -26,11 +26,16 @@ export const IPC_CHANNELS = Object.freeze({
   UPDATE_INVOKE: 'sketchdraw:updates:invoke',
   /** Main reports every change of the update status. */
   UPDATE_EVENT: 'sketchdraw:updates:event',
+  /** The renderer asks where the agent skill stands, switches its automatic setup or replaces one copy (#265). */
+  AGENT_SKILL_INVOKE: 'sketchdraw:agent-skill:invoke',
 } as const);
 
 export type MenuCommand = 'open' | 'save' | 'save-as' | 'undo' | 'redo';
-/** `components`: the user's own component library as a file (#244). */
-export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components';
+/**
+ * `components`: the user's own component library as a file (#244). `pptx`: the slides as a PowerPoint file (#266);
+ * it is the only binary format, and its `contents` are the bytes of the package as base64.
+ */
+export type ExportFormat = 'svg' | 'drawio' | 'mermaid' | 'sketchdraw' | 'components' | 'pptx';
 export type CloseDecision = 'close' | 'cancel';
 export type AppLanguage = 'de' | 'en';
 
@@ -48,7 +53,13 @@ export const EXPORT_FORMATS: readonly ExportFormat[] = Object.freeze([
   'mermaid',
   'sketchdraw',
   'components',
+  'pptx',
 ]);
+
+/** Standard base64 with padding, as `btoa` and `Buffer#toString('base64')` write it. */
+export function isBase64Text(value: string): boolean {
+  return value.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(value);
+}
 
 export const CLOSE_DECISIONS: readonly CloseDecision[] = Object.freeze([
   'close',
@@ -321,7 +332,18 @@ export function validateExportFileRequest(
       error: {
         status: 'error',
         code: 'INVALID_FORMAT',
-        message: 'Export format must be one of "svg", "drawio", "mermaid", "sketchdraw", or "components".',
+        message: 'Export format must be one of "svg", "drawio", "mermaid", "sketchdraw", "components", or "pptx".',
+      },
+    };
+  }
+
+  if (format === 'pptx' && !isBase64Text(contents)) {
+    return {
+      ok: false,
+      error: {
+        status: 'error',
+        code: 'INVALID_REQUEST',
+        message: 'The contents of a PowerPoint export must be base64.',
       },
     };
   }
@@ -379,6 +401,46 @@ export function validateUpdateRequest(input: unknown): UpdateRequest {
   if (!hasOnlyAllowedKeys(input, new Set(['action']))) throw new Error('Invalid update request.');
   if (action === 'status' || action === 'check' || action === 'install' || action === 'open-release-page') return { action };
   throw new Error('Unknown update request.');
+}
+
+export type AgentSkillRequest =
+  | { action: 'status' }
+  | { action: 'set-automatic'; enabled: boolean }
+  | { action: 'replace'; client: import('../src/domain/agent-skill').AgentSkillClientId };
+
+const AGENT_SKILL_CLIENTS = new Set(['claude', 'codex', 'antigravity']);
+const AGENT_SKILL_STATES = new Set(['absent', 'missing', 'current', 'outdated', 'modified']);
+
+/** The only commands the renderer may give for the agent skill. An agent is named by its id; no command carries a path. */
+export function validateAgentSkillRequest(input: unknown): AgentSkillRequest {
+  if (!isPlainRecord(input)) throw new Error('Invalid agent skill request.');
+  const action = input['action'];
+  if (action === 'set-automatic') {
+    if (!hasOnlyAllowedKeys(input, new Set(['action', 'enabled'])) || typeof input['enabled'] !== 'boolean') throw new Error('Invalid agent skill request.');
+    return { action, enabled: input['enabled'] };
+  }
+  if (action === 'replace') {
+    const client = input['client'];
+    if (!hasOnlyAllowedKeys(input, new Set(['action', 'client'])) || typeof client !== 'string' || !AGENT_SKILL_CLIENTS.has(client)) throw new Error('Invalid agent skill request.');
+    return { action, client: client as import('../src/domain/agent-skill').AgentSkillClientId };
+  }
+  if (action === 'status' && hasOnlyAllowedKeys(input, new Set(['action']))) return { action };
+  throw new Error('Unknown agent skill request.');
+}
+
+/** What the preload passes on as the status of the agent skill; anything else from the channel is dropped. */
+export function isAgentSkillStatus(value: unknown): value is import('../src/domain/agent-skill').AgentSkillStatus {
+  if (!isPlainRecord(value)) return false;
+  const automatic = value['automatic'];
+  const clients = value['clients'];
+  return typeof value['supported'] === 'boolean'
+    && (automatic === null || typeof automatic === 'boolean')
+    && Array.isArray(clients) && clients.length <= AGENT_SKILL_CLIENTS.size
+    && clients.every((client: unknown) => isPlainRecord(client)
+      && typeof client['id'] === 'string' && AGENT_SKILL_CLIENTS.has(client['id'])
+      && typeof client['name'] === 'string' && client['name'].length <= 80
+      && typeof client['folder'] === 'string' && client['folder'].length <= 512
+      && typeof client['state'] === 'string' && AGENT_SKILL_STATES.has(client['state']));
 }
 
 const UPDATE_PHASES = new Set(['idle', 'checking', 'current', 'available', 'downloading', 'installing', 'ready', 'error']);

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { reactive } from 'vue';
 import { createCrdtController } from '@/crdt';
-import { createController, createDocument, serializeDocument, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type SketchDocument } from '@/domain';
+import { createController, createDocument, createElement, readTicketCard, serializeDocument, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type DesktopBridge, type PluginBridge, type PluginExternalEvent, type SketchDocument } from '@/domain';
 import { setLocale } from '@/renderer/i18n';
+import { describeSelection } from '@/renderer/lib/describe';
 import { createWhiteboardStore } from '@/renderer/state/whiteboard';
 
 async function setup(document: SketchDocument = createDocument('Plugins'), open = true) {
@@ -34,6 +35,88 @@ async function setup(document: SketchDocument = createDocument('Plugins'), open 
 /** Reactive state cannot be structured-cloned; snapshots are plain JSON. */
 const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
+/** Azure Boards next to Jira (#284): the mock answers like the main process does. */
+async function withAzure(options: { jira: boolean; readOnly?: boolean }) {
+  const context = await setup();
+  const { plugins, store } = context;
+  const azureItem = (key: string, title: string, remoteStatus = 'New', status: 'todo' | 'doing' | 'review' | 'done' = 'todo') => ({ provider: 'azure-devops' as const, id: key, key, title, description: '', status, remoteStatus, url: `https://dev.azure.com/acme/Shop/_workitems/edit/${key}`, updatedAt: '2026-11-22T10:00:00.000Z' });
+  const azure = {
+    listAzureWorkItems: vi.fn(async () => [azureItem('7', 'Checkout absichern', 'Active', 'doing')]),
+    createAzureWorkItem: vi.fn(async (input: { title: string }) => azureItem('20', input.title)),
+    updateAzureWorkItem: vi.fn(async (input: { key: string; title?: string }) => azureItem(input.key, input.title ?? 'Checkout absichern', 'Active', 'doing')),
+    transitionAzureWorkItem: vi.fn(async (input: { key: string; status: 'todo' | 'doing' | 'review' | 'done' }) => azureItem(input.key, 'Checkout absichern', input.status === 'done' ? 'Closed' : 'Active', input.status)),
+  };
+  Object.assign(plugins, azure);
+  const base = vi.mocked(plugins.getSettings).getMockImplementation()!;
+  vi.mocked(plugins.getSettings).mockImplementation(async (handle) => {
+    const settings = await base(handle);
+    return { ...settings, atlassian: { ...settings.atlassian, enabled: options.jira && settings.atlassian.enabled }, azureDevOps: { installed: true, enabled: handle !== null, variant: 'cloud' as const, organizationUrl: 'https://dev.azure.com/acme', project: 'Shop', workItemType: 'Task', wiqlFilter: '', apiVersion: '7.1', readOnly: options.readOnly ?? false, credentialStored: true, health: 'ready' as const, message: 'Bereit' } };
+  });
+  await store.refreshPluginSettings();
+  return { ...context, azure };
+}
+
+describe('Azure Boards in the task board (#284)', () => {
+  it('creates the ticket of a new task in Azure DevOps when Jira is off, and moves and edits it there', async () => {
+    const { store, plugins, azure } = await withAzure({ jira: false });
+    expect(store.state.ticketProviders).toEqual([{ id: 'azure-devops', name: 'Azure DevOps' }]);
+    expect(await store.createTask({ title: 'Warenkorb' })).toBe(true);
+    expect(azure.createAzureWorkItem).toHaveBeenCalledWith({ title: 'Warenkorb', description: '' });
+    expect(plugins.createJiraIssue).not.toHaveBeenCalled();
+    const task = store.state.document.tasks![0]!;
+    expect(task.external).toMatchObject({ provider: 'azure-devops', key: '20', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/20' });
+
+    expect(await store.moveTask(task.id, 'done', 0)).toBe(true);
+    expect(azure.transitionAzureWorkItem).toHaveBeenCalledWith({ key: '20', status: 'done' });
+    expect(plugins.transitionJiraIssue).not.toHaveBeenCalled();
+    expect(store.state.document.tasks![0]!.external?.remoteStatus).toBe('Closed');
+    expect(await store.updateTask(task.id, { title: 'Warenkorb neu' })).toBe(true);
+    expect(azure.updateAzureWorkItem).toHaveBeenCalledWith({ key: '20', title: 'Warenkorb neu' });
+    expect(plugins.updateJiraIssue).not.toHaveBeenCalled();
+    store.dispose();
+  });
+
+  it('reads the tickets of both systems; a Jira key and a work item number never share a task', async () => {
+    const { store, azure } = await withAzure({ jira: true });
+    expect(store.state.ticketProviders.map((provider) => provider.id)).toEqual(['jira', 'azure-devops']);
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    const externals = store.state.document.tasks!.map((task) => `${task.external!.provider}:${task.external!.key}`);
+    expect(externals).toEqual(['jira:SK-2', 'azure-devops:7']);
+    // A second run changes the same two tasks.
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    expect(store.state.document.tasks).toHaveLength(2);
+    expect(azure.listAzureWorkItems).toHaveBeenCalledTimes(2);
+    store.dispose();
+  });
+
+  it('with both switched on a new task goes to Jira, and a task without a ticket can be sent to either', async () => {
+    const { store, plugins, azure } = await withAzure({ jira: true });
+    vi.mocked(plugins.createJiraIssue).mockRejectedValueOnce(new Error('Jira ist nicht erreichbar.'));
+    expect(await store.createTask({ title: 'Freigabe' })).toBe(true);
+    expect(azure.createAzureWorkItem).not.toHaveBeenCalled();
+    const task = store.state.document.tasks![0]!;
+    expect(task.external).toBeUndefined();
+    expect(await store.createTicketForTask(task.id, 'azure-devops')).toBe(true);
+    expect(store.state.document.tasks![0]!.external).toMatchObject({ provider: 'azure-devops', key: '20' });
+    // It has its ticket now; no second one in the other system.
+    expect(await store.createTicketForTask(task.id, 'jira')).toBe(false);
+    store.dispose();
+  });
+
+  it('a read-only connection reads and never writes', async () => {
+    const { store, azure } = await withAzure({ jira: false, readOnly: true });
+    expect(store.state.ticketProviders).toEqual([]);
+    expect(await store.createTask({ title: 'Lokal' })).toBe(true);
+    expect(azure.createAzureWorkItem).not.toHaveBeenCalled();
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    const linked = store.state.document.tasks!.find((task) => task.external)!;
+    expect(linked.external).toMatchObject({ provider: 'azure-devops', key: '7' });
+    expect(await store.moveTask(linked.id, 'done', 0)).toBe(true);
+    expect(azure.transitionAzureWorkItem).not.toHaveBeenCalled();
+    store.dispose();
+  });
+});
+
 describe('plugin store integration', () => {
   it('creates a Jira issue from a comment and keeps the safe reference in the task', async () => {
     const document = createDocument('Comments');
@@ -42,6 +125,59 @@ describe('plugin store integration', () => {
     expect(await store.createTaskFromComment('thread:1')).toBe(true);
     expect(plugins.createJiraIssue).toHaveBeenCalledWith({ title: 'Review API', description: 'Review API' });
     expect(store.state.document.tasks?.[0]?.external?.key).toBe('SK-1');
+    store.dispose();
+  });
+
+  it('a ticket that could not be created is offered again, and a task gets one request at a time (#293)', async () => {
+    const { store, plugins } = await setup();
+    expect(store.state.jiraAvailable).toBe(true);
+    vi.mocked(plugins.createJiraIssue).mockRejectedValueOnce(new Error('Jira ist nicht erreichbar.'));
+    expect(await store.createTask({ title: 'Freigabe' })).toBe(true);
+    const task = store.state.document.tasks![0]!;
+    expect(task.external).toBeUndefined();
+    expect(store.state.notices.at(-1)?.text).toContain('Ticket in Jira nicht angelegt: Jira ist nicht erreichbar.');
+    expect(store.state.jiraCreatingTaskIds).toEqual([]);
+
+    // The second attempt is held open: a further one for the same task is refused meanwhile.
+    let release: (() => void) | undefined;
+    const original = vi.mocked(plugins.createJiraIssue).getMockImplementation()!;
+    vi.mocked(plugins.createJiraIssue).mockImplementationOnce(async (input) => { await new Promise<void>((resolve) => { release = resolve; }); return original(input); });
+    const first = store.createTicketForTask(task.id);
+    await vi.waitFor(() => expect(release).toBeDefined());
+    expect(store.state.jiraCreatingTaskIds).toEqual([task.id]);
+    expect(await store.createTicketForTask(task.id)).toBe(false);
+    release!();
+    expect(await first).toBe(true);
+    expect(store.state.jiraCreatingTaskIds).toEqual([]);
+    expect(plugins.createJiraIssue).toHaveBeenCalledTimes(2);
+    expect(store.state.document.tasks).toHaveLength(1);
+    expect(store.state.document.tasks![0]!.external?.key).toBe('SK-1');
+    // A linked task gets no second ticket.
+    expect(await store.createTicketForTask(task.id)).toBe(false);
+    expect(plugins.createJiraIssue).toHaveBeenCalledTimes(2);
+    store.dispose();
+  });
+
+  it('a card of another Jira site with the same key is neither overwritten nor written to (#286)', async () => {
+    const document = createDocument('Zwei Sites');
+    const foreign = { provider: 'jira' as const, remoteId: '9', key: 'SK-2', url: 'https://other.atlassian.net/browse/SK-2', remoteStatus: 'Done', updatedAt: '2026-10-01T10:00:00.000Z' };
+    document.tasks = [{ id: 'task:other', title: 'Ticket der anderen Site', description: 'bleibt', status: 'done', rank: 0, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', external: foreign }];
+    const { store, plugins } = await setup(document);
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    const tasks = store.state.document.tasks!;
+    // The card of the other site is as it was; the SK-2 of this site has a card of its own.
+    expect(tasks.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Ticket der anderen Site', description: 'bleibt', status: 'done', external: foreign });
+    expect(tasks.filter((task) => task.external?.key === 'SK-2').map((task) => task.external!.url).sort()).toEqual(['https://example.atlassian.net/browse/SK-2', 'https://other.atlassian.net/browse/SK-2']);
+    // Moving or editing it stays in the document: this site has no say over that ticket.
+    expect(await store.moveTask('task:other', 'todo', 0)).toBe(true);
+    expect(await store.updateTask('task:other', { title: 'Neu benannt' })).toBe(true);
+    expect(plugins.transitionJiraIssue).not.toHaveBeenCalled();
+    expect(plugins.updateJiraIssue).not.toHaveBeenCalled();
+    expect(store.state.document.tasks!.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Neu benannt', status: 'todo', external: foreign });
+    // A second sync still leaves it alone.
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
+    expect(store.state.document.tasks!.find((task) => task.id === 'task:other')).toMatchObject({ title: 'Neu benannt', external: foreign });
+    expect(store.state.document.tasks).toHaveLength(2);
     store.dispose();
   });
 
@@ -59,7 +195,7 @@ describe('plugin store integration', () => {
     const page = store.state.document.elements[0];
     expect(page).toMatchObject({ kind: 'annotation', label: 'Live Architecture', metadata: { 'sketchdraw.atlassian.pageId': '7', 'sketchdraw.atlassian.pageVersion': '4' } });
     expect(page?.text).toContain('Editable page');
-    expect(await store.syncJiraTasks()).toBe(true);
+    expect(await store.syncTicketTasks()).toBe(true);
     expect(store.state.document.tasks?.find((task) => task.external?.key === 'SK-2')).toMatchObject({ status: 'doing', assignee: 'Mara Muster', dueDate: '2026-11-20' });
     store.dispose();
   });
@@ -68,7 +204,7 @@ describe('plugin store integration', () => {
     const { store, plugins } = await setup();
     vi.mocked(plugins.listJiraIssues).mockRejectedValueOnce(new Error('offline'));
     const noticeCount = store.state.notices.length;
-    expect(await store.syncJiraTasks({ announce: false })).toBe(false);
+    expect(await store.syncTicketTasks({ announce: false })).toBe(false);
     expect(store.state.notices).toHaveLength(noticeCount);
     expect(store.state.pluginBusy).toBe(false);
     store.dispose();
@@ -89,7 +225,7 @@ describe('plugin store integration', () => {
 
     expect(await store.updateTask('task:jira', { title: 'Review the API', description: 'First line\nSecond line' })).toBe(true);
     expect(plugins.updateJiraIssue).toHaveBeenCalledWith({ key: 'SK-1', title: 'Review the API', description: 'First line\nSecond line' });
-    expect(await store.syncJiraTasks({ announce: false })).toBe(true);
+    expect(await store.syncTicketTasks({ announce: false })).toBe(true);
     expect(store.state.document.tasks?.[0]).toMatchObject({ title: 'Review the API', description: 'First line\nSecond line' });
 
     // An unchanged text is not sent again: the description in Jira is replaced as plain text, so only a change may do that.
@@ -201,7 +337,7 @@ describe('plugin store integration', () => {
     const { store, plugins, bridge } = await setup();
     let release!: (value: Awaited<ReturnType<PluginBridge['listJiraIssues']>>) => void;
     vi.mocked(plugins.listJiraIssues).mockImplementation(() => new Promise(resolve => { release = resolve; }));
-    const pending = store.syncJiraTasks();
+    const pending = store.syncTicketTasks();
     const next = createDocument('Other project');
     vi.mocked(bridge.openDocument).mockResolvedValue({ status: 'opened', text: serializeDocument(next), file: { handleId: 'hdl_abcdef0123456789abcdef0123456789', name: 'next.sketchdraw.json', versionToken: `sha256:${'2'.repeat(64)}` } });
     await store.openDocument();
@@ -385,4 +521,167 @@ describe('plugin store integration', () => {
     unsaved.store.dispose();
   });
 
+});
+
+/** Ticket cards (#283): the mock reads, finds and changes single tickets like the main process does. */
+async function withTickets(options: { azure?: boolean; readOnly?: boolean; document?: SketchDocument; open?: boolean } = {}) {
+  const context = options.azure ? await withAzure({ jira: true, ...(options.readOnly ? { readOnly: true } : {}) }) : await setup(options.document, options.open ?? true);
+  const { plugins } = context;
+  const remote = new Map<string, Record<string, unknown>>([
+    ['jira:SK-7', { id: '107', key: 'SK-7', title: 'Warenkorb sichern', description: 'Am Konto speichern.', status: 'doing', remoteStatus: 'In Progress', assignee: 'Mara Muster', labels: ['checkout'], components: ['Storefront'], estimate: '5', url: 'https://example.atlassian.net/browse/SK-7', updatedAt: '2026-11-22T08:00:00.000Z' }],
+    ['azure-devops:4711', { provider: 'azure-devops', id: '4711', key: '4711', title: 'Checkout absichern', description: '', status: 'todo', remoteStatus: 'New', labels: ['security'], components: ['Shop\\Checkout'], estimate: '8', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/4711', updatedAt: '2026-11-22T08:00:00.000Z' }],
+  ]);
+  const tickets = {
+    getWorkItem: vi.fn(async ({ provider, key }: { provider: string; key: string }) => {
+      const found = remote.get(`${provider}:${key}`);
+      if (!found) throw new Error('Ungültiges Ticket.');
+      return structuredClone(found);
+    }),
+    searchWorkItems: vi.fn(async ({ provider, query }: { provider: string; query: string }) => [...remote.entries()].filter(([id, value]) => id.startsWith(`${provider}:`) && String(value.title).toLowerCase().includes(query.toLowerCase())).map(([, value]) => ({ provider, ...structuredClone(value) }))),
+    updateWorkItemFields: vi.fn(async ({ provider, key, assignee, estimate, ...rest }: Record<string, unknown>) => {
+      const next: Record<string, unknown> = { ...remote.get(`${provider}:${key}`)!, ...rest, ...(assignee === null ? { assignee: undefined } : assignee !== undefined ? { assignee } : {}), ...(estimate === null ? { estimate: undefined } : estimate !== undefined ? { estimate } : {}) };
+      if (rest.status === 'done') next.remoteStatus = 'Done';
+      remote.set(`${provider}:${key}`, next);
+      return structuredClone(next);
+    }),
+  };
+  Object.assign(plugins, tickets);
+  return { ...context, tickets, remote };
+}
+const cards = (store: Awaited<ReturnType<typeof setup>>['store']) => store.state.document.elements.flatMap((element) => { const data = readTicketCard(element); return data ? [{ id: element.id, element, data }] : []; });
+const notices = (store: Awaited<ReturnType<typeof setup>>['store']) => store.state.notices.map((entry) => entry.text);
+
+describe('ticket cards on the canvas (#283)', () => {
+  it('puts a ticket on the canvas as a card that carries its seven fields', async () => {
+    const { store, tickets } = await withTickets();
+    expect(store.state.ticketReaders).toEqual([{ id: 'jira', name: 'Jira' }]);
+    store.openTicketInsert({ x: 400, y: 300 });
+    expect(await store.insertTicketCard('jira', 'SK-7')).toBe(true);
+    expect(tickets.getWorkItem).toHaveBeenCalledWith({ provider: 'jira', key: 'SK-7' });
+    const [card] = cards(store);
+    expect(card!.data).toMatchObject({ provider: 'jira', key: 'SK-7', title: 'Warenkorb sichern', status: 'doing', remoteStatus: 'In Progress', description: 'Am Konto speichern.', assignee: 'Mara Muster', labels: ['checkout'], components: ['Storefront'], estimate: '5' });
+    // Centred on the place it was asked for, selected, and a plain rectangle for every reader of the file.
+    expect(card!.element).toMatchObject({ kind: 'rectangle', x: 400 - TICKET_CARD_WIDTH / 2, y: 300 - TICKET_CARD_HEIGHT / 2, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT, text: 'Warenkorb sichern' });
+    expect(store.state.selection).toEqual([card!.id]);
+    // A screen reader hears the ticket, not a rectangle with a text.
+    expect(describeSelection([card!.element], store.state.document)).toMatch(/^Ticket SK-7: Warenkorb sichern, In Progress/);
+    // A version without ticket cards writes the title of the rectangle in this colour instead of the pale frame colour.
+    expect(card!.element.style).toMatchObject({ fill: '#ffffff', textColor: '#1e1e1e', textAlign: 'left' });
+    expect(notices(store).some((message) => message.startsWith('Der Inhalt des Tickets steht jetzt im Dokument'))).toBe(true);
+    store.undo();
+    await vi.waitFor(() => expect(cards(store)).toEqual([]));
+  });
+
+  it('turns the pasted address of a ticket into its card, and leaves other addresses alone', async () => {
+    const { store, tickets } = await withTickets({ azure: true });
+    await store.pasteClipboardData({ text: 'https://dev.azure.com/acme/Shop/_workitems/edit/4711', image: null });
+    expect(cards(store).map((card) => `${card.data.provider}:${card.data.key}`)).toEqual(['azure-devops:4711']);
+    expect(cards(store)[0]!.data).toMatchObject({ labels: ['security'], components: ['Shop\\Checkout'], estimate: '8' });
+    tickets.getWorkItem.mockClear();
+    await store.pasteClipboardData({ text: 'https://dev.azure.com/other/Shop/_workitems/edit/1', image: null });
+    expect(tickets.getWorkItem).not.toHaveBeenCalled();
+    expect(cards(store)).toHaveLength(1);
+  });
+
+  it('says why a ticket could not be read and adds nothing', async () => {
+    const { store } = await withTickets();
+    expect(await store.insertTicketCard('jira', 'SK-404')).toBe(false);
+    expect(cards(store)).toEqual([]);
+    expect(notices(store).at(-1)).toContain('Das Ticket konnte nicht gelesen werden');
+    expect(store.state.ticketBusy).toBe(false);
+  });
+
+  it('sends only the changed fields to the tracker and shows what the tracker answered', async () => {
+    const { store, tickets } = await withTickets();
+    await store.insertTicketCard('jira', 'SK-7');
+    const id = cards(store)[0]!.id;
+    expect(store.ticketCardAccess(id)).toBe('writable');
+    expect(await store.saveTicketCard(id, { title: 'Warenkorb am Konto sichern', status: 'done', labels: ['checkout', 'q1'], assignee: null, estimate: '8' })).toBe(true);
+    expect(tickets.updateWorkItemFields).toHaveBeenCalledWith({ provider: 'jira', key: 'SK-7', title: 'Warenkorb am Konto sichern', status: 'done', labels: ['checkout', 'q1'], assignee: null, estimate: '8' });
+    expect(cards(store)[0]!.data).toMatchObject({ title: 'Warenkorb am Konto sichern', status: 'done', remoteStatus: 'Done', labels: ['checkout', 'q1'], assignee: '', estimate: '8', components: ['Storefront'], description: 'Am Konto speichern.' });
+    // Nothing changed: nothing is sent.
+    tickets.updateWorkItemFields.mockClear();
+    expect(await store.saveTicketCard(id, {})).toBe(true);
+    expect(tickets.updateWorkItemFields).not.toHaveBeenCalled();
+  });
+
+  it('keeps the card as it was when the tracker refuses the change', async () => {
+    const { store, tickets } = await withTickets();
+    await store.insertTicketCard('jira', 'SK-7');
+    const id = cards(store)[0]!.id;
+    tickets.updateWorkItemFields.mockRejectedValueOnce(new Error('Ein Jira-Label darf keine Leerzeichen enthalten.'));
+    expect(await store.saveTicketCard(id, { labels: ['zwei worte'] })).toBe(false);
+    expect(cards(store)[0]!.data.labels).toEqual(['checkout']);
+    expect(notices(store).at(-1)).toContain('Jira hat die Änderung nicht übernommen');
+    expect(store.state.ticketBusy).toBe(false);
+  });
+
+  it('reads a ticket again on request', async () => {
+    const { store, remote } = await withTickets();
+    await store.insertTicketCard('jira', 'SK-7');
+    const id = cards(store)[0]!.id;
+    remote.set('jira:SK-7', { ...remote.get('jira:SK-7')!, title: 'Im Tracker umbenannt', status: 'review', remoteStatus: 'In Review' });
+    expect(await store.refreshTicketCard(id)).toBe(true);
+    expect(cards(store)[0]!.data).toMatchObject({ title: 'Im Tracker umbenannt', status: 'review', remoteStatus: 'In Review' });
+  });
+
+  it('reads the cards of a document once when it is opened with the tracker connected', async () => {
+    const stale = createElement('rectangle', { id: 'stale', x: 0, y: 0, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT, text: 'Stand von gestern', metadata: { 'ticket:provider': 'jira', 'ticket:key': 'SK-7', 'ticket:url': 'https://example.atlassian.net/browse/SK-7', 'ticket:status': 'todo' } });
+    const document = { ...createDocument('Karten'), elements: [stale] };
+    const { store, tickets, bridge } = await withTickets({ document, open: false });
+    vi.mocked(bridge.openDocument).mockResolvedValue({ status: 'opened', text: serializeDocument(document), file: { handleId: 'hdl_0123456789abcdef0123456789abcdef', name: 'board.sketchdraw.json', versionToken: `sha256:${'1'.repeat(64)}` } });
+    await store.openDocument(); await store.refreshPluginSettings();
+    await vi.waitFor(() => expect(cards(store)[0]!.data).toMatchObject({ title: 'Warenkorb sichern', status: 'doing', labels: ['checkout'] }));
+    // The same document and file are not read a second time by a later refresh of the settings.
+    await store.refreshPluginSettings();
+    expect(tickets.getWorkItem).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a card of another site without reading or writing it', async () => {
+    // A card that came with the file from someone whose Jira is another site.
+    const foreign = createElement('rectangle', { id: 'foreign', x: 0, y: 0, width: TICKET_CARD_WIDTH, height: TICKET_CARD_HEIGHT, text: 'Warenkorb sichern', metadata: { 'ticket:provider': 'jira', 'ticket:key': 'SK-7', 'ticket:url': 'https://other.atlassian.net/browse/SK-7', 'ticket:status': 'doing' } });
+    const { store, tickets } = await withTickets({ document: { ...createDocument('Fremd'), elements: [foreign] } });
+    const card = cards(store)[0]!;
+    expect(store.ticketCardAccess(card.id)).toBe('offline');
+    expect(await store.refreshTicketCard(card.id)).toBe(false);
+    expect(await store.saveTicketCard(card.id, { title: 'Fremd' })).toBe(false);
+    expect(tickets.getWorkItem).not.toHaveBeenCalled();
+    expect(tickets.updateWorkItemFields).not.toHaveBeenCalled();
+    expect(cards(store)[0]!.data.title).toBe('Warenkorb sichern');
+  });
+
+  it('reads but never changes a ticket while its tracker is set to read-only', async () => {
+    const { store, tickets } = await withTickets({ azure: true, readOnly: true });
+    expect(await store.insertTicketCard('azure-devops', '4711')).toBe(true);
+    const id = cards(store)[0]!.id;
+    expect(store.ticketCardAccess(id)).toBe('readonly');
+    expect(await store.saveTicketCard(id, { title: 'Nicht erlaubt' })).toBe(false);
+    expect(tickets.updateWorkItemFields).not.toHaveBeenCalled();
+    expect(notices(store).at(-1)).toContain('Nur lesen');
+  });
+
+  it('opens the ticket dialog instead of the text editor for a card', async () => {
+    const { store } = await withTickets();
+    await store.insertTicketCard('jira', 'SK-7');
+    const id = cards(store)[0]!.id;
+    store.closeTicketDialog();
+    store.startTextEdit(id);
+    expect(store.state.textEdit).toBeNull();
+    expect(store.state.ticketDialog).toEqual({ mode: 'edit', elementId: id });
+  });
+
+  it('places the ticket of a task as a card', async () => {
+    const { store, remote } = await withTickets();
+    remote.set('jira:SK-2', { id: '101', key: 'SK-2', title: 'Remote task', description: 'From Jira', status: 'doing', remoteStatus: 'In Progress', url: 'https://example.atlassian.net/browse/SK-2', updatedAt: '2026-11-22T08:00:00.000Z' });
+    await store.syncTicketTasks();
+    const task = store.state.document.tasks!.find((entry) => entry.external?.key === 'SK-2')!;
+    expect(await store.insertTicketCardFromTask(task.id)).toBe(true);
+    expect(cards(store)[0]!.data).toMatchObject({ key: 'SK-2', title: 'Remote task' });
+  });
+
+  it('finds tickets by text and offers nothing without a connected tracker', async () => {
+    const { store } = await withTickets();
+    expect((await store.searchTickets('jira', 'warenkorb'))!.map((entry) => entry.key)).toEqual(['SK-7']);
+    expect(await store.searchTickets('azure-devops', 'checkout')).toBeNull();
+  });
 });

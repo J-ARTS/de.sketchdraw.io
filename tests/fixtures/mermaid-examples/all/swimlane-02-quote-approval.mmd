@@ -1,0 +1,14 @@
+swimlane-beta LR
+  subgraph sales [Sales team]
+    lead([Qualify lead])
+    quote[Prepare quote]
+  end
+
+  subgraph finance [Finance team]
+    review{Terms OK?}
+    approve((Approved))
+  end
+
+  lead --> quote --> review
+  review -->|Yes| approve
+  review -->|No| quote

@@ -110,7 +110,7 @@ A comment is attached to an element, a table cell or a free spot. Replies form a
 
 ![A comment thread on an element of the diagram](docs/images/readme/comments.png)
 
-Comments and sticky notes become tasks. The board belongs to the document and shows them with type, due date and assignee in four columns. With the Atlassian plugin, tasks become Jira tickets.
+Comments and sticky notes become tasks. The board belongs to the document and shows them with type, due date and assignee in four columns. With the Jira plugin, tasks become Jira tickets; with the Azure DevOps plugin, work items in Azure Boards.
 
 ![The task board with four columns](docs/images/readme/tasks.png)
 
@@ -132,7 +132,7 @@ With the Git plugin, the diagram lives in a repository. The Git dialog shows cha
 
 ### Import and export
 
-Exchange with draw.io, SVG and Mermaid. Before every conversion, a preview shows what is lost or only approximated; the file is created only after confirmation. If you want, the document is embedded in the file; an unchanged export of your own can then be read back completely. Mermaid code can be pasted or read from a `.mmd` file: flowcharts become shapes, and a `sequenceDiagram` becomes an editable sequence diagram. An import opens as a new document or is inserted into the current page.
+Exchange with draw.io, SVG and Mermaid. Before every conversion, a preview shows what is lost or only approximated; the file is created only after confirmation. If you want, the document is embedded in the file; an unchanged export of your own can then be read back completely. Mermaid code can be pasted or read from a `.mmd` file: flowcharts become shapes, and a `sequenceDiagram` becomes an editable sequence diagram. Every other kind of Mermaid diagram (class, state and ER diagrams, Gantt charts, mind maps and the rest of [mermaid.js.org](https://mermaid.js.org/syntax/all-examples.html)) is drawn by Mermaid itself and comes in as an image that carries its code: the code panel shows it, and changed code is drawn again. Such a diagram is a picture, not single shapes. An import opens as a new document or is inserted into the current page.
 
 ![The export preview for draw.io with the notes on losses](docs/images/readme/export.png)
 
@@ -156,7 +156,7 @@ A change made by an agent appears on the canvas at once and is not saved to disk
 The tools work on their own: the server tells every client the workflow and the error rules when it connects. The [`sketchdraw-desktop` skill](skills/sketchdraw-desktop/SKILL.md) adds the longer guide – the command table, connectors, diagram code and what to do for each error – and is loaded by the agent only when a task is about a Sketchdraw diagram. It is one folder with a `SKILL.md`, in the open Agent Skills format, so the same folder works in every client that supports skills.
 
 1. **Connect the MCP server once.** The skill describes how to use the `sketchdraw` server; it does not replace it. See [Connecting and using MCP](docs/agent-integration.md).
-2. **Copy the skill folder** into the skills directory of your client:
+2. **Let the app set the skill up, or copy the folder yourself.** The installed app asks once whether it may put the skill into the skill folders of Claude Code, Codex and Antigravity and keep it up to date with every update; **Settings → AI agents** changes the answer later. It writes only into its own folder `sketchdraw-desktop`, creates nothing for a client that is not on the computer, and never replaces a copy you changed unless you ask for it. For a single project or another client, copy the folder into the skills directory of the client:
 
 | Client | For all your projects | For one project |
 | --- | --- | --- |
@@ -196,7 +196,15 @@ The interface comes in light and dark and in German and English. The background 
 
 ### Confluence and Jira
 
-The Atlassian plugin creates tasks and comments as Jira tickets. Each page of a diagram can be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
+The Jira plugin creates tasks and comments as Jira tickets. Each page of a diagram can be linked to a Confluence page of its own from the page menu (**Link Confluence page…**); Sketchdraw then shows that page as an image there and updates it after every change. This is implemented and still under review ([#210](https://github.com/J-ARTS/de.sketchdraw.io/issues/210), [#240](https://github.com/J-ARTS/de.sketchdraw.io/issues/240)). The access token is stored encrypted in the profile on the device and reaches neither diagrams nor Git.
+
+### Azure DevOps
+
+The Azure DevOps plugin connects the task board to Azure Boards: it loads work items with a WIQL query, creates tasks, comments and notes as work items and keeps title, description, assignee, due date and state in sync. It works with Azure DevOps Services (cloud) and with Azure DevOps Server; the API version can be set for older servers, and a read-only mode never writes. The plugin is installed from the marketplace of the plugin dialog and needs a personal access token with the scope "Work Items: Read & write". Each page of a diagram can also be linked to a page of the Azure DevOps wiki from the page menu; Sketchdraw then shows it there as an image and updates it after every change, as it does for Confluence. For that the token also needs "Wiki: Read & write". All of this is tested against a copy of the interface, not yet against a real organization or server ([#284](https://github.com/J-ARTS/de.sketchdraw.io/issues/284)).
+
+### Ticket cards
+
+A ticket from Jira or Azure Boards can stand on the canvas as a card: paste its address, pick it in **Insert ticket card…** in the menu, or place it from a task of the board. The card shows key, state, title, assignee, estimate, labels and components. A double click opens the ticket; title, state, description, assignee, labels, components and estimate can be changed there and are written back to the tracker. The content of the ticket is stored in the document, so everyone who receives the file reads the card without a plugin; it is read again when the document is opened with the tracker connected and on request. In the file the card is a rectangle with metadata, which older versions and exports show as a rectangle with the title. Like the plugins, this is tested against a copy of the interfaces ([#283](https://github.com/J-ARTS/de.sketchdraw.io/issues/283)).
 
 ## License
 

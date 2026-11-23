@@ -4,7 +4,11 @@ import type { FileReference, TaskStatus } from './types';
 export * from './git-workbench';
 
 export type PluginHealth = 'disabled' | 'ready' | 'attention' | 'error';
-export type PluginId = 'git' | 'jira' | 'confluence';
+export type PluginId = 'git' | 'jira' | 'confluence' | 'azure-devops';
+/** The systems a task can have its ticket in. */
+export type TicketProvider = 'jira' | 'azure-devops';
+/** Their names as the interface shows them; product names read the same in every language. */
+export const TICKET_PROVIDER_NAME: Readonly<Record<TicketProvider, string>> = { jira: 'Jira', 'azure-devops': 'Azure DevOps' };
 export type GitAuthMode = 'system' | 'token';
 
 export interface GitPluginSettings {
@@ -52,6 +56,29 @@ export interface AtlassianPluginSettings {
   message: string;
 }
 
+/** Azure Boards (#284): Azure DevOps Services in the cloud or an Azure DevOps Server, with a personal access token. */
+export interface AzureDevOpsPluginSettings {
+  installed: boolean;
+  enabled: boolean;
+  variant: 'cloud' | 'server';
+  /** Address of the organization (cloud) or of the collection (server). */
+  organizationUrl: string;
+  project: string;
+  /** The type new work items get, for example "Task" or "User Story". */
+  workItemType: string;
+  /** A WIQL query that names the work items of the task board; empty reads the newest of the project. */
+  wiqlFilter: string;
+  /** Version of the REST interface. Servers know older versions than the cloud. */
+  apiVersion: string;
+  /** Work items are read and never created or changed. */
+  readOnly: boolean;
+  credentialStored: boolean;
+  /** The links of pages of the open local diagram to pages of the Azure DevOps wiki (#284). */
+  wikiPageLinks?: WikiPageLiveLink[];
+  health: PluginHealth;
+  message: string;
+}
+
 /**
  * The live link of the open local diagram to one Confluence page (#210). It belongs to the active profile on this
  * device and names the diagram file, the diagram and the Atlassian site it was made for. Diagrams never carry it,
@@ -75,6 +102,37 @@ export interface ConfluenceLiveLink {
 export interface ConfluencePageLiveLink extends ConfluenceLiveLink {
   /** The page of the diagram whose image the Confluence page shows. */
   diagramPageId: string;
+}
+
+/** The wikis a page of a diagram can be shown in (#281): Confluence and the wiki of Azure DevOps. */
+export type WikiProviderId = 'confluence' | 'azure-devops';
+export const WIKI_PROVIDER_NAME: Readonly<Record<WikiProviderId, string>> = { confluence: 'Confluence', 'azure-devops': 'Azure DevOps Wiki' };
+/** A page of a wiki as a target for a link. `id` names it for its provider; for Azure DevOps it is wiki and path. */
+export interface WikiPageSummary {
+  provider: WikiProviderId;
+  id: string;
+  title: string;
+  /** Where the page lies, for telling pages of the same title apart: the wiki and path, or the version. */
+  detail: string;
+  url: string;
+}
+/**
+ * The live link of one page of the open local diagram to a wiki page, whichever wiki it is. A page of a diagram has
+ * at most one such link. `siteUrl` is the Atlassian site or the address of the Azure DevOps organization.
+ */
+export interface WikiPageLiveLink extends ConfluencePageLiveLink { provider: WikiProviderId }
+/**
+ * What a wiki does for a diagram (#281), independent of the provider: find pages, link one page of the diagram to
+ * a wiki page, and show that page there as an image that follows every change (#240). Confluence and the wiki of
+ * Azure DevOps are the two implementations; the bridge names their calls per provider.
+ */
+export interface WikiProvider {
+  readonly id: WikiProviderId;
+  readonly name: string;
+  searchPages(query: string): Promise<WikiPageSummary[]>;
+  /** Links the page of the diagram to the wiki page, or removes the link with `null`. */
+  setLink(input: { handleId: string; documentId: string; diagramPageId: string; diagramPageIds: string[]; pageId: string | null }): Promise<PluginSettingsSnapshot>;
+  publish(input: ConfluenceLivePublishInput & { diagramPageId: string }): Promise<ConfluenceLivePublishResult>;
 }
 
 /** A named set of plugin settings of the editor. Diagrams never store plugin configuration (#168). */
@@ -104,6 +162,8 @@ export interface PluginSettingsSnapshot {
   configurationIssue?: PluginConfigurationIssue;
   git: GitPluginSettings;
   atlassian: AtlassianPluginSettings;
+  /** Absent in a snapshot of a version that does not know the plugin. */
+  azureDevOps?: AzureDevOpsPluginSettings;
   /**
    * Link of the whole open diagram, as versions before #240 made it; absent without one. The app turns it into links
    * per page (`convertConfluenceLiveLink`) and never publishes through it itself.
@@ -139,6 +199,23 @@ export interface ConfigureAtlassianPluginInput {
   jiraIssueType: string;
   jqlFilter: string;
 }
+
+export interface ConfigureAzureDevOpsPluginInput {
+  enabled: boolean;
+  variant: 'cloud' | 'server';
+  organizationUrl: string;
+  project: string;
+  workItemType: string;
+  wiqlFilter: string;
+  /** Empty takes the usual version of the variant. */
+  apiVersion?: string;
+  readOnly: boolean;
+  accessToken?: string;
+  clearCredential?: boolean;
+}
+
+/** Installed and switched on. */
+export const azureDevOpsPluginActive = (azure: Pick<AzureDevOpsPluginSettings, 'installed' | 'enabled'> | null | undefined): boolean => Boolean(azure && azure.installed && azure.enabled);
 
 type AtlassianState = Pick<AtlassianPluginSettings, 'installed' | 'enabled' | 'jiraInstalled' | 'jiraEnabled' | 'confluenceInstalled' | 'confluenceEnabled'> | null | undefined;
 export const jiraPluginInstalled = (atlassian: AtlassianState): boolean => Boolean(atlassian && (atlassian.jiraInstalled ?? atlassian.installed));
@@ -221,6 +298,56 @@ export interface JiraIssueSummary {
   dueDate?: string;
   url: string;
   updatedAt: string;
+  /** Read for a single ticket (ticket cards, #283); lists for the task board leave them out. */
+  labels?: string[];
+  /** Jira components; in Azure Boards the area path. */
+  components?: string[];
+  /** Story points, effort or a time estimate, as the tracker shows it. */
+  estimate?: string;
+}
+
+/** What a ticket card can change in its ticket: the seven fields the owner named (#283). */
+export interface UpdateWorkItemFieldsInput {
+  provider: TicketProvider;
+  key: string;
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  assignee?: string | null;
+  labels?: string[];
+  components?: string[];
+  estimate?: string | null;
+}
+
+/**
+ * A ticket as the task board shows it, whichever system it comes from (#281): the fields are the ones of a
+ * Jira issue, and `provider` names the system.
+ */
+export interface WorkItemSummary extends JiraIssueSummary {
+  provider: TicketProvider;
+}
+
+export interface CreateWorkItemInput {
+  title: string;
+  description: string;
+  assignee?: string;
+  dueDate?: string;
+}
+
+export interface UpdateWorkItemInput {
+  key: string;
+  title?: string;
+  description?: string;
+  assignee?: string | null;
+  dueDate?: string | null;
+}
+
+/** What a system of tickets offers the task board. Jira and Azure Boards each provide it in the main process. */
+export interface WorkItemProvider {
+  list(): Promise<WorkItemSummary[]>;
+  create(input: CreateWorkItemInput): Promise<WorkItemSummary>;
+  update(input: UpdateWorkItemInput): Promise<WorkItemSummary>;
+  transition(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary>;
 }
 
 export interface CreateJiraIssueInput {
@@ -280,10 +407,38 @@ export interface PluginBridge extends GitWorkbenchBridge {
   convertConfluenceLiveLink?(input: { handleId: string; documentId: string; diagramPageIds: string[] }): Promise<PluginSettingsSnapshot>;
   /** Publishes the rendered pages of the linked diagram. Runs one after another; never throws for remote problems. */
   publishConfluenceLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
+  /** The wiki of Azure DevOps (#284): the same three steps as for Confluence. `wikiPage` is the `id` of a found page. */
+  listAzureWikiPages?(query: string): Promise<WikiPageSummary[]>;
+  setAzureWikiLiveLink?(input: { handleId: string; documentId: string; diagramPageId: string; wikiPage: string | null }): Promise<PluginSettingsSnapshot>;
+  publishAzureWikiLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
   createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary>;
   listJiraIssues(): Promise<JiraIssueSummary[]>;
   updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary>;
   transitionJiraIssue(input: { key: string; status: TaskStatus }): Promise<JiraIssueSummary>;
+  /** Azure Boards (#284). Absent in a desktop version that does not know the plugin. */
+  configureAzureDevOps?(input: ConfigureAzureDevOpsPluginInput): Promise<PluginSettingsSnapshot>;
+  testAzureDevOps?(): Promise<PluginOperationResult>;
+  listAzureWorkItems?(): Promise<WorkItemSummary[]>;
+  createAzureWorkItem?(input: CreateWorkItemInput): Promise<WorkItemSummary>;
+  updateAzureWorkItem?(input: UpdateWorkItemInput): Promise<WorkItemSummary>;
+  transitionAzureWorkItem?(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary>;
+  /** One ticket with all fields of a ticket card, by its key (Jira) or number (Azure Boards). */
+  getWorkItem?(input: { provider: TicketProvider; key: string }): Promise<WorkItemSummary>;
+  /** Tickets whose title contains the text, or the ticket with that key; at most 20. */
+  searchWorkItems?(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]>;
+  /** Writes the changed fields of a ticket card and answers with the ticket as it is afterwards. */
+  updateWorkItemFields?(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;
   onEvent(listener: (event: PluginExternalEvent) => void): () => void;
+}
+
+/** Every wiki link of the pages of the open diagram, whichever wiki it leads to. */
+export function wikiPageLinks(settings: Pick<PluginSettingsSnapshot, 'confluencePageLinks' | 'azureDevOps'> | null | undefined): WikiPageLiveLink[] {
+  return [...(settings?.confluencePageLinks ?? []).map((link): WikiPageLiveLink => ({ ...link, provider: 'confluence' })), ...(settings?.azureDevOps?.wikiPageLinks ?? [])];
+}
+/** The `id` of an Azure DevOps wiki page as found pages and links carry it: the wiki, a line break, the path. */
+export const azureWikiPageId = (wiki: string, pagePath: string): string => `${wiki}\n${pagePath}`;
+export function parseAzureWikiPageId(id: string): { wiki: string; path: string } | null {
+  const at = id.indexOf('\n');
+  return at > 0 && at < id.length - 1 ? { wiki: id.slice(0, at), path: id.slice(at + 1) } : null;
 }

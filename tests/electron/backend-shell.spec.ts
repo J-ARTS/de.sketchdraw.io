@@ -297,7 +297,7 @@ test.describe('Built Electron backend with a minimal renderer fixture', () => {
     expect(surface.frozen).toBe(true);
     expect(surface.exposedNodeGlobals).toEqual([]);
     expect(surface.keys).toEqual([
-      'direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument',
+      'agentSkill', 'direct', 'exportFile', 'helper', 'onCloseRequested', 'onInviteLink', 'onMenuCommand', 'openDocument',
       'openExternal', 'platform', 'plugins', 'respondToClose', 'saveDocument', 'setLanguage', 'updates', 'userName',
     ]);
     expect(surface.status).toBe(200);

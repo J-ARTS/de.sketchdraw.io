@@ -3,7 +3,7 @@ import type { ElementStyle, Point, ShapeVariant } from '../domain';
 import { context, importBoundary, add, baseStyle, color, decodeEnvelopeWithProjection, fail, findOwnSvgEnvelope, finish, imageAsset, length, number, placeholder, pointsElement, SVG_NS, textOf, warn } from './common';
 import { flattenPath, IDENTITY, multiply, parseNumbers, parseTransform, rectangleTransform, transformPoint, type Matrix } from './geometry';
 import { INTEROP_LIMITS as L } from './limits';
-import { svgProjectionForValidation } from './export';
+import { svgProjectionsForValidation } from './export';
 import { areXmlTreesEquivalent, stripSvgEnvelopeFromXmlRoot as stripEnvelope, getElementChildren as children, parseXmlDocument, type XmlElementNode } from './xml';
 import { InteropError, type ImportOptions, type InteropImportResult } from './types';
 const presentation = new Set(['fill', 'stroke', 'stroke-width', 'opacity', 'font-size', 'font-family', 'text-anchor', 'stroke-dasharray', 'display', 'visibility', 'color', 'fill-opacity', 'stroke-opacity', 'fill-rule', 'stroke-linecap', 'stroke-linejoin', 'clip-path', 'filter', 'mask', 'marker-start', 'marker-mid', 'marker-end', 'mix-blend-mode', 'font-weight', 'font-style', 'text-decoration', 'writing-mode', 'direction']);
@@ -31,8 +31,8 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
         throw new Error('Bad envelope');
       const { document: doc, projectionVersion } = decodeEnvelopeWithProjection(textOf(envelope[0]!), 'svg');
       // Compared with the picture of the version that wrote the file, so a release file stays restorable (#272).
-      const expected = parseXmlDocument(svgProjectionForValidation(doc, projectionVersion));
-      if (areXmlTreesEquivalent(stripEnvelope(root), stripEnvelope(expected)))
+      const visible = stripEnvelope(root);
+      if (svgProjectionsForValidation(doc, projectionVersion).some(draw => areXmlTreesEquivalent(visible, stripEnvelope(parseXmlDocument(draw())))))
         return finish(ctx, options, doc);
       warn(ctx, envelope[0], 'EMBEDDED_MODEL_STALE', 'metadata', 'Visible projection changed; embedded document ignored.');
     }
@@ -239,7 +239,10 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
         return;
       }
       const left = ellipse ? length(attrs['cx'], 0, view.width) - rx : x(), top = ellipse ? length(attrs['cy'], 0, view.height) - ry : y(), shape = rectangleTransform(matrix, left, top, rx * 2, ry * 2);
-      if (attrs['rx'] && !ellipse || attrs['ry'] && !ellipse)
+      // A rounded rectangle of Sketchdraw (SVG picture 4) comes back as one, with its corner radius.
+      const roundedShape = node.local === 'rect' && attrs['data-sketchdraw-shape'] === 'rounded';
+      const cornerRadius = roundedShape ? length(attrs['rx'], 0, view.width) : 0;
+      if (!roundedShape && (attrs['rx'] && !ellipse || attrs['ry'] && !ellipse))
         warn(ctx, node, 'STYLE_APPROXIMATED', 'radius', 'Rounded corners approximated by square corners.');
       if (node.local === 'image') {
         const asset = imageAsset(ctx, attrs['href'] ?? node.attributeList.find(a => a.uri === 'http://www.w3.org/1999/xlink' && a.local === 'href')?.value, node);
@@ -254,8 +257,8 @@ function convertSvg(xml: string, options: ImportOptions = {}): InteropImportResu
         return;
       }
       if (shape) {
-        const style = { ...painted.style };
-        add(ctx, createElement(ellipse ? 'ellipse' : 'rectangle', { id: elementId, ...shape, style, ...accessible }), node);
+        const style = { ...painted.style, ...(roundedShape && cornerRadius >= 0 ? { cornerRadius } : {}) };
+        add(ctx, createElement(ellipse ? 'ellipse' : 'rectangle', { id: elementId, ...shape, style, ...(roundedShape ? { shapeVariant: 'rounded' as const } : {}), ...accessible }), node);
       }
       else {
         warn(ctx, node, 'TRANSFORM_FLATTENED', 'transform', 'Skew/reflection transformed to editable points.');

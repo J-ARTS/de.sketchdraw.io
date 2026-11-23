@@ -30,6 +30,7 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
+import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WikiPageSummary, WikiProviderId, WorkItemSummary } from '@/domain/plugins';
 import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 import type { ConfluenceLiveStatus } from './confluence-live-sync';
@@ -332,6 +333,8 @@ export interface WhiteboardState {
   codeOpen: boolean;
   /** The Mermaid code of a diagram is shown beside the canvas (#203, #206). */
   diagramCodeOpen: boolean;
+  /** Why Mermaid could not draw the code of an image again (#279); null after a successful drawing. */
+  diagramCodeProblem: string | null;
   code: CodeDraft;
   catalogOpen: boolean;
   hasDraft: boolean;
@@ -348,6 +351,16 @@ export interface WhiteboardState {
   pendingPeerWrite: { requestId: string } | null;
   pluginSettings: PluginSettingsSnapshot | null;
   pluginBusy: boolean;
+  /** Whether a task can get a Jira ticket right now: the document is in a project and the Jira plugin is switched on. */
+  jiraAvailable: boolean;
+  /** The ticket systems a task can get its ticket in right now, in the order they are offered. */
+  ticketProviders: Array<{ id: TicketProvider; name: string }>;
+  /** The ticket systems single tickets can be read from right now (ticket cards); a read-only connection counts. */
+  ticketReaders: Array<{ id: TicketProvider; name: string }>;
+  /** The wikis a page of the diagram can be linked to right now: those whose plugin is switched on. */
+  wikiProviders: Array<{ id: WikiProviderId; name: string }>;
+  /** Tasks whose ticket is being created. One request per task at a time (#293). */
+  jiraCreatingTaskIds: string[];
   /** The Git dialog is open (#216). */
   gitOpen: boolean;
   confluencePages: readonly ConfluencePageSummary[];
@@ -359,6 +372,10 @@ export interface WhiteboardState {
   confluencePageLive: Readonly<Record<string, ConfluenceLiveStatus>>;
   /** The diagram page whose Confluence link dialog is open; null while it is closed. */
   confluenceLinkPageId: string | null;
+  /** The open ticket dialog (#283): the card being edited, or the place a new card is inserted at. */
+  ticketDialog: { mode: 'edit'; elementId: string } | { mode: 'insert'; at: Point } | null;
+  /** A ticket is being read or written. */
+  ticketBusy: boolean;
 }
 
 export interface WhiteboardStore {
@@ -509,6 +526,22 @@ export interface WhiteboardStore {
   deleteCommentThread(threadId: string): Promise<boolean>;
   createTaskFromComment(threadId: string): Promise<boolean>;
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
+  /** Opens the dialog of a ticket card; double click and Enter on the card do the same. */
+  openTicketCard(elementId: string): void;
+  openTicketInsert(at?: Point): void;
+  closeTicketDialog(): void;
+  /** Tickets of a connected tracker by text or key; null when the tracker is not connected or the search failed. */
+  searchTickets(provider: TicketProvider, query: string): Promise<WorkItemSummary[] | null>;
+  /** Reads a ticket by key or address and puts it on the canvas as a card. An address decides the tracker itself. */
+  insertTicketCard(provider: TicketProvider, keyOrUrl: string, at?: Point): Promise<boolean>;
+  insertTicketCardFromTask(taskId: string): Promise<boolean>;
+  refreshTicketCard(elementId: string): Promise<boolean>;
+  /** What can be done with the ticket of a card right now: change it, only read it again, or neither (no connection to its site). */
+  ticketCardAccess(elementId: string): 'writable' | 'readonly' | 'offline';
+  /** Writes the changed fields of a card to its ticket and takes over what the tracker answers. */
+  saveTicketCard(elementId: string, changes: Omit<UpdateWorkItemFieldsInput, 'provider' | 'key'>): Promise<boolean>;
+  /** Creates the ticket of a task that has none, in the named system or in the first available one, and links both. Refused while one is being created for it. */
+  createTicketForTask(taskId: string, provider?: TicketProvider): Promise<boolean>;
   createTask(input: { title: string; description?: string; status?: TaskStatus; type?: TaskType; assignee?: string; dueDate?: string }): Promise<boolean>;
   /** `null` removes type, assignee or due date (#105). */
   updateTask(taskId: string, patch: { title?: string; description?: string; status?: TaskStatus; type?: TaskType | null; assignee?: string | null; dueDate?: string | null }): Promise<boolean>;
@@ -528,6 +561,8 @@ export interface WhiteboardStore {
   configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
   configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;
   testAtlassianPlugin(): Promise<boolean>;
+  configureAzureDevOpsPlugin(input: ConfigureAzureDevOpsPluginInput): Promise<boolean>;
+  testAzureDevOpsPlugin(): Promise<boolean>;
   refreshGitStatus(): Promise<boolean>;
   syncGit(): Promise<boolean>;
   /** Opens or closes the Git dialog (#216). */
@@ -558,10 +593,15 @@ export interface WhiteboardStore {
   setConfluencePageLink(diagramPageId: string, pageId: string | null): Promise<boolean>;
   /** Publishes the linked page now instead of after the next change. */
   syncConfluencePage(diagramPageId: string): void;
+  /** Pages of the wiki of a provider as targets for a link (#281); null when nothing could be searched. */
+  searchWikiPages(provider: WikiProviderId, query: string): Promise<WikiPageSummary[] | null>;
+  /** Links a page of the diagram to a page of a wiki, or removes its link with `null`. A page has one wiki link. */
+  setWikiPageLink(diagramPageId: string, provider: WikiProviderId, pageId: string | null): Promise<boolean>;
   /** Opens the dialog that links this page of the diagram to a Confluence page. */
   openConfluencePageLink(diagramPageId: string): void;
   closeConfluencePageLink(): void;
-  syncJiraTasks(options?: { announce?: boolean }): Promise<boolean>;
+  /** Reads the tickets of every active ticket system (Jira, Azure Boards) into the task board. */
+  syncTicketTasks(options?: { announce?: boolean }): Promise<boolean>;
   acceptExternalDocument(): Promise<boolean>;
 
   toggleFrameSidebar(open?: boolean): void;

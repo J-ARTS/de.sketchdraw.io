@@ -19,7 +19,11 @@ import { nativeText, setNativeLanguage } from './i18n';
 import { createPlatformInstaller } from './update-installers';
 import { RELEASE_PAGE_URL, UpdateService } from './update-service';
 import { createUpdatePrompts } from './update-dialogs';
+import { AgentSkillService } from './agent-skill-service';
+import { askForAgentSkill } from './agent-skill-dialog';
+import type { AgentSkillStatus } from '../src/domain/agent-skill';
 import type { UpdateStatus } from '../src/domain/updates';
+import type { PluginId } from '../src/domain/plugins';
 import type {
   ExportFileResult,
   OpenDocumentResult,
@@ -36,6 +40,7 @@ import {
   sanitizeUserName,
   validateSetLanguageRequest,
   validateUpdateRequest,
+  validateAgentSkillRequest,
 } from './ipc-contract';
 import { DirectService } from './direct-service';
 import { PeerRelayHelper } from './peer-relay-service';
@@ -72,6 +77,7 @@ protocol.registerSchemesAsPrivileged([
 app.commandLine.appendSwitch('enable-features', 'WebRtcHideLocalIpsWithMdns');
 
 let updateService: UpdateService | null = null;
+let agentSkillService: AgentSkillService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let pluginService: PluginService | null = null;
 let closeCoordinator: CloseHandshakeCoordinator | null = null;
@@ -242,6 +248,16 @@ const updatePrompts = createUpdatePrompts({
   openReleasePage: () => { void shell.openExternal(RELEASE_PAGE_URL); },
   text: nativeText,
 });
+
+/** The skill ships beside the app: in its resources when installed, in the repository for a start from the sources. */
+function createAgentSkillService(): AgentSkillService {
+  return new AgentSkillService({
+    homeDir: app.getPath('home'),
+    sourceDir: app.isPackaged ? path.join(process.resourcesPath, 'skills', 'sketchdraw-desktop') : path.join(app.getAppPath(), 'skills', 'sketchdraw-desktop'),
+    statePath: path.join(app.getPath('userData'), 'agent-skill.json'),
+    supported: app.isPackaged,
+  });
+}
 
 function createUpdateService(): UpdateService {
   const userData = app.getPath('userData');
@@ -437,6 +453,19 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.AGENT_SKILL_INVOKE, async (event, rawPayload: unknown): Promise<AgentSkillStatus> => {
+    const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
+    if (!check.ok) throw new Error(check.reason);
+    const request = validateAgentSkillRequest(rawPayload);
+    const service = agentSkillService;
+    if (!service) throw new Error('The agent skill service is not initialized.');
+    switch (request.action) {
+      case 'status': return service.status();
+      case 'set-automatic': return service.setAutomatic(request.enabled);
+      case 'replace': return service.replace(request.client);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.INVITE_LINK_TAKE, async (event): Promise<string | null> => {
     const check = validateIpcSender(event as unknown as IpcSenderEventLike, getCurrentSecurityContext());
     if (!check.ok) throw new Error(check.reason);
@@ -483,8 +512,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'create-profile': return plugins.createProfile(payload);
       case 'rename-profile': return plugins.renameProfile(payload);
       case 'delete-profile': return plugins.deleteProfile(String(request.payload ?? ''));
-      case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as 'git' | 'jira');
-      case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as 'git' | 'jira');
+      case 'install-plugin': return plugins.installPlugin(String(request.payload ?? '') as PluginId);
+      case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as PluginId);
       case 'configure-git': return plugins.configureGit(payload);
       case 'configure-atlassian': return plugins.configureAtlassian(payload);
       case 'test-atlassian': return plugins.testAtlassian();
@@ -506,10 +535,22 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'set-confluence-live-link': return plugins.setConfluenceLiveLink(payload);
       case 'convert-confluence-live-link': return plugins.convertConfluenceLiveLink(payload);
       case 'publish-confluence-live': return plugins.publishConfluenceLive(payload);
+      case 'list-azure-wiki-pages': return plugins.listAzureWikiPages(String(request.payload ?? ''));
+      case 'set-azure-wiki-live-link': return plugins.setAzureWikiLiveLink(payload);
+      case 'publish-azure-wiki-live': return plugins.publishAzureWikiLive(payload);
       case 'create-jira-issue': return plugins.createJiraIssue(payload);
       case 'list-jira-issues': return plugins.listJiraIssues();
       case 'update-jira-issue': return plugins.updateJiraIssue(payload);
       case 'transition-jira-issue': return plugins.transitionJiraIssue(payload);
+      case 'configure-azure-devops': return plugins.configureAzureDevOps(payload);
+      case 'test-azure-devops': return plugins.testAzureDevOps();
+      case 'list-azure-work-items': return plugins.listAzureWorkItems();
+      case 'create-azure-work-item': return plugins.createAzureWorkItem(payload);
+      case 'update-azure-work-item': return plugins.updateAzureWorkItem(payload);
+      case 'transition-azure-work-item': return plugins.transitionAzureWorkItem(payload);
+      case 'get-work-item': return plugins.getWorkItem(payload);
+      case 'search-work-items': return plugins.searchWorkItems(payload);
+      case 'update-work-item-fields': return plugins.updateWorkItemFields(payload);
       default: throw new Error('Unbekannte Plugin-Aktion.');
     }
   });
@@ -672,6 +713,8 @@ void app
     pluginService = plugins;
     const updates = createUpdateService();
     updateService = updates;
+    const agentSkill = createAgentSkillService();
+    agentSkillService = agentSkill;
     const lifecycle = new QuitLifecycle({
       quit: () => app.quit(),
       windowCount: () => BrowserWindow.getAllWindows().length,
@@ -687,6 +730,8 @@ void app
 
     await createMainWindow(target);
     updates.start(updatePrompts.onAutomaticCheck);
+    // The skill for the agents: asked once, then kept up to date at every start. Never in the way of the start.
+    void askForAgentSkill({ service: agentSkill, showMessage, text: nativeText }).then(() => agentSkill.sync()).catch(() => undefined);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0 && activeTarget) {

@@ -13,7 +13,7 @@ import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboa
 import { L, t, tn } from '@/renderer/i18n';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings' | 'support';
+type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'ticket' | 'plugins' | 'settings' | 'support';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). `external`: the entry opens a website in the browser. */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean; external?: boolean }
@@ -99,6 +99,8 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
   { id: 'slides', label: L('Folien'), icon: 'pages', checked: s.frameSidebarOpen },
   { id: 'tasks', label: L('Aufgaben'), icon: 'check', checked: s.workspaceView === 'tasks' },
+  // A ticket from Jira or Azure Boards as a card on the canvas (#283); offered while one of them is connected.
+  ...(s.ticketReaders.length && s.canWrite && s.workspaceView === 'canvas' ? [{ id: 'ticket', label: L('Ticket-Karte einfügen …'), icon: 'file-plus' } satisfies ViewItem] : []),
   { id: 'plugins', label: L('Plugins'), icon: 'component', checked: props.pluginsOpen, separator: true },
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
   { id: 'support', label: L('Buy me a coffee'), icon: 'coffee', separator: true, external: true },
@@ -232,6 +234,7 @@ function runView(id: ViewItemId): void {
     case 'code': store.toggleCode(); break;
     case 'slides': store.toggleFrameSidebar(!s.frameSidebarOpen); break;
     case 'tasks': if (s.workspaceView === 'tasks') store.showCanvas(); else store.openTaskBoard(); break;
+    case 'ticket': store.openTicketInsert(); break;
     case 'plugins': emit('plugins'); break;
     case 'settings': emit('settings'); break;
     case 'support': void store.openDocumentationLink(SUPPORT_URL); break;

@@ -1,0 +1,21 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Placed
+    Placed --> Paid : payment received
+    Placed --> Cancelled : customer cancels
+    Paid --> Fulfilment
+
+    state Fulfilment {
+        [*] --> Packing
+        Packing --> Shipped : handed to courier
+        Shipped --> [*]
+    }
+
+    Fulfilment --> Delivered : courier confirms
+    Delivered --> [*]
+    Cancelled --> [*]
+
+    note right of Paid
+        Payment can be card,
+        wallet, or bank transfer
+    end note

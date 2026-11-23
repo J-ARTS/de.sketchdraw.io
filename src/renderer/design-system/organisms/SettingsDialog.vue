@@ -1,4 +1,4 @@
-<!-- @component The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates. -->
+<!-- @component The modal dialog for the settings of the app: canvas background, paper pattern, guides while moving, theme, language and, in the desktop app, updates and the skill for AI agents. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { t } from '@/renderer/i18n';
@@ -11,6 +11,8 @@ import { isMacPlatform } from '@/renderer/design-system/composables/platform';
 import ColorPicker from '@/renderer/design-system/molecules/ColorPicker.vue';
 import UpdateSettings from '@/renderer/design-system/molecules/UpdateSettings.vue';
 import { useAppUpdates } from '@/renderer/design-system/composables/use-app-updates';
+import AgentSkillSettings from '@/renderer/design-system/molecules/AgentSkillSettings.vue';
+import { useAgentSkill } from '@/renderer/design-system/composables/use-agent-skill';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
 /** Modal settings: canvas background, design and language. All of them are personal and not stored in the document. */
@@ -24,6 +26,8 @@ const closeButton = ref<HTMLButtonElement | null>(null);
 const pickerOpen = ref(false);
 const updates = useAppUpdates();
 const updateStatus = updates.status;
+const agentSkill = useAgentSkill();
+const agentSkillStatus = agentSkill.status;
 let opener: HTMLElement | null = null;
 
 const presets = computed(() => CANVAS_BACKGROUNDS.map((entry) => ({
@@ -44,6 +48,7 @@ watch(() => props.open, async (open) => {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     pickerOpen.value = false;
     updates.refresh();
+    agentSkill.refresh();
     if (!dialog.value?.open) dialog.value?.showModal();
     closeButton.value?.focus();
   } else {
@@ -162,6 +167,11 @@ function onRadioKeydown(event: KeyboardEvent): void {
       <section v-if="updateStatus" class="setting" aria-labelledby="updates-title">
         <h3 id="updates-title">{{ t('Updates') }}</h3>
         <UpdateSettings :status="updateStatus" @check="updates.check()" @install="updates.install()" @release-page="updates.openReleasePage()" @update:auto-check="updates.setAutoCheck($event)" />
+      </section>
+
+      <section v-if="agentSkillStatus" class="setting" aria-labelledby="agent-skill-title">
+        <h3 id="agent-skill-title">{{ t('KI-Agenten') }}</h3>
+        <AgentSkillSettings :status="agentSkillStatus" @update:automatic="agentSkill.setAutomatic($event)" @replace="agentSkill.replace($event)" />
       </section>
 
       <footer><AppButton intent="primary" @click="emit('close')">{{ t('Fertig') }}</AppButton></footer>

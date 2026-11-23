@@ -46,3 +46,12 @@ export function shapeBaseKind(variant: ShapeVariant): 'rectangle' | 'ellipse' | 
   if (variant === 'diamond') return 'diamond';
   return 'rectangle';
 }
+
+/**
+ * The corner radius a rounded rectangle is drawn with: the chosen one, else a sixth of the shorter side, never more
+ * than half of it. The canvas and the SVG export both use it.
+ */
+export function roundedCornerRadius(element: Pick<SketchElement, 'width' | 'height' | 'style'>): number {
+  const shorter = Math.min(element.width, element.height);
+  return Math.max(0, Math.min(element.style.cornerRadius ?? shorter / 6, shorter / 2));
+}

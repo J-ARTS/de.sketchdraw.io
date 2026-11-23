@@ -31,11 +31,17 @@ import type {
   PluginSettingsSnapshot,
   TaskStatus,
   UpdateJiraIssueInput,
+  WikiPageLiveLink,
+  WikiPageSummary,
 } from '../src/domain/index';
+import { azureWikiPageId, parseAzureWikiPageId } from '../src/domain/plugins';
+import { assertAzureWikiTarget, azureWikiPageUrl, listAzureWikiPages, publishAzureWikiImage, readAzureWikiPage } from './azure-devops-wiki';
 import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } from '../src/domain/plugins';
 import { confluenceStorageLoss } from '../src/domain/atlassian';
 import { CONFLUENCE_LIVE_MAX_IMAGE_BYTES, CONFLUENCE_LIVE_MAX_IMAGES, confluenceLiveFilePrefix, confluenceLiveFilename, isPngImage, managedImageFilenames, planManagedImages, type ManagedImage } from '../src/domain/confluence-live';
 import type { DocumentPersistenceService } from './persistence';
+import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, AzureDevOpsHttpError, createAzureWorkItem, getAzureWorkItem, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
+import type { AzureDevOpsPluginSettings, ConfigureAzureDevOpsPluginInput, CreateWorkItemInput, TicketProvider, UpdateWorkItemFieldsInput, UpdateWorkItemInput, WorkItemSummary } from '../src/domain/plugins';
 
 const execFile = promisify(execFileCallback);
 const CONFIG_VERSION = 2;
@@ -170,10 +176,43 @@ interface PersistedAtlassianConfig {
   confluencePageLinks?: PersistedConfluenceLink[];
 }
 
+/** Azure Boards (#284). A profile that never had the plugin installed has no such entry. */
+interface PersistedAzureConfig {
+  installed: boolean;
+  enabled: boolean;
+  variant: 'cloud' | 'server';
+  organizationUrl: string;
+  project: string;
+  workItemType: string;
+  wiqlFilter: string;
+  apiVersion: string;
+  readOnly: boolean;
+  encryptedAccessToken?: string;
+  /** Links of pages of diagram files to pages of the wiki (#284). Like the Confluence links they live in the profile. */
+  wikiLinks?: PersistedAzureWikiLink[];
+}
+
+/** The link of one page of a diagram file to a page of the Azure DevOps wiki. */
+interface PersistedAzureWikiLink {
+  /** Identifies this one act of linking; the block on the wiki page carries it. */
+  token: string;
+  documentPath: string;
+  documentId: string;
+  diagramPageId: string;
+  /** The organization or collection and the project the link was made for. */
+  organizationUrl: string;
+  project: string;
+  wiki: string;
+  wikiName: string;
+  pagePath: string;
+  lastSyncedAt?: string;
+}
+
 interface PersistedPluginConfig {
   version: 2;
   git: PersistedGitConfig;
   atlassian: PersistedAtlassianConfig;
+  azure?: PersistedAzureConfig;
 }
 
 interface PersistedProfile {
@@ -181,6 +220,7 @@ interface PersistedProfile {
   name: string;
   git: PersistedGitConfig;
   atlassian: PersistedAtlassianConfig;
+  azure?: PersistedAzureConfig;
 }
 
 interface PersistedProfileStore {
@@ -217,6 +257,53 @@ const DEFAULT_CONFIG: PersistedPluginConfig = {
   atlassian: { installed: true, enabled: false, siteUrl: '', email: '', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' },
 };
 
+/** Azure DevOps is a plugin the user installs; it does not come installed. */
+const DEFAULT_AZURE: PersistedAzureConfig = { installed: false, enabled: false, variant: 'cloud', organizationUrl: '', project: '', workItemType: 'Task', wiqlFilter: '', apiVersion: AZURE_DEVOPS_DEFAULT_API_VERSION.cloud, readOnly: false };
+
+/** Stored Azure DevOps settings are checked like entered ones: wrong shapes are rejected, not repaired. */
+function parseAzureConfig(value: unknown): PersistedAzureConfig | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
+  const record = value as Record<string, unknown>;
+  for (const [key, fallback] of Object.entries(DEFAULT_AZURE)) if (key in record && typeof record[key] !== typeof fallback) throw new Error('PROFILE_STORE_INVALID');
+  if ('encryptedAccessToken' in record && typeof record.encryptedAccessToken !== 'string') throw new Error('PROFILE_STORE_INVALID');
+  const azure = { ...DEFAULT_AZURE, ...(record as Partial<PersistedAzureConfig>) };
+  if (azure.variant !== 'cloud' && azure.variant !== 'server') throw new Error('PROFILE_STORE_INVALID');
+  azure.organizationUrl = normalizeAzureDevOpsUrl(azure.organizationUrl, azure.variant);
+  azure.project = boundedString(azure.project, 64, 'Azure-DevOps-Projekt', !azure.enabled);
+  azure.workItemType = boundedString(azure.workItemType, 128, 'Work-Item-Typ');
+  azure.wiqlFilter = boundedMultilineText(azure.wiqlFilter, 4000, 'WIQL-Abfrage');
+  if (!AZURE_DEVOPS_API_VERSION.test(azure.apiVersion)) throw new Error('PROFILE_STORE_INVALID');
+  if (azure.enabled && (!azure.installed || !azure.organizationUrl || !azure.encryptedAccessToken)) throw new Error('PROFILE_STORE_INVALID');
+  if (record.wikiLinks !== undefined) azure.wikiLinks = parseAzureWikiLinks(record.wikiLinks);
+  if (!azure.wikiLinks?.length) delete azure.wikiLinks;
+  return azure;
+}
+
+function parseAzureWikiLinks(value: unknown): PersistedAzureWikiLink[] {
+  if (!Array.isArray(value) || value.length > MAX_CONFLUENCE_LINKS) throw new Error('PROFILE_STORE_INVALID');
+  const seen = new Set<string>();
+  return value.map((entry): PersistedAzureWikiLink => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('PROFILE_STORE_INVALID');
+    const record = entry as Record<string, unknown>;
+    const text = (key: string, max: number): string => {
+      const field = record[key];
+      if (typeof field !== 'string' || !field || field.length > max || /[\u0000-\u001f\u007f]/.test(field)) throw new Error('PROFILE_STORE_INVALID');
+      return field;
+    };
+    const link: PersistedAzureWikiLink = { token: text('token', 64), documentPath: text('documentPath', 4096), documentId: text('documentId', 256), diagramPageId: text('diagramPageId', 256), organizationUrl: text('organizationUrl', 2048), project: text('project', 64), wiki: text('wiki', 128), wikiName: text('wikiName', 128), pagePath: text('pagePath', 400) };
+    const unique = `${link.documentPath}\n${link.diagramPageId}`;
+    if (!/^[0-9a-f-]{8,64}$/.test(link.token) || !path.isAbsolute(link.documentPath) || seen.has(unique)) throw new Error('PROFILE_STORE_INVALID');
+    try { assertAzureWikiTarget(link.wiki, link.pagePath); } catch { throw new Error('PROFILE_STORE_INVALID'); }
+    seen.add(unique);
+    if (record.lastSyncedAt !== undefined) {
+      if (typeof record.lastSyncedAt !== 'string' || Number.isNaN(Date.parse(record.lastSyncedAt))) throw new Error('PROFILE_STORE_INVALID');
+      link.lastSyncedAt = record.lastSyncedAt;
+    }
+    return link;
+  });
+}
+
 /** The state of the two Atlassian plugins; a profile from before the split gives both what the one plugin had. */
 function atlassianParts(config: PersistedAtlassianConfig): { jiraInstalled: boolean; jiraEnabled: boolean; confluenceInstalled: boolean; confluenceEnabled: boolean } {
   const jiraInstalled = config.jiraInstalled ?? config.installed, confluenceInstalled = config.confluenceInstalled ?? config.installed;
@@ -240,7 +327,7 @@ function sameFields(left: object, right: object): boolean {
 
 /** A profile nobody configured yet; only such a profile adopts an old per-folder configuration. */
 function isPristine(config: PersistedPluginConfig): boolean {
-  return sameFields(config.git, DEFAULT_CONFIG.git) && sameFields(config.atlassian, DEFAULT_CONFIG.atlassian);
+  return sameFields(config.git, DEFAULT_CONFIG.git) && sameFields(config.atlassian, DEFAULT_CONFIG.atlassian) && (!config.azure || sameFields(config.azure, DEFAULT_AZURE));
 }
 
 /** Links are stored data like everything else in the profile file: wrong shapes are rejected, not repaired. */
@@ -307,7 +394,7 @@ function parseConfluenceLinks(value: unknown, scope: 'diagram' | 'page' = 'diagr
   return links.length ? links : undefined;
 }
 
-function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atlassian'> {
+function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atlassian' | 'azure'> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
   const record = value as Record<string, unknown>;
   for (const plugin of ['git', 'atlassian'] as const) {
@@ -348,7 +435,9 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   if (confluenceLinks) atlassian.confluenceLinks = confluenceLinks; else delete atlassian.confluenceLinks;
   const confluencePageLinks = parseConfluenceLinks((record.atlassian as Record<string, unknown>).confluencePageLinks, 'page');
   if (confluencePageLinks) atlassian.confluencePageLinks = confluencePageLinks; else delete atlassian.confluencePageLinks;
-  return { git, atlassian };
+  let azure: PersistedAzureConfig | undefined;
+  try { azure = parseAzureConfig(record.azure); } catch { throw new Error('PROFILE_STORE_INVALID'); }
+  return { git, atlassian, ...(azure ? { azure } : {}) };
 }
 
 function parseProfileStore(value: unknown): PersistedProfileStore {
@@ -496,6 +585,7 @@ export class PluginService {
   private readonly pullTimers = new Map<string, NodeJS.Timeout>();
   private gitRuntime: GitPluginSettings = this.defaultGitRuntime();
   private atlassianRuntime: AtlassianPluginSettings = this.defaultAtlassianRuntime();
+  private azureRuntime: AzureDevOpsPluginSettings = this.azureSettings();
 
   constructor(options: PluginServiceOptions) {
     this.persistence = options.persistence; this.credentials = options.credentials; this.emitEvent = options.emitEvent; this.fetchFn = options.fetchFn ?? fetch;
@@ -510,6 +600,14 @@ export class PluginService {
 
   private defaultGitRuntime(): GitPluginSettings {
     return { installed: true, enabled: false, folderPath: this.projectFolder, autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system', username: '', credentialStored: false, health: 'disabled', message: 'Git-Plugin ist deaktiviert.' };
+  }
+
+  /** The Azure DevOps settings as the interface shows them: without the token, with the state of the connection. */
+  private azureSettings(health?: { health: AzureDevOpsPluginSettings['health']; message: string }): AzureDevOpsPluginSettings {
+    const { encryptedAccessToken, wikiLinks: _wikiLinks, ...fields } = this.config?.azure ?? DEFAULT_AZURE;
+    const credentialStored = Boolean(encryptedAccessToken) && this.credentials.available();
+    const enabled = fields.installed && fields.enabled;
+    return { ...fields, enabled, credentialStored, ...(health ?? { health: enabled ? (credentialStored ? 'attention' : 'error') : 'disabled', message: !fields.installed ? 'Azure-DevOps-Plugin ist nicht installiert.' : !enabled ? 'Azure-DevOps-Plugin ist deaktiviert.' : credentialStored ? 'Azure DevOps ist eingerichtet. Verbindung testen, um den Zugriff zu prüfen.' : 'Kein sicher gespeichertes Token für Azure DevOps vorhanden.' }) };
   }
 
   private defaultAtlassianRuntime(): AtlassianPluginSettings {
@@ -577,7 +675,7 @@ export class PluginService {
 
   private activeProfile(): PersistedProfile { return this.profiles.find((profile) => profile.id === this.activeProfileId) ?? this.profiles[0]!; }
 
-  private configOf(profile: PersistedProfile): PersistedPluginConfig { return { version: CONFIG_VERSION, git: { ...profile.git }, atlassian: { ...profile.atlassian } }; }
+  private configOf(profile: PersistedProfile): PersistedPluginConfig { return { version: CONFIG_VERSION, git: { ...profile.git }, atlassian: { ...profile.atlassian }, ...(profile.azure ? { azure: { ...profile.azure } } : {}) }; }
 
   private profileSummaries(): PluginProfileSummary[] { return this.profiles.map(({ id, name }) => ({ id, name })); }
 
@@ -606,7 +704,11 @@ export class PluginService {
 
   /** Stores the configuration in its profile; it becomes the running configuration only while that profile is active. */
   private async saveConfig(next: PersistedPluginConfig, profileId: string): Promise<void> {
-    await this.mutateStore((profiles, activeProfileId) => ({ activeProfileId, profiles: profiles.map((profile) => profile.id === profileId ? { ...profile, git: { ...next.git }, atlassian: { ...next.atlassian } } : profile) }));
+    await this.mutateStore((profiles, activeProfileId) => ({ activeProfileId, profiles: profiles.map((profile) => {
+      if (profile.id !== profileId) return profile;
+      const { azure: _azure, ...kept } = profile;
+      return { ...kept, git: { ...next.git }, atlassian: { ...next.atlassian }, ...(next.azure ? { azure: { ...next.azure } } : {}) };
+    }) }));
     if (profileId === this.activeProfileId) this.config = next;
   }
 
@@ -661,7 +763,7 @@ export class PluginService {
     // A live link is an explicit decision in one profile; a copy starts without the links of its source.
     const { confluenceLinks: _links, confluencePageLinks: _pageLinks, ...sourceAtlassian } = source?.atlassian ?? DEFAULT_CONFIG.atlassian;
     const created: PersistedProfile = source
-      ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...sourceAtlassian } }
+      ? { id: randomUUID(), name, git: { ...source.git }, atlassian: { ...sourceAtlassian }, ...(source.azure ? { azure: { ...source.azure } } : {}) }
       : { ...defaultProfile(), id: randomUUID(), name };
     await this.mutateStore((profiles) => {
       if (profiles.length >= PLUGIN_PROFILE_LIMIT) throw new Error('Es sind höchstens zwölf Profile möglich.');
@@ -750,6 +852,7 @@ export class PluginService {
     const installed = parts.jiraInstalled || parts.confluenceInstalled, atlassianEnabled = parts.jiraEnabled || parts.confluenceEnabled;
     const { siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter } = this.config.atlassian;
     this.atlassianRuntime = { installed, enabled: atlassianEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
+    this.azureRuntime = this.azureSettings();
   }
 
   public async getSettings(handleId?: string | null): Promise<PluginSettingsSnapshot> {
@@ -759,7 +862,8 @@ export class PluginService {
     const issue = this.storeIssue ?? this.legacyIssue;
     const live = this.liveLinkView();
     const pageLinks = this.pageLinkViews();
-    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, ...(live ? { confluenceLive: live } : {}), ...(pageLinks.length ? { confluencePageLinks: pageLinks } : {}) };
+    const wikiLinks = this.azureWikiLinkViews();
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, azureDevOps: { ...this.azureRuntime, ...(wikiLinks.length ? { wikiPageLinks: wikiLinks } : {}) }, ...(live ? { confluenceLive: live } : {}), ...(pageLinks.length ? { confluencePageLinks: pageLinks } : {}) };
   }
 
   /** The link of the whole open diagram file, as earlier versions made it. */
@@ -828,8 +932,9 @@ export class PluginService {
     if (id === 'git') next.git.installed = true;
     else if (id === 'jira') next.atlassian = withAtlassianParts(next.atlassian, { ...parts, jiraInstalled: true });
     else if (id === 'confluence') next.atlassian = withAtlassianParts(next.atlassian, { ...parts, confluenceInstalled: true });
+    else if (id === 'azure-devops') next.azure = { ...(next.azure ?? DEFAULT_AZURE), installed: true };
     else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (id !== 'git') this.revokeAuthority(); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+    await this.saveConfig(next, profileId); if (id === 'jira' || id === 'confluence') this.revokeAuthority(); if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
   public async uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot> {
@@ -848,8 +953,10 @@ export class PluginService {
       const { confluenceLinks: _links, confluencePageLinks: _pageLinks, ...kept } = next.atlassian;
       next.atlassian = parts.jiraInstalled ? withAtlassianParts({ ...kept, confluenceSpaceKey: '' }, { ...parts, confluenceInstalled: false, confluenceEnabled: false }) : empty;
     }
+    // Removing the plugin removes its settings and its token.
+    else if (id === 'azure-devops') delete next.azure;
     else throw new Error('Unbekanntes Plugin.');
-    await this.saveConfig(next, profileId); if (id !== 'git') this.revokeAuthority(); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
+    await this.saveConfig(next, profileId); if (id === 'jira' || id === 'confluence') this.revokeAuthority(); if (profileId === this.activeProfileId) { if (id === 'git') this.clearWatchers(); this.refreshRuntime(); } return this.getSettings();
   }
 
   public async configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot> {
@@ -921,6 +1028,88 @@ export class PluginService {
     // previous site, account or switch never continues, and a pause a server asked the previous site for ends.
     await this.saveConfig(next, profileId); this.revokeAuthority(); if (this.cooldown && this.cooldown.siteUrl !== siteUrl) this.cooldown = null;
     if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+  }
+
+  public async configureAzureDevOps(input: ConfigureAzureDevOpsPluginInput): Promise<PluginSettingsSnapshot> {
+    await this.ensureLoaded(); if (!input || typeof input !== 'object') throw new Error('Ungültige Azure-DevOps-Konfiguration.');
+    const current = this.config.azure ?? DEFAULT_AZURE;
+    if (!current.installed) throw new Error('Azure-DevOps-Plugin ist nicht installiert.');
+    const profileId = this.activeProfileId;
+    const enabled = Boolean(input.enabled);
+    const variant = input.variant === 'server' ? 'server' : 'cloud';
+    const organizationUrl = normalizeAzureDevOpsUrl(typeof input.organizationUrl === 'string' ? input.organizationUrl : '', variant);
+    const project = boundedString(input.project ?? '', 64, 'Azure-DevOps-Projekt', !enabled);
+    if (/[\\/:*?"<>|#$}{,+=\[\]]/.test(project)) throw new Error('Der Projektname enthält Zeichen, die Azure DevOps nicht erlaubt.');
+    const workItemType = boundedString(input.workItemType || 'Task', 128, 'Work-Item-Typ');
+    const wiqlFilter = boundedMultilineText(input.wiqlFilter ?? '', 4000, 'WIQL-Abfrage');
+    const apiVersion = typeof input.apiVersion === 'string' && input.apiVersion.trim() ? input.apiVersion.trim() : AZURE_DEVOPS_DEFAULT_API_VERSION[variant];
+    if (!AZURE_DEVOPS_API_VERSION.test(apiVersion)) throw new Error('Die API-Version wird in der Form 7.1 oder 6.0 erwartet.');
+    // A token belongs to the address it was entered for; another address starts without one.
+    let encryptedAccessToken = input.clearCredential || organizationUrl !== current.organizationUrl ? undefined : current.encryptedAccessToken;
+    if (typeof input.accessToken === 'string' && input.accessToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Personal Access Token')); }
+    if (enabled && (!organizationUrl || !project || !encryptedAccessToken)) throw new Error(variant === 'server' ? 'Für Azure DevOps Server werden die Adresse der Sammlung, das Projekt und ein Personal Access Token benötigt.' : 'Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.');
+    const next: PersistedPluginConfig = { ...this.config, azure: { installed: true, enabled, variant, organizationUrl, project, workItemType, wiqlFilter, apiVersion, readOnly: Boolean(input.readOnly), ...(encryptedAccessToken ? { encryptedAccessToken } : {}), ...(current.wikiLinks?.length ? { wikiLinks: current.wikiLinks } : {}) } };
+    // A publication that is on its way belongs to the settings it started with.
+    await this.saveConfig(next, profileId); this.azureEpoch++; this.revokeAuthority();
+    if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
+  }
+
+  /** Counts the saved Azure DevOps configurations; an answer that arrives under an older one is not used. */
+  private azureEpoch = 0;
+  /** The connection Azure DevOps calls run with. Like Jira, they work on behalf of an open local diagram. */
+  private azureConnection(): AzureDevOpsConnection {
+    const azure = this.config.azure;
+    if (!azure?.installed) throw new Error('Azure-DevOps-Plugin ist nicht installiert.');
+    if (!azure.enabled) throw new Error('Azure-DevOps-Plugin ist deaktiviert.');
+    if (!azure.encryptedAccessToken || !this.credentials.available()) throw new Error('Kein sicher gespeichertes Token für Azure DevOps vorhanden.');
+    return { baseUrl: azure.organizationUrl, project: azure.project, apiVersion: azure.apiVersion, token: this.credentials.decrypt(azure.encryptedAccessToken), fetchFn: this.fetchFn };
+  }
+  /** Runs one Azure DevOps call; its answer only counts while project, profile and configuration are the ones it started with. */
+  private async azure<T>(write: boolean, call: (connection: AzureDevOpsConnection, azure: PersistedAzureConfig) => Promise<T>): Promise<T> {
+    await this.ensureLoaded(); this.assertDocumentProject();
+    const connection = this.azureConnection(); const azure = this.config.azure!;
+    if (write && azure.readOnly) throw new Error('Azure DevOps ist auf „Nur lesen" gestellt.');
+    const generation = this.projectGeneration, epoch = this.azureEpoch, profileId = this.activeProfileId;
+    const result = await call(connection, azure);
+    this.assertGeneration(generation);
+    if (epoch !== this.azureEpoch || profileId !== this.activeProfileId) throw new Error('Die Azure-DevOps-Einstellungen haben sich geändert.');
+    return result;
+  }
+
+  public async testAzureDevOps(): Promise<PluginOperationResult> {
+    await this.ensureLoaded();
+    const epoch = this.azureEpoch, profileId = this.activeProfileId;
+    let result: PluginOperationResult;
+    try { const name = await testAzureDevOps(this.azureConnection()); result = { ok: true, message: `Azure DevOps: verbunden mit Projekt „${name}“` }; }
+    catch (error) { result = { ok: false, message: `Azure DevOps: ${error instanceof Error ? error.message : 'Verbindung fehlgeschlagen'}` }; }
+    if (epoch === this.azureEpoch && profileId === this.activeProfileId) this.azureRuntime = this.azureSettings({ health: result.ok ? 'ready' : 'error', message: result.message });
+    return result;
+  }
+
+  public listAzureWorkItems(): Promise<WorkItemSummary[]> { return this.azure(false, (connection, azure) => listAzureWorkItems(connection, azure.wiqlFilter)); }
+
+  public createAzureWorkItem(input: CreateWorkItemInput): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Work Item.');
+    const fields = { title: boundedString(input.title, 255, 'Titel'), description: boundedMultilineText(input.description ?? '', 50_000, 'Beschreibung'), ...(input.assignee ? { assignee: boundedString(input.assignee, 120, 'Zuständigkeit') } : {}), ...(input.dueDate ? { dueDate: jiraDueDate(input.dueDate) } : {}) };
+    return this.azure(true, (connection, azure) => createAzureWorkItem(connection, azure.workItemType, fields));
+  }
+
+  public updateAzureWorkItem(input: UpdateWorkItemInput): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Work Item.');
+    const key = boundedString(input.key, 12, 'Work-Item-Nummer');
+    const fields = {
+      ...(input.title !== undefined ? { title: boundedString(input.title, 255, 'Titel') } : {}),
+      ...(input.description !== undefined ? { description: boundedMultilineText(input.description, 50_000, 'Beschreibung') } : {}),
+      ...(input.assignee !== undefined ? { assignee: input.assignee === null || !input.assignee.trim() ? null : boundedString(input.assignee, 120, 'Zuständigkeit') } : {}),
+      ...(input.dueDate !== undefined ? { dueDate: input.dueDate === null || input.dueDate === '' ? null : jiraDueDate(input.dueDate) } : {}),
+    };
+    return this.azure(true, (connection) => updateAzureWorkItem(connection, key, fields));
+  }
+
+  public transitionAzureWorkItem(input: { key: string; status: TaskStatus }): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object' || !['todo', 'doing', 'review', 'done'].includes(input.status)) throw new Error('Ungültiger Status.');
+    const key = boundedString(input.key, 12, 'Work-Item-Nummer');
+    return this.azure(true, (connection) => transitionAzureWorkItem(connection, key, input.status));
   }
 
   /** A call for Jira needs Jira installed and switched on; Confluence alone does not grant it, and the reverse (#282). */
@@ -1385,6 +1574,8 @@ export class PluginService {
       return this.getSettings();
     }
     const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    // A page of a diagram is shown in one wiki (#284).
+    if (this.activeAzureWikiLinks().some((link) => diagramPageId === undefined || link.diagramPageId === diagramPageId)) throw new Error('Diese Seite ist bereits mit einer Seite des Azure-DevOps-Wikis verknüpft. Löse diese Verknüpfung zuerst.');
     this.assertConfluence();
     const siteUrl = this.config.atlassian.siteUrl;
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID');
@@ -1675,7 +1866,7 @@ export class PluginService {
     }
   }
 
-  private jiraIssue(value: Record<string, unknown>): JiraIssueSummary {
+  private jiraIssue(value: Record<string, unknown>, storyPointsField?: string | null): JiraIssueSummary {
     const fields = (value.fields ?? {}) as Record<string, unknown>;
     const status = (fields.status ?? {}) as Record<string, unknown>;
     const assignee = fields.assignee && typeof fields.assignee === 'object' && !Array.isArray(fields.assignee) ? fields.assignee as Record<string, unknown> : undefined;
@@ -1688,7 +1879,41 @@ export class PluginService {
       status: jiraStatus(remoteStatus), remoteStatus,
       ...(assigneeName ? { assignee: assigneeName } : {}), ...(dueDate ? { dueDate } : {}),
       url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated),
+      ...this.jiraDetails(fields, storyPointsField),
     };
+  }
+
+  /** Labels, components and estimate of an issue; absent when the request did not ask for them (the task board list). */
+  private jiraDetails(fields: Record<string, unknown>, storyPointsField: string | null | undefined): Pick<JiraIssueSummary, 'labels' | 'components' | 'estimate'> {
+    if (storyPointsField === undefined) return {};
+    const labels = Array.isArray(fields.labels) ? fields.labels.filter((label): label is string => typeof label === 'string') : [];
+    const components = Array.isArray(fields.components) ? fields.components.flatMap((entry) => entry && typeof entry === 'object' && typeof (entry as { name?: unknown }).name === 'string' ? [(entry as { name: string }).name] : []) : [];
+    const points = storyPointsField ? fields[storyPointsField] : undefined;
+    const tracking = fields.timetracking && typeof fields.timetracking === 'object' ? (fields.timetracking as { originalEstimate?: unknown }).originalEstimate : undefined;
+    const estimate = typeof points === 'number' ? String(points) : typeof tracking === 'string' && tracking ? tracking : undefined;
+    return { labels, components, ...(estimate ? { estimate } : {}) };
+  }
+
+  /** The field a Jira site keeps story points in, looked up once per site; null when it has none. */
+  private storyPoints: { siteUrl: string; field: string | null } | null = null;
+  private async jiraStoryPointsField(): Promise<string | null> {
+    const siteUrl = this.config.atlassian.siteUrl;
+    if (this.storyPoints?.siteUrl === siteUrl) return this.storyPoints.field;
+    let field: string | null = null;
+    try {
+      const fields = await this.atlassian('/rest/api/3/field') as Array<{ id?: unknown; name?: unknown; custom?: unknown }>;
+      const names = ['story points', 'story point estimate'];
+      const found = Array.isArray(fields) ? names.map((name) => fields.find((entry) => entry.custom === true && typeof entry.name === 'string' && entry.name.toLowerCase() === name)).find(Boolean) : undefined;
+      if (found && typeof found.id === 'string' && /^customfield_\d+$/.test(found.id)) field = found.id;
+    } catch (error) { if (!(error instanceof AtlassianHttpError)) throw error; }
+    if (this.config.atlassian.siteUrl === siteUrl) this.storyPoints = { siteUrl, field };
+    return field;
+  }
+  private async jiraIssueDetails(key: string): Promise<JiraIssueSummary> {
+    const storyPointsField = await this.jiraStoryPointsField();
+    const fields = ['summary', 'description', 'status', 'assignee', 'duedate', 'updated', 'labels', 'components', 'timetracking', ...(storyPointsField ? [storyPointsField] : [])];
+    const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=${fields.join(',')}`) as Record<string, unknown>;
+    return this.jiraIssue(issue, storyPointsField);
   }
 
   private async jiraAssigneeAccountId(value: string, issueKey?: string): Promise<string> {
@@ -1750,6 +1975,222 @@ export class PluginService {
     const key = boundedString(input.key, 128, 'Jira-Key'); const desired: Record<TaskStatus, string[]> = { todo: ['to do', 'open', 'offen'], doing: ['in progress', 'doing', 'in arbeit'], review: ['review', 'in review', 'prüfung'], done: ['done', 'closed', 'resolved', 'erledigt'] };
     const response = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`) as { transitions?: Array<{ id?: string; name?: string; to?: { name?: string } }> }; const transition = (response.transitions ?? []).find((item) => desired[input.status].some((name) => `${item.name ?? ''} ${item.to?.name ?? ''}`.toLocaleLowerCase('en').includes(name)));
     if (!transition?.id) throw new Error('Für diesen Jira-Workflow wurde kein passender Statusübergang gefunden.'); await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, { method: 'POST', body: JSON.stringify({ transition: { id: transition.id } }) }); return this.getJiraIssue(key);
+  }
+
+  // --- Ticket cards (#283): one ticket with all its fields, whichever system it lives in ---------------------------
+
+  // --- Azure DevOps wiki (#284) -------------------------------------------------------------------------------
+  /** The wiki links of the pages of the open diagram file. */
+  private activeAzureWikiLinks(): PersistedAzureWikiLink[] {
+    if (!this.activeDocumentPath) return [];
+    return (this.config.azure?.wikiLinks ?? []).filter((link) => link.documentPath === this.activeDocumentPath);
+  }
+
+  /** What the renderer may know about these links: the target and whether it can be used, never the token. */
+  private azureWikiLinkViews(): WikiPageLiveLink[] {
+    const azure = this.config.azure;
+    if (!azure?.installed) return [];
+    return this.activeAzureWikiLinks().map((link) => ({
+      provider: 'azure-devops', diagramPageId: link.diagramPageId, pageId: azureWikiPageId(link.wiki, link.pagePath), pageTitle: `${link.wikiName}${link.pagePath}`,
+      pageUrl: azureWikiPageUrl({ baseUrl: link.organizationUrl, project: link.project }, link.wiki, link.pagePath), siteUrl: link.organizationUrl, documentId: link.documentId,
+      usable: link.organizationUrl === azure.organizationUrl && link.project === azure.project, ...(link.lastSyncedAt ? { lastSyncedAt: link.lastSyncedAt } : {}),
+    }));
+  }
+
+  private async updateAzureWikiLinks(profileId: string, update: (links: PersistedAzureWikiLink[]) => PersistedAzureWikiLink[]): Promise<void> {
+    await this.mutateStore((profiles, activeProfileId) => ({
+      activeProfileId,
+      profiles: profiles.map((profile) => {
+        if (profile.id !== profileId || !profile.azure) return profile;
+        const { wikiLinks, ...azure } = profile.azure;
+        const links = update(wikiLinks ?? []);
+        if (links.length > MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Wiki-Verknüpfungen gespeichert.');
+        return { ...profile, azure: { ...azure, ...(links.length ? { wikiLinks: links } : {}) } };
+      }),
+    }));
+    if (profileId !== this.activeProfileId || !this.config.azure) return;
+    const { wikiLinks: _previous, ...azure } = this.config.azure;
+    const stored = this.activeProfile().azure?.wikiLinks;
+    this.config = { ...this.config, azure: { ...azure, ...(stored?.length ? { wikiLinks: stored } : {}) } };
+  }
+
+  /** Pages of the wikis of the project whose path contains the text, as targets for a link. */
+  public async listAzureWikiPages(query: string): Promise<WikiPageSummary[]> {
+    const text = boundedString(query ?? '', 200, 'Suchtext', true);
+    const pages = await this.azure(false, (connection) => listAzureWikiPages(connection, text));
+    return pages.map((page) => ({ provider: 'azure-devops', id: azureWikiPageId(page.wiki, page.path), title: page.path.slice(page.path.lastIndexOf('/') + 1) || page.path, detail: `${page.wikiName}${page.path}`, url: page.url }));
+  }
+
+  /**
+   * Links one page of the open local diagram to a page of the wiki, or removes that link with `wikiPage: null`.
+   * A page of a diagram is shown in one wiki: a page that is linked to Confluence is not linked a second time.
+   */
+  public async setAzureWikiLiveLink(input: { handleId: string; documentId: string; diagramPageId: string; wikiPage: string | null }): Promise<PluginSettingsSnapshot> {
+    const guard = this.authorityGuard();
+    await this.ensureLoaded();
+    guard();
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Wiki-Verknüpfung.');
+    const profileId = this.activeProfileId;
+    const documentPath = this.liveDocumentPath(input.handleId);
+    const diagramPageId = boundedString(input.diagramPageId, 256, 'Diagrammseite');
+    const addressed = (link: PersistedAzureWikiLink): boolean => link.documentPath === documentPath && link.diagramPageId === diagramPageId;
+    if (input.wikiPage === null) {
+      await this.updateAzureWikiLinks(profileId, (links) => links.filter((link) => !addressed(link)));
+      this.revokeAuthority();
+      return this.getSettings();
+    }
+    const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    const parsed = typeof input.wikiPage === 'string' ? parseAzureWikiPageId(input.wikiPage) : null;
+    if (!parsed) throw new Error('Ungültige Wiki-Seite.');
+    const target = assertAzureWikiTarget(parsed.wiki, parsed.path);
+    if (this.activeLiveLink() || this.activePageLinks().some((link) => link.diagramPageId === diagramPageId)) throw new Error('Diese Seite ist bereits mit einer Confluence-Seite verknüpft. Löse diese Verknüpfung zuerst.');
+    // Reading the page proves that it exists in this project and that the token may see it; the wiki is named by what Azure DevOps answers.
+    const link = await this.azure(true, async (connection, azure) => {
+      await readAzureWikiPage(connection, target.wiki, target.path);
+      const wikiName = (await listAzureWikiPages(connection, target.path)).find((page) => page.wiki === target.wiki)?.wikiName ?? target.wiki;
+      return { token: randomUUID(), documentPath, documentId, diagramPageId, organizationUrl: azure.organizationUrl, project: azure.project, wiki: target.wiki, wikiName, pagePath: target.path } satisfies PersistedAzureWikiLink;
+    });
+    guard();
+    await this.updateAzureWikiLinks(profileId, (links) => [...links.filter((entry) => !addressed(entry)), link]);
+    this.revokeAuthority();
+    return this.getSettings();
+  }
+
+  /**
+   * Shows one page of the open diagram as an image on its linked wiki page. Like a publication to Confluence the job
+   * belongs to the diagram file, the diagram, the profile, the organization and the link of the moment of the call;
+   * it runs after earlier publications and stops as soon as one of them changed.
+   */
+  public async publishAzureWikiLive(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult> {
+    const epoch = this.authorityEpoch, azureEpoch = this.azureEpoch;
+    await this.ensureLoaded();
+    const done = (status: ConfluenceLivePublishResult['status'], message: string, extra: Partial<ConfluenceLivePublishResult> = {}): ConfluenceLivePublishResult => ({ status, message, uploaded: 0, bodyUpdated: false, ...extra });
+    if (this.disposed || epoch !== this.authorityEpoch) return done('cancelled', new AuthorityChanged().message);
+    let link: PersistedAzureWikiLink; let image: ConfluenceLivePublishInput['images'][number]; let connection: AzureDevOpsConnection;
+    const profileId = this.activeProfileId;
+    try {
+      if (!input || typeof input !== 'object') throw new LiveSyncFailure('Ungültige Wiki-Veröffentlichung.');
+      this.assertDocumentProject();
+      const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
+      if (!location || location.canonicalPath !== this.activeDocumentPath) throw new LiveSyncFailure('Das Dokument gehört nicht zum aktuellen Projektordner.');
+      const diagramPageId = boundedString(input.diagramPageId, 256, 'Diagrammseite');
+      const found = this.activeAzureWikiLinks().find((entry) => entry.diagramPageId === diagramPageId);
+      if (!found) throw new LiveSyncFailure('Diese Seite ist mit keiner Wiki-Seite verknüpft.');
+      const azure = this.config.azure;
+      if (!azure?.installed || !azure.enabled) throw new LiveSyncFailure('Azure-DevOps-Plugin ist deaktiviert.');
+      if (azure.readOnly) throw new LiveSyncFailure('Azure DevOps ist auf „Nur lesen" gestellt; das Wiki wird nicht geändert.');
+      if (found.organizationUrl !== azure.organizationUrl || found.project !== azure.project) throw new LiveSyncFailure('Die Verknüpfung gehört zu einer anderen Organisation oder einem anderen Projekt als das aktive Profil. Verknüpfe die Seite neu.');
+      if (boundedString(input.documentId, 256, 'Diagramm-ID') !== found.documentId) throw new LiveSyncFailure('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.');
+      const [candidate, ...rest] = Array.isArray(input.images) ? input.images : [];
+      if (!candidate || rest.length || typeof candidate !== 'object' || candidate.pageId !== diagramPageId || typeof candidate.name !== 'string' || candidate.name.length > 500
+        || typeof candidate.hash !== 'string' || !/^[0-9a-f]{64}$/.test(candidate.hash) || !Number.isFinite(candidate.width) || !Number.isFinite(candidate.height) || candidate.width <= 0 || candidate.height <= 0
+        || !(candidate.png instanceof Uint8Array) || candidate.png.byteLength > CONFLUENCE_LIVE_MAX_IMAGE_BYTES || !isPngImage(candidate.png)) throw new LiveSyncFailure('Ungültige Wiki-Veröffentlichung.');
+      link = found; image = candidate; connection = { ...this.azureConnection(), signal: this.authorityAbort.signal };
+    } catch (error) {
+      return done('failed', error instanceof Error ? error.message : 'Ungültige Wiki-Veröffentlichung.');
+    }
+    const current = (): void => {
+      const azure = this.config.azure;
+      if (this.disposed || epoch !== this.authorityEpoch || azureEpoch !== this.azureEpoch || profileId !== this.activeProfileId || link.documentPath !== this.activeDocumentPath
+        || !azure?.enabled || azure.readOnly || !this.activeAzureWikiLinks().some((entry) => entry.token === link.token)) throw new AuthorityChanged();
+    };
+    const run = this.liveQueue.then(async (): Promise<ConfluenceLivePublishResult> => {
+      try {
+        current();
+        const result = await publishAzureWikiImage(connection, { wiki: link.wiki, path: link.pagePath, token: link.token }, { name: image.name, hash: image.hash, width: image.width, png: image.png }, current);
+        current();
+        if (!result.bodyUpdated && link.lastSyncedAt) return done('synced', 'Das Wiki ist auf dem aktuellen Stand.');
+        const syncedAt = new Date().toISOString();
+        // Remembering the moment is a convenience; Azure DevOps already confirmed the publication.
+        await this.updateAzureWikiLinks(profileId, (links) => links.map((entry) => (entry.token === link.token ? { ...entry, lastSyncedAt: syncedAt } : entry))).catch(() => undefined);
+        return done('synced', result.bodyUpdated ? 'Diagramm im Wiki aktualisiert.' : 'Das Wiki ist auf dem aktuellen Stand.', { uploaded: result.uploaded ? 1 : 0, bodyUpdated: result.bodyUpdated, syncedAt });
+      } catch (error) {
+        if (error instanceof AuthorityChanged) return done('cancelled', error.message);
+        try { current(); } catch { return done('cancelled', new AuthorityChanged().message); }
+        if (error instanceof AzureDevOpsHttpError) {
+          if (error.status === 401 || error.status === 203 || error.status === 403) return done('failed', 'Azure DevOps verweigert den Zugriff. Prüfe das Token und sein Recht „Wiki: Read & write".');
+          if (error.status === 404) return done('failed', 'Die verknüpfte Wiki-Seite wurde nicht gefunden oder ist für dieses Token nicht sichtbar.');
+          // Somebody changed the page while it was being written: the next attempt starts from the new text.
+          if (error.status === 409 || error.status === 412) return done('retry', 'Die Wiki-Seite wurde gerade von jemand anderem geändert. Die Veröffentlichung wird wiederholt.');
+          if (error.status === 429 || error.status >= 500) return done('retry', `Azure DevOps ist gerade nicht bereit (Status ${error.status}). Die Veröffentlichung wird wiederholt.`);
+          return done('failed', error.message);
+        }
+        if (error instanceof Error && /zu groß|Ungültig|keine Version/.test(error.message)) return done('failed', error.message);
+        // No answer at all: the request may or may not have arrived. The next run reads the page before it writes.
+        return done('retry', 'Azure DevOps ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.');
+      }
+    });
+    this.liveQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  private ticketProvider(value: unknown): TicketProvider {
+    if (value !== 'jira' && value !== 'azure-devops') throw new Error('Unbekanntes Ticket-System.');
+    return value;
+  }
+  private ticketList(value: unknown, name: string): string[] {
+    if (!Array.isArray(value) || value.length > 50) throw new Error(`${name} ist ungültig.`);
+    return [...new Set(value.map((entry) => boundedString(entry, 255, name)))];
+  }
+
+  public async getWorkItem(input: { provider: TicketProvider; key: string }): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Ticket.');
+    const provider = this.ticketProvider(input.provider);
+    if (provider === 'azure-devops') { const key = boundedString(input.key, 12, 'Work-Item-Nummer'); return this.azure(false, (connection) => getAzureWorkItem(connection, key)); }
+    this.assertDocumentProject(); this.assertJira();
+    return { provider, ...await this.jiraIssueDetails(input.key) };
+  }
+
+  public async searchWorkItems(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Suche.');
+    const provider = this.ticketProvider(input.provider);
+    const query = boundedString(input.query ?? '', 200, 'Suchtext', true);
+    if (!query) return [];
+    if (provider === 'azure-devops') return this.azure(false, (connection) => searchAzureWorkItems(connection, query));
+    this.assertDocumentProject(); this.assertJira();
+    const quoted = (text: string) => `"${text.replace(/[\\"]/g, ' ')}"`;
+    const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt');
+    const jql = /^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(query) ? `key = ${quoted(query.toUpperCase())}` : `project = ${quoted(project)} AND summary ~ ${quoted(`${query}*`)} ORDER BY updated DESC`;
+    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 20, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> };
+    return (response.issues ?? []).map((issue) => ({ provider, ...this.jiraIssue(issue) }));
+  }
+
+  public async updateWorkItemFields(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültiges Ticket.');
+    const provider = this.ticketProvider(input.provider);
+    if (input.status !== undefined && !['todo', 'doing', 'review', 'done'].includes(input.status)) throw new Error('Ungültiger Status.');
+    const labels = input.labels === undefined ? undefined : this.ticketList(input.labels, 'Labels');
+    const components = input.components === undefined ? undefined : this.ticketList(input.components, 'Komponenten');
+    const estimate = input.estimate === undefined ? undefined : input.estimate === null ? null : boundedString(input.estimate, 40, 'Schätzung', true);
+    const basics = { ...(input.title !== undefined ? { title: input.title } : {}), ...(input.description !== undefined ? { description: input.description } : {}), ...(input.assignee !== undefined ? { assignee: input.assignee } : {}) };
+    const hasBasics = Object.keys(basics).length > 0;
+    if (provider === 'azure-devops') {
+      const key = boundedString(input.key, 12, 'Work-Item-Nummer');
+      // Spaces inside a tag are fine; a semicolon would split it into two.
+      if (labels?.some((label) => label.includes(';'))) throw new Error('Ein Label darf in Azure DevOps kein Semikolon enthalten.');
+      if (hasBasics) await this.updateAzureWorkItem({ key, ...basics });
+      if (labels !== undefined || components !== undefined || estimate !== undefined) await this.azure(true, (connection) => updateAzureWorkItemDetails(connection, key, { ...(labels !== undefined ? { labels } : {}), ...(components !== undefined ? { components } : {}), ...(estimate !== undefined ? { estimate } : {}) }));
+      if (input.status !== undefined) await this.transitionAzureWorkItem({ key, status: input.status });
+      return this.azure(false, (connection) => getAzureWorkItem(connection, key));
+    }
+    this.assertDocumentProject(); this.assertJira();
+    const key = boundedString(input.key, 128, 'Jira-Key');
+    if (labels?.some((label) => /\s/.test(label))) throw new Error('Ein Jira-Label darf keine Leerzeichen enthalten.');
+    if (hasBasics) await this.updateJiraIssue({ key, ...basics });
+    const fields: Record<string, unknown> = {};
+    if (labels !== undefined) fields.labels = labels;
+    if (components !== undefined) fields.components = components.map((name) => ({ name }));
+    if (estimate !== undefined) {
+      const storyPointsField = await this.jiraStoryPointsField();
+      const text = (estimate ?? '').trim().replace(',', '.');
+      const points = text === '' ? null : Number(text);
+      // A number is story points where the site has such a field; anything else is a time estimate like "3h".
+      if (storyPointsField && (points === null || Number.isFinite(points))) fields[storyPointsField] = points;
+      else fields.timetracking = { originalEstimate: text };
+    }
+    if (Object.keys(fields).length) await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}`, { method: 'PUT', body: JSON.stringify({ fields }) });
+    if (input.status !== undefined) await this.transitionJiraIssue({ key, status: input.status });
+    return { provider, ...await this.jiraIssueDetails(key) };
   }
 
   public dispose(): void { this.disposed = true; this.revokeAuthority(); this.clearWatchers(); }

@@ -1,0 +1,12 @@
+usecase-beta
+actor Developer("Developer")
+actor Reviewer("Reviewer")
+actor Manager("Release manager")
+WriteCode("Write code")
+ReviewCode("Review code")
+ApproveRelease("Approve release")
+Developer --> WriteCode
+Reviewer --> ReviewCode
+Manager --> ApproveRelease
+Developer -- "collaborates with" --> Reviewer
+Manager --> Developer

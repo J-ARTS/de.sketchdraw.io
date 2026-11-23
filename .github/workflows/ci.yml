@@ -53,7 +53,9 @@ jobs:
     name: Build & Verify (${{ matrix.os }})
     needs: governance-and-graphify
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    # The browser UI suite alone takes 18 minutes on the macOS runner (293 tests, one worker); with the Electron
+    # tests the job reached 25 minutes and was cancelled on 2026-11-22 (run 45067424282).
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
