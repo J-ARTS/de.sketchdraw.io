@@ -18,11 +18,6 @@ export interface HdhtInvitation {
   directKey: string;
   /** Relay endpoint; empty when the host offers no relay. */
   relayUrl: string;
-  /**
-   * POC(#303): `turn` when the relay endpoint only sets up a WebRTC data channel and the session data flows through
-   * TURN. Absent for every other session, so links of the other routes are unchanged.
-   */
-  carrier?: 'turn';
   documentId: string;
   expiresAt: number;
 }
@@ -54,10 +49,7 @@ export function createSessionId(): string { return bytesToHex(randomBytes(SESSIO
 
 /** The shareable link opens the desktop app; it has no web address and never carries the PIN. */
 export function buildHdhtLink(invitation: HdhtInvitation): string {
-  const payload = {
-    v: 1, s: invitation.sessionId, h: invitation.hostKey, d: invitation.directKey, r: invitation.relayUrl, i: invitation.documentId, e: invitation.expiresAt,
-    ...(invitation.carrier === 'turn' ? { c: 'turn' } : {}),
-  };
+  const payload = { v: 1, s: invitation.sessionId, h: invitation.hostKey, d: invitation.directKey, r: invitation.relayUrl, i: invitation.documentId, e: invitation.expiresAt };
   const text = bytesToBase64Url(utf8.encode(JSON.stringify(payload)));
   return `${APP_LINK_BASE}#${HDHT_LINK_PARAM}=${text}`;
 }
@@ -85,10 +77,7 @@ export function parseHdhtInvitation(text: string, now = Date.now()): HdhtInvitat
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('INVITATION_INVALID');
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record).sort().join(',');
-  // POC(#303): `c` names the TURN carrier and is the only optional field; it needs a relay endpoint to meet at.
-  const turn = keys === 'c,d,e,h,i,r,s,v';
-  if ((keys !== 'd,e,h,i,r,s,v' && !turn) || record['v'] !== 1) throw new Error('INVITATION_INVALID');
-  if (turn && (record['c'] !== 'turn' || !record['r'])) throw new Error('INVITATION_INVALID');
+  if (keys !== 'd,e,h,i,r,s,v' || record['v'] !== 1) throw new Error('INVITATION_INVALID');
   const { s, h, d, r, i, e } = record;
   if (typeof s !== 'string' || !/^[0-9a-f]{64}$/.test(s)) throw new Error('INVITATION_INVALID');
   if (typeof h !== 'string') throw new Error('INVITATION_INVALID');
@@ -101,7 +90,7 @@ export function parseHdhtInvitation(text: string, now = Date.now()): HdhtInvitat
   if (typeof e !== 'number' || !Number.isSafeInteger(e)) throw new Error('INVITATION_INVALID');
   if (e - now > HDHT_MAX_TTL_MS + 60_000) throw new Error('INVITATION_INVALID');
   if (now > e) throw new Error('INVITATION_EXPIRED');
-  return { version: 1, sessionId: s, hostKey: h, directKey: d, relayUrl, documentId: i, expiresAt: e, ...(turn ? { carrier: 'turn' as const } : {}) };
+  return { version: 1, sessionId: s, hostKey: h, directKey: d, relayUrl, documentId: i, expiresAt: e };
 }
 
 function base64UrlToBytesLoose(text: string): Uint8Array {

@@ -9,7 +9,7 @@ import { getDesktopBridge } from '@/platform';
 import { DirectLink } from '@/collaboration/hdht/direct-link';
 import { buildHdhtLink, createSessionId, HDHT_MAX_TTL_MS, isHdhtLink, normalizePin, optionalRelayUrl, parseHdhtInvitation } from '@/collaboration/hdht/invitation';
 import { createHostKeys } from '@/collaboration/hdht/relay-channel';
-import { cloudRelayBase, cloudRelayRoomUrl, relayHostName, storeCloudRelayAddress, storedCloudRelayAddress, storedSessionRoute, storeSessionRoute, usesRelayAddress, type SessionRoute } from '@/collaboration/hdht/cloud-relay';
+import { cloudRelayBase, cloudRelayRoomUrl, relayHostName, storeCloudRelayAddress, storedCloudRelayAddress, storedSessionRoute, storeSessionRoute, type SessionRoute } from '@/collaboration/hdht/cloud-relay';
 import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTransport } from '@/collaboration/hdht/session';
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
@@ -41,17 +41,13 @@ const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }
  * through one relay at Cloudflare. The host chooses; the link carries the choice, so a guest follows it.
  */
 const route = ref<SessionRoute>(storedSessionRoute());
-// POC(#303): `turn` is the third route. After the comparison one of the two Cloudflare routes is removed again.
-const routeOptions = computed(() => [{ value: 'p2p', label: t('Direkt (P2P)') }, { value: 'cloud', label: t('Cloudflare-Relay') }, { value: 'turn', label: t('Cloudflare TURN') }]);
-const needsRelayAddress = computed(() => usesRelayAddress(route.value));
+const routeOptions = computed(() => [{ value: 'p2p', label: t('Direkt (P2P)') }, { value: 'cloud', label: t('Cloudflare-Relay') }]);
 const relayAddress = ref(storedCloudRelayAddress());
 const addressError = ref('');
 /** The running session goes through a relay only: no direct route, no helper of this device. */
 const viaRelay = ref(false), relayHost = ref('');
-/** POC(#303): the running session uses the relay only to meet; its data flows through Cloudflare TURN. */
-const viaTurn = ref(false);
 function chooseRoute(value: string): void {
-  route.value = value === 'cloud' || value === 'turn' ? value : 'p2p';
+  route.value = value === 'cloud' ? 'cloud' : 'p2p';
   storeSessionRoute(route.value);
   addressError.value = ''; error.value = '';
 }
@@ -137,25 +133,16 @@ const stateText = computed(() => {
   return value.state === 'ready' ? t('Diagramm wird abgeglichen …') : value.phase === 'authenticating' ? t('PIN wird geprüft …') : t('Gegenstelle wird gesucht …');
 });
 const routeText = computed(() => status.value?.route === 'direct' ? t('Direktverbindung')
-  : status.value?.route === 'relay' ? (viaTurn.value ? t('Verschlüsselt über Cloudflare TURN') : viaRelay.value && relayHost.value ? t('Verschlüsselt über den Relay {host}', { host: relayHost.value }) : t('Verschlüsselte Relay-Verbindung'))
+  : status.value?.route === 'relay' ? (viaRelay.value && relayHost.value ? t('Verschlüsselt über den Relay {host}', { host: relayHost.value }) : t('Verschlüsselte Relay-Verbindung'))
   : t('Verbindungsweg wird gesucht'));
 /** A host whose relay does not answer keeps trying; it says so instead of only "preparing". */
-const relayProblem = computed(() => {
-  const code = status.value?.error;
-  if (!hosting.value || !viaRelay.value || !code || status.value?.state === 'closed' || status.value?.state === 'ready') return '';
-  // POC(#303): the relay answers, but cannot hand out TURN servers.
-  if (code === 'TURN_NOT_CONFIGURED') return t('Der Relay {host} hat keinen TURN-Schlüssel. Im Worker müssen TURN_KEY_ID und TURN_KEY_API_TOKEN gesetzt sein; die App fragt weiter nach.', { host: relayHost.value });
-  // A relay deployed before the TURN route closes the connection on the request for ICE servers.
-  if (viaTurn.value && code.includes('binary-only')) return t('Der Relay {host} kennt Cloudflare TURN noch nicht. Stelle den Worker mit dem aktuellen Stand neu bereit.', { host: relayHost.value });
-  if (code.startsWith('TURN_')) return t('Cloudflare TURN ist über den Relay {host} gerade nicht verfügbar ({code}). Die App versucht es weiter.', { host: relayHost.value, code });
-  return t('Der Relay {host} ist nicht erreichbar. Die App versucht es weiter – prüfe die Adresse und deine Internetverbindung.', { host: relayHost.value });
-});
+const relayProblem = computed(() => hosting.value && viaRelay.value && !!status.value?.error && status.value.state !== 'closed' && status.value.state !== 'ready'
+  ? t('Der Relay {host} ist nicht erreichbar. Die App versucht es weiter – prüfe die Adresse und deine Internetverbindung.', { host: relayHost.value }) : '');
 /** Before joining: a link that goes through a relay names it, because that relay sees the network address of the guest. */
 const linkRelayHost = computed(() => {
   if (active.value || !linkText.value.trim()) return '';
   try { const invitation = parseHdhtInvitation(linkText.value); return invitation.relayUrl && !invitation.directKey ? relayHostName(invitation.relayUrl) : ''; } catch { return ''; }
 });
-const linkUsesTurn = computed(() => { try { return !!linkRelayHost.value && parseHdhtInvitation(linkText.value).carrier === 'turn'; } catch { return false; } });
 function fail(value: unknown): void {
   const code = value instanceof Error ? value.message : String(value);
   error.value = /DOCUMENT_TOO_LARGE_FOR_COLLABORATION/.test(code) ? t('Dieses Diagramm ist für die Zusammenarbeit zu groß. Verkleinere es, bevor du eine Session startest.')
@@ -171,7 +158,6 @@ function fail(value: unknown): void {
     : /CONNECTION_LOST/.test(code) ? t('Die Verbindung zur Session ließ sich fünf Minuten lang nicht wiederherstellen.')
     : /ROOM_FULL/.test(code) ? t('Diese Session ist voll. Bitte später erneut versuchen.')
     : /ABORTED/.test(code) ? ''
-    : viaTurn.value ? t('Keine Verbindung über Cloudflare TURN. Prüfe, ob die Session noch läuft und ob dein Netzwerk Verbindungen zu turn.cloudflare.com zulässt.')
     : viaRelay.value ? t('Keine Verbindung über den Relay {host}. Prüfe, ob die Session noch läuft und ob dein Netzwerk WebSocket-Verbindungen zulässt.', { host: relayHost.value })
     : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
   // With the panel closed, what ends a session from outside is said where the person is working.
@@ -180,7 +166,7 @@ function fail(value: unknown): void {
 function setActive(value: boolean) { active.value = value; }
 function updateLink(): void {
   if (!host) return;
-  shareLink.value = buildHdhtLink({ version: 1, sessionId: sessionId, hostKey: host.hostKey, directKey: host.directKey, relayUrl: host.relayUrl, documentId: ownerAuthority!.session.documentId, expiresAt: host.expiresAt, ...(viaTurn.value ? { carrier: 'turn' as const } : {}) });
+  shareLink.value = buildHdhtLink({ version: 1, sessionId: sessionId, hostKey: host.hostKey, directKey: host.directKey, relayUrl: host.relayUrl, documentId: ownerAuthority!.session.documentId, expiresAt: host.expiresAt });
 }
 let sessionId = '';
 /**
@@ -218,8 +204,7 @@ async function start(): Promise<void> {
   if (busy.value || active.value || store.getRoomGuest()) return;
   const authority = store.getAuthority(), controller = store.getCrdtController();
   if (!authority || !controller) return;
-  // `cloud` here: every route through the relay address – the Worker relay and, POC(#303), TURN.
-  const cloud = needsRelayAddress.value, turn = route.value === 'turn';
+  const cloud = route.value === 'cloud';
   const relayBase = cloud ? checkedRelayAddress() : null;
   if (cloud && !relayBase) return;
   const epoch = ++generation; busy.value = true; error.value = ''; note.value = '';
@@ -233,14 +218,14 @@ async function start(): Promise<void> {
     const relay = relayBase ? await cloudRelayRoomUrl(relayBase, keys.publicKey) : override;
     if (disposed || generation !== epoch || store.getAuthority() !== authority || store.getCrdtController() !== controller) return;
     sessionId = createSessionId();
-    viaRelay.value = cloud; viaTurn.value = turn; relayHost.value = cloud && relay ? relayHostName(relay) : '';
+    viaRelay.value = cloud; relayHost.value = cloud && relay ? relayHostName(relay) : '';
     nativePending.value = isNative && !cloud; relayShareAllowed.value = false;
     // Through the relay nothing else runs: no DHT node, no direct listener and no helper of this device.
     native = !cloud && bridge.direct ? new DirectLink(bridge.direct) : undefined;
     const current = createHdhtHostTransport({
       sessionId, documentId: authority.session.documentId, hostKeys: keys, expiresAt: Date.now() + HDHT_MAX_TTL_MS,
       grantedRole: () => role.value,
-      ...(native ? { peers: { link: native } } : {}), ...(relay ? { relay: { url: relay } } : {}), ...(turn ? { turn: {} } : {}),
+      ...(native ? { peers: { link: native } } : {}), ...(relay ? { relay: { url: relay } } : {}),
     });
     host = current; hosting.value = true; joined.value = false; setActive(true);
     const inspect = () => { if (generation === epoch && host === current) status.value = current.getStatus(); };
@@ -287,7 +272,7 @@ async function join(): Promise<void> {
     busy.value = true;
     // A link with a relay and no direct key was started with the relay route; the guest follows it and nothing else.
     const relayOnly = !!invitation.relayUrl && !invitation.directKey;
-    viaRelay.value = relayOnly; viaTurn.value = relayOnly && invitation.carrier === 'turn'; relayHost.value = relayOnly ? relayHostName(invitation.relayUrl) : '';
+    viaRelay.value = relayOnly; relayHost.value = relayOnly ? relayHostName(invitation.relayUrl) : '';
     native = !relayOnly && bridge.direct ? new DirectLink(bridge.direct) : undefined;
     const transport = createHdhtGuestTransport({ invitation, pin, ...(native ? { direct: native } : {}) });
     const current = new RoomConnection(store, transport, { documentId: invitation.documentId, onChange(value, adopted) {
@@ -328,7 +313,7 @@ function stop(keepLocalCopy: boolean, reason?: string): Promise<void> {
       await setHelper(false);
       if (disposed || generation !== epoch) return;
       hosting.value = false; joined.value = false; setActive(false); busy.value = false; status.value = null; shareLink.value = ''; hostPin.value = '';
-      nativePending.value = false; relayShareAllowed.value = false; viaRelay.value = false; viaTurn.value = false; relayHost.value = '';
+      nativePending.value = false; relayShareAllowed.value = false; viaRelay.value = false; relayHost.value = '';
     } finally { stopping.value = false; stopPromise = undefined; }
   })();
   return stopPromise;
@@ -361,13 +346,11 @@ onBeforeUnmount(() => { clearTimeout(copiedTimer); store.setSession(null); dispo
   <section class="hdht-session" data-testid="hdht-session" :aria-label="t('Session mit Link und PIN')">
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
-      <p v-if="route === 'turn'" data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Alle Geräte verbinden sich über Cloudflare TURN – auch dort, wo direkte Verbindungen gesperrt sind. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt: Cloudflare sieht Netzwerkadressen, Zeitpunkte und Datenmengen, aber weder PIN noch Inhalt.') }}</p>
-      <p v-else-if="route === 'cloud'" data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Alle Geräte verbinden sich über einen Relay bei Cloudflare – auch dort, wo direkte Verbindungen gesperrt sind. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt: Der Relay sieht Netzwerkadressen, Zeitpunkte und Datenmengen, aber weder PIN noch Inhalt.') }}</p>
+      <p v-if="route === 'cloud'" data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Alle Geräte verbinden sich über einen Relay bei Cloudflare – auch dort, wo direkte Verbindungen gesperrt sind. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt: Der Relay sieht Netzwerkadressen, Zeitpunkte und Datenmengen, aber weder PIN noch Inhalt.') }}</p>
       <p v-else data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
       <div class="name-field"><AppFieldLabel for="hdht-name">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" :disabled="busy" @input="markNameEdited" @change="commitName" /></div>
       <AppSelect class="access-field" data-testid="hdht-route" :label="t('Verbindungsweg')" :model-value="route" :options="routeOptions" :disabled="busy" @update:model-value="chooseRoute(String($event))" />
-      <p v-if="needsRelayAddress" class="field-note" data-testid="hdht-route-trial">{{ t('Testbetrieb: Von den beiden Cloudflare-Wegen bleibt nach dem Vergleich nur einer.') }}</p>
-      <div v-if="needsRelayAddress" class="name-field relay-field">
+      <div v-if="route === 'cloud'" class="name-field relay-field">
         <AppFieldLabel for="hdht-relay-address">{{ t('Relay-Adresse') }}</AppFieldLabel>
         <AppTextField id="hdht-relay-address" v-model="relayAddress" data-testid="hdht-relay-address" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="sketchdraw-relay.name.workers.dev" :invalid="!!addressError" :aria-describedby="addressError ? 'hdht-relay-address-error' : 'hdht-relay-address-hint'" :disabled="busy" @change="commitRelayAddress" @keydown.enter.prevent="start" />
         <p v-if="addressError" id="hdht-relay-address-error" role="alert" class="error field-note" data-testid="hdht-relay-address-error">{{ addressError }}</p>
@@ -382,14 +365,12 @@ onBeforeUnmount(() => { clearTimeout(copiedTimer); store.setSession(null); dispo
         <label class="sd-field-label">{{ t('PIN') }}<input v-model="pinText" class="sd-input pin" :aria-label="t('Sechsstellige PIN')" inputmode="numeric" autocomplete="off" maxlength="8" :disabled="busy" @keydown.enter.prevent="join" /></label>
       </div>
       <AppButton class="full" data-testid="hdht-join" :disabled="busy || !linkText.trim()" @click="join">{{ t('Mit PIN beitreten') }}</AppButton>
-      <p v-if="linkUsesTurn" class="field-note" data-testid="hdht-link-relay">{{ t('Dieser Link verbindet über Cloudflare TURN, vermittelt durch {host}. Beide sehen deine Netzwerkadresse, aber keinen Inhalt.', { host: linkRelayHost }) }}</p>
-      <p v-else-if="linkRelayHost" class="field-note" data-testid="hdht-link-relay">{{ t('Dieser Link verbindet über den Relay {host}. Der Relay sieht deine Netzwerkadresse, aber keinen Inhalt.', { host: linkRelayHost }) }}</p>
+      <p v-if="linkRelayHost" class="field-note" data-testid="hdht-link-relay">{{ t('Dieser Link verbindet über den Relay {host}. Der Relay sieht deine Netzwerkadresse, aber keinen Inhalt.', { host: linkRelayHost }) }}</p>
     </template>
     <template v-else>
       <h3>{{ hosting ? t('Session läuft') : joined ? t('Du bist in der Session') : t('Session beitreten') }}</h3>
       <p role="status" data-testid="hdht-status">{{ stateText }}</p>
-      <p v-if="hosting && viaTurn && !relayProblem" data-testid="hdht-active-route">{{ t('Verbindungsweg: Cloudflare TURN (vermittelt durch {host})', { host: relayHost }) }}</p>
-      <p v-else-if="hosting && viaRelay && !relayProblem" data-testid="hdht-active-route">{{ t('Verbindungsweg: Cloudflare-Relay ({host})', { host: relayHost }) }}</p>
+      <p v-if="hosting && viaRelay && !relayProblem" data-testid="hdht-active-route">{{ t('Verbindungsweg: Cloudflare-Relay ({host})', { host: relayHost }) }}</p>
       <p v-if="relayProblem" role="alert" class="error" data-testid="hdht-relay-problem">{{ relayProblem }}</p>
       <p v-if="joined && status?.state === 'reconnecting'" data-testid="hdht-reconnect-hint">{{ t('Die App versucht fünf Minuten lang, wieder beizutreten.') }}</p>
       <section v-if="participants.length" class="people" :aria-label="t('Personen in der Session')">

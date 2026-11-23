@@ -6,8 +6,6 @@ import { Buffer } from 'node:buffer';
 import crypto from 'node:crypto';
 
 const ID_BYTES = 16;
-/** POC(#303): ICE server requests one connection may make (a host renews them for a long session). */
-const MAX_ICE_REQUESTS = 32;
 const TOPIC_PATTERN = /^[0-9a-f]{64}$/;
 // Both supported adapters account framing in bufferedAmount: native uses 5 bytes, WebSocket at most 14.
 const MAX_FRAME_OVERHEAD_BYTES = 14;
@@ -265,21 +263,8 @@ export function createRelayHub(options = {}) {
         return;
       }
       if (!isBinary) {
-        // Text after the join is a keep-alive from clients without protocol-level pings, or the request for the ICE
-        // servers of the TURN route.
-        let request = null;
-        try { request = size <= 256 ? JSON.parse(Buffer.from(data).toString('utf8')) : null; } catch { /* falls through */ }
-        if (request?.t === 'ping') { control(conn, { t: 'pong' }); return; }
-        // POC(#303): the TURN route. A joined host or guest asks the relay for short-lived ICE servers; only a relay
-        // that was given a source for them answers. A few requests per connection are enough for a whole session.
-        if (request?.t === 'ice' && options.iceServers) {
-          if ((state.iceRequests = (state.iceRequests ?? 0) + 1) > MAX_ICE_REQUESTS) { control(conn, { t: 'ice', error: 'TURN_RATE_LIMIT' }); return; }
-          Promise.resolve().then(() => options.iceServers()).then(
-            servers => { control(conn, { t: 'ice', servers: Array.isArray(servers) ? servers : [] }); },
-            error => { control(conn, { t: 'ice', error: String(error?.message ?? 'TURN_UNAVAILABLE').replace(/[^A-Z0-9_]/g, '').slice(0, 40) || 'TURN_UNAVAILABLE' }); },
-          );
-          return;
-        }
+        // Text after the join is only a keep-alive from clients without protocol-level pings.
+        try { if (JSON.parse(Buffer.from(data).toString('utf8'))?.t === 'ping') { control(conn, { t: 'pong' }); return; } } catch { /* falls through */ }
         closeConnection(conn, 1003, 'binary-only');
         return;
       }

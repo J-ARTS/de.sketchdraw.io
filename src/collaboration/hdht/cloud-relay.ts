@@ -7,19 +7,13 @@ import { checkedRelayUrl } from './invitation';
  *  - `cloud`: every device opens a WebSocket to one relay (a Cloudflare Worker, or the self-hosted relay of this
  *    repository). The relay forwards the same end-to-end encrypted records the helper peers forward; it sees network
  *    addresses, times and amounts of data, never the PIN, a key or the drawing.
- *  - `turn` (POC #303): the devices meet in the room of the same relay, but only to set up a WebRTC data channel
- *    through Cloudflare Realtime TURN; the session data flows there (turn-channel.ts). One of `cloud` and `turn` is
- *    removed again after the comparison.
  * The session link carries the address of the room, so guests need no setting.
  */
-export type SessionRoute = 'p2p' | 'cloud' | 'turn';
-
-/** The routes that go through Cloudflare and need the relay address. */
-export function usesRelayAddress(route: SessionRoute): boolean { return route === 'cloud' || route === 'turn'; }
+export type SessionRoute = 'p2p' | 'cloud';
 
 /**
  * The relay the app offers by itself: the Worker its publisher runs (relay/cloudflare, deployed 2026-11-23). The
- * address field is filled with it, so the Cloudflare routes work without anyone typing an address; a different relay
+ * address field is filled with it, so the relay route works without anyone typing an address; a different relay
  * can still be entered. Empty would mean: no relay ships with the app.
  */
 export const DEFAULT_CLOUD_RELAY_URL = 'sketchdraw-relay.jeremy-teichman74.workers.dev';
@@ -60,10 +54,10 @@ function storage(): Store | null { try { return typeof localStorage === 'undefin
 
 /** The route chosen last on this device; direct is the default and the answer to anything unreadable. */
 export function storedSessionRoute(store: Store | null = storage()): SessionRoute {
-  try { const value = store?.getItem(ROUTE_KEY); return value === 'cloud' || value === 'turn' ? value : 'p2p'; } catch { return 'p2p'; }
+  try { return store?.getItem(ROUTE_KEY) === 'cloud' ? 'cloud' : 'p2p'; } catch { return 'p2p'; }
 }
 export function storeSessionRoute(route: SessionRoute, store: Store | null = storage()): void {
-  try { if (route === 'p2p') store?.removeItem(ROUTE_KEY); else store?.setItem(ROUTE_KEY, route); } catch { /* the choice still applies to this session */ }
+  try { if (route === 'cloud') store?.setItem(ROUTE_KEY, 'cloud'); else store?.removeItem(ROUTE_KEY); } catch { /* the choice still applies to this session */ }
 }
 
 /** The relay address this device uses: its own entry, otherwise the one the app ships with. */

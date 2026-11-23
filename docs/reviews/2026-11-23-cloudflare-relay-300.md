@@ -36,15 +36,12 @@ Stand 23.11.2026, Cloud-Sitzung Claude Code (Modell Claude Fable 5.2). Entscheid
 - Zwei Desktop-Apps gegeneinander über den Relay – im Electron-Test sind die Gäste Bibliotheksclients.
 - Lasttests (24 Gäste, große Bilder) über den Worker.
 
-## Nachtrag: Erprobung Cloudflare TURN (#303)
-
-Entscheidung und Umfang: [ADR 0011](../decisions/0011-poc-cloudflare-turn.md). Zusätzliche Bedenken:
+## Nachtrag 23.11.2026: Voreinstellung, Feldhöhe, TURN-Erprobung
 
 | ID | Fehlerfall | Auswirkung | Umgang / Alternative |
 | --- | --- | --- | --- |
-| CT-01 | Jeder, der das Protokoll spricht, holt sich über einen Raum TURN-Zugangsdaten (14 h gültig). | Datenverkehr Fremder läuft auf das Konto des Betreibers; oberhalb von 1.000 GB im Monat kostet er Geld. | Für die Erprobung hingenommen und in der Anleitung genannt. Dauerbetrieb: Rate Limiting vor dem Worker, kürzere Gültigkeit mit Erneuerung über `setConfiguration`. |
-| CT-02 | Die Voreinstellung der Relay-Adresse zeigt auf den Worker des Herausgebers. | Alle Nutzer teilen sich dessen Kontingent; ist es erschöpft, fällt der Relay-Weg für alle aus. | Feld bleibt änderbar; eigener Relay möglich. Beobachten, bevor das Release breit verteilt wird. |
-| CT-03 | Ein Link mit `c: "turn"` nennt einen Relay, der die ICE-Server bestimmt. | Ein fremder Relay kann den Gast zu beliebigen STUN/TURN-Servern schicken; diese sehen seine IP-Adresse. Inhalt und PIN bleiben geschützt. | Gleiches Vertrauen wie beim Relay selbst; die App nennt ihn vor dem Beitritt. Nur `stun:`/`turn:`/`turns:` werden übernommen. |
-| CT-04 | Der bereitgestellte Worker ist älter als der TURN-Weg. | Er schließt die Verbindung auf die ICE-Anfrage; der Gastgeber käme in eine Verbindungsschleife. | Die App erkennt das und sagt, dass der Worker neu bereitgestellt werden muss. |
-| CT-05 | Die Tests benutzen kein TURN. | Ob `turn.cloudflare.com` hinter dem Unternehmens-Proxy erreichbar ist, ist offen – das ist der Zweck der Erprobung. | Messpunkte in `relay/cloudflare/README.md`. |
-| CT-06 | Textfelder des Panels wurden auf die Höhe der Auswahlfelder gebracht (42 px, Wunsch des Owners). | Das Formular wird 16 px höher. | Der Test, dass „Mit PIN beitreten“ ohne Scrollen erreichbar bleibt, läuft weiter mit. |
+| CR-11 | Die Voreinstellung der Relay-Adresse zeigt auf den Worker des Herausgebers. | Alle Nutzer teilen sich dessen Kontingent; ist es erschöpft, fällt der Relay-Weg für alle aus. | Feld bleibt änderbar; eigener Relay möglich. Beobachten, bevor das Release breit verteilt wird. |
+| CR-12 | Textfelder des Panels wurden auf die Höhe der Auswahlfelder gebracht (42 px, Wunsch des Owners). | Das Formular wird 16 px höher. | Der Test, dass „Mit PIN beitreten“ ohne Scrollen erreichbar bleibt, läuft weiter mit. |
+| CR-13 | Der zuletzt bereitgestellte Worker stammt aus der TURN-Erprobung und gibt mit gesetzten Secrets TURN-Zugangsdaten an jede Raumverbindung aus. | Fremde können darüber Datenverkehr auf das Konto des Betreibers legen (oberhalb von 1.000 GB/Monat kostenpflichtig). | Owner: TURN-Schlüssel löschen, Secrets entfernen, Worker vom aktuellen Stand neu bereitstellen. |
+
+Cloudflare TURN als dritter Weg wurde erprobt und wieder ausgebaut ([ADR 0011](../decisions/0011-poc-cloudflare-turn.md), #303). Im Cloudflare-Netz geprüft ist der Worker-Relay mit drei Gästen (#302).

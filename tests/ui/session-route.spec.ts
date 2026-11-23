@@ -27,7 +27,7 @@ async function draw(page: Page, shape: 'Rechteck' | 'Ellipse', x = 280, y = 300)
   await page.getByRole('button', { name: shape, exact: true }).click();
   await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 130, y + 80, { steps: 5 }); await page.mouse.up();
 }
-async function chooseRoute(page: Page, name: 'Direkt (P2P)' | 'Cloudflare-Relay' | 'Cloudflare TURN') {
+async function chooseRoute(page: Page, name: 'Direkt (P2P)' | 'Cloudflare-Relay') {
   await page.getByTestId('hdht-session').getByRole('combobox', { name: 'Verbindungsweg', exact: true }).click();
   await page.getByRole('option', { name, exact: true }).click();
 }
@@ -53,9 +53,8 @@ test('direct is the default; the relay route asks for an address and says what i
   const address = panel.getByRole('textbox', { name: 'Relay-Adresse', exact: true });
   await expect(address).toBeVisible();
   await expect(address).toHaveAccessibleDescription('Gäste brauchen die Adresse nicht – sie steht im Session-Link.');
-  // The relay the app ships with is filled in; nobody has to type an address. Both Cloudflare routes are a trial.
+  // The relay the app ships with is filled in; nobody has to type an address.
   await expect(address).toHaveValue('sketchdraw-relay.jeremy-teichman74.workers.dev');
-  await expect(panel.getByTestId('hdht-route-trial')).toHaveText('Testbetrieb: Von den beiden Cloudflare-Wegen bleibt nach dem Vergleich nur einer.');
   // Text fields are as tall as the dropdowns of the form.
   const heights = await panel.evaluate(section => ({
     select: section.querySelector('[data-testid=hdht-route] .app-select')!.getBoundingClientRect().height,
@@ -87,7 +86,6 @@ test('direct is the default; the relay route asks for an address and says what i
   await expect(page.getByTestId('hdht-relay-address')).toHaveValue('sketchdraw-relay.jeremy-teichman74.workers.dev');
   await chooseRoute(page, 'Direkt (P2P)');
   await expect(page.getByTestId('hdht-relay-address')).toHaveCount(0);
-  await expect(page.getByTestId('hdht-route-trial')).toHaveCount(0);
   await page.reload(); await openPanel(page);
   await expect(page.getByTestId('hdht-session').getByRole('combobox', { name: 'Verbindungsweg', exact: true })).toHaveText('Direkt (P2P)');
 });
@@ -181,7 +179,6 @@ test('the route choice speaks English and follows the dark theme', async ({ page
   await expect(panel.getByRole('combobox', { name: 'Connection route', exact: true })).toHaveText('Cloudflare relay');
   await expect(panel.getByRole('textbox', { name: 'Relay address', exact: true })).toBeVisible();
   await expect(panel.getByTestId('hdht-route-text')).toContainText('the relay sees network addresses, times and amounts of data, but neither the PIN nor any content.');
-  await expect(panel.getByTestId('hdht-route-trial')).toHaveText('Trial: after the comparison only one of the two Cloudflare routes remains.');
   await panel.getByRole('textbox', { name: 'Relay address', exact: true }).fill('');
   await panel.getByTestId('hdht-start').click();
   await expect(panel.getByTestId('hdht-relay-address-error')).toHaveText('Enter the address of the relay.');

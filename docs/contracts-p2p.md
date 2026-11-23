@@ -519,17 +519,6 @@ Gilt für Sessions mit Link und PIN (`hyperdht-relay`). Entscheidung: [ADR 0010]
 - **Mehrere Teilnehmende:** Stern über den Gastgeber wie auf dem direkten Weg; bis zu 24 Gäste je Raum.
 - **Prüfung:** `tests/unit/collaboration/hdht/cloud-relay.spec.ts`, `cloudflare-worker.spec.ts` (echte Workers-Laufzeit, lokal), `tests/ui/session-route.spec.ts`. Nicht geprüft: Betrieb im Cloudflare-Netz, Firmen-Proxys.
 
-### Erprobung: TURN als Träger (#303)
-
-Machbarkeitsprobe, [ADR 0011](decisions/0011-poc-cloudflare-turn.md). Einer der beiden Cloudflare-Wege (Relay-Träger oben oder TURN) wird wieder entfernt; dieser Abschnitt entfällt dann oder ersetzt den darüber. Umsetzung: `src/collaboration/hdht/turn-channel.ts`, Marke `POC(#303)`.
-
-- **Einladung:** zusätzliches, einziges optionales Feld `c: "turn"`; es verlangt `r` (Raum) und kommt mit leerem `d`. Ältere App-Versionen lehnen solche Links als ungültig ab.
-- **ICE-Server:** Ein registrierter Gastgeber oder beigetretener Gast sendet im Raum den Text `{t:'ice'}`; der Relay antwortet `{t:'ice', servers:[…]}` oder `{t:'ice', error:'TURN_…'}` (höchstens 32 Anfragen je Verbindung, danach `TURN_RATE_LIMIT`). Ein Relay ohne Quelle für ICE-Server schließt wie bisher mit 1003. Der Client übernimmt nur `stun:`/`turn:`/`turns:`-Adressen, nie Port 53.
-- **Vermittlung:** Binärdatensätze im Raum mit Typbyte `0x53` und JSON: Gast `{k:'offer', sdp}`, Gastgeber `{k:'answer', sdp}`, beide `{k:'candidate', c}`. Sobald der Datenkanal `sketchdraw-session` offen ist, verlässt der Gast den Raum.
-- **Träger:** `iceTransportPolicy: 'relay'`, sobald TURN-Server mit Zugangsdaten vorliegen; ohne sie wird der Weg abgelehnt (`TURN_UNAVAILABLE`), außer der Relay läuft auf dem eigenen Rechner (Tests, Entwicklung).
-- **Sicherheit unverändert:** Auf dem Datenkanal läuft derselbe Handshake wie auf jedem Träger (gepinnter Gastgeberschlüssel, PIN im Kanal). Auf DTLS wird nicht vertraut; Relay und TURN-Server können weder lesen noch fälschen.
-- **Gastgeber:** hört erst, wenn der Relay ICE-Server ausgibt; bis dahin steht der Grund im Status (`TURN_NOT_CONFIGURED`, `TURN_API_…`), und er fragt alle 15 s erneut.
-
 ## Anwesenheit in der Session und Wiederverbinden (#222)
 
 Gilt für Sessions mit Link und PIN (`hyperdht-relay`). Umsetzung: `src/collaboration/presence.ts`, `src/collaboration/hdht/session.ts`.

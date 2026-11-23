@@ -37,38 +37,6 @@ Die App kennt eine Adresse von sich aus: `DEFAULT_CLOUD_RELAY_URL` in `src/colla
 
 Eigene Domain statt `workers.dev`: in `wrangler.jsonc` eine Route oder Custom Domain ergänzen (`"routes": [{ "pattern": "relay.example.org", "custom_domain": true }]`).
 
-## Cloudflare TURN – Erprobung (#303)
-
-**Stand: Machbarkeitsprobe.** Neben dem Worker-Relay gibt es den Verbindungsweg „Cloudflare TURN“. Nach dem Vergleich wird **einer der beiden Wege wieder ausgebaut** ([ADR 0011](../../docs/decisions/0011-poc-cloudflare-turn.md)).
-
-Beim TURN-Weg treffen sich die Geräte weiterhin im Raum dieses Workers, aber nur, um einen WebRTC-Datenkanal auszuhandeln. Die Sitzungsdaten laufen danach über `turn.cloudflare.com` und zählen gegen das Realtime-Kontingent (1.000 GB je Monat frei, geteilt mit SFU; danach 0,05 $ je GB – [Realtime-Preise](https://developers.cloudflare.com/realtime/sfu/pricing/)), nicht gegen Anfragen und Laufzeit des Durable Objects. Der Worker stellt dafür kurzlebige TURN-Zugangsdaten aus (14 Stunden gültig).
-
-Einrichten:
-
-1. Im Cloudflare-Dashboard einen **TURN-Schlüssel** anlegen ([Anleitung](https://developers.cloudflare.com/realtime/turn/generate-credentials/)). Du bekommst eine Schlüssel-ID und ein API-Token.
-2. Beides als Secret des Workers setzen und neu bereitstellen:
-
-   ```sh
-   cd relay/cloudflare
-   git pull && npm ci
-   npx wrangler secret put TURN_KEY_ID
-   npx wrangler secret put TURN_KEY_API_TOKEN
-   npx wrangler deploy
-   ```
-
-3. In der App „Cloudflare TURN“ wählen und eine Session starten. Fehlt der Schlüssel, sagt die App das („… hat keinen TURN-Schlüssel“) und gibt keinen Link aus.
-
-Der Schlüssel bleibt im Worker. Die App und die Gäste bekommen nur die befristeten Zugangsdaten, und nur über eine Raumverbindung (registrierter Gastgeber oder beigetretener Gast).
-
-**Kostenrisiko:** Wer das Protokoll spricht, kann sich als Gastgeber registrieren und Zugangsdaten holen. Verbrauch darüber läuft auf dein Konto; oberhalb von 1.000 GB im Monat kostet er Geld. Für die Erprobung ist das vertretbar, für den Dauerbetrieb braucht es eine Begrenzung (Rate Limiting vor dem Worker, kürzere Gültigkeit).
-
-Was der Vergleich zeigen soll – am besten je einmal mit Worker-Relay und mit TURN, Gastgeber im Firmennetz, Gast außerhalb und umgekehrt:
-
-- Kommt die Verbindung hinter dem Unternehmens-Proxy zustande? Wie lange dauert es bis „Verbunden“?
-- Bleibt sie über eine halbe Stunde stabil, auch wenn niemand zeichnet?
-- Wie fühlt sich gemeinsames Zeichnen an (Verzögerung der Zeiger)?
-- Was zeigt das Cloudflare-Dashboard danach: Anfragen und Laufzeit des Durable Objects gegenüber TURN-Datenmenge?
-
 ## Kontingente und Kosten
 
 Stand der Cloudflare-Dokumentation vom November 2026 ([Durable Objects – Pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/), [Workers – Limits](https://developers.cloudflare.com/workers/platform/limits/)); bitte dort nachsehen, bevor du dich darauf verlässt:
@@ -106,6 +74,10 @@ npx playwright test --config playwright.config.ts --project=ui tests/ui/session-
 - `session-route.spec.ts`: die Oberfläche mit drei Gästen über das selbst betriebene Relay, das dieselben Raumadressen annimmt.
 - `tests/electron/session-route.spec.ts`: die gebaute Desktop-App als Gastgeber über den Relay-Weg (läuft mit den übrigen Electron-Tests).
 
-- `turn-channel.spec.ts` und `tests/ui/session-turn.spec.ts` (#303): der TURN-Weg – mit einem WebRTC-Ersatz in den Unit-Tests und mit echtem WebRTC im Browser, dort ohne TURN-Server direkt auf dem eigenen Rechner.
+**Im Cloudflare-Netz geprüft (23.11.2026, einmalig, ein Standort):** Über den bereitgestellten Worker lief eine Session mit Gastgeber und drei Gästen (Client-Code der App, durch einen HTTP-Proxy): Dokument bei den Gästen nach 1,5–1,7 s, Änderungen nach 0,15–0,3 s bei allen, nach 25 s Leerlauf alle verbunden.
 
-**Nicht geprüft:** der Betrieb im echten Cloudflare-Netz (Verhalten bei erschöpftem Kontingent, Verbindungen durch Firmen-Proxys) und **Cloudflare TURN selbst** – keine Verbindung lief in den Tests über `turn.cloudflare.com`. Der bereitgestellte Worker antwortet auf `/healthz` (23.11.2026); eine Session darüber hat diese Sitzung nicht aufgebaut.
+**Nicht geprüft:** Verhalten bei erschöpftem Kontingent, Last (24 Gäste, große Bilder), lange Sessions und der Betrieb aus dieser Sitzung heraus mit zwei Desktop-Apps in verschiedenen Netzen.
+
+## Verworfen: Cloudflare TURN
+
+Vom 23.11.2026 gab es kurz einen dritten Verbindungsweg über Cloudflares TURN-Dienst (WebRTC-Datenkanal, Worker nur als Treffpunkt und für Zugangsdaten). Der Owner hat ihn nach eigener Erprobung wieder ausbauen lassen; es bleibt beim Worker-Relay ([ADR 0011](../../docs/decisions/0011-poc-cloudflare-turn.md)). Der Worker braucht deshalb **keine Secrets**. Falls noch vorhanden: `npx wrangler secret delete TURN_KEY_ID`, `npx wrangler secret delete TURN_KEY_API_TOKEN`, den TURN-Schlüssel im Dashboard löschen und den Worker neu bereitstellen.
