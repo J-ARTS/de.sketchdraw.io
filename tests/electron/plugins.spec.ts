@@ -143,7 +143,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect(dialog).toContainText('Azure DevOps wird nur über https angesprochen.');
     // Ticket cards (#283) read, find and change single tickets through the same bridge. Every call reaches the
     // service in the main process: it answers with its own refusals, and the plugin that is switched off stays off.
-    const refusal = (method: 'getWorkItem' | 'searchWorkItems' | 'updateWorkItemFields', input: Record<string, unknown>) => page.evaluate(async ({ method, input }) => {
+    const refusal = (method: 'getWorkItem' | 'searchWorkItems' | 'updateWorkItemFields' | 'listAzureWikiPages' | 'setAzureWikiLiveLink' | 'publishAzureWikiLive', input: unknown) => page.evaluate(async ({ method, input }) => {
       const plugins = (window as unknown as { sketchdraw: { plugins: Record<string, (value: unknown) => Promise<unknown>> } }).sketchdraw.plugins;
       return plugins[method]!(input).then((value) => `answered: ${JSON.stringify(value)}`, (error: Error) => error.message);
     }, { method, input });
@@ -152,6 +152,10 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     expect(await refusal('updateWorkItemFields', { provider: 'azure-devops', key: '1', status: 'archived' })).toContain('Ungültiger Status.');
     expect(await refusal('searchWorkItems', { provider: 'azure-devops', query: '' })).toBe('answered: []');
     expect(await refusal('getWorkItem', { provider: 'azure-devops', key: '7' })).toContain('Azure-DevOps-Plugin ist deaktiviert.');
+    // The wiki of Azure DevOps (#284) goes the same way: the plugin that is switched off finds, links and publishes nothing.
+    expect(await refusal('listAzureWikiPages', 'architektur')).toContain('Azure-DevOps-Plugin ist deaktiviert.');
+    expect(await refusal('setAzureWikiLiveLink', { handleId: 'unbekannt', documentId: 'doc', diagramPageId: 'page:1', wikiPage: 'wiki\n/Seite' })).toContain('Das Dokument gehört nicht zum aktuellen Projektordner.');
+    expect(await refusal('publishAzureWikiLive', { handleId: 'unbekannt', documentId: 'doc', title: 'x', diagramPageId: 'page:1', images: [] })).toContain('"status":"failed"');
     await dialog.getByRole('button', { name: 'Deinstallieren', exact: true }).click();
     await expect.poll(async () => (await store()).profiles?.[0]?.azure).toBeUndefined();
     await dialog.getByRole('tab', { name: /Installiert/ }).click();
