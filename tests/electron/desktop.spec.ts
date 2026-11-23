@@ -137,7 +137,7 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         expect(suggested.length).toBeGreaterThan(0);
       });
 
-      await test.step('the menu names the app Sketchdraw, and a start from the sources never looks for updates', async () => {
+      await test.step('the menu names the app Sketchdraw and offers the update check; a start from the sources never looks for updates on its own', async () => {
         const allLabels = await electronApp.evaluate(({ Menu }) => {
           type Item = { label: string; submenu?: { items: Item[] } | null };
           const walk = (items: Item[]): string[] => items.flatMap((item) => [item.label, ...(item.submenu ? walk(item.submenu.items) : [])]);
@@ -145,7 +145,8 @@ test.describe('Built Electron product: sandbox, IPC, menu and dirty close', () =
         });
         expect(allLabels).toContain('Über Sketchdraw');
         expect(allLabels).toContain('Sketchdraw beenden');
-        expect(allLabels).not.toContain('Nach Updates suchen…');
+        // The entry is always there (#299); only choosing it asks GitHub, which this test does not do.
+        expect(allLabels).toContain('Nach Updates suchen…');
         expect(allLabels.filter((label) => /de\.sketchdraw\.io|Electron/i.test(label))).toEqual([]);
         const updates = await page.evaluate(() => (window as unknown as { sketchdraw: { updates: { check(): Promise<unknown> } } }).sketchdraw.updates.check());
         expect(updates).toMatchObject({ supported: false, canInstall: false, phase: 'idle', latestVersion: null });

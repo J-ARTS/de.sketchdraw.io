@@ -7,8 +7,8 @@ export interface AppMenuOptions {
   /** Translates a German source text of the native layer. */
   text(german: string): string;
   onCommand(command: MenuCommand): void;
-  /** Absent where the app cannot look for updates (a start from the sources); the entry is then left out. */
-  readonly onCheckForUpdates?: () => void;
+  /** "Check for Updates…" is always offered (#299): the installed app and a start from the sources both answer it. */
+  onCheckForUpdates(): void;
 }
 
 /**
@@ -19,9 +19,7 @@ export function buildAppMenuTemplate(options: AppMenuOptions): MenuItemConstruct
   const { text, onCommand } = options;
   const isMac = options.platform === 'darwin';
   const about: MenuItemConstructorOptions = { role: 'about', label: text('Über Sketchdraw') };
-  const updates: MenuItemConstructorOptions[] = options.onCheckForUpdates
-    ? [{ id: 'check-for-updates', label: text('Nach Updates suchen…'), click: options.onCheckForUpdates }]
-    : [];
+  const updates: MenuItemConstructorOptions[] = [{ id: 'check-for-updates', label: text('Nach Updates suchen…'), click: () => options.onCheckForUpdates() }];
   const template: MenuItemConstructorOptions[] = [];
 
   if (isMac) {

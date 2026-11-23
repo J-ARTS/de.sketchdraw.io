@@ -75,17 +75,33 @@ export function createUpdatePrompts(options: UpdatePromptOptions): {
     async checkFromMenu(): Promise<void> {
       const service = options.service();
       if (!service) return;
-      const status = await service.check();
+      const status = await service.check({ manual: true });
       if (status.phase === 'available') await offer(status, false);
       else if (status.phase === 'current') {
         await showMessage({
           type: 'info',
           title: APP_DISPLAY_NAME,
           message: text('Sketchdraw ist aktuell'),
-          detail: text('Version {current} ist die neueste veröffentlichte Version.', { current: status.currentVersion }),
+          // A start from the sources can be ahead of the newest release; it only says that nothing newer is published.
+          detail: status.supported
+            ? text('Version {current} ist die neueste veröffentlichte Version.', { current: status.currentVersion })
+            : text('Diese Kopie wurde aus den Quellen gestartet (Version {current}). Es gibt keine neuere veröffentlichte Version.', { current: status.currentVersion }),
           buttons: [text('Schließen')],
         });
       } else if (status.phase === 'error' && status.problem) await showProblem(status.problem);
+      else if (!status.supported) {
+        // No readable version of its own: nothing to compare with, the release page still shows what is published.
+        const answer = await showMessage({
+          type: 'info',
+          title: APP_DISPLAY_NAME,
+          message: text('Diese Kopie kann nicht nach Updates suchen'),
+          detail: text('Updates gibt es für die installierte App. Die neueste Version liegt auf der Release-Seite.'),
+          buttons: [text('Release-Seite öffnen'), text('Schließen')],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (answer.response === 0) options.openReleasePage();
+      }
     },
 
     onAutomaticCheck(status: UpdateStatus): void {

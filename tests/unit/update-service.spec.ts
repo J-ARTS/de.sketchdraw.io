@@ -197,6 +197,21 @@ describe('UpdateService', () => {
     updates.dispose();
   });
 
+  it('looks at GitHub for a start from the sources only when the menu asks, and never installs there (#299)', async () => {
+    const updates = service(network(() => json(release('9.9.9'))), { packaged: false });
+    const status = await updates.check({ manual: true });
+    expect(status).toMatchObject({ supported: false, canInstall: false, phase: 'available', latestVersion: '9.9.9' });
+    expect(requests).toHaveLength(1);
+    expect(await updates.install()).toMatchObject({ phase: 'available' });
+    expect(quits).toEqual([]);
+    expect(await service(network(() => json(release('0.1.6'))), { packaged: false }).check({ manual: true })).toMatchObject({ supported: false, phase: 'current' });
+    // A copy without a readable version has nothing to compare with.
+    const unversioned = service(network(() => json(release('9.9.9'))), { packaged: false, version: 'dev' });
+    const before = requests.length;
+    expect(await unversioned.check({ manual: true })).toMatchObject({ supported: false, phase: 'idle' });
+    expect(requests).toHaveLength(before);
+  });
+
   it('downloads the installer, verifies it and hands it to the platform before quitting', async () => {
     const platform = installer();
     const updates = service(network(() => json(release('0.1.7'))), { installer: platform });

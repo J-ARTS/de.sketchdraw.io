@@ -232,9 +232,14 @@ export class UpdateService {
     await this.persist();
   }
 
-  /** Asks GitHub for the newest release. Never rejects: a failure is a status. */
-  check(): Promise<UpdateStatus> {
-    if (!this.supported || this.phase === 'ready') return Promise.resolve(this.status());
+  /**
+   * Asks GitHub for the newest release. Never rejects: a failure is a status. A start from the sources never asks on
+   * its own; only `manual` ("Check for Updates…" in the menu, #299) looks there too. It can then name a newer version
+   * but never install it.
+   */
+  check(options: { manual?: boolean } = {}): Promise<UpdateStatus> {
+    const allowed = this.supported || (options.manual === true && parseVersion(this.options.currentVersion) !== null);
+    if (!allowed || this.phase === 'ready') return Promise.resolve(this.status());
     return this.exclusive(async () => {
       this.set('checking');
       try {
@@ -252,7 +257,8 @@ export class UpdateService {
   install(): Promise<UpdateStatus> {
     const asset = this.release?.asset;
     const installer = this.options.installer;
-    if (this.running || this.phase !== 'available' || !this.release || !asset || !installer?.canInstall()) return Promise.resolve(this.status());
+    // A start from the sources may know of a newer version after a manual check; it still never replaces itself.
+    if (!this.supported || this.running || this.phase !== 'available' || !this.release || !asset || !installer?.canInstall()) return Promise.resolve(this.status());
     const version = this.release.version;
     return this.exclusive(async () => {
       try {

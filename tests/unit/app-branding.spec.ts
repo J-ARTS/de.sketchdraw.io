@@ -14,9 +14,9 @@ const read = (file: string): string => readFileSync(join(ROOT, file), 'utf8');
 function labels(items: MenuItemConstructorOptions[]): string[] {
   return items.flatMap((item) => [...(item.label ? [item.label] : []), ...(Array.isArray(item.submenu) ? labels(item.submenu) : [])]);
 }
-function menu(platform: NodeJS.Platform, language: 'de' | 'en', updates = true): MenuItemConstructorOptions[] {
+function menu(platform: NodeJS.Platform, language: 'de' | 'en', onCheckForUpdates: () => void = () => undefined): MenuItemConstructorOptions[] {
   setNativeLanguage(language);
-  return buildAppMenuTemplate({ platform, text: nativeText, onCommand: () => undefined, ...(updates ? { onCheckForUpdates: () => undefined } : {}) });
+  return buildAppMenuTemplate({ platform, text: nativeText, onCommand: () => undefined, onCheckForUpdates });
 }
 
 describe('the app is called Sketchdraw wherever its name shows (#236)', () => {
@@ -66,8 +66,20 @@ describe('the app is called Sketchdraw wherever its name shows (#236)', () => {
     expect(labels(menu('darwin', 'en'))).toEqual(expect.arrayContaining(['Close Window', 'Cut', 'Copy', 'Paste', 'Select All', 'Actual Size', 'Zoom In', 'Zoom Out', 'Toggle Full Screen']));
   });
 
-  it('leaves the update check out where the app cannot look for updates', () => {
-    for (const platform of ['darwin', 'win32'] as const) expect(labels(menu(platform, 'de', false))).not.toContain('Nach Updates suchen…');
+  it('always offers the update check: in the app menu on macOS, under Help elsewhere (#299)', () => {
+    const find = (items: MenuItemConstructorOptions[]): MenuItemConstructorOptions | undefined => items.flatMap((item) => [item, ...(Array.isArray(item.submenu) ? item.submenu : [])]).find((item) => item.id === 'check-for-updates');
+    for (const platform of ['darwin', 'win32', 'linux'] as const) {
+      const check = vi.fn();
+      const template = menu(platform, 'en', check);
+      const parent = template.find((item) => Array.isArray(item.submenu) && item.submenu.some((entry) => entry.id === 'check-for-updates'));
+      expect(parent?.label, platform).toBe(platform === 'darwin' ? 'Sketchdraw' : 'Help');
+      const entry = find(template)!;
+      expect(entry.label).toBe('Check for Updates…');
+      (entry.click as () => void)();
+      expect(check).toHaveBeenCalledTimes(1);
+    }
+    const mac = (menu('darwin', 'de')[0]!.submenu as MenuItemConstructorOptions[]).map((item) => item.role ?? item.id ?? item.type);
+    expect(mac.slice(0, 3)).toEqual(['about', 'check-for-updates', 'separator']);
   });
 
   it('keeps the menu ids that the renderer and the tests address', () => {
@@ -176,6 +188,32 @@ describe('update dialogs', () => {
     await offline.prompts.checkFromMenu();
     expect(offline.shown).toEqual([{ message: 'Das Update ist fehlgeschlagen', detail: 'GitHub war nicht erreichbar. Versuche es später noch einmal.', buttons: ['Schließen'] }]);
     expect(offline.openReleasePage).not.toHaveBeenCalled();
+  });
+
+  it('answers the menu for a start from the sources too: a manual check, never an installation (#299)', async () => {
+    const newer = setup([0], status({ supported: false, canInstall: false }));
+    await newer.prompts.checkFromMenu();
+    expect(newer.service.check).toHaveBeenCalledWith({ manual: true });
+    expect(newer.shown).toEqual([{
+      message: 'Sketchdraw 0.1.7 ist verfügbar',
+      detail: 'Installiert ist Version 0.1.6. Diese Installation kann sich nicht selbst ersetzen; die neue Version liegt auf der Release-Seite.',
+      buttons: ['Release-Seite öffnen', 'Später'],
+    }]);
+    expect(newer.openReleasePage).toHaveBeenCalledTimes(1);
+    expect(newer.service.install).not.toHaveBeenCalled();
+
+    const ahead = setup([0], status({ supported: false, canInstall: false, phase: 'current', latestVersion: '0.1.5' }));
+    await ahead.prompts.checkFromMenu();
+    expect(ahead.shown).toEqual([{ message: 'Sketchdraw ist aktuell', detail: 'Diese Kopie wurde aus den Quellen gestartet (Version 0.1.6). Es gibt keine neuere veröffentlichte Version.', buttons: ['Schließen'] }]);
+
+    // Without a version of its own there is nothing to compare; the release page still shows what is published.
+    const unknown = setup([0], status({ supported: false, canInstall: false, phase: 'idle', latestVersion: null, currentVersion: 'dev' }));
+    await unknown.prompts.checkFromMenu();
+    expect(unknown.shown).toEqual([{ message: 'Diese Kopie kann nicht nach Updates suchen', detail: 'Updates gibt es für die installierte App. Die neueste Version liegt auf der Release-Seite.', buttons: ['Release-Seite öffnen', 'Schließen'] }]);
+    expect(unknown.openReleasePage).toHaveBeenCalledTimes(1);
+    const closed = setup([1], status({ supported: false, canInstall: false, phase: 'idle', latestVersion: null }));
+    await closed.prompts.checkFromMenu();
+    expect(closed.openReleasePage).not.toHaveBeenCalled();
   });
 
   it('explains a failed installation and offers the release page', async () => {

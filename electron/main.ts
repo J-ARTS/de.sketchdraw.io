@@ -230,7 +230,7 @@ function buildApplicationMenu(): Menu {
     platform: process.platform,
     text: nativeText,
     onCommand: dispatchMenuCommand,
-    ...(updateService?.status().supported ? { onCheckForUpdates: () => { void updatePrompts.checkFromMenu(); } } : {}),
+    onCheckForUpdates: () => { void updatePrompts.checkFromMenu(); },
   }));
 }
 
