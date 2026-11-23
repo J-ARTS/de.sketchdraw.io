@@ -1,4 +1,4 @@
-# Sketchdraw: dezentrale Helfer und optionales WSS-Gateway
+# Sketchdraw: dezentrale Helfer und Relay
 
 ## Ohne eigenen Server: freiwillige Desktop-Helfer
 
@@ -8,9 +8,18 @@ Solange eine Session dieses Geräts läuft, bietet die Desktop-App die Weiterlei
 
 Das ist ein implementiertes Protokoll, keine vorhandene öffentliche Relay-Flotte. Es braucht tatsächlich erreichbare und eingeschaltete Helfer. Bei ungünstigem NAT oder vollständig blockiertem UDP kann auch ein Helfer unerreichbar bleiben. Die lokale DHT-Testumgebung belegt keine Internet-NAT-/Proxy-Abdeckung; siehe Issue #72 und `docs/reviews/149-decentralized-relay-decision.md`.
 
-## Optionales WSS-Gateway
+## Relay als gewählter Verbindungsweg
 
-**Seit #162 hat die App keine Gateway-Einstellung mehr.** Der folgende eigenständig betreibbare Dienst bleibt als Bibliothek und für die Browser-UI-Tests erhalten (Entwicklungsschlüssel `localStorage['sketchdraw.hdht-relay-url.v1']`); er ist kein Produktweg.
+**Seit #300 wählt der Gastgeber den Verbindungsweg:** „Direkt (P2P)“ wie oben, oder „Cloudflare-Relay“ ([ADR 0010](../docs/decisions/0010-session-route-cloudflare-relay.md)). Beim Relay-Weg verbinden sich alle Geräte per WebSocket mit einem Relay; der Session-Link trägt die Adresse des Raums (`<Relay>/v1/<topic>`), Gäste stellen nichts ein. Es läuft dann weder ein DHT-Knoten noch der Helfer dieses Geräts.
+
+Zwei Relays sprechen dieses Protokoll:
+
+- **Cloudflare Worker** mit einem Durable Object je Session: [`cloudflare/`](cloudflare/README.md) – der vorgesehene Betrieb, ohne eigenen Server.
+- **Selbst betriebener Dienst** (`server.mjs`, unten): derselbe Hub als Node-Prozess hinter einem TLS-Proxy. Er nimmt dieselben Raumadressen an und lässt sich in der App genauso als Relay-Adresse eintragen.
+
+Der Entwicklungsschlüssel `localStorage['sketchdraw.hdht-relay-url.v1']` bleibt für die Browser-UI-Tests des direkten Wegs erhalten; er ist keine Produkteinstellung.
+
+## Selbst betriebener Relay (WSS)
 
 Leitet **ausschließlich Ende-zu-Ende-verschlüsselte Datensätze** zwischen einem Gastgeber und seinen Gästen weiter, wenn eine direkte HyperDHT-Verbindung (UDP) nicht zustande kommt oder ein Browser teilnimmt. Der Relay
 
@@ -20,7 +29,7 @@ Leitet **ausschließlich Ende-zu-Ende-verschlüsselte Datensätze** zwischen ein
 - erlaubt die Registrierung eines Gastgebers nur mit Besitznachweis: der Topic ist `SHA-256(Label ‖ Gastgeber-Schlüssel)`, und der Gastgeber signiert eine frische, pro Verbindung erzeugte Challenge mit seinem Ed25519-Schlüssel. Link-Inhaber ohne privaten Schlüssel können einen laufenden Gastgeber weder verdrängen noch einen Topic vorab belegen,
 - sieht Metadaten: IP-Adressen, Verbindungszeitpunkte, einen aus dem öffentlichen Sitzungsschlüssel abgeleiteten Topic-Hash und Datenmengen.
 
-**Es gibt keinen mitgelieferten oder öffentlichen Produktiv-Endpunkt.** Die App bietet dafür keine Einstellung mehr; ein selbst betriebenes Gateway lässt sich nur über den Entwicklungsschlüssel ansprechen. Der Relay garantiert nicht, dass jede Firewall oder jeder Proxy durchlässig ist; ein Netzwerk, das WebSockets nach außen blockiert, bleibt ohne Verbindung.
+**Es gibt keinen mitgelieferten oder öffentlichen Produktiv-Endpunkt.** Wer den Relay-Weg nutzen will, betreibt einen Relay und trägt dessen Adresse in der App ein. Der Relay garantiert nicht, dass jede Firewall oder jeder Proxy durchlässig ist; ein Netzwerk, das WebSockets nach außen blockiert, bleibt ohne Verbindung.
 
 ## Starten
 
@@ -75,7 +84,7 @@ Hinter einem Proxy `RELAY_TRUST_PROXY=1` setzen, damit das Verbindungslimit pro 
 | `RELAY_TRUST_PROXY` | `0` | `1`: letzte `X-Forwarded-For`-Adresse nutzen |
 | `RELAY_ALLOWED_ORIGINS` | leer (alle) | kommagetrennte Origin-Allowlist für Browser |
 
-Feste Grenzen im Code (`DEFAULT_LIMITS`): Datensatz max. 66 KiB, Beitritt binnen 5 s, 60 s Leerlauf (Ping/Pong), 13 h maximale Verbindungsdauer, 250 Nachrichten/s und 4 MiB/s je Verbindung (Burst 10 MiB, deckt eine 8-MiB-Nachricht ab; Clients takten darunter), 12 MiB Sendepuffer je verbundenem Ziel (einschließlich Steuernachrichten), 64 KiB vor dem Beitritt und 64 MiB gemeinsames Ausgangspufferbudget. Das gemeinsame Budget umfasst die von den Adaptern gemeldeten Puffer einschließlich Framingreserve, nicht den gesamten Prozess-/Kernel-/UDX-Speicher. Langsame Empfänger werden begrenzt getrennt. Verbindungen, die ein Limit verletzen, werden mit den Codes 4408/4429/4503 geschlossen.
+Feste Grenzen im Code (`DEFAULT_LIMITS`): Datensatz max. 66 KiB, Beitritt binnen 5 s, 60 s Leerlauf (Ping/Pong; ein wartender Gastgeber meldet sich zusätzlich alle 20 s selbst), 13 h maximale Verbindungsdauer, 250 Nachrichten/s und 4 MiB/s je Verbindung (Burst 10 MiB, deckt eine 8-MiB-Nachricht ab; Clients takten darunter), 12 MiB Sendepuffer je verbundenem Ziel (einschließlich Steuernachrichten), 64 KiB vor dem Beitritt und 64 MiB gemeinsames Ausgangspufferbudget. Das gemeinsame Budget umfasst die von den Adaptern gemeldeten Puffer einschließlich Framingreserve, nicht den gesamten Prozess-/Kernel-/UDX-Speicher. Langsame Empfänger werden begrenzt getrennt. Verbindungen, die ein Limit verletzen, werden mit den Codes 4408/4429/4503 geschlossen.
 
 ## Betrieb
 

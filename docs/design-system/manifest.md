@@ -627,7 +627,7 @@ The modal Git dialog of the Git plugin: see and commit changes, push, fetch the 
 
 ### HdhtSession
 
-Start, join and leave a peer-to-peer session: link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session.
+Start, join and leave a session: the route (directly between the devices, or through a Cloudflare relay), link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session.
 
 - File: `src/renderer/design-system/organisms/HdhtSession.vue`
 

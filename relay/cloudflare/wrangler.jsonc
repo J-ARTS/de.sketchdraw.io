@@ -1,0 +1,17 @@
+{
+  // Sketchdraw session relay on Cloudflare (#300). See ../README.md for what it does and how to deploy it.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sketchdraw-relay",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-11-01",
+  // The hub is shared with the Node relay and the desktop helper; it uses node:crypto and Buffer.
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  // The relay logs nothing itself; this also keeps Cloudflare from storing request logs (URLs carry the session topic).
+  "observability": { "enabled": false },
+  "durable_objects": {
+    "bindings": [{ "name": "RELAY_ROOM", "class_name": "RelayRoom" }]
+  },
+  // The room keeps no data. The Workers Free plan only offers SQLite-backed classes, so the class is declared as one.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RelayRoom"] }]
+}

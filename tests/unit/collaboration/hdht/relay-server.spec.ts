@@ -140,3 +140,25 @@ describe('relay connection slots (R2)', () => {
     expect(conn.ws.readyState).toBe(WebSocket.OPEN);
   });
 });
+
+describe('relay room addresses (#300)', () => {
+  it('takes the room address the app builds for a relay, and nothing that only looks like one', async () => {
+    const { url, relay } = await start();
+    const topic = 'ab'.repeat(32);
+    const room = await open(`${url}v1/${topic}`);
+    room.ws.send(JSON.stringify({ t: 'guest', topic }));
+    await until(() => room.texts.length === 1);
+    expect(JSON.parse(room.texts[0]!)).toEqual({ t: 'error', code: 'HOST_OFFLINE' });
+    for (const path of ['v1/abc', `v1/${topic.toUpperCase()}`, `v1/${topic}/more`, `v2/${topic}`]) {
+      const refused = await new Promise<number>(resolve => {
+        const ws = new WebSocket(`${url}${path}`, SUBPROTOCOL);
+        sockets.push(ws);
+        ws.on('unexpected-response', (_request, response) => resolve(response.statusCode ?? 0));
+        ws.on('open', () => resolve(101));
+        ws.on('error', () => undefined);
+      });
+      expect(refused, path).toBe(404);
+    }
+    expect(relay.stats().rejected).toBe(4);
+  });
+});

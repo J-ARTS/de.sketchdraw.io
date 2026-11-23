@@ -57,7 +57,7 @@ export interface HdhtHostConfig {
   direct?: { link: DirectLink; publicKey: string };
   /** Registers at volunteer relay helpers found through the DHT (native only); no endpoint is configured. */
   peers?: { link: DirectLink; target?: number; retryMs?: number; steadyMs?: number; pacer?: PacerOptions };
-  relay?: { url: string; factory?: WebSocketFactory; backoffMs?: readonly number[]; pacer?: PacerOptions };
+  relay?: { url: string; factory?: WebSocketFactory; backoffMs?: readonly number[]; pacer?: PacerOptions; keepAliveMs?: number };
   maxParticipants?: number;
   timing?: ChannelTiming;
   authTimeoutMs?: number;
@@ -205,6 +205,7 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
       ...(config.relay.factory ? { factory: config.relay.factory } : {}),
       ...(config.relay.backoffMs ? { backoffMs: config.relay.backoffMs } : {}),
       ...(config.relay.pacer ? { pacer: config.relay.pacer } : {}),
+      ...(config.relay.keepAliveMs !== undefined ? { keepAliveMs: config.relay.keepAliveMs } : {}),
       onChannel: adopt,
       onState: (state, detail) => { relayState = state; relayDetail = detail; if (!closed) publish(); },
     });

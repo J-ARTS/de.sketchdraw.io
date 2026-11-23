@@ -509,6 +509,16 @@ Die Oberfläche kennt keinen Moduswechsel mehr: „Session starten“ erstellt e
 - **Empfangene Binärdaten:** Trystero liefert `Uint8Array`; der Transport akzeptiert `ArrayBuffer` und `ArrayBufferView`.
 - **Prüfung (historisch):** `tests/ui/session-network.spec.ts` prüfte bis #162 zwei Browser über die öffentlichen Broker. Mit [ADR 0007](decisions/0007-app-link-and-session-relay-helper.md) hat dieser WebRTC-Weg keine Oberfläche mehr; der Test ist entfernt. Nicht geprüft: Unternehmensproxys, TURN, Last, Viewer-Durchsetzung im Gast-Browser.
 
+## Verbindungsweg einer Session: direkt oder Relay (#300)
+
+Gilt für Sessions mit Link und PIN (`hyperdht-relay`). Entscheidung: [ADR 0010](decisions/0010-session-route-cloudflare-relay.md). Umsetzung: `src/collaboration/hdht/cloud-relay.ts`, `relay/hub.mjs`, `relay/cloudflare/`.
+
+- **Die Einladung trägt den Weg.** `d` (Direktschlüssel) gesetzt, `r` leer: direkter Weg (HyperDHT, Helfer). `r` gesetzt, `d` leer: Relay-Weg – der Gast öffnet ausschließlich die WebSocket-Verbindung zu `r` und startet weder DHT noch Helfer. Beides gesetzt kommt nur über den Entwicklungsschlüssel vor und verhält sich wie bisher (direkt zuerst, Relay als zweiter Versuch).
+- **Raumadresse:** `<Relay>/v1/<topic>` mit `topic = SHA-256("sketchdraw-relay-topic-v1\0" ‖ Gastgeberschlüssel)` (hex, 64 Zeichen). `wss://` ist Pflicht, `ws://` nur für Loopback; keine Zugangsdaten, Query oder Fragment (`checkedRelayUrl`).
+- **Protokoll unverändert:** `sketchdraw-relay.v1` – `host`/`challenge`/`proof`/`ready`, `guest`/`ready`/`guest-join`/`guest-leave`, Binärdatensätze mit 16-Byte-Gastkennung auf der Gastgeberseite. Neu: Ein Hub mit `acceptTopic` schließt Beitritte für fremde Topics mit 1008 `bad-topic`; ein Gastgeber mit WebSocket-Registrierung sendet alle 20 s `{t:'ping'}` (Antwort `{t:'pong'}`), weil ein Worker nicht selbst pingen kann.
+- **Mehrere Teilnehmende:** Stern über den Gastgeber wie auf dem direkten Weg; bis zu 24 Gäste je Raum.
+- **Prüfung:** `tests/unit/collaboration/hdht/cloud-relay.spec.ts`, `cloudflare-worker.spec.ts` (echte Workers-Laufzeit, lokal), `tests/ui/session-route.spec.ts`. Nicht geprüft: Betrieb im Cloudflare-Netz, Firmen-Proxys.
+
 ## Anwesenheit in der Session und Wiederverbinden (#222)
 
 Gilt für Sessions mit Link und PIN (`hyperdht-relay`). Umsetzung: `src/collaboration/presence.ts`, `src/collaboration/hdht/session.ts`.

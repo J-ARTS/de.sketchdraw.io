@@ -8,6 +8,13 @@ const OPEN = 1;
 const GUEST_ID_BYTES = 16;
 const MAX_CONTROL_TEXT = 512;
 const MAX_HOST_GUESTS = 64;
+/**
+ * A host that waits for guests sends nothing by itself. A WebSocket relay that cannot ping from its side (a Cloudflare
+ * Worker) and the proxies in front of it would close that silent connection, so the host says `ping` now and then.
+ * Helper peers keep their own connection alive (channel-socket.ts).
+ */
+const HOST_KEEPALIVE_MS = 20_000;
+const HOST_PING = JSON.stringify({ t: 'ping' });
 
 export const defaultWebSocketFactory: WebSocketFactory = (url, protocols) => new WebSocket(url, protocols) as unknown as WebSocketLike;
 
@@ -243,6 +250,8 @@ export interface RelayHostOptions extends RelaySocketSource {
   /** Delays between registration attempts; the last value repeats. */
   backoffMs?: readonly number[];
   pacer?: PacerOptions;
+  /** Interval of the keep-alive of a WebSocket registration; defaults to HOST_KEEPALIVE_MS. */
+  keepAliveMs?: number;
   onChannel(channel: RelayRecordChannel): void;
   onState?(state: RelayHostState, detail?: string): void;
 }
@@ -314,10 +323,12 @@ export class RelayHostConnection {
       let registered = false;
       let topicHex = '';
       let readyTimer: ReturnType<typeof setTimeout> | null = null;
+      let keepAlive: ReturnType<typeof setInterval> | undefined;
       const end = (reason: string) => {
         if (ended) return;
         ended = true;
         if (readyTimer) clearTimeout(readyTimer);
+        clearInterval(keepAlive);
         pacer?.close();
         for (const inbox of guests.values()) inbox.fail(reason);
         guests.clear();
@@ -358,6 +369,12 @@ export class RelayHostConnection {
           if (need !== undefined && !(typeof control['capacity'] === 'number' && control['capacity'] >= need)) { end('HELPER_CAPACITY'); return; }
           registered = true;
           if (readyTimer) clearTimeout(readyTimer);
+          if (!this.options.socket) {
+            keepAlive = setInterval(() => {
+              if (ended || socket.readyState !== OPEN) return;
+              try { socket.send(HOST_PING); } catch { /* the close event ends the registration */ }
+            }, this.options.keepAliveMs ?? HOST_KEEPALIVE_MS);
+          }
           pacer = new WirePacer(() => socket.bufferedAmount, this.options.pacer);
           this.setState('ready');
           onReady();

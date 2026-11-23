@@ -1,6 +1,8 @@
 // Transport-neutral relay hub: forwards opaque, end-to-end encrypted records between one host and its guests.
-// It is used by the self-hosted WebSocket relay (server.mjs) and by native peer relays (Electron main process).
+// It is used by the self-hosted WebSocket relay (server.mjs), by the Cloudflare relay (cloudflare/src/room.mjs) and
+// by native peer relays (Electron main process).
 // State is in memory only; the hub never sees the PIN, keys or document content and never logs identifiers.
+import { Buffer } from 'node:buffer';
 import crypto from 'node:crypto';
 
 const ID_BYTES = 16;
@@ -239,6 +241,8 @@ export function createRelayHub(options = {}) {
         try { join = JSON.parse(Buffer.from(data).toString('utf8')); } catch { closeConnection(conn, 1008, 'bad-join'); return; }
         if (join?.t === 'ping') { state.role = null; control(conn, { t: 'pong' }); return; }
         if (!join || typeof join !== 'object' || !['host', 'guest'].includes(join.t) || typeof join.topic !== 'string' || !TOPIC_PATTERN.test(join.topic)) { closeConnection(conn, 1008, 'bad-join'); return; }
+        // A hub that serves one known session (a Cloudflare room) refuses every other topic before it can take a slot.
+        if (options.acceptTopic && !options.acceptTopic(join.topic)) { closeConnection(conn, 1008, 'bad-topic'); return; }
         if (join.t === 'guest') { clearTimeout(joinTimer); joinAsGuest(conn, state, join.topic); return; }
         const rawKey = decodeKey(join.key);
         if (!rawKey || topicForHostKey(rawKey) !== join.topic) { closeConnection(conn, 1008, 'bad-topic'); return; }

@@ -34,6 +34,9 @@ async function joinSession(browser: Browser, invitation: { link: string; pin: st
   const panel = guest.getByTestId('hdht-session');
   if (name) { await panel.getByTestId('hdht-name').fill(name); await panel.getByTestId('hdht-name').press('Tab'); }
   await guest.getByRole('textbox', { name: 'Sechsstellige PIN' }).fill(invitation.pin); await guest.getByTestId('hdht-join').click();
+  // A notice under the pointer stays until the pointer leaves it, and "Session beigetreten" appears close to the join
+  // button. The pointer rests on the panel title instead, off the canvas, so the test does not depend on that distance.
+  await guest.getByText('Zusammenarbeiten', { exact: true }).first().hover();
   await expect(guest.getByTestId('hdht-status')).toHaveText('Verbunden');
   return { context, guest };
 }

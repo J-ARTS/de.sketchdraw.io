@@ -1,0 +1,16 @@
+{
+  "name": "sketchdraw-session-relay-cloudflare",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker with one Durable Object per session that relays end-to-end encrypted Sketchdraw session records. No storage.",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir=.build"
+  },
+  "devDependencies": {
+    "wrangler": "4.166.0"
+  }
+}

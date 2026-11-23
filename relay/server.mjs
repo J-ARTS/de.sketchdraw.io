@@ -9,6 +9,7 @@ import { createRelayHub, DEFAULT_LIMITS as HUB_LIMITS, topicForHostKey } from '.
 
 export { topicForHostKey };
 export const SUBPROTOCOL = 'sketchdraw-relay.v1';
+const ROOM_PATH = /^\/v1\/[0-9a-f]{64}$/;
 export const DEFAULT_LIMITS = Object.freeze({ ...HUB_LIMITS, maxConnectionsPerIp: 40 });
 
 export function createRelayServer(options = {}) {
@@ -57,7 +58,9 @@ export function createRelayServer(options = {}) {
 
   server.on('upgrade', (request, socket, head) => {
     socket.on('error', () => {});
-    if (request.url !== '/' && request.url !== '/v1') return reject(socket, '404 Not Found');
+    // `/v1/<topic>` is the address form the app builds for a relay it was given (#300); this server serves every
+    // topic from one hub, so the path only has to be well-formed.
+    if (request.url !== '/' && request.url !== '/v1' && !ROOM_PATH.test(String(request.url))) return reject(socket, '404 Not Found');
     if (allowedOrigins && !allowedOrigins.has(String(request.headers.origin ?? ''))) return reject(socket, '403 Forbidden');
     const offered = String(request.headers['sec-websocket-protocol'] ?? '').split(',').map(value => value.trim());
     if (!offered.includes(SUBPROTOCOL)) return reject(socket, '400 Bad Request');

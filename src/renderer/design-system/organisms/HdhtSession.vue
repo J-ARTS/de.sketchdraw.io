@@ -1,4 +1,4 @@
-<!-- @component Start, join and leave a peer-to-peer session: link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session. -->
+<!-- @component Start, join and leave a session: the route (directly between the devices, or through a Cloudflare relay), link and PIN, the people in it (the host can remove a guest), the own name and the connection state. It also feeds the pointers of the others to the canvas and tells a guest when the host removed it or ended the session. -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
@@ -9,6 +9,7 @@ import { getDesktopBridge } from '@/platform';
 import { DirectLink } from '@/collaboration/hdht/direct-link';
 import { buildHdhtLink, createSessionId, HDHT_MAX_TTL_MS, isHdhtLink, normalizePin, optionalRelayUrl, parseHdhtInvitation } from '@/collaboration/hdht/invitation';
 import { createHostKeys } from '@/collaboration/hdht/relay-channel';
+import { cloudRelayBase, cloudRelayRoomUrl, relayHostName, storeCloudRelayAddress, storedCloudRelayAddress, storedSessionRoute, storeSessionRoute, type SessionRoute } from '@/collaboration/hdht/cloud-relay';
 import { createHdhtGuestTransport, createHdhtHostTransport, type HdhtHostTransport } from '@/collaboration/hdht/session';
 import type { CollaborationTransportStatus } from '@/collaboration/transport';
 import { assertCollaborationDocumentSize, bindCrdtTransport, type CrdtTransportBinding } from '@/collaboration/crdt';
@@ -35,6 +36,36 @@ const store = inject(WHITEBOARD_KEY)!;
 const bridge = getDesktopBridge();
 const role = ref<'editor' | 'viewer'>('viewer');
 const roleOptions = computed(() => [{ value: 'viewer', label: t('Nur ansehen') }, { value: 'editor', label: t('Gemeinsam bearbeiten') }]);
+/**
+ * How the devices of a session reach each other (#300): directly (HyperDHT and volunteer helpers, no server), or all
+ * through one relay at Cloudflare. The host chooses; the link carries the choice, so a guest follows it.
+ */
+const route = ref<SessionRoute>(storedSessionRoute());
+const routeOptions = computed(() => [{ value: 'p2p', label: t('Direkt (P2P)') }, { value: 'cloud', label: t('Cloudflare-Relay') }]);
+const relayAddress = ref(storedCloudRelayAddress());
+const addressError = ref('');
+/** The running session goes through a relay only: no direct route, no helper of this device. */
+const viaRelay = ref(false), relayHost = ref('');
+function chooseRoute(value: string): void {
+  route.value = value === 'cloud' ? 'cloud' : 'p2p';
+  storeSessionRoute(route.value);
+  addressError.value = ''; error.value = '';
+}
+function commitRelayAddress(): void {
+  relayAddress.value = relayAddress.value.trim();
+  storeCloudRelayAddress(relayAddress.value);
+}
+/** The checked relay address, or null after saying next to the field what is wrong with it. */
+function checkedRelayAddress(): string | null {
+  commitRelayAddress();
+  try { addressError.value = ''; return cloudRelayBase(relayAddress.value); } catch (value) {
+    const code = value instanceof Error ? value.message : '';
+    addressError.value = code === 'RELAY_URL_MISSING' ? t('Trage die Adresse des Relays ein.')
+      : code === 'RELAY_URL_INSECURE' ? t('Der Relay muss verschlüsselt erreichbar sein (wss:// oder https://).')
+      : t('Das ist keine gültige Relay-Adresse. Erwartet wird zum Beispiel sketchdraw-relay.name.workers.dev.');
+    return null;
+  }
+}
 const linkText = ref(''), pinText = ref(''), hostPin = ref(''), shareLink = ref('');
 const busy = ref(false), active = ref(false), joined = ref(false), hosting = ref(false);
 const stopping = ref(false);
@@ -101,7 +132,17 @@ const stateText = computed(() => {
   if (joined.value && value.state === 'ready') return t('Verbunden');
   return value.state === 'ready' ? t('Diagramm wird abgeglichen …') : value.phase === 'authenticating' ? t('PIN wird geprüft …') : t('Gegenstelle wird gesucht …');
 });
-const routeText = computed(() => status.value?.route === 'direct' ? t('Direktverbindung') : status.value?.route === 'relay' ? t('Verschlüsselte Relay-Verbindung') : t('Verbindungsweg wird gesucht'));
+const routeText = computed(() => status.value?.route === 'direct' ? t('Direktverbindung')
+  : status.value?.route === 'relay' ? (viaRelay.value && relayHost.value ? t('Verschlüsselt über den Relay {host}', { host: relayHost.value }) : t('Verschlüsselte Relay-Verbindung'))
+  : t('Verbindungsweg wird gesucht'));
+/** A host whose relay does not answer keeps trying; it says so instead of only "preparing". */
+const relayProblem = computed(() => hosting.value && viaRelay.value && !!status.value?.error && status.value.state !== 'closed' && status.value.state !== 'ready'
+  ? t('Der Relay {host} ist nicht erreichbar. Die App versucht es weiter – prüfe die Adresse und deine Internetverbindung.', { host: relayHost.value }) : '');
+/** Before joining: a link that goes through a relay names it, because that relay sees the network address of the guest. */
+const linkRelayHost = computed(() => {
+  if (active.value || !linkText.value.trim()) return '';
+  try { const invitation = parseHdhtInvitation(linkText.value); return invitation.relayUrl && !invitation.directKey ? relayHostName(invitation.relayUrl) : ''; } catch { return ''; }
+});
 function fail(value: unknown): void {
   const code = value instanceof Error ? value.message : String(value);
   error.value = /DOCUMENT_TOO_LARGE_FOR_COLLABORATION/.test(code) ? t('Dieses Diagramm ist für die Zusammenarbeit zu groß. Verkleinere es, bevor du eine Session startest.')
@@ -117,6 +158,7 @@ function fail(value: unknown): void {
     : /CONNECTION_LOST/.test(code) ? t('Die Verbindung zur Session ließ sich fünf Minuten lang nicht wiederherstellen.')
     : /ROOM_FULL/.test(code) ? t('Diese Session ist voll. Bitte später erneut versuchen.')
     : /ABORTED/.test(code) ? ''
+    : viaRelay.value ? t('Keine Verbindung über den Relay {host}. Prüfe, ob die Session noch läuft und ob dein Netzwerk WebSocket-Verbindungen zulässt.', { host: relayHost.value })
     : t('Keine Verbindung erreichbar. Prüfe, ob der Gastgeber online ist. Ist UDP in einem der Netzwerke vollständig gesperrt, kommt keine Verbindung zustande.');
   // With the panel closed, what ends a session from outside is said where the person is working.
   if (!props.visible && /KICKED|SESSION_ENDED|CONNECTION_LOST/.test(code) && error.value) store.announce(error.value, 'error');
@@ -162,17 +204,24 @@ async function start(): Promise<void> {
   if (busy.value || active.value || store.getRoomGuest()) return;
   const authority = store.getAuthority(), controller = store.getCrdtController();
   if (!authority || !controller) return;
+  const cloud = route.value === 'cloud';
+  const relayBase = cloud ? checkedRelayAddress() : null;
+  if (cloud && !relayBase) return;
   const epoch = ++generation; busy.value = true; error.value = ''; note.value = '';
   ownerAuthority = authority;
   try {
     assertCollaborationDocumentSize(controller);
-    const relay = optionalRelayUrl(relayOverride());
-    if (!isNative && !relay) throw new Error('DESKTOP_REQUIRED');
+    const override = cloud ? null : optionalRelayUrl(relayOverride());
+    if (!cloud && !isNative && !override) throw new Error('DESKTOP_REQUIRED');
     const keys = await createHostKeys();
+    // The room of this session at the relay is named after the session key, so the link alone leads guests to it.
+    const relay = relayBase ? await cloudRelayRoomUrl(relayBase, keys.publicKey) : override;
     if (disposed || generation !== epoch || store.getAuthority() !== authority || store.getCrdtController() !== controller) return;
     sessionId = createSessionId();
-    nativePending.value = isNative; relayShareAllowed.value = false;
-    native = bridge.direct ? new DirectLink(bridge.direct) : undefined;
+    viaRelay.value = cloud; relayHost.value = cloud && relay ? relayHostName(relay) : '';
+    nativePending.value = isNative && !cloud; relayShareAllowed.value = false;
+    // Through the relay nothing else runs: no DHT node, no direct listener and no helper of this device.
+    native = !cloud && bridge.direct ? new DirectLink(bridge.direct) : undefined;
     const current = createHdhtHostTransport({
       sessionId, documentId: authority.session.documentId, hostKeys: keys, expiresAt: Date.now() + HDHT_MAX_TTL_MS,
       grantedRole: () => role.value,
@@ -197,7 +246,7 @@ async function start(): Promise<void> {
       },
     });
     hostPin.value = current.getPin(); updateLink();
-    void setHelper(true);
+    if (!cloud) void setHelper(true);
     // WSS registration and helper discovery already run; blocked native startup cannot hold them up.
     if (bridge.direct && native) {
       const link = native;
@@ -221,7 +270,10 @@ async function join(): Promise<void> {
     if (!pin) { error.value = t('Bitte die sechsstellige PIN eingeben.'); return; }
     if (!isNative && !invitation.relayUrl) throw new Error('DESKTOP_REQUIRED');
     busy.value = true;
-    native = bridge.direct ? new DirectLink(bridge.direct) : undefined;
+    // A link with a relay and no direct key was started with the relay route; the guest follows it and nothing else.
+    const relayOnly = !!invitation.relayUrl && !invitation.directKey;
+    viaRelay.value = relayOnly; relayHost.value = relayOnly ? relayHostName(invitation.relayUrl) : '';
+    native = !relayOnly && bridge.direct ? new DirectLink(bridge.direct) : undefined;
     const transport = createHdhtGuestTransport({ invitation, pin, ...(native ? { direct: native } : {}) });
     const current = new RoomConnection(store, transport, { documentId: invitation.documentId, onChange(value, adopted) {
       if (generation !== epoch) return;
@@ -231,7 +283,7 @@ async function join(): Promise<void> {
     const presence = createGuestPresence(transport, { name: displayName.value, onChange: value => { if (generation === epoch) showPresence(value); } });
     guestPresence = presence; seen = null; sharePointer();
     room = current; hosting.value = false; setActive(true); pinText.value = '';
-    void setHelper(true);
+    if (!relayOnly) void setHelper(true);
     const accepted = await current.join();
     if (generation !== epoch || disposed) return;
     if (!accepted) { await stop(false); note.value = t('Beitritt abgebrochen. Dein Dokument bleibt unverändert.'); }
@@ -261,7 +313,7 @@ function stop(keepLocalCopy: boolean, reason?: string): Promise<void> {
       await setHelper(false);
       if (disposed || generation !== epoch) return;
       hosting.value = false; joined.value = false; setActive(false); busy.value = false; status.value = null; shareLink.value = ''; hostPin.value = '';
-      nativePending.value = false; relayShareAllowed.value = false;
+      nativePending.value = false; relayShareAllowed.value = false; viaRelay.value = false; relayHost.value = '';
     } finally { stopping.value = false; stopPromise = undefined; }
   })();
   return stopPromise;
@@ -294,18 +346,32 @@ onBeforeUnmount(() => { clearTimeout(copiedTimer); store.setSession(null); dispo
   <section class="hdht-session" data-testid="hdht-session" :aria-label="t('Session mit Link und PIN')">
     <template v-if="!active">
       <h3>{{ t('Gemeinsam zeichnen') }}</h3>
-      <p>{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
+      <p v-if="route === 'cloud'" data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Alle Geräte verbinden sich über einen Relay bei Cloudflare – auch dort, wo direkte Verbindungen gesperrt sind. Dein Diagramm bleibt Ende-zu-Ende verschlüsselt: Der Relay sieht Netzwerkadressen, Zeitpunkte und Datenmengen, aber weder PIN noch Inhalt.') }}</p>
+      <p v-else data-testid="hdht-route-text">{{ t('Teile einen Link und eine PIN. Die Desktop-App verbindet eure Geräte direkt oder über freiwillige Relay-Helfer; dein Diagramm bleibt Ende-zu-Ende verschlüsselt. Solange deine Session läuft, leitet dieses Gerät auch verschlüsselte Daten anderer Sessions weiter.') }}</p>
       <div class="name-field"><AppFieldLabel for="hdht-name">{{ t('Dein Name') }}</AppFieldLabel><AppTextField id="hdht-name" v-model="displayName" data-testid="hdht-name" autocomplete="off" maxlength="40" :placeholder="t('So sehen dich die anderen')" :disabled="busy" @input="markNameEdited" @change="commitName" /></div>
+      <AppSelect class="access-field" data-testid="hdht-route" :label="t('Verbindungsweg')" :model-value="route" :options="routeOptions" :disabled="busy" @update:model-value="chooseRoute(String($event))" />
+      <div v-if="route === 'cloud'" class="name-field relay-field">
+        <AppFieldLabel for="hdht-relay-address">{{ t('Relay-Adresse') }}</AppFieldLabel>
+        <AppTextField id="hdht-relay-address" v-model="relayAddress" data-testid="hdht-relay-address" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="sketchdraw-relay.name.workers.dev" :invalid="!!addressError" :aria-describedby="addressError ? 'hdht-relay-address-error' : 'hdht-relay-address-hint'" :disabled="busy" @change="commitRelayAddress" @keydown.enter.prevent="start" />
+        <p v-if="addressError" id="hdht-relay-address-error" role="alert" class="error field-note" data-testid="hdht-relay-address-error">{{ addressError }}</p>
+        <p v-else id="hdht-relay-address-hint" class="field-note">{{ t('Gäste brauchen die Adresse nicht – sie steht im Session-Link.') }}</p>
+      </div>
       <AppSelect class="access-field" :label="t('Zugriff für Eingeladene')" :model-value="role" :options="roleOptions" :disabled="busy" @update:model-value="role = $event as 'viewer' | 'editor'" />
       <AppButton intent="primary" class="full" data-testid="hdht-start" :disabled="busy || !!store.getRoomGuest()" @click="start">{{ t('Session starten') }}</AppButton>
       <div class="separator">{{ t('oder beitreten') }}</div>
-      <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="linkText" class="sd-input" :aria-label="t('Link für PIN-Beitritt')" autocomplete="off" spellcheck="false" maxlength="8192" :disabled="busy" /></label>
-      <label class="sd-field-label">{{ t('PIN') }}<input v-model="pinText" class="sd-input pin" :aria-label="t('Sechsstellige PIN')" inputmode="numeric" autocomplete="off" maxlength="8" :disabled="busy" @keydown.enter.prevent="join" /></label>
+      <!-- Link and PIN share a row, so the route choice above does not push "join" out of the default window (#300). -->
+      <div class="join-row">
+        <label class="sd-field-label">{{ t('Session-Link') }}<input v-model="linkText" class="sd-input" :aria-label="t('Link für PIN-Beitritt')" autocomplete="off" spellcheck="false" maxlength="8192" :disabled="busy" /></label>
+        <label class="sd-field-label">{{ t('PIN') }}<input v-model="pinText" class="sd-input pin" :aria-label="t('Sechsstellige PIN')" inputmode="numeric" autocomplete="off" maxlength="8" :disabled="busy" @keydown.enter.prevent="join" /></label>
+      </div>
       <AppButton class="full" data-testid="hdht-join" :disabled="busy || !linkText.trim()" @click="join">{{ t('Mit PIN beitreten') }}</AppButton>
+      <p v-if="linkRelayHost" class="field-note" data-testid="hdht-link-relay">{{ t('Dieser Link verbindet über den Relay {host}. Der Relay sieht deine Netzwerkadresse, aber keinen Inhalt.', { host: linkRelayHost }) }}</p>
     </template>
     <template v-else>
       <h3>{{ hosting ? t('Session läuft') : joined ? t('Du bist in der Session') : t('Session beitreten') }}</h3>
       <p role="status" data-testid="hdht-status">{{ stateText }}</p>
+      <p v-if="hosting && viaRelay && !relayProblem" data-testid="hdht-active-route">{{ t('Verbindungsweg: Cloudflare-Relay ({host})', { host: relayHost }) }}</p>
+      <p v-if="relayProblem" role="alert" class="error" data-testid="hdht-relay-problem">{{ relayProblem }}</p>
       <p v-if="joined && status?.state === 'reconnecting'" data-testid="hdht-reconnect-hint">{{ t('Die App versucht fünf Minuten lang, wieder beizutreten.') }}</p>
       <section v-if="participants.length" class="people" :aria-label="t('Personen in der Session')">
         <h4>{{ t('In der Session') }}</h4>
@@ -340,5 +406,5 @@ onBeforeUnmount(() => { clearTimeout(copiedTimer); store.setSession(null); dispo
 </template>
 
 <style scoped>
-.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session h4{margin:0 0 var(--space-1);font-size:var(--font-size-s);font-weight:600;color:var(--text-muted)}.people{margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) 0;border-block:1px solid var(--border-subtle)}.name-field{display:grid;gap:5px;margin:var(--space-3) 0 var(--space-2)}.name-field .sd-field-label{margin:0}.name-field .sd-input{margin-top:0}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.copy-field{margin:12px 0 8px}.copy-field .sd-field-label{margin:0 0 5px}.copy-row{position:relative}.copy-row .sd-input{margin-top:0;padding-right:40px;text-overflow:ellipsis}.copy-button{position:absolute;top:50%;right:2px;width:32px;height:28px;min-width:0;min-height:0;transform:translateY(-50%);color:var(--text-muted)}.copy-button:hover{color:var(--text-primary)}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
+.hdht-session h3{margin:0 0 8px;font-size:15px}.hdht-session h4{margin:0 0 var(--space-1);font-size:var(--font-size-s);font-weight:600;color:var(--text-muted)}.people{margin:var(--space-3) 0 var(--space-4);padding:var(--space-3) 0;border-block:1px solid var(--border-subtle)}.name-field{display:grid;gap:5px;margin:var(--space-3) 0 var(--space-2)}.name-field .sd-field-label{margin:0}.name-field .sd-input{margin-top:0}.relay-field{margin-top:0}.hdht-session .field-note{margin:0 0 var(--space-1)}.join-row{display:grid;grid-template-columns:minmax(0,1fr) 7.75rem;gap:var(--space-2);align-items:end}.join-row .sd-input{height:36px}.join-row .pin{padding-inline:8px;text-align:center}.hdht-session p{font-size:12px;line-height:1.6;color:var(--text-muted);margin:8px 0 12px}.sd-field-label{display:block;margin:12px 0 8px}.access-field{margin:12px 0 8px}.sd-input{width:100%;margin-top:5px}.full{width:100%;margin:8px 0}.pin{font:18px var(--font-mono);letter-spacing:.2em}.copy-field{margin:12px 0 8px}.copy-field .sd-field-label{margin:0 0 5px}.copy-row{position:relative}.copy-row .sd-input{margin-top:0;padding-right:40px;text-overflow:ellipsis}.copy-button{position:absolute;top:50%;right:2px;width:32px;height:28px;min-width:0;min-height:0;transform:translateY(-50%);color:var(--text-muted)}.copy-button:hover{color:var(--text-primary)}.separator{margin:12px 0;text-align:center;font-size:12px;color:var(--text-muted)}.error{color:var(--status-error)!important}
 </style>
