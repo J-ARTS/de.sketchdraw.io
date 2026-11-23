@@ -31,12 +31,16 @@ import type {
   PluginSettingsSnapshot,
   TaskStatus,
   UpdateJiraIssueInput,
+  WikiPageLiveLink,
+  WikiPageSummary,
 } from '../src/domain/index';
+import { azureWikiPageId, parseAzureWikiPageId } from '../src/domain/plugins';
+import { assertAzureWikiTarget, azureWikiPageUrl, listAzureWikiPages, publishAzureWikiImage, readAzureWikiPage } from './azure-devops-wiki';
 import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } from '../src/domain/plugins';
 import { confluenceStorageLoss } from '../src/domain/atlassian';
 import { CONFLUENCE_LIVE_MAX_IMAGE_BYTES, CONFLUENCE_LIVE_MAX_IMAGES, confluenceLiveFilePrefix, confluenceLiveFilename, isPngImage, managedImageFilenames, planManagedImages, type ManagedImage } from '../src/domain/confluence-live';
 import type { DocumentPersistenceService } from './persistence';
-import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, createAzureWorkItem, getAzureWorkItem, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
+import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, AzureDevOpsHttpError, createAzureWorkItem, getAzureWorkItem, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
 import type { AzureDevOpsPluginSettings, ConfigureAzureDevOpsPluginInput, CreateWorkItemInput, TicketProvider, UpdateWorkItemFieldsInput, UpdateWorkItemInput, WorkItemSummary } from '../src/domain/plugins';
 
 const execFile = promisify(execFileCallback);
@@ -184,6 +188,24 @@ interface PersistedAzureConfig {
   apiVersion: string;
   readOnly: boolean;
   encryptedAccessToken?: string;
+  /** Links of pages of diagram files to pages of the wiki (#284). Like the Confluence links they live in the profile. */
+  wikiLinks?: PersistedAzureWikiLink[];
+}
+
+/** The link of one page of a diagram file to a page of the Azure DevOps wiki. */
+interface PersistedAzureWikiLink {
+  /** Identifies this one act of linking; the block on the wiki page carries it. */
+  token: string;
+  documentPath: string;
+  documentId: string;
+  diagramPageId: string;
+  /** The organization or collection and the project the link was made for. */
+  organizationUrl: string;
+  project: string;
+  wiki: string;
+  wikiName: string;
+  pagePath: string;
+  lastSyncedAt?: string;
 }
 
 interface PersistedPluginConfig {
@@ -253,7 +275,33 @@ function parseAzureConfig(value: unknown): PersistedAzureConfig | undefined {
   azure.wiqlFilter = boundedMultilineText(azure.wiqlFilter, 4000, 'WIQL-Abfrage');
   if (!AZURE_DEVOPS_API_VERSION.test(azure.apiVersion)) throw new Error('PROFILE_STORE_INVALID');
   if (azure.enabled && (!azure.installed || !azure.organizationUrl || !azure.encryptedAccessToken)) throw new Error('PROFILE_STORE_INVALID');
+  if (record.wikiLinks !== undefined) azure.wikiLinks = parseAzureWikiLinks(record.wikiLinks);
+  if (!azure.wikiLinks?.length) delete azure.wikiLinks;
   return azure;
+}
+
+function parseAzureWikiLinks(value: unknown): PersistedAzureWikiLink[] {
+  if (!Array.isArray(value) || value.length > MAX_CONFLUENCE_LINKS) throw new Error('PROFILE_STORE_INVALID');
+  const seen = new Set<string>();
+  return value.map((entry): PersistedAzureWikiLink => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('PROFILE_STORE_INVALID');
+    const record = entry as Record<string, unknown>;
+    const text = (key: string, max: number): string => {
+      const field = record[key];
+      if (typeof field !== 'string' || !field || field.length > max || /[\u0000-\u001f\u007f]/.test(field)) throw new Error('PROFILE_STORE_INVALID');
+      return field;
+    };
+    const link: PersistedAzureWikiLink = { token: text('token', 64), documentPath: text('documentPath', 4096), documentId: text('documentId', 256), diagramPageId: text('diagramPageId', 256), organizationUrl: text('organizationUrl', 2048), project: text('project', 64), wiki: text('wiki', 128), wikiName: text('wikiName', 128), pagePath: text('pagePath', 400) };
+    const unique = `${link.documentPath}\n${link.diagramPageId}`;
+    if (!/^[0-9a-f-]{8,64}$/.test(link.token) || !path.isAbsolute(link.documentPath) || seen.has(unique)) throw new Error('PROFILE_STORE_INVALID');
+    try { assertAzureWikiTarget(link.wiki, link.pagePath); } catch { throw new Error('PROFILE_STORE_INVALID'); }
+    seen.add(unique);
+    if (record.lastSyncedAt !== undefined) {
+      if (typeof record.lastSyncedAt !== 'string' || Number.isNaN(Date.parse(record.lastSyncedAt))) throw new Error('PROFILE_STORE_INVALID');
+      link.lastSyncedAt = record.lastSyncedAt;
+    }
+    return link;
+  });
 }
 
 /** The state of the two Atlassian plugins; a profile from before the split gives both what the one plugin had. */
@@ -556,7 +604,7 @@ export class PluginService {
 
   /** The Azure DevOps settings as the interface shows them: without the token, with the state of the connection. */
   private azureSettings(health?: { health: AzureDevOpsPluginSettings['health']; message: string }): AzureDevOpsPluginSettings {
-    const { encryptedAccessToken, ...fields } = this.config?.azure ?? DEFAULT_AZURE;
+    const { encryptedAccessToken, wikiLinks: _wikiLinks, ...fields } = this.config?.azure ?? DEFAULT_AZURE;
     const credentialStored = Boolean(encryptedAccessToken) && this.credentials.available();
     const enabled = fields.installed && fields.enabled;
     return { ...fields, enabled, credentialStored, ...(health ?? { health: enabled ? (credentialStored ? 'attention' : 'error') : 'disabled', message: !fields.installed ? 'Azure-DevOps-Plugin ist nicht installiert.' : !enabled ? 'Azure-DevOps-Plugin ist deaktiviert.' : credentialStored ? 'Azure DevOps ist eingerichtet. Verbindung testen, um den Zugriff zu prüfen.' : 'Kein sicher gespeichertes Token für Azure DevOps vorhanden.' }) };
@@ -814,7 +862,8 @@ export class PluginService {
     const issue = this.storeIssue ?? this.legacyIssue;
     const live = this.liveLinkView();
     const pageLinks = this.pageLinkViews();
-    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, azureDevOps: { ...this.azureRuntime }, ...(live ? { confluenceLive: live } : {}), ...(pageLinks.length ? { confluencePageLinks: pageLinks } : {}) };
+    const wikiLinks = this.azureWikiLinkViews();
+    return { available: true, projectFolder: this.projectFolder, profiles: this.profileSummaries(), activeProfileId: this.activeProfileId, ...(issue ? { configurationIssue: { ...issue } } : {}), git: { ...this.gitRuntime }, atlassian: { ...this.atlassianRuntime }, azureDevOps: { ...this.azureRuntime, ...(wikiLinks.length ? { wikiPageLinks: wikiLinks } : {}) }, ...(live ? { confluenceLive: live } : {}), ...(pageLinks.length ? { confluencePageLinks: pageLinks } : {}) };
   }
 
   /** The link of the whole open diagram file, as earlier versions made it. */
@@ -999,8 +1048,9 @@ export class PluginService {
     let encryptedAccessToken = input.clearCredential || organizationUrl !== current.organizationUrl ? undefined : current.encryptedAccessToken;
     if (typeof input.accessToken === 'string' && input.accessToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Personal Access Token')); }
     if (enabled && (!organizationUrl || !project || !encryptedAccessToken)) throw new Error(variant === 'server' ? 'Für Azure DevOps Server werden die Adresse der Sammlung, das Projekt und ein Personal Access Token benötigt.' : 'Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, azure: { installed: true, enabled, variant, organizationUrl, project, workItemType, wiqlFilter, apiVersion, readOnly: Boolean(input.readOnly), ...(encryptedAccessToken ? { encryptedAccessToken } : {}) } };
-    await this.saveConfig(next, profileId); this.azureEpoch++;
+    const next: PersistedPluginConfig = { ...this.config, azure: { installed: true, enabled, variant, organizationUrl, project, workItemType, wiqlFilter, apiVersion, readOnly: Boolean(input.readOnly), ...(encryptedAccessToken ? { encryptedAccessToken } : {}), ...(current.wikiLinks?.length ? { wikiLinks: current.wikiLinks } : {}) } };
+    // A publication that is on its way belongs to the settings it started with.
+    await this.saveConfig(next, profileId); this.azureEpoch++; this.revokeAuthority();
     if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
   }
 
@@ -1524,6 +1574,8 @@ export class PluginService {
       return this.getSettings();
     }
     const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    // A page of a diagram is shown in one wiki (#284).
+    if (this.activeAzureWikiLinks().some((link) => diagramPageId === undefined || link.diagramPageId === diagramPageId)) throw new Error('Diese Seite ist bereits mit einer Seite des Azure-DevOps-Wikis verknüpft. Löse diese Verknüpfung zuerst.');
     this.assertConfluence();
     const siteUrl = this.config.atlassian.siteUrl;
     const pageId = boundedString(input.pageId, 128, 'Confluence-Seiten-ID');
@@ -1926,6 +1978,151 @@ export class PluginService {
   }
 
   // --- Ticket cards (#283): one ticket with all its fields, whichever system it lives in ---------------------------
+
+  // --- Azure DevOps wiki (#284) -------------------------------------------------------------------------------
+  /** The wiki links of the pages of the open diagram file. */
+  private activeAzureWikiLinks(): PersistedAzureWikiLink[] {
+    if (!this.activeDocumentPath) return [];
+    return (this.config.azure?.wikiLinks ?? []).filter((link) => link.documentPath === this.activeDocumentPath);
+  }
+
+  /** What the renderer may know about these links: the target and whether it can be used, never the token. */
+  private azureWikiLinkViews(): WikiPageLiveLink[] {
+    const azure = this.config.azure;
+    if (!azure?.installed) return [];
+    return this.activeAzureWikiLinks().map((link) => ({
+      provider: 'azure-devops', diagramPageId: link.diagramPageId, pageId: azureWikiPageId(link.wiki, link.pagePath), pageTitle: `${link.wikiName}${link.pagePath}`,
+      pageUrl: azureWikiPageUrl({ baseUrl: link.organizationUrl, project: link.project }, link.wiki, link.pagePath), siteUrl: link.organizationUrl, documentId: link.documentId,
+      usable: link.organizationUrl === azure.organizationUrl && link.project === azure.project, ...(link.lastSyncedAt ? { lastSyncedAt: link.lastSyncedAt } : {}),
+    }));
+  }
+
+  private async updateAzureWikiLinks(profileId: string, update: (links: PersistedAzureWikiLink[]) => PersistedAzureWikiLink[]): Promise<void> {
+    await this.mutateStore((profiles, activeProfileId) => ({
+      activeProfileId,
+      profiles: profiles.map((profile) => {
+        if (profile.id !== profileId || !profile.azure) return profile;
+        const { wikiLinks, ...azure } = profile.azure;
+        const links = update(wikiLinks ?? []);
+        if (links.length > MAX_CONFLUENCE_LINKS) throw new Error('Es sind zu viele Wiki-Verknüpfungen gespeichert.');
+        return { ...profile, azure: { ...azure, ...(links.length ? { wikiLinks: links } : {}) } };
+      }),
+    }));
+    if (profileId !== this.activeProfileId || !this.config.azure) return;
+    const { wikiLinks: _previous, ...azure } = this.config.azure;
+    const stored = this.activeProfile().azure?.wikiLinks;
+    this.config = { ...this.config, azure: { ...azure, ...(stored?.length ? { wikiLinks: stored } : {}) } };
+  }
+
+  /** Pages of the wikis of the project whose path contains the text, as targets for a link. */
+  public async listAzureWikiPages(query: string): Promise<WikiPageSummary[]> {
+    const text = boundedString(query ?? '', 200, 'Suchtext', true);
+    const pages = await this.azure(false, (connection) => listAzureWikiPages(connection, text));
+    return pages.map((page) => ({ provider: 'azure-devops', id: azureWikiPageId(page.wiki, page.path), title: page.path.slice(page.path.lastIndexOf('/') + 1) || page.path, detail: `${page.wikiName}${page.path}`, url: page.url }));
+  }
+
+  /**
+   * Links one page of the open local diagram to a page of the wiki, or removes that link with `wikiPage: null`.
+   * A page of a diagram is shown in one wiki: a page that is linked to Confluence is not linked a second time.
+   */
+  public async setAzureWikiLiveLink(input: { handleId: string; documentId: string; diagramPageId: string; wikiPage: string | null }): Promise<PluginSettingsSnapshot> {
+    const guard = this.authorityGuard();
+    await this.ensureLoaded();
+    guard();
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Wiki-Verknüpfung.');
+    const profileId = this.activeProfileId;
+    const documentPath = this.liveDocumentPath(input.handleId);
+    const diagramPageId = boundedString(input.diagramPageId, 256, 'Diagrammseite');
+    const addressed = (link: PersistedAzureWikiLink): boolean => link.documentPath === documentPath && link.diagramPageId === diagramPageId;
+    if (input.wikiPage === null) {
+      await this.updateAzureWikiLinks(profileId, (links) => links.filter((link) => !addressed(link)));
+      this.revokeAuthority();
+      return this.getSettings();
+    }
+    const documentId = boundedString(input.documentId, 256, 'Diagramm-ID');
+    const parsed = typeof input.wikiPage === 'string' ? parseAzureWikiPageId(input.wikiPage) : null;
+    if (!parsed) throw new Error('Ungültige Wiki-Seite.');
+    const target = assertAzureWikiTarget(parsed.wiki, parsed.path);
+    if (this.activeLiveLink() || this.activePageLinks().some((link) => link.diagramPageId === diagramPageId)) throw new Error('Diese Seite ist bereits mit einer Confluence-Seite verknüpft. Löse diese Verknüpfung zuerst.');
+    // Reading the page proves that it exists in this project and that the token may see it; the wiki is named by what Azure DevOps answers.
+    const link = await this.azure(true, async (connection, azure) => {
+      await readAzureWikiPage(connection, target.wiki, target.path);
+      const wikiName = (await listAzureWikiPages(connection, target.path)).find((page) => page.wiki === target.wiki)?.wikiName ?? target.wiki;
+      return { token: randomUUID(), documentPath, documentId, diagramPageId, organizationUrl: azure.organizationUrl, project: azure.project, wiki: target.wiki, wikiName, pagePath: target.path } satisfies PersistedAzureWikiLink;
+    });
+    guard();
+    await this.updateAzureWikiLinks(profileId, (links) => [...links.filter((entry) => !addressed(entry)), link]);
+    this.revokeAuthority();
+    return this.getSettings();
+  }
+
+  /**
+   * Shows one page of the open diagram as an image on its linked wiki page. Like a publication to Confluence the job
+   * belongs to the diagram file, the diagram, the profile, the organization and the link of the moment of the call;
+   * it runs after earlier publications and stops as soon as one of them changed.
+   */
+  public async publishAzureWikiLive(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult> {
+    const epoch = this.authorityEpoch, azureEpoch = this.azureEpoch;
+    await this.ensureLoaded();
+    const done = (status: ConfluenceLivePublishResult['status'], message: string, extra: Partial<ConfluenceLivePublishResult> = {}): ConfluenceLivePublishResult => ({ status, message, uploaded: 0, bodyUpdated: false, ...extra });
+    if (this.disposed || epoch !== this.authorityEpoch) return done('cancelled', new AuthorityChanged().message);
+    let link: PersistedAzureWikiLink; let image: ConfluenceLivePublishInput['images'][number]; let connection: AzureDevOpsConnection;
+    const profileId = this.activeProfileId;
+    try {
+      if (!input || typeof input !== 'object') throw new LiveSyncFailure('Ungültige Wiki-Veröffentlichung.');
+      this.assertDocumentProject();
+      const location = this.persistence.getHandleLocation(boundedString(input.handleId, 128, 'Dokument-Handle'));
+      if (!location || location.canonicalPath !== this.activeDocumentPath) throw new LiveSyncFailure('Das Dokument gehört nicht zum aktuellen Projektordner.');
+      const diagramPageId = boundedString(input.diagramPageId, 256, 'Diagrammseite');
+      const found = this.activeAzureWikiLinks().find((entry) => entry.diagramPageId === diagramPageId);
+      if (!found) throw new LiveSyncFailure('Diese Seite ist mit keiner Wiki-Seite verknüpft.');
+      const azure = this.config.azure;
+      if (!azure?.installed || !azure.enabled) throw new LiveSyncFailure('Azure-DevOps-Plugin ist deaktiviert.');
+      if (azure.readOnly) throw new LiveSyncFailure('Azure DevOps ist auf „Nur lesen" gestellt; das Wiki wird nicht geändert.');
+      if (found.organizationUrl !== azure.organizationUrl || found.project !== azure.project) throw new LiveSyncFailure('Die Verknüpfung gehört zu einer anderen Organisation oder einem anderen Projekt als das aktive Profil. Verknüpfe die Seite neu.');
+      if (boundedString(input.documentId, 256, 'Diagramm-ID') !== found.documentId) throw new LiveSyncFailure('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.');
+      const [candidate, ...rest] = Array.isArray(input.images) ? input.images : [];
+      if (!candidate || rest.length || typeof candidate !== 'object' || candidate.pageId !== diagramPageId || typeof candidate.name !== 'string' || candidate.name.length > 500
+        || typeof candidate.hash !== 'string' || !/^[0-9a-f]{64}$/.test(candidate.hash) || !Number.isFinite(candidate.width) || !Number.isFinite(candidate.height) || candidate.width <= 0 || candidate.height <= 0
+        || !(candidate.png instanceof Uint8Array) || candidate.png.byteLength > CONFLUENCE_LIVE_MAX_IMAGE_BYTES || !isPngImage(candidate.png)) throw new LiveSyncFailure('Ungültige Wiki-Veröffentlichung.');
+      link = found; image = candidate; connection = { ...this.azureConnection(), signal: this.authorityAbort.signal };
+    } catch (error) {
+      return done('failed', error instanceof Error ? error.message : 'Ungültige Wiki-Veröffentlichung.');
+    }
+    const current = (): void => {
+      const azure = this.config.azure;
+      if (this.disposed || epoch !== this.authorityEpoch || azureEpoch !== this.azureEpoch || profileId !== this.activeProfileId || link.documentPath !== this.activeDocumentPath
+        || !azure?.enabled || azure.readOnly || !this.activeAzureWikiLinks().some((entry) => entry.token === link.token)) throw new AuthorityChanged();
+    };
+    const run = this.liveQueue.then(async (): Promise<ConfluenceLivePublishResult> => {
+      try {
+        current();
+        const result = await publishAzureWikiImage(connection, { wiki: link.wiki, path: link.pagePath, token: link.token }, { name: image.name, hash: image.hash, width: image.width, png: image.png }, current);
+        current();
+        if (!result.bodyUpdated && link.lastSyncedAt) return done('synced', 'Das Wiki ist auf dem aktuellen Stand.');
+        const syncedAt = new Date().toISOString();
+        // Remembering the moment is a convenience; Azure DevOps already confirmed the publication.
+        await this.updateAzureWikiLinks(profileId, (links) => links.map((entry) => (entry.token === link.token ? { ...entry, lastSyncedAt: syncedAt } : entry))).catch(() => undefined);
+        return done('synced', result.bodyUpdated ? 'Diagramm im Wiki aktualisiert.' : 'Das Wiki ist auf dem aktuellen Stand.', { uploaded: result.uploaded ? 1 : 0, bodyUpdated: result.bodyUpdated, syncedAt });
+      } catch (error) {
+        if (error instanceof AuthorityChanged) return done('cancelled', error.message);
+        try { current(); } catch { return done('cancelled', new AuthorityChanged().message); }
+        if (error instanceof AzureDevOpsHttpError) {
+          if (error.status === 401 || error.status === 203 || error.status === 403) return done('failed', 'Azure DevOps verweigert den Zugriff. Prüfe das Token und sein Recht „Wiki: Read & write".');
+          if (error.status === 404) return done('failed', 'Die verknüpfte Wiki-Seite wurde nicht gefunden oder ist für dieses Token nicht sichtbar.');
+          // Somebody changed the page while it was being written: the next attempt starts from the new text.
+          if (error.status === 409 || error.status === 412) return done('retry', 'Die Wiki-Seite wurde gerade von jemand anderem geändert. Die Veröffentlichung wird wiederholt.');
+          if (error.status === 429 || error.status >= 500) return done('retry', `Azure DevOps ist gerade nicht bereit (Status ${error.status}). Die Veröffentlichung wird wiederholt.`);
+          return done('failed', error.message);
+        }
+        if (error instanceof Error && /zu groß|Ungültig|keine Version/.test(error.message)) return done('failed', error.message);
+        // No answer at all: the request may or may not have arrived. The next run reads the page before it writes.
+        return done('retry', 'Azure DevOps ist nicht erreichbar. Die Veröffentlichung wird wiederholt, sobald die Verbindung steht.');
+      }
+    });
+    this.liveQueue = run.catch(() => undefined);
+    return run;
+  }
 
   private ticketProvider(value: unknown): TicketProvider {
     if (value !== 'jira' && value !== 'azure-devops') throw new Error('Unbekanntes Ticket-System.');

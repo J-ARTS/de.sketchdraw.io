@@ -1,15 +1,16 @@
-<!-- @component The modal dialog that links one page of the diagram to a Confluence page (#240): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page. -->
+<!-- @component The modal dialog that links one page of the diagram to a page of a wiki, Confluence (#240) or the Azure DevOps wiki (#284): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
+import AppSelect from '@/renderer/design-system/molecules/AppSelect.vue';
 import ConfluenceLinkCard from '@/renderer/design-system/molecules/ConfluenceLinkCard.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import { t, tm } from '@/renderer/i18n';
 import { wrapTabFocus } from '@/renderer/lib/focus';
-import { confluencePluginActive, type ConfluencePageSummary } from '@/domain';
+import { wikiPageLinks, type WikiPageSummary, type WikiProviderId } from '@/domain';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -19,19 +20,26 @@ let opener: HTMLElement | null = null;
 
 const diagramPageId = computed(() => s.confluenceLinkPageId);
 const page = computed(() => s.pages.find((entry) => entry.id === diagramPageId.value) ?? null);
-const link = computed(() => s.pluginSettings?.confluencePageLinks?.find((entry) => entry.diagramPageId === diagramPageId.value) ?? null);
+const link = computed(() => wikiPageLinks(s.pluginSettings).find((entry) => entry.diagramPageId === diagramPageId.value) ?? null);
+/** The wiki this dialog works with: the one of the link, else the chosen one of those that are switched on. */
+const chosen = ref<WikiProviderId>('confluence');
+const provider = computed<WikiProviderId>(() => link.value?.provider ?? (s.wikiProviders.some((entry) => entry.id === chosen.value) ? chosen.value : s.wikiProviders[0]?.id ?? 'confluence'));
+const azure = computed(() => provider.value === 'azure-devops');
+const providerOptions = computed(() => s.wikiProviders.map((entry) => ({ value: entry.id, label: entry.name })));
+/** Azure DevOps is not part of this profile: the dialog speaks of Confluence alone, as before there were two wikis. */
+const confluenceOnly = computed(() => !s.pluginSettings?.azureDevOps?.installed && !azure.value);
 const status = computed(() => (diagramPageId.value ? s.confluencePageLive[diagramPageId.value] : undefined) ?? { state: 'off' as const, message: '' });
 /** Why nothing can be linked right now; empty when linking is possible. */
 const blocked = computed(() => {
-  if (s.roomGuest) return t('Nur wer das Diagramm lokal geöffnet hat, kann Seiten mit Confluence verknüpfen.');
-  if (!confluencePluginActive(s.pluginSettings?.atlassian)) return t('Aktiviere das Confluence-Plugin in den Plugin-Einstellungen, um Seiten mit Confluence zu verknüpfen.');
-  if (!s.file.handle || !s.pluginSettings?.projectFolder) return t('Speichere das Diagramm lokal, um seine Seiten mit Confluence zu verknüpfen.');
+  if (s.roomGuest) return confluenceOnly.value ? t('Nur wer das Diagramm lokal geöffnet hat, kann Seiten mit Confluence verknüpfen.') : t('Nur wer das Diagramm lokal geöffnet hat, kann Seiten mit einem Wiki verknüpfen.');
+  if (!s.wikiProviders.some((entry) => entry.id === provider.value)) return azure.value ? t('Aktiviere das Azure-DevOps-Plugin in den Plugin-Einstellungen, um Seiten mit dem Wiki zu verknüpfen.') : confluenceOnly.value ? t('Aktiviere das Confluence-Plugin in den Plugin-Einstellungen, um Seiten mit Confluence zu verknüpfen.') : t('Aktiviere das Confluence- oder das Azure-DevOps-Plugin in den Plugin-Einstellungen, um Seiten mit einem Wiki zu verknüpfen.');
+  if (!s.file.handle || !s.pluginSettings?.projectFolder) return confluenceOnly.value ? t('Speichere das Diagramm lokal, um seine Seiten mit Confluence zu verknüpfen.') : t('Speichere das Diagramm lokal, um seine Seiten mit einem Wiki zu verknüpfen.');
   return '';
 });
 
 const query = ref('');
 /** The results belong to the search of this dialog; an earlier search elsewhere is not shown as an answer here. */
-const results = ref<readonly ConfluencePageSummary[] | null>(null);
+const results = ref<readonly WikiPageSummary[] | null>(null);
 const pending = ref(false);
 const feedback = ref<{ kind: 'info' | 'error'; text: string } | null>(null);
 const busy = computed(() => pending.value || s.pluginBusy);
@@ -58,12 +66,13 @@ async function run(action: () => Promise<unknown>, success: string): Promise<boo
 }
 
 async function search(): Promise<void> {
-  if (await run(() => store.searchConfluencePages(query.value), '')) results.value = s.confluencePages;
+  let found: WikiPageSummary[] | null = null;
+  if (await run(async () => { found = await store.searchWikiPages(provider.value, query.value); return found !== null; }, '')) results.value = found;
 }
-async function linkTo(target: ConfluencePageSummary): Promise<void> {
+async function linkTo(target: WikiPageSummary): Promise<void> {
   const id = diagramPageId.value;
   if (!id) return;
-  if (await run(() => store.setConfluencePageLink(id, target.id), t('Verknüpft. Änderungen an dieser Seite werden automatisch übertragen.'))) {
+  if (await run(() => store.setWikiPageLink(id, target.provider, target.id), t('Verknüpft. Änderungen an dieser Seite werden automatisch übertragen.'))) {
     // "Synchronize now" is where the user goes on, but it is disabled while the first publication runs.
     awaitingSync = true;
     void nextTick(keepFocus);
@@ -97,7 +106,8 @@ async function unlink(): Promise<void> {
   const id = diagramPageId.value;
   if (!id) return;
   // The card is gone afterwards; the focus goes to the search, where the next step is.
-  if (await run(() => store.setConfluencePageLink(id, null), t('Verknüpfung gelöst. Das Bild auf der Confluence-Seite bleibt, bis du es dort entfernst.'))) void nextTick(() => searchField.value?.focus());
+  const current = link.value?.provider ?? provider.value;
+  if (await run(() => store.setWikiPageLink(id, current, null), current === 'azure-devops' ? t('Verknüpfung gelöst. Das Bild auf der Wiki-Seite bleibt, bis du es dort entfernst.') : t('Verknüpfung gelöst. Das Bild auf der Confluence-Seite bleibt, bis du es dort entfernst.'))) void nextTick(() => searchField.value?.focus());
 }
 function close(): void { store.closeConfluencePageLink(); }
 
@@ -126,8 +136,8 @@ onBeforeUnmount(() => dialog.value?.close());
 <template>
   <dialog ref="dialog" class="page-link-dialog" data-testid="confluence-page-link-dialog" aria-labelledby="page-link-title" @cancel.prevent="close" @pointerdown.self="close" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
     <div v-if="page" class="page-link-panel sd-panel">
-      <header><h2 id="page-link-title" class="sd-panel-title">{{ t('Confluence-Seite für „{page}“', { page: tm(page.name) }) }}</h2><AppIconButton class="sd-panel-close" icon="close" :label="t('Dialog schließen')" @click="close" /></header>
-      <p class="copy">{{ t('Sketchdraw zeigt diese Seite als Bild auf der gewählten Confluence-Seite und hält es nach jeder Änderung aktuell. Andere Inhalte der Confluence-Seite bleiben unverändert.') }}</p>
+      <header><h2 id="page-link-title" class="sd-panel-title">{{ confluenceOnly ? t('Confluence-Seite für „{page}“', { page: tm(page.name) }) : t('Wiki-Seite für „{page}“', { page: tm(page.name) }) }}</h2><AppIconButton class="sd-panel-close" icon="close" :label="t('Dialog schließen')" @click="close" /></header>
+      <p class="copy">{{ azure ? t('Sketchdraw zeigt diese Seite als Bild auf der gewählten Seite des Azure-DevOps-Wikis und hält es nach jeder Änderung aktuell. Andere Inhalte der Wiki-Seite bleiben unverändert.') : t('Sketchdraw zeigt diese Seite als Bild auf der gewählten Confluence-Seite und hält es nach jeder Änderung aktuell. Andere Inhalte der Confluence-Seite bleiben unverändert.') }}</p>
 
       <p v-if="feedback" class="feedback" :class="{ error: feedback.kind === 'error' }" :role="feedback.kind === 'error' ? 'alert' : 'status'" data-testid="confluence-page-link-feedback">{{ feedback.text }}</p>
       <p v-if="blocked" class="blocked" role="status" data-testid="confluence-page-link-blocked">{{ blocked }}</p>
@@ -138,24 +148,26 @@ onBeforeUnmount(() => dialog.value?.close());
           :site-url="link.siteUrl"
           :status="status"
           :busy="busy"
+          :provider="link.provider"
           v-bind="link.lastSyncedAt ? { lastSyncedAt: link.lastSyncedAt } : {}"
           @sync="store.syncConfluencePage(link.diagramPageId)"
           @open="store.openDocumentationLink(link.pageUrl)"
           @unlink="unlink"
         />
         <section class="choose" aria-labelledby="page-link-choose">
-          <h3 id="page-link-choose">{{ link ? t('Andere Confluence-Seite wählen') : t('Confluence-Seite wählen') }}</h3>
+          <h3 id="page-link-choose">{{ azure ? (link ? t('Andere Wiki-Seite wählen') : t('Wiki-Seite wählen')) : link ? t('Andere Confluence-Seite wählen') : t('Confluence-Seite wählen') }}</h3>
+          <AppSelect v-if="!link && providerOptions.length > 1" id="page-link-wiki" data-testid="page-link-wiki" :label="t('Wiki')" :model-value="provider" :options="providerOptions" :disabled="busy" @update:model-value="chosen = $event as WikiProviderId; results = null" />
           <form class="search-row" @submit.prevent="search">
-            <AppTextField ref="searchField" v-model="query" type="search" data-testid="confluence-page-link-search" :placeholder="t('Seiten suchen')" :aria-label="t('Confluence-Seiten suchen')" />
+            <AppTextField ref="searchField" v-model="query" type="search" data-testid="confluence-page-link-search" :placeholder="t('Seiten suchen')" :aria-label="azure ? t('Wiki-Seiten suchen') : t('Confluence-Seiten suchen')" />
             <AppButton type="submit" :disabled="busy">{{ t('Suchen') }}</AppButton>
           </form>
           <ul v-if="results?.length" class="results" data-testid="confluence-page-link-results">
             <li v-for="target in results" :key="target.id">
-              <div><strong>{{ target.title }}</strong><span>{{ link?.pageId === target.id ? t('Mit dieser Seite verknüpft') : t('Version {version}', { version: target.version }) }}</span></div>
+              <div><strong>{{ target.title }}</strong><span>{{ link?.pageId === target.id ? t('Mit dieser Seite verknüpft') : target.detail }}</span></div>
               <AppButton :disabled="busy || link?.pageId === target.id" :aria-label="t('„{page}“ mit „{title}“ verknüpfen', { page: tm(page.name), title: target.title })" @click="linkTo(target)">{{ t('Verknüpfen') }}</AppButton>
             </li>
           </ul>
-          <p v-else class="empty">{{ results ? t('Keine Confluence-Seite gefunden.') : t('Suche nach dem Titel der Confluence-Seite, auf der diese Seite erscheinen soll.') }}</p>
+          <p v-else class="empty">{{ azure ? (results ? t('Keine Wiki-Seite gefunden.') : t('Suche nach dem Namen oder Pfad der Wiki-Seite, auf der diese Seite erscheinen soll.')) : results ? t('Keine Confluence-Seite gefunden.') : t('Suche nach dem Titel der Confluence-Seite, auf der diese Seite erscheinen soll.') }}</p>
         </section>
       </template>
 

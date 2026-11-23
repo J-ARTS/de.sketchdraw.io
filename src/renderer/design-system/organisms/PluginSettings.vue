@@ -293,7 +293,7 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
               <template v-else-if="selectedPlugin === 'azure-devops'">
                 <p>{{ t('Azure DevOps verbindet das Aufgabenboard mit Azure Boards. Das Plugin spricht Azure DevOps Services in der Cloud und Azure DevOps Server über dieselbe Schnittstelle; für ältere Server lässt sich die API-Version einstellen.') }}</p>
                 <h4>{{ t('Funktionen') }}</h4>
-                <ul><li>{{ t('Work Items per WIQL-Abfrage laden') }}</li><li>{{ t('Aufgaben, Kommentare und Notizen als Work Items erstellen') }}</li><li>{{ t('Titel, Beschreibung, Zuständigkeit, Fälligkeit und Zustand zwischen Board und Azure Boards abgleichen') }}</li><li>{{ t('Nur-lesen-Modus für Tokens ohne Schreibrecht') }}</li></ul>
+                <ul><li>{{ t('Work Items per WIQL-Abfrage laden') }}</li><li>{{ t('Aufgaben, Kommentare und Notizen als Work Items erstellen') }}</li><li>{{ t('Titel, Beschreibung, Zuständigkeit, Fälligkeit und Zustand zwischen Board und Azure Boards abgleichen') }}</li><li>{{ t('Seiten des Diagramms als Bild auf Seiten des Wikis zeigen und aktuell halten') }}</li><li>{{ t('Nur-lesen-Modus für Tokens ohne Schreibrecht') }}</li></ul>
               </template>
               <template v-else>
                 <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren Jira-Filter. Neue Aufgaben werden im Jira-Projekt des aktiven Profils erstellt.') }}</p>
@@ -352,8 +352,8 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <label>{{ t('API-Version') }}<input v-model="azure.apiVersion" :placeholder="azure.variant === 'cloud' ? '7.1' : '6.0'" autocomplete="off" /></label>
                 <label class="wide">{{ t('WIQL-Abfrage (optional)') }}<input v-model="azure.wiqlFilter" placeholder="SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @me" autocomplete="off" /></label>
               </div>
-              <div class="option-list"><label><input v-model="azure.readOnly" type="checkbox" /> <span><strong>{{ t('Nur lesen') }}</strong><small>{{ t('Work Items werden geladen, aber weder erstellt noch geändert.') }}</small></span></label></div>
-              <p class="security-copy">{{ t('Das Token braucht den Umfang „Work Items: Lesen und Schreiben“; für „Nur lesen“ genügt „Work Items: Lesen“. Es wird verschlüsselt im Profil auf diesem Gerät abgelegt und nicht in Diagramme oder Git übernommen.') }}</p>
+              <div class="option-list"><label><input v-model="azure.readOnly" type="checkbox" /> <span><strong>{{ t('Nur lesen') }}</strong><small>{{ t('Work Items werden geladen, aber weder erstellt noch geändert; ins Wiki wird nichts übertragen.') }}</small></span></label></div>
+              <p class="security-copy">{{ t('Das Token braucht den Umfang „Work Items: Lesen und Schreiben“ und, um Seiten im Wiki zu zeigen, „Wiki: Lesen und Schreiben“; für „Nur lesen“ genügt „Work Items: Lesen“. Es wird verschlüsselt im Profil auf diesem Gerät abgelegt und nicht in Diagramme oder Git übernommen.') }}</p>
               <p class="security-copy">{{ t('Azure DevOps wird nur über https angesprochen. Work Items werden alle fünf Sekunden automatisch abgeglichen.') }}</p><p v-if="azureDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="azure-devops-test" :disabled="busy || !azureDevOpsPluginActive(s.pluginSettings?.azureDevOps) || !s.pluginSettings?.azureDevOps?.credentialStored || azureDirty" @click="runOperation(() => store.testAzureDevOpsPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="azure-devops-save" :disabled="s.pluginBusy" @click="saveAzure">{{ t('Azure DevOps speichern') }}</AppButton></footer>
             </section>
 

@@ -1,7 +1,7 @@
-<!-- @component The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active. -->
+<!-- @component The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when a wiki plugin (Confluence, Azure DevOps) is active. -->
 <script setup lang="ts">
 import { computed, nextTick, ref, useId } from 'vue';
-import { confluencePluginActive } from '@/domain';
+import { wikiPageLinks } from '@/domain';
 import { useEventListener } from '@vueuse/core';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
@@ -25,9 +25,18 @@ const currentName = computed(() => s.workspaceView === 'tasks' ? t('Aufgaben') :
 const editable = computed(() => s.pagesEditable && s.canWrite);
 /** Renaming the current page works independently of the schema-v2 structural actions. */
 const canRename = computed(() => s.canWrite && !s.transitioning);
-/** The Confluence plugin is configured: pages can be linked to Confluence pages (#240). Guests never link. */
-const confluenceOffered = computed(() => Boolean(s.pluginSettings?.available && confluencePluginActive(s.pluginSettings.atlassian)) && !s.roomGuest);
-const confluenceLinks = computed(() => new Map((confluenceOffered.value ? s.pluginSettings?.confluencePageLinks ?? [] : []).map((link) => [link.diagramPageId, link])));
+/** A wiki plugin is switched on: pages can be linked to pages of Confluence (#240) or of the Azure DevOps wiki (#284). Guests never link. */
+const confluenceOffered = computed(() => s.wikiProviders.length > 0 && !s.roomGuest);
+/** The links of the wikis that are switched on; a link of a wiki that is off is not shown as working. */
+const confluenceLinks = computed(() => new Map((confluenceOffered.value ? wikiPageLinks(s.pluginSettings).filter((link) => s.wikiProviders.some((provider) => provider.id === link.provider)) : []).map((link) => [link.diagramPageId, link])));
+/** The menu entry names the wiki it leads to: the one of the link, else the only one that is on, else "a wiki". */
+function wikiEntryLabel(pageId: string | undefined): string {
+  const link = pageId ? confluenceLinks.value.get(pageId) : undefined;
+  if (link) return t(link.provider === 'azure-devops' ? 'pages.wikiLinked' : 'pages.confluenceLinked');
+  const [only, second] = s.wikiProviders;
+  return t(second ? 'pages.wikiLink' : only?.id === 'azure-devops' ? 'pages.azureWikiLink' : 'pages.confluenceLink');
+}
+const wikiBadge = (pageId: string): string => { const link = confluenceLinks.value.get(pageId)!; return t(link.provider === 'azure-devops' ? 'pages.wikiBadge' : 'pages.confluenceBadge', { title: link.pageTitle }); };
 /** A linked page whose publication needs the user is marked; everything else is the calm "linked". */
 const confluenceProblem = (id: string): boolean => s.confluencePageLive[id]?.state === 'error';
 
@@ -108,7 +117,7 @@ const menuEntries = computed<MenuEntry[]>(() => {
     { id: 'copy', label: t('pages.copy'), blocked: null },
     { id: 'rename', label: t('pages.rename'), blocked: canRename.value ? null : 'rule', separatorBefore: true },
     { id: 'duplicate', label: t('pages.duplicate'), blocked: pending },
-    ...(confluenceOffered.value ? [{ id: 'confluence' as const, label: t(id && confluenceLinks.value.has(id) ? 'pages.confluenceLinked' : 'pages.confluenceLink'), blocked: null, separatorBefore: true }] : []),
+    ...(confluenceOffered.value ? [{ id: 'confluence' as const, label: wikiEntryLabel(id), blocked: null, separatorBefore: true }] : []),
     { id: 'moveUp', label: t('pages.moveUp'), blocked: pending ?? (index <= 0 ? 'rule' : null), separatorBefore: true },
     { id: 'moveDown', label: t('pages.moveDown'), blocked: pending ?? (index >= pages.value.length - 1 ? 'rule' : null) },
     { id: 'delete', label: t('pages.delete'), blocked: pending ?? (pages.value.length <= 1 ? 'rule' : null), separatorBefore: true },
@@ -381,10 +390,10 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
             class="page-linked"
             :class="{ problem: confluenceProblem(page.id) }"
             :data-testid="`page-confluence-${page.id}`"
-            :title="t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle })"
+            :title="wikiBadge(page.id)"
           >
             <AppIcon :name="confluenceProblem(page.id) ? 'warning' : 'link'" :size="14" />
-            <span class="visually-hidden">{{ t('pages.confluenceBadge', { title: confluenceLinks.get(page.id)!.pageTitle }) }}</span>
+            <span class="visually-hidden">{{ wikiBadge(page.id) }}</span>
           </span>
           <button
             type="button"

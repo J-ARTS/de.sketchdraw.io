@@ -294,7 +294,7 @@ The colour choice of the app: theme palette, recent colours and a free hex value
 
 ### ConfluenceLinkCard
 
-The live link of one diagram page to a Confluence page: where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store.
+The live link of one diagram page to a page of a wiki (Confluence or Azure DevOps): where it goes, what the publication is doing right now, and the actions on it. It shows what it is given and reports what the user chose; linking and publishing happen in the store.
 
 - File: `src/renderer/design-system/molecules/ConfluenceLinkCard.vue`
 - Story: `src/renderer/design-system/molecules/ConfluenceLinkCard.stories.ts`
@@ -306,6 +306,7 @@ The live link of one diagram page to a Confluence page: where it goes, what the 
 | `title` | `string` | yes |  | Title of the linked Confluence page. |
 | `busy` | `boolean \| undefined` | no | `false` | Another operation is running: no action can start. |
 | `lastSyncedAt` | `string \| undefined` | no |  | Time of the last confirmed publication as stored with the link; `status.syncedAt` wins when it is newer knowledge. |
+| `provider` | `WikiProviderId \| undefined` | no | `"confluence"` | The wiki the page is in; the wording follows it. Default: Confluence. |
 
 | Event | Payload | Description |
 | --- | --- | --- |
@@ -504,7 +505,7 @@ Comment pins and the open comment thread, laid over the canvas.
 
 ### ConfluencePageLinkDialog
 
-The modal dialog that links one page of the diagram to a Confluence page (#240): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page.
+The modal dialog that links one page of the diagram to a page of a wiki, Confluence (#240) or the Azure DevOps wiki (#284): search the target, see what the publication is doing, publish now, remove the link. Opened from the page menu through `store.openConfluencePageLink`; mounted once in the workspace page.
 
 - File: `src/renderer/design-system/organisms/ConfluencePageLinkDialog.vue`
 
@@ -682,7 +683,7 @@ The small overview of the page with the visible area, for jumping around large b
 
 ### PageSwitcher
 
-The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when the Confluence plugin is active.
+The pages of the document: switch, add, rename, reorder and delete them, and link a page to a Confluence page when a wiki plugin (Confluence, Azure DevOps) is active.
 
 - File: `src/renderer/design-system/organisms/PageSwitcher.vue`
 

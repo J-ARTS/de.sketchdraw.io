@@ -22,16 +22,54 @@ Stand 22.11.2026, Tickets #281 (gemeinsame Schnittstelle) und #284 (Plugin). Ums
 | Komponenten | `System.AreaPath` | `components` | **Offen**. Azure kennt keine Komponenten als eigenes Feld. |
 | Schätzung | Story Points, Effort oder Original Estimate je Prozess | Story Points bzw. Zeitschätzung | **Offen**. Das Feld muss je Projekt erkannt werden. |
 
+## Nachtrag 23.11.2026: Felder der Ticket-Karten, Suche, Wiki
+
+**Labels, Komponenten, Schätzung** (#281, #283) werden für beide Systeme gelesen und geschrieben:
+
+| Feld | Azure Boards | Jira |
+| --- | --- | --- |
+| Labels | `System.Tags` (mit „; " getrennt; ein Label mit Semikolon wird abgelehnt) | `labels` (ein Label mit Leerzeichen wird abgelehnt) |
+| Komponenten | `System.AreaPath` (genau ein Pfad; im Dialog „Bereich (Area Path)") | `components` (nach Name) |
+| Schätzung | das erste vorhandene Feld aus Story Points, Effort, Original Estimate; nur Zahlen | Story Points, wenn die Site ein solches Feld hat (über die Feldliste erkannt, das erste passende); sonst Zeitschätzung (`timetracking.originalEstimate`) |
+
+**Suchen und Adresse auflösen**: Jira über JQL (`key = …` bzw. `text ~ …`), Azure über WIQL (`[System.Id] = …` bzw. `[System.Title] CONTAINS …`). Eine eingefügte Adresse wird nur unter der Adresse der verbundenen Site bzw. Organisation als Ticket erkannt (`parseTicketUrl`).
+
+**Wiki** (#284, `electron/azure-devops-wiki.ts`): Seiten der Wikis des Projekts finden, eine Seite des Diagramms mit einer Wiki-Seite verknüpfen und dort als Bild zeigen, das jeder Änderung folgt – wie #240 für Confluence, über denselben Zugang im Store (`WikiProvider`).
+
+- Das Bild wird als Anhang des Wikis hochgeladen. Sein Name enthält den Hash des Bildes; dasselbe Bild wird nie zweimal hochgeladen. Frühere Bilder bleiben als Anhänge im Wiki-Repository liegen; das Plugin löscht nichts.
+- Die Seite bekommt genau einen Block zwischen zwei Kommentarzeilen (`<!-- sketchdraw:… -->`). Nur dieser Block wird geschrieben; er darf auf der Seite verschoben werden. Text außerhalb bleibt unberührt.
+- Geschrieben wird mit der gelesenen Version der Seite (`If-Match`). Hat jemand die Seite inzwischen geändert (412 oder 409), wird nichts überschrieben und die Veröffentlichung wiederholt.
+- Eine Seite des Diagramms ist mit höchstens einem Wiki verknüpft (Confluence oder Azure DevOps). Die Verknüpfung liegt im Profil, nicht im Diagramm, und gilt für Organisation und Projekt, für die sie angelegt wurde.
+- „Nur lesen" überträgt nichts ins Wiki. Nötiger Token-Umfang zusätzlich: „Wiki: Lesen und Schreiben".
+
+Zusätzliche Aufrufe:
+
+| Aufruf | Zweck |
+| --- | --- |
+| `GET /{project}/_apis/wiki/wikis` | Wikis des Projekts |
+| `GET /{project}/_apis/wiki/wikis/{wiki}/pages?path=/&recursionLevel=full` | Seitenbaum für die Suche |
+| `GET /{project}/_apis/wiki/wikis/{wiki}/pages?path=…&includeContent=true` | Seite lesen; Version im Kopf `ETag` |
+| `PUT /{project}/_apis/wiki/wikis/{wiki}/attachments?name=…` (Base64, `application/octet-stream`) | Bild hochladen |
+| `PUT /{project}/_apis/wiki/wikis/{wiki}/pages?path=…` mit `If-Match` | Seite schreiben |
+
+Annahmen zum Wiki, die ein Test durch den Owner bestätigen muss:
+
+- **Form des Anhangs**: Der Inhalt wird als Base64-Text mit `application/octet-stream` gesendet. Die Seite der Dokumentation zu „Attachments – Create" ließ sich bei der Umsetzung nicht abrufen; belegt sind aus der Dokumentation nur Adresse, Methode und der Parameter `name`.
+- **Vorhandener Anhang**: Ein Anhang gleichen Namens gilt als schon hochgeladen, wenn Azure DevOps mit 409 oder mit 400 und „already exists" antwortet. Antwortet ein Server anders, schlägt die zweite Veröffentlichung desselben Bildes fehl und meldet das.
+- **Bildgröße**: Die Breite steht in der Schreibweise des Azure-DevOps-Wikis im Bildverweis (`=640x`).
+- **API-Version**: Die Wiki-Aufrufe verwenden die eingestellte Version. Für Azure DevOps Server 2019 (5.0/5.1) sind sie möglicherweise nur als Vorschau-Version vorhanden (`5.0-preview.1`); die Einstellung lässt das zu.
+- **Wikis aus Code** („publish as code"): Die Suche zeigt sie; ob das Schreiben auf einen geschützten Branch gelingt, hängt von dessen Regeln ab und ist nicht geprüft.
+
 ## Offen
 
-1. **Labels, Komponenten, Schätzung** lesen und schreiben, für Jira und Azure (Rest von #281). Die Aufgabe im Dokument hat diese Felder noch nicht; sie kommen mit den Ticket-Karten (#283).
-2. **Wiki**: Seiten lesen und Diagrammseiten als Bild veröffentlichen (Rest von #284).
-3. **Beide Systeme eingeschaltet**: Eine neue Aufgabe bekommt ihr Ticket in Jira; eine Aufgabe ohne Ticket lässt sich im Dialog gezielt in Jira oder Azure DevOps anlegen. Eine Vorauswahl je Profil gibt es nicht.
-4. **Tickets suchen und Adresse auflösen** (für #283) fehlen in beiden Anbietern.
+1. **Echter Test** gegen eine Organisation und gegen einen Server durch den Owner, für Boards, Ticket-Karten und Wiki.
+2. **Beide Systeme eingeschaltet**: Eine neue Aufgabe bekommt ihr Ticket in Jira; eine Aufgabe ohne Ticket lässt sich im Dialog gezielt in Jira oder Azure DevOps anlegen. Eine Vorauswahl je Profil gibt es nicht.
+3. **Welche Felder ein Anbieter schreiben kann**, ist nicht als Eigenschaft des Vertrags abfragbar; die Oberfläche bietet alle sieben Felder an und zeigt die Ablehnung des Trackers. Fällig, sobald ein dritter Anbieter dazukommt.
+4. **Seiten des Wikis einbetten** (wie eine eingebundene Confluence-Seite als Annotation) gibt es für Azure DevOps nicht; das Wiki ist Markdown, die Annotation folgt dem Confluence-Speicherformat.
 
 ## Server-Kompatibilität
 
-Geprüft ist gegen eine nachgebildete Schnittstelle (`tests/unit/azure-devops.spec.ts`), **nicht gegen einen echten Server und nicht gegen eine echte Organisation**. Verwendete Aufrufe:
+Geprüft ist gegen nachgebildete Schnittstellen (`tests/unit/azure-devops.spec.ts`, `tests/unit/azure-devops-wiki.spec.ts`), **nicht gegen einen echten Server und nicht gegen eine echte Organisation**. Verwendete Aufrufe:
 
 | Aufruf | Zweck |
 | --- | --- |
@@ -54,5 +92,6 @@ Annahmen, die ein Test durch den Owner bestätigen muss:
 - Netz-Zugriffe nur im Hauptprozess; Weiterleitungen werden nicht verfolgt (`redirect: 'error'`); Antworten über 2 MB werden verworfen.
 - Eine Anmeldeseite statt Daten (Status 203 in der Cloud) gilt als abgelehntes Token.
 - Aufrufe arbeiten nur für ein gespeichertes lokales Diagramm; Gast- und ungespeicherte Dokumente lösen nichts aus. Eine Antwort, die nach einem Wechsel von Projekt, Profil oder Einstellungen eintrifft, wird verworfen.
-- Nötiger Token-Umfang: „Work Items: Lesen und Schreiben", für Nur-lesen „Work Items: Lesen". Der Dialog nennt das.
+- Nötiger Token-Umfang: „Work Items: Lesen und Schreiben" und für das Wiki „Wiki: Lesen und Schreiben"; für Nur-lesen „Work Items: Lesen". Der Dialog nennt das.
+- Wiki: Pfade werden vor jedem Aufruf geprüft (keine `..`-Abschnitte, keine Steuerzeichen, kein `?` oder `#`); der Titel des Diagramms wird als reiner Alternativtext geschrieben und kann kein eigenes Markdown bilden.
 - Dokumente mit Azure-Tickets (`external.provider: "azure-devops"`) öffnet Version 0.1.8 nicht: Deren Prüfung kennt nur `jira`.

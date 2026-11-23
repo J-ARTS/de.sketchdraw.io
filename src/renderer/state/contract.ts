@@ -30,7 +30,7 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
-import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WorkItemSummary } from '@/domain/plugins';
+import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WikiPageSummary, WikiProviderId, WorkItemSummary } from '@/domain/plugins';
 import type { ElementClipboardPayload } from './element-clipboard';
 import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 import type { ConfluenceLiveStatus } from './confluence-live-sync';
@@ -355,6 +355,8 @@ export interface WhiteboardState {
   ticketProviders: Array<{ id: TicketProvider; name: string }>;
   /** The ticket systems single tickets can be read from right now (ticket cards); a read-only connection counts. */
   ticketReaders: Array<{ id: TicketProvider; name: string }>;
+  /** The wikis a page of the diagram can be linked to right now: those whose plugin is switched on. */
+  wikiProviders: Array<{ id: WikiProviderId; name: string }>;
   /** Tasks whose ticket is being created. One request per task at a time (#293). */
   jiraCreatingTaskIds: string[];
   /** The Git dialog is open (#216). */
@@ -589,6 +591,10 @@ export interface WhiteboardStore {
   setConfluencePageLink(diagramPageId: string, pageId: string | null): Promise<boolean>;
   /** Publishes the linked page now instead of after the next change. */
   syncConfluencePage(diagramPageId: string): void;
+  /** Pages of the wiki of a provider as targets for a link (#281); null when nothing could be searched. */
+  searchWikiPages(provider: WikiProviderId, query: string): Promise<WikiPageSummary[] | null>;
+  /** Links a page of the diagram to a page of a wiki, or removes its link with `null`. A page has one wiki link. */
+  setWikiPageLink(diagramPageId: string, provider: WikiProviderId, pageId: string | null): Promise<boolean>;
   /** Opens the dialog that links this page of the diagram to a Confluence page. */
   openConfluencePageLink(diagramPageId: string): void;
   closeConfluencePageLink(): void;

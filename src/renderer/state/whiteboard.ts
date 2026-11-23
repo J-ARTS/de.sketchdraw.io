@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, azureDevOpsPluginActive, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, wikiPageLinks, WIKI_PROVIDER_NAME, type WikiProvider, type WikiProviderId, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -258,6 +258,33 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       return false;
     } finally { state.jiraCreatingTaskIds = state.jiraCreatingTaskIds.filter((id) => id !== taskId); }
   }
+  // --- Wikis (#281, #284) --------------------------------------------------------------------------------------
+  /**
+   * The wiki of a provider as the interface uses it: find pages, link a page of the diagram, publish it. Null
+   * while its plugin is off or the desktop app does not offer it. Removing a link needs no active plugin.
+   */
+  function wikiApi(provider: WikiProviderId, forUnlink = false): WikiProvider | null {
+    const plugins = bridge.plugins, settings = state.pluginSettings;
+    if (!plugins || !settings?.available) return null;
+    if (provider === 'confluence') {
+      const { setConfluenceLiveLink, publishConfluenceLive } = plugins;
+      if (!setConfluenceLiveLink || !publishConfluenceLive || (!forUnlink && !confluencePluginActive(settings.atlassian))) return null;
+      return {
+        id: provider, name: WIKI_PROVIDER_NAME[provider],
+        searchPages: async (query) => (await plugins.listConfluencePages(query)).map((page) => ({ provider, id: page.id, title: page.title, detail: t('Version {version}', { version: page.version }), url: page.url })),
+        setLink: ({ handleId, documentId, diagramPageId, diagramPageIds, pageId }) => setConfluenceLiveLink({ handleId, documentId, pageId, diagramPageId, diagramPageIds }),
+        publish: (input) => publishConfluenceLive(input),
+      };
+    }
+    const { listAzureWikiPages, setAzureWikiLiveLink, publishAzureWikiLive } = plugins;
+    if (!listAzureWikiPages || !setAzureWikiLiveLink || !publishAzureWikiLive || (!forUnlink && !azureDevOpsPluginActive(settings.azureDevOps))) return null;
+    return {
+      id: provider, name: WIKI_PROVIDER_NAME[provider],
+      searchPages: (query) => listAzureWikiPages(query),
+      setLink: ({ handleId, documentId, diagramPageId, pageId }) => setAzureWikiLiveLink({ handleId, documentId, diagramPageId, wikiPage: pageId }),
+      publish: (input) => publishAzureWikiLive(input),
+    };
+  }
   // --- Ticket cards (#283) -------------------------------------------------------------------------------------
   /** The addresses under which a pasted link is a ticket of a connected tracker. */
   const ticketSites = () => ({
@@ -474,6 +501,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     pluginSettings: null as WhiteboardState['pluginSettings'], pluginBusy: false, jiraCreatingTaskIds: [] as string[],
     get jiraAvailable() { return jiraAvailable(); },
     get ticketProviders() { return writableTicketApis().map(({ provider, name }) => ({ id: provider, name })); },
+    get wikiProviders() { return (['confluence', 'azure-devops'] as const).flatMap((id) => { const api = wikiApi(id); return api ? [{ id, name: api.name }] : []; }); },
     get ticketReaders() { return activeTicketApis().filter((api) => canReadTickets(api.provider)).map(({ provider, name }) => ({ id: provider, name })); },
     gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
@@ -2695,6 +2723,32 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     syncConfluencePage(diagramPageId) { liveSyncs.get(diagramPageId)?.syncNow(); },
+    async searchWikiPages(provider, query) {
+      const api = wikiApi(provider);
+      if (!api || !hasPluginProject() || state.pluginBusy) return null;
+      const generation = pluginGeneration;
+      state.pluginBusy = true;
+      try { const pages = await api.searchPages(query); return pluginContextCurrent(generation) ? pages : null; }
+      catch (error) { if (pluginContextCurrent(generation)) fail(error); return null; }
+      finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
+    async setWikiPageLink(diagramPageId, provider, pageId) {
+      const generation = pluginGeneration; const handle = currentPluginHandle();
+      const page = state.document.pages.find((entry) => entry.id === diagramPageId);
+      const api = wikiApi(provider, pageId === null);
+      if (!api || !handle || !page || !hasPluginProject() || state.pluginBusy) return false;
+      state.pluginBusy = true;
+      try {
+        const settings = await api.setLink({ handleId: handle, documentId: state.document.id, diagramPageId, diagramPageIds: state.document.pages.map((entry) => entry.id), pageId });
+        if (!pluginContextCurrent(generation) || handle !== currentPluginHandle()) return false;
+        state.pluginSettings = settings;
+        const title = wikiPageLinks(settings).find((link) => link.diagramPageId === diagramPageId)?.pageTitle ?? '';
+        notice(pageId === null
+          ? t('Verknüpfung von „{page}“ mit {wiki} gelöst.', { page: page.name, wiki: api.name })
+          : t('„{page}“ ist mit der Seite „{title}“ in {wiki} verknüpft. Änderungen werden automatisch übertragen.', { page: page.name, title, wiki: api.name }));
+        return true;
+      } catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
+    },
     openConfluencePageLink(diagramPageId) { if (state.document.pages.some((page) => page.id === diagramPageId)) state.confluenceLinkPageId = diagramPageId; },
     closeConfluencePageLink() { state.confluenceLinkPageId = null; },
     async syncTicketTasks(options) {
@@ -3017,18 +3071,28 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
    */
   function liveContext(diagramPageId: string): ConfluenceLiveContext {
     const settings = state.pluginSettings; const handle = currentPluginHandle();
-    const link = settings?.confluencePageLinks?.find((entry) => entry.diagramPageId === diagramPageId);
-    if (disposed || !bridge.plugins?.publishConfluenceLive || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
-    const key = [handle, settings.activeProfileId, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
+    const link = wikiPageLinks(settings).find((entry) => entry.diagramPageId === diagramPageId);
+    const publisher = link?.provider === 'azure-devops' ? bridge.plugins?.publishAzureWikiLive : bridge.plugins?.publishConfluenceLive;
+    if (disposed || !publisher || !handle || !settings?.available || !settings.projectFolder || !link) return { kind: 'off' };
+    const key = [handle, settings.activeProfileId, link.provider, link.siteUrl, link.pageId, link.documentId, state.document.id, diagramPageId].join('\n');
     const paused = (message: string): ConfluenceLiveContext => ({ kind: 'paused', key, message });
-    if (!confluencePluginActive(settings.atlassian)) return paused(t('Das Confluence-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
-    if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
-    if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
+    if (link.provider === 'azure-devops') {
+      // The wiki of Azure DevOps (#284): the same conditions, said for that plugin.
+      const azure = settings.azureDevOps;
+      if (!azureDevOpsPluginActive(azure)) return paused(t('Das Azure-DevOps-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder ins Wiki übertragen werden.'));
+      if (!azure!.credentialStored) return paused(t('Personal Access Token fehlt.'));
+      if (azure!.readOnly) return paused(t('Azure DevOps ist auf „Nur lesen“ gestellt; das Wiki wird nicht geändert.'));
+      if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Organisation oder einem anderen Projekt als das aktive Profil. Verknüpfe die Seite neu.'));
+    } else {
+      if (!confluencePluginActive(settings.atlassian)) return paused(t('Das Confluence-Plugin ist deaktiviert. Aktiviere es, damit Änderungen wieder nach Confluence übertragen werden.'));
+      if (!settings.atlassian.credentialStored) return paused(t('API-Token fehlt.'));
+      if (!link.usable) return paused(t('Die Verknüpfung gehört zu einer anderen Atlassian-Site als das aktive Profil. Verknüpfe die Seite neu.'));
+    }
     if (link.documentId !== state.document.id) return paused(t('Die Verknüpfung gehört zu einem anderen Diagramm. Verknüpfe die Seite neu.'));
     // A deleted page keeps its link: undoing the deletion continues where it stopped.
     if (!state.document.pages.some((page) => page.id === diagramPageId)) return paused(t('Diese Seite gibt es im Diagramm nicht mehr.'));
-    if (state.pendingExternalDocument) return paused(t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
-    if (state.file.conflict) return paused(t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
+    if (state.pendingExternalDocument) return paused(link.provider === 'azure-devops' ? t('Eine externe Änderung wartet. Das Wiki wird wieder aktualisiert, sobald die externe Version geladen ist.') : t('Eine externe Änderung wartet. Confluence wird wieder aktualisiert, sobald die externe Version geladen ist.'));
+    if (state.file.conflict) return paused(link.provider === 'azure-devops' ? t('Speicherkonflikt: Das Wiki wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.') : t('Speicherkonflikt: Confluence wird erst wieder aktualisiert, wenn der Konflikt gelöst ist.'));
     if (state.transitioning) return paused('');
     return { kind: 'active', key, handleId: handle, document: state.document, ...(link.lastSyncedAt ? { syncedAt: link.lastSyncedAt } : {}) };
   }
@@ -3049,7 +3113,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       render: (document) => renderLiveImage(document, diagramPageId),
       async publish(input) {
         const generation = pluginGeneration;
-        const result = await bridge.plugins!.publishConfluenceLive!({ ...input, diagramPageId });
+        // The link of the moment decides where the page goes: Confluence or the wiki of Azure DevOps.
+        const azure = wikiPageLinks(state.pluginSettings).find((entry) => entry.diagramPageId === diagramPageId)?.provider === 'azure-devops';
+        const send = azure ? bridge.plugins!.publishAzureWikiLive : bridge.plugins!.publishConfluenceLive;
+        if (!send) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
+        const result = await send({ ...input, diagramPageId });
         // A result that arrives after the diagram, profile or project changed belongs to nobody any more.
         if (!pluginContextCurrent(generation)) return { status: 'cancelled', message: '', uploaded: 0, bodyUpdated: false };
         return result;
@@ -3065,7 +3133,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
   }
   /** One synchronisation per linked page: started for a new link, stopped with a removed one, told about every change of its context. */
   function reconcileLive(): void {
-    const linked = new Set(disposed || !currentPluginHandle() ? [] : (state.pluginSettings?.confluencePageLinks ?? []).map((link) => link.diagramPageId));
+    const linked = new Set(disposed || !currentPluginHandle() ? [] : wikiPageLinks(state.pluginSettings).map((link) => link.diagramPageId));
     for (const [diagramPageId, sync] of [...liveSyncs]) {
       if (linked.has(diagramPageId)) continue;
       sync.dispose(); liveSyncs.delete(diagramPageId); liveImageCache.delete(diagramPageId);
@@ -3104,7 +3172,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     watch(() => state.viewportSize, () => { if (state.following) applyFollow(true); emitView(); }, { flush: 'sync' });
     watch(() => state.following, () => emitView(), { flush: 'sync' });
     // Every change of a link, the profile, the diagram file or a blocking condition is noticed at once, wherever it is made.
-    watch(() => (state.pluginSettings?.confluencePageLinks ?? []).map((link) => {
+    watch(() => wikiPageLinks(state.pluginSettings).map((link) => {
       const context = liveContext(link.diagramPageId);
       return `${link.diagramPageId}\n${context.kind === 'off' ? '' : `${context.kind}\n${context.key}\n${context.kind === 'paused' ? context.message : ''}`}`;
     }).join('\n\n'), reconcileLive, { flush: 'sync' });

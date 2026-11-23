@@ -535,6 +535,9 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'set-confluence-live-link': return plugins.setConfluenceLiveLink(payload);
       case 'convert-confluence-live-link': return plugins.convertConfluenceLiveLink(payload);
       case 'publish-confluence-live': return plugins.publishConfluenceLive(payload);
+      case 'list-azure-wiki-pages': return plugins.listAzureWikiPages(String(request.payload ?? ''));
+      case 'set-azure-wiki-live-link': return plugins.setAzureWikiLiveLink(payload);
+      case 'publish-azure-wiki-live': return plugins.publishAzureWikiLive(payload);
       case 'create-jira-issue': return plugins.createJiraIssue(payload);
       case 'list-jira-issues': return plugins.listJiraIssues();
       case 'update-jira-issue': return plugins.updateJiraIssue(payload);

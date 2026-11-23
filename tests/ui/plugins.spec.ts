@@ -23,6 +23,8 @@ type PluginTestState = {
     azureCreates: string[];
     azureTransitions: Array<{ key: string; status: string }>;
     ticketReads: string[];
+    wikiLinks: Array<{ diagramPageId: string; wikiPage: string | null }>;
+    wikiPublications: Array<{ diagramPageId: string; bytes: number }>;
     ticketUpdates: Array<Record<string, unknown>>;
     profiles: Array<{ action: 'select' | 'create' | 'rename' | 'delete'; id?: string; name?: string; copyFrom?: string }>;
   };
@@ -51,7 +53,7 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
       holdJira: false,
       holdJiraCreate: false,
       jiraCreateFailure: '',
-      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], azure: [], azureCreates: [], azureTransitions: [], ticketReads: [], ticketUpdates: [], profiles: [] },
+      calls: { contexts: [], saves: [], git: [], jira: [], jiraTests: 0, jiraSyncs: 0, jiraCreates: [], azure: [], azureCreates: [], azureTransitions: [], ticketReads: [], ticketUpdates: [], wikiLinks: [], wikiPublications: [], profiles: [] },
       settings: defaults(),
     };
     // Azure DevOps is not installed at first; the mock keeps one configuration for all profiles.
@@ -196,6 +198,19 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
           return snapshot();
         },
         testAzureDevOps: async () => { Object.assign(azure, { health: 'ready', message: `Azure DevOps: verbunden mit Projekt „${azure.project}“` }); return { ok: true, message: azure.message }; },
+        // The wiki of Azure DevOps (#284): pages are found by path, a link is kept with the settings, a publication is recorded.
+        listAzureWikiPages: async (query: string) => ['/Architektur', '/Architektur/Übersicht', '/Betrieb'].filter((path) => path.toLowerCase().includes(query.toLowerCase())).map((path) => ({ provider: 'azure-devops' as const, id: `wiki-1\n${path}`, title: path.split('/').pop()!, detail: `Shop.wiki${path}`, url: `https://dev.azure.com/acme/Shop/_wiki/wikis/wiki-1?pagePath=${encodeURIComponent(path)}` })),
+        setAzureWikiLiveLink: async (input: { diagramPageId: string; documentId: string; wikiPage: string | null }) => {
+          control.calls.wikiLinks.push({ diagramPageId: input.diagramPageId, wikiPage: input.wikiPage });
+          const others = (azure.wikiPageLinks ?? []).filter((link) => link.diagramPageId !== input.diagramPageId);
+          const links = input.wikiPage === null ? others : [...others, { provider: 'azure-devops' as const, diagramPageId: input.diagramPageId, pageId: input.wikiPage, pageTitle: `Shop.wiki${input.wikiPage.split('\n')[1]}`, pageUrl: 'https://dev.azure.com/acme/Shop/_wiki/wikis/wiki-1', siteUrl: azure.organizationUrl, documentId: input.documentId, usable: true }];
+          if (links.length) azure.wikiPageLinks = links; else delete azure.wikiPageLinks;
+          return snapshot();
+        },
+        publishAzureWikiLive: async (input: { diagramPageId: string; images: Array<{ png: Uint8Array }> }) => {
+          control.calls.wikiPublications.push({ diagramPageId: input.diagramPageId, bytes: input.images[0]!.png.byteLength });
+          return { status: 'synced' as const, message: 'Diagramm im Wiki aktualisiert.', uploaded: 1, bodyUpdated: true, syncedAt: new Date().toISOString() };
+        },
         listAzureWorkItems: async () => [workItem('7', 'Checkout absichern', 'Aus Azure Boards', 'Active', 'doing')],
         createAzureWorkItem: async (input: { title: string; description: string }) => { control.calls.azureCreates.push(input.title); return workItem(String(19 + control.calls.azureCreates.length), input.title, input.description, 'New', 'todo'); },
         updateAzureWorkItem: async (input: { key: string; title?: string }) => workItem(input.key, input.title ?? 'Checkout absichern', '', 'Active', 'doing'),
@@ -1228,3 +1243,81 @@ test('a pasted ticket address becomes a card; a card without its tracker stays r
   await page.getByTestId('workspace-menu-button').click();
   await expect(page.getByRole('menuitem', { name: 'Ticket-Karte einfügen …' })).toHaveCount(0);
 });
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`a page of the diagram is linked to a page of the Azure DevOps wiki and published there (${theme}, #284)`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await desktop(page, { theme });
+    const plugins = await prepareProject(page);
+    await plugins.getByRole('tab', { name: /Marketplace/ }).click();
+    await plugins.getByRole('complementary').getByRole('button', { name: /^Azure DevOps\b/ }).click();
+    await expect(plugins.getByText('Seiten des Diagramms als Bild auf Seiten des Wikis zeigen und aktuell halten')).toBeVisible();
+    await plugins.getByRole('button', { name: 'Installieren', exact: true }).click();
+    const config = plugins.getByTestId('azure-devops-config');
+    await expect(config.getByText(/„Wiki: Lesen und Schreiben“/)).toBeVisible();
+    await config.getByLabel('Organisation', { exact: true }).fill('https://dev.azure.com/acme');
+    await config.getByLabel('Projekt', { exact: true }).fill('Shop');
+    await config.getByLabel('Personal Access Token', { exact: true }).fill('pat-secret');
+    await config.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
+    await config.getByTestId('azure-devops-save').click();
+    await expect(plugins.getByText('Azure-DevOps-Plugin gespeichert.')).toBeVisible();
+    await plugins.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+
+    // Something to show, then the menu of the page: with Azure DevOps alone the entry names its wiki.
+    await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+    await page.mouse.move(420, 300); await page.mouse.down(); await page.mouse.move(620, 400, { steps: 8 }); await page.mouse.up();
+    await page.getByTestId('page-switcher').click();
+    const panel = page.getByRole('dialog', { name: 'Seiten', exact: true });
+    await panel.getByRole('button', { name: 'Aktionen für Seite 1', exact: true }).click();
+    await page.getByTestId('page-menu').getByRole('menuitem', { name: 'Seite des Azure-DevOps-Wikis verknüpfen…', exact: true }).click();
+    const dialog = page.getByTestId('confluence-page-link-dialog');
+    await expect(dialog.getByRole('heading', { name: 'Wiki-Seite für „Seite 1“' })).toBeVisible();
+    await expect(dialog.getByText(/gewählten Seite des Azure-DevOps-Wikis/)).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Wiki-Seite wählen' })).toBeVisible();
+    // One wiki is on: there is nothing to choose between.
+    await expect(dialog.getByTestId('page-link-wiki')).toHaveCount(0);
+    await dialog.getByRole('searchbox', { name: 'Wiki-Seiten suchen' }).fill('gibt es nicht');
+    await dialog.getByRole('button', { name: 'Suchen', exact: true }).click();
+    await expect(dialog.getByText('Keine Wiki-Seite gefunden.')).toBeVisible();
+    await dialog.getByRole('searchbox', { name: 'Wiki-Seiten suchen' }).fill('archi');
+    await dialog.getByRole('searchbox', { name: 'Wiki-Seiten suchen' }).press('Enter');
+    const results = dialog.getByTestId('confluence-page-link-results').getByRole('listitem');
+    await expect(results).toHaveCount(2);
+    await expect(results.nth(1)).toContainText('Übersicht'); await expect(results.nth(1)).toContainText('Shop.wiki/Architektur/Übersicht');
+    await dialog.getByRole('button', { name: '„Seite 1“ mit „Übersicht“ verknüpfen' }).click();
+
+    // Linked: the card names the page and the organization, and the page is published without a further step.
+    const card = dialog.getByTestId('confluence-link-card');
+    await expect(card.getByTestId('confluence-link-target')).toHaveText('Shop.wiki/Architektur/Übersicht');
+    await expect(card).toContainText('https://dev.azure.com/acme');
+    await expect(card.getByTestId('confluence-link-status')).toHaveText('Diagramm im Wiki aktualisiert.', { timeout: 15_000 });
+    await expect(card.getByRole('button', { name: /Im Wiki öffnen/ })).toBeVisible();
+    await expect(card.getByTestId('confluence-link-sync-now')).toBeFocused();
+    expect((await state(page)).calls.wikiLinks).toEqual([{ diagramPageId: expect.any(String), wikiPage: 'wiki-1\n/Architektur/Übersicht' }]);
+    const first = (await state(page)).calls.wikiPublications;
+    expect(first).toHaveLength(1); expect(first[0]!.bytes).toBeGreaterThan(100);
+    expect((await new AxeBuilder({ page }).include('.page-link-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+    if (process.env.TICKET_SHOTS) await page.screenshot({ path: `/tmp/shots/wiki-link-${theme}.png` });
+    await dialog.getByRole('button', { name: 'Dialog schließen' }).click();
+
+    // The page shows its link in the list, and its menu entry now leads to the link.
+    await page.getByTestId('page-switcher').click();
+    await expect(panel.locator('[data-testid^="page-confluence-"]')).toHaveCount(1);
+    await expect(panel.getByText('Mit Wiki-Seite „Shop.wiki/Architektur/Übersicht“ verknüpft')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+
+    // A change of the page follows by itself.
+    await page.getByRole('button', { name: 'Rechteck', exact: true }).click();
+    await page.mouse.move(700, 300); await page.mouse.down(); await page.mouse.move(800, 380, { steps: 8 }); await page.mouse.up();
+    await expect.poll(async () => (await state(page)).calls.wikiPublications.length, { timeout: 15_000 }).toBe(2);
+
+    // Removing the link leaves the wiki alone and takes the mark from the page.
+    await page.getByTestId('page-switcher').click();
+    await panel.getByRole('button', { name: 'Aktionen für Seite 1', exact: true }).click();
+    await page.getByTestId('page-menu').getByRole('menuitem', { name: 'Wiki-Verknüpfung…', exact: true }).click();
+    await dialog.getByTestId('confluence-link-unlink').click();
+    await expect(dialog.getByTestId('confluence-page-link-feedback')).toHaveText('Verknüpfung gelöst. Das Bild auf der Wiki-Seite bleibt, bis du es dort entfernst.');
+    await expect(dialog.getByTestId('confluence-link-card')).toHaveCount(0);
+    expect((await state(page)).calls.wikiLinks.at(-1)).toEqual({ diagramPageId: expect.any(String), wikiPage: null });
+  });
+}

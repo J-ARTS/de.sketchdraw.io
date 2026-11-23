@@ -73,6 +73,8 @@ export interface AzureDevOpsPluginSettings {
   /** Work items are read and never created or changed. */
   readOnly: boolean;
   credentialStored: boolean;
+  /** The links of pages of the open local diagram to pages of the Azure DevOps wiki (#284). */
+  wikiPageLinks?: WikiPageLiveLink[];
   health: PluginHealth;
   message: string;
 }
@@ -100,6 +102,37 @@ export interface ConfluenceLiveLink {
 export interface ConfluencePageLiveLink extends ConfluenceLiveLink {
   /** The page of the diagram whose image the Confluence page shows. */
   diagramPageId: string;
+}
+
+/** The wikis a page of a diagram can be shown in (#281): Confluence and the wiki of Azure DevOps. */
+export type WikiProviderId = 'confluence' | 'azure-devops';
+export const WIKI_PROVIDER_NAME: Readonly<Record<WikiProviderId, string>> = { confluence: 'Confluence', 'azure-devops': 'Azure DevOps Wiki' };
+/** A page of a wiki as a target for a link. `id` names it for its provider; for Azure DevOps it is wiki and path. */
+export interface WikiPageSummary {
+  provider: WikiProviderId;
+  id: string;
+  title: string;
+  /** Where the page lies, for telling pages of the same title apart: the wiki and path, or the version. */
+  detail: string;
+  url: string;
+}
+/**
+ * The live link of one page of the open local diagram to a wiki page, whichever wiki it is. A page of a diagram has
+ * at most one such link. `siteUrl` is the Atlassian site or the address of the Azure DevOps organization.
+ */
+export interface WikiPageLiveLink extends ConfluencePageLiveLink { provider: WikiProviderId }
+/**
+ * What a wiki does for a diagram (#281), independent of the provider: find pages, link one page of the diagram to
+ * a wiki page, and show that page there as an image that follows every change (#240). Confluence and the wiki of
+ * Azure DevOps are the two implementations; the bridge names their calls per provider.
+ */
+export interface WikiProvider {
+  readonly id: WikiProviderId;
+  readonly name: string;
+  searchPages(query: string): Promise<WikiPageSummary[]>;
+  /** Links the page of the diagram to the wiki page, or removes the link with `null`. */
+  setLink(input: { handleId: string; documentId: string; diagramPageId: string; diagramPageIds: string[]; pageId: string | null }): Promise<PluginSettingsSnapshot>;
+  publish(input: ConfluenceLivePublishInput & { diagramPageId: string }): Promise<ConfluenceLivePublishResult>;
 }
 
 /** A named set of plugin settings of the editor. Diagrams never store plugin configuration (#168). */
@@ -374,6 +407,10 @@ export interface PluginBridge extends GitWorkbenchBridge {
   convertConfluenceLiveLink?(input: { handleId: string; documentId: string; diagramPageIds: string[] }): Promise<PluginSettingsSnapshot>;
   /** Publishes the rendered pages of the linked diagram. Runs one after another; never throws for remote problems. */
   publishConfluenceLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
+  /** The wiki of Azure DevOps (#284): the same three steps as for Confluence. `wikiPage` is the `id` of a found page. */
+  listAzureWikiPages?(query: string): Promise<WikiPageSummary[]>;
+  setAzureWikiLiveLink?(input: { handleId: string; documentId: string; diagramPageId: string; wikiPage: string | null }): Promise<PluginSettingsSnapshot>;
+  publishAzureWikiLive?(input: ConfluenceLivePublishInput): Promise<ConfluenceLivePublishResult>;
   createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary>;
   listJiraIssues(): Promise<JiraIssueSummary[]>;
   updateJiraIssue(input: UpdateJiraIssueInput): Promise<JiraIssueSummary>;
@@ -393,4 +430,15 @@ export interface PluginBridge extends GitWorkbenchBridge {
   updateWorkItemFields?(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;
   onEvent(listener: (event: PluginExternalEvent) => void): () => void;
+}
+
+/** Every wiki link of the pages of the open diagram, whichever wiki it leads to. */
+export function wikiPageLinks(settings: Pick<PluginSettingsSnapshot, 'confluencePageLinks' | 'azureDevOps'> | null | undefined): WikiPageLiveLink[] {
+  return [...(settings?.confluencePageLinks ?? []).map((link): WikiPageLiveLink => ({ ...link, provider: 'confluence' })), ...(settings?.azureDevOps?.wikiPageLinks ?? [])];
+}
+/** The `id` of an Azure DevOps wiki page as found pages and links carry it: the wiki, a line break, the path. */
+export const azureWikiPageId = (wiki: string, pagePath: string): string => `${wiki}\n${pagePath}`;
+export function parseAzureWikiPageId(id: string): { wiki: string; path: string } | null {
+  const at = id.indexOf('\n');
+  return at > 0 && at < id.length - 1 ? { wiki: id.slice(0, at), path: id.slice(at + 1) } : null;
 }
