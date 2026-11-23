@@ -24,6 +24,8 @@ Die App aktualisiert sich aus genau diesen drei Dateien (#237): Sie fragt `relea
 
 `.github/workflows/release.yml` startet durch ein Versions-Tag oder die manuelle Wiederaufnahme eines bereits vorhandenen Tags. `preflight` gleicht Tag, `package.json` und ausgecheckte Commit-Revision ab. Tags werden durch die Skripte weder erstellt noch verschoben. Der wiederverwendbare CI-Workflow und alle Packaging-Jobs checken die ermittelte Commit-SHA aus.
 
+**Die Prüfsuite läuft nur noch beim Release (#304):** `.github/workflows/ci.yml` startet seit dem 23.11.2026 nicht mehr bei Push oder Pull Request, sondern als Teil des Release-Workflows und auf Wunsch von Hand (Actions → CI → „Run workflow“, optional mit Commit-SHA). Ein Fehler auf `main` fällt damit erst beim nächsten Release oder bei einem Handstart auf; vor dem Taggen lohnt sich deshalb ein Handstart oder der lokale Lauf der Prüfungen.
+
 CI und Packaging behalten die vorhandenen Graphify-, TypeScript-, Node-, Vitest-, Browser- und Electron-Prüfungen bei. `npm run build` erzeugt Renderer, Electron Main/Preload und den MCP-Adapter. Die drei Packaging-Jobs prüfen ihr tatsächliches Betriebssystem und ihre CPU-Architektur. Release-Parameter werden direkt über `process.env` gelesen; Windows hängt damit nicht von Bash-Variablensyntax in PowerShell ab. Nur der ausdrücklich mit `shell: bash` deklarierte Packaging-Schritt verzweigt anhand von `RUNNER_OS`, um Linux unter Xvfb auszuführen.
 
 `scripts/release.mjs package` verlangt diese Dateien vor dem Packaging:

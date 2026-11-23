@@ -1,17 +1,19 @@
 name: CI
 
+# The suite runs as part of a release (release.yml calls it for the tagged commit) and when someone starts it by
+# hand. It no longer runs on every push or pull request (#304).
 on:
-  push:
-    branches:
-      - main
-      - 'codex/**'
-  pull_request:
-    branches:
-      - main
   workflow_call:
     inputs:
       commit_sha:
         description: 'Optional exact Git commit SHA to verify across all CI jobs'
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Optional exact Git commit SHA to verify across all CI jobs (default: the selected branch)'
         required: false
         type: string
         default: ''

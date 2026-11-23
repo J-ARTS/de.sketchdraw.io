@@ -983,6 +983,10 @@ test('CI and Release workflow files preserve all existing tests and enforce rele
 
   // CI workflow preserves all required test suites and supports workflow_call
   assert.ok(ciYaml.includes('workflow_call:'));
+  // #304: the suite runs for a release and on a manual start, not on every push or pull request.
+  const triggers = ciYaml.slice(ciYaml.indexOf('\non:\n'), ciYaml.indexOf('\npermissions:'));
+  assert.deepEqual(triggers.match(/^  [a-z_]+:$/gm), ['  workflow_call:', '  workflow_dispatch:']);
+  assert.ok(releaseYaml.includes('uses: ./.github/workflows/ci.yml'));
   assert.ok(ciYaml.includes('npm run typecheck:config'));
   assert.ok(ciYaml.includes('npm run typecheck'));
   assert.ok(ciYaml.includes('node --test tests/unit/*.test.mjs'));
