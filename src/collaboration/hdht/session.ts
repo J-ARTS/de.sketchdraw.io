@@ -11,6 +11,7 @@ import { computePinProof, type HdhtInvitation, PinGate } from './invitation';
 import { type HostKeys, hostKeyToText } from './relay-channel';
 import { connectViaHelpers, BadHelpers, PeerRelayHosts, rejectHelperChannel } from './peer-relay';
 import { connectRelayGuest, type PacerOptions, RelayHostConnection, type RelayHostState } from './relay-wire';
+import { connectTurnGuest, type RtcPeerFactory, turnGuestAcceptor } from './turn-channel';
 import type { SecureChannel, WebSocketFactory } from './types';
 
 const MAX_PENDING_AUTH = 8;
@@ -58,6 +59,11 @@ export interface HdhtHostConfig {
   /** Registers at volunteer relay helpers found through the DHT (native only); no endpoint is configured. */
   peers?: { link: DirectLink; target?: number; retryMs?: number; steadyMs?: number; pacer?: PacerOptions };
   relay?: { url: string; factory?: WebSocketFactory; backoffMs?: readonly number[]; pacer?: PacerOptions; keepAliveMs?: number };
+  /**
+   * POC(#303): the TURN route. The relay is then only the meeting point: every guest gets a WebRTC data channel
+   * through TURN, and the session data flows there instead of through the relay. Needs `relay`.
+   */
+  turn?: { rtc?: RtcPeerFactory; timeoutMs?: number };
   maxParticipants?: number;
   timing?: ChannelTiming;
   authTimeoutMs?: number;
@@ -97,9 +103,13 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
   let relayDetail: string | undefined;
   let relay: RelayHostConnection | null = null;
   let direct = config.direct;
+  // POC(#303): the TURN route only listens once the relay has handed out ICE servers; until then its reason shows.
+  let turnReady = !config.turn;
+  let turnProblem: string | undefined;
+  let turnRetry: ReturnType<typeof setTimeout> | undefined;
 
   const status = (): CollaborationTransportStatus => {
-    const listening = relayState === 'ready' || !!direct || helperCount > 0;
+    const listening = (relayState === 'ready' && turnReady) || !!direct || helperCount > 0;
     const value: CollaborationTransportStatus = {
       mode: 'hyperdht-relay',
       state: closed ? 'closed' : listening ? 'ready' : relayState === 'off' && !config.peers ? 'error' : 'connecting',
@@ -110,6 +120,7 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
     };
     if (closeError) value.error = closeError;
     else if (!closed && relayState === 'backoff' && !direct && helperCount === 0) value.error = relayDetail ?? 'RELAY_UNAVAILABLE';
+    else if (!closed && !turnReady && turnProblem) value.error = turnProblem;
     return value;
   };
   const publish = () => notifyAll(statusListeners, status());
@@ -198,6 +209,27 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
     helpers.start();
   }
   if (config.relay) {
+    // POC(#303)
+    const turn = config.turn ? turnGuestAcceptor({
+      url: config.relay.url, sessionId: config.sessionId, hostKeys: config.hostKeys,
+      requestIce: () => relay ? relay.requestIce() : Promise.reject(new Error('WIRE_CLOSED')),
+      ...(config.turn.rtc ? { rtc: config.turn.rtc } : {}),
+      ...(config.turn.timeoutMs !== undefined ? { timeoutMs: config.turn.timeoutMs } : {}),
+      ...(config.relay.pacer ? { pacer: config.relay.pacer } : {}),
+    }) : null;
+    const primeTurn = () => {
+      clearTimeout(turnRetry);
+      turn?.prime().then(
+        () => { turnReady = true; turnProblem = undefined; if (!closed) publish(); },
+        error => {
+          turnReady = false; turnProblem = error instanceof Error ? error.message : 'TURN_UNAVAILABLE';
+          if (closed) return;
+          publish();
+          // The owner of the relay may still be setting TURN up; ask again while the registration stands.
+          turnRetry = setTimeout(() => { if (!closed && relayState === 'ready') primeTurn(); }, 15_000);
+        },
+      );
+    };
     relay = new RelayHostConnection({
       url: config.relay.url,
       sessionId: config.sessionId,
@@ -206,8 +238,13 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
       ...(config.relay.backoffMs ? { backoffMs: config.relay.backoffMs } : {}),
       ...(config.relay.pacer ? { pacer: config.relay.pacer } : {}),
       ...(config.relay.keepAliveMs !== undefined ? { keepAliveMs: config.relay.keepAliveMs } : {}),
+      ...(turn ? { acceptGuest: turn.accept } : {}),
       onChannel: adopt,
-      onState: (state, detail) => { relayState = state; relayDetail = detail; if (!closed) publish(); },
+      onState: (state, detail) => {
+        relayState = state; relayDetail = detail;
+        if (turn && state === 'ready') primeTurn();
+        if (!closed) publish();
+      },
     });
     relay.start();
   }
@@ -264,6 +301,7 @@ export function createHdhtHostTransport(config: HdhtHostConfig): HdhtHostTranspo
       try {
         await Promise.race([Promise.all(ios.map(io => io.flushed)), new Promise<void>(resolve => { deadline = setTimeout(resolve, 600); })]);
       } finally { clearTimeout(deadline); }
+      clearTimeout(turnRetry);
       relay?.stop();
       helpers?.stop();
       peers.clear();
@@ -286,6 +324,8 @@ export interface HdhtGuestConfig {
   onCandidate?(key: string, outcome: 'start' | 'failed' | 'won'): void;
   relayFactory?: WebSocketFactory;
   relayUrl?: string;
+  /** POC(#303): the WebRTC implementation of the TURN route (tests replace it). */
+  rtc?: RtcPeerFactory;
   pacer?: PacerOptions;
   timing?: ChannelTiming;
   /** Optional route-specific override; by default direct gets the full overall attempt deadline. */
@@ -344,7 +384,8 @@ async function establishChannel(config: HdhtGuestConfig, signal: AbortSignal, ba
       if (failures >= expected) finish(signal.aborted ? new Error('ABORTED') : lastError);
     };
     if (expected === 0) { finish(new Error('NO_ROUTE')); return; }
-    timers.push(setTimeout(() => finish(new Error('CONNECT_TIMEOUT')), config.attemptTimeoutMs ?? 20_000));
+    // POC(#303): a data channel through TURN needs more round trips than a socket to a relay.
+    timers.push(setTimeout(() => finish(new Error('CONNECT_TIMEOUT')), config.attemptTimeoutMs ?? (invitation.carrier === 'turn' ? 35_000 : 20_000)));
 
     let secondaryStarted = false;
     const startSecondary = () => {
@@ -357,7 +398,15 @@ async function establishChannel(config: HdhtGuestConfig, signal: AbortSignal, ba
           ...(config.onCandidate ? { onCandidate: config.onCandidate } : {}),
         }).then(channel => finish(undefined, channel), error => failed(error));
       }
-      if (relayUrl) {
+      if (relayUrl && invitation.carrier === 'turn') {
+        // POC(#303)
+        connectTurnGuest({
+          url: relayUrl, sessionId: invitation.sessionId, hostKey: invitation.hostKey, signal: controller.signal,
+          ...(config.relayFactory ? { factory: config.relayFactory } : {}),
+          ...(config.rtc ? { rtc: config.rtc } : {}),
+          ...(config.pacer ? { pacer: config.pacer } : {}),
+        }).then(channel => finish(undefined, channel), error => failed(error, true));
+      } else if (relayUrl) {
         connectRelayGuest({
           url: relayUrl, sessionId: invitation.sessionId, hostKey: invitation.hostKey, signal: controller.signal,
           ...(config.relayFactory ? { factory: config.relayFactory } : {}),

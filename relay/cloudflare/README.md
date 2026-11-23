@@ -33,9 +33,41 @@ curl https://sketchdraw-relay.<dein-subdomain>.workers.dev/healthz
 # {"status":"ok","service":"sketchdraw-relay","protocol":"sketchdraw-relay.v1"}
 ```
 
-Diese Adresse trägst du in der App als **Relay-Adresse** ein (`https://…`, `wss://…` oder nur der Hostname). Soll die App sie von sich aus kennen, setze `DEFAULT_CLOUD_RELAY_URL` in `src/collaboration/hdht/cloud-relay.ts`; dann bleibt das Feld vorbelegt und „Cloudflare-Relay“ funktioniert ohne Eingabe.
+Die App kennt eine Adresse von sich aus: `DEFAULT_CLOUD_RELAY_URL` in `src/collaboration/hdht/cloud-relay.ts`, seit dem 23.11.2026 der Worker des Herausgebers (`sketchdraw-relay.jeremy-teichman74.workers.dev`). Das Feld **Relay-Adresse** ist damit vorausgefüllt; wer einen eigenen Relay betreibt, trägt dort dessen Adresse ein (`https://…`, `wss://…` oder nur der Hostname).
 
 Eigene Domain statt `workers.dev`: in `wrangler.jsonc` eine Route oder Custom Domain ergänzen (`"routes": [{ "pattern": "relay.example.org", "custom_domain": true }]`).
+
+## Cloudflare TURN – Erprobung (#303)
+
+**Stand: Machbarkeitsprobe.** Neben dem Worker-Relay gibt es den Verbindungsweg „Cloudflare TURN“. Nach dem Vergleich wird **einer der beiden Wege wieder ausgebaut** ([ADR 0011](../../docs/decisions/0011-poc-cloudflare-turn.md)).
+
+Beim TURN-Weg treffen sich die Geräte weiterhin im Raum dieses Workers, aber nur, um einen WebRTC-Datenkanal auszuhandeln. Die Sitzungsdaten laufen danach über `turn.cloudflare.com` und zählen gegen das Realtime-Kontingent (1.000 GB je Monat frei, geteilt mit SFU; danach 0,05 $ je GB – [Realtime-Preise](https://developers.cloudflare.com/realtime/sfu/pricing/)), nicht gegen Anfragen und Laufzeit des Durable Objects. Der Worker stellt dafür kurzlebige TURN-Zugangsdaten aus (14 Stunden gültig).
+
+Einrichten:
+
+1. Im Cloudflare-Dashboard einen **TURN-Schlüssel** anlegen ([Anleitung](https://developers.cloudflare.com/realtime/turn/generate-credentials/)). Du bekommst eine Schlüssel-ID und ein API-Token.
+2. Beides als Secret des Workers setzen und neu bereitstellen:
+
+   ```sh
+   cd relay/cloudflare
+   git pull && npm ci
+   npx wrangler secret put TURN_KEY_ID
+   npx wrangler secret put TURN_KEY_API_TOKEN
+   npx wrangler deploy
+   ```
+
+3. In der App „Cloudflare TURN“ wählen und eine Session starten. Fehlt der Schlüssel, sagt die App das („… hat keinen TURN-Schlüssel“) und gibt keinen Link aus.
+
+Der Schlüssel bleibt im Worker. Die App und die Gäste bekommen nur die befristeten Zugangsdaten, und nur über eine Raumverbindung (registrierter Gastgeber oder beigetretener Gast).
+
+**Kostenrisiko:** Wer das Protokoll spricht, kann sich als Gastgeber registrieren und Zugangsdaten holen. Verbrauch darüber läuft auf dein Konto; oberhalb von 1.000 GB im Monat kostet er Geld. Für die Erprobung ist das vertretbar, für den Dauerbetrieb braucht es eine Begrenzung (Rate Limiting vor dem Worker, kürzere Gültigkeit).
+
+Was der Vergleich zeigen soll – am besten je einmal mit Worker-Relay und mit TURN, Gastgeber im Firmennetz, Gast außerhalb und umgekehrt:
+
+- Kommt die Verbindung hinter dem Unternehmens-Proxy zustande? Wie lange dauert es bis „Verbunden“?
+- Bleibt sie über eine halbe Stunde stabil, auch wenn niemand zeichnet?
+- Wie fühlt sich gemeinsames Zeichnen an (Verzögerung der Zeiger)?
+- Was zeigt das Cloudflare-Dashboard danach: Anfragen und Laufzeit des Durable Objects gegenüber TURN-Datenmenge?
 
 ## Kontingente und Kosten
 
@@ -74,4 +106,6 @@ npx playwright test --config playwright.config.ts --project=ui tests/ui/session-
 - `session-route.spec.ts`: die Oberfläche mit drei Gästen über das selbst betriebene Relay, das dieselben Raumadressen annimmt.
 - `tests/electron/session-route.spec.ts`: die gebaute Desktop-App als Gastgeber über den Relay-Weg (läuft mit den übrigen Electron-Tests).
 
-**Nicht geprüft:** der Betrieb im echten Cloudflare-Netz (Bereitstellung, `workers.dev`-Adresse, Verhalten bei erschöpftem Kontingent, Verbindungen durch Firmen-Proxys). Das lässt sich nur mit einem Konto prüfen.
+- `turn-channel.spec.ts` und `tests/ui/session-turn.spec.ts` (#303): der TURN-Weg – mit einem WebRTC-Ersatz in den Unit-Tests und mit echtem WebRTC im Browser, dort ohne TURN-Server direkt auf dem eigenen Rechner.
+
+**Nicht geprüft:** der Betrieb im echten Cloudflare-Netz (Verhalten bei erschöpftem Kontingent, Verbindungen durch Firmen-Proxys) und **Cloudflare TURN selbst** – keine Verbindung lief in den Tests über `turn.cloudflare.com`. Der bereitgestellte Worker antwortet auf `/healthz` (23.11.2026); eine Session darüber hat diese Sitzung nicht aufgebaut.

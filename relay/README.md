@@ -17,6 +17,8 @@ Zwei Relays sprechen dieses Protokoll:
 - **Cloudflare Worker** mit einem Durable Object je Session: [`cloudflare/`](cloudflare/README.md) – der vorgesehene Betrieb, ohne eigenen Server.
 - **Selbst betriebener Dienst** (`server.mjs`, unten): derselbe Hub als Node-Prozess hinter einem TLS-Proxy. Er nimmt dieselben Raumadressen an und lässt sich in der App genauso als Relay-Adresse eintragen.
 
+**Erprobung (#303):** Ein dritter Weg, „Cloudflare TURN“, benutzt den Relay nur als Treffpunkt und leitet die Daten über einen WebRTC-Datenkanal durch Cloudflares TURN-Dienst. Einer der beiden Cloudflare-Wege wird nach dem Vergleich wieder ausgebaut ([ADR 0011](../docs/decisions/0011-poc-cloudflare-turn.md)); alles, was zu TURN gehört, trägt im Code die Marke `POC(#303)`.
+
 Der Entwicklungsschlüssel `localStorage['sketchdraw.hdht-relay-url.v1']` bleibt für die Browser-UI-Tests des direkten Wegs erhalten; er ist keine Produkteinstellung.
 
 ## Selbst betriebener Relay (WSS)

@@ -6,7 +6,8 @@ import type { WebSocketFactory, WebSocketLike } from './types';
 
 const OPEN = 1;
 const GUEST_ID_BYTES = 16;
-const MAX_CONTROL_TEXT = 512;
+// POC(#303): the answer with the ICE servers of the TURN route is the largest control (several URLs and a credential).
+const MAX_CONTROL_TEXT = 8192;
 const MAX_HOST_GUESTS = 64;
 /**
  * A host that waits for guests sends nothing by itself. A WebSocket relay that cannot ping from its side (a Cloudflare
@@ -15,6 +16,28 @@ const MAX_HOST_GUESTS = 64;
  */
 const HOST_KEEPALIVE_MS = 20_000;
 const HOST_PING = JSON.stringify({ t: 'ping' });
+/** POC(#303): asks the relay for the ICE servers of the TURN route. */
+const ICE_REQUEST = JSON.stringify({ t: 'ice' });
+
+interface IceWaiter { resolve(servers: unknown[]): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }
+/** Settles the oldest waiting request with the relay's answer; unknown shapes count as "no TURN". */
+function settleIce(waiters: IceWaiter[], control: Record<string, unknown>): void {
+  const waiter = waiters.shift();
+  if (!waiter) return;
+  clearTimeout(waiter.timer);
+  if (Array.isArray(control['servers'])) waiter.resolve(control['servers']);
+  else waiter.reject(new Error(typeof control['error'] === 'string' ? control['error'].slice(0, 40) : 'TURN_UNAVAILABLE'));
+}
+function failIce(waiters: IceWaiter[], reason: string): void {
+  for (const waiter of waiters.splice(0)) { clearTimeout(waiter.timer); waiter.reject(new Error(reason)); }
+}
+function askIce(waiters: IceWaiter[], send: () => void, timeoutMs: number): Promise<unknown[]> {
+  return new Promise<unknown[]>((resolve, reject) => {
+    const waiter: IceWaiter = { resolve, reject, timer: setTimeout(() => { const at = waiters.indexOf(waiter); if (at >= 0) waiters.splice(at, 1); reject(new Error('TURN_TIMEOUT')); }, timeoutMs) };
+    waiters.push(waiter);
+    try { send(); } catch { const at = waiters.indexOf(waiter); if (at >= 0) waiters.splice(at, 1); clearTimeout(waiter.timer); reject(new Error('WIRE_CLOSED')); }
+  });
+}
 
 export const defaultWebSocketFactory: WebSocketFactory = (url, protocols) => new WebSocket(url, protocols) as unknown as WebSocketLike;
 
@@ -174,12 +197,21 @@ export interface RelayGuestOptions extends RelaySocketSource {
   pacer?: PacerOptions;
 }
 
-/** Opens the relay socket as a guest and completes the end-to-end handshake against the pinned host key. */
-export async function connectRelayGuest(options: RelayGuestOptions): Promise<RelayRecordChannel> {
+/** A guest's joined connection to a relay room, before any handshake: raw records to and from the host. */
+export interface RelayGuestWire {
+  wire: RecordWire;
+  inbox: WireInbox;
+  /** POC(#303): asks the relay for the ICE servers of the TURN route. */
+  requestIce(timeoutMs?: number): Promise<unknown[]>;
+}
+
+/** Opens the relay socket as a guest and joins the room of the pinned host key. */
+export async function openRelayGuestWire(options: Omit<RelayGuestOptions, 'sessionId'>): Promise<RelayGuestWire> {
   const create = socketCreator(options);
   const timeoutMs = options.timeoutMs ?? 10_000;
   const topic = await relayTopic(base64UrlToBytes(options.hostKey, 32));
   const inbox = new WireInbox();
+  const iceWaiters: IceWaiter[] = [];
   let ready: { resolve(): void; reject(error: Error): void } | null = null;
   const readyPromise = new Promise<void>((resolve, reject) => { ready = { resolve, reject }; });
   readyPromise.catch(() => undefined);
@@ -188,12 +220,14 @@ export async function connectRelayGuest(options: RelayGuestOptions): Promise<Rel
     text(value) {
       const control = parseControl(value);
       if (control?.['t'] === 'ready') ready?.resolve();
+      else if (control?.['t'] === 'ice') settleIce(iceWaiters, control);
       else if (control?.['t'] === 'error') ready?.reject(new Error(String(control['code'] ?? 'RELAY_ERROR').slice(0, 40)));
     },
     binary(value) { inbox.push(value); },
-    close(code, reason) {
-      ready?.reject(new Error(`RELAY_CLOSED_${code ?? 0}`));
+    close(_code, reason) {
+      ready?.reject(new Error(reason ? `RELAY_CLOSED:${reason.slice(0, 40)}` : 'RELAY_CLOSED'));
       inbox.fail(reason ? `RELAY_CLOSED:${reason.slice(0, 40)}` : 'RELAY_CLOSED');
+      failIce(iceWaiters, 'RELAY_CLOSED');
       pacer?.close();
     },
   });
@@ -202,7 +236,7 @@ export async function connectRelayGuest(options: RelayGuestOptions): Promise<Rel
     acquire: bytes => pacer!.acquire(bytes),
     send: data => { if (socket.readyState !== OPEN) throw new Error('WIRE_CLOSED'); socket.send(data); },
     bufferedAmount: () => socket.bufferedAmount,
-    close: reason => { pacer?.close(); detach(socket); closeSocket(socket, reason); },
+    close: reason => { pacer?.close(); failIce(iceWaiters, 'WIRE_CLOSED'); detach(socket); closeSocket(socket, reason); },
   };
   const abandon = (error: Error) => { inbox.dispose(error.message); wire.close(error.message); };
   const onAbort = () => abandon(new Error('ABORTED'));
@@ -210,14 +244,30 @@ export async function connectRelayGuest(options: RelayGuestOptions): Promise<Rel
   try {
     socket.send(JSON.stringify({ t: 'guest', topic }));
     await withTimeout(readyPromise, timeoutMs, options.signal);
-    const channel = await initiateRelayChannel(wire, inbox, { sessionId: options.sessionId, hostKey: options.hostKey, timeoutMs });
     options.signal?.removeEventListener('abort', onAbort);
-    // The socket lives as long as the channel: a channel close (local or remote) must close the socket too.
-    return channel;
+    return { wire, inbox, requestIce: (ms = timeoutMs) => askIce(iceWaiters, () => { if (socket.readyState !== OPEN) throw new Error('WIRE_CLOSED'); socket.send(ICE_REQUEST); }, ms) };
   } catch (error) {
     options.signal?.removeEventListener('abort', onAbort);
     abandon(error instanceof Error ? error : new Error('RELAY_FAILED'));
     throw error;
+  }
+}
+
+/** Opens the relay socket as a guest and completes the end-to-end handshake against the pinned host key. */
+export async function connectRelayGuest(options: RelayGuestOptions): Promise<RelayRecordChannel> {
+  const { wire, inbox } = await openRelayGuestWire(options);
+  const abandon = (error: Error) => { inbox.dispose(error.message); wire.close(error.message); };
+  const onAbort = () => abandon(new Error('ABORTED'));
+  options.signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    if (options.signal?.aborted) throw new Error('ABORTED');
+    // The socket lives as long as the channel: a channel close (local or remote) must close the socket too.
+    return await initiateRelayChannel(wire, inbox, { sessionId: options.sessionId, hostKey: options.hostKey, timeoutMs: options.timeoutMs ?? 10_000 });
+  } catch (error) {
+    abandon(error instanceof Error ? error : new Error('RELAY_FAILED'));
+    throw error;
+  } finally {
+    options.signal?.removeEventListener('abort', onAbort);
   }
 }
 
@@ -252,6 +302,11 @@ export interface RelayHostOptions extends RelaySocketSource {
   pacer?: PacerOptions;
   /** Interval of the keep-alive of a WebSocket registration; defaults to HOST_KEEPALIVE_MS. */
   keepAliveMs?: number;
+  /**
+   * POC(#303): replaces the end-to-end handshake on the relay socket. The TURN route negotiates a WebRTC data channel
+   * over the given wire and completes the handshake on that channel, which then lives apart from the relay socket.
+   */
+  acceptGuest?(wire: RecordWire, inbox: WireInbox): Promise<RelayRecordChannel>;
   onChannel(channel: RelayRecordChannel): void;
   onState?(state: RelayHostState, detail?: string): void;
 }
@@ -263,8 +318,18 @@ export class RelayHostConnection {
   private socket: WebSocketLike | null = null;
   private endActive: ((reason: string) => void) | null = null;
   private state: RelayHostState = 'closed';
+  private readonly iceWaiters: IceWaiter[] = [];
 
   constructor(private readonly options: RelayHostOptions) {}
+
+  /** POC(#303): asks the relay for the ICE servers of the TURN route over the current registration. */
+  requestIce(timeoutMs = 10_000): Promise<unknown[]> {
+    return askIce(this.iceWaiters, () => {
+      const socket = this.socket;
+      if (!socket || socket.readyState !== OPEN || this.state !== 'ready') throw new Error('WIRE_CLOSED');
+      socket.send(ICE_REQUEST);
+    }, timeoutMs);
+  }
 
   get currentState(): RelayHostState { return this.state; }
 
@@ -330,6 +395,7 @@ export class RelayHostConnection {
         if (readyTimer) clearTimeout(readyTimer);
         clearInterval(keepAlive);
         pacer?.close();
+        failIce(this.iceWaiters, 'RELAY_CLOSED');
         for (const inbox of guests.values()) inbox.fail(reason);
         guests.clear();
         if (socketRef) { detach(socketRef); closeSocket(socketRef, reason); }
@@ -350,6 +416,16 @@ export class RelayHostConnection {
           bufferedAmount: () => socket.bufferedAmount,
           close: () => { if (guests.get(idHex) === inbox) { guests.delete(idHex); if (socket.readyState === OPEN) socket.send(id); } },
         };
+        const acceptGuest = this.options.acceptGuest;
+        if (acceptGuest) {
+          // POC(#303): the channel runs over its own carrier; the relay socket of this guest was only the way there
+          // and is closed either way, so a channel is kept as long as the host itself is still running.
+          acceptGuest(wire, inbox).then(
+            channel => { inbox.dispose('SIGNALLING_DONE'); wire.close('SIGNALLING_DONE'); if (this.running) onChannel(channel); else channel.close('HOST_STOPPED'); },
+            () => { inbox.dispose('HANDSHAKE_FAILED'); wire.close('HANDSHAKE_FAILED'); },
+          );
+          return;
+        }
         acceptRelayChannel(wire, inbox, { sessionId, hostKeys, timeoutMs }).then(
           channel => { if (guests.get(idHex) === inbox) onChannel(channel); else channel.close('GUEST_GONE'); },
           () => { inbox.dispose('HANDSHAKE_FAILED'); wire.close('HANDSHAKE_FAILED'); },
@@ -384,6 +460,8 @@ export class RelayHostConnection {
           const inbox = guests.get(control['id']);
           guests.delete(control['id']);
           inbox?.fail('GUEST_LEFT');
+        } else if (control['t'] === 'ice') {
+          settleIce(this.iceWaiters, control);
         } else if (control['t'] === 'replaced') {
           end('REPLACED');
         }

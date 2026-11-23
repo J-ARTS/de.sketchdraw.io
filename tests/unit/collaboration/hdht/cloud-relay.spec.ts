@@ -126,6 +126,14 @@ describe('the relay route of a session (#300)', () => {
     expect(storedCloudRelayAddress(store)).toBe('relay.example.org');
     storeSessionRoute('p2p', store); storeCloudRelayAddress('', store);
     expect(store.values.size).toBe(0);
+    // POC(#303): the third route is remembered too.
+    storeSessionRoute('turn', store);
+    expect(storedSessionRoute(store)).toBe('turn');
+    storeSessionRoute('p2p', store);
+    // The app ships with the relay of its publisher; it is a valid relay address and never stored as a user entry.
+    expect(cloudRelayBase(DEFAULT_CLOUD_RELAY_URL)).toBe('wss://sketchdraw-relay.jeremy-teichman74.workers.dev/');
+    storeCloudRelayAddress(DEFAULT_CLOUD_RELAY_URL, store);
+    expect(store.values.size).toBe(0);
     store.values.set('sketchdraw.session-route.v1', 'something-else');
     expect(storedSessionRoute(store)).toBe('p2p');
     const broken = { getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); }, removeItem: () => { throw new Error('denied'); } };

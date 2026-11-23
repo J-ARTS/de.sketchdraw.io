@@ -44,10 +44,61 @@ export function attachRelaySocket(hub, socket) {
   return true;
 }
 
+/*
+ * POC(#303): the TURN route. The room hands out short-lived ICE servers of Cloudflare Realtime TURN to the host and
+ * the guests it has joined; the session data then flows through TURN and the room only carries the WebRTC signalling.
+ * The TURN key is a secret of the Worker (TURN_KEY_ID, TURN_KEY_API_TOKEN) and never leaves it.
+ */
+export const TURN_API = 'https://rtc.live.cloudflare.com';
+/** Credentials outlive the longest session the hub allows (13 h). */
+export const TURN_TTL_SECONDS = 14 * 60 * 60;
+
+/** Keeps what a browser can use of an ICE server list: stun/turn/turns URLs (not port 53, which browsers block). */
+export function usableIceServers(value) {
+  if (!Array.isArray(value)) return [];
+  const servers = [];
+  for (const entry of value.slice(0, 8)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const urls = (Array.isArray(entry.urls) ? entry.urls : [entry.urls])
+      .filter(url => typeof url === 'string' && url.length <= 256 && /^(stun|turn|turns):[^\s]+$/.test(url) && !/:53(\?|$)/.test(url))
+      .slice(0, 12);
+    if (!urls.length) continue;
+    const server = { urls };
+    if (typeof entry.username === 'string' && typeof entry.credential === 'string' && entry.username.length <= 512 && entry.credential.length <= 512) {
+      server.username = entry.username; server.credential = entry.credential;
+    }
+    servers.push(server);
+  }
+  return servers;
+}
+
+/** Asks Cloudflare for ICE servers with fresh credentials. Throws a short code when TURN is not set up or refuses. */
+export async function generateIceServers(env, fetcher = fetch) {
+  const id = typeof env?.TURN_KEY_ID === 'string' ? env.TURN_KEY_ID.trim() : '';
+  const token = typeof env?.TURN_KEY_API_TOKEN === 'string' ? env.TURN_KEY_API_TOKEN.trim() : '';
+  if (!id || !token) throw new Error('TURN_NOT_CONFIGURED');
+  const base = typeof env.TURN_API_BASE === 'string' && env.TURN_API_BASE ? env.TURN_API_BASE.replace(/\/+$/, '') : TURN_API;
+  let response;
+  try {
+    response = await fetcher(`${base}/v1/turn/keys/${encodeURIComponent(id)}/credentials/generate-ice-servers`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ ttl: TURN_TTL_SECONDS }),
+    });
+  } catch { throw new Error('TURN_API_UNREACHABLE'); }
+  if (!response.ok) throw new Error(`TURN_API_${response.status}`);
+  let body;
+  try { body = await response.json(); } catch { throw new Error('TURN_API_INVALID'); }
+  const servers = usableIceServers(body?.iceServers);
+  if (!servers.some(server => server.username && server.urls.some(url => /^turns?:/.test(url)))) throw new Error('TURN_API_INVALID');
+  return servers;
+}
+
 export class RelayRoom {
-  constructor() {
+  constructor(_state, env) {
     this.topic = null;
     this.hub = null;
+    this.env = env ?? {};
   }
 
   async fetch(request) {
@@ -56,7 +107,7 @@ export class RelayRoom {
     // The object is addressed by its topic; the first request tells it which one that is.
     this.topic ??= topic;
     if (this.topic !== topic) return new Response(null, { status: 400 });
-    this.hub ??= createRelayHub({ limits: ROOM_LIMITS, acceptTopic: value => value === this.topic });
+    this.hub ??= createRelayHub({ limits: ROOM_LIMITS, acceptTopic: value => value === this.topic, iceServers: () => generateIceServers(this.env) });
     const pair = new WebSocketPair();
     const client = pair[0], server = pair[1];
     server.accept();

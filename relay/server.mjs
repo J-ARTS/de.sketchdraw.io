@@ -16,7 +16,8 @@ export function createRelayServer(options = {}) {
   const limits = { ...DEFAULT_LIMITS, ...(options.limits ?? {}) };
   const trustProxy = options.trustProxy === true;
   const allowedOrigins = options.allowedOrigins?.length ? new Set(options.allowedOrigins) : null;
-  const hub = createRelayHub({ limits, ...(options.now ? { now: options.now } : {}) });
+  // POC(#303): `iceServers` lets this relay hand out ICE servers for the TURN route (tests and self-hosting).
+  const hub = createRelayHub({ limits, ...(options.now ? { now: options.now } : {}), ...(options.iceServers ? { iceServers: options.iceServers } : {}) });
   const perIp = new Map();
   const sockets = new Set();
   let reserved = 0;

@@ -51,6 +51,11 @@ export interface RelayHubOptions {
   now?: () => number;
   /** Restricts the hub to topics this returns true for; a join for any other topic is closed (1008). */
   acceptTopic?(topicHex: string): boolean;
+  /**
+   * POC(#303): source of the ICE servers of the TURN route. With it, a joined connection that sends `{t:'ice'}`
+   * gets `{t:'ice', servers}` or `{t:'ice', error}`; without it that text closes the connection as before.
+   */
+  iceServers?(): Promise<unknown[]> | unknown[];
   onHostRegistered?(topicHex: string): void;
   onHostGone?(topicHex: string): void;
 }
