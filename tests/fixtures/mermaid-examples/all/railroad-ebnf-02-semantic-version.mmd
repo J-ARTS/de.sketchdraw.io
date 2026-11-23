@@ -1,0 +1,11 @@
+railroad-ebnf-beta
+    title Semantic Version
+
+    version = core ( "-" prerelease )? ( "+" build )? ;
+    core = number "." number "." number ;
+    prerelease = identifier ( "." identifier )* ;
+    build = identifier ( "." identifier )* ;
+    number = digit+ ;
+    identifier = ( letter | digit )+ ;
+    letter = "a" | "b" | "c" ;
+    digit = "0" | "1" | "2" ;

@@ -4,18 +4,20 @@ import { ELEMENT_CLIPBOARD_FORMAT, elementClipboardPayload, planElementPaste, ty
 import { t } from '@/renderer/i18n';
 import { flowToCode } from './flow-code';
 import { readFlows } from './mermaid-export';
+import { mermaidCodeOf } from './mermaid-render';
 import { parseSequenceCode, sequenceToCode } from './sequence-code';
 import { buildSequence, readSequences } from './sequence-model';
 
 /**
  * Import of Mermaid code (#248). Flowcharts (`flowchart`, `graph`) are converted by the exchange layer into
  * ordinary shapes; a `sequenceDiagram` becomes a sequence diagram of the app, built by the same reader and
- * layout as the code panel, so it can be edited on the canvas and as code afterwards.
+ * layout as the code panel, so it can be edited on the canvas and as code afterwards. Every other kind of diagram
+ * is drawn by Mermaid itself and comes in as an image that carries its code (#279, `mermaid-render.ts`).
  */
 export type MermaidImportKind = 'flowchart' | 'sequence' | 'other';
 
 /** The code without a surrounding Markdown fence, as people copy it from documentation. */
-function unfenced(source: string): string {
+export function unfenced(source: string): string {
   const text = source.replace(/^﻿/, '').replace(/\r\n?/g, '\n').trim();
   const fence = /^(`{3,}|~{3,})[^\n]*\n([\s\S]*?)\n\1\s*$/.exec(text);
   return fence ? fence[2]! : text;
@@ -37,7 +39,8 @@ export const MERMAID_SEQUENCE_INVALID = 'MERMAID_SEQUENCE_INVALID';
 
 /**
  * A diagram exported by the app carries the whole document in a comment. It is restored when the code still is
- * what one of the sequence diagrams or processes on the embedded page reads as; an edited code is read as it stands.
+ * what one of the sequence diagrams, processes or Mermaid images on the embedded page reads as; an edited code is
+ * read as it stands.
  */
 function restoreOwnDiagram(source: string): InteropImportResult | null {
   let own: ReturnType<typeof readMermaidEnvelope>;
@@ -46,7 +49,9 @@ function restoreOwnDiagram(source: string): InteropImportResult | null {
   if (!own.document || !page) return null;
   const visible = own.visible.replace(/\r\n?/g, '\n').trim();
   const onPage = own.document.elements.filter((element) => element.pageId === page.id);
-  const unchanged = readSequences(onPage).some((diagram) => sequenceToCode(diagram.model).trim() === visible) || readFlows(onPage).some((flow) => flowToCode(flow.model).trim() === visible);
+  const unchanged = readSequences(onPage).some((diagram) => sequenceToCode(diagram.model).trim() === visible) || readFlows(onPage).some((flow) => flowToCode(flow.model).trim() === visible)
+    // The code of an image Mermaid drew (#279): unchanged, the image of the document still is its drawing.
+    || onPage.some((element) => mermaidCodeOf(element)?.replace(/\r\n?/g, '\n').trim() === visible);
   if (!unchanged) return null;
   return {
     document: own.document,
@@ -92,7 +97,14 @@ export function importMermaidCode(source: string): InteropImportResult {
   if (mermaidImportKind(source) === 'sequence') return importSequence(source);
   // The flowchart of a process is the code of the code panel, not the flowchart of the whole page that the exchange
   // layer verifies; so the own export of a process is recognised here first.
-  return (mermaidImportKind(source) === 'flowchart' ? restoreOwnDiagram(source) : null) ?? importMermaid(source);
+  // The same holds for the code of an image Mermaid drew: unchanged, the document comes back whole; changed, the
+  // exchange layer refuses the kind of diagram and the import panel lets Mermaid draw it.
+  const restored = restoreOwnDiagram(source);
+  if (restored) return restored;
+  // Neither a flowchart nor a sequence diagram: there is nothing for the exchange layer to read. Said here, because
+  // its reader checks the brackets of a flowchart first and would call the code of an ER diagram a syntax error.
+  if (mermaidImportKind(source) === 'other') throw new InteropError('MERMAID_DIAGRAM_UNSUPPORTED', 'Only Mermaid flowcharts and sequence diagrams become shapes.');
+  return importMermaid(source);
 }
 
 /** The elements of one page of an imported document as something that can be inserted into another document. */

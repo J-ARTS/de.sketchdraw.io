@@ -1,0 +1,8 @@
+railroad-beta
+    title JSON Grammar
+
+    json = nonterminal("element") ;
+    element = choice(nonterminal("object"), nonterminal("array"), nonterminal("string"), nonterminal("number"), terminal("true"), terminal("false"), terminal("null")) ;
+    object = sequence(terminal("{"), optional(sequence(nonterminal("member"), zeroOrMore(sequence(terminal(","), nonterminal("member"))))), terminal("}")) ;
+    array = sequence(terminal("["), optional(sequence(nonterminal("element"), zeroOrMore(sequence(terminal(","), nonterminal("element"))))), terminal("]")) ;
+    member = sequence(nonterminal("string"), terminal(":"), nonterminal("element")) ;

@@ -4,16 +4,18 @@ import { flowToCode } from './flow-code';
 import { readFlow, type FlowDiagram } from './flow-model';
 import { sequenceToCode } from './sequence-code';
 import { readSequences, sequenceRole, type SequenceDiagram } from './sequence-model';
+import { mermaidCodeOf, mermaidDiagramName } from './mermaid-render';
 
 /**
  * Export as Mermaid code (#261). A Mermaid file holds one diagram of one type, so a page is not written as a
  * whole: a sequence diagram becomes a `sequenceDiagram` – the same code the code panel shows – and everything a
- * flowchart can show becomes a `flowchart`. What Mermaid has no form for is left out rather than approximated.
+ * flowchart can show becomes a `flowchart`. A diagram Mermaid drew as an image is written as the code it carries
+ * (#279). What Mermaid has no form for is left out rather than approximated.
  */
 export interface MermaidExportTarget {
-  /** `flowchart`, `sequence:` and the id of the first lifeline, or `flow:` and the id of the first element of a process. */
+  /** `flowchart`, `sequence:` and the id of the first lifeline, `flow:` and the id of the first element of a process, or `image:` and the id of an image Mermaid drew. */
   id: string;
-  kind: 'sequence' | 'flow' | 'flowchart';
+  kind: 'sequence' | 'flow' | 'image' | 'flowchart';
   /** What tells this diagram apart from the others on the page: its participants, or its pools and first steps. Empty for the flowchart of the page. */
   names: string;
 }
@@ -65,11 +67,13 @@ export function mermaidExportTargets(document: SketchDocument, pageId: string): 
     .map((diagram) => ({ id: sequenceTargetId(diagram), kind: 'sequence', names: diagram.model.participants.map((participant) => flat(participant.name)).filter(Boolean).join(', ') }));
   const flowDiagrams = readFlows(elements);
   const flows: MermaidExportTarget[] = flowDiagrams.map((flow) => ({ id: flowTargetId(flow, elements), kind: 'flow', names: flowNames(flow) }));
+  // An image Mermaid drew is exported as its code, whatever kind of diagram it is.
+  const images: MermaidExportTarget[] = elements.flatMap((element) => { const code = mermaidCodeOf(element); return code === null ? [] : [{ id: `image:${element.id}`, kind: 'image' as const, names: mermaidDiagramName(code) }]; });
   const flowchartElements = elements.filter((element) => !NOT_IN_A_FLOWCHART.has(element.kind) && !inSequence(element, byId));
   // One process that holds every shape of the page is the flowchart of the page: there is nothing else to offer.
   const onlyOneFlow = flowDiagrams.length === 1 && flowchartElements.every((element) => flowDiagrams[0]!.members.has(element.id));
-  const page: MermaidExportTarget[] = (flowchartElements.length && !onlyOneFlow) || (!sequences.length && !flows.length) ? [{ id: MERMAID_FLOWCHART_TARGET, kind: 'flowchart', names: '' }] : [];
-  return [...sequences, ...flows, ...page];
+  const page: MermaidExportTarget[] = (flowchartElements.length && !onlyOneFlow) || (!sequences.length && !flows.length && !images.length) ? [{ id: MERMAID_FLOWCHART_TARGET, kind: 'flowchart', names: '' }] : [];
+  return [...sequences, ...flows, ...images, ...page];
 }
 
 /** The target for a selection: the sequence diagram all of it belongs to, otherwise the first one that is offered. */
@@ -78,6 +82,7 @@ export function defaultMermaidExportTarget(document: SketchDocument, pageId: str
   const elements = pageElements(document, pageId);
   const picked = selection.filter((id) => elements.some((element) => element.id === id));
   if (picked.length) {
+    if (picked.length === 1 && targets.some((target) => target.id === `image:${picked[0]}`)) return `image:${picked[0]}`;
     const diagram = readSequences(elements).find((entry) => picked.every((id) => entry.members.has(id)));
     if (diagram && targets.some((target) => target.id === sequenceTargetId(diagram))) return sequenceTargetId(diagram);
     const flow = readFlows(elements).find((entry) => picked.every((id) => entry.members.has(id)));
@@ -99,9 +104,10 @@ export function prepareMermaidCodeExport(document: SketchDocument, options: Inte
 
   const elements = pageElements(full, pageId);
   const sequence = target.kind === 'sequence' ? readSequences(elements).find((entry) => sequenceTargetId(entry) === target.id)! : null;
-  const flow = sequence ? null : readFlows(elements).find((entry) => flowTargetId(entry, elements) === target.id)!;
-  const members = sequence ? sequence.members : flow!.members;
-  const code = sequence ? sequenceToCode(sequence.model) : flowToCode(flow!.model);
+  const image = target.kind === 'image' ? elements.find((element) => `image:${element.id}` === target.id)! : null;
+  const flow = sequence || image ? null : readFlows(elements).find((entry) => flowTargetId(entry, elements) === target.id)!;
+  const members: ReadonlySet<string> = image ? new Set([image.id]) : sequence ? sequence.members : flow!.members;
+  const code = image ? mermaidCodeOf(image)!.replace(/\r\n?/g, '\n').trim() : sequence ? sequenceToCode(sequence.model) : flowToCode(flow!.model);
   const embed = options.embedDocument !== false;
   const others = elements.filter((element) => !members.has(element.id)).length;
   const diagnostics: InteropDiagnostic[] = [

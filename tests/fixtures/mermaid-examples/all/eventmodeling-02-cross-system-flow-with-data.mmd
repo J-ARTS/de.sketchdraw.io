@@ -1,0 +1,20 @@
+eventmodeling
+
+tf 01 ui CartUI
+tf 02 cmd AddItem [[AddItem01]]
+tf 03 evt ItemAdded [[ItemAdded]]
+
+rf 04 evt Warehouse.StockChanged
+tf 05 pcr StockProcessor
+tf 06 cmd UpdateAvailability
+tf 07 evt Shop.AvailabilityUpdated
+
+data AddItem01 {
+  sku: 'SHIRT-M'
+  quantity: 2
+}
+
+data ItemAdded {
+  sku: string
+  quantity: number
+}

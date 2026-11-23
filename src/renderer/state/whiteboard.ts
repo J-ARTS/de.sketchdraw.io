@@ -50,6 +50,7 @@ import { addSequenceLifeline, addSequenceMessage, moveSequenceMessage, selectedL
 import { isSequenceFragment, isSequenceLifeline, planSequence, readSequence, sequenceRole } from '../lib/sequence-model';
 import { parseSequenceCode, reconcileSequence } from '../lib/sequence-code';
 import { diagramCodeDiagnostics, diagramCodeView } from '../lib/diagram-code';
+import { MERMAID_CODE_KEY, mermaidCodeOf, mermaidDiagramName, MermaidRenderError, renderMermaidImage } from '../lib/mermaid-render';
 import { parseFlowCode } from '../lib/flow-code';
 import { planFlow, readFlow } from '../lib/flow-model';
 import { planAddLane, poolOf, swimlaneRole, withSwimlaneLayout } from '../lib/bpmn';
@@ -506,7 +507,7 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
     gitOpen: false,
     confluencePages: [] as WhiteboardState['confluencePages'], pendingExternalDocument: false,
     confluencePageLive: {} as WhiteboardState['confluencePageLive'], confluenceLinkPageId: null as string | null,
-    ticketDialog: null as WhiteboardState['ticketDialog'], ticketBusy: false,
+    ticketDialog: null as WhiteboardState['ticketDialog'], ticketBusy: false, diagramCodeProblem: null as string | null,
     propertyDraft: null as WhiteboardState['propertyDraft'],
     transitioning: false, codeOpen: false, diagramCodeOpen: false, catalogOpen: false,
     code: { text: formatDiagram(initial.document), baseRevision: initial.revision, dirty: false, diagnostics: [] } as WhiteboardState['code'],
@@ -1995,6 +1996,27 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.transitioning) return null;
       const view = diagramCodeView(pageEls(), anchorId);
       if (!view || diagramCodeDiagnostics(view.kind, code).some((entry) => entry.severity === 'error')) return null;
+      if (view.kind === 'mermaid') {
+        // Mermaid draws the code again (#279). The image keeps its place and width; a code Mermaid cannot read
+        // leaves the image as it is, and the panel shows what Mermaid said.
+        if (!state.canWrite) return null;
+        const owner = activeSession(), pageId = state.activePageId;
+        state.diagramCodeProblem = null;
+        try {
+          const rendered = await renderMermaidImage(code);
+          const image = pageEls().find((element) => element.id === anchorId);
+          if (owner !== activeSession() || state.transitioning || state.activePageId !== pageId || !image || mermaidCodeOf(image) === null) return null;
+          const asset = { id: uid('asset'), name: `${mermaidDiagramName(code)}.png`, mimeType: 'image/png' as const, dataUrl: rendered.dataUrl };
+          const height = Math.max(1, Math.round(image.width * rendered.height / rendered.width));
+          const command: DocumentCommand = { type: 'batch', commands: [{ type: 'add', elements: [], assets: [asset] }, { type: 'update', changes: [{ id: anchorId, patch: { assetId: asset.id, height, label: mermaidDiagramName(code), metadata: { [MERMAID_CODE_KEY]: code } } }] }] };
+          if (!(await dispatch(command))) return null;
+          state.liveMessage = t('Diagramm neu gezeichnet.');
+          return anchorId;
+        } catch (error) {
+          if (owner === activeSession()) state.diagramCodeProblem = error instanceof MermaidRenderError && error.reason !== 'size' ? error.message : error instanceof MermaidRenderError ? t('Das Diagramm ist zu groß, um es als Bild zu übernehmen.') : t('Mermaid konnte nicht geladen werden.');
+          return null;
+        }
+      }
       try {
         let command: DocumentCommand | null;
         // The element that names the diagram afterwards; it is known before the command runs.

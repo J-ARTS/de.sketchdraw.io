@@ -132,7 +132,7 @@ With the Git plugin, the diagram lives in a repository. The Git dialog shows cha
 
 ### Import and export
 
-Exchange with draw.io, SVG and Mermaid. Before every conversion, a preview shows what is lost or only approximated; the file is created only after confirmation. If you want, the document is embedded in the file; an unchanged export of your own can then be read back completely. Mermaid code can be pasted or read from a `.mmd` file: flowcharts become shapes, and a `sequenceDiagram` becomes an editable sequence diagram. An import opens as a new document or is inserted into the current page.
+Exchange with draw.io, SVG and Mermaid. Before every conversion, a preview shows what is lost or only approximated; the file is created only after confirmation. If you want, the document is embedded in the file; an unchanged export of your own can then be read back completely. Mermaid code can be pasted or read from a `.mmd` file: flowcharts become shapes, and a `sequenceDiagram` becomes an editable sequence diagram. Every other kind of Mermaid diagram (class, state and ER diagrams, Gantt charts, mind maps and the rest of [mermaid.js.org](https://mermaid.js.org/syntax/all-examples.html)) is drawn by Mermaid itself and comes in as an image that carries its code: the code panel shows it, and changed code is drawn again. Such a diagram is a picture, not single shapes. An import opens as a new document or is inserted into the current page.
 
 ![The export preview for draw.io with the notes on losses](docs/images/readme/export.png)
 

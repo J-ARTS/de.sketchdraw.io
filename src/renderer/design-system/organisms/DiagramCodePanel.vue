@@ -72,6 +72,8 @@ watch(canonical, (now) => {
 
 function schedule(): void {
   clearTimeout(timer);
+  // A diagram Mermaid draws is drawn again when asked: every drawing is a new image in the document.
+  if (kind.value === 'mermaid') return;
   if (!dirty.value || errors.value.length || composing.value || stale.value) return;
   timer = setTimeout(() => { void apply(); }, APPLY_DELAY);
 }
@@ -79,7 +81,7 @@ async function apply(force = false): Promise<void> {
   clearTimeout(timer);
   if (applying || !anchor.value || !dirty.value || errors.value.length || !s.canWrite || s.transitioning || (stale.value && !force)) return;
   const sent = text.value;
-  applying = true;
+  applying = true; drawing.value = kind.value === 'mermaid';
   try {
     const id = await store.applyDiagramCode(sent, anchor.value);
     failed.value = !id;
@@ -89,7 +91,7 @@ async function apply(force = false): Promise<void> {
       shown = canonical.value;
     }
   } finally {
-    applying = false;
+    applying = false; drawing.value = false;
     if (text.value !== sent) schedule();
   }
 }
@@ -99,7 +101,7 @@ function onInput(event: Event): void {
   schedule();
 }
 /** Leaving the editor applies at once what was waiting. */
-function onBlur(): void { if (dirty.value && !errors.value.length) void apply(); }
+function onBlur(): void { if (kind.value !== 'mermaid' && dirty.value && !errors.value.length) void apply(); }
 function onKeydown(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); void apply(); }
   else if (event.key === 'Escape') {
@@ -147,11 +149,16 @@ function goTo(line: number): void {
   area.focus();
   area.setSelectionRange(start, start + (lines[line - 1]?.length ?? 0));
 }
+/** Mermaid is drawing the code of an image again. */
+const drawing = ref(false);
 const status = computed(() => {
+  if (drawing.value) return t('Mermaid zeichnet das Diagramm …');
+  if (failed.value && kind.value === 'mermaid') return s.diagramCodeProblem ? t('Mermaid kann diesen Code nicht lesen: {message} Das Bild ist unverändert.', { message: s.diagramCodeProblem }) : t('Der Code konnte nicht übernommen werden. Das Diagramm ist unverändert.');
   if (failed.value) return t('Der Code konnte nicht übernommen werden. Das Diagramm ist unverändert.');
   if (stale.value) return t('Das Diagramm hat sich auf der Zeichenfläche geändert. Dein Code ist noch nicht übernommen.');
   if (errors.value.length) return t('Nicht übernommen, solange der Code Fehler hat.');
   if (!s.canWrite) return t('Schreibgeschützt: Der Code zeigt das Diagramm, Änderungen sind gerade nicht möglich.');
+  if (kind.value === 'mermaid') return dirty.value ? t('Geändert. „Neu zeichnen“ übernimmt den Code in das Bild.') : t('Code und Bild sind auf demselben Stand.');
   return dirty.value ? t('Wird übernommen …') : t('Code und Zeichenfläche sind auf demselben Stand.');
 });
 
@@ -159,7 +166,7 @@ const status = computed(() => {
 function reveal(): void {
   const canvas = document.querySelector<HTMLElement>('[data-testid="whiteboard-canvas"]')?.getBoundingClientRect();
   const own = panel.value?.getBoundingClientRect();
-  const members = anchor.value ? (kind.value === 'sequence' ? readSequence(elements.value, anchor.value)?.members : readFlow(elements.value, anchor.value)?.members) : undefined;
+  const members = anchor.value ? (kind.value === 'mermaid' ? new Set([anchor.value]) : kind.value === 'sequence' ? readSequence(elements.value, anchor.value)?.members : readFlow(elements.value, anchor.value)?.members) : undefined;
   const lifelines = elements.value.filter((element) => members?.has(element.id) && element.kind !== 'connector');
   // Below the canvas (narrow windows) the panel covers nothing sideways.
   if (!canvas || !own || !lifelines.length || own.left - canvas.left < 200) return;
@@ -177,14 +184,14 @@ onBeforeUnmount(() => { clearTimeout(timer); });
 <template>
   <aside ref="panel" class="diagram-code-panel sd-panel" data-testid="diagram-code-panel" :data-kind="kind" :aria-label="t('Mermaid-Code')" @keydown="onPanelKeydown">
     <div class="heading">
-      <h2 class="sd-panel-title">{{ kind === 'sequence' ? t('Sequenzdiagramm als Mermaid-Code') : t('Ablauf als Mermaid-Code') }}</h2>
+      <h2 class="sd-panel-title">{{ kind === 'sequence' ? t('Sequenzdiagramm als Mermaid-Code') : kind === 'mermaid' ? t('Diagramm als Mermaid-Code') : t('Ablauf als Mermaid-Code') }}</h2>
       <div class="heading-actions">
         <AppIconButton v-if="anchor && (view || dirty)" icon="search" :icon-size="16" data-testid="diagram-code-search" :label="t('Im Code suchen und ersetzen')" :title="`${t('Im Code suchen und ersetzen')} (${modHint(isMac, 'F')}, ${modHint(isMac, 'R')})`" :pressed="search.open.value" @click="search.open.value ? search.close() : openSearch('find')" />
         <button type="button" class="sd-icon-btn sd-panel-close" :aria-label="t('Mermaid-Code schließen')" @click="store.toggleDiagramCode(false)"><AppIcon name="close" /></button>
       </div>
     </div>
     <template v-if="anchor && (view || dirty)">
-      <p class="panel-intro"><span class="names" data-testid="diagram-code-names">{{ names }}</span>{{ kind === 'sequence'
+      <p class="panel-intro"><span class="names" data-testid="diagram-code-names">{{ names }}</span>{{ kind === 'mermaid' ? t('Dieses Diagramm zeichnet Mermaid; auf der Zeichenfläche ist es ein Bild. Ändere den Code und zeichne es neu. Ein Fehler im Code lässt das Bild, wie es ist.') : kind === 'sequence'
         ? t('Was du tippst, erscheint gleich auf der Zeichenfläche; Abstände, Aktivierungen und Nummern entstehen automatisch.')
         : t('Was du tippst, erscheint gleich auf der Zeichenfläche. Neue Knoten stehen neben ihrem Vorgänger, alles andere bleibt an seinem Platz.') }}</p>
       <FindReplaceBar
@@ -216,10 +223,11 @@ onBeforeUnmount(() => { clearTimeout(timer); });
       </ul>
       <div class="panel-footer">
         <p id="diagram-code-status" class="status" :class="{ problem: failed || stale || errors.length > 0 }" role="status" data-testid="diagram-code-status">{{ status }}</p>
+        <AppButton v-if="kind === 'mermaid' && !stale" intent="primary" data-testid="diagram-code-redraw" :disabled="!dirty || drawing || errors.length > 0 || !s.canWrite" :title="`${t('Neu zeichnen')} (${modHint(isMac, 'Enter')})`" @click="apply(true)">{{ t('Neu zeichnen') }}</AppButton>
         <template v-if="stale">
           <AppButton data-testid="diagram-code-reload" @click="reload">{{ t('Vom Diagramm laden') }}</AppButton>
           <!-- The names in the code of a process point at its shapes as they were; over a changed process they could point elsewhere. -->
-          <AppButton intent="primary" v-if="kind === 'sequence'" :disabled="errors.length > 0 || !s.canWrite" @click="apply(true)">{{ t('Meinen Code übernehmen') }}</AppButton>
+          <AppButton intent="primary" v-if="kind !== 'flow'" :disabled="errors.length > 0 || !s.canWrite" @click="apply(true)">{{ t('Meinen Code übernehmen') }}</AppButton>
         </template>
       </div>
     </template>

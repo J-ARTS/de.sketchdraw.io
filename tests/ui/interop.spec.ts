@@ -134,7 +134,15 @@ test('pasted Mermaid requires explicit preview; edits and unsupported diagrams c
   await source.fill('pie title Anteile\n "A": 40\n "B": 60');
   await expect(apply).toHaveCount(0);
   await preview.click();
-  await expect(page.getByRole('alert')).toContainText('Dieser Mermaid-Diagrammtyp wird nicht unterstützt');
+  // A kind of diagram the app has no shapes for is drawn by Mermaid and previewed as an image (#279).
+  await expect(page.getByTestId('interop-mermaid-image')).toContainText('Von Mermaid gezeichnet', { timeout: 30_000 });
+  await expect(apply).toBeEnabled();
+  await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
+  // Code Mermaid cannot read replaces nothing and says why.
+  await source.fill('pie title Anteile\n "A" 40 kaputt');
+  await expect(apply).toHaveCount(0);
+  await preview.click();
+  await expect(page.getByRole('alert')).toContainText('Mermaid kann diesen Code nicht lesen', { timeout: 30_000 });
   await expect(page.getByRole('alert')).toContainText('Dein Dokument bleibt erhalten');
   await expect(apply).toHaveCount(0);
   await expect(page.getByTestId('whiteboard-canvas').locator('[data-kind=rectangle]')).toHaveCount(1);
@@ -299,7 +307,7 @@ test('a Mermaid sequence diagram is imported into the current page as an editabl
   await rectangle(page); await menu(page, 'import');
   await select(page, 'Format', 'Mermaid');
   const panel = page.getByTestId('interop-panel');
-  await expect(panel).toContainText('Importiert werden Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram).');
+  await expect(panel).toContainText('Flowcharts (flowchart, graph) und Sequenzdiagramme (sequenceDiagram) werden zu Formen, die sich bearbeiten lassen.');
   const source = page.getByLabel('Mermaid-Code einfügen');
   const preview = page.getByRole('button', { name: 'Importvorschau erstellen', exact: true });
   const insert = page.getByRole('button', { name: 'In die aktuelle Seite einfügen', exact: true });

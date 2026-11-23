@@ -333,6 +333,8 @@ export interface WhiteboardState {
   codeOpen: boolean;
   /** The Mermaid code of a diagram is shown beside the canvas (#203, #206). */
   diagramCodeOpen: boolean;
+  /** Why Mermaid could not draw the code of an image again (#279); null after a successful drawing. */
+  diagramCodeProblem: string | null;
   code: CodeDraft;
   catalogOpen: boolean;
   hasDraft: boolean;
