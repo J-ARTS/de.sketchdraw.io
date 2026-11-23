@@ -11,6 +11,8 @@ type PluginTestState = {
   /** Keeps every Jira ticket creation open until the test lets it through. */
   holdJiraCreate: boolean;
   jiraCreateFailure: string;
+  /** What the desktop hands out as the stored token of a plugin; this stand-in hands out none unless a test names one. */
+  secrets?: Partial<Record<'git' | 'jira' | 'azure-devops', string>>;
   calls: {
     contexts: Array<string | null | undefined>;
     saves: SaveDocumentRequest[];
@@ -183,8 +185,11 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
             health: input.enabled ? 'ready' : 'disabled',
             message: input.enabled ? 'Jira ist eingerichtet.' : 'Jira-Plugin ist deaktiviert.',
           });
+          // Like the desktop: the project new tickets go to is the one the JQL filter names.
+          if (input.plugin !== 'confluence' && !input.jiraProjectKey) project.atlassian.jiraProjectKey = /\bproject\s*=\s*([A-Za-z][A-Za-z0-9_]*)/i.exec(input.jqlFilter ?? '')?.[1]?.toUpperCase() ?? '';
           return snapshot();
         },
+        revealCredential: async (plugin: string) => control.secrets?.[plugin === 'confluence' ? 'jira' : plugin as 'git' | 'jira' | 'azure-devops'] ?? '',
         testAtlassian: async () => { control.calls.jiraTests += 1; return { ok: true, message: 'Jira: verbunden' }; },
         gitStatus: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
         gitSync: async () => ({ ok: true, message: 'Repository ist synchron.', settings: snapshot().git }),
@@ -230,6 +235,9 @@ async function desktop(page: Page, options: { cancelSave?: boolean; theme?: 'lig
           return structuredClone(found);
         },
         searchWorkItems: async ({ provider, query }: { provider: string; query: string }) => [...ticketStore.entries()].filter(([id, value]) => id.startsWith(`${provider}:`) && `${String(value.key)} ${String(value.title)}`.toLowerCase().includes(query.toLowerCase())).map(([, value]) => ({ provider, ...structuredClone(value) })),
+        // The tracker suggests values and people for the text typed into a field of the ticket.
+        searchWorkItemValues: async ({ field, query }: { field: string; query: string }) => (({ issueType: ['Bug', 'Story', 'Task'], labels: ['checkout', 'q1', 'q2', 'security'], components: ['Payments', 'Storefront'], fixVersions: ['2026.12', '2027.1'] } as Record<string, string[]>)[field] ?? []).filter((value) => value.toLowerCase().includes(query.toLowerCase())),
+        searchWorkItemUsers: async ({ query }: { query: string }) => [{ name: 'Mara Lind', detail: 'mara@example.test' }, { name: 'Marc Beispiel' }].filter((user) => user.name.toLowerCase().includes(query.toLowerCase())),
         updateWorkItemFields: async (input: Record<string, unknown>) => {
           control.calls.ticketUpdates.push(structuredClone(input));
           const { provider, key, assignee, estimate, ...rest } = input;
@@ -261,7 +269,7 @@ async function openPlugins(page: Page): Promise<Locator> {
   return dialog;
 }
 
-async function selectPlugin(dialog: Locator, name: 'Git' | 'Jira'): Promise<void> {
+async function selectPlugin(dialog: Locator, name: 'Git' | 'Jira' | 'Confluence'): Promise<void> {
   await dialog.getByRole('complementary').getByRole('button', { name: new RegExp(`^${name}\\b`) }).click();
   await expect(dialog.getByRole('heading', { name: `${name}-Konfiguration` })).toBeVisible();
 }
@@ -270,7 +278,7 @@ async function prepareProject(page: Page): Promise<Locator> {
   const dialog = await openPlugins(page);
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('/Users/demo/architecture');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   return dialog;
 }
 
@@ -279,7 +287,7 @@ async function fillJira(dialog: Locator): Promise<void> {
   await dialog.getByLabel('Atlassian-URL', { exact: true }).fill('https://example.atlassian.net');
   await dialog.getByLabel('Username oder E-Mail', { exact: true }).fill('demo@example.test');
   await dialog.getByLabel('API-Token', { exact: true }).fill('test-jira-token');
-  await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('ARCH');
+  // Jira is set up by its JQL filter alone; the project of new tickets follows from it.
   await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH AND assignee = currentUser()');
 }
 
@@ -297,10 +305,10 @@ for (const theme of ['light', 'dark'] as const) {
     await desktop(page, { theme, configurationIssue: { source: 'profiles', kind: 'unsupported-version', blocksChanges: true, message } });
     const plugins = await openPlugins(page);
     await expect(plugins.getByRole('alert')).toHaveText(message);
-    await expect(plugins.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+    await expect(plugins.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
     await expect(plugins.getByRole('button', { name: 'Deinstallieren', exact: true })).toBeDisabled();
     await selectPlugin(plugins, 'Jira');
-    await expect(plugins.getByRole('button', { name: 'Jira speichern', exact: true })).toBeDisabled();
+    await expect(plugins.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
     await expect(plugins.getByLabel('API-Token', { exact: true })).toBeDisabled();
     await closePlugins(plugins);
     const profiles = await openProfiles(page);
@@ -319,7 +327,7 @@ test('a legacy configuration warning preserves access to independent editor prof
   await desktop(page, { configurationIssue: { source: 'legacy', kind: 'invalid-json', blocksChanges: false, message } });
   const plugins = await openPlugins(page);
   await expect(plugins.getByRole('alert')).toHaveText(message);
-  await expect(plugins.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(plugins.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   await closePlugins(plugins);
   const profiles = await openProfiles(page);
   await expect(profiles.getByRole('button', { name: 'Neues Profil', exact: true })).toBeEnabled();
@@ -333,28 +341,28 @@ test('bundled plugins start installed, are configurable in the profile right awa
   await expect(dialog.getByRole('button', { name: 'Installieren', exact: true })).toHaveCount(0);
   // Settings belong to the editor profile (#168): no saved diagram is needed to edit them.
   await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   await expect(dialog.getByLabel('Remote-URL', { exact: true })).toBeEnabled();
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
   // Git itself still needs the folder of a saved diagram.
-  await expect(dialog.getByRole('button', { name: 'Status prüfen', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Jetzt synchronisieren', exact: true })).toBeDisabled();
   expect((await state(page)).calls.git).toEqual([]);
   expect((await state(page)).calls.jira).toEqual([]);
   await dialog.getByRole('button', { name: 'Diagramm speichern', exact: true }).click();
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('/Users/demo/architecture');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
   await selectPlugin(dialog, 'Jira');
   await expect(dialog.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
-  await expect(dialog.getByRole('button', { name: 'Jira speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   const saved = await state(page);
   expect(saved.calls.saves).toHaveLength(1);
   expect(saved.calls.saves[0]?.mode).toBe('save-as');
   expect(saved.calls.contexts).toContain('architecture-file');
 });
 
-test('Git and Jira configurations persist independently and secrets are never refilled on reopen', async ({ page }) => {
+test('Git and Jira configurations persist independently; a token the desktop does not hand out is not refilled on reopen', async ({ page }) => {
   await desktop(page);
   const dialog = await prepareProject(page);
   await dialog.getByLabel('Remote', { exact: true }).fill('upstream');
@@ -362,11 +370,11 @@ test('Git and Jira configurations persist independently and secrets are never re
   await dialog.getByRole('radio', { name: /Username und Token/ }).check();
   await dialog.getByLabel('Username', { exact: true }).fill('demo-git');
   await dialog.getByLabel('Access-Token', { exact: true }).fill('test-git-token');
-  await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).settings.git.remote).toBe('upstream');
   expect((await state(page)).calls.git[0]).toMatchObject({ remote: 'upstream', username: 'demo-git', authMode: 'token', accessToken: 'test-git-token' });
   await fillJira(dialog);
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).settings.atlassian.jiraProjectKey).toBe('ARCH');
   expect((await state(page)).calls.jira[0]).toMatchObject({ email: 'demo@example.test', apiToken: 'test-jira-token', jqlFilter: 'project = ARCH AND assignee = currentUser()' });
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
@@ -381,12 +389,48 @@ test('Git and Jira configurations persist independently and secrets are never re
   await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('');
 });
 
+test('a stored token stands in its field again, hidden until the eye shows it, and is only sent when it was changed', async ({ page }) => {
+  await desktop(page);
+  const dialog = await prepareProject(page);
+  await fillJira(dialog);
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+  await expect.poll(async () => (await state(page)).settings.atlassian.jiraProjectKey).toBe('ARCH');
+  // The desktop hands the stored token out for the settings; Jira and Confluence share it.
+  await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.secrets = { jira: 'test-jira-token' }; });
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await openPlugins(page);
+  await selectPlugin(dialog, 'Jira');
+  const token = dialog.getByLabel('API-Token', { exact: true });
+  await expect(token).toHaveValue('test-jira-token');
+  await expect(token).toHaveAttribute('type', 'password');
+  await dialog.getByRole('button', { name: 'Eingabe anzeigen', exact: true }).click();
+  await expect(token).toHaveAttribute('type', 'text');
+  // The token that is shown is no change: nothing is unsaved, and a save of another field sends no token.
+  await expect(dialog.getByText('Ungespeicherte Änderungen')).toHaveCount(0);
+  await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH');
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+  await expect.poll(async () => (await state(page)).calls.jira.at(-1)?.jqlFilter).toBe('project = ARCH');
+  expect((await state(page)).calls.jira.at(-1)?.apiToken).toBe('');
+  // A token the user typed is sent.
+  await token.fill('new-token');
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+  await expect.poll(async () => (await state(page)).calls.jira.at(-1)?.apiToken).toBe('new-token');
+  await selectPlugin(dialog, 'Confluence');
+  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('test-jira-token');
+  // Closing the dialog takes the token out of the form again.
+  await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
+  await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.secrets = {}; });
+  await openPlugins(page);
+  await selectPlugin(dialog, 'Jira');
+  await expect(dialog.getByLabel('API-Token', { exact: true })).toHaveValue('');
+});
+
 test('Jira synchronizes automatically and exposes no manual sync button', async ({ page }) => {
   await desktop(page);
   const dialog = await prepareProject(page);
   await fillJira(dialog);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Jira-Board synchronisieren', exact: true })).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
@@ -408,7 +452,7 @@ test('saving or testing another plugin preserves unfinished form drafts', async 
   await dialog.getByLabel('Access-Token', { exact: true }).fill('unfinished-token');
   await fillJira(dialog);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeEnabled();
   await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH AND status = Open');
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeDisabled();
@@ -423,7 +467,7 @@ test('saving or testing another plugin preserves unfinished form drafts', async 
   await expect(dialog.getByLabel('Username', { exact: true })).toHaveValue('unfinished-user');
   await expect(dialog.getByLabel('Access-Token', { exact: true })).toHaveValue('unfinished-token');
   expect((await state(page)).calls.git).toHaveLength(0);
-  await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).settings.git.username).toBe('unfinished-user');
   await selectPlugin(dialog, 'Jira');
   await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH AND status = Open');
@@ -434,12 +478,12 @@ test('save errors are visible inside the dialog and preserve the draft for a suc
   const dialog = await prepareProject(page);
   await dialog.getByLabel('Remote-URL', { exact: true }).fill('https://example.test/retry.git');
   await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.gitFailure = 'Testfehler: Projektkonfiguration konnte nicht gespeichert werden.'; });
-  await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByRole('alert')).toContainText('Projektkonfiguration konnte nicht gespeichert werden.');
   await expect(dialog.getByLabel('Remote-URL', { exact: true })).toHaveValue('https://example.test/retry.git');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.gitFailure = ''; });
-  await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).settings.git.remoteUrl).toBe('https://example.test/retry.git');
   await expect(dialog.getByRole('alert')).toHaveCount(0);
 });
@@ -452,7 +496,7 @@ test('cancelling the document save leaves Git without a folder and allows retry'
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('status').filter({ hasText: 'Speichern abgebrochen' })).toBeVisible();
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('');
-  await expect(dialog.getByRole('button', { name: 'Status prüfen', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true })).toBeDisabled();
   await expect(dialog.getByRole('button', { name: 'Diagramm speichern', exact: true })).toBeEnabled();
   expect((await state(page)).settings.projectFolder).toBe('');
   expect((await state(page)).calls.git).toHaveLength(0);
@@ -506,9 +550,9 @@ test('a request from the previous document neither blocks the next one nor clear
   let dialog = await prepareProject(page);
   await fillJira(dialog);
   await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.holdJira = true; });
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).calls.jira.length).toBe(1);
-  await expect(dialog.getByRole('button', { name: 'Jira speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
   await page.getByTestId('file-menu-button').click();
   await page.getByTestId('file-menu-new').click();
@@ -519,16 +563,16 @@ test('a request from the previous document neither blocks the next one nor clear
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('/Users/demo/architecture-2');
   await dialog.getByLabel('Remote', { exact: true }).fill('project-b');
   await page.evaluate(() => { (window as unknown as TestWindow).__pluginTest.holdGit = true; });
-  await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).calls.git.length).toBe(1);
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
   await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('jira'));
   await expect(dialog.getByLabel('Projektordner', { exact: true })).toHaveValue('/Users/demo/architecture-2');
   await expect(dialog.getByLabel('Remote', { exact: true })).toHaveValue('project-b');
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
   await expect(dialog.getByLabel('Remote', { exact: true })).toBeDisabled();
   await page.evaluate(() => (window as unknown as TestWindow).__resolvePluginRequest('git'));
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
   expect((await state(page)).settings.git.remote).toBe('project-b');
   // Both saves belong to the same profile, whichever document was open when they started.
   expect((await state(page)).settings.atlassian.email).toBe('demo@example.test');
@@ -560,7 +604,7 @@ for (const width of [360, 960, 1280]) {
       const dialog = await prepareProject(page);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await fillJira(dialog);
-      const save = dialog.getByRole('button', { name: 'Jira speichern', exact: true });
+      const save = dialog.getByRole('button', { name: 'Speichern', exact: true });
       await save.scrollIntoViewIfNeeded();
       const rect = await dialog.boundingBox();
       expect(rect).not.toBeNull();
@@ -623,9 +667,9 @@ test('browser shows the bundled plugins but explains why native configuration is
   await expect(dialog.getByRole('tab', { name: /Installiert/ })).toContainText('3');
   await expect(dialog).toContainText('Desktop-App');
   await expect(dialog.getByRole('button', { name: 'Diagramm speichern', exact: true })).toHaveCount(0);
-  await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
   await selectPlugin(dialog, 'Jira');
-  await expect(dialog.getByRole('button', { name: 'Jira speichern', exact: true })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeDisabled();
   await expect(dialog.getByLabel('API-Token', { exact: true })).toBeDisabled();
   expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 });
@@ -669,7 +713,7 @@ test('profiles are created, copied, renamed, activated and deleted in their own 
   await expect(plugins.getByRole('button', { name: 'Neues Profil', exact: true })).toHaveCount(0);
   await fillJira(plugins);
   await plugins.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await plugins.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(plugins.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
   await closePlugins(plugins);
 
@@ -703,28 +747,28 @@ test('profiles are created, copied, renamed, activated and deleted in their own 
   plugins = await openPlugins(page);
   await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde A“');
   await selectPlugin(plugins, 'Jira');
-  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('');
+  await expect(plugins.getByLabel('JQL-Filter', { exact: true })).toHaveValue('');
   await expect(plugins.getByRole('checkbox', { name: 'Aktiv', exact: true })).not.toBeChecked();
-  await plugins.getByLabel('Jira-Projekt', { exact: true }).fill('KUNDE');
-  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await plugins.getByLabel('JQL-Filter', { exact: true }).fill('project = KUNDE');
+  await plugins.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(plugins.locator('.plugin-feedback')).toHaveText(/gespeichert/i);
   await closePlugins(plugins);
 
-  // Switching in the menu brings each profile's own settings back; tokens are never refilled.
+  // Switching in the menu brings each profile's own settings back; this stand-in hands out no stored token, so the field stays empty.
   await switchProfile(page, 'Standard');
   plugins = await openPlugins(page);
   await selectPlugin(plugins, 'Jira');
-  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(plugins.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH AND assignee = currentUser()');
   await expect(plugins.getByRole('checkbox', { name: 'Aktiv', exact: true })).toBeChecked();
   await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveValue('');
   await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
   // An unsaved draft does not travel to another profile.
-  await plugins.getByLabel('Jira-Projekt', { exact: true }).fill('DRAFT');
+  await plugins.getByLabel('JQL-Filter', { exact: true }).fill('project = DRAFT');
   await closePlugins(plugins);
   await switchProfile(page, 'Kunde A');
   plugins = await openPlugins(page);
   await selectPlugin(plugins, 'Jira');
-  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
+  await expect(plugins.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = KUNDE');
   await closePlugins(plugins);
   await switchProfile(page, 'Standard');
 
@@ -772,7 +816,7 @@ test('profiles are created, copied, renamed, activated and deleted in their own 
   plugins = await openPlugins(page);
   await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde B“');
   await selectPlugin(plugins, 'Jira');
-  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(plugins.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH AND assignee = currentUser()');
   await expect(plugins.getByLabel('API-Token', { exact: true })).toHaveAttribute('placeholder', /Gespeichert/);
   await closePlugins(plugins);
 
@@ -794,7 +838,7 @@ test('profiles are created, copied, renamed, activated and deleted in their own 
   plugins = await openPlugins(page);
   await expect(plugins.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
   await selectPlugin(plugins, 'Jira');
-  await expect(plugins.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+  await expect(plugins.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH AND assignee = currentUser()');
 
   const calls = (await state(page)).calls.profiles;
   expect(calls.map(call => call.action)).toEqual(['create', 'select', 'select', 'select', 'create', 'rename', 'rename', 'select', 'select', 'delete']);
@@ -913,9 +957,9 @@ test('Jira and Confluence are two plugins: each has its own switch and fields an
   await desktop(page);
   const dialog = await prepareProject(page);
   await fillJira(dialog);
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).calls.jira.length).toBe(1);
-  expect((await state(page)).calls.jira[0]).toMatchObject({ plugin: 'jira', jiraProjectKey: 'ARCH' });
+  expect((await state(page)).calls.jira[0]).toMatchObject({ plugin: 'jira', jiraProjectKey: '', jqlFilter: 'project = ARCH AND assignee = currentUser()' });
   // The Jira card no longer asks for the Confluence space.
   await expect(dialog.getByLabel('Confluence-Space (optional)', { exact: true })).toHaveCount(0);
 
@@ -925,7 +969,7 @@ test('Jira and Confluence are two plugins: each has its own switch and fields an
   await expect(dialog.getByLabel('Atlassian-URL', { exact: true })).toHaveValue('https://example.atlassian.net');
   await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveCount(0);
   await dialog.getByLabel('Confluence-Space (optional)', { exact: true }).fill('DOC');
-  await dialog.getByRole('button', { name: 'Confluence speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect.poll(async () => (await state(page)).calls.jira.length).toBe(2);
   expect((await state(page)).calls.jira[1]).toMatchObject({ plugin: 'confluence', confluenceSpaceKey: 'DOC', siteUrl: 'https://example.atlassian.net' });
   expect((await new AxeBuilder({ page }).include('.plugin-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
@@ -936,7 +980,7 @@ test('a task form that is being saved ignores a second submit; a ticket that fai
   const dialog = await prepareProject(page);
   await fillJira(dialog);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
   await page.getByTestId('workspace-menu-button').click();
@@ -1019,7 +1063,7 @@ test('Azure DevOps is installed from the marketplace, set up for cloud or server
   await config.getByLabel('Personal Access Token', { exact: true }).fill('pat-secret');
   await config.getByTestId('azure-devops-save').click();
   await expect(dialog.getByText('Azure-DevOps-Plugin gespeichert.')).toBeVisible();
-  // The token is never shown again.
+  // This stand-in hands out no stored token, so the field is empty again.
   await expect(config.getByLabel('Personal Access Token', { exact: true })).toHaveValue('');
   await expect(config.getByLabel('Personal Access Token', { exact: true })).toHaveAttribute('placeholder', 'Gespeichert – leer lassen zum Behalten');
   expect((await state(page)).calls.azure.at(-1)).toMatchObject({ enabled: true, variant: 'cloud', organizationUrl: 'https://dev.azure.com/acme', project: 'Shop', apiVersion: '7.1', readOnly: false, accessToken: 'pat-secret' });
@@ -1076,7 +1120,7 @@ test('the form of a Jira task sends title and description; the next sync keeps t
   const dialog = await prepareProject(page);
   await fillJira(dialog);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
   await page.getByTestId('workspace-menu-button').click();
@@ -1131,7 +1175,7 @@ async function connectJira(page: Page): Promise<void> {
   const dialog = await prepareProject(page);
   await fillJira(dialog);
   await dialog.getByRole('checkbox', { name: 'Aktiv', exact: true }).check();
-  await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByText('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.')).toBeVisible();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
 }
@@ -1149,19 +1193,23 @@ for (const theme of ['light', 'dark'] as const) {
     await connectJira(page);
 
     // Find the ticket by part of its title and put it on the canvas.
-    await page.getByTestId('workspace-menu-button').click();
-    await page.getByRole('menuitem', { name: 'Ticket-Karte einfügen …' }).click();
+    // The library ("…" in the toolbar) opens the list tickets are picked from; the workspace menu no longer has the entry.
+    await page.getByTestId('more-shapes').click();
+    await page.getByTestId('add-ticket-card-jira').click();
     const dialog = page.getByTestId('ticket-dialog');
-    await expect(dialog.getByRole('heading', { name: 'Ticket als Karte einfügen' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Tickets auswählen' })).toBeVisible();
+    await expect(dialog.getByTestId('ticket-site')).toHaveText('https://example.atlassian.net');
     await expect(dialog.getByTestId('ticket-query')).toBeFocused();
+    // The list searches while the text is typed.
     await dialog.getByTestId('ticket-query').fill('nichts davon');
-    await dialog.getByTestId('ticket-query').press('Enter');
     await expect(dialog.getByTestId('ticket-no-results')).toBeVisible();
     await dialog.getByTestId('ticket-query').fill('Warenkorb');
-    await dialog.getByTestId('ticket-search').click();
-    await expect(dialog.getByTestId('ticket-results').getByRole('listitem')).toHaveCount(2);
+    await expect(dialog.getByTestId('ticket-results').locator('tbody tr')).toHaveCount(2);
+    await expect(dialog.getByTestId('ticket-add')).toBeDisabled();
     expect((await new AxeBuilder({ page }).include('.ticket-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
-    await dialog.getByRole('button', { name: 'ARCH-12 einfügen' }).click();
+    await dialog.getByRole('checkbox', { name: 'ARCH-12 auswählen', exact: true }).check();
+    await expect(dialog.getByTestId('ticket-add')).toHaveText('1 Karte hinzufügen');
+    await dialog.getByTestId('ticket-add').click();
     await expect(dialog).toBeHidden();
 
     const card = page.getByTestId('ticket-card');
@@ -1177,24 +1225,50 @@ for (const theme of ['light', 'dark'] as const) {
 
     // A double click opens the ticket, not the text of the rectangle.
     await openCard(page, card);
-    await expect(dialog.getByRole('heading', { name: 'Ticket ARCH-12' })).toBeVisible();
+    // The head names the ticket by key and title; opening it in the tracker and reading it again are symbols there.
+    await expect(dialog.getByRole('heading', { name: 'ARCH-12 Warenkorb übersteht den Gerätewechsel' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'In Jira öffnen', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Neu abrufen', exact: true })).toBeEnabled();
     await expect(dialog.getByLabel('Titel', { exact: true })).toHaveValue('Warenkorb übersteht den Gerätewechsel');
     await expect(dialog.getByLabel('Beschreibung', { exact: true })).toHaveValue('Der Warenkorb wird am Konto gespeichert.');
     await expect(dialog.getByLabel('Zugewiesen an', { exact: true })).toHaveValue('Mara Lind');
-    await expect(dialog.getByLabel('Labels', { exact: true })).toHaveValue('checkout, q1');
-    await expect(dialog.getByLabel('Komponenten', { exact: true })).toHaveValue('Storefront');
+    const chosen = (label: string) => dialog.getByRole('list', { name: `${label}: gewählt` }).getByRole('listitem');
+    await expect(chosen('Labels')).toHaveText(['checkout', 'q1']);
+    await expect(chosen('Komponenten')).toHaveText(['Storefront']);
     await expect(dialog.getByLabel('Schätzung', { exact: true })).toHaveValue('5');
     expect((await new AxeBuilder({ page }).include('.ticket-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
     if (process.env.TICKET_SHOTS) await page.screenshot({ path: `/tmp/shots/ticket-edit-${theme}.png` });
 
-    // The tracker refuses a label with a space: the dialog stays open with what was typed.
-    await dialog.getByLabel('Labels', { exact: true }).fill('checkout, zwei worte');
+    // The tracker is asked while a field is typed in: people, the type, versions and labels appear as suggestions.
+    const assignee = dialog.getByRole('combobox', { name: 'Zugewiesen an' });
+    await assignee.fill('Mar');
+    await expect(page.getByRole('option', { name: 'Marc Beispiel' })).toBeVisible();
+    await expect(dialog.getByTestId('ticket-assignee-matches')).toHaveText('2 passende Personen');
+    await page.getByRole('option', { name: 'Mara Lind – mara@example.test' }).click();
+    await expect(assignee).toHaveValue('Mara Lind');
+    await dialog.getByRole('combobox', { name: 'Vorgangstyp' }).fill('St');
+    await page.getByRole('option', { name: 'Story' }).click();
+    await expect(dialog.getByRole('combobox', { name: 'Vorgangstyp' })).toHaveValue('Story');
+    await dialog.getByRole('combobox', { name: 'Fix Version' }).fill('2027');
+    await page.getByRole('option', { name: '2027.1' }).click();
+    await expect(chosen('Fix Version')).toHaveText(['2027.1']);
+    await expect(dialog.getByRole('combobox', { name: 'Fix Version' })).toHaveValue('');
+
+    // A text that is no suggestion is added with Enter. The tracker refuses a label with a space: the dialog stays open with it.
+    await dialog.getByRole('combobox', { name: 'Labels' }).fill('zwei worte');
+    await dialog.getByRole('combobox', { name: 'Labels' }).press('Enter');
+    await expect(chosen('Labels')).toHaveText(['checkout', 'q1', 'zwei worte']);
+    await expect(dialog).toBeVisible();
     await dialog.getByTestId('ticket-save').click();
     await expect(page.getByRole('region', { name: 'Meldungen' }).getByText('Jira hat die Änderung nicht übernommen: Ein Jira-Label darf keine Leerzeichen enthalten.')).toBeVisible();
-    await expect(dialog.getByLabel('Labels', { exact: true })).toHaveValue('checkout, zwei worte');
+    await expect(chosen('Labels')).toHaveText(['checkout', 'q1', 'zwei worte']);
 
     // Only what changed is sent; the card shows what the tracker answered.
-    await dialog.getByLabel('Labels', { exact: true }).fill('checkout, q2');
+    await dialog.getByRole('button', { name: '„zwei worte“ entfernen' }).click();
+    await dialog.getByRole('button', { name: '„q1“ entfernen' }).click();
+    await dialog.getByRole('combobox', { name: 'Labels' }).fill('q');
+    await page.getByRole('option', { name: 'q2' }).click();
+    await expect(chosen('Labels')).toHaveText(['checkout', 'q2']);
     await dialog.getByLabel('Titel', { exact: true }).fill('Warenkorb am Konto');
     await dialog.getByLabel('Zugewiesen an', { exact: true }).fill('');
     await dialog.getByLabel('Schätzung', { exact: true }).fill('8');
@@ -1202,7 +1276,7 @@ for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('option', { name: 'Erledigt' }).click();
     await dialog.getByTestId('ticket-save').click();
     await expect(dialog).toBeHidden();
-    expect((await state(page)).calls.ticketUpdates.at(-1)).toEqual({ provider: 'jira', key: 'ARCH-12', title: 'Warenkorb am Konto', status: 'done', assignee: null, labels: ['checkout', 'q2'], estimate: '8' });
+    expect((await state(page)).calls.ticketUpdates.at(-1)).toEqual({ provider: 'jira', key: 'ARCH-12', title: 'Warenkorb am Konto', status: 'done', assignee: null, issueType: 'Story', labels: ['checkout', 'q2'], fixVersions: ['2027.1'], estimate: '8' });
     await expect(card.getByTestId('ticket-card-title')).toContainText('Warenkorb am Konto');
     await expect(card.getByTestId('ticket-card-status')).toContainText('Done');
     await expect(card.getByTestId('ticket-card-meta')).toContainText('Niemand zugewiesen');
@@ -1229,7 +1303,7 @@ test('a pasted ticket address becomes a card; a card without its tracker stays r
   const plugins = await openPlugins(page);
   await selectPlugin(plugins, 'Jira');
   await plugins.getByRole('checkbox', { name: 'Aktiv', exact: true }).uncheck();
-  await plugins.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+  await plugins.getByRole('button', { name: 'Speichern', exact: true }).click();
   await plugins.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
   await expect(card.getByTestId('ticket-card-title')).toContainText('Warenkorb leeren');
   await openCard(page, card);
@@ -1240,8 +1314,9 @@ test('a pasted ticket address becomes a card; a card without its tracker stays r
   await expect(dialog.getByTestId('ticket-refresh')).toBeDisabled();
   await dialog.getByRole('button', { name: 'Schließen', exact: true }).click();
   await expect(dialog).toBeHidden();
-  await page.getByTestId('workspace-menu-button').click();
-  await expect(page.getByRole('menuitem', { name: 'Ticket-Karte einfügen …' })).toHaveCount(0);
+  await page.getByTestId('more-shapes').click();
+  await expect(page.getByTestId('shape-library-sidebar')).toBeVisible();
+  await expect(page.getByTestId('add-ticket-card-jira')).toHaveCount(0);
 });
 
 for (const theme of ['light', 'dark'] as const) {

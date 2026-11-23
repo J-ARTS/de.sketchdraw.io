@@ -48,6 +48,8 @@ import { APP_LINK_SCHEME, findAppLink, parseAppLink } from '../src/collaboration
 import { serviceAdTopic, sessionAdTopic } from '../relay/hub.mjs';
 import { DocumentPersistenceService } from './persistence';
 import { PluginService } from './plugin-service';
+import { pluginRequestInit } from './plugin-fetch';
+import { environmentProxy } from './proxy-environment';
 import {
   APP_SCHEME,
   buildContentSecurityPolicy,
@@ -516,7 +518,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'uninstall-plugin': return plugins.uninstallPlugin(String(request.payload ?? '') as PluginId);
       case 'configure-git': return plugins.configureGit(payload);
       case 'configure-atlassian': return plugins.configureAtlassian(payload);
-      case 'test-atlassian': return plugins.testAtlassian();
+      case 'reveal-credential': return plugins.revealCredential(String(request.payload ?? '') as PluginId);
+      case 'test-atlassian': return plugins.testAtlassian(request.payload === 'jira' || request.payload === 'confluence' ? request.payload : undefined);
       case 'git-status': return plugins.gitStatus(String(request.payload ?? ''));
       case 'git-sync': return plugins.gitSync(String(request.payload ?? ''));
       case 'git-workbench': return plugins.gitWorkbench(String(request.payload ?? ''));
@@ -525,6 +528,10 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'git-push': return plugins.gitPush(String(request.payload ?? ''));
       case 'git-update': return plugins.gitUpdate(String(request.payload ?? ''));
       case 'git-log': return plugins.gitLog(payload);
+      case 'git-branches': return plugins.gitBranches(payload);
+      case 'git-checkout': return plugins.gitCheckout(payload);
+      case 'git-create-branch': return plugins.gitCreateBranch(payload);
+      case 'git-merge': return plugins.gitMerge(payload);
       case 'git-discard': return plugins.gitDiscard(payload);
       case 'git-restore-document': return plugins.gitRestoreDocument(payload);
       case 'git-automation': return plugins.gitAutomation(payload);
@@ -550,6 +557,8 @@ function registerIpcHandlers(persistence: DocumentPersistenceService, plugins: P
       case 'transition-azure-work-item': return plugins.transitionAzureWorkItem(payload);
       case 'get-work-item': return plugins.getWorkItem(payload);
       case 'search-work-items': return plugins.searchWorkItems(payload);
+      case 'search-work-item-values': return plugins.searchWorkItemValues(payload);
+      case 'search-work-item-users': return plugins.searchWorkItemUsers(payload);
       case 'update-work-item-fields': return plugins.updateWorkItemFields(payload);
       default: throw new Error('Unbekannte Plugin-Aktion.');
     }
@@ -654,6 +663,9 @@ void app
     activeTarget = target;
 
     configureDefaultSessionSecurity(target);
+    // A proxy named in the environment (https_proxy, http_proxy) comes before the proxy settings of the system.
+    const proxy = environmentProxy(process.env);
+    if (proxy) await session.defaultSession.setProxy({ mode: 'fixed_servers', ...proxy });
 
     const distRootDir = getDistRootDir();
     protocol.handle(APP_SCHEME, (request) =>
@@ -709,6 +721,9 @@ void app
       emitEvent: (event) => {
         if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(IPC_CHANNELS.PLUGIN_EVENT, event);
       },
+      // Jira, Confluence and Azure DevOps are reached through Electron's network stack: unlike the fetch of Node it
+      // follows the proxy of the system and of the environment. The app names itself instead of a browser.
+      fetchFn: ((input, init) => net.fetch(input instanceof URL ? input.href : input as string | Request, pluginRequestInit(init, app.getVersion()))) as typeof fetch,
     });
     pluginService = plugins;
     const updates = createUpdateService();

@@ -10,6 +10,7 @@ import type { SketchElement, TaskStatus } from './types';
 export const TICKET_CARD = Object.freeze({
   provider: 'ticket:provider', key: 'ticket:key', url: 'ticket:url', status: 'ticket:status', remoteStatus: 'ticket:remote-status',
   assignee: 'ticket:assignee', labels: 'ticket:labels', components: 'ticket:components', estimate: 'ticket:estimate', fetchedAt: 'ticket:fetched-at',
+  type: 'ticket:type', fixVersions: 'ticket:fix-versions',
 });
 export const TICKET_CARD_WIDTH = 320;
 export const TICKET_CARD_HEIGHT = 176;
@@ -29,6 +30,10 @@ export interface TicketCardData {
   labels: string[];
   components: string[];
   estimate: string;
+  /** The type of the ticket as the tracker names it ("Bug", "Story" …); empty on a card that was read before types were. */
+  issueType: string;
+  /** Jira fix versions; in Azure Boards the iteration path. */
+  fixVersions: string[];
   /** When the content was last read from the tracker (ISO time); empty when it never was. */
   fetchedAt: string;
 }
@@ -55,7 +60,7 @@ export function readTicketCard(element: (Pick<SketchElement, 'kind' | 'metadata'
     title: element.text ?? '', description: element.description ?? '',
     status: STATUSES.includes(status) ? status : 'todo', remoteStatus: metadata[TICKET_CARD.remoteStatus] ?? '',
     assignee: metadata[TICKET_CARD.assignee] ?? '', labels: list(metadata[TICKET_CARD.labels]), components: list(metadata[TICKET_CARD.components]),
-    estimate: metadata[TICKET_CARD.estimate] ?? '', fetchedAt: metadata[TICKET_CARD.fetchedAt] ?? '',
+    estimate: metadata[TICKET_CARD.estimate] ?? '', issueType: metadata[TICKET_CARD.type] ?? '', fixVersions: list(metadata[TICKET_CARD.fixVersions]), fetchedAt: metadata[TICKET_CARD.fetchedAt] ?? '',
   };
 }
 
@@ -64,7 +69,7 @@ export function readTicketCard(element: (Pick<SketchElement, 'kind' | 'metadata'
  * metadata key (null), so a card never keeps what the ticket no longer has.
  */
 export function ticketCardPatch(provider: TicketProvider, ticket: JiraIssueSummary, fetchedAt: string): { text: string; description: string | null; metadata: Record<string, string | null> } {
-  const labels = (ticket.labels ?? []).slice(0, MAX_LIST), components = (ticket.components ?? []).slice(0, MAX_LIST);
+  const labels = (ticket.labels ?? []).slice(0, MAX_LIST), components = (ticket.components ?? []).slice(0, MAX_LIST), fixVersions = (ticket.fixVersions ?? []).slice(0, MAX_LIST);
   return {
     text: ticket.title, description: ticket.description || null,
     metadata: {
@@ -74,9 +79,20 @@ export function ticketCardPatch(provider: TicketProvider, ticket: JiraIssueSumma
       [TICKET_CARD.labels]: labels.length ? JSON.stringify(labels) : null,
       [TICKET_CARD.components]: components.length ? JSON.stringify(components) : null,
       [TICKET_CARD.estimate]: ticket.estimate || null,
+      [TICKET_CARD.type]: ticket.issueType || null,
+      [TICKET_CARD.fixVersions]: fixVersions.length ? JSON.stringify(fixVersions) : null,
       [TICKET_CARD.fetchedAt]: fetchedAt,
     },
   };
+}
+
+/**
+ * Whether a patch would change what its card shows. The time of reading does not count: a card that is read every
+ * few seconds must not change its document every few seconds.
+ */
+export function ticketCardPatchChanges(element: Pick<SketchElement, 'metadata' | 'text' | 'description'>, patch: ReturnType<typeof ticketCardPatch>): boolean {
+  if ((element.text ?? '') !== patch.text || (element.description || null) !== patch.description) return true;
+  return Object.entries(patch.metadata).some(([key, value]) => key !== TICKET_CARD.fetchedAt && (element.metadata?.[key] ?? null) !== value);
 }
 
 /**

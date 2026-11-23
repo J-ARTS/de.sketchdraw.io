@@ -245,9 +245,14 @@ function ticketCardSvgContent(el: SketchElement, d: DiagnosticCollector): string
   const state = colors.state[layout.state.status];
   const middle = layout.key.y, chipMiddle = layout.chips.y + layout.chips.height / 2;
   const fetched = ticketCardFetchedText(ticket.fetchedAt);
+  // The fix versions of the canvas, and the time of the read: a picture is a state of the ticket, not the ticket.
+  const footer = [layout.footer.text, fetched].filter(Boolean).join('  ·  ');
   return [
+    ...(layout.accent ? [`<rect${attrs({ x: layout.accent.x, y: layout.accent.y, width: layout.accent.width, height: layout.accent.height, rx: 2, fill: layout.accent.color })}/>`] : []),
     `<rect${attrs({ x: layout.mark.x, y: layout.mark.y, width: layout.mark.size, height: layout.mark.size, rx: 6, fill: layout.mark.color })}/>`,
-    line(layout.mark.x + layout.mark.size / 2, middle, type.mark, 700, '#ffffff', layout.mark.text, 'middle'),
+    ...(layout.mark.shapes.length
+      ? [`<g${attrs({ transform: `translate(${layout.mark.x} ${layout.mark.y})` })}>${layout.mark.shapes.map((shape) => `<path${attrs(shape.filled ? { d: shape.d, fill: '#ffffff' } : { d: shape.d, fill: 'none', stroke: '#ffffff', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })}/>`).join('')}</g>`]
+      : [line(layout.mark.x + layout.mark.size / 2, middle, type.mark, 700, '#ffffff', layout.mark.text, 'middle')]),
     line(layout.key.x, middle, type.key, 650, colors.muted, layout.key.text),
     `<rect${attrs({ x: layout.state.x, y: layout.state.y, width: layout.state.width, height: layout.state.height, rx: 11, fill: state.fill })}/>`,
     line(layout.state.x + layout.state.width / 2, middle, type.state, 650, state.ink, layout.state.label, 'middle'),
@@ -258,7 +263,7 @@ function ticketCardSvgContent(el: SketchElement, d: DiagnosticCollector): string
       return [`<rect${attrs({ x: chip.x, y: layout.chips.y, width: chip.width, height: layout.chips.height, rx: 6, fill: tone.fill })}/>`, line(chip.x + chip.width / 2, chipMiddle, type.chip, 550, tone.ink, chip.text, 'middle')];
     }),
     ...(layout.chips.more > 0 ? [line(layout.chips.moreX + 2, chipMiddle, type.chip, 600, colors.muted, `+${layout.chips.more}`)] : []),
-    ...(fetched ? [line(layout.footer.x, layout.footer.y, type.footer, 400, colors.muted, fetched)] : []),
+    ...(footer ? [line(layout.footer.x, layout.footer.y, type.footer, 400, colors.muted, footer)] : []),
   ].join('');
 }
 function svgMarker(id: string, marker: ConnectorMarker, stroke: string, width: number): string {

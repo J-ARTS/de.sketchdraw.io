@@ -37,7 +37,7 @@ async function setup(options: { linked?: boolean; confluence?: boolean; azure?: 
   const plugins = {
     getSettings: vi.fn(async (handle?: string | null) => snapshot(handle)),
     selectProfile: vi.fn(), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(), afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(),
-    gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitPull: vi.fn(), gitCheckout: vi.fn(), gitCreateBranch: vi.fn(), watchDocument: vi.fn(async () => {}),
+    gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitPull: vi.fn(), gitBranches: vi.fn(), gitCheckout: vi.fn(), gitCreateBranch: vi.fn(), gitMerge: vi.fn(), watchDocument: vi.fn(async () => {}),
     listConfluencePages: vi.fn(async () => [{ id: '7', title: 'Architektur', version: 4, url: 'https://example.atlassian.net/wiki/pages/7' }]), getConfluencePage: vi.fn(), updateConfluencePage: vi.fn(),
     setConfluenceLiveLink: vi.fn(async () => snapshot(HANDLE)), publishConfluenceLive: vi.fn(async (): Promise<ConfluenceLivePublishResult> => ({ status: 'synced', message: '', uploaded: 0, bodyUpdated: false })),
     listAzureWikiPages: vi.fn(async (query: string) => pages.filter((page) => page.detail.toLowerCase().includes(query.toLowerCase()))),

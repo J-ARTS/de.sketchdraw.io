@@ -57,11 +57,11 @@ test('Git status refreshes a stale remote-tracking branch without changing the w
     await dialog.getByRole('checkbox', { name: /Automatisch committen/ }).uncheck();
     await dialog.getByRole('checkbox', { name: /Automatisch abrufen/ }).uncheck();
     await dialog.getByRole('checkbox', { name: /Automatisch pushen/ }).uncheck();
-    await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect(dialog).toContainText('Remote-Stand noch nicht aktualisiert');
     await expect(dialog.locator('.status-grid')).toContainText('↑ 0 · ↓ 0');
 
-    await dialog.getByRole('button', { name: 'Status prüfen', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
     await expect(dialog).toContainText('Repository liegt hinter dem Remote.');
     await expect(dialog.locator('.status-grid')).toContainText('↑ 0 · ↓ 1');
     expect((await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout).toBe(worktreeBefore);
@@ -103,18 +103,35 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Standard“');
 
     // The profile is configured before any diagram is saved.
-    await expect(dialog.getByRole('button', { name: 'Git speichern', exact: true })).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
     await dialog.getByLabel('Atlassian-URL', { exact: true }).fill('http://example.atlassian.net');
-    await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect(dialog.getByRole('alert')).toContainText('Atlassian benötigt eine HTTPS-URL');
     await expect(dialog.getByLabel('Atlassian-URL', { exact: true })).toHaveValue('http://example.atlassian.net');
     await dialog.getByLabel('Atlassian-URL', { exact: true }).fill('https://example.atlassian.net');
+    // A token that was typed can be shown again before it is saved; nothing has been saved yet, so there is no date.
+    const token = dialog.getByLabel('API-Token', { exact: true });
+    await expect(dialog.getByRole('button', { name: 'Eingabe anzeigen', exact: true })).toBeDisabled();
+    await expect(dialog.getByTestId('plugin-saved-at')).toHaveCount(0);
+    await token.fill('typed-token');
+    await expect(token).toHaveAttribute('type', 'password');
+    await dialog.getByRole('button', { name: 'Eingabe anzeigen', exact: true }).click();
+    await expect(token).toHaveAttribute('type', 'text');
+    await dialog.getByRole('button', { name: 'Eingabe verbergen', exact: true }).click();
+    await expect(token).toHaveAttribute('type', 'password');
+    await token.fill('');
     await dialog.getByLabel('Username oder E-Mail', { exact: true }).fill('test@example.invalid');
-    await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('ARCH');
     await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = ARCH');
-    await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect.poll(async () => (await store()).profiles?.[0]?.atlassian?.jqlFilter).toBe('project = ARCH');
+    await expect(dialog.getByTestId('plugin-saved-at')).toContainText('Zuletzt aktualisiert:');
+    // A message of success is green and can be closed.
+    const feedback = dialog.getByTestId('plugin-feedback');
+    await expect(feedback).toHaveClass(/success/);
+    await expect(feedback.getByRole('status')).toHaveText('Jira-Plugin gespeichert.');
+    await feedback.getByRole('button', { name: 'Meldung schließen', exact: true }).click();
+    await expect(feedback).toHaveCount(0);
     expect(await store()).toMatchObject({ version: 3, activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard', atlassian: { installed: true, enabled: false, jiraProjectKey: 'ARCH' } }] });
 
     // Saving the diagram gives Git its folder; a disabled Git plugin is stored without touching that folder.
@@ -123,8 +140,11 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect(dialog).toContainText(folderA);
     await dialog.getByRole('button', { name: /Git Versionierung/ }).click();
     await dialog.getByLabel('Remote', { exact: true }).fill('team');
-    await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect.poll(async () => (await store()).profiles?.[0]?.git?.remote).toBe('team');
+    // Left alone, the message of success leaves by itself after five seconds.
+    await expect(feedback.getByRole('status')).toHaveText('Git-Plugin gespeichert.');
+    await expect(feedback).toHaveCount(0, { timeout: 8_000 });
     expect(await exists(path.join(folderA, '.sketchdraw-plugins.json'))).toBe(false);
     expect(await exists(path.join(folderA, '.git', 'HEAD'))).toBe(false);
 
@@ -150,7 +170,8 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     expect(await refusal('getWorkItem', { provider: 'trello', key: '1' })).toContain('Unbekanntes Ticket-System.');
     expect(await refusal('updateWorkItemFields', { provider: 'trello', key: '1', title: 'x' })).toContain('Unbekanntes Ticket-System.');
     expect(await refusal('updateWorkItemFields', { provider: 'azure-devops', key: '1', status: 'archived' })).toContain('Ungültiger Status.');
-    expect(await refusal('searchWorkItems', { provider: 'azure-devops', query: '' })).toBe('answered: []');
+    // A search without a text lists the work items that changed last; a plugin that is switched off refuses it like every other request.
+    expect(await refusal('searchWorkItems', { provider: 'azure-devops', query: '' })).toContain('Azure-DevOps-Plugin ist deaktiviert.');
     expect(await refusal('getWorkItem', { provider: 'azure-devops', key: '7' })).toContain('Azure-DevOps-Plugin ist deaktiviert.');
     // The wiki of Azure DevOps (#284) goes the same way: the plugin that is switched off finds, links and publishes nothing.
     expect(await refusal('listAzureWikiPages', 'architektur')).toContain('Azure-DevOps-Plugin ist deaktiviert.');
@@ -175,8 +196,10 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
     await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('');
     await expect(dialog.getByLabel('Username oder E-Mail', { exact: true })).toHaveValue('');
-    await dialog.getByLabel('Jira-Projekt', { exact: true }).fill('KUNDE');
-    await dialog.getByRole('button', { name: 'Jira speichern', exact: true }).click();
+    // Jira is set up by its JQL filter alone; the project new tickets go to is the one the filter names.
+    await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveCount(0);
+    await dialog.getByLabel('JQL-Filter', { exact: true }).fill('project = KUNDE');
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     await expect.poll(async () => (await store()).profiles?.[1]?.atlassian?.jiraProjectKey).toBe('KUNDE');
     const saved = await store();
     expect(saved.activeProfileId).toBe(saved.profiles![1]!.id);
@@ -192,7 +215,7 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     await expect(dialog).toContainText(folderB);
     await expect(dialog.getByTestId('plugin-active-profile')).toContainText('Profil „Kunde“');
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
-    await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('KUNDE');
+    await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = KUNDE');
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen' }).click();
     expect(await exists(path.join(folderB, '.sketchdraw-plugins.json'))).toBe(false);
 
@@ -217,10 +240,10 @@ test('bundled plugins configure through the real desktop bridge and stay with th
     dialog = await openPlugins();
     await expect(dialog.getByRole('button', { name: 'Diagramm speichern', exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: /Git Versionierung/ }).click();
-    await expect(dialog.getByRole('button', { name: 'Status prüfen', exact: true })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true })).toBeDisabled();
     await dialog.getByRole('button', { name: /Jira Aufgaben/ }).click();
-    await expect(dialog.getByRole('button', { name: 'Jira speichern', exact: true })).toBeEnabled();
-    await expect(dialog.getByLabel('Jira-Projekt', { exact: true })).toHaveValue('ARCH');
+    await expect(dialog.getByRole('button', { name: 'Speichern', exact: true })).toBeEnabled();
+    await expect(dialog.getByLabel('JQL-Filter', { exact: true })).toHaveValue('project = ARCH');
     expect(errors).toEqual([]);
 
     // Profiles and the active one survive a restart of the app.

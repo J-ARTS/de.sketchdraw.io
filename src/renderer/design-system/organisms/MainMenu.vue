@@ -13,7 +13,7 @@ import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboa
 import { L, t, tn } from '@/renderer/i18n';
 
 type FileItemId = 'new' | 'open' | 'save' | 'saveAs' | 'export' | 'interopImport' | 'interopExport';
-type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'ticket' | 'plugins' | 'settings' | 'support';
+type ViewItemId = 'objects' | 'help' | 'git' | 'collaboration' | 'catalog' | 'code' | 'slides' | 'tasks' | 'plugins' | 'settings' | 'support';
 interface FileItem { id: FileItemId; label: string; icon: IconName; hint: string; separator?: boolean }
 /** `checked` is omitted for plain actions (menuitem) and set for toggles (menuitemcheckbox). `external`: the entry opens a website in the browser. */
 interface ViewItem { id: ViewItemId; label: string; icon: IconName; checked?: boolean; separator?: boolean; external?: boolean }
@@ -87,7 +87,15 @@ const fileItems: readonly FileItem[] = [
 /** The Git button appears with an installed and enabled Git plugin (#216). */
 const gitActive = computed(() => Boolean(s.pluginSettings?.available && s.pluginSettings.git.installed && s.pluginSettings.git.enabled));
 const gitChanges = computed(() => s.pluginSettings?.projectFolder ? s.pluginSettings.git.changedFiles ?? 0 : 0);
-const gitLabel = computed(() => gitChanges.value ? tn(gitChanges.value, 'Git, {count} geänderte Datei', 'Git, {count} geänderte Dateien') : t('Git'));
+const gitUnpushed = computed(() => s.pluginSettings?.projectFolder ? s.pluginSettings.git.ahead ?? 0 : 0);
+const gitUnsaved = computed(() => Boolean(s.pluginSettings?.projectFolder) && s.saveStatus === 'dirty');
+/** The dot says that Git has something to do: an edit that is not saved yet, a changed file or a commit that is not pushed. */
+const gitPending = computed(() => gitUnsaved.value || gitChanges.value > 0 || gitUnpushed.value > 0);
+const gitLabel = computed(() => [
+  gitChanges.value ? tn(gitChanges.value, 'Git, {count} geänderte Datei', 'Git, {count} geänderte Dateien') : t('Git'),
+  ...(gitUnsaved.value ? [t('ungespeicherte Änderungen')] : []),
+  ...(gitUnpushed.value ? [tn(gitUnpushed.value, '{count} Commit noch nicht gepusht', '{count} Commits noch nicht gepusht')] : []),
+].join(', '));
 const viewItems = computed<ViewItem[]>(() => [
   ...(compact.value ? [
     { id: 'objects', label: t('chrome.objects'), icon: 'objects', checked: s.objectsOpen },
@@ -99,8 +107,6 @@ const viewItems = computed<ViewItem[]>(() => [
   { id: 'code', label: t('menu.code'), icon: 'code', checked: s.codeOpen },
   { id: 'slides', label: L('Folien'), icon: 'pages', checked: s.frameSidebarOpen },
   { id: 'tasks', label: L('Aufgaben'), icon: 'check', checked: s.workspaceView === 'tasks' },
-  // A ticket from Jira or Azure Boards as a card on the canvas (#283); offered while one of them is connected.
-  ...(s.ticketReaders.length && s.canWrite && s.workspaceView === 'canvas' ? [{ id: 'ticket', label: L('Ticket-Karte einfügen …'), icon: 'file-plus' } satisfies ViewItem] : []),
   { id: 'plugins', label: L('Plugins'), icon: 'component', checked: props.pluginsOpen, separator: true },
   { id: 'settings', label: L('Einstellungen'), icon: 'settings', separator: true },
   { id: 'support', label: L('Buy me a coffee'), icon: 'coffee', separator: true, external: true },
@@ -234,7 +240,6 @@ function runView(id: ViewItemId): void {
     case 'code': store.toggleCode(); break;
     case 'slides': store.toggleFrameSidebar(!s.frameSidebarOpen); break;
     case 'tasks': if (s.workspaceView === 'tasks') store.showCanvas(); else store.openTaskBoard(); break;
-    case 'ticket': store.openTicketInsert(); break;
     case 'plugins': emit('plugins'); break;
     case 'settings': emit('settings'); break;
     case 'support': void store.openDocumentationLink(SUPPORT_URL); break;
@@ -350,7 +355,7 @@ useEventListener(document, 'pointerdown', onDocumentPointerDown, true);
     </button>
     <span v-if="!compact && gitActive" class="git-entry">
       <AppIconButton class="bar-btn" icon="git" data-testid="git-button" data-git-opener aria-haspopup="dialog" :label="gitLabel" @click="store.toggleGit(true)" />
-      <span v-if="gitChanges" class="git-dot" aria-hidden="true" />
+      <span v-if="gitPending" class="git-dot" data-testid="git-dot" aria-hidden="true" />
     </span>
     <!-- While a session runs: who is in it, follow someone, end it (#223). It stays in the bar in narrow windows too. -->
     <SessionMenu :panel-open="collaborationOpen" @open-panel="emit('collaboration')" />

@@ -11,7 +11,7 @@ async function setup(document: SketchDocument = createDocument('Plugins'), open 
   const plugins: PluginBridge = {
     getSettings: vi.fn(async () => ({ available: true, projectFolder: '/project', profiles: [{ id: 'default', name: 'Standard' }, { id: 'work', name: 'Arbeit' }], activeProfileId: 'default', git: { installed: true, enabled: true, folderPath: '/project', autoCommit: true, autoPush: false, autoPull: true, remote: 'origin', remoteUrl: '', authMode: 'system' as const, username: '', credentialStored: false, health: 'ready' as const, message: 'Bereit' }, atlassian: { installed: true, enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '', credentialStored: true, health: 'ready' as const, message: 'Bereit' } })),
     selectProfile: vi.fn(), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(),
-    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
+    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitBranches: vi.fn(), gitCheckout: vi.fn(), gitCreateBranch: vi.fn(), gitMerge: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
     listConfluencePages: vi.fn(async () => []),
     getConfluencePage: vi.fn(async () => ({ id: '7', title: 'Live Architecture', version: 4, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: '<h2>Architecture</h2><p>Editable page</p>' })),
     updateConfluencePage: vi.fn(async (input) => ({ id: input.pageId, title: input.title, version: input.version + 1, url: 'https://example.atlassian.net/wiki/pages/7', storageBody: input.storageBody })),
@@ -623,6 +623,68 @@ describe('ticket cards on the canvas (#283)', () => {
     remote.set('jira:SK-7', { ...remote.get('jira:SK-7')!, title: 'Im Tracker umbenannt', status: 'review', remoteStatus: 'In Review' });
     expect(await store.refreshTicketCard(id)).toBe(true);
     expect(cards(store)[0]!.data).toMatchObject({ title: 'Im Tracker umbenannt', status: 'review', remoteStatus: 'In Review' });
+  });
+
+  it('reads the cards again quietly and only writes a card whose ticket changed', async () => {
+    const { store, remote, tickets } = await withTickets();
+    remote.set('jira:SK-7', { ...remote.get('jira:SK-7')!, issueType: 'Bug', fixVersions: ['2026.12'] });
+    await store.insertTicketCard('jira', 'SK-7');
+    const before = cards(store)[0]!;
+    expect(before.data).toMatchObject({ issueType: 'Bug', fixVersions: ['2026.12'] });
+    const elements = () => JSON.stringify(store.state.document.elements);
+    const unchanged = elements(), noticesBefore = notices(store).length;
+    // The ticket stands still: the card, and with it the document, stays exactly as it was.
+    tickets.getWorkItem.mockClear();
+    expect(await store.syncTicketCards()).toBe(true);
+    expect(tickets.getWorkItem).toHaveBeenCalledTimes(1);
+    expect(elements()).toBe(unchanged);
+    expect(cards(store)[0]!.data.fetchedAt).toBe(before.data.fetchedAt);
+    // A change in the tracker arrives with the next read, without a notice.
+    remote.set('jira:SK-7', { ...remote.get('jira:SK-7')!, remoteStatus: 'Done', status: 'done', fixVersions: ['2027.1'], issueType: 'Story' });
+    expect(await store.syncTicketCards()).toBe(true);
+    expect(cards(store)[0]!.data).toMatchObject({ status: 'done', remoteStatus: 'Done', fixVersions: ['2027.1'], issueType: 'Story' });
+    expect(elements()).not.toBe(unchanged);
+    expect(notices(store)).toHaveLength(noticesBefore);
+    // A failed read leaves the card alone and stays quiet.
+    tickets.getWorkItem.mockRejectedValueOnce(new Error('offline'));
+    expect(await store.syncTicketCards()).toBe(false);
+    expect(notices(store)).toHaveLength(noticesBefore);
+    store.dispose();
+  });
+
+  it('adds several tickets at once, side by side, and looks people up for the assignee', async () => {
+    const { store, remote, plugins } = await withTickets();
+    remote.set('jira:SK-8', { ...remote.get('jira:SK-7')!, id: '108', key: 'SK-8', title: 'Zweites Ticket', url: 'https://example.atlassian.net/browse/SK-8' });
+    store.openTicketInsert({ x: 400, y: 300 }, 'jira');
+    expect(store.state.ticketDialog).toMatchObject({ mode: 'insert', provider: 'jira' });
+    expect(await store.insertTicketCards('jira', ['SK-7', 'SK-8', 'SK-7', ' '])).toBe(2);
+    const placed = cards(store);
+    expect(placed.map((card) => card.data.key)).toEqual(['SK-7', 'SK-8']);
+    expect(placed[1]!.element.x - placed[0]!.element.x).toBe(TICKET_CARD_WIDTH + 24);
+    expect(placed[1]!.element.y).toBe(placed[0]!.element.y);
+    expect(store.state.selection).toEqual(placed.map((card) => card.id));
+    const searchWorkItemUsers = vi.fn(async () => [{ name: 'Mara Muster', detail: 'mara@example.com' }]);
+    Object.assign(plugins, { searchWorkItemUsers });
+    expect(await store.searchTicketUsers(placed[0]!.id, 'Mar')).toEqual([{ name: 'Mara Muster', detail: 'mara@example.com' }]);
+    expect(searchWorkItemUsers).toHaveBeenCalledWith({ provider: 'jira', key: 'SK-7', query: 'Mar' });
+    searchWorkItemUsers.mockRejectedValueOnce(new Error('offline'));
+    expect(await store.searchTicketUsers(placed[0]!.id, 'Mar')).toEqual([]);
+    // The values a field of the ticket may take are asked the same way; a failed search suggests nothing and raises no notice.
+    const searchWorkItemValues = vi.fn(async () => ['2026.12', '2027.1']);
+    Object.assign(plugins, { searchWorkItemValues });
+    expect(await store.searchTicketValues(placed[0]!.id, 'fixVersions', '20')).toEqual(['2026.12', '2027.1']);
+    expect(searchWorkItemValues).toHaveBeenCalledWith({ provider: 'jira', key: 'SK-7', field: 'fixVersions', query: '20' });
+    const before = notices(store).length;
+    searchWorkItemValues.mockRejectedValueOnce(new Error('offline'));
+    expect(await store.searchTicketValues(placed[0]!.id, 'labels', 'x')).toEqual([]);
+    expect(await store.searchTicketValues('no-such-card', 'labels', 'x')).toEqual([]);
+    expect(notices(store)).toHaveLength(before);
+    // Type and fix versions are saved like the other fields of the ticket.
+    const updateWorkItemFields = vi.mocked(plugins.updateWorkItemFields!);
+    expect(await store.saveTicketCard(placed[0]!.id, { issueType: 'Story', fixVersions: ['2027.1'] })).toBe(true);
+    expect(updateWorkItemFields).toHaveBeenLastCalledWith({ provider: 'jira', key: 'SK-7', issueType: 'Story', fixVersions: ['2027.1'] });
+    expect(cards(store).find((card) => card.id === placed[0]!.id)!.data).toMatchObject({ issueType: 'Story', fixVersions: ['2027.1'] });
+    store.dispose();
   });
 
   it('reads the cards of a document once when it is opened with the tracker connected', async () => {

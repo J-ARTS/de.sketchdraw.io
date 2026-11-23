@@ -46,6 +46,8 @@ export async function startConfluenceFixture(options: { v2Comments?: boolean } =
       if (method === 'GET' && pathname === '/rest/api/3/myself') return json(response, { accountId: 'synthetic-account' });
       if (pathname === '/rest/api/3/search/jql') return json(response, { issues: [], isLast: true });
       if (method === 'GET' && pathname === '/wiki/api/v2/spaces') return json(response, { results: [{ id: '210-space', key: 'NATIVE' }] });
+      // The title search of the site answers with nothing here; the service then lists the pages, as this fixture always did.
+      if (method === 'GET' && pathname === '/wiki/rest/api/content/search') return json(response, { results: [] });
       if (method === 'GET' && pathname === '/wiki/api/v2/pages') return json(response, { results: [pageJson()] });
       if (method === 'GET' && pathname === `/wiki/api/v2/pages/${remotePageId}`) return json(response, pageJson());
       if (method === 'GET' && pathname === `/wiki/api/v2/pages/${remotePageId}/attachments`) {
@@ -124,7 +126,7 @@ export async function startConfluenceFixture(options: { v2Comments?: boolean } =
 /** Main-process bootstrap only; called before the copied real main.cjs is loaded. */
 export function isolatedEntrySource(origin: string): string {
   return `
-const {app,ipcMain,safeStorage,nativeImage}=require('electron');
+const {app,ipcMain,net,safeStorage,nativeImage}=require('electron');
 const path=require('node:path');
 const {createHash}=require('node:crypto');
 const expectedRuntime=path.resolve(__dirname,'agent-runtime','active-v1.json');
@@ -143,6 +145,8 @@ globalThis.fetch=(input,init)=>{
   const target=${JSON.stringify(origin)}+source.pathname+source.search;
   return fetchOriginal(target,input instanceof Request?new Request(input,init):init);
 };
+// The plugin service reaches its sites through Electron's network stack; here that way leads to the same guard.
+net.fetch=(input,init)=>globalThis.fetch(input,init);
 // Observe the real IPC boundary; invoke the unmodified handler, including its sender/security validation.
 const register=ipcMain.handle.bind(ipcMain);
 ipcMain.handle=(channel,handler)=>register(channel,async(event,...args)=>{

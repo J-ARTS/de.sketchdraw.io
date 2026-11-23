@@ -14,6 +14,8 @@ export type GitAuthMode = 'system' | 'token';
 export interface GitPluginSettings {
   installed: boolean;
   enabled: boolean;
+  /** When these settings were last saved, ISO 8601. */
+  savedAt?: string;
   folderPath: string;
   autoCommit: boolean;
   autoPush: boolean;
@@ -33,6 +35,12 @@ export interface GitPluginSettings {
 }
 
 export interface AtlassianPluginSettings {
+  /** When the settings of the Jira plugin and of the Confluence plugin were last saved, ISO 8601. */
+  jiraSavedAt?: string;
+  confluenceSavedAt?: string;
+  /** The result of the last connection test of each plugin, until the settings change. */
+  jiraMessage?: string;
+  confluenceMessage?: string;
   /** Whether Jira or Confluence is installed, and whether one of them is installed and switched on. */
   installed: boolean;
   enabled: boolean;
@@ -60,6 +68,8 @@ export interface AtlassianPluginSettings {
 export interface AzureDevOpsPluginSettings {
   installed: boolean;
   enabled: boolean;
+  /** When these settings were last saved, ISO 8601. */
+  savedAt?: string;
   variant: 'cloud' | 'server';
   /** Address of the organization (cloud) or of the collection (server). */
   organizationUrl: string;
@@ -304,6 +314,17 @@ export interface JiraIssueSummary {
   components?: string[];
   /** Story points, effort or a time estimate, as the tracker shows it. */
   estimate?: string;
+  /** The type of the ticket as the tracker names it: "Bug", "Story", "User Story", "Epic" … */
+  issueType?: string;
+  /** Jira fix versions; in Azure Boards the iteration path. */
+  fixVersions?: string[];
+}
+
+/** A person a ticket can be assigned to, as the search of the tracker names them. */
+export interface WorkItemUser {
+  name: string;
+  /** What tells two people of the same name apart, usually the e-mail address. */
+  detail?: string;
 }
 
 /** What a ticket card can change in its ticket: the seven fields the owner named (#283). */
@@ -317,7 +338,14 @@ export interface UpdateWorkItemFieldsInput {
   labels?: string[];
   components?: string[];
   estimate?: string | null;
+  /** The type of the ticket, by the name the tracker gives it. */
+  issueType?: string;
+  /** Jira fix versions; in Azure Boards the iteration path (one). */
+  fixVersions?: string[];
 }
+
+/** The fields of a ticket whose values the tracker suggests while they are typed. */
+export type WorkItemValueField = 'issueType' | 'labels' | 'components' | 'fixVersions';
 
 /**
  * A ticket as the task board shows it, whichever system it comes from (#281): the fields are the ones of a
@@ -389,7 +417,10 @@ export interface PluginBridge extends GitWorkbenchBridge {
   uninstallPlugin(id: PluginId): Promise<PluginSettingsSnapshot>;
   configureGit(input: ConfigureGitPluginInput): Promise<PluginSettingsSnapshot>;
   configureAtlassian(input: ConfigureAtlassianPluginInput): Promise<PluginSettingsSnapshot>;
-  testAtlassian(): Promise<PluginOperationResult>;
+  /** The stored token of a plugin of the active profile; empty when none is stored. Asked for by the settings alone. */
+  revealCredential?(plugin: PluginId): Promise<string>;
+  /** Tests the Atlassian connection: of one plugin when it is named, of both otherwise. */
+  testAtlassian(plugin?: 'jira' | 'confluence'): Promise<PluginOperationResult>;
   gitStatus(handleId: string): Promise<GitSyncResult>;
   gitSync(handleId: string): Promise<GitSyncResult>;
   listConfluencePages(query: string): Promise<ConfluencePageSummary[]>;
@@ -426,6 +457,10 @@ export interface PluginBridge extends GitWorkbenchBridge {
   getWorkItem?(input: { provider: TicketProvider; key: string }): Promise<WorkItemSummary>;
   /** Tickets whose title contains the text, or the ticket with that key; at most 20. */
   searchWorkItems?(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]>;
+  /** The values the tracker knows for a field of a ticket that match `query`: types, labels, components, versions. */
+  searchWorkItemValues?(input: { provider: TicketProvider; key: string; field: WorkItemValueField; query: string }): Promise<string[]>;
+  /** The people of the tracker a ticket can be assigned to whose name or address matches `query`. */
+  searchWorkItemUsers?(input: { provider: TicketProvider; key: string; query: string }): Promise<WorkItemUser[]>;
   /** Writes the changed fields of a ticket card and answers with the ticket as it is afterwards. */
   updateWorkItemFields?(input: UpdateWorkItemFieldsInput): Promise<WorkItemSummary>;
   watchDocument(handleId: string): Promise<PluginOperationResult>;

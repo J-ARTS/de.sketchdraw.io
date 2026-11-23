@@ -18,6 +18,7 @@
   --status-error: #b3261e;
   --status-error-soft: #fbe9e7;
   --status-ok: #1b6b3a;
+  --status-ok-soft: #e6f4ea;
   /* Hits of a text search, drawn over the text: all of them, and the one the search stands on. */
   --search-mark: rgb(107 76 230 / 0.2);
   --search-mark-current: rgb(245 179 1 / 0.5);
@@ -111,6 +112,7 @@
   --status-error: #ff8a80;
   --status-error-soft: #3d2224;
   --status-ok: #7fd69a;
+  --status-ok-soft: #1c3526;
   --search-mark: rgb(179 161 255 / 0.28);
   --search-mark-current: rgb(245 179 1 / 0.45);
   --search-mark-outline: #f5c84c;

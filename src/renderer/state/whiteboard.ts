@@ -1,6 +1,6 @@
 import { effectScope, reactive, watch } from 'vue';
 import {
-  applyCommand, azureDevOpsPluginActive, wikiPageLinks, WIKI_PROVIDER_NAME, type WikiProvider, type WikiProviderId, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
+  applyCommand, azureDevOpsPluginActive, wikiPageLinks, WIKI_PROVIDER_NAME, type WikiProvider, type WikiProviderId, TICKET_PROVIDER_NAME, TICKET_CARD_COLORS, isTicketCard, parseTicketUrl, readTicketCard, ticketCardPatch, ticketCardPatchChanges, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type WorkItemSummary, type UpdateWorkItemFieldsInput, confluencePluginActive, createDocument, createElement, deserializeDocument, jiraPluginActive,
   areAnnotationDocumentsEqual, annotationPlainText, cloneAnnotationDocument, createAnnotationDocument,
   formatTableCells, insertTableRow, insertTableColumn, deleteTableRow, deleteTableColumn,
   duplicateTableRow, duplicateTableColumn, moveTableRow, moveTableColumn, setTableCellText as updateTableCellText,
@@ -345,6 +345,9 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const answer = answers[index]!;
         if (answer.status !== 'fulfilled' || !state.document.elements.some((element) => element.id === id && isTicketCard(element))) return [];
         const patch = ticketCardPatch(data.provider, answer.value, fetchedAt);
+        // The quiet read every few seconds only writes what changed: a card whose ticket stands still leaves the document alone.
+        const card = state.document.elements.find((element) => element.id === id)!;
+        if (!announce && !ticketCardPatchChanges(card, patch)) return [];
         return [{ id, patch: { text: patch.text, description: patch.description, metadata: patch.metadata } }];
       });
       const failed = answers.find((answer) => answer.status === 'rejected') as PromiseRejectedResult | undefined;
@@ -1253,7 +1256,11 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
         const generation = pluginGeneration;
         await store.refreshPluginSettings();
         if (!pluginContextCurrent(generation) || activeSession() !== session) return false;
-        if (currentPluginHandle() === result.file.handleId) void bridge.plugins?.afterDocumentSaved?.(result.file.handleId).catch(() => undefined);
+        // Saving also brings every linked page of the diagram to Confluence or the wiki, whether it changed since the
+        // last publication or an earlier attempt had given up. A page whose picture is already there sends nothing new.
+        for (const sync of liveSyncs.values()) sync.syncNow();
+        // What the save did in the repository (a changed file, a commit, a push) is read afterwards, so the Git button shows it at once.
+        if (currentPluginHandle() === result.file.handleId) void bridge.plugins?.afterDocumentSaved?.(result.file.handleId).then(() => pluginContextCurrent(generation) && activeSession() === session ? store.refreshPluginSettings() : undefined).catch(() => undefined);
         notice(t('Gespeichert: {name}', { name: result.file.name })); return true;
       }
       if (result.status === 'download-initiated') { state.file.handedOffRevision = snapshot.revision; notice(t('Als Download übergeben: {name}', { name: result.name })); return true; }
@@ -2430,8 +2437,25 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       if (state.transitioning) return;
       if (state.document.elements.some((element) => element.id === elementId && isTicketCard(element))) state.ticketDialog = { mode: 'edit', elementId };
     },
-    openTicketInsert(at) { if (state.canWrite && !state.transitioning) state.ticketDialog = { mode: 'insert', at: at ?? currentCenter() }; },
+    openTicketInsert(at, provider) { if (state.canWrite && !state.transitioning) state.ticketDialog = { mode: 'insert', at: at ?? currentCenter(), ...(provider ? { provider } : {}) }; },
     closeTicketDialog() { state.ticketDialog = null; },
+    syncTicketCards() { return state.document.elements.some((element) => isTicketCard(element)) && activeTicketApis().length ? refreshTicketCards(null, false) : Promise.resolve(false); },
+    async searchTicketValues(elementId, field, query) {
+      const search = bridge.plugins?.searchWorkItemValues;
+      const data = readTicketCard(state.document.elements.find((element) => element.id === elementId));
+      if (!search || !data || !canReadTickets(data.provider)) return [];
+      const generation = pluginGeneration;
+      // Suggestions are a help: a search that fails leaves the field what it is, free text.
+      try { const found = await search({ provider: data.provider, key: data.key, field, query }); return pluginContextCurrent(generation) && Array.isArray(found) ? found : []; } catch { return []; }
+    },
+    async searchTicketUsers(elementId, query) {
+      const search = bridge.plugins?.searchWorkItemUsers;
+      const data = readTicketCard(state.document.elements.find((element) => element.id === elementId));
+      if (!search || !data || !canReadTickets(data.provider)) return [];
+      const generation = pluginGeneration;
+      // A failed search leaves the field what it was: free text. It is asked again with the next letter.
+      try { const found = await search({ provider: data.provider, key: data.key, query }); return pluginContextCurrent(generation) ? found : []; } catch { return []; }
+    },
     async searchTickets(provider, query) {
       const search = bridge.plugins?.searchWorkItems;
       if (!search || !canReadTickets(provider)) return null;
@@ -2444,6 +2468,19 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       const target = parsed ?? { provider, key: keyOrUrl.trim() };
       if (!target.key) return false;
       return addTicketCard(target.provider, target.key, at ?? (state.ticketDialog?.mode === 'insert' ? state.ticketDialog.at : currentCenter()));
+    },
+    async insertTicketCards(provider, keys) {
+      const origin = state.ticketDialog?.mode === 'insert' ? state.ticketDialog.at : currentCenter();
+      const unique = [...new Set(keys.map((key) => key.trim()).filter(Boolean))].slice(0, 50);
+      // Rows of three, the first card where a single one would stand.
+      const added: string[] = [];
+      for (const [index, key] of unique.entries()) {
+        const at = { x: origin.x + (index % 3) * (TICKET_CARD_WIDTH + 24), y: origin.y + Math.floor(index / 3) * (TICKET_CARD_HEIGHT + 24) };
+        if (!await addTicketCard(provider, key, at)) break;
+        added.push(...state.selection);
+      }
+      if (added.length > 1) setSelection(added);
+      return added.length;
     },
     async insertTicketCardFromTask(taskId) {
       const task = (state.document.tasks ?? []).find((entry) => entry.id === taskId);
@@ -2652,10 +2689,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       try { const result = await test(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
-    async testAtlassianPlugin() {
+    async revealPluginCredential(plugin) {
+      const reveal = bridge.plugins?.revealCredential;
+      if (!reveal || !state.pluginSettings?.available) return '';
+      const generation = pluginGeneration;
+      try { const token = await reveal(plugin); return pluginContextCurrent(generation) && typeof token === 'string' ? token : ''; } catch { return ''; }
+    },
+    async testAtlassianPlugin(plugin) {
       if (!bridge.plugins || !state.pluginSettings?.available || state.pluginBusy) return false;
       const generation = pluginGeneration; state.pluginBusy = true;
-      try { const result = await bridge.plugins.testAtlassian(); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
+      try { const result = await bridge.plugins.testAtlassian(plugin); if (!pluginContextCurrent(generation)) return false; await store.refreshPluginSettings(); if (!pluginContextCurrent(generation)) return false; notice(tm(result.message), result.ok ? 'info' : 'error'); return result.ok; }
       catch (error) { if (pluginContextCurrent(generation)) fail(error); return false; } finally { if (pluginContextCurrent(generation)) state.pluginBusy = false; }
     },
     async refreshGitStatus() {
@@ -2674,6 +2717,16 @@ export function createWhiteboardStore(options: CreateStoreOptions = {}): Whitebo
       return gitCall((plugins, handle) => plugins.gitUpdate(handle), adoptGitResult);
     },
     gitLog(documentOnly) { return gitCall((plugins, handle) => plugins.gitLog({ handleId: handle, documentOnly })); },
+    gitBranches(fetch) { return gitCall((plugins, handle) => plugins.gitBranches({ handleId: handle, fetch })); },
+    gitCheckout(branch, remote) {
+      if (state.saveStatus === 'dirty') return Promise.resolve({ ok: false as const, message: t('Speichere das Diagramm, bevor du den Branch wechselst.') });
+      return gitCall((plugins, handle) => plugins.gitCheckout({ handleId: handle, branch, remote }), adoptGitResult);
+    },
+    gitCreateBranch(name) { return gitCall((plugins, handle) => plugins.gitCreateBranch({ handleId: handle, name }), adoptGitResult); },
+    gitMerge(branch, remote) {
+      if (state.saveStatus === 'dirty') return Promise.resolve({ ok: false as const, message: t('Speichere das Diagramm, bevor du einen Branch zusammenführst.') });
+      return gitCall((plugins, handle) => plugins.gitMerge({ handleId: handle, branch, remote }), adoptGitResult);
+    },
     gitDiscard(paths) { return gitCall((plugins, handle) => plugins.gitDiscard({ handleId: handle, paths: [...paths] }), adoptGitResult); },
     gitRestoreDocument(commit) {
       if (state.saveStatus === 'dirty') return Promise.resolve({ ok: false as const, message: t('Speichere das Diagramm, bevor du es auf einen alten Stand zurücksetzt.') });

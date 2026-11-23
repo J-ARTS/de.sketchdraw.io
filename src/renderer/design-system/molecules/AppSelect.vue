@@ -166,7 +166,11 @@ useEventListener(document, 'pointerdown', (event: PointerEvent) => {
 
 // Options may change while the list is open (async data, filtering): keep the active entry by value, never point at a stale/disabled id.
 watch(visibleOptions, (next, previous) => {
-  if (!open.value) return;
+  if (!open.value) {
+    // Suggestions that come from a search arrive after the letters were typed; they open the list like those that were there at once.
+    if (props.editable && filtering.value && next.length > 0 && document.activeElement === trigger.value) void openList(-1);
+    return;
+  }
   // Keep the typed filter when no suggestion matches; clearing it would reopen the full list on the same input event.
   if (next.length === 0) { open.value = false; activeIndex.value = -1; clearTypeahead(); return; }
   const activeValue = previous[activeIndex.value]?.value;

@@ -6,7 +6,7 @@ import { createElement, TICKET_CARD_HEIGHT, TICKET_CARD_WIDTH, type TicketCardDa
 const ticket: TicketCardData = {
   provider: 'jira', key: 'SHOP-128', url: 'https://example.atlassian.net/browse/SHOP-128', title: 'Warenkorb übersteht den Wechsel des Geräts',
   description: 'Der Warenkorb wird am Konto gespeichert.', status: 'doing', remoteStatus: 'In Arbeit', assignee: 'Mara Lind',
-  labels: ['checkout', 'q1'], components: ['Storefront'], estimate: '5', fetchedAt: '2026-11-22T08:12:00.000Z',
+  labels: ['checkout', 'q1'], components: ['Storefront'], estimate: '5', issueType: 'Story', fixVersions: ['2026.12'], fetchedAt: '2026-11-22T08:12:00.000Z',
 };
 const card = (width = TICKET_CARD_WIDTH, height = TICKET_CARD_HEIGHT) => createElement('rectangle', { id: 'card', x: 0, y: 0, width, height, text: ticket.title });
 
@@ -26,7 +26,15 @@ type Story = StoryObj<typeof meta>;
 
 export const Jira: Story = {};
 /** Azure Boards names a work item by its number; the area path stands where Jira has components. */
-export const AzureBoards: Story = { args: { ticket: { ...ticket, provider: 'azure-devops', key: '4711', url: 'https://dev.azure.com/example/Shop/_workitems/edit/4711', remoteStatus: 'Active', components: ['Shop\\Storefront'], estimate: '8' } } };
+export const AzureBoards: Story = { args: { ticket: { ...ticket, provider: 'azure-devops', key: '4711', url: 'https://dev.azure.com/example/Shop/_workitems/edit/4711', remoteStatus: 'Active', components: ['Shop\\Storefront'], estimate: '8', issueType: 'User Story', fixVersions: ['Shop\\Release 12\\Sprint 3'] } } };
+/** Every type of ticket has its colour and its symbol. */
+export const Bug: Story = { args: { ticket: { ...ticket, issueType: 'Bug', fixVersions: ['2026.11.1', '2026.12'] } } };
+export const Epic: Story = { args: { ticket: { ...ticket, issueType: 'Epic' } } };
+export const Task: Story = { args: { ticket: { ...ticket, issueType: 'Task', fixVersions: [] } } };
+export const Feature: Story = { args: { ticket: { ...ticket, issueType: 'Feature' } } };
+export const Subtask: Story = { args: { ticket: { ...ticket, issueType: 'Sub-task' } } };
+/** A card that was read before types were keeps the mark of its tracker. */
+export const WithoutType: Story = { args: { ticket: { ...ticket, issueType: '', fixVersions: [] } } };
 export const Done: Story = { args: { ticket: { ...ticket, status: 'done', remoteStatus: 'Fertig' } } };
 /** Nothing but a title: no assignee, no estimate, no labels. */
 export const Bare: Story = { args: { ticket: { ...ticket, status: 'todo', remoteStatus: 'To Do', assignee: '', labels: [], components: [], estimate: '' } } };

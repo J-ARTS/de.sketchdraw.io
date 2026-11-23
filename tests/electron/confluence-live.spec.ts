@@ -120,7 +120,7 @@ async function configureAndLink(page: Page, pageNames: string[] = ['Seite 1']) {
   await dialog.getByLabel('Atlassian-URL', { exact: true }).fill(syntheticSite);
   await dialog.getByLabel('Username oder E-Mail', { exact: true }).fill(syntheticEmail);
   await dialog.getByLabel('API-Token', { exact: true }).fill(syntheticToken);
-  await dialog.getByRole('button', { name: 'Confluence speichern', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Verbindung testen', exact: true })).toBeEnabled();
   await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -206,9 +206,9 @@ test('native edits and automatic Git pull update the correct one of two linked d
     // Keep the independent pull timer off while the fixture prepares external commits in this working tree.
     await dialog.getByRole('checkbox', { name: /Automatisch abrufen/ }).uncheck();
     await dialog.getByRole('checkbox', { name: /Automatisch pushen/ }).uncheck();
-    await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
     // Starts the existing file watcher through the normal UI; the pull timer is enabled after preparation.
-    await dialog.getByRole('button', { name: 'Status prüfen', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
     await expect(dialog).toContainText('Repository ist synchron.');
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
     // Both diagram pages go to the same Confluence page, each through a link of its own (#240).
@@ -270,8 +270,8 @@ test('native edits and automatic Git pull update the correct one of two linked d
     dialog = await openPlugins(page);
     await dialog.getByRole('button', { name: /Git Versionierung/ }).click();
     await dialog.getByRole('checkbox', { name: /Automatisch abrufen/ }).check();
-    await dialog.getByRole('button', { name: 'Git speichern', exact: true }).click();
-    await dialog.getByRole('button', { name: 'Status prüfen', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Speichern', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Verbindung prüfen', exact: true }).click();
     await expect(dialog).toContainText('Repository liegt hinter dem Remote.');
     await dialog.getByRole('button', { name: 'Plugin-Einstellungen schließen', exact: true }).click();
     expect((await execFile('git', ['rev-parse', 'HEAD'], { cwd: project })).stdout.trim()).toBe(localHead);

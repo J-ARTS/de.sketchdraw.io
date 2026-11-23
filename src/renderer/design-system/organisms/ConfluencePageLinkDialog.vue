@@ -65,7 +65,27 @@ async function run(action: () => Promise<unknown>, success: string): Promise<boo
   } finally { if (current === session) pending.value = false; }
 }
 
+/**
+ * Typing searches by itself after a short pause, so the pages appear while the title is written. The button and
+ * Enter search at once. An answer only counts for the text it was asked for.
+ */
+const LIVE_SEARCH_MS = 350;
+let liveTimer: ReturnType<typeof setTimeout> | undefined;
+let liveRequest = 0;
+watch(query, (text) => {
+  clearTimeout(liveTimer); liveRequest++;
+  const wanted = text.trim();
+  if (!wanted) { results.value = null; return; }
+  if (wanted.length < 2) return;
+  const request = liveRequest, current = session, wiki = provider.value;
+  liveTimer = setTimeout(async () => {
+    if (busy.value) return;
+    const found = await store.searchWikiPages(wiki, wanted);
+    if (request === liveRequest && current === session && found !== null) results.value = found;
+  }, LIVE_SEARCH_MS);
+});
 async function search(): Promise<void> {
+  clearTimeout(liveTimer); liveRequest++;
   let found: WikiPageSummary[] | null = null;
   if (await run(async () => { found = await store.searchWikiPages(provider.value, query.value); return found !== null; }, '')) results.value = found;
 }
@@ -130,7 +150,7 @@ watch(diagramPageId, async (id) => {
 watch([busy, () => status.value.state, link], () => { void nextTick(keepFocus); }, { flush: 'post' });
 // A page that was deleted while its dialog is open has nothing left to link.
 watch(page, (current) => { if (diagramPageId.value && !current) close(); });
-onBeforeUnmount(() => dialog.value?.close());
+onBeforeUnmount(() => { clearTimeout(liveTimer); dialog.value?.close(); });
 </script>
 
 <template>

@@ -65,7 +65,7 @@ async function setup(document: SketchDocument = createDocument('AWS Bedrock Agen
   const plugins: PluginBridge = {
     getSettings: vi.fn(async (handle?: string | null) => snapshot(handle)),
     selectProfile: vi.fn(async (id: string) => { remote.profile = id; return snapshot(HANDLE); }), createProfile: vi.fn(), renameProfile: vi.fn(), deleteProfile: vi.fn(),
-    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(async (input) => { remote.enabled = input.enabled; return snapshot(HANDLE); }), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
+    afterDocumentSaved: vi.fn(async () => {}), installPlugin: vi.fn(), uninstallPlugin: vi.fn(), configureGit: vi.fn(), configureAtlassian: vi.fn(async (input) => { remote.enabled = input.enabled; return snapshot(HANDLE); }), testAtlassian: vi.fn(), gitStatus: vi.fn(), gitSync: vi.fn(), gitWorkbench: vi.fn(), gitDiff: vi.fn(), gitCommit: vi.fn(), gitPush: vi.fn(), gitUpdate: vi.fn(), gitLog: vi.fn(), gitBranches: vi.fn(), gitCheckout: vi.fn(), gitCreateBranch: vi.fn(), gitMerge: vi.fn(), gitDiscard: vi.fn(), gitRestoreDocument: vi.fn(), gitAutomation: vi.fn(), watchDocument: vi.fn(async () => ({ ok: true, message: 'watching' })),
     listConfluencePages: vi.fn(async () => []), getConfluencePage: vi.fn(), updateConfluencePage: vi.fn(),
     setConfluenceLiveLink: vi.fn(async ({ pageId, documentId, diagramPageId }: { pageId: string | null; documentId: string; diagramPageId?: string }) => {
       remote.links = remote.links.filter((link) => link.diagramPageId !== diagramPageId);
@@ -198,6 +198,35 @@ describe('automatic publication of linked diagram pages to their Confluence page
     store.addPage(); await store.whenIdle();
     await settle();
     expect(published).toHaveLength(3);
+  });
+
+  it('brings every linked page to Confluence again when the diagram is saved, also after the attempts had given up', async () => {
+    const document = createDocument('Plattform');
+    document.pages = [{ id: 'page:overview', name: 'Übersicht' }, { id: 'page:network', name: 'Netz' }, { id: 'page:notes', name: 'Notizen' }];
+    document.elements = [
+      createElement('rectangle', { id: 'el:a', pageId: 'page:overview', x: 0, y: 0, width: 200, height: 100, text: 'Gateway' }),
+      createElement('rectangle', { id: 'el:b', pageId: 'page:network', x: 0, y: 0, width: 200, height: 100, text: 'VPC privat' }),
+      createElement('rectangle', { id: 'el:c', pageId: 'page:notes', x: 0, y: 0, width: 200, height: 100, text: 'Nur intern' }),
+    ];
+    const { store, bridge, published, publishConfluenceLive } = await setup(document, { links: { 'page:network': { pageId: '200200' } }, retryDelaysMs: [] });
+    await vi.waitFor(() => expect(published).toHaveLength(2));
+    vi.mocked(bridge.saveDocument).mockResolvedValue({ status: 'saved', file: file('2') });
+    // Nothing changed, yet the save asks Confluence for both linked pages; the page without a link stays out of it.
+    await store.save();
+    await vi.waitFor(() => expect(published).toHaveLength(4));
+    expect(published.slice(2).map((input) => input.diagramPageId).sort()).toEqual(['page:network', 'page:overview']);
+    // Confluence refuses, and with no retry left the publication stops with the reason.
+    publishConfluenceLive.mockResolvedValue({ status: 'retry', message: 'Atlassian antwortete mit 403.', uploaded: 0, bodyUpdated: false });
+    await store.insertComponent(aws, 'aws.compute.instance'); await store.whenIdle();
+    await vi.waitFor(() => expect(store.state.confluencePageLive['page:overview']).toMatchObject({ state: 'error' }));
+    const stopped = publishConfluenceLive.mock.calls.length;
+    // The next save starts every page anew.
+    publishConfluenceLive.mockResolvedValue({ status: 'synced', message: 'Diagramm in Confluence aktualisiert.', uploaded: 1, bodyUpdated: true, syncedAt: '2026-11-23T15:00:00.000Z' });
+    await store.save();
+    await vi.waitFor(() => expect(store.state.confluencePageLive['page:overview']).toMatchObject({ state: 'synced' }));
+    await vi.waitFor(() => expect(store.state.confluencePageLive['page:network']).toMatchObject({ state: 'synced' }));
+    // Both linked pages were sent again: the one whose attempts had stopped and the one that had not changed.
+    expect(publishConfluenceLive.mock.calls.slice(stopped).map(([input]) => input.diagramPageId).sort()).toEqual(['page:network', 'page:overview']);
   });
 
   it('pauses the link of a deleted page and continues when the deletion is undone', async () => {

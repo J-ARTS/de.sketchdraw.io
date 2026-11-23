@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PluginService } from '../../electron/plugin-service';
+import { confluencePageReference, jqlProject, PluginService } from '../../electron/plugin-service';
 import type { DocumentPersistenceService } from '../../electron/persistence';
 import { setLocale, tm } from '../../src/renderer/i18n';
 
@@ -58,6 +58,13 @@ describe('PluginService', () => {
     expect(snapshot).toMatchObject({ activeProfileId: 'default', profiles: [{ id: 'default', name: 'Standard' }] });
     expect(stored).not.toContain('secret-token');
     expect(stored).toContain(Buffer.from('secret-token').toString('base64'));
+    // The settings can ask for the stored token to show it again; it never travels with the settings themselves.
+    expect(await service.revealCredential('jira')).toBe('secret-token');
+    expect(await service.revealCredential('confluence')).toBe('secret-token');
+    expect(await service.revealCredential('git')).toBe('');
+    expect(await service.revealCredential('azure-devops')).toBe('');
+    await expect(service.revealCredential('other' as never)).rejects.toThrow('Unbekanntes Plugin.');
+    expect(JSON.stringify(await service.getSettings())).not.toContain('secret-token');
     expect(await service.listJiraIssues()).toMatchObject([{ key: 'SK-1', status: 'doing', description: 'Body', assignee: 'Mara Muster', dueDate: '2026-11-20' }]);
     const searchCall = fetchFn.mock.calls.find(([input]) => String(input).includes('/rest/api/3/search/jql'));
     const body = JSON.parse(String((searchCall?.[1] as RequestInit | undefined)?.body)) as { jql: string; fields: string[] };
@@ -171,13 +178,13 @@ describe('PluginService', () => {
     const beforeStatus = (await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout;
 
     const result = await service.gitStatus('project');
-    expect(result).toMatchObject({ ok: true, settings: { health: 'ready', ahead: 0, behind: 1 }, message: 'Repository liegt hinter dem Remote.' });
+    expect(result).toMatchObject({ ok: true, settings: { health: 'ready', ahead: 0, behind: 1, message: 'Repository liegt hinter dem Remote.' }, message: 'Verbindung zu „origin“ steht. Repository liegt hinter dem Remote.' });
     expect((await execFile('git', ['status', '--porcelain=v1'], { cwd: project })).stdout).toBe(beforeStatus);
     expect((await execFile('git', ['rev-list', '--left-right', '--count', 'HEAD...origin/main'], { cwd: project })).stdout.trim()).toBe('0\t1');
     service.dispose();
   });
 
-  it('reports a remote refresh failure instead of returning a misleading zero count (#175)', async () => {
+  it('reports an unreachable remote instead of returning a misleading zero count (#175)', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-error-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
     await execFile('git', ['init', '-b', 'main'], { cwd: dir });
@@ -193,16 +200,16 @@ describe('PluginService', () => {
     const result = await service.gitStatus('project');
     expect(result.ok).toBe(false);
     expect(result.settings).toMatchObject({ health: 'error' });
-    expect(result.message).toContain('Remote „origin“ konnte nicht aktualisiert werden');
+    expect(result.message).toContain('Verbindung zu „origin“ fehlgeschlagen');
     service.dispose();
   });
 
-  it('reports an authenticated fetch failure without exposing or reusing a stale count (#175)', async () => {
+  it('reports a refused sign-in without exposing or reusing a stale count (#175)', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-status-auth-error-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
     const fetchEnvironment: Array<Readonly<Record<string, string | undefined>> | undefined> = [];
     const runGit = async (args: string[], cwd: string, environment?: Readonly<Record<string, string | undefined>>) => {
-      if (args[0] === 'fetch') { fetchEnvironment.push(environment); throw new Error('authentication failed'); }
+      if (args[0] === 'ls-remote' || args[0] === 'fetch') { fetchEnvironment.push(environment); throw new Error('authentication failed'); }
       return execFile('git', args, { cwd });
     };
     const service = new PluginService({ persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit });
@@ -215,10 +222,93 @@ describe('PluginService', () => {
 
     const result = await service.gitStatus('project');
     expect(result).toMatchObject({ ok: false, settings: { health: 'error' } });
-    expect(result.message).toContain('Remote „origin“ konnte nicht aktualisiert werden: authentication failed');
+    expect(result.message).toContain('Verbindung zu „origin“ fehlgeschlagen: authentication failed');
     expect(fetchEnvironment).toHaveLength(1);
     expect(fetchEnvironment[0]).toMatchObject({ GIT_CONFIG_KEY_0: 'http.https://example.invalid/repo.git.extraHeader', GIT_CONFIG_KEY_1: 'http.followRedirects', GIT_CONFIG_VALUE_1: 'false' });
     expect(result.message).not.toContain('secret');
+    service.dispose();
+  });
+
+  it('makes the folder of an opened diagram a repository when the active profile has Git switched on', async () => {
+    const first = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-init-a-')); const second = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-init-b-')); const existing = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-init-c-')); cleanup.push(first, second, existing);
+    const a = path.join(first, 'a.sketchdraw.json'); const b = path.join(second, 'b.sketchdraw.json'); const nested = path.join(existing, 'diagrams'); await mkdir(nested); const c = path.join(nested, 'c.sketchdraw.json');
+    await writeFile(a, '{}'); await writeFile(b, '{}'); await writeFile(c, '{}');
+    await execFile('git', ['init', '-b', 'main'], { cwd: existing });
+    await execFile('git', ['remote', 'add', 'origin', 'https://example.invalid/kept.git'], { cwd: existing });
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ a, b, c }), credentials: credentials(), emitEvent: vi.fn() });
+    const isRepository = async (dir: string) => fs.stat(path.join(dir, '.git')).then(() => true, () => false);
+
+    // The profile is configured before any diagram has a folder: nothing can be initialized yet.
+    await service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: 'https://example.invalid/team.git', authMode: 'system', username: '' });
+    // Opening or saving a diagram gives Git its folder; a folder without a repository gets one, with the remote of the profile.
+    const opened = await service.getSettings('a');
+    expect(await isRepository(first)).toBe(true);
+    expect((await execFile('git', ['remote', 'get-url', 'origin'], { cwd: first })).stdout.trim()).toBe('https://example.invalid/team.git');
+    expect(opened.git).toMatchObject({ enabled: true, health: 'attention', repositoryName: path.basename(first), message: 'Lokale Änderungen erkannt.' });
+    // The first save after that is committed like any other.
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: first }); await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: first });
+    await service.afterDocumentSaved('a');
+    expect((await execFile('git', ['log', '-1', '--pretty=%s'], { cwd: first })).stdout.trim()).toBe('Update a.sketchdraw.json via Sketchdraw');
+
+    // A folder inside an existing repository is left exactly as it is: no nested repository, no changed remote.
+    await service.getSettings('c');
+    expect(await isRepository(nested)).toBe(false);
+    expect((await execFile('git', ['remote', 'get-url', 'origin'], { cwd: existing })).stdout.trim()).toBe('https://example.invalid/kept.git');
+
+    // A switched-off plugin touches no folder.
+    await service.configureGit({ enabled: false, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: 'https://example.invalid/team.git', authMode: 'system', username: '' });
+    await service.getSettings('b');
+    expect(await isRepository(second)).toBe(false);
+    // Switching to a profile with Git switched on sets up the folder of the open diagram as well.
+    await service.createProfile({ name: 'Mit Git' });
+    await service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+    await service.selectProfile('default'); expect((await service.getSettings()).git.enabled).toBe(false);
+    await rm(path.join(second, '.git'), { recursive: true, force: true });
+    const switched = await service.selectProfile((await service.getSettings()).profiles.find((profile) => profile.name === 'Mit Git')!.id);
+    expect(await isRepository(second)).toBe(true);
+    expect(switched.git).toMatchObject({ enabled: true, repositoryName: path.basename(second) });
+    service.dispose();
+  });
+
+  it('reports a folder that cannot become a repository instead of failing the opening of the diagram', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-init-error-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}');
+    let fail = false;
+    const runGit = async (args: string[], cwd: string) => { if (fail) throw new Error(args[0] === 'init' ? 'permission denied' : 'not a repository'); return execFile('git', args, { cwd }); };
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), runGit });
+    await service.configureGit({ enabled: true, autoCommit: true, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+    fail = true;
+    const opened = await service.getSettings('project');
+    expect(opened.projectFolder).toBe(await realpath(dir));
+    expect(opened.git).toMatchObject({ enabled: true, health: 'error', message: 'Das Git-Repository konnte nicht eingerichtet werden: permission denied' });
+    setLocale('en'); expect(tm(opened.git.message)).toBe('The Git repository could not be set up: permission denied');
+    service.dispose();
+  });
+
+  it('checks the connection to the remote and accepts a branch that was never pushed', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-connection-')); cleanup.push(root);
+    const remote = path.join(root, 'remote.git'); const project = path.join(root, 'project'); await mkdir(project);
+    await execFile('git', ['init', '--bare', remote]);
+    const documentPath = path.join(project, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn() });
+    await service.configureGit({ enabled: true, autoCommit: false, autoPush: false, autoPull: false, remote: 'origin', remoteUrl: '', authMode: 'system', username: '' });
+    await service.getSettings('project');
+
+    // A new repository has no remote yet: the check names what is missing instead of a raw git error.
+    const withoutRemote = await service.gitStatus('project');
+    expect(withoutRemote).toMatchObject({ ok: false, settings: { health: 'error' }, message: 'Für „origin“ ist keine Remote-URL eingetragen.' });
+
+    // The remote answers, but nothing was pushed: the connection stands and there is nothing to compare.
+    await execFile('git', ['remote', 'add', 'origin', remote], { cwd: project });
+    const empty = await service.gitStatus('project');
+    expect(empty).toMatchObject({ ok: true, settings: { health: 'ready', ahead: 0, behind: 0, message: 'Der Branch ist auf dem Remote noch nicht vorhanden.' }, message: 'Verbindung zu „origin“ steht. Der Branch ist auf dem Remote noch nicht vorhanden.' });
+    setLocale('en'); expect(tm(empty.message)).toBe('Connected to “origin”. The branch does not exist on the remote yet.'); setLocale('de');
+
+    // Once the branch is on the remote the check compares both sides as before.
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: project }); await execFile('git', ['config', 'user.name', 'Sketchdraw Test'], { cwd: project });
+    await execFile('git', ['add', 'board.sketchdraw.json'], { cwd: project }); await execFile('git', ['commit', '-m', 'Initial diagram'], { cwd: project });
+    await execFile('git', ['push', 'origin', 'HEAD'], { cwd: project });
+    expect(await service.gitStatus('project')).toMatchObject({ ok: true, settings: { health: 'ready', ahead: 0, behind: 0 }, message: 'Verbindung zu „origin“ steht. Repository ist synchron.' });
     service.dispose();
   });
 
@@ -403,6 +493,65 @@ describe('PluginService', () => {
     service.dispose();
   });
 
+  it('reads the project of new tickets from the JQL filter', async () => {
+    for (const [jql, project] of [
+      ['project = ARCH', 'ARCH'], ['project=arch AND assignee = currentUser() ORDER BY updated DESC', 'ARCH'], ['project in (SHOP)', 'SHOP'], ['status = Open AND project = "SHOP"', 'SHOP'],
+      ['project in (SHOP, API)', null], ['project = SHOP OR project = API', null], ['project = "Online Shop"', null], ['project != SHOP', null], ['project not in (SHOP)', null], ['assignee = currentUser()', null], ['', null],
+    ] as const) expect(jqlProject(jql), jql).toBe(project);
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-jql-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}\n');
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const url = String(input);
+      if (typeof init?.body === 'string') bodies.push({ url, ...(JSON.parse(init.body) as Record<string, unknown>) });
+      if (url.endsWith('/rest/api/3/issue') && init?.method === 'POST') return new Response(JSON.stringify({ id: '1', key: 'ARCH-1' }));
+      if (url.includes('/rest/api/3/issue/ARCH-1')) return new Response(JSON.stringify({ id: '1', key: 'ARCH-1', fields: { summary: 'Neu', status: { name: 'To Do' }, updated: '2026-11-23T10:00:00.000Z' } }));
+      return new Response(JSON.stringify({ issues: [] }));
+    });
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn: fetchFn as typeof fetch });
+    await service.activateDocument('project');
+    // The settings send the filter alone; the project it names is where new tickets go, as a task.
+    const saved = await service.configureAtlassian({ plugin: 'jira', enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', apiToken: 'secret', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: 'project = arch AND assignee = currentUser()' });
+    expect(saved.atlassian).toMatchObject({ enabled: true, jiraProjectKey: 'ARCH', jqlFilter: 'project = arch AND assignee = currentUser()' });
+    await service.listJiraIssues();
+    expect(bodies.at(-1)).toMatchObject({ jql: 'project = arch AND assignee = currentUser() ORDER BY updated DESC' });
+    await service.createJiraIssue({ title: 'Neu', description: '' });
+    expect(bodies.find((body) => String(body.url).endsWith('/rest/api/3/issue'))).toMatchObject({ fields: { project: { key: 'ARCH' }, issuetype: { name: 'Task' } } });
+    // A filter over several projects still reads; a new ticket has no single place and is refused with the reason.
+    expect((await service.configureAtlassian({ plugin: 'jira', enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: 'project in (ARCH, API)' })).atlassian.jiraProjectKey).toBe('');
+    await service.listJiraIssues();
+    expect(bodies.at(-1)).toMatchObject({ jql: 'project in (ARCH, API) ORDER BY updated DESC' });
+    await expect(service.createJiraIssue({ title: 'Neu', description: '' })).rejects.toThrow('Der JQL-Filter nennt kein einzelnes Jira-Projekt.');
+    service.dispose();
+  });
+
+  it('finds a Confluence page by its address or number in any space, and by its title on the site', async () => {
+    const site = 'https://example.atlassian.net';
+    expect(confluencePageReference(`${site}/wiki/spaces/ARCH/pages/4711001/Test`, site)).toEqual({ id: '4711001', url: `${site}/wiki/spaces/ARCH/pages/4711001/Test` });
+    expect(confluencePageReference(`${site}/wiki/pages/viewpage.action?pageId=42#top`, site)).toEqual({ id: '42', url: undefined });
+    expect(confluencePageReference(' 4711001 ', site)).toEqual({ id: '4711001' });
+    expect(confluencePageReference('https://other.example/wiki/spaces/A/pages/1/T', site)).toBeNull();
+    expect(confluencePageReference('Test 123', site)).toBeNull();
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-confluence-search-')); cleanup.push(dir);
+    const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{}\n');
+    const asked: URL[] = [];
+    const fetchFn = vi.fn(async (input: string | URL | Request): Promise<Response> => {
+      const url = new URL(String(input)); asked.push(url);
+      if (url.pathname === '/wiki/api/v2/pages/4711001') return new Response(JSON.stringify({ id: '4711001', title: 'Test', version: { number: 4 } }));
+      if (url.pathname === '/wiki/api/v2/pages/404') return new Response('{}', { status: 404 });
+      if (url.pathname === '/wiki/rest/api/content/search') return new Response(JSON.stringify({ results: [{ id: '55', title: 'Testplan', version: { number: 2 }, space: { key: 'ARCH' }, _links: { webui: '/spaces/ARCH/pages/55/Testplan' } }, { id: 'not-a-number', title: 'x' }] }));
+      return new Response('{}');
+    });
+    const service = new PluginService({ configPath: await profileStore(), persistence: await projectPersistence({ project: documentPath }), credentials: credentials(), emitEvent: vi.fn(), fetchFn: fetchFn as typeof fetch });
+    await service.activateDocument('project');
+    await service.configureAtlassian({ plugin: 'confluence', enabled: true, siteUrl: site, email: 'user@example.com', apiToken: 'secret', confluenceSpaceKey: '', jiraProjectKey: '', jiraIssueType: 'Task', jqlFilter: '' });
+    expect(await service.listConfluencePages(`${site}/wiki/spaces/ARCH/pages/4711001/Test`)).toEqual([{ id: '4711001', title: 'Test', version: 4, url: `${site}/wiki/spaces/ARCH/pages/4711001/Test` }]);
+    expect(await service.listConfluencePages('404')).toEqual([]);
+    expect(await service.listConfluencePages('test')).toEqual([{ id: '55', title: 'Testplan', version: 2, url: `${site}/wiki/spaces/ARCH/pages/55/Testplan` }]);
+    expect(asked.at(-1)!.searchParams.get('cql')).toBe('type = page AND title ~ "test*" ORDER BY lastmodified DESC');
+    service.dispose();
+  });
+
   it('maps Confluence responses and verifies both configured Atlassian services', async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-atlassian-')); cleanup.push(dir);
     const documentPath = path.join(dir, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');
@@ -417,7 +566,18 @@ describe('PluginService', () => {
     await service.activateDocument('project');
     await service.configureAtlassian({ enabled: true, siteUrl: 'https://example.atlassian.net', email: 'user@example.com', apiToken: 'token', confluenceSpaceKey: 'DOC', jiraProjectKey: 'SK', jiraIssueType: 'Task', jqlFilter: '' });
     expect(await service.testAtlassian()).toEqual({ ok: true, message: 'Jira: verbunden · Confluence: verbunden' });
+    // Each plugin tests its own product and answers for itself alone; its result stays under its name.
+    fetchFn.mockClear();
+    expect(await service.testAtlassian('jira')).toEqual({ ok: true, message: 'Jira: verbunden' });
+    expect(fetchFn.mock.calls.map(([input]) => new URL(String(input)).pathname)).toEqual(['/rest/api/3/myself']);
+    fetchFn.mockClear();
+    expect(await service.testAtlassian('confluence')).toEqual({ ok: true, message: 'Confluence: verbunden' });
+    expect(fetchFn.mock.calls.map(([input]) => new URL(String(input)).pathname)).toEqual(['/wiki/api/v2/spaces']);
+    expect((await service.getSettings()).atlassian).toMatchObject({ health: 'ready', message: 'Confluence: verbunden', jiraMessage: 'Jira: verbunden', confluenceMessage: 'Confluence: verbunden' });
     expect(await service.listConfluencePages('live')).toMatchObject([{ id: '7', title: 'Live Doc', version: 3 }]);
+    // The title search of the site was asked first, within the configured space; it found nothing here, so the list answered.
+    const searched = fetchFn.mock.calls.map(([input]) => new URL(String(input))).find((url) => url.pathname === '/wiki/rest/api/content/search')!;
+    expect(searched.searchParams.get('cql')).toBe('type = page AND title ~ "live*" AND space = "DOC" ORDER BY lastmodified DESC');
     const authorization = (fetchFn.mock.calls[0]?.[1] as RequestInit | undefined)?.headers as Record<string, string>;
     expect(authorization.Authorization).toMatch(/^Basic /);
     expect(authorization.Authorization).not.toContain('token');
@@ -682,7 +842,8 @@ describe('PluginService', () => {
     service = await open();
     expect((await service.getSettings()).atlassian).toMatchObject({ jiraInstalled: false, confluenceEnabled: true });
     expect((await service.installPlugin('jira')).atlassian).toMatchObject({ jiraInstalled: true, jiraEnabled: false, confluenceEnabled: true, credentialStored: true });
-    await expect(service.configureAtlassian({ ...legacy, plugin: 'jira', apiToken: '', jiraProjectKey: '' })).rejects.toThrow('Jira-Projekt');
+    // Jira works from its JQL filter: without a filter and without a project there is nothing to read.
+    await expect(service.configureAtlassian({ ...legacy, plugin: 'jira', apiToken: '', jiraProjectKey: '' })).rejects.toThrow('JQL-Filter');
     expect((await service.configureAtlassian({ ...legacy, plugin: 'jira', apiToken: '', jiraProjectKey: 'OPS' })).atlassian).toMatchObject({ jiraEnabled: true, jiraProjectKey: 'OPS', confluenceSpaceKey: 'TEAM' });
 
     // The token goes with the last of the two plugins.

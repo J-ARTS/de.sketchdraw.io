@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { GIT_COMMIT_MESSAGE_MAX, GIT_DIFF_LINE_LIMIT, GIT_LOG_LIMIT, type GitChange, type GitChangeStatus, type GitCommitSummary, type GitDiffLine, type GitFileDiff } from '../src/domain/git-workbench';
+import { GIT_COMMIT_MESSAGE_MAX, GIT_DIFF_LINE_LIMIT, GIT_LOG_LIMIT, type GitBranches, type GitChange, type GitChangeStatus, type GitCommitSummary, type GitDiffLine, type GitFileDiff } from '../src/domain/git-workbench';
 
 /**
  * The Git commands behind the Git dialog (#216). Everything here works on one repository through a `run`
@@ -83,7 +83,7 @@ export function gitFailure(error: unknown, fallback: string): string {
   if (/Please tell me who you are|user\.email|empty ident/i.test(text)) return 'Git kennt noch keinen Namen und keine E-Mail-Adresse für Commits. Bitte einmal mit „git config user.name“ und „git config user.email“ einrichten.';
   if (/non-fast-forward|fetch first|\[rejected\]/i.test(text)) return 'Der Remote hat neuere Commits. Bitte zuerst aktualisieren.';
   if (/Not possible to fast-forward|diverg/i.test(text)) return 'Lokale und entfernte Commits sind auseinandergelaufen. Sketchdraw führt sie nicht zusammen; bitte in einem Git-Werkzeug zusammenführen.';
-  if (/would be overwritten/i.test(text)) return 'Lokale Änderungen stehen dem Aktualisieren im Weg. Bitte zuerst committen oder verwerfen.';
+  if (/would be overwritten/i.test(text)) return 'Lokale Änderungen stehen im Weg. Bitte zuerst committen oder verwerfen.';
   if (/Authentication failed|could not read Username|Permission denied|403/i.test(text)) return 'Die Anmeldung am Remote ist fehlgeschlagen. Bitte die Git-Zugangsdaten in den Plugin-Einstellungen prüfen.';
   const line = text.split('\n').map((entry) => entry.replace(/^(fatal|error|hint):\s*/i, '').trim()).find((entry) => entry && !entry.startsWith('Command failed'));
   return line ? `${fallback} Git meldet: ${line.slice(0, 300)}` : fallback;
@@ -119,6 +119,75 @@ export class GitWorkbench {
     const name = (await this.run(['branch', '--show-current'])).stdout.trim();
     if (!name) throw new Error('Es ist kein Branch ausgecheckt.');
     return name;
+  }
+
+  /** Local branches and those of the configured remote; `fetch` asks the remote for its branches first. */
+  async branches(fetch = false): Promise<GitBranches> {
+    if (fetch) await this.run(['fetch', '--no-tags', '--no-recurse-submodules', '--prune', this.remote], true);
+    const current = (await this.run(['branch', '--show-current'])).stdout.trim();
+    const under = async (prefix: string): Promise<string[]> => (await this.run(['for-each-ref', '--format=%(refname)', prefix])).stdout.split('\n').map((line) => line.trim()).filter((ref) => ref.startsWith(prefix)).map((ref) => ref.slice(prefix.length));
+    const local = await under('refs/heads/');
+    const remote = (await under(`refs/remotes/${this.remote}/`)).filter((name) => name !== 'HEAD');
+    // A branch without a commit has no ref yet; it is still the one that is checked out.
+    return { current, local: current && !local.includes(current) ? [current, ...local] : local, remote, remoteName: this.remote };
+  }
+
+  /** Only a branch that exists right now passes; that keeps any other text from reaching git as a revision. */
+  private async knownBranch(branch: unknown, remote: unknown): Promise<{ name: string; ref: string; local: boolean }> {
+    if (typeof branch !== 'string' || !branch || branch.length > 255 || branch.startsWith('-')) throw new Error('Branch ist ungültig.');
+    const list = await this.branches();
+    if (!(remote === true ? list.remote : list.local).includes(branch)) throw new Error('Diesen Branch gibt es nicht mehr. Bitte die Liste neu laden.');
+    return { name: branch, ref: remote === true ? `refs/remotes/${this.remote}/${branch}` : `refs/heads/${branch}`, local: list.local.includes(branch) };
+  }
+
+  /** A switch must not take the open diagram away: a diagram of the current commit has to exist on the other branch too. */
+  private async assertDocumentOn(ref: string): Promise<void> {
+    try { await this.run([LITERAL, 'cat-file', '-e', `HEAD:${this.documentPath}`]); } catch { return; }
+    try { await this.run([LITERAL, 'cat-file', '-e', `${ref}:${this.documentPath}`]); }
+    catch { throw new Error('Auf diesem Branch gibt es das geöffnete Diagramm nicht.'); }
+  }
+
+  /**
+   * Switches to a local branch. A branch of the remote gets a local branch of its name that follows it; when that
+   * one exists already it is checked out as it is. Answers with the name of the branch that is checked out.
+   */
+  async checkout(branch: unknown, remote: unknown): Promise<string> {
+    const target = await this.knownBranch(branch, remote);
+    await this.assertDocumentOn(target.local ? `refs/heads/${target.name}` : target.ref);
+    if (target.local) await this.run(['switch', '--no-guess', target.name]);
+    else await this.run(['switch', '--create', target.name, '--track', target.ref]);
+    return target.name;
+  }
+
+  /** Creates a branch at the current commit and switches to it; changes that are not committed come along. */
+  async createBranch(name: unknown): Promise<string> {
+    const branch = typeof name === 'string' ? name.trim() : '';
+    if (!branch || branch.length > 200 || branch.startsWith('-') || /[\s\0]/.test(branch)) throw new Error('Der Name des Branches ist ungültig.');
+    try { await this.run(['check-ref-format', '--branch', branch]); } catch { throw new Error('Der Name des Branches ist ungültig.'); }
+    if ((await this.branches()).local.includes(branch)) throw new Error('Einen Branch mit diesem Namen gibt es schon.');
+    await this.run(['switch', '--create', branch]);
+    return branch;
+  }
+
+  /**
+   * Merges a branch into the current one. A merge that ends in conflicts is taken back, so the repository is never
+   * left half merged. True when the current branch got new commits.
+   */
+  async merge(branch: unknown, remote: unknown): Promise<boolean> {
+    const target = await this.knownBranch(branch, remote);
+    const current = await this.branch();
+    if (remote !== true && target.name === current) throw new Error('Ein Branch lässt sich nicht mit sich selbst zusammenführen.');
+    if (!await this.hasCommits()) throw new Error('Der aktuelle Branch hat noch keinen Commit.');
+    const before = (await this.run(['rev-parse', 'HEAD'])).stdout.trim();
+    try { await this.run(['merge', '--no-edit', target.ref]); }
+    catch (error) {
+      let merging = true;
+      try { await this.run(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD']); } catch { merging = false; }
+      if (!merging) throw error;
+      await this.run(['merge', '--abort']);
+      throw new Error('Das Zusammenführen ergab Konflikte und wurde zurückgenommen. Bitte in einem Git-Werkzeug zusammenführen.');
+    }
+    return (await this.run(['rev-parse', 'HEAD'])).stdout.trim() !== before;
   }
 
   private async resolved(commit: unknown): Promise<string> {

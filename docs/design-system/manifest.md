@@ -242,6 +242,28 @@ The select of the app: a combobox with a listbox popover, keyboard support and a
 | --- | --- | --- |
 | `update:modelValue` | `[value: string]` |  |
 
+### AppTagField
+
+A field for several values: a text field with suggestions to add one, and the chosen values as chips that can be removed. The suggestions can come from a search: `search` names the typed text.
+
+- File: `src/renderer/design-system/molecules/AppTagField.vue`
+- Story: `src/renderer/design-system/molecules/AppTagField.stories.ts`
+
+| Prop | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `label` | `string` | yes |  | The visible label of the field. |
+| `modelValue` | `readonly string[]` | yes |  | The chosen values (`v-model`). |
+| `options` | `readonly string[]` | yes |  | The values that are suggested; those already chosen are left out. |
+| `disabled` | `boolean \| undefined` | no | `false` | Nothing can be added or removed. |
+| `id` | `string \| undefined` | no | `undefined` | The id of the text field. |
+| `max` | `number \| undefined` | no | `undefined` | How many values the field takes; a further one replaces the last. Default: any number. |
+| `placeholder` | `string \| undefined` | no | `undefined` | Shown in the empty text field. |
+
+| Event | Payload | Description |
+| --- | --- | --- |
+| `search` | `[text: string]` |  |
+| `update:modelValue` | `[value: string[]]` |  |
+
 ### BpmnDecor
 
 What makes an ordinary shape a BPMN element on the canvas: event rings and symbols, task type icons, markers, pool and lane titles.
@@ -430,7 +452,7 @@ One task as a card: title, state, assignee, due date and cover, with its inline 
 
 ### TicketCardDecor
 
-What makes a rectangle a ticket card on the canvas: tracker and key, state, title, assignee, estimate, labels and the time the ticket was last read.
+What makes a rectangle a ticket card on the canvas: the symbol and colour of the ticket type, key, state, title, assignee, estimate, labels and fix versions.
 
 - File: `src/renderer/design-system/molecules/TicketCardDecor.vue`
 - Story: `src/renderer/design-system/molecules/TicketCardDecor.stories.ts`
@@ -590,7 +612,7 @@ The side panel that lists the frames of the page for navigation and presenting.
 
 ### GitDialog
 
-The modal Git dialog of the Git plugin: see and commit changes, push, fetch the remote state, go back to an old state of the diagram and switch the automatic steps. Opened by the Git button beside help.
+The modal Git dialog of the Git plugin: see and commit changes, push, fetch the remote state, switch, create and merge branches, go back to an old state of the diagram and switch the automatic steps. Opened by the Git button beside help.
 
 - File: `src/renderer/design-system/organisms/GitDialog.vue`
 - Story: `src/renderer/design-system/organisms/GitDialog.stories.ts`

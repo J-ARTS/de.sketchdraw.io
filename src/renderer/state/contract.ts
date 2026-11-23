@@ -30,9 +30,9 @@ import type {
   TaskType,
 } from '@/domain/types';
 import type { ResourceCardField } from '@/catalog';
-import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WikiPageSummary, WikiProviderId, WorkItemSummary } from '@/domain/plugins';
+import type { ConfigureAzureDevOpsPluginInput, TicketProvider, UpdateWorkItemFieldsInput, WikiPageSummary, WikiProviderId, WorkItemSummary, WorkItemUser, WorkItemValueField } from '@/domain/plugins';
 import type { ElementClipboardPayload } from './element-clipboard';
-import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
+import type { ConfigureAtlassianPluginInput, ConfigureGitPluginInput, ConfluencePageSummary, GitBranches, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot, PluginId, PluginSettingsSnapshot } from '@/domain/plugins';
 import type { ConfluenceLiveStatus } from './confluence-live-sync';
 
 export type Tool =
@@ -373,7 +373,7 @@ export interface WhiteboardState {
   /** The diagram page whose Confluence link dialog is open; null while it is closed. */
   confluenceLinkPageId: string | null;
   /** The open ticket dialog (#283): the card being edited, or the place a new card is inserted at. */
-  ticketDialog: { mode: 'edit'; elementId: string } | { mode: 'insert'; at: Point } | null;
+  ticketDialog: { mode: 'edit'; elementId: string } | { mode: 'insert'; at: Point; provider?: TicketProvider } | null;
   /** A ticket is being read or written. */
   ticketBusy: boolean;
 }
@@ -528,12 +528,21 @@ export interface WhiteboardStore {
   createTaskFromStickyNote(elementId: string): Promise<boolean>;
   /** Opens the dialog of a ticket card; double click and Enter on the card do the same. */
   openTicketCard(elementId: string): void;
-  openTicketInsert(at?: Point): void;
+  /** Opens the list tickets are picked from; `provider` names the tracker it starts with. */
+  openTicketInsert(at?: Point, provider?: TicketProvider): void;
   closeTicketDialog(): void;
   /** Tickets of a connected tracker by text or key; null when the tracker is not connected or the search failed. */
   searchTickets(provider: TicketProvider, query: string): Promise<WorkItemSummary[] | null>;
+  /** Reads the tickets of all cards again, quietly; only a card whose ticket changed is written. */
+  syncTicketCards(): Promise<boolean>;
+  /** The values the tracker suggests for a field of the ticket of a card: types, labels, components, versions. */
+  searchTicketValues(elementId: string, field: WorkItemValueField, query: string): Promise<string[]>;
+  /** The people the ticket of a card can be assigned to whose name or address matches the text. */
+  searchTicketUsers(elementId: string, query: string): Promise<WorkItemUser[]>;
   /** Reads a ticket by key or address and puts it on the canvas as a card. An address decides the tracker itself. */
   insertTicketCard(provider: TicketProvider, keyOrUrl: string, at?: Point): Promise<boolean>;
+  /** Puts several tickets on the canvas as cards, side by side in rows; answers how many were added. */
+  insertTicketCards(provider: TicketProvider, keys: readonly string[]): Promise<number>;
   insertTicketCardFromTask(taskId: string): Promise<boolean>;
   refreshTicketCard(elementId: string): Promise<boolean>;
   /** What can be done with the ticket of a card right now: change it, only read it again, or neither (no connection to its site). */
@@ -560,7 +569,10 @@ export interface WhiteboardStore {
   setPluginInstalled(id: PluginId, installed: boolean): Promise<boolean>;
   configureGitPlugin(input: ConfigureGitPluginInput): Promise<boolean>;
   configureAtlassianPlugin(input: ConfigureAtlassianPluginInput): Promise<boolean>;
-  testAtlassianPlugin(): Promise<boolean>;
+  /** The stored token of a plugin, for the settings that show it; empty when there is none or it cannot be read. */
+  revealPluginCredential(plugin: PluginId): Promise<string>;
+  /** Tests the connection of the Jira or the Confluence plugin; without a name both are tested. */
+  testAtlassianPlugin(plugin?: 'jira' | 'confluence'): Promise<boolean>;
   configureAzureDevOpsPlugin(input: ConfigureAzureDevOpsPluginInput): Promise<boolean>;
   testAzureDevOpsPlugin(): Promise<boolean>;
   refreshGitStatus(): Promise<boolean>;
@@ -576,6 +588,14 @@ export interface WhiteboardStore {
   /** Fetches the remote branch and fast-forwards to it. */
   gitUpdate(): Promise<GitAnswer<GitWorkbenchResult>>;
   gitLog(documentOnly: boolean): Promise<GitAnswer<GitCommitSummary[]>>;
+  /** The branches of the repository; `fetch` asks the remote for its branches first. */
+  gitBranches(fetch: boolean): Promise<GitAnswer<GitBranches>>;
+  /** Switches to a branch; a branch of the remote gets its local branch. Refused while the diagram has unsaved changes. */
+  gitCheckout(branch: string, remote: boolean): Promise<GitAnswer<GitWorkbenchResult>>;
+  /** Creates a branch at the current commit and switches to it. */
+  gitCreateBranch(name: string): Promise<GitAnswer<GitWorkbenchResult>>;
+  /** Merges a branch into the current one; refused while the diagram has unsaved changes. */
+  gitMerge(branch: string, remote: boolean): Promise<GitAnswer<GitWorkbenchResult>>;
   /** Puts versioned files back to the last commit. */
   gitDiscard(paths: string[]): Promise<GitAnswer<GitWorkbenchResult>>;
   /** Gives the open diagram the content it had in `commit`; refused while the diagram has unsaved changes. */

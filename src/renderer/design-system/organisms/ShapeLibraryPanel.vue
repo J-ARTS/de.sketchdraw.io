@@ -17,6 +17,7 @@ import SafeIcon from '@/renderer/design-system/atoms/SafeIcon';
 import { isLucideComponent, LUCIDE_SET_PREFIX } from '@/catalog/lucide-sets';
 import { loadLucideLibrary, lucideIconCount } from '@/renderer/lib/lucide-library';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
+import { pluginLogoUrl } from '@/renderer/lib/plugin-logos';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -371,6 +372,15 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
+        <!-- Tickets of a connected tracker are added from here as cards (#283). -->
+        <section v-if="s.ticketReaders.length && s.canWrite" class="other-libraries" aria-labelledby="ticket-cards-heading">
+          <h3 id="ticket-cards-heading">{{ t('Tickets') }}</h3>
+          <button v-for="reader in s.ticketReaders" :key="reader.id" type="button" class="provider-row" :data-testid="`add-ticket-card-${reader.id}`" @click="store.openTicketInsert(undefined, reader.id)">
+            <span class="provider-logo ticket-logo"><img v-if="pluginLogoUrl(reader.id)" :src="pluginLogoUrl(reader.id)!" alt="" width="30" height="30"><AppIcon v-else name="file-plus" :size="30" /></span>
+            <span><strong>{{ t('{name}-Karte hinzufügen', { name: reader.name }) }}</strong><small>{{ t('Tickets auswählen und als Karten einfügen') }}</small></span>
+            <AppIcon class="row-chevron" name="chevron-right" :size="20" />
+          </button>
+        </section>
         <section class="other-libraries" aria-labelledby="other-libraries-heading">
           <h3 id="other-libraries-heading">{{ t('Weitere Bibliotheken') }}</h3>
           <button v-for="diagram in DIAGRAM_LIBRARIES" :key="diagram.id" type="button" class="provider-row" :data-testid="`open-diagram-library-${diagram.id}`" @click="activeDiagramLibrary = diagram.id; query = ''">

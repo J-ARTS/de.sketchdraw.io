@@ -1,12 +1,13 @@
 <!-- @component The side panel for plugins and their connection settings (Jira and others). -->
 <script setup lang="ts">
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
-import { t, tm } from '@/renderer/i18n';
+import { intlLocale, t, tm } from '@/renderer/i18n';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { azureDevOpsPluginActive, confluencePluginActive, confluencePluginInstalled, jiraPluginActive, jiraPluginInstalled, type ConfigureAtlassianPluginInput, type ConfigureAzureDevOpsPluginInput, type ConfigureGitPluginInput, type PluginId } from '@/domain';
 import { wrapTabFocus } from '@/renderer/lib/focus';
 import { pluginLogoUrl } from '@/renderer/lib/plugin-logos';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
+import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 
 type PluginTab = 'marketplace' | 'installed';
@@ -56,8 +57,31 @@ const linkedPages = computed(() => s.document.elements.filter((element) => eleme
 const canConfigure = computed(() => Boolean(s.pluginSettings?.available) && !s.pluginSettings?.configurationIssue?.blocksChanges);
 const activeProfileName = computed(() => s.pluginSettings?.profiles.find((profile) => profile.id === s.pluginSettings?.activeProfileId)?.name ?? '');
 
+/** A token field is a password field; the eye shows what stands in it. */
+const revealed = ref({ git: false, jira: false, confluence: false, azure: false });
+/**
+ * The stored tokens of the profile, read for this look at the settings so each field shows what is saved. They are
+ * gone when the dialog closes. A token goes back to the main process only when the user changed it: a stored one
+ * stays bound to the address it was saved for.
+ */
+const storedSecret = ref({ git: '', jira: '', confluence: '', azure: '' });
+const changedSecret = (value: string | undefined, key: keyof typeof storedSecret.value): string => (value && value !== storedSecret.value[key] ? value : '');
+/** When the settings of the selected plugin were last saved, in the format of the language. */
+const savedAt = computed(() => {
+  const settings = s.pluginSettings;
+  const stamp = selectedPlugin.value === 'git' ? settings?.git.savedAt : selectedPlugin.value === 'azure-devops' ? settings?.azureDevOps?.savedAt : selectedPlugin.value === 'confluence' ? settings?.atlassian.confluenceSavedAt : settings?.atlassian.jiraSavedAt;
+  const date = stamp ? new Date(stamp) : null;
+  return date && !Number.isNaN(date.getTime()) ? new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date) : '';
+});
 const pending = ref(false);
 const feedback = ref<{ kind: 'info' | 'error'; text: string } | null>(null);
+/** A message of success leaves by itself; a failure stays until it is closed or the next action starts. */
+const FEEDBACK_MS = 5000;
+let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+watch(feedback, (shown) => {
+  clearTimeout(feedbackTimer);
+  if (shown && shown.kind !== 'error') feedbackTimer = setTimeout(() => { if (feedback.value === shown) feedback.value = null; }, FEEDBACK_MS);
+});
 const gitBaseline = ref('');
 const jiraBaseline = ref('');
 const gitDirty = computed(() => JSON.stringify(git.value) !== gitBaseline.value);
@@ -75,22 +99,22 @@ let dialogEpoch = 0;
 
 function seedGit(): void {
   const settings = s.pluginSettings?.git;
-  git.value = { enabled: settings?.enabled ?? false, autoCommit: settings?.autoCommit ?? true, autoPush: settings?.autoPush ?? false, autoPull: settings?.autoPull ?? true, remote: settings?.remote ?? 'origin', remoteUrl: settings?.remoteUrl ?? '', authMode: settings?.authMode ?? 'system', username: settings?.username ?? '', accessToken: '' };
+  git.value = { enabled: settings?.enabled ?? false, autoCommit: settings?.autoCommit ?? true, autoPush: settings?.autoPush ?? false, autoPull: settings?.autoPull ?? true, remote: settings?.remote ?? 'origin', remoteUrl: settings?.remoteUrl ?? '', authMode: settings?.authMode ?? 'system', username: settings?.username ?? '', accessToken: storedSecret.value.git };
   gitBaseline.value = JSON.stringify(git.value);
 }
 function seedJira(): void {
   const settings = s.pluginSettings?.atlassian;
-  atlassian.value = { enabled: jiraPluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '', jiraProjectKey: settings?.jiraProjectKey ?? '', jiraIssueType: settings?.jiraIssueType ?? 'Task', jqlFilter: settings?.jqlFilter ?? '' };
+  atlassian.value = { enabled: jiraPluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: storedSecret.value.jira, confluenceSpaceKey: settings?.confluenceSpaceKey ?? '', jiraProjectKey: settings?.jiraProjectKey ?? '', jiraIssueType: settings?.jiraIssueType ?? 'Task', jqlFilter: settings?.jqlFilter || (settings?.jiraProjectKey ? `project = ${settings.jiraProjectKey}` : '') };
   jiraBaseline.value = JSON.stringify(atlassian.value);
 }
 function seedConfluence(): void {
   const settings = s.pluginSettings?.atlassian;
-  confluence.value = { enabled: confluencePluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: '', confluenceSpaceKey: settings?.confluenceSpaceKey ?? '' };
+  confluence.value = { enabled: confluencePluginActive(settings), siteUrl: settings?.siteUrl ?? '', email: settings?.email ?? '', apiToken: storedSecret.value.confluence, confluenceSpaceKey: settings?.confluenceSpaceKey ?? '' };
   confluenceBaseline.value = JSON.stringify(confluence.value);
 }
 function seedAzure(): void {
   const settings = s.pluginSettings?.azureDevOps;
-  azure.value = { enabled: azureDevOpsPluginActive(settings), variant: settings?.variant ?? 'cloud', organizationUrl: settings?.organizationUrl ?? '', project: settings?.project ?? '', workItemType: settings?.workItemType ?? 'Task', wiqlFilter: settings?.wiqlFilter ?? '', apiVersion: settings?.apiVersion ?? '', readOnly: settings?.readOnly ?? false, accessToken: '' };
+  azure.value = { enabled: azureDevOpsPluginActive(settings), variant: settings?.variant ?? 'cloud', organizationUrl: settings?.organizationUrl ?? '', project: settings?.project ?? '', workItemType: settings?.workItemType ?? 'Task', wiqlFilter: settings?.wiqlFilter ?? '', apiVersion: settings?.apiVersion ?? '', readOnly: settings?.readOnly ?? false, accessToken: storedSecret.value.azure };
   azureBaseline.value = JSON.stringify(azure.value);
 }
 /** The usual version of the interface follows the variant until the user names another one. */
@@ -99,10 +123,34 @@ function pickAzureVariant(variant: 'cloud' | 'server'): void {
   if (!azure.value.apiVersion || azure.value.apiVersion === usual[azure.value.variant]) azure.value.apiVersion = usual[variant];
   azure.value.variant = variant;
 }
+/**
+ * Reads the stored tokens of the profile and puts them into the forms nobody is typing in. Jira and Confluence
+ * share one token. Asked again after every save and whenever the profile or its tokens change.
+ */
+let secretRequest = 0;
+async function loadSecrets(): Promise<void> {
+  const request = ++secretRequest, settings = s.pluginSettings;
+  if (!props.open || !settings?.available) return;
+  const [git, atlassian, azure] = await Promise.all([
+    settings.git.credentialStored ? store.revealPluginCredential('git') : '',
+    settings.atlassian.credentialStored ? store.revealPluginCredential('jira') : '',
+    settings.azureDevOps?.credentialStored ? store.revealPluginCredential('azure-devops') : '',
+  ]);
+  if (request !== secretRequest || !props.open) return;
+  storedSecret.value = { git, jira: atlassian, confluence: atlassian, azure };
+  if (!gitDirty.value) seedGit();
+  if (!jiraDirty.value) seedJira();
+  if (!confluenceDirty.value) seedConfluence();
+  if (!azureDirty.value) seedAzure();
+}
+watch(() => { const settings = s.pluginSettings; return settings ? `${props.open}:${settings.activeProfileId}:${settings.git.credentialStored}:${settings.atlassian.credentialStored}:${settings.azureDevOps?.credentialStored ?? false}` : ''; }, () => { void loadSecrets(); });
+
 watch(() => s.pluginSettings, (settings) => {
   const key = settings ? `${settings.available}:${settings.projectFolder}:${settings.activeProfileId}` : '';
   if (key !== contextKey) {
     contextKey = key; operationEpoch++; pendingOperation++; pending.value = false; feedback.value = null;
+    // Another profile or project: the tokens that were read belong to the previous one.
+    secretRequest++; storedSecret.value = { git: '', jira: '', confluence: '', azure: '' };
     seedGit(); seedJira(); seedConfluence(); seedAzure();
   } else {
     // Health refreshes must not replace either unsaved draft.
@@ -123,20 +171,20 @@ watch(visiblePlugins, (plugins) => {
 
 /** The native modal keeps focus inside and makes the workspace inert. */
 watch(() => props.open, async (open) => {
-  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; seedGit(); seedJira(); seedConfluence(); seedAzure();
+  operationEpoch++; dialogEpoch++; pendingOperation++; pending.value = false; feedback.value = null; revealed.value = { git: false, jira: false, confluence: false, azure: false }; secretRequest++; storedSecret.value = { git: '', jira: '', confluence: '', azure: '' }; seedGit(); seedJira(); seedConfluence(); seedAzure();
   await nextTick();
   if (open) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.value?.open) dialog.value?.showModal();
     closeButton.value?.focus();
-    void store.refreshPluginSettings();
+    void store.refreshPluginSettings().then(loadSecrets);
   } else {
     dialog.value?.close();
     if (opener?.isConnected) opener.focus();
     opener = null;
   }
 }, { immediate: true });
-onBeforeUnmount(() => { operationEpoch++; dialogEpoch++; dialog.value?.close(); });
+onBeforeUnmount(() => { operationEpoch++; dialogEpoch++; clearTimeout(feedbackTimer); dialog.value?.close(); });
 
 /**
  * Keyboard focus stays inside the open dialog (#210). A running action disables the controls, and a browser drops
@@ -211,15 +259,15 @@ async function saveProject(): Promise<void> {
     if (isCurrent()) feedback.value = { kind: 'error', text: tm(error instanceof Error ? error.message : t('Die Aktion konnte nicht abgeschlossen werden.')) };
   } finally { if (request === pendingOperation) pending.value = false; }
 }
-async function saveGit(): Promise<void> { if (await runOperation(() => store.configureGitPlugin(git.value), t('Git-Plugin gespeichert.'))) seedGit(); }
+async function saveGit(): Promise<void> { if (await runOperation(() => store.configureGitPlugin({ ...git.value, accessToken: changedSecret(git.value.accessToken, 'git') }), t('Git-Plugin gespeichert.'))) { seedGit(); void loadSecrets(); } }
 // Each plugin saves its own switch and fields; the connection (address, user, token) is shared, so both drafts are seeded again.
-async function saveJira(): Promise<void> { if (await runOperation(() => store.configureAtlassianPlugin({ ...atlassian.value, plugin: 'jira' }), t('Jira-Plugin gespeichert.'))) { seedJira(); seedConfluence(); } }
+async function saveJira(): Promise<void> { if (await runOperation(() => store.configureAtlassianPlugin({ ...atlassian.value, jiraProjectKey: '', jiraIssueType: 'Task', apiToken: changedSecret(atlassian.value.apiToken, 'jira'), plugin: 'jira' }), t('Jira-Plugin gespeichert.'))) { seedJira(); seedConfluence(); void loadSecrets(); } }
 async function saveConfluence(): Promise<void> {
   const current = s.pluginSettings?.atlassian;
-  const input: ConfigureAtlassianPluginInput = { plugin: 'confluence', ...confluence.value, jiraProjectKey: current?.jiraProjectKey ?? '', jiraIssueType: current?.jiraIssueType ?? 'Task', jqlFilter: current?.jqlFilter ?? '' };
-  if (await runOperation(() => store.configureAtlassianPlugin(input), t('Confluence-Plugin gespeichert.'))) { seedJira(); seedConfluence(); }
+  const input: ConfigureAtlassianPluginInput = { plugin: 'confluence', ...confluence.value, apiToken: changedSecret(confluence.value.apiToken, 'confluence'), jiraProjectKey: current?.jiraProjectKey ?? '', jiraIssueType: current?.jiraIssueType ?? 'Task', jqlFilter: current?.jqlFilter ?? '' };
+  if (await runOperation(() => store.configureAtlassianPlugin(input), t('Confluence-Plugin gespeichert.'))) { seedJira(); seedConfluence(); void loadSecrets(); }
 }
-async function saveAzure(): Promise<void> { if (await runOperation(() => store.configureAzureDevOpsPlugin(azure.value), t('Azure-DevOps-Plugin gespeichert.'))) seedAzure(); }
+async function saveAzure(): Promise<void> { if (await runOperation(() => store.configureAzureDevOpsPlugin({ ...azure.value, accessToken: changedSecret(azure.value.accessToken, 'azure') }), t('Azure-DevOps-Plugin gespeichert.'))) { seedAzure(); void loadSecrets(); } }
 async function installPlugin(id: PluginId): Promise<void> {
   if (await runOperation(() => store.setPluginInstalled(id, true), t('Installiert'))) { selectedPlugin.value = id; activeTab.value = 'installed'; focusDetail(); }
 }
@@ -251,7 +299,11 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
       </template>
 
       <div v-if="s.pluginSettings?.configurationIssue" class="plugin-feedback error" role="alert">{{ tm(s.pluginSettings.configurationIssue.message) }}</div>
-      <div v-if="feedback" class="plugin-feedback" :class="{ error: feedback.kind === 'error' }" :role="feedback.kind === 'error' ? 'alert' : 'status'">{{ feedback.text }}</div>
+      <div v-if="feedback" class="plugin-feedback" :class="feedback.kind === 'error' ? 'error' : 'success'" data-testid="plugin-feedback">
+        <AppIcon :name="feedback.kind === 'error' ? 'warning' : 'check'" :size="16" />
+        <span class="plugin-feedback-text" :role="feedback.kind === 'error' ? 'alert' : 'status'">{{ feedback.text }}</span>
+        <AppIconButton class="plugin-feedback-close" icon="close" :icon-size="16" :label="t('Meldung schließen')" @click="feedback = null" />
+      </div>
       <div class="plugin-layout" :id="`plugin-panel-${activeTab}`" role="tabpanel" :aria-labelledby="`plugin-tab-${activeTab}`">
         <aside class="plugin-list" :aria-label="activeTab === 'marketplace' ? t('Marketplace-Plugins') : t('Installierte Plugins')">
           <label class="search-box"><AppIcon name="search" /><span class="sr-only">{{ t('Plugins suchen') }}</span><input v-model="search" type="search" :placeholder="t('Plugins suchen')" /></label>
@@ -296,7 +348,7 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <ul><li>{{ t('Work Items per WIQL-Abfrage laden') }}</li><li>{{ t('Aufgaben, Kommentare und Notizen als Work Items erstellen') }}</li><li>{{ t('Titel, Beschreibung, Zuständigkeit, Fälligkeit und Zustand zwischen Board und Azure Boards abgleichen') }}</li><li>{{ t('Seiten des Diagramms als Bild auf Seiten des Wikis zeigen und aktuell halten') }}</li><li>{{ t('Nur-lesen-Modus für Tokens ohne Schreibrecht') }}</li></ul>
               </template>
               <template v-else>
-                <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren Jira-Filter. Neue Aufgaben werden im Jira-Projekt des aktiven Profils erstellt.') }}</p>
+                <p>{{ t('Jira verbindet das Aufgabenboard mit einem frei definierbaren JQL-Filter. Neue Aufgaben werden in dem Projekt erstellt, das der Filter nennt.') }}</p>
                 <h4>{{ t('Funktionen') }}</h4>
                 <ul><li>{{ t('Jira-Vorgänge per JQL laden') }}</li><li>{{ t('Aufgaben und Kommentare als Jira-Tickets erstellen') }}</li><li>{{ t('Zuständigkeit, Fälligkeit und Status zwischen Board und Jira synchronisieren') }}</li></ul>
               </template>
@@ -307,7 +359,7 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
           <template v-else-if="selectedInstalled">
             <section class="config-head">
               <span class="plugin-logo" aria-hidden="true"><img v-if="pluginLogoUrl(selectedCatalogPlugin.id)" :src="pluginLogoUrl(selectedCatalogPlugin.id)!" alt="" /><template v-else>{{ selectedCatalogPlugin.badge }}</template></span>
-              <div><h2 :id="`plugin-${selectedPlugin}-title`" tabindex="-1">{{ selectedCatalogPlugin.title }}</h2><p>{{ selectedPlugin === 'git' ? tm(s.pluginSettings?.git.message ?? '') : selectedPlugin === 'azure-devops' ? tm(s.pluginSettings?.azureDevOps?.message ?? '') : tm(s.pluginSettings?.atlassian.message ?? '') }}</p></div>
+              <div><h2 :id="`plugin-${selectedPlugin}-title`" tabindex="-1">{{ selectedCatalogPlugin.title }}</h2><p>{{ selectedPlugin === 'git' ? tm(s.pluginSettings?.git.message ?? '') : selectedPlugin === 'azure-devops' ? tm(s.pluginSettings?.azureDevOps?.message ?? '') : tm((selectedPlugin === 'confluence' ? s.pluginSettings?.atlassian.confluenceMessage : s.pluginSettings?.atlassian.jiraMessage) ?? s.pluginSettings?.atlassian.message ?? '') }}</p><p v-if="selectedInstalled && savedAt" class="saved-at" data-testid="plugin-saved-at">{{ t('Zuletzt aktualisiert: {date}', { date: savedAt }) }}</p></div>
               <button class="text-button danger" type="button" :disabled="controlsDisabled" @click="uninstallPlugin(selectedPlugin)">{{ t('Deinstallieren') }}</button>
             </section>
 
@@ -320,11 +372,11 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
                 <label>{{ t('Remote-URL') }}<input v-model="git.remoteUrl" autocomplete="url" placeholder="https://github.com/org/repo.git" /></label>
               </div>
               <fieldset class="auth-fieldset"><legend>{{ t('Anmeldung') }}</legend><div class="auth-options"><label :class="{ active: git.authMode === 'system' }"><input v-model="git.authMode" type="radio" value="system" /><strong>{{ t('Git-Credentials verwenden') }}</strong><span>{{ t('Nutzt die bereits auf dem System eingerichtete Git-Anmeldung.') }}</span></label><label :class="{ active: git.authMode === 'token' }"><input v-model="git.authMode" type="radio" value="token" /><strong>{{ t('Username und Token') }}</strong><span>{{ t('Speichert den Token verschlüsselt in diesem Profil.') }}</span></label></div></fieldset>
-              <div v-if="git.authMode === 'token'" class="form-grid two"><label>{{ t('Username') }}<input v-model="git.username" autocomplete="username" /></label><label>{{ t('Access-Token') }}<input v-model="git.accessToken" type="password" :placeholder="s.pluginSettings?.git.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('Access-Token')" autocomplete="new-password" /></label></div>
+              <div v-if="git.authMode === 'token'" class="form-grid two"><label>{{ t('Username') }}<input v-model="git.username" autocomplete="username" /></label><div class="secret"><label>{{ t('Access-Token') }}<input v-model="git.accessToken" :type="revealed.git ? 'text' : 'password'" :placeholder="s.pluginSettings?.git.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('Access-Token')" autocomplete="new-password" /></label><AppIconButton class="secret-toggle" icon="eye" :icon-size="18" :pressed="revealed.git" :disabled="!git.accessToken" :label="revealed.git ? t('Eingabe verbergen') : t('Eingabe anzeigen')" @click="revealed.git = !revealed.git" /></div></div>
               <div class="option-list"><label><input v-model="git.autoCommit" type="checkbox" /> <span><strong>{{ t('Automatisch committen') }}</strong><small>{{ t('Das Diagramm nach jedem Speichern committen.') }}</small></span></label><label><input v-model="git.autoPull" type="checkbox" /> <span><strong>{{ t('Automatisch abrufen') }}</strong><small>{{ t('Änderungen vor dem Synchronisieren per Pull laden.') }}</small></span></label><label><input v-model="git.autoPush" type="checkbox" /> <span><strong>{{ t('Automatisch pushen') }}</strong><small>{{ t('Erfolgreiche Diagramm-Commits zum Remote übertragen.') }}</small></span></label></div>
               <dl v-if="s.pluginSettings?.git.repositoryName" class="status-grid"><div><dt>{{ t('Repository') }}</dt><dd>{{ s.pluginSettings.git.repositoryName }}</dd></div><div><dt>{{ t('Branch') }}</dt><dd>{{ s.pluginSettings.git.branch }}</dd></div><div><dt>{{ t('Änderungen') }}</dt><dd>{{ s.pluginSettings.git.changedFiles ?? 0 }}</dd></div><div><dt>{{ t('Remote') }}</dt><dd>↑ {{ s.pluginSettings.git.ahead ?? 0 }} · ↓ {{ s.pluginSettings.git.behind ?? 0 }}</dd></div></dl>
               <div v-if="s.pendingExternalDocument" class="conflict" role="alert"><strong>{{ t('Externe Änderung wartet') }}</strong><span>{{ t('Lokale Entwürfe wurden nicht überschrieben.') }}</span><button class="sd-btn" :disabled="s.saveStatus === 'dirty'" @click="store.acceptExternalDocument()">{{ t('Externe Version laden') }}</button></div>
-              <p v-if="gitDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.refreshGitStatus(), t('Status geprüft.'))">{{ t('Status prüfen') }}</button><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.syncGit(), t('Synchronisierung abgeschlossen.'))">{{ t('Jetzt synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveGit">{{ t('Git speichern') }}</button></footer>
+              <p v-if="gitDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.refreshGitStatus(), t('Verbindung geprüft.'))">{{ t('Verbindung prüfen') }}</button><button class="sd-btn" :disabled="busy || !s.file.handle || !s.pluginSettings?.git.enabled || gitDirty" @click="runOperation(() => store.syncGit(), t('Synchronisierung abgeschlossen.'))">{{ t('Jetzt synchronisieren') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveGit">{{ t('Speichern') }}</button></footer>
             </section>
 
             <section v-else-if="selectedPlugin === 'confluence'" class="config-content">
@@ -332,11 +384,11 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
               <div class="form-grid two">
                 <label class="wide">{{ t('Atlassian-URL') }}<input v-model="confluence.siteUrl" type="url" placeholder="https://example.atlassian.net" autocomplete="url" /></label>
                 <label>{{ t('Username oder E-Mail') }}<input v-model="confluence.email" autocomplete="username" /></label>
-                <label>{{ t('API-Token') }}<input v-model="confluence.apiToken" type="password" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label>
+                <div class="secret"><label>{{ t('API-Token') }}<input v-model="confluence.apiToken" :type="revealed.confluence ? 'text' : 'password'" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label><AppIconButton class="secret-toggle" icon="eye" :icon-size="18" :pressed="revealed.confluence" :disabled="!confluence.apiToken" :label="revealed.confluence ? t('Eingabe verbergen') : t('Eingabe anzeigen')" @click="revealed.confluence = !revealed.confluence" /></div>
                 <label class="wide">{{ t('Confluence-Space (optional)') }}<input v-model="confluence.confluenceSpaceKey" placeholder="SPACE" autocomplete="off" /></label>
               </div>
               <p class="security-copy">{{ t('Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen.') }}</p>
-              <p class="security-copy">{{ t('Eine Diagrammseite verknüpfst du über ihr Menü in der Seitenleiste mit einer Confluence-Seite.') }}</p><p v-if="confluenceDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="confluence-test" :disabled="busy || !confluencePluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || confluenceDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="confluence-save" :disabled="s.pluginBusy" @click="saveConfluence">{{ t('Confluence speichern') }}</AppButton></footer>
+              <p class="security-copy">{{ t('Eine Diagrammseite verknüpfst du über ihr Menü in der Seitenleiste mit einer Confluence-Seite.') }}</p><p v-if="confluenceDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="confluence-test" :disabled="busy || !confluencePluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || confluenceDirty" @click="runOperation(() => store.testAtlassianPlugin('confluence'), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="confluence-save" :disabled="s.pluginBusy" @click="saveConfluence">{{ t('Speichern') }}</AppButton></footer>
 
               <div v-if="linkedPages.length" class="integration-section"><h3>{{ t('Verknüpfte Seiten') }}</h3><ul class="result-list"><li v-for="element in linkedPages" :key="element.id"><div><strong>{{ element.label || t('Confluence-Seite') }}</strong><span>{{ t('Version {version}', { version: String(element.metadata?.['sketchdraw.atlassian.pageVersion'] ?? '') }) }}</span></div><span class="row-actions"><button class="sd-btn" @click="runOperation(() => store.refreshConfluenceElement(element.id), t('Confluence-Seite neu geladen.'))">{{ t('Neu laden') }}</button><button class="sd-btn" @click="runOperation(() => store.syncConfluenceElement(element.id), t('Confluence-Seite aktualisiert.'))">{{ t('Senden') }}</button></span></li></ul></div>
             </section>
@@ -347,28 +399,26 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
               <div class="form-grid two">
                 <label class="wide">{{ azure.variant === 'cloud' ? t('Organisation') : t('Adresse der Sammlung') }}<input v-model="azure.organizationUrl" :placeholder="azure.variant === 'cloud' ? 'https://dev.azure.com/organisation' : 'https://server.example.com/tfs/DefaultCollection'" autocomplete="url" /></label>
                 <label>{{ t('Projekt') }}<input v-model="azure.project" maxlength="64" autocomplete="off" /></label>
-                <label>{{ t('Personal Access Token') }}<input v-model="azure.accessToken" type="password" :placeholder="s.pluginSettings?.azureDevOps?.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('Personal Access Token')" autocomplete="new-password" /></label>
+                <div class="secret"><label>{{ t('Personal Access Token') }}<input v-model="azure.accessToken" :type="revealed.azure ? 'text' : 'password'" :placeholder="s.pluginSettings?.azureDevOps?.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('Personal Access Token')" autocomplete="new-password" /></label><AppIconButton class="secret-toggle" icon="eye" :icon-size="18" :pressed="revealed.azure" :disabled="!azure.accessToken" :label="revealed.azure ? t('Eingabe verbergen') : t('Eingabe anzeigen')" @click="revealed.azure = !revealed.azure" /></div>
                 <label>{{ t('Work-Item-Typ') }}<input v-model="azure.workItemType" placeholder="Task" autocomplete="off" /></label>
                 <label>{{ t('API-Version') }}<input v-model="azure.apiVersion" :placeholder="azure.variant === 'cloud' ? '7.1' : '6.0'" autocomplete="off" /></label>
                 <label class="wide">{{ t('WIQL-Abfrage (optional)') }}<input v-model="azure.wiqlFilter" placeholder="SELECT [System.Id] FROM WorkItems WHERE [System.AssignedTo] = @me" autocomplete="off" /></label>
               </div>
               <div class="option-list"><label><input v-model="azure.readOnly" type="checkbox" /> <span><strong>{{ t('Nur lesen') }}</strong><small>{{ t('Work Items werden geladen, aber weder erstellt noch geändert; ins Wiki wird nichts übertragen.') }}</small></span></label></div>
               <p class="security-copy">{{ t('Das Token braucht den Umfang „Work Items: Lesen und Schreiben“ und, um Seiten im Wiki zu zeigen, „Wiki: Lesen und Schreiben“; für „Nur lesen“ genügt „Work Items: Lesen“. Es wird verschlüsselt im Profil auf diesem Gerät abgelegt und nicht in Diagramme oder Git übernommen.') }}</p>
-              <p class="security-copy">{{ t('Azure DevOps wird nur über https angesprochen. Work Items werden alle fünf Sekunden automatisch abgeglichen.') }}</p><p v-if="azureDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="azure-devops-test" :disabled="busy || !azureDevOpsPluginActive(s.pluginSettings?.azureDevOps) || !s.pluginSettings?.azureDevOps?.credentialStored || azureDirty" @click="runOperation(() => store.testAzureDevOpsPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="azure-devops-save" :disabled="s.pluginBusy" @click="saveAzure">{{ t('Azure DevOps speichern') }}</AppButton></footer>
+              <p class="security-copy">{{ t('Azure DevOps wird nur über https angesprochen. Work Items werden alle fünf Sekunden automatisch abgeglichen.') }}</p><p v-if="azureDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><AppButton data-testid="azure-devops-test" :disabled="busy || !azureDevOpsPluginActive(s.pluginSettings?.azureDevOps) || !s.pluginSettings?.azureDevOps?.credentialStored || azureDirty" @click="runOperation(() => store.testAzureDevOpsPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</AppButton><AppButton intent="primary" data-testid="azure-devops-save" :disabled="s.pluginBusy" @click="saveAzure">{{ t('Speichern') }}</AppButton></footer>
             </section>
 
             <section v-else class="config-content">
-              <div class="section-title"><div><h3>{{ t('Jira-Konfiguration') }}</h3><p>{{ t('Diese Einstellungen gehören zum Profil „{name}“. Tickets werden im Jira-Projekt erstellt und über den JQL-Filter geladen.', { name: activeProfileName }) }}</p></div><label class="switch"><input v-model="atlassian.enabled" type="checkbox" /><span>{{ t('Aktiv') }}</span></label></div>
+              <div class="section-title"><div><h3>{{ t('Jira-Konfiguration') }}</h3><p>{{ t('Diese Einstellungen gehören zum Profil „{name}“. Tickets werden über den JQL-Filter geladen; neue entstehen in dem Projekt, das er nennt.', { name: activeProfileName }) }}</p></div><label class="switch"><input v-model="atlassian.enabled" type="checkbox" /><span>{{ t('Aktiv') }}</span></label></div>
               <div class="form-grid two">
                 <label class="wide">{{ t('Atlassian-URL') }}<input v-model="atlassian.siteUrl" type="url" placeholder="https://example.atlassian.net" autocomplete="url" /></label>
                 <label>{{ t('Username oder E-Mail') }}<input v-model="atlassian.email" autocomplete="username" /></label>
-                <label>{{ t('API-Token') }}<input v-model="atlassian.apiToken" type="password" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label>
-                <label>{{ t('Jira-Projekt') }}<input v-model="atlassian.jiraProjectKey" placeholder="PROJ" autocomplete="off" /></label>
-                <label>{{ t('Jira-Vorgangstyp') }}<input v-model="atlassian.jiraIssueType" :placeholder="t('Task')" autocomplete="off" /></label>
+                <div class="secret"><label>{{ t('API-Token') }}<input v-model="atlassian.apiToken" :type="revealed.jira ? 'text' : 'password'" :placeholder="s.pluginSettings?.atlassian.credentialStored ? t('Gespeichert – leer lassen zum Behalten') : t('API-Token')" autocomplete="new-password" /></label><AppIconButton class="secret-toggle" icon="eye" :icon-size="18" :pressed="revealed.jira" :disabled="!atlassian.apiToken" :label="revealed.jira ? t('Eingabe verbergen') : t('Eingabe anzeigen')" @click="revealed.jira = !revealed.jira" /></div>
                 <label class="wide">{{ t('JQL-Filter') }}<input v-model="atlassian.jqlFilter" :placeholder="t('z. B. project = PROJ AND assignee = currentUser()')" autocomplete="off" /></label>
               </div>
               <p class="security-copy">{{ t('Das Token wird verschlüsselt im Profil auf diesem Gerät abgelegt. Es wird nicht in Diagramme oder Git übernommen.') }}</p>
-              <p class="security-copy">{{ t('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.') }}</p><p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !jiraPluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin(), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Jira speichern') }}</button></footer>
+              <p class="security-copy">{{ t('Jira-Aufgaben werden alle fünf Sekunden automatisch synchronisiert.') }}</p><p v-if="jiraDirty" class="draft-hint">{{ t('Ungespeicherte Änderungen. Speichere vor dem Testen oder Synchronisieren.') }}</p><footer class="config-actions"><button class="sd-btn" :disabled="busy || !jiraPluginActive(s.pluginSettings?.atlassian) || !s.pluginSettings?.atlassian.credentialStored || jiraDirty" @click="runOperation(() => store.testAtlassianPlugin('jira'), t('Verbindung getestet.'))">{{ t('Verbindung testen') }}</button><button class="sd-btn sd-btn--primary" :disabled="s.pluginBusy" @click="saveJira">{{ t('Speichern') }}</button></footer>
             </section>
             </fieldset>
           </template>
@@ -387,4 +437,14 @@ async function uninstallPlugin(id: PluginId): Promise<void> {
 .plugin-shell:focus{outline:0}.integration-section h3:focus-visible{outline:2px solid var(--focus-ring);outline-offset:var(--space-1)}.result-list .row-actions{flex:0 0 auto}
 @media(max-width:800px){.plugin-dialog{width:100vw;height:100vh}.plugin-header{align-items:center;flex-wrap:wrap;gap:8px;padding:16px}.heading-block{min-width:0;flex:1}.plugin-tabs{order:3;width:100%;height:46px}.plugin-tabs button{flex:1}.plugin-layout{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.plugin-list{max-height:180px;border-right:0;border-bottom:1px solid var(--border-subtle)}.plugin-detail{min-height:0}.form-grid.two,.auth-options,.status-grid{grid-template-columns:1fr}.form-grid label.wide{grid-column:auto}.overview-hero,.config-head,.overview-content,.config-content{padding-right:20px;padding-left:20px}}
 @media(max-width:480px){.plugin-header{padding:12px}.plugin-tabs button{min-width:0;padding:10px}.context-note,.project-context,.plugin-feedback{padding:10px 16px}.overview-hero,.config-head{flex-wrap:wrap;gap:10px}.overview-hero>div,.config-head>div{min-width:120px}.install-button{width:100%}.config-actions .sd-btn{flex:1 1 100%}.config-head .text-button{margin-left:auto}.plugin-list{padding:10px;max-height:166px}.plugin-list-item{min-height:52px;padding:6px}.plugin-logo{width:34px;height:34px;font-size:17px}.list-label{margin:8px}.plugin-detail .config-content{padding:16px}.result-list li{flex-wrap:wrap}.option-list>label{padding:8px}.heading-block{padding-right:38px}}
+.secret{position:relative;min-width:0}
+.secret label{width:100%}
+.secret input{padding-right:44px}
+.secret-toggle{position:absolute;right:4px;bottom:4px}
+.saved-at{color:var(--text-muted);font-size:var(--font-size-s)}
+.plugin-feedback{display:flex;align-items:center;gap:8px}
+.plugin-feedback.success{background:var(--status-ok-soft);color:var(--status-ok)}
+.plugin-feedback.error{background:var(--status-error-soft)}
+.plugin-feedback-text{flex:1;min-width:0}
+.plugin-feedback-close{flex:none;margin:-6px -8px -6px 0;color:inherit}
 </style>

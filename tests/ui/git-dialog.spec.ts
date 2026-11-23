@@ -67,6 +67,10 @@ async function desktop(page: Page, options: { enabled?: boolean; theme?: 'light'
         gitLog: async (input: { documentOnly: boolean }) => { control.calls.push({ action: 'log', input: structuredClone(input) }); return input.documentOnly ? [commits[0], commits[2]] : commits; },
         gitDiscard: async (input: { paths: string[] }) => step('discard', input, 'Änderungen verworfen.', () => without(input.paths)),
         gitRestoreDocument: async (input: { commit: string }) => step('restore', input, 'Das Diagramm hat den Stand des gewählten Commits. Mit einem Commit hältst du das fest.', () => { if (!control.changes.some((change) => change.document)) control.changes.unshift({ path: 'diagrams/architecture.sketchdraw', status: 'modified', document: true }); }),
+        gitBranches: async (input: { fetch: boolean }) => { control.calls.push({ action: 'branches', input: structuredClone(input) }); return { current: control.git.branch, local: ['feature/login', 'main'], remote: input.fetch ? ['feature/shipping', 'main'] : ['main'], remoteName: 'origin' }; },
+        gitCheckout: async (input: { branch: string; remote: boolean }) => step('checkout', input, `Branch „${input.branch}“ ausgecheckt.`, () => { control.git.branch = input.branch; }),
+        gitCreateBranch: async (input: { name: string }) => step('create-branch', input, `Branch „${input.name}“ erstellt und ausgecheckt.`, () => { control.git.branch = input.name; }),
+        gitMerge: async (input: { branch: string; remote: boolean }) => step('merge', input, 'Der Branch wurde zusammengeführt.', () => { control.git.ahead = (control.git.ahead ?? 0) + 1; }),
         gitAutomation: async (input: { autoCommit: boolean; autoPush: boolean; autoPull: boolean }) => { control.calls.push({ action: 'automation', input: structuredClone(input) }); Object.assign(control.git, input); return { ...control.git, folderPath: folder }; },
       },
     } });
@@ -125,7 +129,52 @@ test('the Git button sits beside help at the size of the bar and opens the dialo
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
   await expect(button).toBeFocused();
-  await expect(button).toHaveAccessibleName('Git, 3 geänderte Dateien');
+  // The button names what waits for Git: the changed files and the commit that is not pushed yet; the dot marks it.
+  await expect(button).toHaveAccessibleName('Git, 3 geänderte Dateien, 1 Commit noch nicht gepusht');
+  await expect(page.getByTestId('git-dot')).toBeVisible();
+});
+
+test('the branch opens a menu to switch, create and merge branches and to fetch those of the remote', async ({ page }) => {
+  await desktop(page);
+  const dialog = await openGit(page);
+  const branch = dialog.getByTestId('git-branch');
+  await expect(branch).toHaveText('main');
+  await branch.click();
+  const menu = dialog.getByTestId('git-branches');
+  await expect(menu.getByRole('searchbox', { name: 'Branches suchen' })).toBeFocused();
+  await expect(menu.getByTestId('git-branches-local').getByRole('listitem')).toHaveCount(2);
+  await expect(menu.locator('.branch-row[aria-current="true"]')).toContainText('main'); await expect(menu.locator('.branch-row[aria-current="true"]')).toBeDisabled();
+  expect((await new AxeBuilder({ page }).include('[data-testid="git-dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  // The remote is asked for its branches; the search narrows both lists.
+  await expect(menu.getByTestId('git-branches-remote').getByRole('listitem')).toHaveCount(1);
+  await menu.getByTestId('git-branches-fetch').click();
+  await expect(menu.getByTestId('git-branches-remote').getByRole('listitem')).toHaveCount(2);
+  await menu.getByRole('searchbox', { name: 'Branches suchen' }).fill('shipping');
+  await expect(menu.getByTestId('git-branches-local').getByRole('listitem')).toHaveCount(0);
+  await expect(menu.getByTestId('git-branches-remote').getByRole('listitem')).toHaveCount(1);
+  // Escape closes the menu, not the dialog, and the focus returns to the branch.
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0); await expect(dialog).toBeVisible(); await expect(branch).toBeFocused();
+
+  // A branch of the remote is checked out; a merge asks first; a new branch is created by its name.
+  await branch.click(); await menu.getByTestId('git-branches-fetch').click();
+  await menu.getByRole('button', { name: 'origin/feature/shipping', exact: true }).click();
+  await expect(dialog.getByTestId('git-status')).toContainText('Branch „feature/shipping“ ausgecheckt.');
+  await expect(branch).toHaveText('feature/shipping');
+  expect(await calls(page, 'checkout')).toEqual([{ handleId: 'architecture-file', branch: 'feature/shipping', remote: true }]);
+  await branch.click();
+  await menu.getByRole('button', { name: '„main“ in „feature/shipping“ zusammenführen' }).click();
+  await expect(dialog.getByTestId('git-confirm')).toContainText('„main“ in „feature/shipping“ zusammenführen?');
+  expect(await calls(page, 'merge')).toEqual([]);
+  await dialog.getByTestId('git-confirm-merge').click();
+  await expect(dialog.getByTestId('git-status')).toContainText('Der Branch wurde zusammengeführt.');
+  expect(await calls(page, 'merge')).toEqual([{ handleId: 'architecture-file', branch: 'main', remote: false }]);
+  await branch.click();
+  await expect(menu.getByTestId('git-branch-create')).toBeDisabled();
+  await menu.getByRole('textbox', { name: 'Name für einen neuen Branch' }).fill('feature/checkout');
+  await menu.getByTestId('git-branch-create').click();
+  await expect(dialog.getByTestId('git-status')).toContainText('Branch „feature/checkout“ erstellt und ausgecheckt.');
+  expect(await calls(page, 'create-branch')).toEqual([{ handleId: 'architecture-file', name: 'feature/checkout' }]);
 });
 
 test('commits exactly the ticked files, alone or with a push (#216)', async ({ page }) => {

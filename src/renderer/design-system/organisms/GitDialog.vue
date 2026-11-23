@@ -1,12 +1,13 @@
-<!-- @component The modal Git dialog of the Git plugin: see and commit changes, push, fetch the remote state, go back to an old state of the diagram and switch the automatic steps. Opened by the Git button beside help. -->
+<!-- @component The modal Git dialog of the Git plugin: see and commit changes, push, fetch the remote state, switch, create and merge branches, go back to an old state of the diagram and switch the automatic steps. Opened by the Git button beside help. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import type { GitChange, GitChangeStatus, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot } from '@/domain';
+import type { GitBranches, GitChange, GitChangeStatus, GitCommitSummary, GitFileDiff, GitWorkbenchResult, GitWorkbenchSnapshot } from '@/domain';
 import AppButton from '@/renderer/design-system/atoms/AppButton.vue';
 import AppIcon from '@/renderer/design-system/atoms/AppIcon.vue';
 import AppIconButton from '@/renderer/design-system/atoms/AppIconButton.vue';
 import AppSwitch from '@/renderer/design-system/atoms/AppSwitch.vue';
 import AppTextarea from '@/renderer/design-system/atoms/AppTextarea.vue';
+import AppTextField from '@/renderer/design-system/atoms/AppTextField.vue';
 import { useWhiteboard } from '@/renderer/design-system/composables/use-whiteboard';
 import DiffView from '@/renderer/design-system/molecules/DiffView.vue';
 import { intlLocale, L, t, tn } from '@/renderer/i18n';
@@ -29,7 +30,7 @@ const store = useWhiteboard();
 const s = store.state;
 
 type Tab = 'changes' | 'history' | 'automation';
-type Work = '' | 'load' | 'commit' | 'push' | 'update' | 'discard' | 'restore' | 'automation' | 'save';
+type Work = '' | 'load' | 'commit' | 'push' | 'update' | 'discard' | 'restore' | 'automation' | 'save' | 'checkout' | 'branch' | 'merge' | 'fetch';
 const TABS: Array<{ id: Tab; label: string }> = [{ id: 'changes', label: L('Änderungen') }, { id: 'history', label: L('Verlauf') }, { id: 'automation', label: L('Automatik') }];
 const STATUS: Record<GitChangeStatus, { letter: string; label: string }> = {
   modified: { letter: 'M', label: L('Geändert') }, added: { letter: 'A', label: L('Neu') }, deleted: { letter: 'D', label: L('Gelöscht') },
@@ -50,13 +51,21 @@ const activePath = ref<string | null>(null);
 const diff = ref<GitFileDiff | null>(null);
 const diffError = ref('');
 const message = ref('');
-const confirm = ref<null | { kind: 'discard'; paths: string[] } | { kind: 'restore'; commit: GitCommitSummary }>(null);
+const confirm = ref<null | { kind: 'discard'; paths: string[] } | { kind: 'restore'; commit: GitCommitSummary } | { kind: 'merge'; branch: string; remote: boolean; label: string }>(null);
 const commits = ref<GitCommitSummary[] | null>(null);
 const historyError = ref('');
 const documentOnly = ref(true);
 const activeCommit = ref<GitCommitSummary | null>(null);
 const commitDiff = ref<GitFileDiff | null>(null);
 let diffRequest = 0;
+const branchMenu = ref<HTMLElement | null>(null);
+const branchButton = ref<HTMLButtonElement | null>(null);
+const branchFilterField = ref<InstanceType<typeof AppTextField> | null>(null);
+const branchesOpen = ref(false);
+const branchList = ref<GitBranches | null>(null);
+const branchError = ref('');
+const branchFilter = ref('');
+const newBranch = ref('');
 
 const git = computed(() => s.pluginSettings?.git ?? null);
 const hasProject = computed(() => Boolean(s.file.handle && s.pluginSettings?.projectFolder));
@@ -69,6 +78,17 @@ const discardable = computed(() => changes.value.filter((change) => checked.valu
 const allChecked = computed(() => changes.value.length > 0 && checkedPaths.value.length === changes.value.length);
 const activeChange = computed(() => changes.value.find((change) => change.path === activePath.value) ?? null);
 const when = (date: string): string => { const value = new Date(date); return Number.isNaN(value.getTime()) ? '' : new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(value); };
+const matching = (names: string[]): string[] => { const needle = branchFilter.value.trim().toLocaleLowerCase(); return needle ? names.filter((name) => name.toLocaleLowerCase().includes(needle)) : names; };
+const localBranches = computed(() => matching(branchList.value?.local ?? []));
+const remoteBranches = computed(() => matching(branchList.value?.remote ?? []));
+const remoteLabel = (name: string): string => `${branchList.value?.remoteName ?? ''}/${name}`;
+const confirmText = computed(() => {
+  const question = confirm.value;
+  if (!question) return '';
+  if (question.kind === 'discard') return tn(question.paths.length, '{count} Datei auf den letzten Commit zurücksetzen? Die Änderungen sind danach weg.', '{count} Dateien auf den letzten Commit zurücksetzen? Die Änderungen sind danach weg.');
+  if (question.kind === 'restore') return t('Das Diagramm auf den Stand von {hash} zurücksetzen? Der jetzige Stand bleibt im Verlauf, und du hältst den alten mit einem Commit fest.', { hash: question.commit.shortHash });
+  return t('„{branch}“ in „{current}“ zusammenführen? Bei Konflikten nimmt Sketchdraw das Zusammenführen zurück.', { branch: question.label, current: git.value?.branch ?? '' });
+});
 const fileName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 const folderOf = (path: string): string => path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
 
@@ -141,6 +161,34 @@ async function restore(): Promise<void> {
   const commitToRestore = confirm.value?.kind === 'restore' ? confirm.value.commit : null;
   if (commitToRestore && await run('restore', () => store.gitRestoreDocument(commitToRestore.hash))) tab.value = 'changes';
 }
+
+/** The branches the menu shows. A failed fetch keeps the list that was read before. */
+async function loadBranches(fetch = false): Promise<void> {
+  if (fetch) { if (busy.value) return; work.value = 'fetch'; status.value = null; }
+  branchError.value = '';
+  const answer = await store.gitBranches(fetch);
+  if (fetch) work.value = '';
+  if (answer.ok) branchList.value = answer.value; else branchError.value = answer.message;
+  if (fetch) void nextTick(() => { if (branchesOpen.value && !branchMenu.value?.contains(document.activeElement)) branchFilterField.value?.focus(); });
+}
+async function openBranches(): Promise<void> {
+  branchesOpen.value = true; branchFilter.value = ''; newBranch.value = ''; branchList.value = null; confirm.value = null;
+  void loadBranches();
+  await nextTick();
+  branchFilterField.value?.focus();
+}
+function closeBranches(refocus = true): void {
+  if (!branchesOpen.value) return;
+  branchesOpen.value = false;
+  if (refocus) void nextTick(() => branchButton.value?.focus());
+}
+function toggleBranches(): void { if (branchesOpen.value) closeBranches(); else void openBranches(); }
+/** A press anywhere else in the dialog closes the menu, like every menu of the workspace. */
+function onPanelPointer(event: PointerEvent): void { if (branchesOpen.value && !branchMenu.value?.contains(event.target as Node)) closeBranches(false); }
+async function checkout(name: string, remote: boolean): Promise<void> { closeBranches(); await run('checkout', () => store.gitCheckout(name, remote)); }
+async function createBranch(): Promise<void> { const name = newBranch.value.trim(); if (!name) return; closeBranches(); await run('branch', () => store.gitCreateBranch(name)); }
+function askMerge(name: string, remote: boolean): void { const label = remote ? remoteLabel(name) : name; closeBranches(); confirm.value = { kind: 'merge', branch: name, remote, label }; }
+async function merge(): Promise<void> { const question = confirm.value?.kind === 'merge' ? confirm.value : null; if (question) await run('merge', () => store.gitMerge(question.branch, question.remote)); }
 /** Saving from the dialog is how a new diagram gets its folder; the first look at the repository then ticks the diagram. */
 async function save(): Promise<void> { if (busy.value) return; const first = !workbench.value; work.value = 'save'; await store.save(); work.value = ''; await load(first); }
 
@@ -184,7 +232,7 @@ watch(() => props.open, async (open) => {
   await nextTick();
   if (open) {
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    tab.value = 'changes'; status.value = null; confirm.value = null; commits.value = null; activeCommit.value = null; commitDiff.value = null; checked.value = new Set(); activePath.value = null; diff.value = null;
+    tab.value = 'changes'; status.value = null; confirm.value = null; branchesOpen.value = false; commits.value = null; activeCommit.value = null; commitDiff.value = null; checked.value = new Set(); activePath.value = null; diff.value = null;
     if (!dialog.value?.open) dialog.value?.showModal();
     closeButton.value?.focus();
     await load(true);
@@ -199,16 +247,57 @@ onBeforeUnmount(() => dialog.value?.close());
 </script>
 
 <template>
-  <dialog ref="dialog" class="git-dialog" data-testid="git-dialog" aria-labelledby="git-title" @cancel.prevent="emit('close')" @pointerdown.self="emit('close')" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
-    <div class="git-panel sd-panel">
+  <dialog ref="dialog" class="git-dialog" data-testid="git-dialog" aria-labelledby="git-title" @cancel.prevent="branchesOpen ? closeBranches() : emit('close')" @pointerdown.self="emit('close')" @keydown.stop="dialog && wrapTabFocus($event, dialog)">
+    <div class="git-panel sd-panel" @pointerdown="onPanelPointer">
       <header class="git-header">
         <h2 id="git-title" class="sd-panel-title">{{ t('Git') }}</h2>
-        <p v-if="workbench && git" class="repository" data-testid="git-repository">
+        <div v-if="workbench && git" class="repository" data-testid="git-repository">
           <span class="repository-name">{{ git.repositoryName }}</span>
-          <span class="branch"><AppIcon name="git" :size="14" />{{ git.branch }}</span>
+          <span ref="branchMenu" class="branch-menu">
+            <button ref="branchButton" type="button" class="branch" data-testid="git-branch" aria-haspopup="true" :aria-expanded="branchesOpen" aria-controls="git-branches" :title="t('Branch wechseln, erstellen oder zusammenführen')" :disabled="busy" @click="toggleBranches">
+              <AppIcon name="git" :size="14" /><span class="branch-name">{{ git.branch }}</span><AppIcon name="chevron-down" :size="14" />
+            </button>
+            <div v-if="branchesOpen" id="git-branches" class="branches" role="group" :aria-label="t('Branches')" data-testid="git-branches" @keydown.esc.stop.prevent="closeBranches()">
+              <AppTextField ref="branchFilterField" v-model="branchFilter" type="search" :placeholder="t('Branches suchen')" :aria-label="t('Branches suchen')" />
+              <form class="branch-new" @submit.prevent="createBranch">
+                <AppTextField v-model="newBranch" class="branch-new-name" maxlength="200" :placeholder="t('Name für einen neuen Branch')" :aria-label="t('Name für einen neuen Branch')" />
+                <AppButton type="submit" data-testid="git-branch-create" :disabled="busy || !newBranch.trim()"><AppIcon name="plus" :size="16" />{{ t('Neuer Branch') }}</AppButton>
+              </form>
+              <p v-if="unsaved" class="hint warning" data-testid="git-branches-unsaved"><AppIcon name="warning" :size="16" /><span>{{ t('Speichere das Diagramm, bevor du den Branch wechselst.') }}</span></p>
+              <p v-if="branchError" class="hint error" role="alert">{{ branchError }}</p>
+              <p v-if="!branchList && !branchError" class="branch-note">{{ t('Git liest die Branches …') }}</p>
+              <div v-if="branchList" class="branch-lists">
+                <p class="branch-group">{{ t('Lokal') }}</p>
+                <ul class="branch-list" data-testid="git-branches-local">
+                  <li v-for="name in localBranches" :key="name" class="branch-item">
+                    <button type="button" class="branch-row" :aria-current="name === branchList.current ? 'true' : undefined" :disabled="busy || unsaved || name === branchList.current" :title="name === branchList.current ? t('Aktueller Branch') : t('„{branch}“ auschecken', { branch: name })" @click="checkout(name, false)">
+                      <AppIcon v-if="name === branchList.current" name="check" :size="14" /><span v-else class="branch-gap" />
+                      <span class="branch-row-name">{{ name }}</span>
+                      <span v-if="name === branchList.current" class="file-tag">{{ t('aktuell') }}</span>
+                    </button>
+                    <AppButton v-if="name !== branchList.current" class="branch-merge" :disabled="busy || unsaved" :aria-label="t('„{branch}“ in „{current}“ zusammenführen', { branch: name, current: git.branch ?? '' })" @click="askMerge(name, false)">{{ t('Zusammenführen') }}</AppButton>
+                  </li>
+                </ul>
+                <p v-if="!localBranches.length" class="branch-note">{{ t('Keine passenden Branches.') }}</p>
+                <div class="branch-group-head">
+                  <p class="branch-group">{{ t('Remote „{remote}“', { remote: branchList.remoteName }) }}</p>
+                  <AppButton data-testid="git-branches-fetch" :disabled="busy" @click="loadBranches(true)"><AppIcon name="arrow-down" :size="16" />{{ t('Abrufen') }}</AppButton>
+                </div>
+                <ul class="branch-list" data-testid="git-branches-remote">
+                  <li v-for="name in remoteBranches" :key="name" class="branch-item">
+                    <button type="button" class="branch-row" :disabled="busy || unsaved" :title="t('„{branch}“ auschecken', { branch: remoteLabel(name) })" @click="checkout(name, true)">
+                      <span class="branch-gap" /><span class="branch-row-name">{{ remoteLabel(name) }}</span>
+                    </button>
+                    <AppButton class="branch-merge" :disabled="busy || unsaved" :aria-label="t('„{branch}“ in „{current}“ zusammenführen', { branch: remoteLabel(name), current: git.branch ?? '' })" @click="askMerge(name, true)">{{ t('Zusammenführen') }}</AppButton>
+                  </li>
+                </ul>
+                <p v-if="!remoteBranches.length" class="branch-note">{{ branchList.remote.length ? t('Keine passenden Branches.') : t('Noch keine Branches vom Remote bekannt. „Abrufen“ fragt den Remote.') }}</p>
+              </div>
+            </div>
+          </span>
           <span class="count" :title="tn(git.ahead ?? 0, '{count} Commit noch nicht gepusht', '{count} Commits noch nicht gepusht')"><AppIcon name="arrow-up" :size="14" /><span aria-hidden="true">{{ git.ahead ?? 0 }}</span><span class="visually-hidden">{{ tn(git.ahead ?? 0, '{count} Commit noch nicht gepusht', '{count} Commits noch nicht gepusht') }}</span></span>
           <span class="count" :title="tn(git.behind ?? 0, '{count} neuer Commit auf dem Remote', '{count} neue Commits auf dem Remote')"><AppIcon name="arrow-down" :size="14" /><span aria-hidden="true">{{ git.behind ?? 0 }}</span><span class="visually-hidden">{{ tn(git.behind ?? 0, '{count} neuer Commit auf dem Remote', '{count} neue Commits auf dem Remote') }}</span></span>
-        </p>
+        </div>
         <div class="header-actions">
           <AppButton v-if="workbench" data-testid="git-update" :disabled="busy" @click="update"><AppIcon name="arrow-down" :size="16" />{{ t('Aktualisieren') }}</AppButton>
           <AppButton v-if="workbench" data-testid="git-push" :disabled="busy || !(git?.ahead)" @click="push"><AppIcon name="arrow-up" :size="16" />{{ t('Pushen') }}</AppButton>
@@ -307,12 +396,11 @@ onBeforeUnmount(() => dialog.value?.close());
         </section>
 
         <div v-if="confirm" class="confirm" role="group" aria-labelledby="git-confirm-text" data-testid="git-confirm">
-          <p id="git-confirm-text" role="alert">{{ confirm.kind === 'discard'
-            ? tn(confirm.paths.length, '{count} Datei auf den letzten Commit zurücksetzen? Die Änderungen sind danach weg.', '{count} Dateien auf den letzten Commit zurücksetzen? Die Änderungen sind danach weg.')
-            : t('Das Diagramm auf den Stand von {hash} zurücksetzen? Der jetzige Stand bleibt im Verlauf, und du hältst den alten mit einem Commit fest.', { hash: confirm.commit.shortHash }) }}</p>
+          <p id="git-confirm-text" role="alert">{{ confirmText }}</p>
           <AppButton @click="confirm = null; keepFocus()">{{ t('Abbrechen') }}</AppButton>
           <AppButton v-if="confirm.kind === 'discard'" intent="danger" data-testid="git-confirm-discard" @click="discard">{{ t('Verwerfen') }}</AppButton>
-          <AppButton v-else intent="primary" data-testid="git-confirm-restore" @click="restore">{{ t('Zurücksetzen') }}</AppButton>
+          <AppButton v-else-if="confirm.kind === 'restore'" intent="primary" data-testid="git-confirm-restore" @click="restore">{{ t('Zurücksetzen') }}</AppButton>
+          <AppButton v-else intent="primary" data-testid="git-confirm-merge" @click="merge">{{ t('Zusammenführen') }}</AppButton>
         </div>
       </template>
 
@@ -335,6 +423,28 @@ onBeforeUnmount(() => dialog.value?.close());
 .branch,.count{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .branch{padding:2px var(--space-2);border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);font-family:var(--font-mono);font-size:var(--font-size-s)}
 .count{font-variant-numeric:tabular-nums}
+.branch-menu{position:relative;display:inline-flex}
+.branch{min-height:24px;border:0;cursor:pointer}
+.branch:hover:not(:disabled),.branch[aria-expanded='true']{background:var(--menu-selected)}
+.branch:focus-visible,.branch-row:focus-visible{outline:2px solid var(--focus-ring);outline-offset:1px}
+.branch:disabled{cursor:default}
+.branch-name{overflow:hidden;max-width:28ch;text-overflow:ellipsis}
+.branches{position:absolute;top:calc(100% + 6px);left:0;z-index:5;display:flex;flex-direction:column;gap:var(--space-2);width:min(400px,calc(100vw - 64px));max-height:min(480px,calc(100dvh - 150px));padding:var(--space-3);border:1px solid var(--border-default);border-radius:var(--radius-1);background:var(--menu-surface);color:var(--menu-text);box-shadow:var(--shadow-panel);font-size:var(--font-size-m);white-space:normal}
+.branch-new{display:flex;gap:var(--space-2)}
+.branch-new-name{flex:1;min-width:0}
+.branch-lists{display:flex;flex-direction:column;gap:var(--space-1);min-height:0;overflow:auto}
+.branch-group{margin:var(--space-2) 0 0;padding:0 var(--space-2);color:var(--menu-muted);font-size:var(--font-size-s);font-weight:600}
+.branch-group-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-2)}
+.branch-list{margin:0;padding:0;list-style:none}
+.branch-item{display:flex;align-items:center;gap:var(--space-1)}
+.branch-row{display:flex;align-items:center;gap:var(--space-2);flex:1;min-width:0;min-height:var(--control-size);padding:0 var(--space-2);border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;font-family:var(--font-mono);font-size:var(--font-size-s);text-align:left;cursor:pointer}
+.branch-row:hover:not(:disabled){background:var(--menu-hover)}
+.branch-row[aria-current='true']{background:var(--menu-selected);color:var(--menu-selected-text)}
+.branch-row:disabled{cursor:default}
+.branch-row:disabled:not([aria-current]){opacity:.55}
+.branch-row-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.branch-gap{flex:none;width:14px}
+.branch-note{margin:0;padding:var(--space-1) var(--space-2);color:var(--menu-muted);line-height:1.45}
 .header-actions{display:flex;align-items:center;gap:var(--space-2);margin-left:auto}
 .tabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--border-subtle)}
 .tab{display:inline-flex;align-items:center;gap:var(--space-2);min-height:var(--control-size);margin-bottom:-1px;padding:0 var(--space-3);border:0;border-bottom:2px solid transparent;background:transparent;color:var(--text-muted);font:inherit;font-weight:600;cursor:pointer}

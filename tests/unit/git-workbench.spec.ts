@@ -276,6 +276,93 @@ describe('git workbench: against a real repository (#216)', { timeout: 60_000 },
     } finally { p.dispose(); }
   });
 
+  it('lists the branches, creates one, and switches between local and remote ones', async () => {
+    const p = await project();
+    try {
+      // A colleague pushes a branch; it is unknown here until the remote was asked.
+      const other = path.join(p.root, 'other');
+      await execFile('git', ['clone', '--branch', 'main', p.remote, other]);
+      const theirs = async (args: string[]) => execFile('git', args, { cwd: other });
+      await theirs(['config', 'user.email', 'other@example.com']); await theirs(['config', 'user.name', 'Other']); await theirs(['config', 'core.autocrlf', 'false']);
+      await theirs(['switch', '--create', 'feature/shipping']);
+      await writeFile(path.join(other, 'board.sketchdraw.json'), '{"version":"shipping"}\n');
+      await theirs(['commit', '-am', 'Shipping']); await theirs(['push', 'origin', 'feature/shipping']);
+
+      expect(await p.service.gitBranches({ handleId: 'project', fetch: false })).toEqual({ current: 'main', local: ['main'], remote: ['main'], remoteName: 'origin' });
+      expect(await p.service.gitBranches({ handleId: 'project', fetch: true })).toEqual({ current: 'main', local: ['main'], remote: ['feature/shipping', 'main'], remoteName: 'origin' });
+
+      // A new branch starts at the current commit and takes changes that are not committed along.
+      await writeFile(path.join(p.dir, 'notes.txt'), 'a note\n');
+      const created = await p.service.gitCreateBranch({ handleId: 'project', name: ' feature/login ' });
+      expect(created).toMatchObject({ ok: true, message: 'Branch „feature/login“ erstellt und ausgecheckt.', workbench: { settings: { branch: 'feature/login' }, changes: [{ path: 'notes.txt', status: 'untracked' }] } });
+      expect((await p.git(['branch', '--show-current'])).trim()).toBe('feature/login');
+      expect(await p.service.gitCreateBranch({ handleId: 'project', name: 'feature/login' })).toMatchObject({ ok: false, message: 'Einen Branch mit diesem Namen gibt es schon.' });
+      for (const name of ['', '-x', 'two words', 'a..b', 'ends.lock']) expect(await p.service.gitCreateBranch({ handleId: 'project', name }), name).toMatchObject({ ok: false, message: 'Der Name des Branches ist ungültig.' });
+      // A branch that was never pushed has all its commits waiting, so the push is offered.
+      await p.service.gitCommit({ handleId: 'project', message: 'Notes', paths: ['notes.txt'], push: false });
+      expect((await p.service.gitWorkbench('project')).settings).toMatchObject({ branch: 'feature/login', ahead: 2, behind: 0 });
+      expect(await p.service.gitPush('project')).toMatchObject({ ok: true, workbench: { settings: { ahead: 0 } } });
+
+      // The branch of the remote gets a local branch of its name; the open diagram is loaded again.
+      p.events.length = 0;
+      const remoteBranch = await p.service.gitCheckout({ handleId: 'project', branch: 'feature/shipping', remote: true });
+      expect(remoteBranch).toMatchObject({ ok: true, message: 'Branch „feature/shipping“ ausgecheckt.', workbench: { settings: { branch: 'feature/shipping', ahead: 0, behind: 0 }, changes: [] } });
+      expect(await readFile(p.documentPath, 'utf8')).toBe('{"version":"shipping"}\n');
+      expect((await p.git(['rev-parse', '--abbrev-ref', 'feature/shipping@{upstream}'])).trim()).toBe('origin/feature/shipping');
+      expect(p.events.map((event) => event.type)).toContain('document-changed');
+      // Back to a local branch, and once more to the remote one, which now is the local branch as it is.
+      expect(await p.service.gitCheckout({ handleId: 'project', branch: 'main', remote: false })).toMatchObject({ ok: true, workbench: { settings: { branch: 'main' } } });
+      expect(await readFile(p.documentPath, 'utf8')).toBe('{"version":1}\n');
+      expect(await p.service.gitCheckout({ handleId: 'project', branch: 'feature/shipping', remote: true })).toMatchObject({ ok: true, workbench: { settings: { branch: 'feature/shipping' } } });
+      expect((await p.service.gitBranches({ handleId: 'project', fetch: false })).local).toEqual(['feature/login', 'feature/shipping', 'main']);
+
+      // Only branches of the list reach git.
+      for (const branch of ['gone', '--orphan', 'HEAD', 'main~1', '']) expect((await p.service.gitCheckout({ handleId: 'project', branch, remote: false })).ok, branch).toBe(false);
+      expect((await p.git(['branch', '--show-current'])).trim()).toBe('feature/shipping');
+    } finally { p.dispose(); }
+  });
+
+  it('keeps the open diagram and local changes when a switch would take them away', async () => {
+    const p = await project({ remote: false });
+    try {
+      // A branch on which the diagram does not exist.
+      await p.git(['switch', '--create', 'docs-only']); await p.git(['rm', '--quiet', 'board.sketchdraw.json']); await p.git(['commit', '-m', 'Docs only']);
+      await p.git(['switch', 'main']);
+      expect(await p.service.gitCheckout({ handleId: 'project', branch: 'docs-only', remote: false })).toMatchObject({ ok: false, message: 'Auf diesem Branch gibt es das geöffnete Diagramm nicht.', workbench: { settings: { branch: 'main' } } });
+      // A change that the other branch would overwrite.
+      await p.git(['switch', '--create', 'other']); await writeFile(p.documentPath, '{"version":"other"}\n'); await p.git(['commit', '-am', 'Other']); await p.git(['switch', 'main']);
+      await writeFile(p.documentPath, '{"version":"mine"}\n');
+      const refused = await p.service.gitCheckout({ handleId: 'project', branch: 'other', remote: false });
+      expect(refused).toMatchObject({ ok: false, message: 'Lokale Änderungen stehen im Weg. Bitte zuerst committen oder verwerfen.', workbench: { settings: { branch: 'main' } } });
+      expect(await readFile(p.documentPath, 'utf8')).toBe('{"version":"mine"}\n');
+    } finally { p.dispose(); }
+  });
+
+  it('merges a branch into the current one and takes a merge with conflicts back', async () => {
+    const p = await project({ remote: false });
+    try {
+      await p.git(['switch', '--create', 'feature']); await writeFile(path.join(p.dir, 'readme.md'), 'first\nfeature\n'); await p.git(['commit', '-am', 'Feature']);
+      await p.git(['switch', 'main']); await writeFile(path.join(p.dir, 'notes.txt'), 'main\n'); await p.git(['add', 'notes.txt']); await p.git(['commit', '-m', 'Main']);
+
+      const merged = await p.service.gitMerge({ handleId: 'project', branch: 'feature', remote: false });
+      expect(merged).toMatchObject({ ok: true, message: 'Der Branch wurde zusammengeführt.', workbench: { settings: { branch: 'main' }, changes: [] } });
+      expect(await readFile(path.join(p.dir, 'readme.md'), 'utf8')).toBe('first\nfeature\n');
+      expect((await p.git(['log', '-1', '--pretty=%P'])).trim().split(' ')).toHaveLength(2);
+      expect(await p.service.gitMerge({ handleId: 'project', branch: 'feature', remote: false })).toMatchObject({ ok: true, message: 'Der aktuelle Branch enthält diesen Stand bereits.' });
+      expect(await p.service.gitMerge({ handleId: 'project', branch: 'main', remote: false })).toMatchObject({ ok: false, message: 'Ein Branch lässt sich nicht mit sich selbst zusammenführen.' });
+
+      // Both sides change the diagram: the merge is taken back and the repository is as before.
+      await p.git(['switch', 'feature']); await writeFile(p.documentPath, '{"version":"feature"}\n'); await p.git(['commit', '-am', 'Feature diagram']);
+      await p.git(['switch', 'main']); await writeFile(p.documentPath, '{"version":"main"}\n'); await p.git(['commit', '-am', 'Main diagram']);
+      const head = (await p.git(['rev-parse', 'HEAD'])).trim();
+      const conflict = await p.service.gitMerge({ handleId: 'project', branch: 'feature', remote: false });
+      expect(conflict).toMatchObject({ ok: false, message: 'Das Zusammenführen ergab Konflikte und wurde zurückgenommen. Bitte in einem Git-Werkzeug zusammenführen.', workbench: { changes: [] } });
+      expect((await p.git(['rev-parse', 'HEAD'])).trim()).toBe(head);
+      expect(await readFile(p.documentPath, 'utf8')).toBe('{"version":"main"}\n');
+      await expect(p.git(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'])).rejects.toBeTruthy();
+    } finally { p.dispose(); }
+  });
+
   it('works in a repository without a remote and before the first commit', async () => {
     const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'sketchdraw-git-fresh-'))); cleanup.push(root);
     const documentPath = path.join(root, 'board.sketchdraw.json'); await writeFile(documentPath, '{"version":1}\n');

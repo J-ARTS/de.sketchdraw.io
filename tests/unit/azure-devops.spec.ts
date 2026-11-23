@@ -13,7 +13,7 @@ const credentials = () => ({ available: () => true, encrypt: (value: string) => 
 
 interface Call { method: string; url: string; headers: Record<string, string>; body: unknown }
 /** A small Azure Boards: two work items, the states of the Agile process, the usual answers. */
-function boards(options: { base: string; project?: string; legacyPeople?: boolean; noStates?: boolean } = { base: 'https://dev.azure.com/acme' }) {
+function boards(options: { base: string; project?: string; legacyPeople?: boolean; noStates?: boolean; noIdentities?: boolean } = { base: 'https://dev.azure.com/acme' }) {
   const project = options.project ?? 'Shop';
   const calls: Call[] = [];
   const items = new Map<number, Record<string, unknown>>([
@@ -32,6 +32,11 @@ function boards(options: { base: string; project?: string; legacyPeople?: boolea
     if (authorization !== `Basic ${Buffer.from(':pat-secret').toString('base64')}`) return new Response('<html>Sign in</html>', { status: 203 });
     const route = url.slice(options.base.length).replace(/[?&]api-version=[^&]+/, '');
     if (route === `/_apis/projects/${project}`) return json({ name: project });
+    if (route === `/${project}/_apis/wit/workitemtypes`) return json({ value: [{ name: 'Bug' }, { name: 'Task' }, { name: 'User Story' }] });
+    if (route === `/${project}/_apis/wit/tags`) return json({ value: [{ name: 'backend' }, { name: 'sicherheit' }] });
+    if (route.startsWith(`/${project}/_apis/wit/classificationnodes/areas`)) return json({ name: project, children: [{ name: 'Checkout', children: [{ name: 'Kasse' }] }, { name: 'Katalog' }] });
+    if (route.startsWith(`/${project}/_apis/wit/classificationnodes/iterations`)) return options.noIdentities ? json({ message: 'not here' }, 404) : json({ name: project, children: [{ name: 'Release 12', children: [{ name: 'Sprint 3' }] }] });
+    if (route === '/_apis/IdentityPicker/Identities' && method === 'POST') return options.noIdentities ? json({ message: 'not here' }, 404) : json({ results: [{ identities: [{ displayName: 'Mara Muster', mail: 'mara@example.com' }, { displayName: 'Mara Muster', mail: 'mara@example.com' }, { displayName: 'Marc Beispiel' }, { displayName: '' }] }] });
     if (route.startsWith(`/${project}/_apis/wit/wiql`)) {
       const query = (body as { query: string }).query;
       const title = /CONTAINS '((?:[^']|'')*)'/.exec(query)?.[1]?.replace(/''/g, "'"); const id = /\[System\.Id\] = (\d+)/.exec(query)?.[1];
@@ -142,14 +147,51 @@ describe('Azure DevOps: connection', () => {
 });
 
 describe('Azure DevOps: work items', () => {
+  it('names type and iteration of a work item and looks people up for the assignee', async () => {
+    const { fetchFn, calls, items } = boards();
+    items.get(7)!['System.WorkItemType'] = 'User Story'; items.get(7)!['System.IterationPath'] = 'Shop\\Release 12';
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    // Azure Boards has no fix version; the iteration stands where Jira names its versions.
+    expect(await plugins.getWorkItem({ provider: 'azure-devops', key: '7' })).toMatchObject({ issueType: 'User Story', fixVersions: ['Shop\\Release 12'] });
+    expect(await plugins.getWorkItem({ provider: 'azure-devops', key: '3' })).toMatchObject({ issueType: 'Task', fixVersions: [] });
+    expect(await plugins.searchWorkItemUsers({ provider: 'azure-devops', key: '7', query: 'Mar' })).toEqual([{ name: 'Mara Muster', detail: 'mara@example.com' }, { name: 'Marc Beispiel' }]);
+    const search = calls.find((call) => call.url.includes('/_apis/IdentityPicker/Identities'))!;
+    expect(search.url).toContain('api-version=7.1-preview.1');
+    expect(search.body).toMatchObject({ query: 'Mar', identityTypes: ['user'] });
+    expect(await plugins.searchWorkItemUsers({ provider: 'azure-devops', key: '7', query: '  ' })).toEqual([]);
+  });
+
+  it('suggests types, tags, areas and iterations of the project and writes type and iteration', async () => {
+    const { fetchFn, items } = boards();
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    const values = (field: 'issueType' | 'labels' | 'components' | 'fixVersions', query: string) => plugins.searchWorkItemValues({ provider: 'azure-devops', key: '7', field, query });
+    expect(await values('issueType', '')).toEqual(['Bug', 'Task', 'User Story']);
+    expect(await values('labels', 'sich')).toEqual(['sicherheit']);
+    expect(await values('components', 'kasse')).toEqual(['Shop\\Checkout\\Kasse']);
+    expect(await values('fixVersions', '')).toEqual(['Shop', 'Shop\\Release 12', 'Shop\\Release 12\\Sprint 3']);
+    await plugins.updateWorkItemFields({ provider: 'azure-devops', key: '7', issueType: 'Bug', fixVersions: ['Shop\\Release 12\\Sprint 3'] });
+    expect(items.get(7)).toMatchObject({ 'System.WorkItemType': 'Bug', 'System.IterationPath': 'Shop\\Release 12\\Sprint 3' });
+  });
+
+  it('leaves the assignee free text where a server has no identity search', async () => {
+    const { fetchFn } = boards({ base: 'https://dev.azure.com/acme', noIdentities: true });
+    const { plugins } = await service(fetchFn);
+    await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
+    expect(await plugins.searchWorkItemUsers({ provider: 'azure-devops', key: '7', query: 'Mara' })).toEqual([]);
+    // The same holds for a list of values the server does not offer.
+    expect(await plugins.searchWorkItemValues({ provider: 'azure-devops', key: '7', field: 'fixVersions', query: '' })).toEqual([]);
+  });
+
   it('reads the work items of the project in the order of the query', async () => {
     const { fetchFn, calls } = boards();
     const { plugins } = await service(fetchFn);
     await plugins.installPlugin('azure-devops'); await plugins.configureAzureDevOps(cloud);
     const items = await plugins.listAzureWorkItems();
     expect(items).toEqual([
-      { provider: 'azure-devops', id: '7', key: '7', title: 'Checkout absichern', description: 'Erste Zeile\nZweite & letzte', status: 'doing', remoteStatus: 'Active', assignee: 'Mara Muster', dueDate: '2026-12-01', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/7', updatedAt: '2026-11-20T09:30:00.000Z', labels: ['backend', 'sicherheit'], components: ['Shop\\Checkout'], estimate: '5' },
-      { provider: 'azure-devops', id: '3', key: '3', title: 'Katalog laden', description: '', status: 'todo', remoteStatus: 'New', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/3', updatedAt: '2026-11-19T08:00:00.000Z', labels: [], components: [] },
+      { provider: 'azure-devops', id: '7', key: '7', title: 'Checkout absichern', description: 'Erste Zeile\nZweite & letzte', status: 'doing', remoteStatus: 'Active', assignee: 'Mara Muster', dueDate: '2026-12-01', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/7', updatedAt: '2026-11-20T09:30:00.000Z', labels: ['backend', 'sicherheit'], components: ['Shop\\Checkout'], estimate: '5', issueType: 'Task', fixVersions: [] },
+      { provider: 'azure-devops', id: '3', key: '3', title: 'Katalog laden', description: '', status: 'todo', remoteStatus: 'New', url: 'https://dev.azure.com/acme/Shop/_workitems/edit/3', updatedAt: '2026-11-19T08:00:00.000Z', labels: [], components: [], issueType: 'Task', fixVersions: [] },
     ]);
     const query = calls.find((call) => call.url.includes('/wiql'))!;
     expect(query.url).toBe('https://dev.azure.com/acme/Shop/_apis/wit/wiql?$top=100&api-version=7.1');
@@ -227,7 +269,8 @@ describe('Azure DevOps: the fields of a ticket card (#283)', () => {
     expect((await plugins.searchWorkItems({ provider: 'azure-devops', query: 'katalog' })).map((item) => item.key)).toEqual(['3']);
     expect((await plugins.searchWorkItems({ provider: 'azure-devops', query: '7' })).map((item) => item.key)).toEqual(['7']);
     expect(await plugins.searchWorkItems({ provider: 'azure-devops', query: "O'Brien" })).toEqual([]);
-    expect(await plugins.searchWorkItems({ provider: 'azure-devops', query: '' })).toEqual([]);
+    // Without a text the search answers with the work items that changed last: the list a card is picked from.
+    expect((await plugins.searchWorkItems({ provider: 'azure-devops', query: '' })).map((item) => item.key)).toEqual(['7', '3']);
     await expect(plugins.getWorkItem({ provider: 'github' as never, key: '7' })).rejects.toThrow('Unbekanntes Ticket-System.');
   });
 
@@ -258,13 +301,16 @@ describe('Azure DevOps: the fields of a ticket card (#283)', () => {
 describe('Jira: the fields of a ticket card (#283)', () => {
   function jira(options: { storyPoints?: boolean } = { storyPoints: true }) {
     const calls: Array<{ method: string; url: string; body: unknown }> = [];
-    const issue: Record<string, unknown> = { summary: 'Login absichern', description: null, status: { name: 'In Progress' }, assignee: { displayName: 'Mara Muster' }, updated: '2026-11-20T09:30:00.000+0000', labels: ['backend'], components: [{ name: 'API' }], timetracking: { originalEstimate: '3h' }, customfield_10016: options.storyPoints ? 5 : undefined };
+    const issue: Record<string, unknown> = { summary: 'Login absichern', description: null, status: { name: 'In Progress' }, assignee: { displayName: 'Mara Muster' }, updated: '2026-11-20T09:30:00.000+0000', labels: ['backend'], components: [{ name: 'API' }], timetracking: { originalEstimate: '3h' }, issuetype: { name: 'Bug' }, fixVersions: [{ name: '2026.12' }, { name: '2027.1' }, { id: 'nameless' }], customfield_10016: options.storyPoints ? 5 : undefined };
     const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
       const url = String(input); const method = init?.method ?? 'GET'; const body = typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined;
       calls.push({ method, url, body });
       const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
       if (url.endsWith('/rest/api/3/field')) return json(options.storyPoints ? [{ id: 'summary', name: 'Summary', custom: false }, { id: 'customfield_10016', name: 'Story point estimate', custom: true }] : [{ id: 'summary', name: 'Summary', custom: false }]);
       if (url.includes('/rest/api/3/search/jql')) return json({ issues: [{ id: '100', key: 'SK-1', fields: issue }] });
+      if (url.includes('/rest/api/3/issue/SK-1/editmeta')) return json({ fields: { issuetype: { allowedValues: [{ name: 'Bug' }, { name: 'Story' }, { name: 'Task' }] }, components: { allowedValues: [{ name: 'API' }, { name: 'Web' }] }, fixVersions: { allowedValues: [{ name: '2026.12' }, { name: '2027.1' }, { name: '2025.1', archived: true }] } } });
+      if (url.includes('/rest/api/3/jql/autocompletedata/suggestions')) return json({ results: [{ value: 'backend', displayName: '<b>back</b>end' }, { value: '"back office"' }, { value: '' }] });
+      if (url.includes('/rest/api/3/user/assignable/search')) return json([{ accountId: 'a1', displayName: 'Nora Vogel', emailAddress: 'nora.vogel@example.com' }, { accountId: 'a2', displayName: 'Nora Winter' }, { accountId: 'a3', displayName: '  ' }]);
       if (url.includes('/rest/api/3/issue/SK-1') && method === 'PUT') { Object.assign(issue, (body as { fields: Record<string, unknown> }).fields); return new Response(''); }
       if (url.includes('/rest/api/3/issue/SK-1')) return json({ id: '100', key: 'SK-1', fields: issue });
       return json({});
@@ -278,12 +324,22 @@ describe('Jira: the fields of a ticket card (#283)', () => {
     const { plugins } = await service(fetchFn);
     await plugins.configureAtlassian(atlassian);
     expect(await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' })).toMatchObject({ provider: 'jira', key: 'SK-1', title: 'Login absichern', status: 'doing', labels: ['backend'], components: ['API'], estimate: '5', url: 'https://example.atlassian.net/browse/SK-1' });
-    expect(calls.find((call) => call.url.includes('/issue/SK-1'))!.url).toContain('labels,components,timetracking,customfield_10016');
+    expect(calls.find((call) => call.url.includes('/issue/SK-1'))!.url).toContain('labels,components,timetracking,issuetype,fixVersions,customfield_10016');
+    // The type and the fix versions of the ticket come along; a version without a name is left out.
+    expect(await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' })).toMatchObject({ issueType: 'Bug', fixVersions: ['2026.12', '2027.1'] });
+    // People are looked up among those the ticket can be assigned to.
+    expect(await plugins.searchWorkItemUsers({ provider: 'jira', key: 'SK-1', query: 'Nora' })).toEqual([{ name: 'Nora Vogel', detail: 'nora.vogel@example.com' }, { name: 'Nora Winter' }]);
+    const userSearch = new URL(calls.find((call) => call.url.includes('/user/assignable/search'))!.url);
+    expect(Object.fromEntries(userSearch.searchParams)).toEqual({ query: 'Nora', maxResults: '10', issueKey: 'SK-1' });
     // The field list of the site is asked once.
     await plugins.getWorkItem({ provider: 'jira', key: 'SK-1' });
     expect(calls.filter((call) => call.url.endsWith('/rest/api/3/field'))).toHaveLength(1);
     expect((await plugins.searchWorkItems({ provider: 'jira', query: 'Login "x"' })).map((item) => item.key)).toEqual(['SK-1']);
-    expect((calls.at(-1)!.body as { jql: string }).jql).toBe('project = "SK" AND summary ~ "Login  x *" ORDER BY updated DESC');
+    // The search looks in every project of the site; a ticket card is not bound to the project of the task board.
+    expect((calls.at(-1)!.body as { jql: string }).jql).toBe('summary ~ "Login  x *" ORDER BY updated DESC');
+    // Without a text: the tickets that changed last, with their type, for the list a card is picked from.
+    expect(await plugins.searchWorkItems({ provider: 'jira', query: '' })).toMatchObject([{ key: 'SK-1', issueType: 'Bug', assignee: 'Mara Muster' }]);
+    expect(calls.at(-1)!.body).toMatchObject({ jql: 'updated >= -180d ORDER BY updated DESC', maxResults: 100, fields: expect.arrayContaining(['issuetype', 'assignee', 'status']) as unknown });
     await plugins.searchWorkItems({ provider: 'jira', query: 'sk-1' });
     expect((calls.at(-1)!.body as { jql: string }).jql).toBe('key = "SK-1"');
   });
@@ -296,6 +352,27 @@ describe('Jira: the fields of a ticket card (#283)', () => {
     expect(updated).toMatchObject({ labels: ['backend', 'release'], components: ['API', 'Web'], estimate: '8' });
     expect(issue).toMatchObject({ labels: ['backend', 'release'], components: [{ name: 'API' }, { name: 'Web' }], customfield_10016: 8 });
     await expect(plugins.updateWorkItemFields({ provider: 'jira', key: 'SK-1', labels: ['zwei wörter'] })).rejects.toThrow('Ein Jira-Label darf keine Leerzeichen enthalten.');
+  });
+
+  it('suggests types, components, versions and labels while they are typed, and writes type and fix versions', async () => {
+    const { fetchFn, calls, issue } = jira();
+    const { plugins } = await service(fetchFn);
+    await plugins.configureAtlassian(atlassian);
+    const values = (field: 'issueType' | 'labels' | 'components' | 'fixVersions', query: string) => plugins.searchWorkItemValues({ provider: 'jira', key: 'SK-1', field, query });
+    // What the edit screen of the ticket allows; an archived version is not offered.
+    expect(await values('issueType', '')).toEqual(['Bug', 'Story', 'Task']);
+    expect(await values('issueType', 'st')).toEqual(['Story']);
+    expect(await values('components', 'we')).toEqual(['Web']);
+    expect(await values('fixVersions', '202')).toEqual(['2026.12', '2027.1']);
+    // The edit screen is read once for all of them.
+    expect(calls.filter((call) => call.url.includes('/editmeta'))).toHaveLength(1);
+    // Labels belong to the site; Jira suggests them for the typed text.
+    expect(await values('labels', 'back')).toEqual(['backend', 'back office']);
+    expect(new URL(calls.at(-1)!.url).searchParams.get('fieldValue')).toBe('back');
+    await expect(plugins.searchWorkItemValues({ provider: 'jira', key: 'SK-1', field: 'summary' as never, query: '' })).rejects.toThrow('Unbekanntes Feld.');
+    const updated = await plugins.updateWorkItemFields({ provider: 'jira', key: 'SK-1', issueType: 'Story', fixVersions: ['2027.1'] });
+    expect(issue).toMatchObject({ issuetype: { name: 'Story' }, fixVersions: [{ name: '2027.1' }] });
+    expect(updated).toMatchObject({ issueType: 'Story', fixVersions: ['2027.1'] });
   });
 
   it('a site without story points keeps the estimate as a time estimate', async () => {

@@ -1,4 +1,4 @@
-import type { TaskStatus, WorkItemSummary } from '../src/domain';
+import type { TaskStatus, WorkItemSummary, WorkItemUser, WorkItemValueField } from '../src/domain';
 
 /**
  * Azure Boards over the REST interface of Azure DevOps (#284). One client serves Azure DevOps Services (cloud)
@@ -92,9 +92,9 @@ function person(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s*<[^>]*>\s*$/, '').trim() : '';
 }
 
-async function request(connection: AzureDevOpsConnection, pathname: string, init: { method?: string; body?: unknown; patch?: boolean } = {}): Promise<unknown> {
+async function request(connection: AzureDevOpsConnection, pathname: string, init: { method?: string; body?: unknown; patch?: boolean; apiVersion?: string } = {}): Promise<unknown> {
   const separator = pathname.includes('?') ? '&' : '?';
-  const response = await connection.fetchFn(`${connection.baseUrl}${pathname}${separator}api-version=${encodeURIComponent(connection.apiVersion)}`, {
+  const response = await connection.fetchFn(`${connection.baseUrl}${pathname}${separator}api-version=${encodeURIComponent(init.apiVersion ?? connection.apiVersion)}`, {
     method: init.method ?? 'GET', redirect: 'error', ...(connection.signal ? { signal: connection.signal } : {}),
     headers: {
       Accept: 'application/json',
@@ -128,12 +128,16 @@ function workItem(connection: AzureDevOpsConnection, value: Record<string, unkno
   const labels = typeof fields['System.Tags'] === 'string' ? fields['System.Tags'].split(';').map((tag) => tag.trim()).filter(Boolean) : [];
   const area = typeof fields['System.AreaPath'] === 'string' ? fields['System.AreaPath'].trim() : '';
   const estimateField = ESTIMATE_FIELDS.find((name) => typeof fields[name] === 'number');
+  const issueType = typeof fields['System.WorkItemType'] === 'string' ? fields['System.WorkItemType'].trim() : '';
+  // Azure Boards has no fix version; the iteration says which release or sprint a work item belongs to.
+  const iteration = typeof fields['System.IterationPath'] === 'string' ? fields['System.IterationPath'].trim() : '';
   return {
     provider: 'azure-devops', id, key: id, title: String(fields['System.Title'] ?? id), description: htmlToText(fields['System.Description']),
     status: azureStatus(remoteStatus), remoteStatus,
     ...(assignee ? { assignee } : {}), ...(due ? { dueDate: due } : {}),
     url: `${connection.baseUrl}/${encodeURIComponent(project)}/_workitems/edit/${encodeURIComponent(id)}`, updatedAt: isoTimestamp(fields['System.ChangedDate']),
     labels, components: area ? [area] : [], ...(estimateField ? { estimate: String(fields[estimateField]) } : {}),
+    ...(issueType ? { issueType } : {}), fixVersions: iteration ? [iteration] : [],
   };
 }
 
@@ -146,6 +150,56 @@ const itemId = (key: string): string => { if (!/^\d{1,12}$/.test(key)) throw new
 export async function testAzureDevOps(connection: AzureDevOpsConnection): Promise<string> {
   const project = await request(connection, `/_apis/projects/${encodeURIComponent(connection.project)}`) as { name?: unknown };
   return typeof project.name === 'string' && project.name ? project.name : connection.project;
+}
+
+/**
+ * The values Azure Boards knows for a field of a work item: the types of the project, its tags, its area paths
+ * (where Jira has components) and its iteration paths (where Jira has fix versions). A list that cannot be read
+ * answers empty, and the field stays free text.
+ */
+export async function azureFieldValues(connection: AzureDevOpsConnection, field: WorkItemValueField): Promise<string[]> {
+  const names = (value: unknown): string[] => Array.isArray(value) ? value.flatMap((entry) => entry && typeof entry === 'object' && typeof (entry as { name?: unknown }).name === 'string' && (entry as { name: string }).name.trim() ? [(entry as { name: string }).name.trim()] : []) : [];
+  try {
+    if (field === 'issueType') return names((await request(connection, `${projectPath(connection)}/_apis/wit/workitemtypes`) as { value?: unknown }).value);
+    if (field === 'labels') return names((await request(connection, `${projectPath(connection)}/_apis/wit/tags`) as { value?: unknown }).value);
+    const root = await request(connection, `${projectPath(connection)}/_apis/wit/classificationnodes/${field === 'components' ? 'areas' : 'iterations'}?$depth=8`) as { name?: unknown; children?: unknown };
+    const paths: string[] = [];
+    const walk = (node: { name?: unknown; children?: unknown }, parent: string): void => {
+      if (typeof node?.name !== 'string' || !node.name.trim() || paths.length >= 500) return;
+      const path = parent ? `${parent}\\${node.name.trim()}` : node.name.trim();
+      paths.push(path);
+      if (Array.isArray(node.children)) for (const child of node.children) walk(child as { name?: unknown; children?: unknown }, path);
+    };
+    walk(root, '');
+    return paths;
+  } catch { return []; }
+}
+
+/**
+ * The people whose name or address matches the text, from the identity search of Azure DevOps. That search is a
+ * preview interface; where a server does not offer it the answer is empty and the name stays free text.
+ */
+export async function searchAzureUsers(connection: AzureDevOpsConnection, text: string): Promise<WorkItemUser[]> {
+  const query = text.trim();
+  if (!query) return [];
+  let answer: unknown;
+  try {
+    answer = await request(connection, '/_apis/IdentityPicker/Identities', {
+      method: 'POST', apiVersion: `${connection.apiVersion.replace(/-preview.*$/, '')}-preview.1`,
+      body: { query, identityTypes: ['user'], operationScopes: ['ims', 'source'], properties: ['DisplayName', 'Mail'], options: { MinResults: 1, MaxResults: 10 } },
+    });
+  } catch { return []; }
+  const results = (answer as { results?: Array<{ identities?: unknown }> } | null)?.results;
+  const identities = Array.isArray(results) ? results.flatMap((entry) => Array.isArray(entry?.identities) ? entry.identities as Array<Record<string, unknown>> : []) : [];
+  const seen = new Set<string>();
+  return identities.flatMap((identity): WorkItemUser[] => {
+    const name = typeof identity.displayName === 'string' ? identity.displayName.trim() : '';
+    const mail = typeof identity.mail === 'string' ? identity.mail.trim() : '';
+    const id = `${name}\u0000${mail}`;
+    if (!name || name.length > 120 || seen.has(id)) return [];
+    seen.add(id);
+    return [{ name, ...(mail && mail.length <= 320 ? { detail: mail } : {}) }];
+  }).slice(0, 10);
 }
 
 export async function getAzureWorkItem(connection: AzureDevOpsConnection, key: string): Promise<WorkItemSummary> {
@@ -225,10 +279,10 @@ export async function transitionAzureWorkItem(connection: AzureDevOpsConnection,
 /** Work items whose title contains the text, or the one with that number; newest first, at most 20. */
 export async function searchAzureWorkItems(connection: AzureDevOpsConnection, text: string): Promise<WorkItemSummary[]> {
   const query = text.trim();
-  if (!query) return [];
-  const condition = /^#?\d{1,12}$/.test(query) ? `[System.Id] = ${query.replace('#', '')}` : `[System.Title] CONTAINS '${query.replace(/'/g, "''")}'`;
-  const found = await request(connection, `${projectPath(connection)}/_apis/wit/wiql?$top=20`, { method: 'POST', body: { query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND ${condition} ORDER BY [System.ChangedDate] DESC` } }) as { workItems?: Array<{ id?: unknown }> };
-  const ids = (found.workItems ?? []).map((entry) => Number(entry.id)).filter((id) => Number.isInteger(id) && id > 0).slice(0, 20);
+  // Without a text: the work items that changed last, for the list a card is picked from.
+  const condition = !query ? '' : ` AND ${/^#?\d{1,12}$/.test(query) ? `[System.Id] = ${query.replace('#', '')}` : `[System.Title] CONTAINS '${query.replace(/'/g, "''")}'`}`;
+  const found = await request(connection, `${projectPath(connection)}/_apis/wit/wiql?$top=50`, { method: 'POST', body: { query: `SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project${condition} ORDER BY [System.ChangedDate] DESC` } }) as { workItems?: Array<{ id?: unknown }> };
+  const ids = (found.workItems ?? []).map((entry) => Number(entry.id)).filter((id) => Number.isInteger(id) && id > 0).slice(0, 50);
   if (!ids.length) return [];
   const response = await request(connection, `/_apis/wit/workitems?ids=${ids.join(',')}`) as { value?: Array<Record<string, unknown>> };
   const byId = new Map((response.value ?? []).map((entry) => [Number(entry.id), entry]));
@@ -239,7 +293,7 @@ export async function searchAzureWorkItems(connection: AzureDevOpsConnection, te
  * Writes tags, area path and estimate of a work item. The estimate goes to the field that holds it now, and to the
  * story points when none does; Azure Boards keeps it as a number.
  */
-export async function updateAzureWorkItemDetails(connection: AzureDevOpsConnection, key: string, input: { labels?: string[]; components?: string[]; estimate?: string | null }): Promise<WorkItemSummary> {
+export async function updateAzureWorkItemDetails(connection: AzureDevOpsConnection, key: string, input: { labels?: string[]; components?: string[]; estimate?: string | null; issueType?: string; fixVersions?: string[] }): Promise<WorkItemSummary> {
   const id = itemId(key);
   const current = await request(connection, `/_apis/wit/workitems/${id}`) as { fields?: Record<string, unknown> };
   const operations: PatchOperation[] = [];
@@ -249,6 +303,9 @@ export async function updateAzureWorkItemDetails(connection: AzureDevOpsConnecti
   }
   // A work item always has an area; an emptied field leaves it where it is.
   if (input.components?.[0]?.trim()) operations.push({ op: 'add', path: '/fields/System.AreaPath', value: input.components[0].trim() });
+  // Like the area, a work item always has an iteration and a type; an emptied field leaves them as they are.
+  if (input.fixVersions?.[0]?.trim()) operations.push({ op: 'add', path: '/fields/System.IterationPath', value: input.fixVersions[0].trim() });
+  if (input.issueType?.trim()) operations.push({ op: 'add', path: '/fields/System.WorkItemType', value: input.issueType.trim() });
   if (input.estimate !== undefined) {
     const field = ESTIMATE_FIELDS.find((name) => typeof current.fields?.[name] === 'number') ?? ESTIMATE_FIELDS[0];
     const text = (input.estimate ?? '').trim().replace(',', '.');

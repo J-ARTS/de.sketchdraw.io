@@ -50,6 +50,24 @@ export interface GitCommitSummary {
   pushed: boolean;
 }
 
+/** The branches the Git dialog offers. Names are short: `main`, `feature/login`; those of the remote come without its name. */
+export interface GitBranches {
+  /** The branch that is checked out; empty when HEAD is detached. */
+  current: string;
+  local: string[];
+  /** Branches of the configured remote, as far as they were fetched. */
+  remote: string[];
+  /** Name of the configured remote, for example `origin`. */
+  remoteName: string;
+}
+
+/** One branch of the list: a local one, or one of the configured remote. */
+export interface GitBranchInput {
+  handleId: string;
+  branch: string;
+  remote: boolean;
+}
+
 export interface GitCommitInput {
   handleId: string;
   message: string;
@@ -79,6 +97,14 @@ export interface GitWorkbenchBridge {
   /** Fetches the remote branch and fast-forwards to it; never merges or rebases. */
   gitUpdate(handleId: string): Promise<GitWorkbenchResult>;
   gitLog(input: { handleId: string; documentOnly: boolean }): Promise<GitCommitSummary[]>;
+  /** Lists the branches; `fetch` asks the remote for its branches first. */
+  gitBranches(input: { handleId: string; fetch: boolean }): Promise<GitBranches>;
+  /** Switches to a branch. A branch of the remote gets a local branch of its name that follows it. */
+  gitCheckout(input: GitBranchInput): Promise<GitWorkbenchResult>;
+  /** Creates a branch at the current commit and switches to it. */
+  gitCreateBranch(input: { handleId: string; name: string }): Promise<GitWorkbenchResult>;
+  /** Merges a branch into the current one. A merge with conflicts is taken back. */
+  gitMerge(input: GitBranchInput): Promise<GitWorkbenchResult>;
   /** Puts versioned files back to the last commit. Untracked files stay. */
   gitDiscard(input: { handleId: string; paths: string[] }): Promise<GitWorkbenchResult>;
   /** Gives the file of the open diagram the content it had in `commit`, as an ordinary change. */

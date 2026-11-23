@@ -45,10 +45,15 @@ const stopJiraAutoSync = startJiraAutoSync({
     && s.pluginSettings?.available && s.pluginSettings.projectFolder
     && ((jiraPluginActive(s.pluginSettings.atlassian)
       && s.pluginSettings.atlassian.credentialStored && s.pluginSettings.atlassian.siteUrl
-      && s.pluginSettings.atlassian.email && s.pluginSettings.atlassian.jiraProjectKey)
+      && s.pluginSettings.atlassian.email && (s.pluginSettings.atlassian.jqlFilter || s.pluginSettings.atlassian.jiraProjectKey))
       || (azureDevOpsPluginActive(s.pluginSettings.azureDevOps) && s.pluginSettings.azureDevOps?.credentialStored)),
   ),
   sync: () => store.syncTicketTasks({ announce: false }),
+});
+/** The ticket cards of the canvas are read again in the same rhythm; a card whose ticket did not change is left alone. */
+const stopTicketCardSync = startJiraAutoSync({
+  isReady: () => Boolean(s.file.handle && !s.roomGuest && s.canWrite && !s.transitioning && !s.ticketBusy && !s.ticketDialog && s.pluginSettings?.available && s.pluginSettings.projectFolder),
+  sync: () => store.syncTicketCards(),
 });
 const collaborationOpen = ref(false);
 /** A session link the app was opened with (`#sketchdraw-hdht=…` or a `sketchdraw://join` app link); the panel prefills it and the fragment is removed. */
@@ -170,7 +175,7 @@ useEventListener(window, 'hashchange', readInviteFromLocation);
 readInviteFromLocation();
 /** The desktop app forwards `sketchdraw://join` links it is opened with while it is already running. */
 const offInviteLink = getDesktopBridge().onInviteLink?.(openInvite);
-onBeforeUnmount(() => { stopJiraAutoSync(); offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
+onBeforeUnmount(() => { stopJiraAutoSync(); stopTicketCardSync(); offInviteLink?.(); agentSession?.dispose(); offAuthority(); store.dispose(); });
 </script>
 
 <template>

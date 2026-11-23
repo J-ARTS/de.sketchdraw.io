@@ -7,19 +7,27 @@ import type { SketchElement, TaskStatus } from './types';
  * export both draw from this layout, so an exported card is the card of the canvas.
  */
 export interface TicketCardChip { text: string; component: boolean; x: number; width: number }
+/** One stroke or filled shape of a type symbol, in the 22×22 box of the mark. */
+export interface TicketTypeShape { d: string; filled: boolean }
+export type TicketTypeKind = 'bug' | 'story' | 'task' | 'epic' | 'subtask' | 'feature' | 'improvement' | 'other';
 export interface TicketCardLayout {
-  mark: { x: number; y: number; size: number; color: string; text: string };
+  /** The mark of the card: the symbol of the type of the ticket in its colour; the letter of the tracker while the type is unknown. */
+  mark: { x: number; y: number; size: number; color: string; text: string; shapes: readonly TicketTypeShape[]; label: string };
+  /** The stripe in the colour of the type along the left edge; absent while the type is unknown. */
+  accent: { x: number; y: number; width: number; height: number; color: string } | null;
   key: { x: number; y: number; text: string };
   state: { x: number; y: number; width: number; height: number; label: string; status: TaskStatus };
   title: Array<{ x: number; y: number; text: string }>;
   meta: { x: number; y: number; text: string };
   chips: { y: number; height: number; shown: TicketCardChip[]; more: number; moreX: number };
-  footer: { x: number; y: number };
+  /** Fix versions (Jira) or the iteration (Azure Boards); empty when the ticket has none. */
+  footer: { x: number; y: number; text: string };
 }
 /** The words of a card that are not content of the ticket; the canvas translates them, the export keeps them fixed. */
-export interface TicketCardWords { untitled: string; unassigned: string; estimate: (value: string) => string; state: Readonly<Record<TaskStatus, string>> }
+export interface TicketCardWords { untitled: string; unassigned: string; estimate: (value: string) => string; fixVersion: (value: string) => string; iteration: (value: string) => string; state: Readonly<Record<TaskStatus, string>> }
 export const TICKET_CARD_WORDS: TicketCardWords = Object.freeze({
   untitled: 'Ohne Titel', unassigned: 'Niemand zugewiesen', estimate: (value: string) => `Schätzung: ${value}`,
+  fixVersion: (value: string) => `Fix Version: ${value}`, iteration: (value: string) => `Iteration: ${value}`,
   state: Object.freeze({ todo: 'Offen', doing: 'In Arbeit', review: 'Prüfung', done: 'Erledigt' }),
 });
 
@@ -42,6 +50,35 @@ export const TICKET_CARD_COLORS: TicketCardPalette = Object.freeze({
   label: { fill: '#f1f3f6', ink: '#3b4756' }, component: { fill: '#eef0ff', ink: '#3b3fa8' },
 });
 export const TICKET_CARD_MARK: Readonly<Record<TicketCardData['provider'], { color: string; text: string }>> = Object.freeze({ jira: { color: '#1868db', text: 'J' }, 'azure-devops': { color: '#0078d4', text: 'Az' } });
+/**
+ * The types of tickets a card tells apart, each with its colour and its symbol. The colours and symbols follow what
+ * the trackers themselves use, so a bug looks like a bug in either of them. They are the same on the light and the
+ * dark canvas and in every export: white on a strong colour reads on both.
+ */
+export const TICKET_TYPE_STYLE: Readonly<Record<TicketTypeKind, { color: string; shapes: readonly TicketTypeShape[] }>> = Object.freeze({
+  bug: { color: '#d93f33', shapes: [{ d: 'M11 7a4 4 0 1 0 0 8a4 4 0 1 0 0-8z', filled: true }] },
+  story: { color: '#2e9e5b', shapes: [{ d: 'M7.5 6h7v10.5L11 13.8l-3.5 2.7z', filled: true }] },
+  task: { color: '#1868db', shapes: [{ d: 'M6.5 11.3l3 3l6-6.4', filled: false }] },
+  epic: { color: '#7c4ddb', shapes: [{ d: 'M12.4 4.8L7 12.2h3.5l-.9 5L15 9.8h-3.5z', filled: true }] },
+  subtask: { color: '#3d9bd6', shapes: [{ d: 'M6 6h6.5v6.5H6z', filled: false }, { d: 'M10 10h6v6h-6z', filled: true }] },
+  feature: { color: '#d98a00', shapes: [{ d: 'M11 5.2a3.9 3.9 0 0 0-2.1 7.2v1.5h4.2v-1.5A3.9 3.9 0 0 0 11 5.2zM9.4 16.4h3.2', filled: false }] },
+  improvement: { color: '#22a06b', shapes: [{ d: 'M11 16.2V6.6M7 10.4l4-4l4 4', filled: false }] },
+  other: { color: '#64748b', shapes: [{ d: 'M7 8h8M7 11h8M7 14h5', filled: false }] },
+});
+
+/** The kind a type name of a tracker stands for; names are matched in English and German. */
+export function ticketTypeKind(name: string): TicketTypeKind {
+  const text = name.trim().toLowerCase();
+  if (/bug|defect|fehler|incident|störung/.test(text)) return 'bug';
+  if (/epic|epos/.test(text)) return 'epic';
+  if (/sub-?\s?task|unteraufgabe/.test(text)) return 'subtask';
+  if (/story|backlog item|requirement|anforderung/.test(text)) return 'story';
+  if (/feature|capability|initiative/.test(text)) return 'feature';
+  if (/improvement|enhancement|verbesserung/.test(text)) return 'improvement';
+  if (/task|aufgabe/.test(text)) return 'task';
+  return 'other';
+}
+
 export const TICKET_CARD_TYPE = Object.freeze({ mark: 10.5, key: 13, state: 11, title: 16, meta: 12.5, chip: 11, footer: 10.5 });
 
 const PAD = 16;
@@ -74,13 +111,18 @@ export function ticketCardLayout(element: Pick<SketchElement, 'width' | 'height'
     shown.push({ text, component: entry.component, x, width: chip }); x += chip + 6;
   }
   const footerY = element.height - 14;
+  // The type of the ticket gives the card its colour and symbol; a card that was read before types were keeps the mark of its tracker.
+  const kind = ticket.issueType ? TICKET_TYPE_STYLE[ticketTypeKind(ticket.issueType)] : null;
+  const versions = ticket.fixVersions.join(', ');
+  const footer = versions ? clamp(ticket.provider === 'azure-devops' ? words.iteration(versions) : words.fixVersion(versions), type.footer, width - 2 * PAD) : '';
   return {
-    mark: { x: PAD, y: 14, size: 22, ...TICKET_CARD_MARK[ticket.provider] },
+    mark: kind ? { x: PAD, y: 14, size: 22, color: kind.color, text: '', shapes: kind.shapes, label: ticket.issueType } : { x: PAD, y: 14, size: 22, ...TICKET_CARD_MARK[ticket.provider], shapes: [], label: '' },
+    accent: kind ? { x: 0, y: 12, width: 4, height: Math.max(0, element.height - 24), color: kind.color } : null,
     key: { x: PAD + 30, y: 25, text: keyText },
     state: { x: stateX, y: 14, width: stateWidth, height: 22, label: stateLabel, status: ticket.status },
     title, meta: { x: PAD, y: 62 + title.length * 21 + 4, text: meta },
     chips: { y: footerY - 36, height: 20, shown, more: all.length - shown.length, moreX: x },
-    footer: { x: PAD, y: footerY },
+    footer: { x: PAD, y: footerY, text: footer },
   };
 }
 

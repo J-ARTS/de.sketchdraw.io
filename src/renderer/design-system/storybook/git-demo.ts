@@ -1,4 +1,4 @@
-import { createDocument, serializeDocument, type DesktopBridge, type GitChange, type GitCommitSummary, type GitFileDiff, type GitPluginSettings, type GitWorkbenchResult, type GitWorkbenchSnapshot, type PluginBridge, type PluginSettingsSnapshot } from '@/domain';
+import { createDocument, serializeDocument, type DesktopBridge, type GitBranches, type GitChange, type GitCommitSummary, type GitFileDiff, type GitPluginSettings, type GitWorkbenchResult, type GitWorkbenchSnapshot, type PluginBridge, type PluginSettingsSnapshot } from '@/domain';
 
 /**
  * A stand-in for the desktop with a Git repository that only exists in memory, for stories of the Git dialog.
@@ -18,6 +18,7 @@ export function gitDemoBridge(options: { clean?: boolean } = {}): DesktopBridge 
     { hash: 'b'.repeat(40), shortHash: 'b7730d1', subject: 'Warteschlange zwischen Shop und Versand', author: 'Jonas Reuter', date: '2026-11-14T10:05:00+01:00', pushed: true },
     { hash: 'c'.repeat(40), shortHash: 'c05e8aa', subject: 'Erstes Diagramm des Checkouts', author: 'Mira Okafor', date: '2026-11-10T09:12:00+01:00', pushed: true },
   ];
+  const branches: GitBranches = { current: 'main', local: ['feature/payment-provider', 'main', 'release/2026-11'], remote: ['feature/payment-provider', 'feature/shipping-queue', 'main'], remoteName: 'origin' };
   const diff = (path: string): GitFileDiff => ({ path, binary: false, truncated: false, lines: [
     { kind: 'hunk', text: '@@ -12,5 +12,6 @@ page "Checkout"' },
     { kind: 'context', text: '  rect shop "Shop" at 120,80 size 160x64', oldLine: 12, newLine: 12 },
@@ -41,6 +42,10 @@ export function gitDemoBridge(options: { clean?: boolean } = {}): DesktopBridge 
     gitPush: async () => { git.ahead = 0; return done('Commits wurden gepusht.'); },
     gitUpdate: async () => done('Das Repository ist auf dem Stand des Remotes.'),
     gitLog: async ({ documentOnly }) => documentOnly ? commits.filter((_, index) => index !== 1) : commits,
+    gitBranches: async () => ({ ...branches, local: [...branches.local], remote: [...branches.remote] }),
+    gitCheckout: async ({ branch }) => { if (!branches.local.includes(branch)) branches.local = [...branches.local, branch].sort(); branches.current = branch; git.branch = branch; return done(`Branch „${branch}“ ausgecheckt.`); },
+    gitCreateBranch: async ({ name }) => { branches.local = [...branches.local, name].sort(); branches.current = name; git.branch = name; return done(`Branch „${name}“ erstellt und ausgecheckt.`); },
+    gitMerge: async () => { git.ahead = (git.ahead ?? 0) + 1; return done('Der Branch wurde zusammengeführt.'); },
     gitDiscard: async ({ paths }) => { changes = changes.filter((change) => !paths.includes(change.path)); return done('Änderungen verworfen.'); },
     gitRestoreDocument: async () => done('Das Diagramm hat den Stand des gewählten Commits. Mit einem Commit hältst du das fest.'),
     gitAutomation: async (input) => { Object.assign(git, input); return { ...git }; },

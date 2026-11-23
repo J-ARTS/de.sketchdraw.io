@@ -15,6 +15,8 @@ import type {
   ConfluencePage,
   ConfluencePageSummary,
   CreateJiraIssueInput,
+  GitBranches,
+  GitBranchInput,
   GitCommitInput,
   GitCommitSummary,
   GitFileDiff,
@@ -24,6 +26,8 @@ import type {
   GitWorkbenchSnapshot,
   JiraIssueSummary,
   PluginExternalEvent,
+  WorkItemUser,
+  WorkItemValueField,
   PluginConfigurationIssue,
   PluginId,
   PluginOperationResult,
@@ -40,7 +44,7 @@ import { PLUGIN_PROFILE_LIMIT, PLUGIN_PROFILE_NAME_MAX as PROFILE_NAME_MAX } fro
 import { confluenceStorageLoss } from '../src/domain/atlassian';
 import { CONFLUENCE_LIVE_MAX_IMAGE_BYTES, CONFLUENCE_LIVE_MAX_IMAGES, confluenceLiveFilePrefix, confluenceLiveFilename, isPngImage, managedImageFilenames, planManagedImages, type ManagedImage } from '../src/domain/confluence-live';
 import type { DocumentPersistenceService } from './persistence';
-import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, AzureDevOpsHttpError, createAzureWorkItem, getAzureWorkItem, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
+import { AZURE_DEVOPS_API_VERSION, AZURE_DEVOPS_DEFAULT_API_VERSION, AzureDevOpsHttpError, createAzureWorkItem, getAzureWorkItem, azureFieldValues, searchAzureUsers, listAzureWorkItems, searchAzureWorkItems, updateAzureWorkItemDetails, normalizeAzureDevOpsUrl, testAzureDevOps, transitionAzureWorkItem, updateAzureWorkItem, type AzureDevOpsConnection } from './azure-devops';
 import type { AzureDevOpsPluginSettings, ConfigureAzureDevOpsPluginInput, CreateWorkItemInput, TicketProvider, UpdateWorkItemFieldsInput, UpdateWorkItemInput, WorkItemSummary } from '../src/domain/plugins';
 
 const execFile = promisify(execFileCallback);
@@ -149,6 +153,8 @@ interface PersistedGitConfig {
   username: string;
   encryptedAccessToken?: string;
   credentialRemoteUrl?: string;
+  /** When the settings were last saved with their button, ISO 8601. */
+  savedAt?: string;
 }
 
 interface PersistedAtlassianConfig {
@@ -163,6 +169,9 @@ interface PersistedAtlassianConfig {
   jiraEnabled?: boolean;
   confluenceInstalled?: boolean;
   confluenceEnabled?: boolean;
+  /** When each of the two plugins was last saved with its button, ISO 8601. */
+  jiraSavedAt?: string;
+  confluenceSavedAt?: string;
   siteUrl: string;
   email: string;
   encryptedApiToken?: string;
@@ -188,6 +197,8 @@ interface PersistedAzureConfig {
   apiVersion: string;
   readOnly: boolean;
   encryptedAccessToken?: string;
+  /** When the settings were last saved with their button, ISO 8601. */
+  savedAt?: string;
   /** Links of pages of diagram files to pages of the wiki (#284). Like the Confluence links they live in the profile. */
   wikiLinks?: PersistedAzureWikiLink[];
 }
@@ -261,6 +272,11 @@ const DEFAULT_CONFIG: PersistedPluginConfig = {
 const DEFAULT_AZURE: PersistedAzureConfig = { installed: false, enabled: false, variant: 'cloud', organizationUrl: '', project: '', workItemType: 'Task', wiqlFilter: '', apiVersion: AZURE_DEVOPS_DEFAULT_API_VERSION.cloud, readOnly: false };
 
 /** Stored Azure DevOps settings are checked like entered ones: wrong shapes are rejected, not repaired. */
+/** A time of saving is shown, nothing more: a value that is no date is dropped instead of making the profile unreadable. */
+function savedTime(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length <= 40 && !Number.isNaN(Date.parse(value)) ? value : undefined;
+}
+
 function parseAzureConfig(value: unknown): PersistedAzureConfig | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('PROFILE_STORE_INVALID');
@@ -277,6 +293,7 @@ function parseAzureConfig(value: unknown): PersistedAzureConfig | undefined {
   if (azure.enabled && (!azure.installed || !azure.organizationUrl || !azure.encryptedAccessToken)) throw new Error('PROFILE_STORE_INVALID');
   if (record.wikiLinks !== undefined) azure.wikiLinks = parseAzureWikiLinks(record.wikiLinks);
   if (!azure.wikiLinks?.length) delete azure.wikiLinks;
+  const savedAt = savedTime(record.savedAt); if (savedAt) azure.savedAt = savedAt; else delete azure.savedAt;
   return azure;
 }
 
@@ -427,7 +444,8 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   atlassian.siteUrl = atlassian.siteUrl.trim() ? normalizeSiteUrl(atlassian.siteUrl) : '';
   atlassian.email = boundedString(atlassian.email, 320, 'E-Mail', !atlassian.enabled);
   atlassian.confluenceSpaceKey = boundedString(atlassian.confluenceSpaceKey, 128, 'Confluence-Space', true);
-  atlassian.jiraProjectKey = boundedString(atlassian.jiraProjectKey, 128, 'Jira-Projekt', !parts.jiraEnabled).toUpperCase();
+  // The project is no setting of its own any more: it follows from the JQL filter, so a profile may have none.
+  atlassian.jiraProjectKey = boundedString(atlassian.jiraProjectKey, 128, 'Jira-Projekt', true).toUpperCase();
   atlassian.jiraIssueType = boundedString(atlassian.jiraIssueType, 128, 'Jira-Vorgangstyp');
   atlassian.jqlFilter = boundedString(atlassian.jqlFilter, 2000, 'Jira-Filter', true);
   if (atlassian.enabled && (!atlassian.siteUrl || !atlassian.encryptedApiToken)) throw new Error('PROFILE_STORE_INVALID');
@@ -435,6 +453,9 @@ function parsePluginConfig(value: unknown): Pick<PersistedProfile, 'git' | 'atla
   if (confluenceLinks) atlassian.confluenceLinks = confluenceLinks; else delete atlassian.confluenceLinks;
   const confluencePageLinks = parseConfluenceLinks((record.atlassian as Record<string, unknown>).confluencePageLinks, 'page');
   if (confluencePageLinks) atlassian.confluencePageLinks = confluencePageLinks; else delete atlassian.confluencePageLinks;
+  const gitSavedAt = savedTime(git.savedAt); if (gitSavedAt) git.savedAt = gitSavedAt; else delete git.savedAt;
+  const jiraSavedAt = savedTime(atlassian.jiraSavedAt); if (jiraSavedAt) atlassian.jiraSavedAt = jiraSavedAt; else delete atlassian.jiraSavedAt;
+  const confluenceSavedAt = savedTime(atlassian.confluenceSavedAt); if (confluenceSavedAt) atlassian.confluenceSavedAt = confluenceSavedAt; else delete atlassian.confluenceSavedAt;
   let azure: PersistedAzureConfig | undefined;
   try { azure = parseAzureConfig(record.azure); } catch { throw new Error('PROFILE_STORE_INVALID'); }
   return { git, atlassian, ...(azure ? { azure } : {}) };
@@ -534,6 +555,35 @@ function jiraDueDate(value: unknown, allowEmpty = false): string {
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
   if (date.toISOString().slice(0, 10) !== dueDate) throw new Error('Jira-Fälligkeitsdatum ist ungültig.');
   return dueDate;
+}
+
+/**
+ * The one project a JQL filter names (`project = SHOP`, `project in (SHOP)`), as its key in capitals. New tickets
+ * are created there. A filter that names no project, several, or one by its full name answers with nothing: then
+ * there is no single place for a new ticket.
+ */
+export function jqlProject(jql: string): string | null {
+  const keys = new Set<string>();
+  for (const match of jql.matchAll(/\bproject\s*(?:=|\bin\b)\s*(\([^)]*\)|"[^"]*"|'[^']*'|[A-Za-z][A-Za-z0-9_]*)/gi)) {
+    for (const part of match[1]!.replace(/^\(|\)$/g, '').split(',')) {
+      const name = part.trim().replace(/^["']|["']$/g, '').trim();
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) return null;
+      keys.add(name.toUpperCase());
+    }
+  }
+  return keys.size === 1 ? [...keys][0]! : null;
+}
+
+/**
+ * The page an address of the Confluence site or a bare number names: `…/wiki/spaces/KEY/pages/123/Title`,
+ * `…?pageId=123` or `123`. Any other text is a search text.
+ */
+export function confluencePageReference(text: string, siteUrl: string): { id: string; url?: string } | null {
+  const value = text.trim();
+  if (/^\d{1,20}$/.test(value)) return { id: value };
+  if (!siteUrl || !/^https:\/\/\S+$/i.test(value) || !value.toLowerCase().startsWith(`${siteUrl.replace(/\/+$/, '').toLowerCase()}/wiki/`)) return null;
+  const id = /\/pages\/(\d{1,20})(?:[/?#]|$)/.exec(value)?.[1] ?? /[?&]pageId=(\d{1,20})(?:[&#]|$)/.exec(value)?.[1];
+  return id ? { id, url: value.replace(/[?#].*$/, '').startsWith(`${siteUrl.replace(/\/+$/, '')}/wiki/spaces/`) ? value.replace(/[?#].*$/, '') : undefined } : null;
 }
 
 /** An error this service raised itself, with a message for the user; a failed git call carries the command and its output instead. */
@@ -733,12 +783,30 @@ export class PluginService {
     await this.refreshFolderStatus();
   }
 
-  private async refreshFolderStatus(): Promise<void> {
+  /** `git init` in a folder that belongs to no repository yet; answers whether it made one. An existing repository is left as it is. */
+  private async ensureRepository(folder: string, generation: number): Promise<boolean> {
+    try { await this.runGit(['rev-parse', '--show-toplevel'], folder); return false; } catch { this.assertGeneration(generation); }
+    await this.runGit(['init'], folder); this.assertGeneration(generation);
+    return true;
+  }
+
+  /**
+   * The active Git plugin works in the folder of the open diagram. A folder without a repository gets one, with the
+   * remote of the profile. `onlyNewRepository` is for opening a diagram: an existing repository is not read then.
+   */
+  private async refreshFolderStatus(onlyNewRepository = false): Promise<void> {
     if (!this.projectFolder || !this.config.git.installed || !this.config.git.enabled) return;
-    const generation = this.projectGeneration;
-    try { await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); }
-    catch { if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'attention', message: 'Der Projektordner ist noch kein Git-Repository.' }; return; }
-    if (generation !== this.projectGeneration) return;
+    const generation = this.projectGeneration; const folder = this.projectFolder; const { remote, remoteUrl } = this.config.git;
+    let created = false;
+    try {
+      created = await this.ensureRepository(folder, generation);
+      if (created && remoteUrl) { await this.runGit(['remote', 'add', remote, remoteUrl], folder); this.assertGeneration(generation); }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unbekannter Git-Fehler.';
+      if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'error', message: `Das Git-Repository konnte nicht eingerichtet werden: ${detail}` };
+      return;
+    }
+    if (generation !== this.projectGeneration || (onlyNewRepository && !created)) return;
     try { await this.readGitStatusForFolder(); }
     catch { if (generation === this.projectGeneration) this.gitRuntime = { ...this.gitRuntime, health: 'error', message: 'Git-Status konnte nicht gelesen werden.' }; }
   }
@@ -813,7 +881,8 @@ export class PluginService {
       await this.activation; return this.getSettings();
     }
     this.resetProject(nextFolder); this.activeDocumentPath = location.canonicalPath;
-    this.activation = this.adoptLegacyProjectConfig(nextFolder, this.projectGeneration);
+    const generation = this.projectGeneration;
+    this.activation = this.adoptLegacyProjectConfig(nextFolder, generation).then(() => generation === this.projectGeneration ? this.refreshFolderStatus(true) : undefined);
     await this.activation; return this.getSettings();
   }
 
@@ -845,13 +914,13 @@ export class PluginService {
   private refreshRuntime(): void {
     const gitCredentialStored = Boolean(this.config.git.encryptedAccessToken) && this.credentials.available();
     const gitEnabled = this.config.git.installed && this.config.git.enabled;
-    const { installed: gitInstalled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username } = this.config.git;
-    this.gitRuntime = { ...this.defaultGitRuntime(), installed: gitInstalled, enabled: gitEnabled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username, credentialStored: gitCredentialStored, health: gitEnabled ? 'attention' : 'disabled', message: !gitInstalled ? 'Git-Plugin ist nicht installiert.' : gitEnabled ? 'Repository-Konfiguration noch nicht geprüft.' : 'Git-Plugin ist deaktiviert.' };
+    const { installed: gitInstalled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username, savedAt: gitSavedAt } = this.config.git;
+    this.gitRuntime = { ...this.defaultGitRuntime(), installed: gitInstalled, enabled: gitEnabled, autoCommit, autoPush, autoPull, remote, remoteUrl, authMode, username, ...(gitSavedAt ? { savedAt: gitSavedAt } : {}), credentialStored: gitCredentialStored, health: gitEnabled ? 'attention' : 'disabled', message: !gitInstalled ? 'Git-Plugin ist nicht installiert.' : gitEnabled ? 'Repository-Konfiguration noch nicht geprüft.' : 'Git-Plugin ist deaktiviert.' };
     const atlassianCredentialStored = Boolean(this.config.atlassian.encryptedApiToken) && this.credentials.available();
     const parts = atlassianParts(this.config.atlassian);
     const installed = parts.jiraInstalled || parts.confluenceInstalled, atlassianEnabled = parts.jiraEnabled || parts.confluenceEnabled;
-    const { siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter } = this.config.atlassian;
-    this.atlassianRuntime = { installed, enabled: atlassianEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
+    const { siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, jiraSavedAt, confluenceSavedAt } = this.config.atlassian;
+    this.atlassianRuntime = { installed, enabled: atlassianEnabled, ...parts, ...(jiraSavedAt ? { jiraSavedAt } : {}), ...(confluenceSavedAt ? { confluenceSavedAt } : {}), siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, credentialStored: atlassianCredentialStored, health: atlassianEnabled ? (atlassianCredentialStored ? 'attention' : 'error') : 'disabled', message: !installed ? 'Jira-Plugin ist nicht installiert.' : atlassianEnabled ? (atlassianCredentialStored ? 'Verbindung noch nicht geprüft.' : 'API-Token fehlt.') : 'Jira-Plugin ist deaktiviert.' };
     this.azureRuntime = this.azureSettings();
   }
 
@@ -979,11 +1048,11 @@ export class PluginService {
     if (newToken) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Git-Token')); }
     const username = boundedString(input.username ?? '', 320, 'Git-Benutzername', authMode !== 'token' || !input.enabled);
     if (input.enabled && authMode === 'token' && !encryptedAccessToken) throw new Error('Für die Token-Anmeldung wird ein Git-Token benötigt.');
-    const next: PersistedGitConfig = { installed: true, enabled: Boolean(input.enabled), autoCommit: Boolean(input.autoCommit), autoPush: Boolean(input.autoPush), autoPull: Boolean(input.autoPull), remote, remoteUrl, authMode, username, ...(encryptedAccessToken ? { encryptedAccessToken } : {}) };
+    const next: PersistedGitConfig = { installed: true, enabled: Boolean(input.enabled), autoCommit: Boolean(input.autoCommit), autoPush: Boolean(input.autoPush), autoPull: Boolean(input.autoPull), remote, remoteUrl, authMode, username, ...(encryptedAccessToken ? { encryptedAccessToken } : {}), savedAt: new Date(this.now()).toISOString() };
     if (encryptedAccessToken && newToken) credentialRemoteUrl = remoteUrl || undefined;
     // The profile is stored for the editor. Only an enabled plugin with an open project folder touches a repository.
     if (folder && next.enabled) {
-      try { await this.runGit(['rev-parse', '--show-toplevel'], folder); } catch { this.assertGeneration(generation); await this.runGit(['init'], folder); }
+      await this.ensureRepository(folder, generation);
       this.assertGeneration(generation);
       const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], folder); const repositoryRoot = rootOutput.trim(); this.assertGeneration(generation);
       if (next.remoteUrl) { try { await this.runGit(['remote', 'get-url', next.remote], repositoryRoot); this.assertGeneration(generation); await this.runGit(['remote', 'set-url', next.remote, next.remoteUrl], repositoryRoot); } catch { this.assertGeneration(generation); await this.runGit(['remote', 'add', next.remote, next.remoteUrl], repositoryRoot); } }
@@ -1014,16 +1083,18 @@ export class PluginService {
     const siteInput = typeof input.siteUrl === 'string' ? input.siteUrl : ''; const siteUrl = siteInput.trim() ? normalizeSiteUrl(siteInput) : '';
     const previousToken = this.config.atlassian.encryptedApiToken; let encryptedApiToken = input.clearCredential || siteUrl !== this.config.atlassian.siteUrl ? undefined : previousToken;
     if (typeof input.apiToken === 'string' && input.apiToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedApiToken = this.credentials.encrypt(boundedString(input.apiToken, 4096, 'API-Token')); }
-    const own = this.config.atlassian;
+    const own = this.config.atlassian; const savedNow = new Date(this.now()).toISOString();
     const email = boundedString(input.email, 320, 'E-Mail', !anyEnabled);
     // Each plugin keeps its own fields when the other one is configured.
     const confluenceSpaceKey = target === 'jira' ? own.confluenceSpaceKey : boundedString(input.confluenceSpaceKey ?? '', 128, 'Confluence-Space', true);
-    const jiraProjectKey = target === 'confluence' ? own.jiraProjectKey : boundedString(input.jiraProjectKey, 128, 'Jira-Projekt', !parts.jiraEnabled).toUpperCase();
-    const jiraIssueType = target === 'confluence' ? own.jiraIssueType : boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp');
     const jqlFilter = target === 'confluence' ? own.jqlFilter : boundedString(input.jqlFilter ?? '', 2000, 'Jira-Filter', true);
-    if (parts.jiraEnabled && !jiraProjectKey) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    if (anyEnabled && (!siteUrl || !encryptedApiToken)) throw new Error(target === 'confluence' ? 'Für das Confluence-Plugin werden URL, Benutzername und API-Token benötigt.' : 'Für das Jira-Plugin werden URL, Benutzername, API-Token und Jira-Projekt benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: parts.jiraInstalled || parts.confluenceInstalled, enabled: anyEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}), ...(this.config.atlassian.confluencePageLinks ? { confluencePageLinks: this.config.atlassian.confluencePageLinks } : {}) } };
+    // Jira works from its JQL filter alone. The project new tickets go to is the one the filter names; a caller may
+    // still name it itself, as the settings did before the filter took over.
+    const jiraProjectKey = target === 'confluence' ? own.jiraProjectKey : boundedString(input.jiraProjectKey ?? '', 128, 'Jira-Projekt', true).toUpperCase() || jqlProject(jqlFilter) || '';
+    const jiraIssueType = target === 'confluence' ? own.jiraIssueType : boundedString(input.jiraIssueType || 'Task', 128, 'Jira-Vorgangstyp');
+    if (parts.jiraEnabled && !jqlFilter && !jiraProjectKey) throw new Error('Für das Jira-Plugin werden URL, Benutzername, API-Token und ein JQL-Filter benötigt.');
+    if (anyEnabled && (!siteUrl || !encryptedApiToken)) throw new Error(target === 'confluence' ? 'Für das Confluence-Plugin werden URL, Benutzername und API-Token benötigt.' : 'Für das Jira-Plugin werden URL, Benutzername, API-Token und ein JQL-Filter benötigt.');
+    const next: PersistedPluginConfig = { ...this.config, atlassian: { installed: parts.jiraInstalled || parts.confluenceInstalled, enabled: anyEnabled, ...parts, siteUrl, email, confluenceSpaceKey, jiraProjectKey, jiraIssueType, jqlFilter, ...(target !== 'confluence' ? { jiraSavedAt: savedNow } : own.jiraSavedAt ? { jiraSavedAt: own.jiraSavedAt } : {}), ...(target !== 'jira' ? { confluenceSavedAt: savedNow } : own.confluenceSavedAt ? { confluenceSavedAt: own.confluenceSavedAt } : {}), ...(encryptedApiToken ? { encryptedApiToken } : {}), ...(this.config.atlassian.confluenceLinks ? { confluenceLinks: this.config.atlassian.confluenceLinks } : {}), ...(this.config.atlassian.confluencePageLinks ? { confluencePageLinks: this.config.atlassian.confluencePageLinks } : {}) } };
     // Saved Atlassian settings are a new authority even when every value is as before: work that ran under the
     // previous site, account or switch never continues, and a pause a server asked the previous site for ends.
     await this.saveConfig(next, profileId); this.revokeAuthority(); if (this.cooldown && this.cooldown.siteUrl !== siteUrl) this.cooldown = null;
@@ -1048,7 +1119,7 @@ export class PluginService {
     let encryptedAccessToken = input.clearCredential || organizationUrl !== current.organizationUrl ? undefined : current.encryptedAccessToken;
     if (typeof input.accessToken === 'string' && input.accessToken.trim()) { if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.'); encryptedAccessToken = this.credentials.encrypt(boundedString(input.accessToken, 4096, 'Personal Access Token')); }
     if (enabled && (!organizationUrl || !project || !encryptedAccessToken)) throw new Error(variant === 'server' ? 'Für Azure DevOps Server werden die Adresse der Sammlung, das Projekt und ein Personal Access Token benötigt.' : 'Für Azure DevOps werden Organisation, Projekt und ein Personal Access Token benötigt.');
-    const next: PersistedPluginConfig = { ...this.config, azure: { installed: true, enabled, variant, organizationUrl, project, workItemType, wiqlFilter, apiVersion, readOnly: Boolean(input.readOnly), ...(encryptedAccessToken ? { encryptedAccessToken } : {}), ...(current.wikiLinks?.length ? { wikiLinks: current.wikiLinks } : {}) } };
+    const next: PersistedPluginConfig = { ...this.config, azure: { installed: true, enabled, variant, organizationUrl, project, workItemType, wiqlFilter, apiVersion, readOnly: Boolean(input.readOnly), savedAt: new Date(this.now()).toISOString(), ...(encryptedAccessToken ? { encryptedAccessToken } : {}), ...(current.wikiLinks?.length ? { wikiLinks: current.wikiLinks } : {}) } };
     // A publication that is on its way belongs to the settings it started with.
     await this.saveConfig(next, profileId); this.azureEpoch++; this.revokeAuthority();
     if (profileId === this.activeProfileId) this.refreshRuntime(); return this.getSettings();
@@ -1203,16 +1274,25 @@ export class PluginService {
     this.resetProject(); this.activation = Promise.resolve();
   }
 
-  public async testAtlassian(): Promise<PluginOperationResult> {
+  /**
+   * Tests the Atlassian connection. With `plugin` only that plugin is tested and the answer names it alone; without
+   * it both are, as before the two plugins got their own buttons.
+   */
+  public async testAtlassian(plugin?: 'jira' | 'confluence'): Promise<PluginOperationResult> {
     const generation = this.projectGeneration;
     // Each installed plugin is tested with its own product; Confluence alongside Jira only once a space is named, as before.
     const parts = atlassianParts(this.config.atlassian);
-    const testJira = parts.jiraInstalled || !parts.confluenceInstalled, testConfluence = parts.confluenceInstalled && (Boolean(this.config.atlassian.confluenceSpaceKey) || !testJira);
+    const both = plugin !== 'jira' && plugin !== 'confluence';
+    if (plugin === 'jira' && !parts.jiraInstalled) throw new Error('Jira-Plugin ist nicht installiert.');
+    if (plugin === 'confluence' && !parts.confluenceInstalled) throw new Error('Confluence-Plugin ist nicht installiert.');
+    const testJira = both ? parts.jiraInstalled || !parts.confluenceInstalled : plugin === 'jira', testConfluence = both ? parts.confluenceInstalled && (Boolean(this.config.atlassian.confluenceSpaceKey) || !testJira) : plugin === 'confluence';
     const checks: Array<Promise<unknown>> = [...(testJira ? [this.atlassian('/rest/api/3/myself')] : []), ...(testConfluence ? [this.atlassian('/wiki/api/v2/spaces?limit=1')] : [])];
     const results = await Promise.allSettled(checks); this.assertGeneration(generation); const jira = testJira ? results[0] : undefined; const confluence = testConfluence ? results[testJira ? 1 : 0] : undefined;
     const details = jira ? [jira.status === 'fulfilled' ? 'Jira: verbunden' : `Jira: ${jira.reason instanceof Error ? jira.reason.message : 'Verbindung fehlgeschlagen'}`] : [];
     if (confluence) details.push(confluence.status === 'fulfilled' ? 'Confluence: verbunden' : `Confluence: ${confluence.reason instanceof Error ? confluence.reason.message : 'Verbindung fehlgeschlagen'}`);
-    const ok = results.every((entry) => entry.status === 'fulfilled'); const message = details.join(' · '); this.atlassianRuntime = { ...this.atlassianRuntime, health: ok ? 'ready' : 'error', message }; return { ok, message };
+    const ok = results.every((entry) => entry.status === 'fulfilled'); const message = details.join(' · ');
+    // Each plugin shows the result of its own test under its name.
+    this.atlassianRuntime = { ...this.atlassianRuntime, health: ok ? 'ready' : 'error', message, ...(jira ? { jiraMessage: details[0]! } : {}), ...(confluence ? { confluenceMessage: details.at(-1)! } : {}) }; return { ok, message };
   }
 
   private async gitContext(handleId: string): Promise<{ filePath: string; cwd: string; relativePath: string }> {
@@ -1243,6 +1323,21 @@ export class PluginService {
     }
   }
 
+  /**
+   * The connection check of the Git plugin: asks the remote for the current branch, signed in like every other
+   * network call. An answer proves that the remote is reachable; an empty one that the branch is not there yet.
+   */
+  private async remoteHasBranch(cwd: string, branch: string): Promise<boolean> {
+    const remote = this.config.git.remote;
+    try { await this.runGit(['remote', 'get-url', remote], cwd); }
+    catch { throw new Error(`Für „${remote}“ ist keine Remote-URL eingetragen.`); }
+    try { return Boolean((await this.configuredGit(['ls-remote', '--heads', remote, ...(branch ? [`refs/heads/${branch}`] : [])], cwd, true)).stdout.trim()); }
+    catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unbekannter Git-Fehler.';
+      throw new Error(`Verbindung zu „${remote}“ fehlgeschlagen: ${detail}`);
+    }
+  }
+
   private async readGitStatusForFolder(refreshRemote = false): Promise<GitPluginSettings> {
     const generation = this.projectGeneration;
     const { stdout: rootOutput } = await this.runGit(['rev-parse', '--show-toplevel'], this.projectFolder); const cwd = rootOutput.trim();
@@ -1250,19 +1345,26 @@ export class PluginService {
     const [{ stdout: status }, { stdout: branch }] = await Promise.all([this.runGit(['status', '--porcelain=v1'], cwd), this.runGit(['branch', '--show-current'], cwd)]);
     this.assertGeneration(generation);
     const branchName = branch.trim();
-    if (refreshRemote && branchName) { await this.refreshRemoteTrackingBranch(cwd, branchName); this.assertGeneration(generation); }
+    // Reaching the remote is the connection check. A branch that was never pushed is no failure: there is nothing to compare yet.
+    const onRemote = refreshRemote ? await this.remoteHasBranch(cwd, branchName) : true;
+    this.assertGeneration(generation);
+    if (refreshRemote && branchName && onRemote) { await this.refreshRemoteTrackingBranch(cwd, branchName); this.assertGeneration(generation); }
     let ahead = 0; let behind = 0;
     try { const { stdout } = await this.runGit(['rev-list', '--left-right', '--count', `HEAD...refs/remotes/${this.config.git.remote}/${branchName}`], cwd); const [left, right] = stdout.trim().split(/\s+/).map(Number); ahead = left || 0; behind = right || 0; }
     catch (error) {
-      if (refreshRemote && branchName) {
+      if (refreshRemote && branchName && onRemote) {
         const detail = error instanceof Error ? error.message : 'Unbekannter Git-Fehler.';
         throw new Error(`Remote-Status für „${this.config.git.remote}/${branchName}“ konnte nicht berechnet werden: ${detail}`);
       }
-      // A local repository can legitimately have no remote-tracking branch yet.
+      // A branch that was never pushed has no remote-tracking branch. With a remote to push to, all its commits wait for the push.
+      try { await this.runGit(['remote', 'get-url', this.config.git.remote], cwd); ahead = Number((await this.runGit(['rev-list', '--count', 'HEAD'], cwd)).stdout.trim()) || 0; }
+      catch { /* No remote, or no commit yet: nothing waits. */ }
     }
     this.assertGeneration(generation);
     const message = !refreshRemote
       ? (status.trim() ? 'Lokale Änderungen erkannt.' : 'Lokaler Git-Status gelesen; Remote-Stand noch nicht aktualisiert.')
+      : !onRemote
+        ? 'Der Branch ist auf dem Remote noch nicht vorhanden.'
       : ahead > 0 && behind > 0
         ? 'Repository und Remote sind auseinanderentwickelt.'
         : behind > 0
@@ -1278,7 +1380,7 @@ export class PluginService {
 
   public async gitStatus(handleId: string): Promise<GitSyncResult> {
     const generation = this.projectGeneration;
-    try { await this.watchDocument(handleId); const settings = await this.readGitStatus(handleId, true); return { ok: true, message: settings.message, settings }; }
+    try { await this.watchDocument(handleId); const settings = await this.readGitStatus(handleId, true); return { ok: true, message: `Verbindung zu „${this.config.git.remote}“ steht. ${settings.message}`, settings }; }
     catch (error) { this.assertGeneration(generation); const message = error instanceof Error ? error.message : 'Git-Status konnte nicht gelesen werden.'; this.gitRuntime = { ...this.gitRuntime, health: 'error', message }; return { ok: false, message, settings: { ...this.gitRuntime } }; }
   }
 
@@ -1393,6 +1495,39 @@ export class PluginService {
     });
   }
 
+  public gitBranches(input: { handleId: string; fetch: boolean }): Promise<GitBranches> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.inGitTurn(async () => {
+      const { bench } = await this.gitWorkbenchFor(input.handleId);
+      try { return await bench.branches(input.fetch === true); }
+      catch (error) { if (isOwnError(error)) throw error; throw new Error(gitFailure(error, input.fetch === true ? 'Die Branches des Remotes konnten nicht abgerufen werden.' : 'Die Branches konnten nicht gelesen werden.')); }
+    });
+  }
+
+  public gitCheckout(input: GitBranchInput): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Der Branch konnte nicht gewechselt werden.', async (bench) => {
+      const name = await bench.checkout(input.branch, input.remote);
+      return { message: `Branch „${name}“ ausgecheckt.`, reload: true };
+    });
+  }
+
+  public gitCreateBranch(input: { handleId: string; name: string }): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Der Branch konnte nicht erstellt werden.', async (bench) => {
+      const name = await bench.createBranch(input.name);
+      return { message: `Branch „${name}“ erstellt und ausgecheckt.` };
+    });
+  }
+
+  public gitMerge(input: GitBranchInput): Promise<GitWorkbenchResult> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
+    return this.gitWorkbenchStep(input.handleId, 'Das Zusammenführen ist fehlgeschlagen.', async (bench) => {
+      const changed = await bench.merge(input.branch, input.remote);
+      return { message: changed ? 'Der Branch wurde zusammengeführt.' : 'Der aktuelle Branch enthält diesen Stand bereits.', reload: changed };
+    });
+  }
+
   public gitDiscard(input: { handleId: string; paths: string[] }): Promise<GitWorkbenchResult> {
     if (!input || typeof input !== 'object') throw new Error('Ungültige Git-Anfrage.');
     return this.gitWorkbenchStep(input.handleId, 'Die Änderungen konnten nicht verworfen werden.', async (bench) => {
@@ -1440,8 +1575,34 @@ export class PluginService {
 
   private async confluenceSpaceId(): Promise<string | undefined> { const key = this.config.atlassian.confluenceSpaceKey; if (!key) return undefined; const response = await this.atlassian(`/wiki/api/v2/spaces?keys=${encodeURIComponent(key)}&limit=1`) as { results?: Array<{ id?: string }> }; return response.results?.[0]?.id; }
 
+  /**
+   * The pages a diagram page can be linked to. An address or the number of a page names it exactly, in whatever
+   * space it lies. A text is searched in the titles of the site, or of the space when one is configured. Where that
+   * search finds nothing, the pages that changed last are listed and narrowed by the text, as before.
+   */
   public async listConfluencePages(query: string): Promise<ConfluencePageSummary[]> {
     this.assertDocumentProject(); this.assertConfluence();
+    const site = this.config.atlassian.siteUrl; const text = boundedString(query ?? '', 2048, 'Suchtext', true);
+    const summary = (id: string, title: unknown, version: unknown, url: string): ConfluencePageSummary => ({ id, title: String(title ?? ''), version: Number((version as Record<string, unknown> | undefined)?.number ?? 1), url });
+    const named = confluencePageReference(text, site);
+    if (named) {
+      try { const page = await this.atlassian(`/wiki/api/v2/pages/${encodeURIComponent(named.id)}`) as Record<string, unknown>; return page?.id ? [summary(String(page.id), page.title, page.version, named.url ?? `${site}/wiki/pages/viewpage.action?pageId=${encodeURIComponent(String(page.id))}`)] : []; }
+      catch (error) { if (!(error instanceof AtlassianHttpError)) throw error; return []; }
+    }
+    if (text) {
+      const space = this.config.atlassian.confluenceSpaceKey;
+      const cql = `type = page AND title ~ "${text.replace(/[\\"]/g, ' ')}*"${space ? ` AND space = "${space.replace(/[\\"]/g, ' ')}"` : ''} ORDER BY lastmodified DESC`;
+      try {
+        const found = await this.atlassian(`/wiki/rest/api/content/search?${new URLSearchParams({ cql, limit: '25', expand: 'version,space' })}`) as { results?: Array<Record<string, unknown>> };
+        const pages = (Array.isArray(found?.results) ? found.results : []).flatMap((page): ConfluencePageSummary[] => {
+          const id = String(page.id ?? ''); if (!/^\d{1,20}$/.test(id)) return [];
+          const webui = (page._links as { webui?: unknown } | undefined)?.webui; const key = (page.space as { key?: unknown } | undefined)?.key;
+          const url = typeof webui === 'string' && webui.startsWith('/') && webui.length < 1000 ? `${site}/wiki${webui}` : typeof key === 'string' ? `${site}/wiki/spaces/${encodeURIComponent(key)}/pages/${id}` : `${site}/wiki/pages/viewpage.action?pageId=${id}`;
+          return [summary(id, page.title, page.version, url)];
+        });
+        if (pages.length) return pages;
+      } catch (error) { if (!(error instanceof AtlassianHttpError)) throw error; }
+    }
     const spaceId = await this.confluenceSpaceId(); const params = new URLSearchParams({ limit: '100', sort: '-modified-date' }); if (spaceId) params.set('space-id', spaceId);
     const response = await this.atlassian(`/wiki/api/v2/pages?${params}`) as { results?: Array<Record<string, unknown>> }; const needle = query.trim().toLocaleLowerCase('de'); const base = this.config.atlassian.siteUrl;
     return (response.results ?? []).map((page) => ({ id: String(page.id ?? ''), title: String(page.title ?? ''), version: Number((page.version as Record<string, unknown> | undefined)?.number ?? 1), url: `${base}/wiki/spaces/${encodeURIComponent(this.config.atlassian.confluenceSpaceKey)}/pages/${encodeURIComponent(String(page.id ?? ''))}` })).filter((page) => page.id && (!needle || page.title.toLocaleLowerCase('de').includes(needle))).slice(0, 100);
@@ -1874,24 +2035,28 @@ export class PluginService {
     const key = String(value.key ?? '');
     const assigneeName = String(assignee?.displayName ?? assignee?.emailAddress ?? '').trim();
     const dueDate = typeof fields.duedate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fields.duedate) ? fields.duedate : undefined;
+    // The type comes along wherever the request asked for it: for a single ticket and in the list a card is picked from.
+    const issueType = fields.issuetype && typeof fields.issuetype === 'object' && typeof (fields.issuetype as { name?: unknown }).name === 'string' ? (fields.issuetype as { name: string }).name.trim() : '';
     return {
       id: String(value.id ?? key), key, title: String(fields.summary ?? key), description: adfText(fields.description),
       status: jiraStatus(remoteStatus), remoteStatus,
-      ...(assigneeName ? { assignee: assigneeName } : {}), ...(dueDate ? { dueDate } : {}),
+      ...(assigneeName ? { assignee: assigneeName } : {}), ...(dueDate ? { dueDate } : {}), ...(issueType ? { issueType } : {}),
       url: `${this.config.atlassian.siteUrl}/browse/${encodeURIComponent(key)}`, updatedAt: isoTimestamp(fields.updated),
       ...this.jiraDetails(fields, storyPointsField),
     };
   }
 
   /** Labels, components and estimate of an issue; absent when the request did not ask for them (the task board list). */
-  private jiraDetails(fields: Record<string, unknown>, storyPointsField: string | null | undefined): Pick<JiraIssueSummary, 'labels' | 'components' | 'estimate'> {
+  private jiraDetails(fields: Record<string, unknown>, storyPointsField: string | null | undefined): Pick<JiraIssueSummary, 'labels' | 'components' | 'estimate' | 'fixVersions'> {
     if (storyPointsField === undefined) return {};
     const labels = Array.isArray(fields.labels) ? fields.labels.filter((label): label is string => typeof label === 'string') : [];
     const components = Array.isArray(fields.components) ? fields.components.flatMap((entry) => entry && typeof entry === 'object' && typeof (entry as { name?: unknown }).name === 'string' ? [(entry as { name: string }).name] : []) : [];
     const points = storyPointsField ? fields[storyPointsField] : undefined;
     const tracking = fields.timetracking && typeof fields.timetracking === 'object' ? (fields.timetracking as { originalEstimate?: unknown }).originalEstimate : undefined;
     const estimate = typeof points === 'number' ? String(points) : typeof tracking === 'string' && tracking ? tracking : undefined;
-    return { labels, components, ...(estimate ? { estimate } : {}) };
+    const named = (value: unknown): string => value && typeof value === 'object' && typeof (value as { name?: unknown }).name === 'string' ? (value as { name: string }).name.trim() : '';
+    const fixVersions = Array.isArray(fields.fixVersions) ? fields.fixVersions.map(named).filter(Boolean) : [];
+    return { labels, components, ...(estimate ? { estimate } : {}), fixVersions };
   }
 
   /** The field a Jira site keeps story points in, looked up once per site; null when it has none. */
@@ -1911,7 +2076,7 @@ export class PluginService {
   }
   private async jiraIssueDetails(key: string): Promise<JiraIssueSummary> {
     const storyPointsField = await this.jiraStoryPointsField();
-    const fields = ['summary', 'description', 'status', 'assignee', 'duedate', 'updated', 'labels', 'components', 'timetracking', ...(storyPointsField ? [storyPointsField] : [])];
+    const fields = ['summary', 'description', 'status', 'assignee', 'duedate', 'updated', 'labels', 'components', 'timetracking', 'issuetype', 'fixVersions', ...(storyPointsField ? [storyPointsField] : [])];
     const issue = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(boundedString(key, 128, 'Jira-Key'))}?fields=${fields.join(',')}`) as Record<string, unknown>;
     return this.jiraIssue(issue, storyPointsField);
   }
@@ -1920,7 +2085,7 @@ export class PluginService {
     const assignee = boundedString(value, 120, 'Jira-Zuständigkeit');
     const params = new URLSearchParams({ query: assignee, maxResults: '50' });
     if (issueKey) params.set('issueKey', issueKey);
-    else params.set('project', boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'));
+    else params.set('project', this.jiraProjectForNewIssues());
     const users = await this.atlassian(`/rest/api/3/user/assignable/search?${params}`) as Array<Record<string, unknown>>;
     const normalized = assignee.toLocaleLowerCase('de');
     const exact = users.filter((user) => [user.accountId, user.displayName, user.emailAddress].some((candidate) => typeof candidate === 'string' && candidate.toLocaleLowerCase('de') === normalized));
@@ -1929,10 +2094,17 @@ export class PluginService {
     return selected.accountId;
   }
 
+  /** Where a new ticket is created: the project the JQL filter names. Without one there is no place for it. */
+  private jiraProjectForNewIssues(): string {
+    const key = this.config.atlassian.jiraProjectKey;
+    if (!key) throw new Error('Der JQL-Filter nennt kein einzelnes Jira-Projekt. Neue Tickets lassen sich deshalb nicht anlegen.');
+    return boundedString(key, 128, 'Jira-Projekt');
+  }
+
   public async createJiraIssue(input: CreateJiraIssueInput): Promise<JiraIssueSummary> {
     this.assertDocumentProject(); this.assertJira();
     const fields: Record<string, unknown> = {
-      project: { key: boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt') },
+      project: { key: this.jiraProjectForNewIssues() },
       issuetype: { name: this.config.atlassian.jiraIssueType },
       summary: boundedString(input.title, 255, 'Jira-Titel'),
       description: descriptionAdf(boundedMultilineText(input.description, 50_000, 'Jira-Beschreibung')),
@@ -1950,7 +2122,9 @@ export class PluginService {
 
   public async listJiraIssues(): Promise<JiraIssueSummary[]> {
     this.assertDocumentProject(); this.assertJira();
-    const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt'); const configuredFilter = boundedString(this.config.atlassian.jqlFilter, 2000, 'Jira-Filter', true); const baseFilter = configuredFilter || `project = "${project.replaceAll('"', '')}"`; const jql = /\border\s+by\b/i.test(baseFilter) ? baseFilter : `${baseFilter} ORDER BY updated DESC`;
+    const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt', true); const configuredFilter = boundedString(this.config.atlassian.jqlFilter, 2000, 'Jira-Filter', true);
+    if (!configuredFilter && !project) throw new Error('Für das Jira-Plugin wird ein JQL-Filter benötigt.');
+    const baseFilter = configuredFilter || `project = "${project.replaceAll('"', '')}"`; const jql = /\border\s+by\b/i.test(baseFilter) ? baseFilter : `${baseFilter} ORDER BY updated DESC`;
     const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> }; return (response.issues ?? []).map((issue) => this.jiraIssue(issue));
   }
 
@@ -2141,17 +2315,82 @@ export class PluginService {
     return { provider, ...await this.jiraIssueDetails(input.key) };
   }
 
+  /**
+   * The stored token of a plugin of the active profile, for the settings that show it again. It is handed out on
+   * its own request only and never travels with the settings: those are read on every occasion, this for one look.
+   */
+  public async revealCredential(plugin: PluginId): Promise<string> {
+    await this.ensureLoaded();
+    if (plugin !== 'git' && plugin !== 'jira' && plugin !== 'confluence' && plugin !== 'azure-devops') throw new Error('Unbekanntes Plugin.');
+    const encrypted = plugin === 'git' ? this.config.git.encryptedAccessToken : plugin === 'azure-devops' ? this.config.azure?.encryptedAccessToken : this.config.atlassian.encryptedApiToken;
+    if (!encrypted) return '';
+    if (!this.credentials.available()) throw new Error('Sichere Zugangsdatenablage ist auf diesem System nicht verfügbar.');
+    return this.credentials.decrypt(encrypted);
+  }
+
+  /** What a Jira ticket may be set to, as its edit screen says: types, components and versions. Read once a minute per ticket. */
+  private jiraEditMeta: { id: string; at: number; fields: Record<'issueType' | 'components' | 'fixVersions', string[]> } | null = null;
+  private async jiraEditOptions(key: string): Promise<Record<'issueType' | 'components' | 'fixVersions', string[]>> {
+    const id = `${this.config.atlassian.siteUrl}\u0000${key}`;
+    if (this.jiraEditMeta?.id === id && this.now() - this.jiraEditMeta.at < 60_000) return this.jiraEditMeta.fields;
+    const meta = await this.atlassian(`/rest/api/3/issue/${encodeURIComponent(key)}/editmeta`) as { fields?: Record<string, { allowedValues?: unknown } | undefined> };
+    const names = (field: string): string[] => {
+      const values = meta?.fields?.[field]?.allowedValues;
+      return Array.isArray(values) ? [...new Set(values.flatMap((entry) => entry && typeof entry === 'object' && typeof (entry as { name?: unknown }).name === 'string' && (entry as { archived?: unknown }).archived !== true && (entry as { name: string }).name.trim() ? [(entry as { name: string }).name.trim()] : []))] : [];
+    };
+    const fields = { issueType: names('issuetype'), components: names('components'), fixVersions: names('fixVersions') };
+    if (this.config.atlassian.siteUrl === id.split('\u0000')[0]) this.jiraEditMeta = { id, at: this.now(), fields };
+    return fields;
+  }
+
+  /** The values the tracker knows for a field of a ticket that match the text, at most fifty: for the suggestions while typing. */
+  public async searchWorkItemValues(input: { provider: TicketProvider; key: string; field: WorkItemValueField; query: string }): Promise<string[]> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Suche.');
+    const provider = this.ticketProvider(input.provider);
+    const field = input.field;
+    if (field !== 'issueType' && field !== 'labels' && field !== 'components' && field !== 'fixVersions') throw new Error('Unbekanntes Feld.');
+    const query = boundedString(input.query ?? '', 120, 'Suchtext', true); const needle = query.toLocaleLowerCase('de');
+    const matching = (values: string[]): string[] => values.filter((value) => !needle || value.toLocaleLowerCase('de').includes(needle)).slice(0, 50);
+    if (provider === 'azure-devops') return matching(await this.azure(false, (connection) => azureFieldValues(connection, field)));
+    this.assertDocumentProject(); this.assertJira();
+    const key = boundedString(input.key, 128, 'Jira-Key');
+    if (field === 'labels') {
+      // Labels belong to the whole site; Jira suggests those that begin like the text.
+      const found = await this.atlassian(`/rest/api/3/jql/autocompletedata/suggestions?${new URLSearchParams({ fieldName: 'labels', fieldValue: query })}`) as { results?: unknown };
+      return (Array.isArray(found?.results) ? found.results as Array<{ value?: unknown }> : []).flatMap((entry) => typeof entry?.value === 'string' && entry.value.replace(/^"|"$/g, '').trim() ? [entry.value.replace(/^"|"$/g, '').trim()] : []).slice(0, 50);
+    }
+    return matching((await this.jiraEditOptions(key))[field]);
+  }
+
+  /** The people a ticket can be assigned to whose name or address matches the text; at most ten. */
+  public async searchWorkItemUsers(input: { provider: TicketProvider; key: string; query: string }): Promise<WorkItemUser[]> {
+    if (!input || typeof input !== 'object') throw new Error('Ungültige Suche.');
+    const provider = this.ticketProvider(input.provider);
+    const query = boundedString(input.query ?? '', 120, 'Suchtext', true);
+    if (provider === 'azure-devops') return this.azure(false, (connection) => searchAzureUsers(connection, query));
+    this.assertDocumentProject(); this.assertJira();
+    const params = new URLSearchParams({ query, maxResults: '10', issueKey: boundedString(input.key, 128, 'Jira-Key') });
+    const users = await this.atlassian(`/rest/api/3/user/assignable/search?${params}`) as unknown;
+    if (!Array.isArray(users)) return [];
+    return (users as Array<Record<string, unknown>>).flatMap((user): WorkItemUser[] => {
+      const name = typeof user?.displayName === 'string' ? user.displayName.trim() : '';
+      const mail = typeof user?.emailAddress === 'string' ? user.emailAddress.trim() : '';
+      return name && name.length <= 120 ? [{ name, ...(mail && mail.length <= 320 ? { detail: mail } : {}) }] : [];
+    }).slice(0, 10);
+  }
+
   public async searchWorkItems(input: { provider: TicketProvider; query: string }): Promise<WorkItemSummary[]> {
     if (!input || typeof input !== 'object') throw new Error('Ungültige Suche.');
     const provider = this.ticketProvider(input.provider);
+    // Without a text the search answers with the tickets that changed last: what the picker shows when it opens.
     const query = boundedString(input.query ?? '', 200, 'Suchtext', true);
-    if (!query) return [];
     if (provider === 'azure-devops') return this.azure(false, (connection) => searchAzureWorkItems(connection, query));
     this.assertDocumentProject(); this.assertJira();
     const quoted = (text: string) => `"${text.replace(/[\\"]/g, ' ')}"`;
-    const project = boundedString(this.config.atlassian.jiraProjectKey, 128, 'Jira-Projekt');
-    const jql = /^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(query) ? `key = ${quoted(query.toUpperCase())}` : `project = ${quoted(project)} AND summary ~ ${quoted(`${query}*`)} ORDER BY updated DESC`;
-    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 20, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated'] }) }) as { issues?: Array<Record<string, unknown>> };
+    // A card can show any ticket of the site, so the search looks in every project the account can see. The search
+    // interface of Jira refuses a query without a restriction; without a text that is "changed in the last half year".
+    const jql = /^[A-Za-z][A-Za-z0-9_]*-\d+$/.test(query) ? `key = ${quoted(query.toUpperCase())}` : query ? `summary ~ ${quoted(`${query}*`)} ORDER BY updated DESC` : 'updated >= -180d ORDER BY updated DESC';
+    const response = await this.atlassian('/rest/api/3/search/jql', { method: 'POST', body: JSON.stringify({ jql, maxResults: 100, fields: ['summary', 'description', 'status', 'assignee', 'duedate', 'updated', 'issuetype'] }) }) as { issues?: Array<Record<string, unknown>> };
     return (response.issues ?? []).map((issue) => ({ provider, ...this.jiraIssue(issue) }));
   }
 
@@ -2162,6 +2401,8 @@ export class PluginService {
     const labels = input.labels === undefined ? undefined : this.ticketList(input.labels, 'Labels');
     const components = input.components === undefined ? undefined : this.ticketList(input.components, 'Komponenten');
     const estimate = input.estimate === undefined ? undefined : input.estimate === null ? null : boundedString(input.estimate, 40, 'Schätzung', true);
+    const fixVersions = input.fixVersions === undefined ? undefined : this.ticketList(input.fixVersions, 'Fix-Versionen');
+    const issueType = input.issueType === undefined ? undefined : boundedString(input.issueType, 128, 'Vorgangstyp');
     const basics = { ...(input.title !== undefined ? { title: input.title } : {}), ...(input.description !== undefined ? { description: input.description } : {}), ...(input.assignee !== undefined ? { assignee: input.assignee } : {}) };
     const hasBasics = Object.keys(basics).length > 0;
     if (provider === 'azure-devops') {
@@ -2169,7 +2410,7 @@ export class PluginService {
       // Spaces inside a tag are fine; a semicolon would split it into two.
       if (labels?.some((label) => label.includes(';'))) throw new Error('Ein Label darf in Azure DevOps kein Semikolon enthalten.');
       if (hasBasics) await this.updateAzureWorkItem({ key, ...basics });
-      if (labels !== undefined || components !== undefined || estimate !== undefined) await this.azure(true, (connection) => updateAzureWorkItemDetails(connection, key, { ...(labels !== undefined ? { labels } : {}), ...(components !== undefined ? { components } : {}), ...(estimate !== undefined ? { estimate } : {}) }));
+      if (labels !== undefined || components !== undefined || estimate !== undefined || fixVersions !== undefined || issueType !== undefined) await this.azure(true, (connection) => updateAzureWorkItemDetails(connection, key, { ...(labels !== undefined ? { labels } : {}), ...(components !== undefined ? { components } : {}), ...(estimate !== undefined ? { estimate } : {}), ...(fixVersions !== undefined ? { fixVersions } : {}), ...(issueType !== undefined ? { issueType } : {}) }));
       if (input.status !== undefined) await this.transitionAzureWorkItem({ key, status: input.status });
       return this.azure(false, (connection) => getAzureWorkItem(connection, key));
     }
@@ -2180,6 +2421,8 @@ export class PluginService {
     const fields: Record<string, unknown> = {};
     if (labels !== undefined) fields.labels = labels;
     if (components !== undefined) fields.components = components.map((name) => ({ name }));
+    if (fixVersions !== undefined) fields.fixVersions = fixVersions.map((name) => ({ name }));
+    if (issueType !== undefined) fields.issuetype = { name: issueType };
     if (estimate !== undefined) {
       const storyPointsField = await this.jiraStoryPointsField();
       const text = (estimate ?? '').trim().replace(',', '.');

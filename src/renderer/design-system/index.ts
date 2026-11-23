@@ -27,6 +27,7 @@ export { default as ConnectorMarkerIcon } from './atoms/ConnectorMarkerIcon.vue'
 export { default as AnnotationContent } from './molecules/AnnotationContent.vue';
 export { default as AppDatePicker } from './molecules/AppDatePicker.vue';
 export { default as AppSelect } from './molecules/AppSelect.vue';
+export { default as AppTagField } from './molecules/AppTagField.vue';
 export { default as BpmnDecor } from './molecules/BpmnDecor.vue';
 export { default as TicketCardDecor } from './molecules/TicketCardDecor.vue';
 export { default as ColorPalette } from './molecules/ColorPalette.vue';
