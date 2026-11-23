@@ -28,7 +28,7 @@ import ResourceCardEditor from '@/renderer/design-system/organisms/ResourceCardE
 import ConnectorMarkerIcon from '@/renderer/design-system/atoms/ConnectorMarkerIcon.vue';
 import { dispatchAnnotationFormat, type AnnotationFormatCommand } from '@/renderer/lib/annotation';
 
-type Segment = 'sequence' | 'label-position' | 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'more' | 'actions' | 'route' | 'start' | 'end';
+type Segment = 'sequence' | 'label-position' | 'shape' | 'radius' | 'color' | 'text-color' | 'line' | 'font' | 'size' | 'table' | 'link' | 'textlink' | 'resource' | 'author' | 'align' | 'valign' | 'more' | 'actions' | 'route' | 'start' | 'end';
 
 const store = useWhiteboard();
 const s = store.state;
@@ -327,7 +327,9 @@ const sizeLabel = computed(() => {
   const size = info.value.values.fontSize ?? 20;
   return t(SIZE_PRESETS.find((preset) => preset.value === size)?.label ?? `${size} px`);
 });
+// Each direction has its own button, and each button shows the value that applies (#298).
 const alignIcon = computed<IconName>(() => ALIGNMENTS.find((a) => a.value === info.value.values.textAlign)?.icon ?? 'align-left');
+const verticalAlignIcon = computed<IconName>(() => VERTICAL_ALIGNMENTS.find((a) => a.value === info.value.values.verticalAlign)?.icon ?? 'align-middle');
 type FontFamilyValue = 'sans' | 'roboto' | 'scribbled' | 'mono';
 const FONT_OPTIONS: readonly { value: FontFamilyValue; label: string }[] = [
   { value: 'sans', label: L('Inter (Serifenlos)') },
@@ -621,8 +623,11 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <button v-if="stickyOnly" type="button" class="tool-btn" :disabled="stickyTaskExists || s.transitioning" :aria-label="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" :title="stickyTaskExists ? t('Aufgabe bereits erstellt') : t('Aufgabe erstellen')" @click="createStickyTask"><AppIcon name="file-plus" /></button>
       <template v-if="textCapable && !stickyOnly">
         <span class="sep" aria-hidden="true" />
-        <button :ref="(el) => setTrigger('align', el)" type="button" class="segment" :aria-label="t('Textausrichtung')" :aria-expanded="openSegment === 'align'" :aria-controls="panelId('align')" :title="t('Textausrichtung')" @click="toggle('align')">
+        <button :ref="(el) => setTrigger('align', el)" type="button" class="segment" :aria-label="t('Waagerechte Ausrichtung')" :aria-expanded="openSegment === 'align'" :aria-controls="panelId('align')" :title="t('Waagerechte Ausrichtung')" :data-value="info.mixed.includes('textAlign') ? 'mixed' : info.values.textAlign" @click="toggle('align')">
           <AppIcon :name="alignIcon" /><AppIcon class="chev" name="chevron-down" :size="14" />
+        </button>
+        <button v-if="verticalCapable" :ref="(el) => setTrigger('valign', el)" type="button" class="segment" :aria-label="t('Senkrechte Ausrichtung')" :aria-expanded="openSegment === 'valign'" :aria-controls="panelId('valign')" :title="t('Senkrechte Ausrichtung')" :data-value="info.mixed.includes('verticalAlign') ? 'mixed' : info.values.verticalAlign" @click="toggle('valign')">
+          <AppIcon :name="verticalAlignIcon" /><AppIcon class="chev" name="chevron-down" :size="14" />
         </button>
       </template>
       <template v-if="definition?.widgets?.length">
@@ -655,10 +660,10 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
     :id="panelId(openSegment)"
     ref="popover"
     class="context-popover"
-    :class="{ compact: openSegment === 'align' }"
+    :class="{ compact: openSegment === 'align' || openSegment === 'valign' }"
     role="group"
     data-focus-scope
-    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Textausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'label-position' ? t('Textposition') : openSegment === 'sequence' ? t('Sequenzdiagramm') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
+    :aria-label="openSegment === 'shape' ? t('Form ändern') : openSegment === 'radius' ? t('Eckenradius') : openSegment === 'color' ? t('Farbe') : openSegment === 'text-color' ? t('Schriftfarbe') : openSegment === 'line' ? t('Linie') : openSegment === 'font' ? t('Schriftart') : openSegment === 'size' ? t('Schriftgröße') : openSegment === 'table' ? t('Tabellenstruktur') : openSegment === 'link' ? t('Link') : openSegment === 'textlink' ? t('Link zum Text') : openSegment === 'resource' ? t('Ressourcenkarte bearbeiten') : openSegment === 'author' ? t('Autor bearbeiten') : openSegment === 'align' ? t('Waagerechte Ausrichtung') : openSegment === 'valign' ? t('Senkrechte Ausrichtung') : openSegment === 'actions' ? t('Elementaktionen') : openSegment === 'label-position' ? t('Textposition') : openSegment === 'sequence' ? t('Sequenzdiagramm') : openSegment === 'route' ? t('Linienform') : openSegment === 'start' ? t('Startpunkt') : openSegment === 'end' ? t('Endpunkt') : t('Komponenteneinstellungen')"
     :style="{ left: `${popoverAt.left}px`, top: `${popoverAt.top}px`, maxHeight: popoverAt.maxHeight ? `${popoverAt.maxHeight}px` : undefined }"
     @keydown="onKeydown"
     @compositionstart="store.setInputComposing(true)"
@@ -790,13 +795,12 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
       <label class="field">{{ t('Autor') }}<input v-model="authorDraft" class="ctx-input wide" type="text" :aria-label="t('Autor')" :placeholder="t('Name')" maxlength="240" @change="saveAuthor" @keydown.enter.prevent="saveAuthor" /></label>
     </template>
 
-    <div v-else-if="openSegment === 'align'" class="align-rows">
-      <div class="choices" role="group" :aria-label="t('Waagerechte Ausrichtung')">
-        <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
-      </div>
-      <div v-if="verticalCapable" class="choices" role="group" data-testid="vertical-align" :aria-label="t('Senkrechte Ausrichtung')">
-        <button v-for="align in VERTICAL_ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.verticalAlign === align.value && !info.mixed.includes('verticalAlign')" @click="style({ verticalAlign: align.value })"><AppIcon :name="align.icon" /></button>
-      </div>
+    <div v-else-if="openSegment === 'align'" class="choices" data-testid="horizontal-align">
+      <button v-for="align in ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.textAlign === align.value && !info.mixed.includes('textAlign')" @click="style({ textAlign: align.value })"><AppIcon :name="align.icon" /></button>
+    </div>
+
+    <div v-else-if="openSegment === 'valign'" class="choices" data-testid="vertical-align">
+      <button v-for="align in VERTICAL_ALIGNMENTS" :key="align.value" type="button" class="choice icon-choice" :aria-label="t(align.label)" :title="t(align.label)" :aria-pressed="info.values.verticalAlign === align.value && !info.mixed.includes('verticalAlign')" @click="style({ verticalAlign: align.value })"><AppIcon :name="align.icon" /></button>
     </div>
 
     <div v-else-if="openSegment === 'actions'" class="action-strip">
@@ -1240,12 +1244,6 @@ function formatHeading(level: (typeof HEADING_LEVELS)[number]): void { formatAnn
 
 .choices.column {
   flex-direction: column;
-}
-
-/* Horizontal and vertical alignment: two rows of three, one above the other. */
-.align-rows {
-  display: grid;
-  gap: 4px;
 }
 
 .choice {

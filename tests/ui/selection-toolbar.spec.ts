@@ -79,7 +79,7 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   await expect(bar.getByRole('button', { name: 'Dokumentationslink' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Text bearbeiten' })).toHaveAttribute('aria-pressed', 'true');
   await expect(bar.getByRole('button', { name: 'Form ändern' })).toHaveAttribute('title', /nicht verfügbar/);
-  for (const name of ['Farbe', 'Schriftfarbe', 'Linie', 'Schriftart', 'Textausrichtung']) await expect(bar.getByRole('button', { name, exact: true })).toBeEnabled();
+  for (const name of ['Farbe', 'Schriftfarbe', 'Linie', 'Schriftart', 'Waagerechte Ausrichtung', 'Senkrechte Ausrichtung']) await expect(bar.getByRole('button', { name, exact: true })).toBeEnabled();
 
   // Text ink has its own persisted control and previews without changing the shape outline.
   await bar.getByRole('button', { name: 'Schriftfarbe' }).click();
@@ -94,7 +94,7 @@ test('the toolbar stays usable while editing text, keeps the draft and commits t
   await expect(page.locator('.whiteboard-canvas [data-kind=rectangle] text')).toHaveCount(0);
 
   // Alignment too.
-  await bar.getByRole('button', { name: 'Textausrichtung' }).click();
+  await bar.getByRole('button', { name: 'Waagerechte Ausrichtung' }).click();
   await page.getByRole('button', { name: 'Rechtsbündig', exact: true }).click();
   await expect(editor.locator('xpath=ancestor::div[contains(@class,"text-edit-wrap")]')).toHaveCSS('text-align', 'right');
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
