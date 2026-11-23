@@ -9,7 +9,7 @@ const meta = {
   args: { label: 'Labels', modelValue: ['checkout', 'q1'], options: all, placeholder: 'Label suchen oder eingeben' },
   render: (args) => ({
     components: { AppTagField },
-    setup: () => { const value = ref([...args.modelValue]); const options = ref([...args.options]); const search = (text: string) => { options.value = all.filter((entry) => entry.includes(text.toLowerCase())); }; return { args, value, options, search }; },
+    setup: () => { const value = ref([...(args.modelValue as readonly string[])]); const options = ref([...(args.options as readonly string[])]); const search = (text: string) => { options.value = all.filter((entry) => entry.includes(text.toLowerCase())); }; return { args, value, options, search }; },
     template: '<div style="width:320px;min-height:260px"><AppTagField v-bind="args" v-model="value" :options="options" @search="search" /></div>',
   }),
 } satisfies Meta<typeof AppTagField>;
