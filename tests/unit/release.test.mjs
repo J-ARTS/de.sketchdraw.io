@@ -977,6 +977,16 @@ test('generateReleaseNotes includes all 3 direct download links and SHA-256 chec
   }
 });
 
+test('Mermaid is a build-time dependency: the renderer bundle carries it, the packaged node_modules do not (#306)', () => {
+  // electron-builder packs every entry of `dependencies` with its whole tree into app.asar. Mermaid's tree is 115
+  // packages and about 200 MB; listed there it made the installers of 0.1.10 24 to 45 MB larger than needed.
+  const manifest = JSON.parse(readFileSync(resolve(PROJECT_ROOT, 'package.json'), 'utf8'));
+  assert.equal(manifest.dependencies.mermaid, undefined);
+  assert.equal(manifest.devDependencies.mermaid, '12.3.0');
+  const lock = JSON.parse(readFileSync(resolve(PROJECT_ROOT, 'package-lock.json'), 'utf8'));
+  assert.equal(lock.packages['node_modules/mermaid'].dev, true);
+});
+
 test('CI and Release workflow files preserve all existing tests and enforce release security constraints', () => {
   const ciYaml = readFileSync(resolve(PROJECT_ROOT, '.github/workflows/ci.yml'), 'utf8');
   const releaseYaml = readFileSync(resolve(PROJECT_ROOT, '.github/workflows/release.yml'), 'utf8');

@@ -62,3 +62,9 @@ Die Installer packen `dist` vollständig. Deshalb liefert der Build für reine B
 4. **Alte Bilder bleiben im Dokument.** Jede Neuzeichnung fügt ein Bild hinzu; das vorherige bleibt für „Rückgängig" erhalten und wird nicht entfernt (das gilt für alle Bilder im Dokument, nicht nur für diese).
 5. **P2P und MCP.** Gäste und Agenten sehen Bild und Code. Ändert ein Agent den Code über MCP, wird das Bild nicht neu gezeichnet; das geschieht erst, wenn jemand in der App „Neu zeichnen" wählt.
 6. **Flowcharts, die der eigene Leser nicht versteht,** melden weiterhin ihren Fehler und fallen nicht auf Mermaid zurück.
+
+## Korrektur 23.11.2026: Paketgröße (#306)
+
+Die Angabe „Zuwachs etwa 4 MB“ in diesem Bericht galt nur für das Renderer-Bündel und war für die Installer falsch. `mermaid` stand unter `dependencies`; electron-builder packt solche Einträge mit ihrem ganzen Baum (115 Pakete, rund 200 MB) zusätzlich als `node_modules` ins App-Archiv. Die Installer von v0.1.10 wurden dadurch 24 MB (Windows), 36 MB (Linux) und 45 MB (macOS) größer als die von v0.1.8.
+
+Behoben: `mermaid` steht jetzt unter `devDependencies` (das Renderer-Bündel enthält es weiterhin). Lokal gemessen (Linux, `electron-builder --dir`): `app.asar` 257,7 MB → 90,2 MB; die gepackte App zeichnet Mermaid weiterhin. Die Installer werden erst mit dem nächsten Release kleiner; die Größen der drei Plattformen sind bis dahin nicht gemessen.
