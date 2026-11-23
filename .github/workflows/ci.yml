@@ -88,6 +88,11 @@ jobs:
       - name: Run Node build-lifecycle and release unit tests
         run: node --test tests/unit/*.test.mjs
 
+      # The relay test starts the Worker in the real Workers runtime; elsewhere that test is skipped (#300).
+      - name: Install the Cloudflare relay tooling
+        if: runner.os == 'Linux'
+        run: npm ci --prefix relay/cloudflare
+
       - name: Run Vitest unit tests
         run: npm run test:unit
 
