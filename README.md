@@ -18,11 +18,11 @@ The screenshots show the German interface; the app is available in German and En
 
 ## Download
 
-The latest published release is [v0.1.8](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.8) with three natively verified installers:
+The latest published release is [v0.1.10](https://github.com/J-ARTS/de.sketchdraw.io/releases/tag/v0.1.10) with three natively verified installers:
 
-- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-windows-x64.exe)
-- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-macos-arm64.dmg)
-- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.8/Sketchdraw-0.1.8-linux-x64.deb)
+- [Windows x64 – installer](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.10/Sketchdraw-0.1.10-windows-x64.exe)
+- [macOS Apple Silicon / M1 – DMG](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.10/Sketchdraw-0.1.10-macos-arm64.dmg)
+- [Linux Debian/Ubuntu x64 – DEB](https://github.com/J-ARTS/de.sketchdraw.io/releases/download/v0.1.10/Sketchdraw-0.1.10-linux-x64.deb)
 
 The Windows installer is unsigned; the macOS app is ad-hoc signed and not notarized. Notes on the first start and the native checks that were run are in the release notes and in the [release process](docs/release.md).
 
