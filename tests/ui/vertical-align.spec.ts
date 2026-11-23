@@ -23,23 +23,38 @@ async function textInShape(page: Page) {
   return { top: text.y - shape.y, bottom: shape.y + shape.height - (text.y + text.height), text };
 }
 
-test('the alignment offers top, middle and bottom, and the text moves there', async ({ page }) => {
+test('each direction has its own button with top, middle and bottom or left, centre and right, and the text moves there (#298)', async ({ page }) => {
   await drawRectangle(page, 'Dienst');
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
-  await bar.getByRole('button', { name: 'Textausrichtung' }).click();
   const across = page.getByRole('group', { name: 'Waagerechte Ausrichtung' });
   const down = page.getByRole('group', { name: 'Senkrechte Ausrichtung' });
+  // Two buttons side by side, each with the symbol of the value that applies. A new shape starts centred, across and down.
+  const acrossButton = bar.getByRole('button', { name: 'Waagerechte Ausrichtung', exact: true });
+  const downButton = bar.getByRole('button', { name: 'Senkrechte Ausrichtung', exact: true });
+  await expect(acrossButton).toHaveAttribute('data-value', 'center');
+  await expect(downButton).toHaveAttribute('data-value', 'middle');
+  expect((await downButton.boundingBox())!.x).toBeGreaterThan((await acrossButton.boundingBox())!.x);
+  expect((await downButton.boundingBox())!.height).toBe((await acrossButton.boundingBox())!.height);
+  await acrossButton.click();
   await expect(across.getByRole('button')).toHaveCount(3);
-  await expect(down.getByRole('button')).toHaveCount(3);
-  // A new shape starts centred, across and down.
+  await expect(down).toHaveCount(0);
   await expect(across.getByRole('button', { name: 'Zentriert' })).toHaveAttribute('aria-pressed', 'true');
+  await across.getByRole('button', { name: 'Rechtsbündig' }).click();
+  await expect(acrossButton).toHaveAttribute('data-value', 'right');
+  await across.getByRole('button', { name: 'Zentriert' }).click();
+  // The other button closes this menu and opens its own.
+  await downButton.click();
+  await expect(across).toHaveCount(0);
+  await expect(down.getByRole('button')).toHaveCount(3);
   await expect(down.getByRole('button', { name: 'Mittig' })).toHaveAttribute('aria-pressed', 'true');
+  if (process.env.TICKET_SHOTS) await page.screenshot({ path: '/tmp/shots/align-light.png' });
   const middle = await textInShape(page);
   expect(Math.abs(middle.top - middle.bottom)).toBeLessThan(6);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 
   await down.getByRole('button', { name: 'Unten' }).click();
   await expect(down.getByRole('button', { name: 'Unten' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(downButton).toHaveAttribute('data-value', 'bottom');
   const low = await textInShape(page);
   expect(low.bottom).toBeLessThan(12);
   expect(low.top).toBeGreaterThan(80);
@@ -59,7 +74,7 @@ test('the text is edited where it stands', async ({ page }) => {
   await drawRectangle(page, 'Dienst');
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
   for (const name of ['Unten', 'Oben', 'Mittig']) {
-    await bar.getByRole('button', { name: 'Textausrichtung' }).click();
+    await bar.getByRole('button', { name: 'Senkrechte Ausrichtung' }).click();
     await page.getByRole('group', { name: 'Senkrechte Ausrichtung' }).getByRole('button', { name }).click();
     await page.keyboard.press('Escape');
     const drawn = (await textInShape(page)).text;
@@ -86,8 +101,9 @@ test('text typed on the canvas starts centred around the click', async ({ page }
   expect(Math.abs(text.x + text.width / 2 - 520)).toBeLessThan(3);
 
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
-  await bar.getByRole('button', { name: 'Textausrichtung' }).click();
+  await bar.getByRole('button', { name: 'Waagerechte Ausrichtung' }).click();
   await expect(page.getByRole('group', { name: 'Waagerechte Ausrichtung' }).getByRole('button', { name: 'Zentriert' })).toHaveAttribute('aria-pressed', 'true');
+  await bar.getByRole('button', { name: 'Senkrechte Ausrichtung' }).click();
   await expect(page.getByRole('group', { name: 'Senkrechte Ausrichtung' }).getByRole('button', { name: 'Mittig' })).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -100,9 +116,12 @@ test('a group has a title line and no vertical alignment; dark and English follo
   await page.getByRole('button', { name: 'Rectangle', exact: true }).click();
   await page.mouse.move(360, 300); await page.mouse.down(); await page.mouse.move(560, 440, { steps: 8 }); await page.mouse.up();
   const bar = page.getByRole('toolbar', { name: 'Properties' });
-  await bar.getByRole('button', { name: 'Text alignment' }).click();
+  await bar.getByRole('button', { name: 'Vertical alignment', exact: true }).click();
   const down = page.getByRole('group', { name: 'Vertical alignment' });
   for (const name of ['Top', 'Middle', 'Bottom']) await expect(down.getByRole('button', { name, exact: true })).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
+  if (process.env.TICKET_SHOTS) await page.screenshot({ path: '/tmp/shots/align-dark.png' });
+  await bar.getByRole('button', { name: 'Horizontal alignment', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Horizontal alignment' }).getByRole('button', { name: 'Left-aligned' })).toBeVisible();
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);
 
@@ -110,7 +129,8 @@ test('a group has a title line and no vertical alignment; dark and English follo
   await page.keyboard.press('Escape');
   await page.keyboard.press('ControlOrMeta+g');
   await expect(page.locator('.whiteboard-canvas [data-kind=container]')).toHaveCount(1);
-  await bar.getByRole('button', { name: 'Text alignment' }).click();
+  // A container has the button for across only.
+  await expect(bar.getByRole('button', { name: 'Vertical alignment', exact: true })).toHaveCount(0);
+  await bar.getByRole('button', { name: 'Horizontal alignment', exact: true }).click();
   await expect(page.getByRole('group', { name: 'Horizontal alignment' })).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Vertical alignment' })).toHaveCount(0);
 });

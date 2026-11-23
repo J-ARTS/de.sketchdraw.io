@@ -378,7 +378,6 @@ export const EN: Readonly<Record<string, string>> = {
   'Webadresse': 'Web address',
   'Dokumentationslink': 'Documentation link',
   'Autor bearbeiten': 'Edit author',
-  'Textausrichtung': 'Text alignment',
   'Waagerechte Ausrichtung': 'Horizontal alignment',
   'Senkrechte Ausrichtung': 'Vertical alignment',
   'Oben': 'Top',

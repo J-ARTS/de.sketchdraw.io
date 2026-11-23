@@ -23,8 +23,9 @@ async function draw(page: Page, shape: (typeof SHAPES)[number]) {
   await page.getByTestId('canvas-text-editor').fill(TEXT);
   await page.keyboard.press('Escape');
   const bar = page.getByRole('toolbar', { name: 'Eigenschaften' });
-  await bar.getByRole('button', { name: 'Textausrichtung' }).click();
+  await bar.getByRole('button', { name: 'Waagerechte Ausrichtung' }).click();
   await page.getByRole('group', { name: 'Waagerechte Ausrichtung' }).getByRole('button', { name: shape.across }).click();
+  await bar.getByRole('button', { name: 'Senkrechte Ausrichtung' }).click();
   await page.getByRole('group', { name: 'Senkrechte Ausrichtung' }).getByRole('button', { name: shape.down }).click();
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
 }

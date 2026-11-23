@@ -30,7 +30,8 @@ test('a sticky note is created from the upper toolbar and exposes FigJam-style e
     await expect(bar.getByRole('button', { name, exact: true })).toBeVisible();
   }
   await expect(bar.getByRole('button', { name: 'Linie' })).toHaveCount(0);
-  await expect(bar.getByRole('button', { name: 'Textausrichtung' })).toHaveCount(0);
+  await expect(bar.getByRole('button', { name: 'Waagerechte Ausrichtung' })).toHaveCount(0);
+  await expect(bar.getByRole('button', { name: 'Senkrechte Ausrichtung' })).toHaveCount(0);
   await expect(bar.getByRole('button', { name: 'Link zum Text' })).toBeEnabled();
   await expect(bar.getByRole('button', { name: 'Autor bearbeiten' })).toBeEnabled();
 
