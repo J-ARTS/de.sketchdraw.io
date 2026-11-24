@@ -35,7 +35,7 @@
   "bugs": {
     "url": "https://github.com/J-ARTS/de.sketchdraw.io/issues"
   },
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "FSL-1.1-ALv2",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "engines": {

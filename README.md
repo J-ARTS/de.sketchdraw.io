@@ -12,7 +12,7 @@
 
 ![A whiteboard with sticky notes, a flowchart and a first architecture](docs/images/readme/whiteboard.png)
 
-**Contents:** [Download](#download) · [Features](#features) · [License](#license) · [Development](#development) · [Documentation](#documentation)
+**Contents:** [Download](#download) · [Features](#features) · [License](#license) · [Privacy](#privacy) · [Development](#development) · [Documentation](#documentation)
 
 The screenshots show the German interface; the app is available in German and English.
 
@@ -208,16 +208,20 @@ A ticket from Jira or Azure Boards can stand on the canvas as a card: paste its 
 
 ## License
 
-Sketchdraw is published under the **Sketchdraw End User License Agreement** in [LICENSE](LICENSE). The source code is available, but Sketchdraw is not open source. In short:
+Sketchdraw is published under the **Functional Source License, Version 1.1, ALv2 Future License** (`FSL-1.1-ALv2`) in [LICENSE](LICENSE). The source code is available, but until it converts, Sketchdraw is not open source. In short:
 
 - **Free to use**, privately and at work, on as many devices as you like. What you create with it is yours.
-- **Not for sale.** Sketchdraw may not be sold, rented or offered as a paid service.
-- **No use of the code in commercial products.** The source code, the interface and the artwork may not be built into commercial software or services.
-- **No republication without permission.** Sketchdraw may not be redistributed, mirrored or published elsewhere, changed or unchanged, unless the rights holder has agreed in writing. Linking to this repository is always fine.
+- **Read, change and share the code** for any purpose except a competing one. Copies must keep the license and the copyright notices.
+- **No competing use.** You may not offer Sketchdraw to others in a commercial product or service that substitutes for it or offers the same or substantially similar functionality.
+- **Becomes open source.** Two years after a version is released, that version can also be used under the Apache License 2.0.
 
-The agreement itself is what counts; this list only summarises it. Permission for anything beyond it can be requested through the [issues](https://github.com/J-ARTS/de.sketchdraw.io/issues). Versions up to 0.1.6 were published under the PolyForm Noncommercial License 1.0.0, which continues to apply to those versions.
+The license text itself is what counts; this list only summarises it. Permission for anything beyond it can be requested through the [issues](https://github.com/J-ARTS/de.sketchdraw.io/issues). Versions up to 0.1.6 were published under the PolyForm Noncommercial License 1.0.0 and versions 0.1.7 to 0.1.10 under the Sketchdraw End User License Agreement 1.0; those terms continue to apply to those versions.
 
 The [licensing README](docs/licensing/README.md) explains the terms and the delivery state. Libraries, fonts and icon sets keep their own licenses; see the [third-party notices](THIRD_PARTY_NOTICES.md) and the [icon notices](THIRD_PARTY_ICONS.md).
+
+## Privacy
+
+Sketchdraw has no accounts, no analytics and no telemetry. Documents stay on your device unless you start a collaboration session or connect a plugin. The [privacy policy](docs/PRIVACY.md) ([Datenschutzerklärung auf Deutsch](docs/DATENSCHUTZ.md)) describes which data the app handles and which connections it opens.
 
 ## Development
 

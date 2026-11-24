@@ -1,221 +1,135 @@
-# Sketchdraw End User License Agreement
+# Functional Source License, Version 1.1, ALv2 Future License
 
-Version 1.0, 20 November 2026
+## Abbreviation
 
-Copyright (c) 2026 Jeremy Teichmann (J-ARTS). All rights reserved.
+FSL-1.1-ALv2
 
-This agreement is between you and the licensor about Sketchdraw. Read
-it before you download, install, copy or use the software. If you do
-not agree to it, do not use the software.
+## Notice
 
-## 1. Definitions
+Copyright 2026 Jeremy Teichmann (J-ARTS)
 
-**Software** means Sketchdraw: the desktop application, its installers,
-the session relay, the source code, the documentation and all other
-files of the repository <https://github.com/J-ARTS/de.sketchdraw.io>
-and of its releases, in source and in built form, including updates.
-Third-party components (section 8) are not part of the software in
-this sense.
+## Terms and Conditions
 
-**Licensor** means Jeremy Teichmann (J-ARTS), the holder of the rights
-in the software.
+### Licensor ("We")
 
-**You** means the person who uses the software and, if you use it for
-an organisation, that organisation as well.
+The party offering the Software under these Terms and Conditions.
 
-**Official sources** are the repository named above and its release
-pages.
+### The Software
 
-**Commercial product** means any software, service or other offering
-that is sold, licensed, rented or provided for a fee, that is financed
-by advertising, subscriptions or paid features, or that is otherwise
-offered to third parties with the intention of earning money, whether
-or not it actually earns money.
+The "Software" is each version of the software that we make available under
+these Terms and Conditions, as indicated by our inclusion of these Terms and
+Conditions with the Software.
 
-**Permission** means the prior written permission of the licensor
-(section 6).
+### License Grant
 
-## 2. Acceptance
+Subject to your compliance with this License Grant and the Patents,
+Redistribution and Trademark clauses below, we hereby grant you the right to
+use, copy, modify, create derivative works, publicly perform, publicly display
+and redistribute the Software for any Permitted Purpose identified below.
 
-You accept this agreement by downloading, installing, copying or using
-the software. You may only do these things under this agreement.
+### Permitted Purpose
 
-## 3. What you may do
+A Permitted Purpose is any purpose other than a Competing Use. A Competing Use
+means making the Software available to others in a commercial product or
+service that:
 
-The licensor grants you, free of charge, a worldwide, non-exclusive,
-non-transferable right, which you may not sublicense, to do the
-following for as long as you keep to this agreement:
+1. substitutes for the Software;
 
-1. **Use.** Obtain the software from the official sources, install it
-   on any number of devices and use it, for private purposes and for
-   the internal purposes of your organisation, including in the course
-   of paid work. Copies made to install the software on the devices of
-   your own organisation are part of this use.
-2. **Your own content.** Everything you create with the software, such
-   as diagrams, documents and exports, belongs to you. You may use it
-   for any purpose, including commercially.
-3. **Study and adapt for yourself.** Read the source code, build the
-   software from it and change it for your own use as described in
-   number 1. You may not pass on changed versions (section 4.3).
-4. **Agent skills.** Install the agent skills that come with the
-   software in your own agent tools and keep copies of them in
-   repositories of your organisation that are not public.
-5. **Contribute.** Create a copy of the repository on the platform
-   that hosts it for the sole purpose of preparing and proposing
-   changes to the software to the licensor.
+2. substitutes for any other product or service we offer using the Software
+   that exists as of the date we make the Software available; or
 
-## 4. What you may not do
+3. offers the same or substantially similar functionality as the Software.
 
-Without permission you may not do any of the following, either
-yourself or through others.
+Permitted Purposes specifically include using the Software:
 
-### 4.1 No sale
+1. for your internal use and access;
 
-You may not sell, rent, lease or lend the software, license it for a
-fee, or otherwise ask for or accept payment or another consideration
-for the software or for access to it. This applies to the software
-alone, as part of a bundle, preinstalled on a device and as a hosted
-or managed service.
+2. for non-commercial education;
 
-### 4.2 No use of the code in commercial products
+3. for non-commercial research; and
 
-You may not use, copy, adapt, translate into another programming
-language or otherwise build on the source code of the software, or on
-any part of it, in a commercial product. This applies to the code, the
-user interface and its design system, the artwork and the
-documentation, and it applies whether or not the part has been changed.
+4. in connection with professional services that you provide to a licensee
+   using the Software in accordance with these Terms and Conditions.
 
-Reading and writing Sketchdraw's file formats in your own software, and
-connecting your own software to Sketchdraw through its documented
-interfaces, is not a use of the code in this sense.
+### Patents
 
-### 4.3 No republication
+To the extent your use for a Permitted Purpose would necessarily infringe our
+patents, the license grant above includes a license under our patents. If you
+make a claim against any party that the Software infringes or contributes to
+the infringement of any patent, then your patent license to the Software ends
+immediately.
 
-You may not publish, distribute, mirror or otherwise make available to
-third parties the software or any part of it, changed or unchanged, in
-source or in built form. This includes uploading it to another
-repository, a package registry, an app store, a download portal or a
-file-sharing service, and offering it under another name.
+### Redistribution
 
-You may always point others to the official sources.
+The Terms and Conditions apply to all copies, modifications and derivatives of
+the Software.
 
-### 4.4 Further restrictions
+If you redistribute any copies, modifications or derivatives of the Software,
+you must include a copy of or a link to these Terms and Conditions and not
+remove any copyright notices provided in or with the Software.
 
-You may not:
+### Disclaimer
 
-1. remove, hide or change copyright notices, this agreement or the
-   third-party notices in the software;
-2. use the name "Sketchdraw", the logo or the name of the licensor for
-   your own products or services, or in a way that suggests the
-   licensor supports or endorses you;
-3. grant others rights in the software, or transfer this agreement;
-4. use the software to break the law or the rights of others.
+THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WITHOUT LIMITATION WARRANTIES OF FITNESS FOR A PARTICULAR
+PURPOSE, MERCHANTABILITY, TITLE OR NON-INFRINGEMENT.
 
-## 5. Platform terms
+IN NO EVENT WILL WE HAVE ANY LIABILITY TO YOU ARISING OUT OF OR RELATED TO THE
+SOFTWARE, INCLUDING INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES,
+EVEN IF WE HAVE BEEN INFORMED OF THEIR POSSIBILITY IN ADVANCE.
 
-Nothing in this agreement limits rights that the terms of the platform
-hosting the repository give you directly, for example to view the
-repository there and to create a copy of it on that platform. Such a
-copy may not be used for anything that section 4 prohibits.
+### Trademarks
 
-## 6. Permission
+Except for displaying the License Details and identifying us as the origin of
+the Software, you have no right under these Terms and Conditions to use our
+trademarks, trade names, service marks or product names.
 
-The licensor can allow what section 4 prohibits. Ask through the
-repository (<https://github.com/J-ARTS/de.sketchdraw.io/issues>) or the
-licensor's profile (<https://github.com/J-ARTS>). Permission is only
-valid if the licensor gives it in writing (text form, for example an
-e-mail or a signed document), for the specific use named in it. Silence
-is not permission.
+## Grant of Future License
 
-## 7. Contributions
+We hereby irrevocably grant you an additional license to use the Software under
+the Apache License, Version 2.0 that is effective on the second anniversary of
+the date we make the Software available. On or after that date, you may use the
+Software under the Apache License, Version 2.0, in which case the following
+will apply:
 
-If you propose changes to the software to the licensor, you keep your
-rights in them. You grant the licensor a worldwide, perpetual,
-irrevocable, non-exclusive, royalty-free right to use, change, publish
-and distribute your contribution as part of the software and to
-license it to others under this agreement or under other terms. You
-confirm that you are entitled to grant this right.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License.
 
-## 8. Third-party components
+You may obtain a copy of the License at
 
-The software contains and uses components of third parties, for
-example libraries, fonts and icon sets. They remain under their own
-licences, which are named in the section "Third-Party Notices" below,
-in `THIRD_PARTY_NOTICES.md`, in `THIRD_PARTY_ICONS.md` and in the
-packages themselves. This agreement does not limit the rights those
-licences give you in these components, and it does not give you rights
-in the names and trademarks of their owners.
+http://www.apache.org/licenses/LICENSE-2.0
 
-## 9. Earlier versions
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
 
-Versions of the software that the licensor published before the date
-of this agreement were published under the PolyForm Noncommercial
-License 1.0.0. For copies of those versions, that licence continues to
-apply. This agreement applies to Sketchdraw 0.1.7 and all later
+---
+
+# Notes on this repository (not part of the license)
+
+The text above is the Functional Source License, Version 1.1, ALv2
+Future License, unchanged except for the notice line. It is published
+at <https://fsl.software>. The SPDX identifier is `FSL-1.1-ALv2`.
+
+**Earlier versions.** Versions of Sketchdraw up to and including 0.1.6
+were published under the PolyForm Noncommercial License 1.0.0. Versions
+0.1.7 to 0.1.10 were published under the Sketchdraw End User License
+Agreement, Version 1.0 (20 November 2026). For copies of those
+versions, the terms they were published with continue to apply. The
+Terms and Conditions above apply to Sketchdraw 0.1.11 and all later
 versions, and to every revision of the repository that contains this
 file.
 
-## 10. Ownership
-
-The software is licensed, not sold. The licensor keeps all rights in
-the software that this agreement does not expressly grant.
-
-## 11. Updates and support
-
-The licensor may change, update or stop offering the software at any
-time and does not owe support, maintenance or updates. The desktop
-application can ask the official sources whether a newer version
-exists.
-
-## 12. End of your rights
-
-Your rights under this agreement end automatically if you do something
-that section 4 prohibits. They also end if you break another term of
-this agreement and do not put this right within 30 days after the
-licensor has told you about it. When your rights end, you must stop
-using the software and delete all copies of it. The licensor can
-restore your rights in writing. Sections 7 and 10 and sections 13 to 15
-continue to apply.
-
-## 13. No warranty
-
-The software is provided free of charge and as it is. As far as the
-law allows, the licensor gives no warranty and makes no promise about
-the software, in particular not that it is free of errors, fit for a
-particular purpose, or that it does not lose data. You are responsible
-for backups of your documents. The licensor is liable for defects only
-if the licensor has fraudulently concealed them.
-
-## 14. Liability
-
-The licensor is liable without limit for intent and gross negligence,
-for injury to life, body or health, and where the law does not allow
-liability to be excluded, for example under product liability law. In
-all other cases the licensor is not liable, as far as the law allows,
-for any damage arising from the software or from its use, including
-lost data, lost profit and interruption of business.
-
-## 15. General terms
-
-1. This agreement is governed by the law of the Federal Republic of
-   Germany, without its conflict-of-law rules and without the United
-   Nations Convention on Contracts for the International Sale of Goods.
-   If you are a consumer, the mandatory consumer protection rules of
-   the country where you live continue to protect you.
-2. If a term of this agreement is or becomes invalid, the other terms
-   stay in force.
-3. This agreement is the whole agreement between you and the licensor
-   about the software. The licensor may publish new versions of this
-   agreement for later versions of the software; a version of the
-   software stays under the agreement it was published with.
-4. This English text is the binding one. Translations and summaries
-   are for convenience only.
+**Future license.** Under the section "Grant of Future License", each
+version becomes available under the Apache License, Version 2.0 on the
+second anniversary of the date it was made available.
 
 ---
 
 # Third-Party Notices
 
-The agreement above ends at the line above this section. It covers
+The license above ends at the line above this section. It covers
 Sketchdraw itself. The following artwork is
 bundled with Sketchdraw and is not licensed under those terms:
 

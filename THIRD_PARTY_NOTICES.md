@@ -1,6 +1,6 @@
 # Third-party software notices
 
-Sketchdraw is published under the Sketchdraw End User License Agreement (see `LICENSE`). The following direct runtime dependencies added for collaborative editing are separately available under the MIT License. Their licenses remain applicable to those packages.
+Sketchdraw is published under the Functional Source License, Version 1.1, ALv2 Future License (`FSL-1.1-ALv2`, see `LICENSE`). The following direct runtime dependencies added for collaborative editing are separately available under the MIT License. Their licenses remain applicable to those packages.
 
 | Package | Pinned version | License | Purpose |
 | --- | --- | --- | --- |
