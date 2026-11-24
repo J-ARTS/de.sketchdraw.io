@@ -1,0 +1,78 @@
+name: Store package
+
+# Builds the Windows package for the Microsoft Store (AppX/MSIX container, #310). The Store signs the package itself
+# after certification, so no certificate is configured here. The package is an artifact of the run and is not part
+# of the GitHub release. The identity values come from the Partner Center (Product identity) and are stored as
+# repository variables (Settings > Secrets and variables > Actions > Variables); they are not secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to package'
+        required: true
+        default: 'main'
+        type: string
+  workflow_call:
+    inputs:
+      commit_sha:
+        description: 'Verified commit to package'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.16.0'
+
+jobs:
+  package-store:
+    name: Package Microsoft Store AppX (win / x64)
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Checkout revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || inputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install pinned dependencies
+        run: npm ci
+
+      - name: Build renderer, Electron main/preload, and MCP adapter bundles
+        run: npm run build
+
+      - name: Package AppX for the Store (--publish never)
+        shell: bash
+        env:
+          STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
+          STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
+          STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.STORE_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          for name in STORE_IDENTITY_NAME STORE_PUBLISHER STORE_PUBLISHER_DISPLAY_NAME; do
+            if [ -z "${!name}" ]; then
+              echo "::error::The repository variable $name is not set. Copy it from the Partner Center (Product identity)."
+              exit 1
+            fi
+          done
+          npx electron-builder --config electron-builder.store.json --win appx --x64 --publish never
+
+      - name: List the package
+        shell: bash
+        run: ls -la release/*.appx
+
+      - name: Upload Store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-appx-win-x64
+          path: release/*.appx
+          if-no-files-found: error
+          retention-days: 30

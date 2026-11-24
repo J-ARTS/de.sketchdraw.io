@@ -185,6 +185,18 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  package-store:
+    name: Microsoft Store Package (runs once the Store variables are set)
+    needs:
+      - preflight
+      - ci-verification
+    if: ${{ vars.STORE_IDENTITY_NAME != '' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/store-package.yml
+    with:
+      commit_sha: ${{ needs.preflight.outputs.commit_sha }}
+
   publish-release:
     name: Validate All 3 Installers & Publish GitHub Release
     needs:

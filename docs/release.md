@@ -99,3 +99,14 @@ Unter Ubuntu 24.04 benötigen nicht installierte Electron-Binaries eine gezielte
 Der DEB-Installer bringt bereits das entsprechende Electron-Builder-Profil für den installierten `/opt/Sketchdraw`-Pfad mit und registriert es im Installationsskript. Die reine Testextraktion führt dieses Skript nicht aus; deshalb braucht der Smoke seinen temporären Pfad. Auf Entwicklerrechnern nimmt der CI-Helfer keine privilegierten Änderungen vor. Frühere Linux-Backend-/P2P-Läufe mit Playwrights Standardoption gelten ausdrücklich nicht als Sandboxnachweis; die korrigierten Tests verlangen `chromiumSandbox: true` und das Fehlen des Abschalters.
 
 Profilnamen enthalten eine zufällige Run-ID; das Laden verwendet `--add` und überschreibt kein vorhandenes Profil. Der Testwrapper beendet bei SIGINT/SIGTERM seine eigene Prozessgruppe vor dem Entladen. SIGKILL oder ein zerstörter Runner können keinen JavaScript-Cleanup ausführen; die Pipeline verwendet deshalb wegwerfbare GitHub-hosted Runner.
+
+## Microsoft-Store-Paket (#310)
+
+Für den Microsoft Store wird Windows zusätzlich als AppX/MSIX-Paket gebaut. Der NSIS-Installer der GitHub-Releases bleibt unverändert; das Store-Paket gehört nicht zu den drei veröffentlichten Installern und wird von `validate-artifacts` nicht erfasst.
+
+- **Konfiguration:** `electron-builder.store.json` erweitert `electron-builder.json` um den Abschnitt `appx`. Die Logos liegen in `build/appx/` (aus dem App-Icon abgeleitet). Das Store-Listing-Bild (1:1, 1080 px) liegt in `docs/store/`.
+- **Identität:** Die drei Werte aus dem Partner Center (Produktidentität) stehen als Repository-Variablen, nicht als Secrets: `STORE_IDENTITY_NAME` (`Package/Identity/Name`), `STORE_PUBLISHER` (`Package/Identity/Publisher`, `CN=…`) und `STORE_PUBLISHER_DISPLAY_NAME`.
+- **Signatur:** Keine. Der Store signiert das Paket nach der Zertifizierung selbst.
+- **Workflow:** `.github/workflows/store-package.yml` ist manuell startbar (Branch, Tag oder Commit) und wird von `release.yml` aufgerufen, sobald `STORE_IDENTITY_NAME` gesetzt ist. Das Ergebnis ist das Artefakt `store-appx-win-x64` (30 Tage). Das Release wird davon nicht blockiert.
+- **Einreichen:** Das `.appx` im Partner Center unter „Pakete" hochladen. Vorher lokal mit dem Windows App Certification Kit prüfen; das läuft nicht in der Pipeline.
+- **Version:** Der Store verlangt eine vierteilige Version mit letzter Stelle 0 (`0.1.11` wird `0.1.11.0`) und bei jeder Einreichung eine höhere als die vorherige.
