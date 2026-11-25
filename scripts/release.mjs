@@ -447,6 +447,37 @@ export function resolveSigningConfiguration(platformKey, env = process.env) {
   }
 
   if (platformKey === 'win') {
+    // Azure Artifact Signing (#311): electron-builder signs the app and the installer itself through the
+    // TrustedSigning PowerShell module. The pipeline logs in beforehand (OIDC); no secret is needed here.
+    // All four values come from repository variables and are not secrets. Electron Builder prefers this
+    // over a certificate, so a leftover CSC value cannot change the signer.
+    const azureSigning = {
+      endpoint: env.AZURE_SIGNING_ENDPOINT,
+      codeSigningAccountName: env.AZURE_SIGNING_ACCOUNT,
+      certificateProfileName: env.AZURE_SIGNING_PROFILE,
+      publisherName: env.AZURE_SIGNING_PUBLISHER
+    };
+    const azureKeys = Object.keys(azureSigning);
+    const azureSet = azureKeys.filter(key => hasNonEmptyEnv(azureSigning, key));
+    if (azureSet.length > 0 && azureSet.length < azureKeys.length) {
+      throw new Error(
+        'Azure Artifact Signing is only partly configured: set all of AZURE_SIGNING_ENDPOINT, ' +
+        'AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE and AZURE_SIGNING_PUBLISHER, or none of them.'
+      );
+    }
+    if (azureSet.length === azureKeys.length) {
+      return {
+        mode: 'azure-artifact-signed',
+        signed: true,
+        notarized: false,
+        summary: 'Authenticode signed with Azure Artifact Signing',
+        extraCliArgs: azureKeys.map(key => `-c.win.azureSignOptions.${key}=${azureSigning[key].trim()}`),
+        envOverrides: {
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        }
+      };
+    }
+
     const hasWinCert = hasNonEmptyEnv(env, 'WIN_CSC_LINK') || hasNonEmptyEnv(env, 'CSC_LINK');
     if (hasWinCert) {
       return {

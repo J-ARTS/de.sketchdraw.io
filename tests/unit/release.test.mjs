@@ -359,6 +359,40 @@ test('resolveSigningConfiguration uses honest ad-hoc/unsigned defaults and enabl
   assert.equal(winSigned.signed, true);
 });
 
+test('resolveSigningConfiguration signs Windows with Azure Artifact Signing only when all four values are set', () => {
+  const azure = {
+    AZURE_SIGNING_ENDPOINT: 'https://weu.codesigning.azure.net',
+    AZURE_SIGNING_ACCOUNT: 'sketchdraw-signing',
+    AZURE_SIGNING_PROFILE: 'sketchdraw-public',
+    AZURE_SIGNING_PUBLISHER: 'CN=Example GmbH, O=Example GmbH, L=Stuttgart, C=DE'
+  };
+  const signed = resolveSigningConfiguration('win', azure);
+  assert.equal(signed.mode, 'azure-artifact-signed');
+  assert.equal(signed.signed, true);
+  assert.equal(signed.notarized, false);
+  assert.deepEqual(signed.extraCliArgs, [
+    '-c.win.azureSignOptions.endpoint=https://weu.codesigning.azure.net',
+    '-c.win.azureSignOptions.codeSigningAccountName=sketchdraw-signing',
+    '-c.win.azureSignOptions.certificateProfileName=sketchdraw-public',
+    '-c.win.azureSignOptions.publisherName=CN=Example GmbH, O=Example GmbH, L=Stuttgart, C=DE'
+  ]);
+
+  // Unset repository variables arrive as empty strings and must keep the unsigned default.
+  const empty = resolveSigningConfiguration('win', {
+    AZURE_SIGNING_ENDPOINT: '', AZURE_SIGNING_ACCOUNT: '', AZURE_SIGNING_PROFILE: '', AZURE_SIGNING_PUBLISHER: ''
+  });
+  assert.deepEqual(empty, resolveSigningConfiguration('win', {}));
+  assert.equal(empty.mode, 'unsigned');
+
+  // A half-configured signer must fail loudly instead of shipping an unsigned installer.
+  assert.throws(() => resolveSigningConfiguration('win', { AZURE_SIGNING_ENDPOINT: azure.AZURE_SIGNING_ENDPOINT }),
+    /only partly configured/);
+
+  // Other platforms ignore the Azure values.
+  assert.equal(resolveSigningConfiguration('linux', azure).mode, 'unsigned');
+  assert.equal(resolveSigningConfiguration('mac', azure).mode, 'adhoc-unsigned');
+});
+
 test('resolveSigningConfiguration accepts a notarization profile from the default macOS keychain', () => {
   const signingIdentity = {
     CSC_NAME: 'Developer ID Application: Test (TEAM)'

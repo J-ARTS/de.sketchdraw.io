@@ -65,8 +65,14 @@ jobs:
       - ci-verification
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    # A fixed environment gives the OIDC token one subject (repo:<owner>/<repo>:environment:release) for tag
+    # pushes and manual runs alike, so the Azure federated credential needs only one entry (#311).
+    environment: release
     permissions:
       contents: read
+      # Only used by the Windows leg to log in to Azure without a secret (OIDC, #311). A token is
+      # only issued when a step asks for one.
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -143,8 +149,22 @@ jobs:
           DEBUG: pw:browser
         run: npm run test:electron
 
+      # Azure Artifact Signing (#311, docs/signing/azure-artifact-signing.md). Runs only for the Windows installer and
+      # only once the repository variables exist; without them the installer stays unsigned as before.
+      - name: Log in to Azure for Artifact Signing (OIDC)
+        if: ${{ matrix.platform == 'win' && vars.AZURE_SIGNING_ENDPOINT != '' }}
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
       - name: Package platform installer (--publish never) and stage verified bundle
         env:
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+          AZURE_SIGNING_PUBLISHER: ${{ vars.AZURE_SIGNING_PUBLISHER }}
           TARGET_PLATFORM: ${{ matrix.platform }}
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
           RELEASE_COMMIT: ${{ needs.preflight.outputs.commit_sha }}
