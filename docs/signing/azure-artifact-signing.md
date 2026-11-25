@@ -13,7 +13,7 @@ Kosten: Basic-Tarif 9,99 USD pro Monat für bis zu 5.000 Signaturen. Es gibt kei
 ## 1. Azure einrichten (nur im Portal möglich)
 
 1. **Resource Provider registrieren:** Subscriptions → deine Subscription → Resource providers → `Microsoft.CodeSigning` → Register.
-2. **Artifact-Signing-Konto anlegen:** Suche „Artifact Signing Accounts" → Create. Region **West Europe**, Tarif Basic. Der Name ist 3 bis 24 Zeichen lang, global eindeutig und darf nicht mit „one" beginnen. Der Endpoint für West Europe ist `https://weu.codesigning.azure.net`. Er muss zur Region des Kontos passen, sonst folgt „403 Forbidden".
+2. **Artifact-Signing-Konto anlegen:** Suche „Artifact Signing Accounts" → Create. Region nach Wahl (North Europe und West Europe sind möglich), Tarif Basic. Der Name ist 3 bis 24 Zeichen lang, global eindeutig und darf nicht mit „one" beginnen. Den Endpoint zeigt die Übersicht des Kontos als „Account URI" (North Europe: `https://neu.codesigning.azure.net`, West Europe: `https://weu.codesigning.azure.net`). Er muss zur Region des Kontos passen, sonst folgt „403 Forbidden".
 3. **Identitätsvalidierung:** Konto → Identity validations → New Identity → Organization → Public. Du brauchst dafür die Rolle „Artifact Signing Identity Verifier" auf dem Konto. Die Namen müssen exakt dem Ausweis des Vertreters entsprechen. Die primäre E-Mail-Adresse muss ein überwachtes Postfach auf der Firmendomain sein, der Bestätigungslink läuft nach sieben Tagen ab.
 4. **Zertifikatsprofil:** Nach „Completed": Konto → Certificate profiles → Create → Typ „Public Trust" → Namen vergeben → unter „Verified CN and O" die Identität wählen. Die Vorschau („Certificate Subject Preview") zeigt den **CN**, den du als Herausgebername brauchst.
 
@@ -50,7 +50,7 @@ Settings → Secrets and variables → Actions → **Variables** (keine Secrets,
 | `AZURE_CLIENT_ID` | Application (client) ID der App `sketchdraw-release` |
 | `AZURE_TENANT_ID` | Verzeichnis-(Tenant-)ID |
 | `AZURE_SUBSCRIPTION_ID` | ID der Subscription |
-| `AZURE_SIGNING_ENDPOINT` | `https://weu.codesigning.azure.net` |
+| `AZURE_SIGNING_ENDPOINT` | Account URI aus der Übersicht des Kontos, z. B. `https://neu.codesigning.azure.net` |
 | `AZURE_SIGNING_ACCOUNT` | Name des Artifact-Signing-Kontos |
 | `AZURE_SIGNING_PROFILE` | Name des Zertifikatsprofils |
 | `AZURE_SIGNING_PUBLISHER` | CN aus der Certificate Subject Preview |
